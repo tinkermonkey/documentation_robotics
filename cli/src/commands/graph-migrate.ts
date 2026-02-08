@@ -14,10 +14,7 @@ import {
   GraphFormat,
   type GraphMigrationResult,
 } from "../export/graph-migration.js";
-import {
-  LadybugMigrationService,
-  type LadybugDocument,
-} from "../export/ladybug-migration.js";
+import { LadybugMigrationService, type LadybugDocument } from "../export/ladybug-migration.js";
 
 /**
  * Graph migration command options
@@ -38,18 +35,14 @@ export interface GraphMigrateOptions {
 /**
  * Graph migrate command handler
  */
-export async function graphMigrateCommand(
-  options: GraphMigrateOptions
-): Promise<void> {
+export async function graphMigrateCommand(options: GraphMigrateOptions): Promise<void> {
   try {
     // Load model
     const model = await Model.load(options.model || process.cwd());
 
     console.log(ansis.bold(`\n📊 Graph Database Migration\n`));
     console.log(
-      ansis.cyan(
-        `Transforming model to ${ansis.bold(options.format.toUpperCase())} format`
-      )
+      ansis.cyan(`Transforming model to ${ansis.bold(options.format.toUpperCase())} format`)
     );
     console.log();
 
@@ -92,9 +85,7 @@ export async function graphMigrateCommand(
         break;
 
       default:
-        console.error(
-          ansis.red(`Error: Unsupported format: ${options.format}`)
-        );
+        console.error(ansis.red(`Error: Unsupported format: ${options.format}`));
         console.error("");
         console.error("Supported formats:");
         console.error("  - neo4j    : Neo4j Cypher script");
@@ -153,7 +144,11 @@ async function migrateToNeo4j(
   );
 
   if (options.dryRun) {
-    console.log(ansis.yellow(`\n[DRY RUN] Would write ${sampleCypherScript.length} characters to ${outputPath}\n`));
+    console.log(
+      ansis.yellow(
+        `\n[DRY RUN] Would write ${sampleCypherScript.length} characters to ${outputPath}\n`
+      )
+    );
     console.log(ansis.dim("--- Preview (first 500 chars) ---"));
     console.log(sampleCypherScript.substring(0, 500));
     console.log(ansis.dim("--- End Preview ---\n"));
@@ -214,7 +209,9 @@ async function migrateToLadybug(
   const jsonContent = ladybugService.serializeToJson(sampleDocument);
 
   if (options.dryRun) {
-    console.log(ansis.yellow(`\n[DRY RUN] Would write ${jsonContent.length} characters to ${outputPath}\n`));
+    console.log(
+      ansis.yellow(`\n[DRY RUN] Would write ${jsonContent.length} characters to ${outputPath}\n`)
+    );
     console.log(ansis.dim("--- Preview (first 500 chars) ---"));
     console.log(jsonContent.substring(0, 500));
     console.log(ansis.dim("--- End Preview ---\n"));
@@ -266,7 +263,9 @@ async function migrateToGremlin(
   );
 
   if (options.dryRun) {
-    console.log(ansis.yellow(`\n[DRY RUN] Would write ${gremlinScript.length} characters to ${outputPath}\n`));
+    console.log(
+      ansis.yellow(`\n[DRY RUN] Would write ${gremlinScript.length} characters to ${outputPath}\n`)
+    );
     console.log(ansis.dim("--- Preview (first 500 chars) ---"));
     console.log(gremlinScript.substring(0, 500));
     console.log(ansis.dim("--- End Preview ---\n"));
@@ -320,22 +319,13 @@ async function migrateToGraphML(
 /**
  * Display migration result summary
  */
-function displayMigrationResult(
-  result: GraphMigrationResult,
-  formatName: string
-): void {
+function displayMigrationResult(result: GraphMigrationResult, formatName: string): void {
   console.log(ansis.dim(`${formatName} Migration Summary:`));
-  console.log(
-    ansis.dim(`  Nodes processed: ${ansis.cyan(result.nodeCount.toString())}`)
-  );
-  console.log(
-    ansis.dim(`  Edges processed: ${ansis.cyan(result.edgeCount.toString())}`)
-  );
+  console.log(ansis.dim(`  Nodes processed: ${ansis.cyan(result.nodeCount.toString())}`));
+  console.log(ansis.dim(`  Edges processed: ${ansis.cyan(result.edgeCount.toString())}`));
 
   if (result.layersProcessed.length > 0) {
-    console.log(
-      ansis.dim(`  Layers: ${ansis.cyan(result.layersProcessed.join(", "))}`)
-    );
+    console.log(ansis.dim(`  Layers: ${ansis.cyan(result.layersProcessed.join(", "))}`));
   }
 
   if (result.warnings.length > 0) {
@@ -344,9 +334,7 @@ function displayMigrationResult(
       console.log(ansis.dim(`    - ${w}`));
     });
     if (result.warnings.length > 3) {
-      console.log(
-        ansis.dim(`    ... and ${result.warnings.length - 3} more`)
-      );
+      console.log(ansis.dim(`    ... and ${result.warnings.length - 3} more`));
     }
   }
 }
@@ -361,12 +349,8 @@ function displayCompletionStats(
 ): void {
   console.log();
   console.log(ansis.green("✓ Migration completed successfully"));
-  console.log(
-    ansis.dim(`  Time: ${duration}ms`)
-  );
-  console.log(
-    ansis.dim(`  Output: ${path.relative(process.cwd(), outputPath)}`)
-  );
+  console.log(ansis.dim(`  Time: ${duration}ms`));
+  console.log(ansis.dim(`  Output: ${path.relative(process.cwd(), outputPath)}`));
 }
 
 /**
@@ -383,24 +367,16 @@ function generateSampleCypherScript(
   lines.push(`// Generated from Documentation Robotics Model: ${modelName}`);
   lines.push(`// Nodes: ${nodeCount}, Edges: ${edgeCount}`);
   lines.push("//");
-  lines.push(
-    "// Load this script into Neo4j using: neo4j-admin import --from-uri file:///"
-  );
+  lines.push("// Load this script into Neo4j using: neo4j-admin import --from-uri file:///");
   lines.push("");
 
   lines.push("// Create constraints for unique node IDs");
-  lines.push(
-    "CREATE CONSTRAINT element_id IF NOT EXISTS FOR (n:Element) REQUIRE n.id IS UNIQUE;"
-  );
+  lines.push("CREATE CONSTRAINT element_id IF NOT EXISTS FOR (n:Element) REQUIRE n.id IS UNIQUE;");
   lines.push("");
 
   lines.push("// Create indexes for common queries");
-  lines.push(
-    "CREATE INDEX node_layer IF NOT EXISTS FOR (n:Element) ON (n.layer);"
-  );
-  lines.push(
-    "CREATE INDEX node_type IF NOT EXISTS FOR (n:Element) ON (n.type);"
-  );
+  lines.push("CREATE INDEX node_layer IF NOT EXISTS FOR (n:Element) ON (n.layer);");
+  lines.push("CREATE INDEX node_type IF NOT EXISTS FOR (n:Element) ON (n.type);");
   lines.push("");
 
   lines.push("// Note: Node and edge data should be loaded using CSV import");

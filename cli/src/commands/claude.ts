@@ -5,9 +5,9 @@
  * Provides subcommands for install, upgrade, remove, status, and list operations.
  */
 
-import { Command } from 'commander';
-import { ClaudeIntegrationManager } from '../integrations/claude-manager.js';
-import { CLIError } from '../utils/errors.js';
+import { Command } from "commander";
+import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
+import { CLIError } from "../utils/errors.js";
 
 /**
  * Register all Claude integration subcommands
@@ -20,9 +20,7 @@ import { CLIError } from '../utils/errors.js';
  *   dr claude list
  */
 export function claudeCommands(program: Command): void {
-  const claude = program
-    .command('claude')
-    .description('Manage Claude Code integration files');
+  const claude = program.command("claude").description("Manage Claude Code integration files");
 
   /**
    * Install subcommand
@@ -31,16 +29,16 @@ export function claudeCommands(program: Command): void {
    * Supports component-specific filtering via flags
    */
   claude
-    .command('install')
-    .description('Install Claude Code integration files')
-    .option('--reference-only', 'Install only reference sheets')
-    .option('--commands-only', 'Install only commands')
-    .option('--agents-only', 'Install only agents')
-    .option('--skills-only', 'Install only skills')
-    .option('--templates-only', 'Install only templates')
-    .option('-f, --force', 'Skip confirmation prompts')
+    .command("install")
+    .description("Install Claude Code integration files")
+    .option("--reference-only", "Install only reference sheets")
+    .option("--commands-only", "Install only commands")
+    .option("--agents-only", "Install only agents")
+    .option("--skills-only", "Install only skills")
+    .option("--templates-only", "Install only templates")
+    .option("-f, --force", "Skip confirmation prompts")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr claude install                    # Install all components
@@ -53,11 +51,11 @@ Examples:
 
       // Build component filter from flags
       const components: string[] = [];
-      if (options.referenceOnly) components.push('reference_sheets');
-      if (options.commandsOnly) components.push('commands');
-      if (options.agentsOnly) components.push('agents');
-      if (options.skillsOnly) components.push('skills');
-      if (options.templatesOnly) components.push('templates');
+      if (options.referenceOnly) components.push("reference_sheets");
+      if (options.commandsOnly) components.push("commands");
+      if (options.agentsOnly) components.push("agents");
+      if (options.skillsOnly) components.push("skills");
+      if (options.templatesOnly) components.push("templates");
 
       try {
         await manager.install({
@@ -65,10 +63,7 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        throw new CLIError(
-          error instanceof Error ? error.message : String(error),
-          1
-        );
+        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
       }
     });
 
@@ -79,12 +74,12 @@ Examples:
    * Supports dry-run mode to preview changes without modifying files.
    */
   claude
-    .command('upgrade')
-    .description('Upgrade installed Claude Code integration')
-    .option('--dry-run', 'Preview changes without applying them')
-    .option('-f, --force', 'Skip confirmation prompts')
+    .command("upgrade")
+    .description("Upgrade installed Claude Code integration")
+    .option("--dry-run", "Preview changes without applying them")
+    .option("-f, --force", "Skip confirmation prompts")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr claude upgrade              # Check for upgrades and prompt to apply
@@ -100,10 +95,7 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        throw new CLIError(
-          error instanceof Error ? error.message : String(error),
-          1
-        );
+        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
       }
     });
 
@@ -114,16 +106,16 @@ Examples:
    * Supports component-specific removal via flags
    */
   claude
-    .command('remove')
-    .description('Remove Claude Code integration files')
-    .option('--reference', 'Remove only reference sheets')
-    .option('--commands', 'Remove only commands')
-    .option('--agents', 'Remove only agents')
-    .option('--skills', 'Remove only skills')
-    .option('--templates', 'Remove only templates')
-    .option('-f, --force', 'Skip confirmation prompts')
+    .command("remove")
+    .description("Remove Claude Code integration files")
+    .option("--reference", "Remove only reference sheets")
+    .option("--commands", "Remove only commands")
+    .option("--agents", "Remove only agents")
+    .option("--skills", "Remove only skills")
+    .option("--templates", "Remove only templates")
+    .option("-f, --force", "Skip confirmation prompts")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr claude remove               # Remove all components
@@ -135,11 +127,11 @@ Examples:
 
       // Build component filter from flags
       const components: string[] = [];
-      if (options.reference) components.push('reference_sheets');
-      if (options.commands) components.push('commands');
-      if (options.agents) components.push('agents');
-      if (options.skills) components.push('skills');
-      if (options.templates) components.push('templates');
+      if (options.reference) components.push("reference_sheets");
+      if (options.commands) components.push("commands");
+      if (options.agents) components.push("agents");
+      if (options.skills) components.push("skills");
+      if (options.templates) components.push("templates");
 
       try {
         await manager.remove({
@@ -147,10 +139,7 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        throw new CLIError(
-          error instanceof Error ? error.message : String(error),
-          1
-        );
+        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
       }
     });
 
@@ -160,10 +149,10 @@ Examples:
    * Displays current installation status, version info, and component details
    */
   claude
-    .command('status')
-    .description('Show Claude Code integration status')
+    .command("status")
+    .description("Show Claude Code integration status")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr claude status    # Show installation status and component details`
@@ -174,10 +163,7 @@ Examples:
       try {
         await manager.status();
       } catch (error) {
-        throw new CLIError(
-          error instanceof Error ? error.message : String(error),
-          1
-        );
+        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
       }
     });
 
@@ -187,10 +173,10 @@ Examples:
    * Lists all available components that can be installed
    */
   claude
-    .command('list')
-    .description('List available Claude Code components')
+    .command("list")
+    .description("List available Claude Code components")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr claude list    # Show all available components and descriptions`
@@ -201,10 +187,7 @@ Examples:
       try {
         await manager.list();
       } catch (error) {
-        throw new CLIError(
-          error instanceof Error ? error.message : String(error),
-          1
-        );
+        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
       }
     });
 }

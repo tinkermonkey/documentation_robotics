@@ -101,7 +101,7 @@ export class RelationshipRegistry {
   getRelationshipsByPredicate(predicate: string): Relationship[] {
     const allRels: Relationship[] = [];
     for (const rels of this.relationships.values()) {
-      allRels.push(...rels.filter(rel => rel.predicate === predicate));
+      allRels.push(...rels.filter((rel) => rel.predicate === predicate));
     }
     return allRels;
   }
@@ -111,9 +111,7 @@ export class RelationshipRegistry {
    */
   hasRelationship(sourceId: string, targetId: string, predicate: string): boolean {
     const rels = this.relationships.get(sourceId) ?? [];
-    return rels.some(
-      rel => rel.target === targetId && rel.predicate === predicate
-    );
+    return rels.some((rel) => rel.target === targetId && rel.predicate === predicate);
   }
 
   /**
@@ -147,10 +145,8 @@ export class RelationshipRegistry {
   getValidPredicatesForLayer(layer: string): string[] {
     const layerPrefix = layer.split("-")[0];
     return this.getAllTypes()
-      .filter(type =>
-        !type.applicable_layers || type.applicable_layers.includes(layerPrefix)
-      )
-      .map(type => type.predicate);
+      .filter((type) => !type.applicable_layers || type.applicable_layers.includes(layerPrefix))
+      .map((type) => type.predicate);
   }
 
   /**

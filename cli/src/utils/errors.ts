@@ -10,7 +10,7 @@
  * - Breaking Change (exit code 5): Version migration required
  */
 
-import ansis from 'ansis';
+import ansis from "ansis";
 
 const MAX_SUGGESTIONS = 5;
 
@@ -37,7 +37,7 @@ export class CLIError extends Error {
     public context?: ErrorContext
   ) {
     super(message);
-    this.name = 'CLIError';
+    this.name = "CLIError";
   }
 
   format(): string {
@@ -52,31 +52,31 @@ export class CLIError extends Error {
     if (this.context?.partialProgress) {
       const { completed, total } = this.context.partialProgress;
       lines.push(
-        ansis.yellow(
-          `⚠ Partial progress: ${completed}/${total} completed (operation rolled back)`
-        )
+        ansis.yellow(`⚠ Partial progress: ${completed}/${total} completed (operation rolled back)`)
       );
     }
 
     if (this.context?.relatedElements && this.context.relatedElements.length > 0) {
-      lines.push(ansis.dim('Related elements:'));
+      lines.push(ansis.dim("Related elements:"));
       for (const elem of this.context.relatedElements.slice(0, MAX_SUGGESTIONS)) {
         lines.push(ansis.dim(`  • ${elem}`));
       }
       if (this.context.relatedElements.length > MAX_SUGGESTIONS) {
-        lines.push(ansis.dim(`  ... and ${this.context.relatedElements.length - MAX_SUGGESTIONS} more`));
+        lines.push(
+          ansis.dim(`  ... and ${this.context.relatedElements.length - MAX_SUGGESTIONS} more`)
+        );
       }
     }
 
     if (this.suggestions && this.suggestions.length > 0) {
-      lines.push('');
-      lines.push(ansis.dim('Suggestions:'));
+      lines.push("");
+      lines.push(ansis.dim("Suggestions:"));
       for (const suggestion of this.suggestions) {
         lines.push(ansis.dim(`  • ${suggestion}`));
       }
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 }
 
@@ -88,7 +88,7 @@ export class ValidationError extends CLIError {
     context?: ErrorContext
   ) {
     super(message, ErrorCategory.VALIDATION, suggestions, context);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
   }
 
   format(): string {
@@ -100,16 +100,16 @@ export class ValidationError extends CLIError {
       // Show error count and grouping
       const errorsByLayer: Record<string, Array<{ elementId?: string; message: string }>> = {};
       for (const error of this.errors) {
-        const layer = error.layer || 'general';
+        const layer = error.layer || "general";
         if (!errorsByLayer[layer]) {
           errorsByLayer[layer] = [];
         }
         errorsByLayer[layer].push({ elementId: error.elementId, message: error.message });
       }
 
-      lines.push('');
+      lines.push("");
       lines.push(ansis.dim(`Validation errors: ${this.errors.length} found`));
-      lines.push('');
+      lines.push("");
 
       const layerNames = Object.keys(errorsByLayer).sort();
 
@@ -119,7 +119,7 @@ export class ValidationError extends CLIError {
 
         for (let i = 0; i < Math.min(layerErrors.length, MAX_SUGGESTIONS); i++) {
           const error = layerErrors[i];
-          let detail = '';
+          let detail = "";
           if (error.elementId) {
             detail = `    ${error.elementId}: ${error.message}`;
           } else {
@@ -137,72 +137,59 @@ export class ValidationError extends CLIError {
     }
 
     if (this.suggestions && this.suggestions.length > 0) {
-      lines.push('');
-      lines.push(ansis.dim('Suggestions:'));
+      lines.push("");
+      lines.push(ansis.dim("Suggestions:"));
       for (const suggestion of this.suggestions) {
         lines.push(ansis.dim(`  • ${suggestion}`));
       }
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 }
 
 export class FileNotFoundError extends CLIError {
   constructor(path: string, context?: string) {
     const message = context ? `${context}: ${path}` : `File not found: ${path}`;
-    super(
-      message,
-      ErrorCategory.NOT_FOUND,
-      [
-        `Check that the path is correct: ${path}`,
-        'Use "dr init" to create a new model',
-        'Use "dr list <layer>" to see available elements',
-      ]
-    );
-    this.name = 'FileNotFoundError';
+    super(message, ErrorCategory.NOT_FOUND, [
+      `Check that the path is correct: ${path}`,
+      'Use "dr init" to create a new model',
+      'Use "dr list <layer>" to see available elements',
+    ]);
+    this.name = "FileNotFoundError";
   }
 }
 
 export class ElementNotFoundError extends CLIError {
   constructor(elementId: string) {
-    super(
-      `Element not found: ${elementId}`,
-      ErrorCategory.NOT_FOUND,
-      [
-        `Use "dr search ${elementId}" to find similar elements`,
-        'Use "dr list <layer>" to list all elements in a layer',
-        'Check the element ID format: {layer}.{type}.{kebab-case-name}',
-      ]
-    );
-    this.name = 'ElementNotFoundError';
+    super(`Element not found: ${elementId}`, ErrorCategory.NOT_FOUND, [
+      `Use "dr search ${elementId}" to find similar elements`,
+      'Use "dr list <layer>" to list all elements in a layer',
+      "Check the element ID format: {layer}.{type}.{kebab-case-name}",
+    ]);
+    this.name = "ElementNotFoundError";
   }
 }
 
 export class ModelNotFoundError extends CLIError {
-  constructor(rootPath: string = '.') {
-    super(
-      `No model found at ${rootPath}`,
-      ErrorCategory.NOT_FOUND,
-      [`Run "dr init" to initialize a new model`, 'Check that you are in the correct directory']
-    );
-    this.name = 'ModelNotFoundError';
+  constructor(rootPath: string = ".") {
+    super(`No model found at ${rootPath}`, ErrorCategory.NOT_FOUND, [
+      `Run "dr init" to initialize a new model`,
+      "Check that you are in the correct directory",
+    ]);
+    this.name = "ModelNotFoundError";
   }
 }
 
 export class InvalidJSONError extends CLIError {
   constructor(input: string, context?: string) {
-    const message = context ? `Invalid JSON in ${context}` : 'Invalid JSON format';
-    super(
-      message,
-      ErrorCategory.USER,
-      [
-        `Check your JSON syntax: ${input}`,
-        'Use single quotes to wrap JSON: --properties \'{"key":"value"}\'',
-        'Escape special characters properly',
-      ]
-    );
-    this.name = 'InvalidJSONError';
+    const message = context ? `Invalid JSON in ${context}` : "Invalid JSON format";
+    super(message, ErrorCategory.USER, [
+      `Check your JSON syntax: ${input}`,
+      'Use single quotes to wrap JSON: --properties \'{"key":"value"}\'',
+      "Escape special characters properly",
+    ]);
+    this.name = "InvalidJSONError";
   }
 }
 
@@ -219,7 +206,7 @@ export function handleError(error: unknown): never {
     // Rethrow to allow CLI wrapper to handle shutdown
     throw error;
   } else {
-    console.error(ansis.red('An unexpected error occurred'));
+    console.error(ansis.red("An unexpected error occurred"));
     if (process.env.DEBUG) {
       console.error(ansis.dim(String(error)));
     }
@@ -232,13 +219,13 @@ export function handleWarning(message: string, suggestions?: string[]): void {
   const lines: string[] = [];
   lines.push(ansis.yellow(`Warning: ${message}`));
   if (suggestions && suggestions.length > 0) {
-    lines.push('');
-    lines.push(ansis.dim('Suggestions:'));
+    lines.push("");
+    lines.push(ansis.dim("Suggestions:"));
     for (const suggestion of suggestions) {
       lines.push(ansis.dim(`  • ${suggestion}`));
     }
   }
-  console.warn(lines.join('\n'));
+  console.warn(lines.join("\n"));
 }
 
 export function handleSuccess(message: string, details?: Record<string, string>): void {
@@ -253,10 +240,10 @@ export function handleSuccess(message: string, details?: Record<string, string>)
 /**
  * Utility to extract common valid options for better error suggestions
  */
-export function formatValidOptions(options: string[], heading: string = 'Valid options'): string {
-  if (options.length === 0) return '';
+export function formatValidOptions(options: string[], heading: string = "Valid options"): string {
+  if (options.length === 0) return "";
   if (options.length === 1) return `${heading}: ${options[0]}`;
-  return `${heading}: ${options.slice(0, -1).join(', ')} or ${options[options.length - 1]}`;
+  return `${heading}: ${options.slice(0, -1).join(", ")} or ${options[options.length - 1]}`;
 }
 
 /**

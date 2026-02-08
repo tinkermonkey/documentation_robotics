@@ -138,9 +138,10 @@ export class GraphMigrationService {
         }
         if ((error as any).cause) {
           result.errors.push(
-            `Caused by: ${(error as any).cause instanceof Error
-              ? (error as any).cause.message
-              : String((error as any).cause)
+            `Caused by: ${
+              (error as any).cause instanceof Error
+                ? (error as any).cause.message
+                : String((error as any).cause)
             }`
           );
         }
@@ -158,7 +159,9 @@ export class GraphMigrationService {
   private async extractLayers(): Promise<Map<string, any>> {
     const layers = new Map();
 
-    for (const layerName of this.model.manifest.layers ? Object.keys(this.model.manifest.layers) : []) {
+    for (const layerName of this.model.manifest.layers
+      ? Object.keys(this.model.manifest.layers)
+      : []) {
       const layer = await this.model.getLayer(layerName);
       if (layer) {
         layers.set(layerName, layer);
@@ -281,9 +284,7 @@ export class GraphMigrationService {
 
     const isolatedCount = nodes.length - connectedNodes.size;
     if (isolatedCount > 0) {
-      warnings.push(
-        `Found ${isolatedCount} isolated node(s) with no incoming or outgoing edges`
-      );
+      warnings.push(`Found ${isolatedCount} isolated node(s) with no incoming or outgoing edges`);
     }
 
     return { warnings, errors };

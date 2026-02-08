@@ -12,12 +12,12 @@
  * - Support for custom golden copy configurations
  */
 
-import { Model } from './model.js';
-import { Layer } from './layer.js';
-import { Element } from './element.js';
-import { mkdir, cp, rm, access } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { Model } from "./model.js";
+import { Layer } from "./layer.js";
+import { Element } from "./element.js";
+import { mkdir, cp, rm, access } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
 
 /**
  * Configuration for the golden copy cache
@@ -70,10 +70,10 @@ export interface ClonedModel {
  * Lifecycle state of the golden copy manager
  */
 type ManagerLifecycleState =
-  | { status: 'uninitialized' }
-  | { status: 'initializing'; promise: Promise<void> }
-  | { status: 'initialized'; model: Model; rootPath: string }
-  | { status: 'cleaned-up' };
+  | { status: "uninitialized" }
+  | { status: "initializing"; promise: Promise<void> }
+  | { status: "initialized"; model: Model; rootPath: string }
+  | { status: "cleaned-up" };
 
 /**
  * Golden Copy Cache Manager
@@ -87,7 +87,7 @@ export class GoldenCopyCacheManager {
   private goldenModel: Model | null = null;
   private goldenRootPath: string | null = null;
   private config: Required<GoldenCopyCacheConfig>;
-  private lifecycleState: ManagerLifecycleState = { status: 'uninitialized' };
+  private lifecycleState: ManagerLifecycleState = { status: "uninitialized" };
   private stats: GoldenCopyStats = {
     initCount: 0,
     cloneCount: 0,
@@ -99,15 +99,15 @@ export class GoldenCopyCacheManager {
 
   private constructor(config: GoldenCopyCacheConfig = {}) {
     this.config = {
-      cacheDir: config.cacheDir || join(tmpdir(), 'dr-golden-copy-cache'),
+      cacheDir: config.cacheDir || join(tmpdir(), "dr-golden-copy-cache"),
       eagerLoad: config.eagerLoad ?? false,
       warmup: config.warmup ?? false,
       modelOptions: config.modelOptions || {
-        name: 'Golden Copy Test Model',
-        version: '0.1.0',
-        specVersion: '0.7.1',
-        description: 'Shared golden copy for test initialization',
-        author: 'Test Suite',
+        name: "Golden Copy Test Model",
+        version: "0.1.0",
+        specVersion: "0.7.1",
+        description: "Shared golden copy for test initialization",
+        author: "Test Suite",
       },
     };
   }
@@ -125,14 +125,14 @@ export class GoldenCopyCacheManager {
     if (!GoldenCopyCacheManager.instance) {
       GoldenCopyCacheManager.instance = new GoldenCopyCacheManager(config);
       GoldenCopyCacheManager.lastConfig = config;
-    } else if (process.env.GOLDEN_COPY_STRICT === 'true') {
+    } else if (process.env.GOLDEN_COPY_STRICT === "true") {
       // In strict mode, warn if config differs
       const configStr = JSON.stringify(config || {});
       const lastConfigStr = JSON.stringify(GoldenCopyCacheManager.lastConfig || {});
       if (configStr !== lastConfigStr) {
         console.warn(
           `[GoldenCopy] WARNING: getInstance() called with different config. ` +
-          `First config wins. Current: ${configStr}, Last: ${lastConfigStr}`
+            `First config wins. Current: ${configStr}, Last: ${lastConfigStr}`
         );
       }
     }
@@ -160,35 +160,35 @@ export class GoldenCopyCacheManager {
    */
   async init(): Promise<void> {
     // If already initialized, return early (idempotent)
-    if (this.lifecycleState.status === 'initialized') {
+    if (this.lifecycleState.status === "initialized") {
       if (process.env.DEBUG_GOLDEN_COPY) {
-        console.log('[GoldenCopy] Already initialized, skipping init');
+        console.log("[GoldenCopy] Already initialized, skipping init");
       }
       return;
     }
 
     // If initialization is in progress, wait for it to complete
-    if (this.lifecycleState.status === 'initializing') {
+    if (this.lifecycleState.status === "initializing") {
       if (process.env.DEBUG_GOLDEN_COPY) {
-        console.log('[GoldenCopy] Initialization in progress, waiting...');
+        console.log("[GoldenCopy] Initialization in progress, waiting...");
       }
       return this.lifecycleState.promise;
     }
 
     // If cleaned up, cannot reinitialize
-    if (this.lifecycleState.status === 'cleaned-up') {
-      throw new Error('Golden copy manager has been cleaned up. Create a new instance.');
+    if (this.lifecycleState.status === "cleaned-up") {
+      throw new Error("Golden copy manager has been cleaned up. Create a new instance.");
     }
 
     // Mark initialization as in progress
     const initPromise = this.performInitialization();
-    this.lifecycleState = { status: 'initializing', promise: initPromise };
+    this.lifecycleState = { status: "initializing", promise: initPromise };
 
     try {
       await initPromise;
     } catch (error) {
       // Reset to uninitialized on failure
-      this.lifecycleState = { status: 'uninitialized' };
+      this.lifecycleState = { status: "uninitialized" };
       throw error;
     }
   }
@@ -205,7 +205,7 @@ export class GoldenCopyCacheManager {
       await mkdir(this.config.cacheDir, { recursive: true });
 
       // Check if golden copy already exists on disk
-      const goldenPath = join(this.config.cacheDir, 'golden-model');
+      const goldenPath = join(this.config.cacheDir, "golden-model");
       let modelExists = false;
 
       try {
@@ -220,11 +220,12 @@ export class GoldenCopyCacheManager {
         const created = await Model.init(
           goldenPath,
           {
-            name: this.config.modelOptions.name || 'Golden Copy Test Model',
-            version: this.config.modelOptions.version || '0.1.0',
-            specVersion: this.config.modelOptions.specVersion || '0.7.1',
-            description: this.config.modelOptions.description || 'Shared golden copy for test initialization',
-            author: this.config.modelOptions.author || 'Test Suite',
+            name: this.config.modelOptions.name || "Golden Copy Test Model",
+            version: this.config.modelOptions.version || "0.1.0",
+            specVersion: this.config.modelOptions.specVersion || "0.7.1",
+            description:
+              this.config.modelOptions.description || "Shared golden copy for test initialization",
+            author: this.config.modelOptions.author || "Test Suite",
             created: new Date().toISOString(),
           },
           { lazyLoad: !this.config.eagerLoad }
@@ -251,7 +252,7 @@ export class GoldenCopyCacheManager {
       // Mark as initialized
       if (this.goldenModel && this.goldenRootPath) {
         this.lifecycleState = {
-          status: 'initialized',
+          status: "initialized",
           model: this.goldenModel,
           rootPath: this.goldenRootPath,
         };
@@ -261,7 +262,9 @@ export class GoldenCopyCacheManager {
         console.log(`[GoldenCopy] Initialized in ${Date.now() - startTime}ms`);
       }
     } catch (error) {
-      throw new Error(`Failed to initialize golden copy cache: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to initialize golden copy cache: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -282,7 +285,7 @@ export class GoldenCopyCacheManager {
    */
   async clone(): Promise<ClonedModel> {
     if (!this.goldenModel || !this.goldenRootPath) {
-      throw new Error('Golden copy cache not initialized. Call init() first.');
+      throw new Error("Golden copy cache not initialized. Call init() first.");
     }
 
     const startTime = Date.now();
@@ -300,14 +303,16 @@ export class GoldenCopyCacheManager {
         copySuccessful = true;
       } catch (copyError) {
         // Distinguish copy errors
-        if (copyError instanceof Error && (copyError as NodeJS.ErrnoException).code === 'ENOSPC') {
+        if (copyError instanceof Error && (copyError as NodeJS.ErrnoException).code === "ENOSPC") {
           throw new Error(
             `Disk space exhausted while cloning golden copy. ` +
-            `Ensure at least 100MB free space is available. ` +
-            `Error: ${copyError.message}`
+              `Ensure at least 100MB free space is available. ` +
+              `Error: ${copyError.message}`
           );
         }
-        throw new Error(`Failed to copy golden model to ${clonePath}: ${copyError instanceof Error ? copyError.message : String(copyError)}`);
+        throw new Error(
+          `Failed to copy golden model to ${clonePath}: ${copyError instanceof Error ? copyError.message : String(copyError)}`
+        );
       }
 
       // Load the cloned model
@@ -317,7 +322,7 @@ export class GoldenCopyCacheManager {
       } catch (loadError) {
         throw new Error(
           `Successfully copied golden model to ${clonePath}, but failed to load cloned model. ` +
-          `This suggests corrupted source data. Error: ${loadError instanceof Error ? loadError.message : String(loadError)}`
+            `This suggests corrupted source data. Error: ${loadError instanceof Error ? loadError.message : String(loadError)}`
         );
       }
 
@@ -350,8 +355,8 @@ export class GoldenCopyCacheManager {
             // Always log cleanup errors - they can cause disk space issues
             console.error(
               `[GoldenCopy] ERROR: Failed to clean up cloned model at ${clonePath}. ` +
-              `This may cause disk space issues. ` +
-              `Error: ${e instanceof Error ? e.message : String(e)}`
+                `This may cause disk space issues. ` +
+                `Error: ${e instanceof Error ? e.message : String(e)}`
             );
           }
         },
@@ -368,9 +373,9 @@ export class GoldenCopyCacheManager {
           // Log cleanup failures even in error paths
           console.error(
             `[GoldenCopy] ERROR: Model load failed AND cleanup failed. ` +
-            `Orphaned directory may exist at ${clonePath}. ` +
-            `Load error: ${error instanceof Error ? error.message : String(error)}. ` +
-            `Cleanup error: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
+              `Orphaned directory may exist at ${clonePath}. ` +
+              `Load error: ${error instanceof Error ? error.message : String(error)}. ` +
+              `Cleanup error: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
           );
         }
       }
@@ -399,7 +404,7 @@ export class GoldenCopyCacheManager {
 
     throw new Error(
       `Failed to generate unique clone path after ${maxRetries} attempts. ` +
-      `Potential issue with concurrent test execution or stale directories.`
+        `Potential issue with concurrent test execution or stale directories.`
     );
   }
 
@@ -413,7 +418,7 @@ export class GoldenCopyCacheManager {
    */
   private async populateGoldenCopy(): Promise<void> {
     if (!this.goldenModel) {
-      throw new Error('Golden model not initialized');
+      throw new Error("Golden model not initialized");
     }
 
     const addElement = async (
@@ -441,35 +446,50 @@ export class GoldenCopyCacheManager {
     };
 
     // Motivation layer
-    await addElement('motivation', 'goal', 'motivation.goal.golden-1', 'Golden Goal 1');
-    await addElement('motivation', 'goal', 'motivation.goal.golden-2', 'Golden Goal 2');
-    await addElement('motivation', 'requirement', 'motivation.requirement.golden-1', 'Golden Requirement 1');
+    await addElement("motivation", "goal", "motivation.goal.golden-1", "Golden Goal 1");
+    await addElement("motivation", "goal", "motivation.goal.golden-2", "Golden Goal 2");
+    await addElement(
+      "motivation",
+      "requirement",
+      "motivation.requirement.golden-1",
+      "Golden Requirement 1"
+    );
 
     // Business layer
-    await addElement('business', 'process', 'business.process.golden-1', 'Golden Process 1');
-    await addElement('business', 'service', 'business.service.golden-1', 'Golden Service 1');
+    await addElement("business", "process", "business.process.golden-1", "Golden Process 1");
+    await addElement("business", "service", "business.service.golden-1", "Golden Service 1");
 
     // Application layer
-    await addElement('application', 'component', 'application.component.golden-1', 'Golden Component 1');
-    await addElement('application', 'service', 'application.service.golden-1', 'Golden Service 1');
+    await addElement(
+      "application",
+      "component",
+      "application.component.golden-1",
+      "Golden Component 1"
+    );
+    await addElement("application", "service", "application.service.golden-1", "Golden Service 1");
 
     // Technology layer
-    await addElement('technology', 'infrastructure', 'technology.infrastructure.golden-1', 'Golden Infrastructure 1');
-    await addElement('technology', 'platform', 'technology.platform.golden-1', 'Golden Platform 1');
+    await addElement(
+      "technology",
+      "infrastructure",
+      "technology.infrastructure.golden-1",
+      "Golden Infrastructure 1"
+    );
+    await addElement("technology", "platform", "technology.platform.golden-1", "Golden Platform 1");
 
     // API layer
-    await addElement('api', 'endpoint', 'api.endpoint.golden-1', 'Golden Endpoint 1', {
-      method: 'GET',
-      path: '/golden/1',
+    await addElement("api", "endpoint", "api.endpoint.golden-1", "Golden Endpoint 1", {
+      method: "GET",
+      path: "/golden/1",
     });
-    await addElement('api', 'endpoint', 'api.endpoint.golden-2', 'Golden Endpoint 2', {
-      method: 'POST',
-      path: '/golden/2',
+    await addElement("api", "endpoint", "api.endpoint.golden-2", "Golden Endpoint 2", {
+      method: "POST",
+      path: "/golden/2",
     });
 
     // Data Model layer
-    await addElement('data-model', 'entity', 'data-model.entity.golden-1', 'Golden Entity 1');
-    await addElement('data-model', 'entity', 'data-model.entity.golden-2', 'Golden Entity 2');
+    await addElement("data-model", "entity", "data-model.entity.golden-1", "Golden Entity 1");
+    await addElement("data-model", "entity", "data-model.entity.golden-2", "Golden Entity 2");
   }
 
   /**
@@ -500,7 +520,12 @@ export class GoldenCopyCacheManager {
       return null;
     }
     // Return frozen reference to prevent mutations
-    return Object.freeze(Object.create(Object.getPrototypeOf(this.goldenModel), Object.getOwnPropertyDescriptors(this.goldenModel)));
+    return Object.freeze(
+      Object.create(
+        Object.getPrototypeOf(this.goldenModel),
+        Object.getOwnPropertyDescriptors(this.goldenModel)
+      )
+    );
   }
 
   /**
@@ -520,9 +545,9 @@ export class GoldenCopyCacheManager {
    */
   async cleanup(): Promise<void> {
     // If already cleaned up, this is a no-op
-    if (this.lifecycleState.status === 'cleaned-up') {
+    if (this.lifecycleState.status === "cleaned-up") {
       if (process.env.DEBUG_GOLDEN_COPY) {
-        console.log('[GoldenCopy] Already cleaned up, skipping');
+        console.log("[GoldenCopy] Already cleaned up, skipping");
       }
       return;
     }
@@ -533,19 +558,19 @@ export class GoldenCopyCacheManager {
       }
       this.goldenModel = null;
       this.goldenRootPath = null;
-      this.lifecycleState = { status: 'cleaned-up' };
+      this.lifecycleState = { status: "cleaned-up" };
       GoldenCopyCacheManager.resetInstance();
 
       if (process.env.DEBUG_GOLDEN_COPY) {
-        console.log('[GoldenCopy] Cache cleaned up');
-        console.log('[GoldenCopy] Stats:', this.stats);
+        console.log("[GoldenCopy] Cache cleaned up");
+        console.log("[GoldenCopy] Stats:", this.stats);
       }
     } catch (error) {
       // Always log cleanup errors
       console.error(
         `[GoldenCopy] ERROR: Failed to clean up golden copy cache at ${this.goldenRootPath}. ` +
-        `This may cause disk space issues. ` +
-        `Error: ${error instanceof Error ? error.message : String(error)}`
+          `This may cause disk space issues. ` +
+          `Error: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }

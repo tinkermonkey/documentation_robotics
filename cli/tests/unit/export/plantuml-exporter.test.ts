@@ -63,7 +63,7 @@ describe("PlantUMLExporter", () => {
 
   it("should include model description in note", async () => {
     const output = await exporter.export(model, {});
-    expect(output.includes('note top :')).toBe(true);
+    expect(output.includes("note top :")).toBe(true);
   });
 
   it("should create packages for each layer", async () => {
@@ -209,7 +209,7 @@ describe("PlantUMLExporter", () => {
 
     const output = await exporter.export(testModel, {});
 
-    expect(output.includes('depends & requires')).toBe(true);
+    expect(output.includes("depends & requires")).toBe(true);
   });
 
   it("should include source reference notes when includeSources is true", async () => {

@@ -2,7 +2,7 @@
  * Element utility functions shared across commands
  */
 
-import { Model } from '../core/model.js';
+import { Model } from "../core/model.js";
 
 /**
  * Find which layer contains an element by ID

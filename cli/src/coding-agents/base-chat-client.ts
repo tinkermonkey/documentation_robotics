@@ -10,7 +10,7 @@
  * Chat message in a conversation
  */
 export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
@@ -58,10 +58,7 @@ export abstract class BaseChatClient {
    * @param options Chat options including agent, working directory, and session
    * @returns Promise that resolves when the message completes
    */
-  abstract sendMessage(
-    message: string,
-    options?: ChatOptions
-  ): Promise<void>;
+  abstract sendMessage(message: string, options?: ChatOptions): Promise<void>;
 
   /**
    * Get the current session information

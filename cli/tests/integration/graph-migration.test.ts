@@ -11,8 +11,8 @@ describe("Graph Migration Services", () => {
 
   beforeEach(async () => {
     // Create test model with sample data
-    testDir = await import("../helpers/golden-copy.js").then(m =>
-      m.createTestWorkdir().then(w => w.path)
+    testDir = await import("../helpers/golden-copy.js").then((m) =>
+      m.createTestWorkdir().then((w) => w.path)
     );
 
     model = await Model.load(testDir);
@@ -159,7 +159,6 @@ describe("Graph Migration Services", () => {
       expect(edgeScripts.length).toBeGreaterThan(0);
     });
 
-
     it("should escape CSV special characters", () => {
       const nodes: GraphNode[] = [
         {
@@ -252,11 +251,7 @@ describe("Graph Migration Services", () => {
         },
       ];
 
-      const script = Neo4jCypherGenerator.generateCompleteMigrationScript(
-        nodes,
-        edges,
-        true
-      );
+      const script = Neo4jCypherGenerator.generateCompleteMigrationScript(nodes, edges, true);
 
       expect(script).toContain("// Neo4j Migration Script");
       expect(script).toContain("// Generated from Documentation Robotics");

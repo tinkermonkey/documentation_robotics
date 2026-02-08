@@ -21,15 +21,9 @@
  * - Node type: GraphNode.type vs MigrationGraphNode.labels[] (array vs single value)
  */
 
-import type { GraphNode, GraphEdge } from './graph-model.js';
-import type {
-  MigrationGraphNode,
-  MigrationGraphEdge,
-} from '../export/graph-migration.js';
-import type {
-  Relationship,
-  Reference,
-} from '../types/index.js';
+import type { GraphNode, GraphEdge } from "./graph-model.js";
+import type { MigrationGraphNode, MigrationGraphEdge } from "../export/graph-migration.js";
+import type { Relationship, Reference } from "../types/index.js";
 
 /**
  * Unified edge representation that abstracts away naming differences
@@ -41,7 +35,7 @@ export interface UnifiedEdge {
   destination: string; // Standard name for target node
   type: string; // Standard name for edge type/predicate/relationship
   properties?: Record<string, unknown>;
-  category?: 'structural' | 'behavioral';
+  category?: "structural" | "behavioral";
 }
 
 /**
@@ -77,9 +71,7 @@ export function unifiedToGraphEdge(unified: UnifiedEdge): GraphEdge {
  * Convert MigrationGraphEdge to UnifiedEdge
  * MigrationGraphEdge uses: source, target, relationship
  */
-export function migrationEdgeToUnified(
-  edge: MigrationGraphEdge
-): UnifiedEdge {
+export function migrationEdgeToUnified(edge: MigrationGraphEdge): UnifiedEdge {
   return {
     id: edge.id,
     source: edge.source,
@@ -106,10 +98,7 @@ export function unifiedToMigrationEdge(unified: UnifiedEdge): MigrationGraphEdge
  * Convert Relationship (core type) to UnifiedEdge
  * Relationship uses: source, target, predicate
  */
-export function relationshipToUnified(
-  rel: Relationship,
-  edgeId: string
-): UnifiedEdge {
+export function relationshipToUnified(rel: Relationship, edgeId: string): UnifiedEdge {
   return {
     id: edgeId,
     source: rel.source,
@@ -123,10 +112,7 @@ export function relationshipToUnified(
  * Convert Reference (core type) to UnifiedEdge
  * Reference uses: source, target, type (for reference type)
  */
-export function referenceToUnified(
-  ref: Reference,
-  edgeId: string
-): UnifiedEdge {
+export function referenceToUnified(ref: Reference, edgeId: string): UnifiedEdge {
   return {
     id: edgeId,
     source: ref.source,
@@ -172,31 +158,27 @@ export function referenceToUnified(
  * Safe field accessor that works across different representations
  * Returns the destination field regardless of representation type
  */
-export function getEdgeDestination(
-  edge: GraphEdge | MigrationGraphEdge
-): string {
-  if ('destination' in edge) {
+export function getEdgeDestination(edge: GraphEdge | MigrationGraphEdge): string {
+  if ("destination" in edge) {
     return (edge as GraphEdge).destination;
   }
-  if ('target' in edge) {
+  if ("target" in edge) {
     return (edge as MigrationGraphEdge).target;
   }
-  throw new Error('Invalid edge representation: no destination or target field');
+  throw new Error("Invalid edge representation: no destination or target field");
 }
 
 /**
  * Safe field accessor for edge type/predicate/relationship
  */
-export function getEdgeType(
-  edge: GraphEdge | MigrationGraphEdge
-): string {
-  if ('predicate' in edge) {
+export function getEdgeType(edge: GraphEdge | MigrationGraphEdge): string {
+  if ("predicate" in edge) {
     return (edge as GraphEdge).predicate;
   }
-  if ('relationship' in edge) {
+  if ("relationship" in edge) {
     return (edge as MigrationGraphEdge).relationship;
   }
-  throw new Error('Invalid edge representation: no predicate or relationship field');
+  throw new Error("Invalid edge representation: no predicate or relationship field");
 }
 
 /**
@@ -204,18 +186,16 @@ export function getEdgeType(
  * GraphNode has type: string
  * MigrationGraphNode has labels: string[]
  */
-export function getNodeType(
-  node: GraphNode | MigrationGraphNode
-): string {
-  if ('type' in node) {
+export function getNodeType(node: GraphNode | MigrationGraphNode): string {
+  if ("type" in node) {
     return (node as GraphNode).type;
   }
-  if ('labels' in node && Array.isArray((node as MigrationGraphNode).labels)) {
+  if ("labels" in node && Array.isArray((node as MigrationGraphNode).labels)) {
     const labels = (node as MigrationGraphNode).labels;
     // Return the last label (typically the specific type, not the layer)
-    return labels[labels.length - 1] || 'Unknown';
+    return labels[labels.length - 1] || "Unknown";
   }
-  throw new Error('Invalid node representation: no type or labels field');
+  throw new Error("Invalid node representation: no type or labels field");
 }
 
 /**

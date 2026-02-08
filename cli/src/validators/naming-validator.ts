@@ -2,8 +2,8 @@
  * Naming validation for element IDs
  */
 
-import { ValidationResult } from './types.js';
-import type { Layer } from '../core/layer.js';
+import { ValidationResult } from "./types.js";
+import type { Layer } from "../core/layer.js";
 
 /**
  * Validator for element ID naming conventions
@@ -17,18 +17,18 @@ export class NamingValidator {
 
   // Known layer names (including hyphenated and underscored ones)
   private readonly KNOWN_LAYERS = [
-    'motivation',
-    'business',
-    'security',
-    'application',
-    'technology',
-    'api',
-    'data-model',
-    'data-store',
-    'ux',
-    'navigation',
-    'apm',
-    'testing',
+    "motivation",
+    "business",
+    "security",
+    "application",
+    "technology",
+    "api",
+    "data-model",
+    "data-store",
+    "ux",
+    "navigation",
+    "apm",
+    "testing",
   ];
 
   /**
@@ -47,11 +47,7 @@ export class NamingValidator {
   /**
    * Validate an individual element ID
    */
-  private validateElementId(
-    elementId: string,
-    layerName: string,
-    result: ValidationResult
-  ): void {
+  private validateElementId(elementId: string, layerName: string, result: ValidationResult): void {
     // Check if ID matches dot-separated format (primary) or kebab-case format (legacy)
     const isDotSeparated = this.DOT_SEPARATED_PATTERN.test(elementId);
     const isKebabCase = this.KEBAB_CASE_PATTERN.test(elementId);
@@ -61,7 +57,8 @@ export class NamingValidator {
         layer: layerName,
         elementId,
         message: `Invalid element ID format: ${elementId}`,
-        fixSuggestion: 'Use format: {layer}.{type}.{name} (e.g., motivation.goal.increase-revenue) or {layer}-{type}-{kebab-case-name}',
+        fixSuggestion:
+          "Use format: {layer}.{type}.{name} (e.g., motivation.goal.increase-revenue) or {layer}-{type}-{kebab-case-name}",
       });
       return;
     }
@@ -69,8 +66,8 @@ export class NamingValidator {
     const idLayer = this.extractLayerFromId(elementId, isDotSeparated);
 
     // Verify layer prefix matches the actual layer
-    const normalizedLayerName = layerName.replace(/-/g, '_');
-    const normalizedIdLayer = idLayer.replace(/-/g, '_');
+    const normalizedLayerName = layerName.replace(/-/g, "_");
+    const normalizedIdLayer = idLayer.replace(/-/g, "_");
 
     if (normalizedIdLayer !== normalizedLayerName) {
       result.addError({
@@ -83,7 +80,7 @@ export class NamingValidator {
     }
 
     // Extract remaining parts after layer
-    const separator = isDotSeparated ? '.' : '-';
+    const separator = isDotSeparated ? "." : "-";
     const remainingParts = elementId.slice(idLayer.length + 1).split(separator);
 
     // Verify type is present and non-empty
@@ -91,8 +88,8 @@ export class NamingValidator {
       result.addError({
         layer: layerName,
         elementId,
-        message: 'Element ID must have type and name components after layer',
-        fixSuggestion: 'Use format: {layer}.{type}.{name}',
+        message: "Element ID must have type and name components after layer",
+        fixSuggestion: "Use format: {layer}.{type}.{name}",
       });
       return;
     }
@@ -105,7 +102,7 @@ export class NamingValidator {
     // Try to match known layers in order of specificity (longest first)
     const sortedLayers = [...this.KNOWN_LAYERS].sort((a, b) => b.length - a.length);
 
-    const separator = isDotSeparated ? '.' : '-';
+    const separator = isDotSeparated ? "." : "-";
 
     for (const layer of sortedLayers) {
       if (elementId.startsWith(layer + separator)) {

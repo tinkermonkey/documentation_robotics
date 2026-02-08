@@ -2,14 +2,14 @@
  * Initialize a new Documentation Robotics model
  */
 
-import { intro, text, outro } from '@clack/prompts';
-import ansis from 'ansis';
-import { Model } from '../core/model.js';
-import { fileExists } from '../utils/file-io.js';
-import { logVerbose, logDebug } from '../utils/globals.js';
-import { installSpecReference } from '../utils/spec-installer.js';
-import { getCliBundledSpecVersion } from '../utils/spec-version.js';
-import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
+import { intro, text, outro } from "@clack/prompts";
+import ansis from "ansis";
+import { Model } from "../core/model.js";
+import { fileExists } from "../utils/file-io.js";
+import { logVerbose, logDebug } from "../utils/globals.js";
+import { installSpecReference } from "../utils/spec-installer.js";
+import { getCliBundledSpecVersion } from "../utils/spec-version.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 export interface InitOptions {
   name?: string;
@@ -20,13 +20,15 @@ export interface InitOptions {
 }
 
 export async function initCommand(options: InitOptions): Promise<void> {
-  intro(ansis.bold(ansis.blue('⚙️  Initialize Documentation Robotics Model')));
+  intro(ansis.bold(ansis.blue("⚙️  Initialize Documentation Robotics Model")));
 
-  const span = isTelemetryEnabled ? startSpan('model.init', {
-    'init.hasName': !!options.name,
-    'init.hasDescription': !!options.description,
-    'init.hasAuthor': !!options.author,
-  }) : null;
+  const span = isTelemetryEnabled
+    ? startSpan("model.init", {
+        "init.hasName": !!options.name,
+        "init.hasDescription": !!options.description,
+        "init.hasAuthor": !!options.author,
+      })
+    : null;
 
   try {
     const rootPath = process.cwd();
@@ -35,9 +37,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
     // Check if model already exists
     if (await fileExists(manifestPath)) {
-      console.error(ansis.red('Error: Model already initialized in this directory'));
+      console.error(ansis.red("Error: Model already initialized in this directory"));
       if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 2, message: 'Model already exists' });
+        (span as any).setStatus({ code: 2, message: "Model already exists" });
       }
       endSpan(span);
       process.exit(1);
@@ -48,7 +50,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
     const isInteractive = process.stdin.isTTY;
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('cli.interactive', isInteractive);
+      (span as any).setAttribute("cli.interactive", isInteractive);
     }
 
     // If name is provided, skip all prompts
@@ -58,13 +60,13 @@ export async function initCommand(options: InitOptions): Promise<void> {
       options.name ||
       (isInteractive
         ? await text({
-            message: 'Model name:',
-            validate: (value) => (value.length === 0 ? 'Name is required' : undefined),
+            message: "Model name:",
+            validate: (value) => (value.length === 0 ? "Name is required" : undefined),
           })
         : (() => {
-            console.error(ansis.red('Error: Model name is required (use --name option)'));
+            console.error(ansis.red("Error: Model name is required (use --name option)"));
             if (isTelemetryEnabled && span) {
-              (span as any).setStatus({ code: 2, message: 'Model name required' });
+              (span as any).setStatus({ code: 2, message: "Model name required" });
             }
             endSpan(span);
             process.exit(1);
@@ -73,28 +75,28 @@ export async function initCommand(options: InitOptions): Promise<void> {
     const description =
       options.description ||
       (skipPrompts
-        ? ''
+        ? ""
         : isInteractive
           ? await text({
-              message: 'Description (optional):',
-              defaultValue: '',
+              message: "Description (optional):",
+              defaultValue: "",
             })
-          : '');
+          : "");
 
     const author =
       options.author ||
       (skipPrompts
-        ? ''
+        ? ""
         : isInteractive
           ? await text({
-              message: 'Author (optional):',
-              defaultValue: '',
+              message: "Author (optional):",
+              defaultValue: "",
             })
-          : '');
+          : "");
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('model.name', name as string);
-      (span as any).setAttribute('model.specVersion', getCliBundledSpecVersion());
+      (span as any).setAttribute("model.name", name as string);
+      (span as any).setAttribute("model.specVersion", getCliBundledSpecVersion());
     }
 
     // Initialize model
@@ -103,7 +105,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
       rootPath,
       {
         name: name as string,
-        version: '0.1.0',
+        version: "0.1.0",
         description: (description as string) || undefined,
         author: (author as string) || undefined,
         specVersion: getCliBundledSpecVersion(),
@@ -118,12 +120,12 @@ export async function initCommand(options: InitOptions): Promise<void> {
   - Location: ${rootPath}/documentation-robotics/model`);
 
     // Install spec reference (.dr/ folder)
-    logDebug('Installing spec reference (.dr/ folder)...');
+    logDebug("Installing spec reference (.dr/ folder)...");
     await installSpecReference(rootPath, false);
-    logVerbose('Spec reference installed');
+    logVerbose("Spec reference installed");
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('model.path', rootPath);
+      (span as any).setAttribute("model.path", rootPath);
       (span as any).setStatus({ code: 0 });
     }
 
@@ -131,7 +133,10 @@ export async function initCommand(options: InitOptions): Promise<void> {
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (span as any).setStatus({
+        code: 2,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));

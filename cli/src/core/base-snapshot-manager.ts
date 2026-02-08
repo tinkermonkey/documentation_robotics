@@ -5,8 +5,8 @@
  * and detects if the base model has drifted from that state (allowing drift warnings on commit).
  */
 
-import { createHash } from 'crypto';
-import type { Model } from './model.js';
+import { createHash } from "crypto";
+import type { Model } from "./model.js";
 
 /**
  * Report on model drift between snapshots
@@ -39,7 +39,7 @@ export class BaseSnapshotManager {
    * 3. Creates reproducible snapshot hash
    */
   async captureSnapshot(model: Model): Promise<string> {
-    const hash = createHash('sha256');
+    const hash = createHash("sha256");
 
     // Hash manifest data first (stable ordering)
     const manifestData = JSON.stringify(model.manifest.toJSON(), null, 2);
@@ -64,7 +64,7 @@ export class BaseSnapshotManager {
       }
     }
 
-    return `sha256:${hash.digest('hex')}`;
+    return `sha256:${hash.digest("hex")}`;
   }
 
   /**
@@ -79,10 +79,7 @@ export class BaseSnapshotManager {
    * estimate. For precise change detection, implement snapshot comparison with
    * stored layer/element state data.
    */
-  async detectDrift(
-    expectedSnapshot: string,
-    currentModel: Model
-  ): Promise<DriftReport> {
+  async detectDrift(expectedSnapshot: string, currentModel: Model): Promise<DriftReport> {
     const currentSnapshot = await this.captureSnapshot(currentModel);
     const hasDrift = expectedSnapshot !== currentSnapshot;
 

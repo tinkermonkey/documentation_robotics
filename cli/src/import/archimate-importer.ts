@@ -12,7 +12,7 @@ export class ArchiMateImporter implements Importer {
   supportedFormats = ["xml"];
 
   async import(data: string, model: Model, _options: ImportOptions = {}): Promise<ImportResult> {
-    const span: Span | null = isTelemetryEnabled ? startSpan('import.format.archimate') : null;
+    const span: Span | null = isTelemetryEnabled ? startSpan("import.format.archimate") : null;
     const result: ImportResult = {
       success: false,
       nodesAdded: 0,
@@ -48,7 +48,7 @@ export class ArchiMateImporter implements Importer {
       }
 
       const elementNodes = elementsElement.getElementsByTagName("element");
-      const layerMap = new Map<string, string>();  // id -> layer mapping
+      const layerMap = new Map<string, string>(); // id -> layer mapping
 
       for (let i = 0; i < elementNodes.length; i++) {
         const elem = elementNodes[i];
@@ -154,9 +154,9 @@ export class ArchiMateImporter implements Importer {
       result.success = result.errorsCount === 0;
 
       if (isTelemetryEnabled && span) {
-        span.setAttribute('import.nodesAdded', result.nodesAdded);
-        span.setAttribute('import.edgesAdded', result.edgesAdded);
-        span.setAttribute('import.errors', result.errorsCount);
+        span.setAttribute("import.nodesAdded", result.nodesAdded);
+        span.setAttribute("import.edgesAdded", result.edgesAdded);
+        span.setAttribute("import.errors", result.errorsCount);
         span.setStatus({ code: result.success ? 0 : 1 });
       }
 
@@ -181,40 +181,64 @@ export class ArchiMateImporter implements Importer {
   /**
    * Infer layer from ArchiMate element type
    */
-  private inferLayerFromType(
-    archimateType: string
-  ): string | undefined {
+  private inferLayerFromType(archimateType: string): string | undefined {
     // Motivation layer types
     const motivationTypes = [
-      "Stakeholder", "Driver", "Assessment", "Goal", "Outcome",
-      "Principle", "Requirement", "Constraint"
+      "Stakeholder",
+      "Driver",
+      "Assessment",
+      "Goal",
+      "Outcome",
+      "Principle",
+      "Requirement",
+      "Constraint",
     ];
     if (motivationTypes.includes(archimateType)) return "motivation";
 
     // Business layer types
     const businessTypes = [
-      "BusinessActor", "BusinessRole", "BusinessCollaboration",
-      "BusinessInterface", "BusinessProcess", "BusinessFunction",
-      "BusinessInteraction", "BusinessEvent", "BusinessService",
-      "BusinessObject"
+      "BusinessActor",
+      "BusinessRole",
+      "BusinessCollaboration",
+      "BusinessInterface",
+      "BusinessProcess",
+      "BusinessFunction",
+      "BusinessInteraction",
+      "BusinessEvent",
+      "BusinessService",
+      "BusinessObject",
     ];
     if (businessTypes.includes(archimateType)) return "business";
 
     // Application layer types
     const applicationTypes = [
-      "ApplicationComponent", "ApplicationCollaboration",
-      "ApplicationInterface", "ApplicationFunction",
-      "ApplicationInteraction", "ApplicationProcess",
-      "ApplicationEvent", "ApplicationService", "DataObject"
+      "ApplicationComponent",
+      "ApplicationCollaboration",
+      "ApplicationInterface",
+      "ApplicationFunction",
+      "ApplicationInteraction",
+      "ApplicationProcess",
+      "ApplicationEvent",
+      "ApplicationService",
+      "DataObject",
     ];
     if (applicationTypes.includes(archimateType)) return "application";
 
     // Technology layer types
     const technologyTypes = [
-      "Node", "Device", "SystemSoftware", "TechnologyCollaboration",
-      "TechnologyInterface", "Path", "CommunicationNetwork",
-      "TechnologyFunction", "TechnologyProcess", "TechnologyInteraction",
-      "TechnologyEvent", "TechnologyService", "Artifact"
+      "Node",
+      "Device",
+      "SystemSoftware",
+      "TechnologyCollaboration",
+      "TechnologyInterface",
+      "Path",
+      "CommunicationNetwork",
+      "TechnologyFunction",
+      "TechnologyProcess",
+      "TechnologyInteraction",
+      "TechnologyEvent",
+      "TechnologyService",
+      "Artifact",
     ];
     if (technologyTypes.includes(archimateType)) return "technology";
 

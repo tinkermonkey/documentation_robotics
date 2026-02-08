@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { ProjectionEngine, type ProjectionRule } from '@/core/projection-engine';
-import { Model } from '@/core/model';
-import { Manifest } from '@/core/manifest';
+import { describe, it, expect, beforeEach } from "bun:test";
+import { ProjectionEngine, type ProjectionRule } from "@/core/projection-engine";
+import { Model } from "@/core/model";
+import { Manifest } from "@/core/manifest";
 
 /**
  * Unit tests for ProjectionEngine
@@ -11,58 +11,58 @@ import { Manifest } from '@/core/manifest';
  *
  * These unit tests cover basic rule management only.
  */
-describe('ProjectionEngine', () => {
+describe("ProjectionEngine", () => {
   let model: Model;
   let engine: ProjectionEngine;
 
   beforeEach(() => {
     const manifest = new Manifest({
-      name: 'Test Model',
-      description: 'Test',
-      version: '1.0.0',
+      name: "Test Model",
+      description: "Test",
+      version: "1.0.0",
     });
-    model = new Model('/tmp/test-model', manifest);
+    model = new Model("/tmp/test-model", manifest);
     engine = new ProjectionEngine(model);
   });
 
-  describe('addRule', () => {
-    it('should add a projection rule', () => {
+  describe("addRule", () => {
+    it("should add a projection rule", () => {
       const rule: ProjectionRule = {
-        name: 'Test Rule',
-        from_layer: 'business',
-        from_type: 'service',
-        to_layer: 'application',
-        to_type: 'component',
-        name_template: '{source.name} Component',
+        name: "Test Rule",
+        from_layer: "business",
+        from_type: "service",
+        to_layer: "application",
+        to_type: "component",
+        name_template: "{source.name} Component",
         property_mappings: [],
       };
 
       engine.addRule(rule);
       const rules = engine.getRules();
       expect(rules.length).toBe(1);
-      expect(rules[0].name).toBe('Test Rule');
-      expect(rules[0].from_layer).toBe('business');
-      expect(rules[0].to_layer).toBe('application');
+      expect(rules[0].name).toBe("Test Rule");
+      expect(rules[0].from_layer).toBe("business");
+      expect(rules[0].to_layer).toBe("application");
     });
 
-    it('should add multiple rules', () => {
+    it("should add multiple rules", () => {
       const rule1: ProjectionRule = {
-        name: 'Rule 1',
-        from_layer: 'business',
-        from_type: 'service',
-        to_layer: 'application',
-        to_type: 'component',
-        name_template: '{source.name}',
+        name: "Rule 1",
+        from_layer: "business",
+        from_type: "service",
+        to_layer: "application",
+        to_type: "component",
+        name_template: "{source.name}",
         property_mappings: [],
       };
 
       const rule2: ProjectionRule = {
-        name: 'Rule 2',
-        from_layer: 'application',
-        from_type: 'component',
-        to_layer: 'technology',
-        to_type: 'node',
-        name_template: '{source.name}',
+        name: "Rule 2",
+        from_layer: "application",
+        from_type: "component",
+        to_layer: "technology",
+        to_type: "node",
+        name_template: "{source.name}",
         property_mappings: [],
       };
 
@@ -73,15 +73,15 @@ describe('ProjectionEngine', () => {
     });
   });
 
-  describe('getRules', () => {
-    it('should return a copy of rules', () => {
+  describe("getRules", () => {
+    it("should return a copy of rules", () => {
       const rule: ProjectionRule = {
-        name: 'Test Rule',
-        from_layer: 'business',
-        from_type: 'service',
-        to_layer: 'application',
-        to_type: 'component',
-        name_template: '{source.name}',
+        name: "Test Rule",
+        from_layer: "business",
+        from_type: "service",
+        to_layer: "application",
+        to_type: "component",
+        name_template: "{source.name}",
         property_mappings: [],
       };
 
@@ -93,30 +93,30 @@ describe('ProjectionEngine', () => {
       expect(rules1).toEqual(rules2);
     });
 
-    it('should return empty array initially', () => {
+    it("should return empty array initially", () => {
       expect(engine.getRules()).toEqual([]);
     });
   });
 
-  describe('clearRules', () => {
-    it('should clear all rules', () => {
+  describe("clearRules", () => {
+    it("should clear all rules", () => {
       const rule1: ProjectionRule = {
-        name: 'Rule 1',
-        from_layer: 'business',
-        from_type: 'service',
-        to_layer: 'application',
-        to_type: 'component',
-        name_template: '{source.name}',
+        name: "Rule 1",
+        from_layer: "business",
+        from_type: "service",
+        to_layer: "application",
+        to_type: "component",
+        name_template: "{source.name}",
         property_mappings: [],
       };
 
       const rule2: ProjectionRule = {
-        name: 'Rule 2',
-        from_layer: 'application',
-        from_type: 'component',
-        to_layer: 'technology',
-        to_type: 'node',
-        name_template: '{source.name}',
+        name: "Rule 2",
+        from_layer: "application",
+        from_type: "component",
+        to_layer: "technology",
+        to_type: "node",
+        name_template: "{source.name}",
         property_mappings: [],
       };
 

@@ -14,27 +14,27 @@ export const modelNodeExamples = {
     attributes: {
       priority: "high",
       owner: "Product Team",
-      target_date: "2025-12-31"
+      target_date: "2025-12-31",
     },
     source_reference: {
       provenance: "manual",
       locations: [
         {
           file: "roadmap/2025-goals.md",
-          symbol: "customer-satisfaction"
-        }
+          symbol: "customer-satisfaction",
+        },
       ],
       repository: {
         url: "https://github.com/example/project",
-        commit: "abc123def456abc123def456abc123def456abc1"
-      }
+        commit: "abc123def456abc123def456abc123def456abc1",
+      },
     },
     metadata: {
       created_at: "2025-01-15T10:30:00Z",
       updated_at: "2025-02-07T15:45:00Z",
       created_by: "alice@example.com",
-      version: 2
-    }
+      version: 2,
+    },
   },
 
   requirementNode: {
@@ -46,8 +46,8 @@ export const modelNodeExamples = {
     description: "System must be accessible on mobile devices",
     attributes: {
       type: "functional",
-      status: "approved"
-    }
+      status: "approved",
+    },
   },
 
   endpointNode: {
@@ -59,8 +59,8 @@ export const modelNodeExamples = {
     attributes: {
       method: "POST",
       path: "/api/v1/customers",
-      deprecated: false
-    }
+      deprecated: false,
+    },
   },
 
   tableNode: {
@@ -71,8 +71,8 @@ export const modelNodeExamples = {
     name: "customers",
     attributes: {
       columns: 15,
-      indexed: true
-    }
+      indexed: true,
+    },
   },
 
   testCaseNode: {
@@ -83,8 +83,8 @@ export const modelNodeExamples = {
     name: "User Login Happy Path",
     attributes: {
       status: "active",
-      complexity: "simple"
-    }
+      complexity: "simple",
+    },
   },
 
   minimalNode: {
@@ -92,7 +92,7 @@ export const modelNodeExamples = {
     spec_node_id: "custom.element",
     type: "element",
     layer_id: "custom",
-    name: "Minimal Element"
+    name: "Minimal Element",
   },
 
   nodeWithoutMetadata: {
@@ -100,7 +100,7 @@ export const modelNodeExamples = {
     spec_node_id: "motivation.goal",
     type: "goal",
     layer_id: "motivation",
-    name: "Another Goal"
+    name: "Another Goal",
   },
 
   entityNode: {
@@ -112,13 +112,13 @@ export const modelNodeExamples = {
     attributes: {
       abstract: false,
       version: 3,
-      tags: ["core", "high-volume"]
+      tags: ["core", "high-volume"],
     },
     metadata: {
       created_at: "2024-06-01T08:00:00Z",
-      version: 1
-    }
-  }
+      version: 1,
+    },
+  },
 };
 
 export const invalidModelNodeExamples = {
@@ -127,7 +127,7 @@ export const invalidModelNodeExamples = {
     spec_node_id: "motivation.goal",
     type: "goal",
     layer_id: "motivation",
-    name: "Invalid"
+    name: "Invalid",
   },
 
   missingSpecNodeId: {
@@ -135,7 +135,7 @@ export const invalidModelNodeExamples = {
     // missing spec_node_id
     type: "goal",
     layer_id: "motivation",
-    name: "Invalid"
+    name: "Invalid",
   },
 
   invalidSpecNodeIdFormat: {
@@ -143,7 +143,7 @@ export const invalidModelNodeExamples = {
     spec_node_id: "invalid_format", // missing dot
     type: "goal",
     layer_id: "motivation",
-    name: "Invalid"
+    name: "Invalid",
   },
 
   extraProperties: {
@@ -152,7 +152,7 @@ export const invalidModelNodeExamples = {
     type: "goal",
     layer_id: "motivation",
     name: "Invalid",
-    extra_field: "should not be allowed"
+    extra_field: "should not be allowed",
   },
 
   invalidMetadata: {
@@ -163,8 +163,8 @@ export const invalidModelNodeExamples = {
     name: "Invalid",
     metadata: {
       created_at: "not-a-date-time",
-      version: "not-an-integer"
-    }
+      version: "not-an-integer",
+    },
   },
 
   invalidSourceReference: {
@@ -175,7 +175,7 @@ export const invalidModelNodeExamples = {
     name: "Invalid",
     source_reference: {
       provenance: "invalid-provenance", // not in enum
-      locations: [{ file: "test.txt" }]
-    }
-  }
+      locations: [{ file: "test.txt" }],
+    },
+  },
 };

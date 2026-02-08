@@ -162,9 +162,7 @@ export class LadybugMigrationService {
           };
 
           // Infer property types from sample properties
-          for (const [key, value] of Object.entries(
-            node.properties || {}
-          )) {
+          for (const [key, value] of Object.entries(node.properties || {})) {
             if (!properties[key]) {
               properties[key] = this.inferPropertyType(value);
             }
@@ -195,12 +193,17 @@ export class LadybugMigrationService {
           sourceType: "Element",
           targetType: "Element",
           isDirected: true,
-          properties: edge.properties ? {
-            ...Object.entries(edge.properties).reduce((acc, [k, v]) => {
-              acc[k] = this.inferPropertyType(v);
-              return acc;
-            }, {} as Record<string, PropertyType>),
-          } : undefined,
+          properties: edge.properties
+            ? {
+                ...Object.entries(edge.properties).reduce(
+                  (acc, [k, v]) => {
+                    acc[k] = this.inferPropertyType(v);
+                    return acc;
+                  },
+                  {} as Record<string, PropertyType>
+                ),
+              }
+            : undefined,
         };
       }
     }
@@ -244,7 +247,7 @@ export class LadybugMigrationService {
       return Number.isInteger(value) ? PropertyType.INTEGER : PropertyType.FLOAT;
     }
 
-    if (value instanceof Date || typeof value === "string" && this.isTimestamp(value as string)) {
+    if (value instanceof Date || (typeof value === "string" && this.isTimestamp(value as string))) {
       return PropertyType.TIMESTAMP;
     }
 
@@ -329,7 +332,10 @@ export class LadybugMigrationService {
   /**
    * Validate graph before migration
    */
-  validateGraph(nodes: GraphNode[], edges: GraphEdge[]): {
+  validateGraph(
+    nodes: GraphNode[],
+    edges: GraphEdge[]
+  ): {
     isValid: boolean;
     errors: string[];
     warnings: string[];
@@ -369,9 +375,7 @@ export class LadybugMigrationService {
 
     const isolatedCount = nodes.length - connectedNodes.size;
     if (isolatedCount > 0) {
-      warnings.push(
-        `Found ${isolatedCount} isolated node(s) with no relationships`
-      );
+      warnings.push(`Found ${isolatedCount} isolated node(s) with no relationships`);
     }
 
     return {

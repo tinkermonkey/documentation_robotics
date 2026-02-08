@@ -5,17 +5,17 @@
  * chat-based architecture model exploration via CLI subprocess invocation.
  */
 
-import { ChildProcess } from 'child_process';
+import { ChildProcess } from "child_process";
 
 /**
  * Chat event types emitted during agent interaction
  */
 export type ChatEventType =
-  | 'text'           // Text content from agent
-  | 'tool_use'       // Agent is using a tool
-  | 'tool_result'    // Result from tool execution
-  | 'error'          // Error occurred
-  | 'complete';      // Conversation completed
+  | "text" // Text content from agent
+  | "tool_use" // Agent is using a tool
+  | "tool_result" // Result from tool execution
+  | "error" // Error occurred
+  | "complete"; // Conversation completed
 
 /**
  * Chat event structure

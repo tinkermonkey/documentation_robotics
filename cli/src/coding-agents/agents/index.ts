@@ -16,7 +16,7 @@ export type {
   ChatEvent,
   ChatEventType,
   SpawnAgentOptions,
-} from './types.js';
+} from "./types.js";
 
 // Implementations
-export { ClaudeCodeAgent } from './claude-code.js';
+export { ClaudeCodeAgent } from "./claude-code.js";

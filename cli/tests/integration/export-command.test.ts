@@ -3,13 +3,7 @@ import { Model } from "@/core/model";
 import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
 import { Manifest } from "@/core/manifest";
-import {
-  ensureDir,
-  fileExists,
-  readFile,
-  writeJSON,
-  readJSON,
-} from "@/utils/file-io";
+import { ensureDir, fileExists, readFile, writeJSON, readJSON } from "@/utils/file-io";
 import * as path from "path";
 
 describe("Export Command Integration Tests", () => {
@@ -305,7 +299,6 @@ describe("Export Command Integration Tests", () => {
       expect(result.length).toBeGreaterThan(0);
     }
   });
-
 
   it("should export archimate with --layers filter", async () => {
     const loadedModel = await Model.load(testDir);

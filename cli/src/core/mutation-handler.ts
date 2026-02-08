@@ -8,12 +8,12 @@
  * This fixes data corruption risk from divergent code paths in add/update/delete commands.
  */
 
-import { Model } from './model.js';
-import { Element } from './element.js';
-import { StagingAreaManager } from './staging-area.js';
-import { CLIError } from '../utils/errors.js';
+import { Model } from "./model.js";
+import { Element } from "./element.js";
+import { StagingAreaManager } from "./staging-area.js";
+import { CLIError } from "../utils/errors.js";
 
-export type MutationType = 'add' | 'update' | 'delete';
+export type MutationType = "add" | "update" | "delete";
 
 export interface MutationContext {
   model: Model;
@@ -103,27 +103,29 @@ export class MutationHandler {
   /**
    * Execute mutation for add operation
    */
-  async executeAdd(element: Element, mutator: (elem: Element) => void | Promise<void>): Promise<void> {
+  async executeAdd(
+    element: Element,
+    mutator: (elem: Element) => void | Promise<void>
+  ): Promise<void> {
     // For add, before is undefined, after is the new element
     this.context.element = element;
     this.context.before = undefined;
 
     // Check if we're in staging mode
     const activeChangeset = await this.stagingManager.getActive();
-    if (activeChangeset && activeChangeset.status === 'staged') {
+    if (activeChangeset && activeChangeset.status === "staged") {
       // Staging path: capture after state and stage
       if (!activeChangeset.id) {
-        throw new CLIError(
-          `Active changeset has no ID, cannot stage changes`,
-          1,
-          ['The changeset may be corrupted', 'Try creating a new changeset']
-        );
+        throw new CLIError(`Active changeset has no ID, cannot stage changes`, 1, [
+          "The changeset may be corrupted",
+          "Try creating a new changeset",
+        ]);
       }
 
       this.context.after = element.toJSON() as unknown as Record<string, unknown>;
 
       await this.stagingManager.stage(activeChangeset.id, {
-        type: 'add',
+        type: "add",
         elementId: this.context.elementId,
         layerName: this.context.layerName,
         after: this.context.after,
@@ -137,13 +139,16 @@ export class MutationHandler {
     this.context.after = element.toJSON() as unknown as Record<string, unknown>;
 
     // Persist to base model
-    await this._persistChanges('add');
+    await this._persistChanges("add");
   }
 
   /**
    * Execute mutation for update operation
    */
-  async executeUpdate(element: Element, mutator: (elem: Element, after: Record<string, unknown>) => Promise<void>): Promise<void> {
+  async executeUpdate(
+    element: Element,
+    mutator: (elem: Element, after: Record<string, unknown>) => Promise<void>
+  ): Promise<void> {
     // Compute before and after states
     this.context.element = element;
     this.context.before = element.toJSON() as unknown as Record<string, unknown>;
@@ -151,20 +156,19 @@ export class MutationHandler {
 
     // Check if we're in staging mode
     const activeChangeset = await this.stagingManager.getActive();
-    if (activeChangeset && activeChangeset.status === 'staged') {
+    if (activeChangeset && activeChangeset.status === "staged") {
       // Staging path: apply mutations to after state, then stage
       if (!activeChangeset.id) {
-        throw new CLIError(
-          `Active changeset has no ID, cannot stage changes`,
-          1,
-          ['The changeset may be corrupted', 'Try creating a new changeset']
-        );
+        throw new CLIError(`Active changeset has no ID, cannot stage changes`, 1, [
+          "The changeset may be corrupted",
+          "Try creating a new changeset",
+        ]);
       }
 
       await mutator(element, this.context.after);
 
       await this.stagingManager.stage(activeChangeset.id, {
-        type: 'update',
+        type: "update",
         elementId: this.context.elementId,
         layerName: this.context.layerName,
         before: this.context.before,
@@ -189,18 +193,17 @@ export class MutationHandler {
 
     // Check if we're in staging mode
     const activeChangeset = await this.stagingManager.getActive();
-    if (activeChangeset && activeChangeset.status === 'staged') {
+    if (activeChangeset && activeChangeset.status === "staged") {
       // Staging path: stage the deletion only
       if (!activeChangeset.id) {
-        throw new CLIError(
-          `Active changeset has no ID, cannot stage changes`,
-          1,
-          ['The changeset may be corrupted', 'Try creating a new changeset']
-        );
+        throw new CLIError(`Active changeset has no ID, cannot stage changes`, 1, [
+          "The changeset may be corrupted",
+          "Try creating a new changeset",
+        ]);
       }
 
       await this.stagingManager.stage(activeChangeset.id, {
-        type: 'delete',
+        type: "delete",
         elementId: this.context.elementId,
         layerName: this.context.layerName,
         before: this.context.before,
@@ -214,49 +217,53 @@ export class MutationHandler {
     const deleted = layer.deleteElement(this.context.elementId);
 
     if (!deleted) {
-      throw new CLIError(
-        `Failed to delete element ${this.context.elementId}`,
-        1,
-        ['Element may have already been deleted']
-      );
+      throw new CLIError(`Failed to delete element ${this.context.elementId}`, 1, [
+        "Element may have already been deleted",
+      ]);
     }
 
     // Delete relationships
     this.context.model.relationships.deleteForElement(this.context.elementId);
 
     // Track and save atomically
-    await this._persistChanges('delete');
+    await this._persistChanges("delete");
   }
 
   /**
    * Execute all registered steps and persist
    */
-  async execute(mutator: (elem: Element, after: Record<string, unknown>) => Promise<void>, type: 'add' | 'update' | 'delete'): Promise<void> {
+  async execute(
+    mutator: (elem: Element, after: Record<string, unknown>) => Promise<void>,
+    type: "add" | "update" | "delete"
+  ): Promise<void> {
     if (!this.context.element) {
-      throw new CLIError('Element not set on MutationHandler', 1);
+      throw new CLIError("Element not set on MutationHandler", 1);
     }
 
     // Check if we're in staging mode
     const activeChangeset = await this.stagingManager.getActive();
-    if (activeChangeset && activeChangeset.status === 'staged') {
+    if (activeChangeset && activeChangeset.status === "staged") {
       // Staging path: build after state and stage
       if (!activeChangeset.id) {
-        throw new CLIError(
-          `Active changeset has no ID, cannot stage changes`,
-          1,
-          ['The changeset may be corrupted', 'Try creating a new changeset']
-        );
+        throw new CLIError(`Active changeset has no ID, cannot stage changes`, 1, [
+          "The changeset may be corrupted",
+          "Try creating a new changeset",
+        ]);
       }
 
-      if (this.context.before === undefined && type !== 'add') {
+      if (this.context.before === undefined && type !== "add") {
         this.context.before = this.context.element.toJSON() as unknown as Record<string, unknown>;
       }
 
-      this.context.after = type === 'delete'
-        ? undefined
-        : { ...(this.context.before || (this.context.element.toJSON() as unknown as Record<string, unknown>)) };
+      this.context.after =
+        type === "delete"
+          ? undefined
+          : {
+              ...(this.context.before ||
+                (this.context.element.toJSON() as unknown as Record<string, unknown>)),
+            };
 
-      if (type !== 'delete' && this.context.after) {
+      if (type !== "delete" && this.context.after) {
         await mutator(this.context.element, this.context.after);
       }
 
@@ -278,9 +285,12 @@ export class MutationHandler {
   /**
    * Base model path: execute mutations and persist atomically
    */
-  private async _executeBasePath(mutator: (elem: Element, after: Record<string, unknown>) => Promise<void>, type?: string): Promise<void> {
+  private async _executeBasePath(
+    mutator: (elem: Element, after: Record<string, unknown>) => Promise<void>,
+    type?: string
+  ): Promise<void> {
     if (!this.context.element) {
-      throw new CLIError('Element not set', 1);
+      throw new CLIError("Element not set", 1);
     }
 
     // Initialize before state if not already set
@@ -313,7 +323,7 @@ export class MutationHandler {
       await this.context.model.saveLayer(this.context.layerName);
 
       // Save relationships if modified (for deletes)
-      if (type === 'delete' && this.context.model.relationships.isDirty()) {
+      if (type === "delete" && this.context.model.relationships.isDirty()) {
         await this.context.model.saveRelationships();
       }
 
@@ -323,7 +333,7 @@ export class MutationHandler {
       throw new CLIError(
         `Failed to persist changes: ${error instanceof Error ? error.message : String(error)}`,
         1,
-        ['Check that the model directory is writable', 'Verify the model is not corrupted']
+        ["Check that the model directory is writable", "Verify the model is not corrupted"]
       );
     }
   }

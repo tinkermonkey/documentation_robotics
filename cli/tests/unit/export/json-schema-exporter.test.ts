@@ -84,9 +84,15 @@ describe("JsonSchemaExporter", () => {
     const schema = JSON.parse(output);
 
     expect(schema.definitions["data-model-entity-customer"]["x-source-reference"]).toBeDefined();
-    expect(schema.definitions["data-model-entity-customer"]["x-source-reference"].provenance).toBe("extracted");
-    expect(schema.definitions["data-model-entity-customer"]["x-source-reference"].locations[0].file).toBe("src/models/customer.ts");
-    expect(schema.definitions["data-model-entity-customer"]["x-source-reference"].locations[0].symbol).toBe("Customer");
+    expect(schema.definitions["data-model-entity-customer"]["x-source-reference"].provenance).toBe(
+      "extracted"
+    );
+    expect(
+      schema.definitions["data-model-entity-customer"]["x-source-reference"].locations[0].file
+    ).toBe("src/models/customer.ts");
+    expect(
+      schema.definitions["data-model-entity-customer"]["x-source-reference"].locations[0].symbol
+    ).toBe("Customer");
   });
 
   it("should handle entities without source references", async () => {
@@ -128,8 +134,12 @@ describe("JsonSchemaExporter", () => {
     const schema = JSON.parse(output);
 
     expect(schema.definitions["data-model-entity-product"]["x-source-reference"]).toBeDefined();
-    expect(schema.definitions["data-model-entity-product"]["x-source-reference"].provenance).toBe("manual");
-    expect(schema.definitions["data-model-entity-product"]["x-source-reference"].repository).toBeUndefined();
+    expect(schema.definitions["data-model-entity-product"]["x-source-reference"].provenance).toBe(
+      "manual"
+    );
+    expect(
+      schema.definitions["data-model-entity-product"]["x-source-reference"].repository
+    ).toBeUndefined();
   });
 
   it("should handle multiple entities with mixed source references", async () => {

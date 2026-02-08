@@ -3,12 +3,9 @@
  * Uses native fetch API instead of Node.js http module.
  */
 
-import type {
-  SpanExporter,
-  ReadableSpan,
-} from '@opentelemetry/sdk-trace-base';
-import type { ExportResult } from '@opentelemetry/core';
-import { ExportResultCode } from '@opentelemetry/core';
+import type { SpanExporter, ReadableSpan } from "@opentelemetry/sdk-trace-base";
+import type { ExportResult } from "@opentelemetry/core";
+import { ExportResultCode } from "@opentelemetry/core";
 
 /**
  * OTLP exporter using fetch API for Bun compatibility.
@@ -21,11 +18,12 @@ export class FetchOTLPExporter implements SpanExporter {
   private readonly timeoutMs: number;
 
   constructor(config?: { url?: string; timeoutMillis?: number }) {
-    this.url = config?.url || 'http://localhost:4318/v1/traces';
+    this.url = config?.url || "http://localhost:4318/v1/traces";
     this.timeoutMs = config?.timeoutMillis ?? 10000;
-    this.debug = process.env.DR_TELEMETRY_DEBUG === '1' ||
-                 process.env.DEBUG === '1' ||
-                 process.env.VERBOSE === '1';
+    this.debug =
+      process.env.DR_TELEMETRY_DEBUG === "1" ||
+      process.env.DEBUG === "1" ||
+      process.env.VERBOSE === "1";
 
     if (this.debug) {
       process.stderr.write(`[TELEMETRY] Fetch-based trace exporter initialized: ${this.url}\n`);
@@ -45,9 +43,9 @@ export class FetchOTLPExporter implements SpanExporter {
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
     fetch(this.url, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
@@ -63,7 +61,9 @@ export class FetchOTLPExporter implements SpanExporter {
         } else {
           const errorText = await response.text();
           if (this.debug) {
-            process.stderr.write(`[TELEMETRY] Export FAILED - HTTP ${response.status}: ${errorText}\n`);
+            process.stderr.write(
+              `[TELEMETRY] Export FAILED - HTTP ${response.status}: ${errorText}\n`
+            );
           }
           resultCallback({
             code: ExportResultCode.FAILED,
@@ -106,8 +106,8 @@ export class FetchOTLPExporter implements SpanExporter {
           scopeSpans: [
             {
               scope: {
-                name: spans[0]?.instrumentationLibrary?.name || 'unknown',
-                version: spans[0]?.instrumentationLibrary?.version || '',
+                name: spans[0]?.instrumentationLibrary?.name || "unknown",
+                version: spans[0]?.instrumentationLibrary?.version || "",
               },
               spans: spans.map((span) => ({
                 traceId: span.spanContext().traceId,
@@ -147,15 +147,15 @@ export class FetchOTLPExporter implements SpanExporter {
    * Convert attribute value to OTLP format.
    */
   private convertValue(value: any): any {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return { stringValue: value };
-    } else if (typeof value === 'number') {
+    } else if (typeof value === "number") {
       if (Number.isInteger(value)) {
         return { intValue: String(value) };
       } else {
         return { doubleValue: value };
       }
-    } else if (typeof value === 'boolean') {
+    } else if (typeof value === "boolean") {
       return { boolValue: value };
     } else if (Array.isArray(value)) {
       return {

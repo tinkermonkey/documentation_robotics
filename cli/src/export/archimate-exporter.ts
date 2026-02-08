@@ -12,9 +12,11 @@ export class ArchiMateExporter implements Exporter {
   supportedLayers = ["motivation", "business", "application", "technology"];
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
-    const span = isTelemetryEnabled ? startSpan('export.format.archimate', {
-      'export.layerCount': options.layers?.length || this.supportedLayers.length,
-    }) : null;
+    const span = isTelemetryEnabled
+      ? startSpan("export.format.archimate", {
+          "export.layerCount": options.layers?.length || this.supportedLayers.length,
+        })
+      : null;
 
     try {
       const lines: string[] = [];
@@ -23,12 +25,8 @@ export class ArchiMateExporter implements Exporter {
       lines.push('<?xml version="1.0" encoding="UTF-8"?>');
 
       // Root element with namespaces
-      lines.push(
-        '<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"'
-      );
-      lines.push(
-        '       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-      );
+      lines.push('<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"');
+      lines.push('       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"');
       lines.push(
         '       xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd">'
       );
@@ -36,9 +34,7 @@ export class ArchiMateExporter implements Exporter {
       // Model metadata
       lines.push(`  <name>${escapeXml(model.manifest.name)}</name>`);
       if (model.manifest.description) {
-        lines.push(
-          `  <documentation>${escapeXml(model.manifest.description)}</documentation>`
-        );
+        lines.push(`  <documentation>${escapeXml(model.manifest.description)}</documentation>`);
       }
 
       // Export elements - query graph model directly
@@ -58,7 +54,7 @@ export class ArchiMateExporter implements Exporter {
       }
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('export.elementCount', nodesByLayer.length);
+        (span as any).setAttribute("export.elementCount", nodesByLayer.length);
       }
 
       for (const { layer, node } of nodesByLayer) {
@@ -67,9 +63,7 @@ export class ArchiMateExporter implements Exporter {
         lines.push(`      <name>${escapeXml(node.name)}</name>`);
 
         if (node.description) {
-          lines.push(
-            `      <documentation>${escapeXml(node.description)}</documentation>`
-          );
+          lines.push(`      <documentation>${escapeXml(node.description)}</documentation>`);
         }
 
         // Add properties section
@@ -81,7 +75,9 @@ export class ArchiMateExporter implements Exporter {
           for (const key of propKeys) {
             const val = node.properties[key];
             const strValue = this.valueToString(val);
-            lines.push(`        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`);
+            lines.push(
+              `        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`
+            );
           }
         }
 
@@ -95,7 +91,7 @@ export class ArchiMateExporter implements Exporter {
       lines.push("  <relationships>");
 
       let relationshipCount = 0;
-      const nodeIds = new Set(nodesByLayer.map(n => n.node.id));
+      const nodeIds = new Set(nodesByLayer.map((n) => n.node.id));
       const edges = model.graph.getAllEdges();
 
       // Filter edges to include only those between exported nodes
@@ -104,9 +100,7 @@ export class ArchiMateExporter implements Exporter {
           continue;
         }
 
-        lines.push(
-          `    <relationship identifier="${this.escapeId(edge.id)}" `
-        );
+        lines.push(`    <relationship identifier="${this.escapeId(edge.id)}" `);
         lines.push(`                  source="${edge.source}" target="${edge.destination}" `);
         lines.push(`                  xsi:type="Association">`);
         lines.push(`      <name>${edge.predicate}</name>`);
@@ -120,8 +114,8 @@ export class ArchiMateExporter implements Exporter {
       const result = lines.join("\n");
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('export.relationshipCount', relationshipCount);
-        (span as any).setAttribute('export.size', result.length);
+        (span as any).setAttribute("export.relationshipCount", relationshipCount);
+        (span as any).setAttribute("export.size", result.length);
         (span as any).setStatus({ code: 0 });
       }
 
@@ -129,7 +123,10 @@ export class ArchiMateExporter implements Exporter {
     } catch (error) {
       if (isTelemetryEnabled && span) {
         (span as any).recordException(error as Error);
-        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+        (span as any).setStatus({
+          code: 2,
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
       throw error;
     } finally {

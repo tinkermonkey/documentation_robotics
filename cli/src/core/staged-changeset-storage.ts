@@ -7,14 +7,14 @@
  * └── changes.yaml        # Delta-only change records
  */
 
-import { readFile, writeFile, readdir, rm } from 'fs/promises';
-import { fileExists, ensureDir } from '../utils/file-io.js';
-import { FileLock } from '../utils/file-lock.js';
-import path from 'path';
-import yaml from 'yaml';
-import ansis from 'ansis';
-import type { StagedChangesetData, StagedChange } from './changeset.js';
-import { Changeset } from './changeset.js';
+import { readFile, writeFile, readdir, rm } from "fs/promises";
+import { fileExists, ensureDir } from "../utils/file-io.js";
+import { FileLock } from "../utils/file-lock.js";
+import path from "path";
+import yaml from "yaml";
+import ansis from "ansis";
+import type { StagedChangesetData, StagedChange } from "./changeset.js";
+import { Changeset } from "./changeset.js";
 
 /**
  * Storage manager for staged changesets using YAML format
@@ -24,7 +24,7 @@ export class StagedChangesetStorage {
 
   constructor(rootPath: string) {
     // Store changesets in documentation-robotics/changesets/ directory
-    this.changesetsDir = path.join(rootPath, 'documentation-robotics', 'changesets');
+    this.changesetsDir = path.join(rootPath, "documentation-robotics", "changesets");
   }
 
   /**
@@ -44,13 +44,13 @@ export class StagedChangesetStorage {
     await ensureDir(changesetPath);
 
     // Create metadata
-    const metadata: Omit<StagedChangesetData, 'changes'> = {
+    const metadata: Omit<StagedChangesetData, "changes"> = {
       id: sanitizedId,
       name,
       description,
       created: now,
       modified: now,
-      status: 'draft',
+      status: "draft",
       baseSnapshot,
       stats: {
         additions: 0,
@@ -60,14 +60,10 @@ export class StagedChangesetStorage {
     };
 
     // Write metadata.yaml
-    await writeFile(
-      path.join(changesetPath, 'metadata.yaml'),
-      yaml.stringify(metadata),
-      'utf-8'
-    );
+    await writeFile(path.join(changesetPath, "metadata.yaml"), yaml.stringify(metadata), "utf-8");
 
     // Write empty changes.yaml
-    await writeFile(path.join(changesetPath, 'changes.yaml'), yaml.stringify([]), 'utf-8');
+    await writeFile(path.join(changesetPath, "changes.yaml"), yaml.stringify([]), "utf-8");
 
     // Return constructed changeset object
     return new Changeset({
@@ -76,7 +72,7 @@ export class StagedChangesetStorage {
       description,
       created: now,
       modified: now,
-      status: 'draft',
+      status: "draft",
       baseSnapshot,
       changes: [],
       stats: metadata.stats,
@@ -89,8 +85,8 @@ export class StagedChangesetStorage {
   async load(id: string): Promise<Changeset | null> {
     const sanitizedId = this.sanitizeId(id);
     const changesetPath = path.join(this.changesetsDir, sanitizedId);
-    const metadataPath = path.join(changesetPath, 'metadata.yaml');
-    const changesPath = path.join(changesetPath, 'changes.yaml');
+    const metadataPath = path.join(changesetPath, "metadata.yaml");
+    const changesPath = path.join(changesetPath, "changes.yaml");
 
     // Check if changeset directory exists
     if (!(await fileExists(changesetPath))) {
@@ -104,19 +100,19 @@ export class StagedChangesetStorage {
     if (!metadataExists || !changesExists) {
       // Changeset directory exists but required files are missing - this is corruption
       throw new Error(
-        `Changeset '${id}' is corrupted (missing ${!metadataExists ? 'metadata.yaml' : 'changes.yaml'}). ` +
-        `Location: ${changesetPath}\n` +
-        `This may indicate disk failure or incomplete write. Check disk health and restore from backup if available.`
+        `Changeset '${id}' is corrupted (missing ${!metadataExists ? "metadata.yaml" : "changes.yaml"}). ` +
+          `Location: ${changesetPath}\n` +
+          `This may indicate disk failure or incomplete write. Check disk health and restore from backup if available.`
       );
     }
 
     try {
       // Load metadata
-      const metadataContent = await readFile(metadataPath, 'utf-8');
+      const metadataContent = await readFile(metadataPath, "utf-8");
       const metadata = yaml.parse(metadataContent);
 
       // Load changes
-      const changesContent = await readFile(changesPath, 'utf-8');
+      const changesContent = await readFile(changesPath, "utf-8");
       const changes = yaml.parse(changesContent) || [];
 
       // Construct changeset object
@@ -137,12 +133,12 @@ export class StagedChangesetStorage {
       // YAML parsing or file read error - provide detailed guidance
       throw new Error(
         `Failed to load changeset '${id}': YAML parsing failed.\n` +
-        `Error: ${error instanceof Error ? error.message : String(error)}\n` +
-        `Location: ${metadataPath}\n` +
-        `This indicates file corruption. Try:\n` +
-        `  1. Validate YAML syntax with: yamllint ${metadataPath}\n` +
-        `  2. Restore from backup if available\n` +
-        `  3. Manually edit to fix syntax errors`
+          `Error: ${error instanceof Error ? error.message : String(error)}\n` +
+          `Location: ${metadataPath}\n` +
+          `This indicates file corruption. Try:\n` +
+          `  1. Validate YAML syntax with: yamllint ${metadataPath}\n` +
+          `  2. Restore from backup if available\n` +
+          `  3. Manually edit to fix syntax errors`
       );
     }
   }
@@ -152,7 +148,7 @@ export class StagedChangesetStorage {
    */
   async save(changeset: Changeset): Promise<void> {
     if (!changeset.id) {
-      throw new Error('Changeset must have an id to be saved in YAML format');
+      throw new Error("Changeset must have an id to be saved in YAML format");
     }
 
     const sanitizedId = this.sanitizeId(changeset.id);
@@ -172,14 +168,14 @@ export class StagedChangesetStorage {
     };
 
     // Write metadata.yaml
-    await writeFile(
-      path.join(changesetPath, 'metadata.yaml'),
-      yaml.stringify(metadata),
-      'utf-8'
-    );
+    await writeFile(path.join(changesetPath, "metadata.yaml"), yaml.stringify(metadata), "utf-8");
 
     // Write changes.yaml
-    await writeFile(path.join(changesetPath, 'changes.yaml'), yaml.stringify(changeset.changes), 'utf-8');
+    await writeFile(
+      path.join(changesetPath, "changes.yaml"),
+      yaml.stringify(changeset.changes),
+      "utf-8"
+    );
   }
 
   /**
@@ -204,14 +200,18 @@ export class StagedChangesetStorage {
             } else {
               // load() returned null - directory exists but no valid changeset
               console.warn(
-                ansis.yellow(`⚠ Warning: Changeset directory '${entry.name}' exists but could not be loaded (may be corrupted)`)
+                ansis.yellow(
+                  `⚠ Warning: Changeset directory '${entry.name}' exists but could not be loaded (may be corrupted)`
+                )
               );
               skippedCount++;
             }
           } catch (loadError) {
             // load() threw an error - this is a corrupted changeset
             console.warn(
-              ansis.yellow(`⚠ Warning: Failed to load changeset '${entry.name}': ${loadError instanceof Error ? loadError.message : String(loadError)}`)
+              ansis.yellow(
+                `⚠ Warning: Failed to load changeset '${entry.name}': ${loadError instanceof Error ? loadError.message : String(loadError)}`
+              )
             );
             skippedCount++;
           }
@@ -222,7 +222,7 @@ export class StagedChangesetStorage {
       if (skippedCount > 0) {
         console.warn(
           ansis.yellow(`\n⚠ ${skippedCount} changeset(s) could not be loaded and were skipped.`) +
-          ansis.dim(`\nRun 'dr changeset validate' to check for corruption and repair options.`)
+            ansis.dim(`\nRun 'dr changeset validate' to check for corruption and repair options.`)
         );
       }
 
@@ -244,12 +244,12 @@ export class StagedChangesetStorage {
     if (!(await fileExists(changesetPath))) {
       // List available changesets to help user
       const available = await this.list();
-      const availableIds = available.map(cs => cs.id).join(', ');
+      const availableIds = available.map((cs) => cs.id).join(", ");
 
       throw new Error(
         `Changeset '${id}' not found.\n` +
-        `Available changesets: ${availableIds || '(none)'}\n` +
-        `Run 'dr changeset list' to see all changesets.`
+          `Available changesets: ${availableIds || "(none)"}\n` +
+          `Run 'dr changeset list' to see all changesets.`
       );
     }
 
@@ -271,7 +271,7 @@ export class StagedChangesetStorage {
    * @returns The assigned sequence number for the change
    * @throws {Error} If lock acquisition, changeset load, save, or lock release fails
    */
-  async addChange(id: string, change: Omit<StagedChange, 'sequenceNumber'>): Promise<number> {
+  async addChange(id: string, change: Omit<StagedChange, "sequenceNumber">): Promise<number> {
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
 
@@ -302,26 +302,26 @@ export class StagedChangesetStorage {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Detect lock-specific errors
-      if (errorMessage.includes('lock') || errorMessage.includes('timeout')) {
-        const lockFilePath = path.join(changesetPath, '.lock');
+      if (errorMessage.includes("lock") || errorMessage.includes("timeout")) {
+        const lockFilePath = path.join(changesetPath, ".lock");
 
         throw new Error(
           `Failed to add change to changeset '${id}': Lock acquisition failed.\n` +
-          `Error: ${errorMessage}\n\n` +
-          `This usually means another dr process is modifying this changeset.\n` +
-          `If no other processes are running, a stale lock file may exist.\n\n` +
-          `To resolve:\n` +
-          `  1. Wait for other operations to complete\n` +
-          `  2. Check for running dr processes: ps aux | grep dr\n` +
-          `  3. If no processes found, remove stale lock: rm "${lockFilePath}"\n` +
-          `  4. Retry the operation`
+            `Error: ${errorMessage}\n\n` +
+            `This usually means another dr process is modifying this changeset.\n` +
+            `If no other processes are running, a stale lock file may exist.\n\n` +
+            `To resolve:\n` +
+            `  1. Wait for other operations to complete\n` +
+            `  2. Check for running dr processes: ps aux | grep dr\n` +
+            `  3. If no processes found, remove stale lock: rm "${lockFilePath}"\n` +
+            `  4. Retry the operation`
         );
       }
 
       // Generic error with context
       throw new Error(
         `Failed to add change to changeset '${id}': ${errorMessage}\n` +
-        `Changeset path: ${changesetPath}`
+          `Changeset path: ${changesetPath}`
       );
     }
   }
@@ -361,26 +361,26 @@ export class StagedChangesetStorage {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Detect lock-specific errors
-      if (errorMessage.includes('lock') || errorMessage.includes('timeout')) {
-        const lockFilePath = path.join(changesetPath, '.lock');
+      if (errorMessage.includes("lock") || errorMessage.includes("timeout")) {
+        const lockFilePath = path.join(changesetPath, ".lock");
 
         throw new Error(
           `Failed to remove change from changeset '${id}': Lock acquisition failed.\n` +
-          `Error: ${errorMessage}\n\n` +
-          `This usually means another dr process is modifying this changeset.\n` +
-          `If no other processes are running, a stale lock file may exist.\n\n` +
-          `To resolve:\n` +
-          `  1. Wait for other operations to complete\n` +
-          `  2. Check for running dr processes: ps aux | grep dr\n` +
-          `  3. If no processes found, remove stale lock: rm "${lockFilePath}"\n` +
-          `  4. Retry the operation`
+            `Error: ${errorMessage}\n\n` +
+            `This usually means another dr process is modifying this changeset.\n` +
+            `If no other processes are running, a stale lock file may exist.\n\n` +
+            `To resolve:\n` +
+            `  1. Wait for other operations to complete\n` +
+            `  2. Check for running dr processes: ps aux | grep dr\n` +
+            `  3. If no processes found, remove stale lock: rm "${lockFilePath}"\n` +
+            `  4. Retry the operation`
         );
       }
 
       // Generic error with context
       throw new Error(
         `Failed to remove change from changeset '${id}': ${errorMessage}\n` +
-        `Changeset path: ${changesetPath}`
+          `Changeset path: ${changesetPath}`
       );
     }
   }
@@ -406,17 +406,17 @@ export class StagedChangesetStorage {
    */
   private sanitizeId(id: string): string {
     const sanitized = id
-      .replace(/\.\./g, '')           // Remove .. (parent directory)
-      .replace(/^\/+/, '')            // Remove leading slashes
-      .replace(/^[A-Z]:\\/g, '')      // Remove Windows drive letters
+      .replace(/\.\./g, "") // Remove .. (parent directory)
+      .replace(/^\/+/, "") // Remove leading slashes
+      .replace(/^[A-Z]:\\/g, "") // Remove Windows drive letters
       .toLowerCase()
-      .replace(/\s+/g, '-')           // Replace spaces with hyphens
-      .replace(/[^a-z0-9-]/g, '');    // Keep only alphanumeric and hyphens
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/[^a-z0-9-]/g, ""); // Keep only alphanumeric and hyphens
 
     if (!sanitized) {
       throw new Error(
         `Invalid changeset ID '${id}': results in empty string after sanitization. ` +
-        `ID must contain at least one alphanumeric character.`
+          `ID must contain at least one alphanumeric character.`
       );
     }
 

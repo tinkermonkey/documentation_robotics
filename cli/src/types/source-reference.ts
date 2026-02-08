@@ -8,7 +8,7 @@
 /**
  * How the source reference was created
  */
-export type ProvenanceType = 'extracted' | 'manual' | 'inferred' | 'generated';
+export type ProvenanceType = "extracted" | "manual" | "inferred" | "generated";
 
 /**
  * Location of source code implementing this element

@@ -54,7 +54,7 @@ describe("ArchiMateExporter", () => {
     const output = await exporter.export(model, {});
 
     expect(output.startsWith('<?xml version="1.0"')).toBe(true);
-    expect(output.includes('<model xmlns=')).toBe(true);
+    expect(output.includes("<model xmlns=")).toBe(true);
   });
 
   it("should include model name in export", async () => {
@@ -66,9 +66,7 @@ describe("ArchiMateExporter", () => {
   it("should include model description in export", async () => {
     const output = await exporter.export(model, {});
 
-    expect(
-      output.includes("<documentation>Test description</documentation>")
-    ).toBe(true);
+    expect(output.includes("<documentation>Test description</documentation>")).toBe(true);
   });
 
   it("should export elements with correct ArchiMate types", async () => {
@@ -102,9 +100,7 @@ describe("ArchiMateExporter", () => {
 
     const output = await exporter.export(testModel, {});
 
-    expect(output.includes("Test &amp; &lt;Goal&gt; &quot;quoted&quot;")).toBe(
-      true
-    );
+    expect(output.includes("Test &amp; &lt;Goal&gt; &quot;quoted&quot;")).toBe(true);
   });
 
   it("should support layers filter", async () => {
@@ -142,7 +138,7 @@ describe("ArchiMateExporter", () => {
     while ((match = tagRegex.exec(output)) !== null) {
       const [, tagName, selfClosing] = match;
 
-      if (tagName.startsWith('/')) {
+      if (tagName.startsWith("/")) {
         // Closing tag
         const expectedTag = tagStack.pop();
         const actualTag = tagName.substring(1);
@@ -163,14 +159,8 @@ describe("ArchiMateExporter", () => {
   it("should have correct namespaces", async () => {
     const output = await exporter.export(model, {});
 
-    expect(
-      output.includes('xmlns="http://www.opengroup.org/xsd/archimate/3.0/"')
-    ).toBe(true);
-    expect(
-      output.includes(
-        'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-      )
-    ).toBe(true);
+    expect(output.includes('xmlns="http://www.opengroup.org/xsd/archimate/3.0/"')).toBe(true);
+    expect(output.includes('xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"')).toBe(true);
   });
 
   it("should support multiple layers in export", async () => {
@@ -249,13 +239,19 @@ describe("ArchiMateExporter", () => {
 
     const output = await exporter.export(testModel, {});
 
-    expect(output.includes('<properties>')).toBe(true);
+    expect(output.includes("<properties>")).toBe(true);
     expect(output.includes('key="source.provenance" value="extracted"')).toBe(true);
     expect(output.includes('key="source.file.0" value="src/components/test.ts"')).toBe(true);
     expect(output.includes('key="source.symbol.0" value="TestComponent"')).toBe(true);
-    expect(output.includes('key="source.repository.url" value="https://github.com/example/repo"')).toBe(true);
-    expect(output.includes('key="source.repository.commit" value="abc123def456789012345678901234567890abcd"')).toBe(true);
-    expect(output.includes('</properties>')).toBe(true);
+    expect(
+      output.includes('key="source.repository.url" value="https://github.com/example/repo"')
+    ).toBe(true);
+    expect(
+      output.includes(
+        'key="source.repository.commit" value="abc123def456789012345678901234567890abcd"'
+      )
+    ).toBe(true);
+    expect(output.includes("</properties>")).toBe(true);
   });
 
   it("should handle source reference without repository context", async () => {
@@ -355,6 +351,6 @@ describe("ArchiMateExporter", () => {
 
     const output = await exporter.export(testModel, {});
 
-    expect(output.includes('src/test&lt;&gt;&amp;&quot;file.ts')).toBe(true);
+    expect(output.includes("src/test&lt;&gt;&amp;&quot;file.ts")).toBe(true);
   });
 });

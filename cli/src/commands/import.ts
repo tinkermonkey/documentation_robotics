@@ -10,20 +10,22 @@ import * as path from "path";
 import { startSpan, endSpan } from "../telemetry/index.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 export interface ImportOptions {
   format: string;
   input: string;
   model?: string;
-  mergeStrategy?: 'add' | 'update' | 'skip';
+  mergeStrategy?: "add" | "update" | "skip";
 }
 
 export async function importCommand(options: ImportOptions): Promise<void> {
-  const span = isTelemetryEnabled ? startSpan('import.execute', {
-    'import.format': options.format,
-    'import.merge_strategy': options.mergeStrategy || 'add',
-  }) : null;
+  const span = isTelemetryEnabled
+    ? startSpan("import.execute", {
+        "import.format": options.format,
+        "import.merge_strategy": options.mergeStrategy || "add",
+      })
+    : null;
 
   try {
     // Validate required options
@@ -38,13 +40,11 @@ export async function importCommand(options: ImportOptions): Promise<void> {
     }
 
     // Validate format BEFORE attempting any I/O operations
-    const supportedFormats = ['archimate', 'openapi'];
+    const supportedFormats = ["archimate", "openapi"];
     const normalizedFormat = options.format.toLowerCase();
     if (!supportedFormats.includes(normalizedFormat)) {
-      console.error(
-        ansis.red(`Error: Unsupported import format "${options.format}"`)
-      );
-      console.error(`  Supported formats: ${supportedFormats.join(', ')}`);
+      console.error(ansis.red(`Error: Unsupported import format "${options.format}"`));
+      console.error(`  Supported formats: ${supportedFormats.join(", ")}`);
       process.exit(1);
     }
 
@@ -71,15 +71,10 @@ export async function importCommand(options: ImportOptions): Promise<void> {
     // Perform import
     console.log(`Importing from ${ansis.blue(options.format)} format...`);
 
-    const result = await manager.import(
-      normalizedFormat,
-      fileContent,
-      model,
-      {
-        mergeStrategy: options.mergeStrategy || 'add',
-        validateSchema: true,
-      }
-    );
+    const result = await manager.import(normalizedFormat, fileContent, model, {
+      mergeStrategy: options.mergeStrategy || "add",
+      validateSchema: true,
+    });
 
     if (!result.success) {
       console.error(ansis.red(`\nImport failed with ${result.errorsCount} error(s):`));
@@ -100,10 +95,10 @@ export async function importCommand(options: ImportOptions): Promise<void> {
     }
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('import.success', true);
-      (span as any).setAttribute('import.nodesAdded', result.nodesAdded);
-      (span as any).setAttribute('import.edgesAdded', result.edgesAdded);
-      (span as any).setAttribute('import.errors', result.errorsCount);
+      (span as any).setAttribute("import.success", true);
+      (span as any).setAttribute("import.nodesAdded", result.nodesAdded);
+      (span as any).setAttribute("import.edgesAdded", result.edgesAdded);
+      (span as any).setAttribute("import.errors", result.errorsCount);
       (span as any).setStatus({ code: 0 });
     }
   } catch (error) {

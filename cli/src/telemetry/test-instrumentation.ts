@@ -16,11 +16,11 @@
  * and zero-cost abstractions in production builds.
  */
 
-import type { Span } from '@opentelemetry/api';
+import type { Span } from "@opentelemetry/api";
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 interface TestSpanContext {
   fileSpan: Span | null;
@@ -29,7 +29,7 @@ interface TestSpanContext {
 
 const testContext: TestSpanContext = {
   fileSpan: null,
-  currentTestFile: 'unknown',
+  currentTestFile: "unknown",
 };
 
 /**
@@ -59,12 +59,12 @@ export function startTestFileSpan(filePath: string): Span | null {
   if (!isTelemetryEnabled) return null;
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { startSpan } = require('./index.js');
+  const { startSpan } = require("./index.js");
 
   testContext.currentTestFile = filePath;
-  testContext.fileSpan = startSpan('test.file', {
-    'test.file': filePath,
-    'test.framework': 'bun',
+  testContext.fileSpan = startSpan("test.file", {
+    "test.file": filePath,
+    "test.framework": "bun",
   });
   return testContext.fileSpan;
 }
@@ -79,7 +79,7 @@ export function endTestFileSpan(): void {
   if (!isTelemetryEnabled) return;
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { endSpan } = require('./index.js');
+  const { endSpan } = require("./index.js");
 
   if (testContext.fileSpan) {
     endSpan(testContext.fileSpan);
@@ -110,19 +110,16 @@ export function endTestFileSpan(): void {
  * }
  * ```
  */
-export function createTestCaseSpan(
-  testName: string,
-  suiteName?: string
-): Span | null {
+export function createTestCaseSpan(testName: string, suiteName?: string): Span | null {
   if (!isTelemetryEnabled) return null;
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { startSpan } = require('./index.js');
+  const { startSpan } = require("./index.js");
 
-  return startSpan('test.case', {
-    'test.name': testName,
-    'test.suite': suiteName || '',
-    'test.file': testContext.currentTestFile,
+  return startSpan("test.case", {
+    "test.name": testName,
+    "test.suite": suiteName || "",
+    "test.file": testContext.currentTestFile,
   });
 }
 
@@ -152,21 +149,21 @@ export function createTestCaseSpan(
  */
 export function recordTestResult(
   span: Span | null,
-  status: 'pass' | 'fail' | 'skip',
+  status: "pass" | "fail" | "skip",
   error?: Error
 ): void {
   if (!isTelemetryEnabled || !span) return;
 
-  span.setAttribute('test.status', status);
+  span.setAttribute("test.status", status);
 
   if (error) {
-    span.setAttribute('test.error.message', error.message);
-    span.setAttribute('test.error.stack', error.stack || '');
+    span.setAttribute("test.error.message", error.message);
+    span.setAttribute("test.error.stack", error.stack || "");
     span.recordException(error);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { endSpan } = require('./index.js');
+  const { endSpan } = require("./index.js");
   endSpan(span);
 }
 
@@ -207,9 +204,9 @@ export function instrumentTest(
     const span = createTestCaseSpan(testName, suiteName);
     try {
       await testFn();
-      recordTestResult(span, 'pass');
+      recordTestResult(span, "pass");
     } catch (error) {
-      recordTestResult(span, 'fail', error as Error);
+      recordTestResult(span, "fail", error as Error);
       throw error; // Re-throw to fail the test
     }
   };

@@ -4,22 +4,22 @@
  * Manages spec version information for the CLI
  */
 
-import { readJSON, fileExists } from './file-io.js';
-import { join } from 'path';
+import { readJSON, fileExists } from "./file-io.js";
+import { join } from "path";
 
 /**
  * CLI version
  * This should match the version in ../package.json
  * Updated during release process
  */
-const CLI_VERSION = '0.1.0';
+const CLI_VERSION = "0.1.0";
 
 /**
  * Bundled spec version
  * This should match the version in ../../../spec/VERSION
  * Updated during build process
  */
-const BUNDLED_SPEC_VERSION = '0.8.0';
+const BUNDLED_SPEC_VERSION = "0.8.0";
 
 /**
  * Get the CLI version
@@ -49,7 +49,7 @@ export function getCliBundledSpecVersion(): string {
  * @returns Spec version from .dr/manifest.json, or null if not found
  */
 export async function getInstalledSpecVersion(drPath: string): Promise<string | null> {
-  const manifestPath = join(drPath, 'manifest.json');
+  const manifestPath = join(drPath, "manifest.json");
 
   if (!(await fileExists(manifestPath))) {
     return null;
@@ -70,7 +70,7 @@ export async function getInstalledSpecVersion(drPath: string): Promise<string | 
  * @returns Spec version from model manifest, or null if not found
  */
 export async function getModelSpecVersion(modelPath: string): Promise<string | null> {
-  const manifestPath = join(modelPath, 'manifest.yaml');
+  const manifestPath = join(modelPath, "manifest.yaml");
 
   if (!(await fileExists(manifestPath))) {
     return null;
@@ -78,9 +78,9 @@ export async function getModelSpecVersion(modelPath: string): Promise<string | n
 
   try {
     // Use YAML parser
-    const yaml = await import('yaml');
-    const fs = await import('fs/promises');
-    const content = await fs.readFile(manifestPath, 'utf-8');
+    const yaml = await import("yaml");
+    const fs = await import("fs/promises");
+    const content = await fs.readFile(manifestPath, "utf-8");
     const manifest = yaml.parse(content) as { spec_version?: string; specVersion?: string };
     // Check snake_case first (Python CLI format), then camelCase (legacy)
     return manifest.spec_version || manifest.specVersion || null;

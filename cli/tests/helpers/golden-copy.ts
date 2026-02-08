@@ -12,10 +12,10 @@
  * - Cleanup occurs at test suite shutdown via cleanupGoldenCopy()
  */
 
-import { mkdir, cp, rm, access } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join, resolve } from 'path';
-import { cwd } from 'process';
+import { mkdir, cp, rm, access } from "fs/promises";
+import { tmpdir } from "os";
+import { join, resolve } from "path";
+import { cwd } from "process";
 
 let goldenCopyPath: string | null = null;
 let initializationPromise: Promise<string> | null = null;
@@ -57,17 +57,20 @@ export async function initGoldenCopy(): Promise<string> {
   // Create a new initialization promise and cache it to prevent concurrent initialization
   initializationPromise = (async () => {
     // Resolve baseline path - try both possible locations
-    let BASELINE = resolve('/workspace', 'cli-validation/test-project/baseline');
+    let BASELINE = resolve("/workspace", "cli-validation/test-project/baseline");
 
     // Fallback: try relative to current working directory
     try {
       await access(BASELINE);
     } catch {
-      const projectRoot = resolve(cwd(), '..');
-      BASELINE = resolve(projectRoot, 'cli-validation/test-project/baseline');
+      const projectRoot = resolve(cwd(), "..");
+      BASELINE = resolve(projectRoot, "cli-validation/test-project/baseline");
     }
 
-    goldenCopyPath = join(tmpdir(), `dr-golden-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+    goldenCopyPath = join(
+      tmpdir(),
+      `dr-golden-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+    );
 
     try {
       await mkdir(goldenCopyPath, { recursive: true });
@@ -153,17 +156,17 @@ export async function createTestWorkdir(): Promise<{
         await Promise.race([
           cp(golden, testDir, { recursive: true }),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Copy operation timed out after 30s')), 30000)
+            setTimeout(() => reject(new Error("Copy operation timed out after 30s")), 30000)
           ),
         ]);
 
         // After copy, add explicit sync to ensure all filesystem operations are flushed
         // This is a workaround for concurrent test execution race conditions
-        if (process.platform !== 'win32') {
+        if (process.platform !== "win32") {
           try {
             // Try to access a key file to force filesystem sync
-            const { spawnSync } = await import('child_process');
-            spawnSync('sync', [], { stdio: 'ignore' });
+            const { spawnSync } = await import("child_process");
+            spawnSync("sync", [], { stdio: "ignore" });
           } catch {
             // Ignore sync errors on systems that don't support it
           }
@@ -185,7 +188,7 @@ export async function createTestWorkdir(): Promise<{
           }
           // Wait before retrying
           const backoffMs = 100 * Math.pow(2, copyAttempts);
-          await new Promise(resolve => setTimeout(resolve, backoffMs));
+          await new Promise((resolve) => setTimeout(resolve, backoffMs));
         }
       }
     }
@@ -210,8 +213,8 @@ export async function createTestWorkdir(): Promise<{
           // Always log cleanup errors - they can cause disk space issues
           console.error(
             `[GoldenCopy] ERROR: Failed to clean up test workdir at ${testDir}. ` +
-            `This may cause disk space issues. ` +
-            `Error: ${error instanceof Error ? error.message : String(error)}`
+              `This may cause disk space issues. ` +
+              `Error: ${error instanceof Error ? error.message : String(error)}`
           );
         }
       },
@@ -224,9 +227,9 @@ export async function createTestWorkdir(): Promise<{
       // Log cleanup failures even in error paths
       console.error(
         `[GoldenCopy] ERROR: Test workdir creation failed AND cleanup failed. ` +
-        `Orphaned directory may exist at ${testDir}. ` +
-        `Creation error: ${error instanceof Error ? error.message : String(error)}. ` +
-        `Cleanup error: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
+          `Orphaned directory may exist at ${testDir}. ` +
+          `Creation error: ${error instanceof Error ? error.message : String(error)}. ` +
+          `Cleanup error: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
       );
     }
     throw new Error(
@@ -265,8 +268,8 @@ export async function cleanupGoldenCopy(): Promise<void> {
       // Always log cleanup errors
       console.error(
         `[GoldenCopy] ERROR: Failed to clean up golden copy at ${goldenCopyPath}. ` +
-        `This may cause disk space issues. ` +
-        `Error: ${error instanceof Error ? error.message : String(error)}`
+          `This may cause disk space issues. ` +
+          `Error: ${error instanceof Error ? error.message : String(error)}`
       );
     }
     goldenCopyPath = null;
@@ -312,16 +315,20 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
       await access(path);
 
       // Check that manifest exists (key indicator of successful copy)
-      const manifestPath = join(path, 'documentation-robotics', 'model', 'manifest.yaml');
+      const manifestPath = join(path, "documentation-robotics", "model", "manifest.yaml");
       await access(manifestPath);
 
       // Check that key layer directories exist (especially the problematic testing layer)
-      const testingLayerPath = join(path, 'documentation-robotics', 'model', '12_testing');
+      const testingLayerPath = join(path, "documentation-robotics", "model", "12_testing");
       await access(testingLayerPath);
 
       // Verify that all expected YAML files in testing layer are accessible
       // This helps catch filesystem sync issues during concurrent test execution
-      const expectedTestingFiles = ['input-space-partitions.yaml', 'test-case-sketches.yaml', 'test-coverage-models.yaml'];
+      const expectedTestingFiles = [
+        "input-space-partitions.yaml",
+        "test-case-sketches.yaml",
+        "test-coverage-models.yaml",
+      ];
       for (const file of expectedTestingFiles) {
         const filePath = join(testingLayerPath, file);
         await access(filePath);
@@ -334,13 +341,13 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
 
       // Exponential backoff with jitter: 10ms, 20ms, 40ms, 80ms, etc.
       const backoffMs = Math.min(10 * Math.pow(2, attempt), 500) + Math.random() * 100;
-      await new Promise(resolve => setTimeout(resolve, backoffMs));
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
     }
   }
 
   throw new Error(
     `Filesystem verification failed after ${maxRetries} attempts. ` +
-    `Golden copy may not be properly initialized. ` +
-    `Last error: ${lastError?.message}`
+      `Golden copy may not be properly initialized. ` +
+      `Last error: ${lastError?.message}`
   );
 }

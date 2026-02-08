@@ -85,10 +85,7 @@ export class ModelMigrationService {
   /**
    * Perform full migration with backup and validation
    */
-  async migrate(
-    sourceDir: string,
-    options: ModelMigrationOptions
-  ): Promise<ModelMigrationResult> {
+  async migrate(sourceDir: string, options: ModelMigrationOptions): Promise<ModelMigrationResult> {
     const startTime = Date.now();
     const result: ModelMigrationResult = {
       success: false,
@@ -127,27 +124,20 @@ export class ModelMigrationService {
       console.log(`✓ Graph model written to ${options.targetDir}`);
 
       // Step 5: Generate migration mapping table
-      const mappingFile = await this.generateMappingTable(
-        options.targetDir,
-        mappings
-      );
+      const mappingFile = await this.generateMappingTable(options.targetDir, mappings);
       result.mappingFilePath = mappingFile;
       result.elementMapping = this.elementIdMap;
       console.log(`✓ Migration mapping table saved to ${mappingFile}`);
 
       // Step 6: Validate migrated model if requested
       if (options.validateAfterMigration !== false) {
-        const validationErrors = await this.validateMigratedModel(
-          options.targetDir
-        );
+        const validationErrors = await this.validateMigratedModel(options.targetDir);
         result.validationErrors = validationErrors;
 
         if (validationErrors.length > 0) {
           result.success = false;
           // Don't throw - report validation errors but allow completion
-          result.warnings.push(
-            `Validation found ${validationErrors.length} issue(s)`
-          );
+          result.warnings.push(`Validation found ${validationErrors.length} issue(s)`);
         } else {
           result.success = true;
         }
@@ -158,9 +148,7 @@ export class ModelMigrationService {
       result.duration = Date.now() - startTime;
       return result;
     } catch (error) {
-      result.validationErrors.push(
-        error instanceof Error ? error.message : String(error)
-      );
+      result.validationErrors.push(error instanceof Error ? error.message : String(error));
       result.duration = Date.now() - startTime;
 
       // Attempt rollback on error
@@ -169,9 +157,8 @@ export class ModelMigrationService {
           await this.rollback(this.backupDir, options.targetDir);
           console.log(`✓ Rolled back to backup: ${this.backupDir}`);
         } catch (rollbackError) {
-          const rollbackMessage = rollbackError instanceof Error
-            ? rollbackError.message
-            : String(rollbackError);
+          const rollbackMessage =
+            rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
           result.validationErrors.push(
             `CRITICAL: Rollback failed after migration error. Data may be corrupted. Details: ${rollbackMessage}`
           );
@@ -179,18 +166,23 @@ export class ModelMigrationService {
 
           // Write sentinel file to prevent further use of this directory
           try {
-            const sentinelPath = path.join(options.targetDir, '.migration-failed');
+            const sentinelPath = path.join(options.targetDir, ".migration-failed");
             await writeFile(
               sentinelPath,
-              JSON.stringify({
-                timestamp: new Date().toISOString(),
-                originalError: error instanceof Error ? error.message : String(error),
-                rollbackError: rollbackMessage,
-                message: 'Migration failed and rollback was unsuccessful. Data may be corrupted. Do not use this directory.'
-              }, null, 2)
+              JSON.stringify(
+                {
+                  timestamp: new Date().toISOString(),
+                  originalError: error instanceof Error ? error.message : String(error),
+                  rollbackError: rollbackMessage,
+                  message:
+                    "Migration failed and rollback was unsuccessful. Data may be corrupted. Do not use this directory.",
+                },
+                null,
+                2
+              )
             );
           } catch (sentinelError) {
-            console.error('Failed to write migration sentinel file:', sentinelError);
+            console.error("Failed to write migration sentinel file:", sentinelError);
           }
         }
       }
@@ -202,9 +194,7 @@ export class ModelMigrationService {
   /**
    * Extract nodes from existing layer YAML files
    */
-  private async extractNodesFromLayers(
-    preserveProperties: boolean
-  ): Promise<{
+  private async extractNodesFromLayers(preserveProperties: boolean): Promise<{
     nodes: GraphNode[];
     mappings: ElementMapping[];
     warnings: string[];
@@ -287,9 +277,7 @@ export class ModelMigrationService {
           const destNodeId = nodeMap.get(reference.target);
           if (!destNodeId) {
             // Dangling reference - log but don't fail
-            console.warn(
-              `Dangling reference from ${element.id} to ${reference.target}`
-            );
+            console.warn(`Dangling reference from ${element.id} to ${reference.target}`);
             continue;
           }
 
@@ -298,9 +286,7 @@ export class ModelMigrationService {
             source: sourceNodeId,
             destination: destNodeId,
             predicate: `references-${reference.type.toLowerCase()}`,
-            properties: reference.description
-              ? { description: reference.description }
-              : {},
+            properties: reference.description ? { description: reference.description } : {},
           };
 
           edges.push(edge);
@@ -310,9 +296,7 @@ export class ModelMigrationService {
         for (const rel of element.relationships || []) {
           const destNodeId = nodeMap.get(rel.target);
           if (!destNodeId) {
-            console.warn(
-              `Dangling relationship from ${element.id} to ${rel.target}`
-            );
+            console.warn(`Dangling relationship from ${element.id} to ${rel.target}`);
             continue;
           }
 
@@ -377,10 +361,7 @@ export class ModelMigrationService {
       ],
     };
 
-    await writeFile(
-      mappingFilePath,
-      JSON.stringify(migrationMap, null, 2)
-    );
+    await writeFile(mappingFilePath, JSON.stringify(migrationMap, null, 2));
 
     return mappingFilePath;
   }
@@ -411,9 +392,7 @@ export class ModelMigrationService {
           errors.push(`Edge ${edge.id}: source node ${edge.source} not found`);
         }
         if (!nodeIds.has(edge.destination)) {
-          errors.push(
-            `Edge ${edge.id}: destination node ${edge.destination} not found`
-          );
+          errors.push(`Edge ${edge.id}: destination node ${edge.destination} not found`);
         }
       }
 
@@ -433,9 +412,7 @@ export class ModelMigrationService {
         }
       }
     } catch (error) {
-      errors.push(
-        `Validation failed: ${error instanceof Error ? error.message : String(error)}`
-      );
+      errors.push(`Validation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     return errors;
@@ -464,9 +441,7 @@ export class ModelMigrationService {
       // Restore from backup
       await cp(backupDir, targetDir, { recursive: true });
     } catch (error) {
-      throw new Error(
-        `Rollback failed: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Rollback failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

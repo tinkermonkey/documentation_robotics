@@ -24,9 +24,7 @@ interface ValidateOptions {
 /**
  * Generate documentation from schema definitions
  */
-export async function docsGenerateCommand(
-  options: GenerateOptions
-): Promise<void> {
+export async function docsGenerateCommand(options: GenerateOptions): Promise<void> {
   const projectRoot = process.cwd();
   const specDir = path.join(projectRoot, "spec");
 
@@ -57,14 +55,10 @@ export async function docsGenerateCommand(
 
     console.log(`📚 Generating documentation...`);
     execSync(command, { cwd: projectRoot, stdio: "inherit" });
-    console.log(
-      `\n✅ Documentation generation complete at: ${outputDir}`
-    );
+    console.log(`\n✅ Documentation generation complete at: ${outputDir}`);
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(
-        `Documentation generation failed: ${error.message}`
-      );
+      throw new Error(`Documentation generation failed: ${error.message}`);
     }
     throw error;
   }
@@ -73,9 +67,7 @@ export async function docsGenerateCommand(
 /**
  * Validate that documentation is in sync with schemas
  */
-export async function docsValidateCommand(
-  options: ValidateOptions
-): Promise<void> {
+export async function docsValidateCommand(options: ValidateOptions): Promise<void> {
   const projectRoot = process.cwd();
   const specDir = path.join(projectRoot, "spec");
   const layersDir = path.join(specDir, "layers");
@@ -105,9 +97,7 @@ export async function docsValidateCommand(
     }
 
     // Compare generated docs with existing docs
-    const generatedFiles = fs
-      .readdirSync(tempDir)
-      .filter((f) => f.endsWith(".md"));
+    const generatedFiles = fs.readdirSync(tempDir).filter((f) => f.endsWith(".md"));
 
     let hasDiscrepancies = false;
     const discrepancies: string[] = [];
@@ -141,17 +131,13 @@ export async function docsValidateCommand(
     if (hasDiscrepancies) {
       console.log(`\n❌ Documentation is out of sync with schemas:\n`);
       discrepancies.forEach((d) => console.log(`  ${d}`));
-      console.log(
-        `\nRun 'dr docs generate' to update documentation.`
-      );
+      console.log(`\nRun 'dr docs generate' to update documentation.`);
 
       if (options.strict) {
         process.exit(1);
       }
     } else {
-      console.log(
-        `\n✅ Documentation is in sync with schemas!`
-      );
+      console.log(`\n✅ Documentation is in sync with schemas!`);
     }
   } finally {
     // Clean up temporary directory
@@ -165,9 +151,9 @@ export async function docsValidateCommand(
  * Register docs commands with Commander
  */
 export function docsCommands(program: any): void {
-  const docsCommand = program.command("docs").description(
-    "Manage documentation generation and validation"
-  );
+  const docsCommand = program
+    .command("docs")
+    .description("Manage documentation generation and validation");
 
   docsCommand
     .command("generate")
@@ -189,13 +175,8 @@ The generation script reads these spec instances and creates markdown documentat
 
   docsCommand
     .command("validate")
-    .description(
-      "Validate that documentation is in sync with schema definitions"
-    )
-    .option(
-      "--strict",
-      "Exit with error code if documentation is out of sync"
-    )
+    .description("Validate that documentation is in sync with schema definitions")
+    .option("--strict", "Exit with error code if documentation is out of sync")
     .addHelpText(
       "after",
       `

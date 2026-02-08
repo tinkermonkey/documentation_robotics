@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { writeFile, mkdir, readFile } from 'node:fs/promises';
-import { rm } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { mkdtemp } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { parse as parseYaml } from 'yaml';
-import { BaseIntegrationManager } from '@/integrations/base-manager';
-import { ComponentConfig, VersionData, validateVersionData } from '@/integrations/types';
-import { computeFileHash } from '@/integrations/hash-utils';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { writeFile, mkdir, readFile } from "node:fs/promises";
+import { rm } from "node:fs/promises";
+import { join, dirname } from "node:path";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { parse as parseYaml } from "yaml";
+import { BaseIntegrationManager } from "@/integrations/base-manager";
+import { ComponentConfig, VersionData, validateVersionData } from "@/integrations/types";
+import { computeFileHash } from "@/integrations/hash-utils";
 
 /**
  * Test implementation of BaseIntegrationManager
@@ -16,35 +16,35 @@ import { computeFileHash } from '@/integrations/hash-utils';
 class TestIntegrationManager extends BaseIntegrationManager {
   protected readonly components: Record<string, ComponentConfig> = {
     commands: {
-      source: 'commands',
-      target: 'commands',
-      description: 'Command templates',
-      type: 'files',
+      source: "commands",
+      target: "commands",
+      description: "Command templates",
+      type: "files",
       tracked: true,
     },
     agents: {
-      source: 'agents',
-      target: 'agents',
-      description: 'Agent configurations',
-      prefix: 'dr-',
-      type: 'files',
+      source: "agents",
+      target: "agents",
+      description: "Agent configurations",
+      prefix: "dr-",
+      type: "files",
       tracked: true,
     },
     templates: {
-      source: 'templates',
-      target: 'templates',
-      description: 'User customization templates',
-      type: 'files',
+      source: "templates",
+      target: "templates",
+      description: "User customization templates",
+      type: "files",
       tracked: false,
     },
   };
 
   protected readonly targetDir: string;
-  protected readonly versionFileName: string = '.dr-test-version';
+  protected readonly versionFileName: string = ".dr-test-version";
   protected readonly integrationSourceDir: string;
   private sourceRoot: string;
 
-  constructor(targetDir: string, sourceDir: string = 'test_integration') {
+  constructor(targetDir: string, sourceDir: string = "test_integration") {
     super();
     this.targetDir = targetDir;
     this.integrationSourceDir = sourceDir;
@@ -94,7 +94,7 @@ class TestIntegrationManager extends BaseIntegrationManager {
   }
 }
 
-describe.serial('BaseIntegrationManager', () => {
+describe.serial("BaseIntegrationManager", () => {
   let tempDir: string;
   let targetDir: string;
   let sourceDir: string;
@@ -102,28 +102,28 @@ describe.serial('BaseIntegrationManager', () => {
 
   beforeEach(async () => {
     // Create temporary directories
-    tempDir = await mkdtemp(join(tmpdir(), 'dr-manager-test-'));
-    targetDir = join(tempDir, 'target');
-    sourceDir = join(tempDir, 'source');
+    tempDir = await mkdtemp(join(tmpdir(), "dr-manager-test-"));
+    targetDir = join(tempDir, "target");
+    sourceDir = join(tempDir, "source");
 
     await mkdir(targetDir, { recursive: true });
     await mkdir(sourceDir, { recursive: true });
 
     // Create source directory structure
-    const commandsDir = join(sourceDir, 'commands');
-    const agentsDir = join(sourceDir, 'agents');
-    const templatesDir = join(sourceDir, 'templates');
+    const commandsDir = join(sourceDir, "commands");
+    const agentsDir = join(sourceDir, "agents");
+    const templatesDir = join(sourceDir, "templates");
 
     await mkdir(commandsDir, { recursive: true });
     await mkdir(agentsDir, { recursive: true });
     await mkdir(templatesDir, { recursive: true });
 
     // Create test files
-    await writeFile(join(commandsDir, 'cmd1.md'), 'Command 1', 'utf-8');
-    await writeFile(join(commandsDir, 'cmd2.md'), 'Command 2', 'utf-8');
-    await writeFile(join(agentsDir, 'dr-agent1.md'), 'Agent 1', 'utf-8');
-    await writeFile(join(agentsDir, 'ignore-agent.md'), 'Should ignore', 'utf-8');
-    await writeFile(join(templatesDir, 'template1.md'), 'Template 1', 'utf-8');
+    await writeFile(join(commandsDir, "cmd1.md"), "Command 1", "utf-8");
+    await writeFile(join(commandsDir, "cmd2.md"), "Command 2", "utf-8");
+    await writeFile(join(agentsDir, "dr-agent1.md"), "Agent 1", "utf-8");
+    await writeFile(join(agentsDir, "ignore-agent.md"), "Should ignore", "utf-8");
+    await writeFile(join(templatesDir, "template1.md"), "Template 1", "utf-8");
 
     manager = new TestIntegrationManager(targetDir);
     manager.setSourceRoot(sourceDir);
@@ -134,18 +134,18 @@ describe.serial('BaseIntegrationManager', () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
-  describe('isInstalled', () => {
-    it('should return false when version file does not exist', async () => {
+  describe("isInstalled", () => {
+    it("should return false when version file does not exist", async () => {
       const isInstalled = await manager.testIsInstalled();
       expect(isInstalled).toBe(false);
     });
 
-    it('should return true when version file exists', async () => {
+    it("should return true when version file exists", async () => {
       // Create version file
       await writeFile(
-        join(targetDir, '.dr-test-version'),
+        join(targetDir, ".dr-test-version"),
         'version: "0.1.0"\ninstalled_at: "2024-01-01T00:00:00Z"',
-        'utf-8'
+        "utf-8"
       );
 
       const isInstalled = await manager.testIsInstalled();
@@ -153,13 +153,13 @@ describe.serial('BaseIntegrationManager', () => {
     });
   });
 
-  describe('loadVersionFile', () => {
-    it('should return null when version file does not exist', async () => {
+  describe("loadVersionFile", () => {
+    it("should return null when version file does not exist", async () => {
       const versionData = await manager.testLoadVersionFile();
       expect(versionData).toBeNull();
     });
 
-    it('should parse YAML version file correctly', async () => {
+    it("should parse YAML version file correctly", async () => {
       const versionContent = `
 version: "0.1.0"
 installed_at: "2024-01-04T10:30:00Z"
@@ -170,24 +170,24 @@ components:
       modified: false
 `;
 
-      await writeFile(join(targetDir, '.dr-test-version'), versionContent, 'utf-8');
+      await writeFile(join(targetDir, ".dr-test-version"), versionContent, "utf-8");
 
       const versionData = validateVersionData(parseYaml(versionContent));
 
       expect(versionData).not.toBeNull();
-      expect(versionData?.version).toBe('0.1.0');
-      expect(versionData?.installed_at).toBe('2024-01-04T10:30:00Z');
-      expect(versionData?.components['commands']).toBeDefined();
-      expect(versionData?.components['commands']['cmd1.md']).toEqual({
-        hash: 'a1b2c3d4',
+      expect(versionData?.version).toBe("0.1.0");
+      expect(versionData?.installed_at).toBe("2024-01-04T10:30:00Z");
+      expect(versionData?.components["commands"]).toBeDefined();
+      expect(versionData?.components["commands"]["cmd1.md"]).toEqual({
+        hash: "a1b2c3d4",
         modified: false,
       });
     });
 
-    it('should throw error for invalid YAML', async () => {
-      const invalidYaml = 'version: [invalid yaml content {{{';
+    it("should throw error for invalid YAML", async () => {
+      const invalidYaml = "version: [invalid yaml content {{{";
 
-      await writeFile(join(targetDir, '.dr-test-version'), invalidYaml, 'utf-8');
+      await writeFile(join(targetDir, ".dr-test-version"), invalidYaml, "utf-8");
 
       let threwError = false;
       try {
@@ -195,84 +195,84 @@ components:
       } catch (error) {
         threwError = true;
         expect(error).toBeTruthy();
-        expect((error as Error).message).toContain('Failed to parse version file');
+        expect((error as Error).message).toContain("Failed to parse version file");
       }
       expect(threwError).toBe(true);
     });
   });
 
-  describe('updateVersionFile', () => {
-    it('should create version file with correct structure', async () => {
+  describe("updateVersionFile", () => {
+    it("should create version file with correct structure", async () => {
       // First install some files
-      await manager.testInstallComponent('commands');
+      await manager.testInstallComponent("commands");
 
       // Update version file
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
 
       // Read and verify version file
-      const versionContent = await readFile(join(targetDir, '.dr-test-version'), 'utf-8');
+      const versionContent = await readFile(join(targetDir, ".dr-test-version"), "utf-8");
       const versionData = validateVersionData(parseYaml(versionContent));
 
-      expect(versionData.version).toBe('0.1.0');
+      expect(versionData.version).toBe("0.1.0");
       expect(versionData.installed_at).toBeTruthy();
       expect(versionData.components).toBeDefined();
-      expect(versionData.components['commands']).toBeDefined();
+      expect(versionData.components["commands"]).toBeDefined();
     });
 
-    it('should record correct hashes for installed files', async () => {
+    it("should record correct hashes for installed files", async () => {
       // Install component
-      await manager.testInstallComponent('commands');
+      await manager.testInstallComponent("commands");
 
       // Update version file
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
 
       const versionData = await manager.testLoadVersionFile();
 
       // Verify hashes are recorded
-      expect(versionData?.components['commands']['cmd1.md']).toBeDefined();
-      expect(versionData?.components['commands']['cmd1.md'].hash).toHaveLength(8);
-      expect(versionData?.components['commands']['cmd1.md'].modified).toBe(false);
+      expect(versionData?.components["commands"]["cmd1.md"]).toBeDefined();
+      expect(versionData?.components["commands"]["cmd1.md"].hash).toHaveLength(8);
+      expect(versionData?.components["commands"]["cmd1.md"].modified).toBe(false);
     });
 
-    it('should set installed_at to current timestamp', async () => {
+    it("should set installed_at to current timestamp", async () => {
       const beforeTime = new Date();
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
       const afterTime = new Date();
 
       const versionData = await manager.testLoadVersionFile();
-      const installedTime = new Date(versionData?.installed_at || '');
+      const installedTime = new Date(versionData?.installed_at || "");
 
       expect(installedTime.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
       expect(installedTime.getTime()).toBeLessThanOrEqual(afterTime.getTime());
     });
 
-    it('should exclude non-tracked components from version file', async () => {
+    it("should exclude non-tracked components from version file", async () => {
       // Install all components (including non-tracked ones)
-      await manager.testInstallComponent('commands');
-      await manager.testInstallComponent('agents');
-      await manager.testInstallComponent('templates');
+      await manager.testInstallComponent("commands");
+      await manager.testInstallComponent("agents");
+      await manager.testInstallComponent("templates");
 
       // Update version file
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
 
       const versionData = await manager.testLoadVersionFile();
 
       // Verify tracked components are included
-      expect(versionData?.components['commands']).toBeDefined();
-      expect(versionData?.components['agents']).toBeDefined();
+      expect(versionData?.components["commands"]).toBeDefined();
+      expect(versionData?.components["agents"]).toBeDefined();
 
       // Verify non-tracked components are NOT included
-      expect(versionData?.components['templates']).toBeUndefined();
+      expect(versionData?.components["templates"]).toBeUndefined();
     });
   });
 
-  describe('detectObsoleteFiles', () => {
-    it('should return empty array when nothing installed', async () => {
+  describe("detectObsoleteFiles", () => {
+    it("should return empty array when nothing installed", async () => {
       const obsolete = await manager.testDetectObsoleteFiles();
       expect(obsolete).toHaveLength(0);
     });
 
-    it('should detect files missing from source', async () => {
+    it("should detect files missing from source", async () => {
       // Create initial version file
       const versionContent = `
 version: "0.1.0"
@@ -287,32 +287,32 @@ components:
       modified: false
 `;
 
-      await writeFile(join(targetDir, '.dr-test-version'), versionContent, 'utf-8');
+      await writeFile(join(targetDir, ".dr-test-version"), versionContent, "utf-8");
 
       const obsolete = await manager.testDetectObsoleteFiles();
 
       // Should identify deleted-file.md as obsolete
-      const deletedFile = obsolete.find((f) => f.path === 'deleted-file.md');
+      const deletedFile = obsolete.find((f) => f.path === "deleted-file.md");
       expect(deletedFile).toBeDefined();
-      expect(deletedFile?.component).toBe('commands');
+      expect(deletedFile?.component).toBe("commands");
     });
 
-    it('should not flag files that exist in source', async () => {
+    it("should not flag files that exist in source", async () => {
       // Install files first
-      await manager.testInstallComponent('commands');
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testInstallComponent("commands");
+      await manager.testUpdateVersionFile("0.1.0");
 
       // Check for obsolete files
       const obsolete = await manager.testDetectObsoleteFiles();
 
       // cmd1.md and cmd2.md should not be obsolete
-      expect(obsolete.some((f) => f.path === 'cmd1.md')).toBe(false);
-      expect(obsolete.some((f) => f.path === 'cmd2.md')).toBe(false);
+      expect(obsolete.some((f) => f.path === "cmd1.md")).toBe(false);
+      expect(obsolete.some((f) => f.path === "cmd2.md")).toBe(false);
     });
   });
 
-  describe('checkUpdates', () => {
-    it('should detect new files in source', async () => {
+  describe("checkUpdates", () => {
+    it("should detect new files in source", async () => {
       // Create initial version with no files
       const versionContent = `
 version: "0.1.0"
@@ -321,24 +321,24 @@ components:
   commands: {}
 `;
 
-      await writeFile(join(targetDir, '.dr-test-version'), versionContent, 'utf-8');
+      await writeFile(join(targetDir, ".dr-test-version"), versionContent, "utf-8");
       const versionData = validateVersionData(parseYaml(versionContent));
 
-      const changes = await manager.testCheckUpdates('commands', versionData);
+      const changes = await manager.testCheckUpdates("commands", versionData);
 
       // Should detect cmd1.md and cmd2.md as added
-      const addedFiles = changes.filter((c) => c.changeType === 'added');
+      const addedFiles = changes.filter((c) => c.changeType === "added");
       expect(addedFiles.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should detect modified files in source', async () => {
+    it("should detect modified files in source", async () => {
       // Create installed files
-      const cmdDir = join(targetDir, 'commands');
+      const cmdDir = join(targetDir, "commands");
       await mkdir(cmdDir, { recursive: true });
-      await writeFile(join(cmdDir, 'cmd1.md'), 'Original content', 'utf-8');
+      await writeFile(join(cmdDir, "cmd1.md"), "Original content", "utf-8");
 
       // Get hash of original content
-      const originalHash = await computeFileHash(join(cmdDir, 'cmd1.md'));
+      const originalHash = await computeFileHash(join(cmdDir, "cmd1.md"));
 
       // Create version with original hash
       const versionContent = `
@@ -351,20 +351,20 @@ components:
       modified: false
 `;
 
-      await writeFile(join(targetDir, '.dr-test-version'), versionContent, 'utf-8');
+      await writeFile(join(targetDir, ".dr-test-version"), versionContent, "utf-8");
 
       // Modify source file
-      await writeFile(join(sourceDir, 'commands', 'cmd1.md'), 'Modified content', 'utf-8');
+      await writeFile(join(sourceDir, "commands", "cmd1.md"), "Modified content", "utf-8");
 
       const versionData = validateVersionData(parseYaml(versionContent));
-      const changes = await manager.testCheckUpdates('commands', versionData);
+      const changes = await manager.testCheckUpdates("commands", versionData);
 
       // Should detect cmd1.md as modified
-      const modified = changes.find((c) => c.path === 'cmd1.md' && c.changeType === 'modified');
+      const modified = changes.find((c) => c.path === "cmd1.md" && c.changeType === "modified");
       expect(modified).toBeDefined();
     });
 
-    it('should detect deleted files in source', async () => {
+    it("should detect deleted files in source", async () => {
       const versionContent = `
 version: "0.1.0"
 installed_at: "2024-01-01T00:00:00Z"
@@ -378,48 +378,50 @@ components:
       modified: false
 `;
 
-      await writeFile(join(targetDir, '.dr-test-version'), versionContent, 'utf-8');
+      await writeFile(join(targetDir, ".dr-test-version"), versionContent, "utf-8");
 
       const versionData = validateVersionData(parseYaml(versionContent));
-      const changes = await manager.testCheckUpdates('commands', versionData);
+      const changes = await manager.testCheckUpdates("commands", versionData);
 
       // Should detect deleted-cmd.md as deleted
-      const deleted = changes.find((c) => c.path === 'deleted-cmd.md' && c.changeType === 'deleted');
+      const deleted = changes.find(
+        (c) => c.path === "deleted-cmd.md" && c.changeType === "deleted"
+      );
       expect(deleted).toBeDefined();
     });
   });
 
-  describe('installComponent', () => {
-    it('should copy files from source to target', async () => {
-      const filesInstalled = await manager.testInstallComponent('commands');
+  describe("installComponent", () => {
+    it("should copy files from source to target", async () => {
+      const filesInstalled = await manager.testInstallComponent("commands");
 
       expect(filesInstalled).toBeGreaterThan(0);
 
       // Check files were copied
-      const cmd1Path = join(targetDir, 'commands', 'cmd1.md');
-      const cmd2Path = join(targetDir, 'commands', 'cmd2.md');
+      const cmd1Path = join(targetDir, "commands", "cmd1.md");
+      const cmd2Path = join(targetDir, "commands", "cmd2.md");
 
-      const cmd1Content = await readFile(cmd1Path, 'utf-8');
-      const cmd2Content = await readFile(cmd2Path, 'utf-8');
+      const cmd1Content = await readFile(cmd1Path, "utf-8");
+      const cmd2Content = await readFile(cmd2Path, "utf-8");
 
-      expect(cmd1Content).toBe('Command 1');
-      expect(cmd2Content).toBe('Command 2');
+      expect(cmd1Content).toBe("Command 1");
+      expect(cmd2Content).toBe("Command 2");
     });
 
-    it('should respect prefix filter during installation', async () => {
-      const filesInstalled = await manager.testInstallComponent('agents');
+    it("should respect prefix filter during installation", async () => {
+      const filesInstalled = await manager.testInstallComponent("agents");
 
       // Should only copy dr-agent1.md, not ignore-agent.md
-      const agentPath = join(targetDir, 'agents', 'dr-agent1.md');
-      const ignorePath = join(targetDir, 'agents', 'ignore-agent.md');
+      const agentPath = join(targetDir, "agents", "dr-agent1.md");
+      const ignorePath = join(targetDir, "agents", "ignore-agent.md");
 
-      const agentContent = await readFile(agentPath, 'utf-8');
-      expect(agentContent).toBe('Agent 1');
+      const agentContent = await readFile(agentPath, "utf-8");
+      expect(agentContent).toBe("Agent 1");
 
       // ignorePath should not exist
       let fileExists = false;
       try {
-        await readFile(ignorePath, 'utf-8');
+        await readFile(ignorePath, "utf-8");
         fileExists = true;
       } catch {
         // Expected - file should not exist
@@ -427,111 +429,103 @@ components:
       expect(fileExists).toBe(false);
     });
 
-    it('should create parent directories as needed', async () => {
+    it("should create parent directories as needed", async () => {
       // Ensure target directory doesn't have commands subdirectory initially
-      const cmdDir = join(targetDir, 'commands');
+      const cmdDir = join(targetDir, "commands");
 
-      await manager.testInstallComponent('commands');
+      await manager.testInstallComponent("commands");
 
       // Directory should now exist
-      const files = await readFile(join(cmdDir, 'cmd1.md'), 'utf-8');
+      const files = await readFile(join(cmdDir, "cmd1.md"), "utf-8");
       expect(files).toBeTruthy();
     });
 
-    it('should return count of installed files', async () => {
-      const filesInstalled = await manager.testInstallComponent('commands');
+    it("should return count of installed files", async () => {
+      const filesInstalled = await manager.testInstallComponent("commands");
 
       // Should have installed at least cmd1.md and cmd2.md
       expect(filesInstalled).toBeGreaterThanOrEqual(2);
     });
 
-    it('should skip user-modified files unless force is set', async () => {
+    it("should skip user-modified files unless force is set", async () => {
       // First install
-      await manager.testInstallComponent('commands');
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testInstallComponent("commands");
+      await manager.testUpdateVersionFile("0.1.0");
 
       // User modifies a file
-      const cmd1Path = join(targetDir, 'commands', 'cmd1.md');
-      await writeFile(cmd1Path, 'User custom content', 'utf-8');
+      const cmd1Path = join(targetDir, "commands", "cmd1.md");
+      await writeFile(cmd1Path, "User custom content", "utf-8");
 
       // Get the new hash (user-modified)
       const userHash = await computeFileHash(cmd1Path);
 
       // Update version file with user modification flag
       const versionData = await manager.testLoadVersionFile();
-      if (versionData?.components['commands']['cmd1.md']) {
-        versionData.components['commands']['cmd1.md'].modified = true;
+      if (versionData?.components["commands"]["cmd1.md"]) {
+        versionData.components["commands"]["cmd1.md"].modified = true;
       }
-      const yaml = require('yaml');
-      await writeFile(
-        join(targetDir, '.dr-test-version'),
-        yaml.stringify(versionData),
-        'utf-8'
-      );
+      const yaml = require("yaml");
+      await writeFile(join(targetDir, ".dr-test-version"), yaml.stringify(versionData), "utf-8");
 
       // Modify source
-      await writeFile(join(sourceDir, 'commands', 'cmd1.md'), 'Updated Command 1', 'utf-8');
+      await writeFile(join(sourceDir, "commands", "cmd1.md"), "Updated Command 1", "utf-8");
 
       // Try to reinstall without force - file should not be overwritten
-      await manager.testInstallComponent('commands', false);
-      const cmd1Content = await readFile(cmd1Path, 'utf-8');
-      expect(cmd1Content).toBe('User custom content');
+      await manager.testInstallComponent("commands", false);
+      const cmd1Content = await readFile(cmd1Path, "utf-8");
+      expect(cmd1Content).toBe("User custom content");
 
       // Now reinstall with force - file should be overwritten
-      await manager.testInstallComponent('commands', true);
-      const cmd1UpdatedContent = await readFile(cmd1Path, 'utf-8');
-      expect(cmd1UpdatedContent).toBe('Updated Command 1');
+      await manager.testInstallComponent("commands", true);
+      const cmd1UpdatedContent = await readFile(cmd1Path, "utf-8");
+      expect(cmd1UpdatedContent).toBe("Updated Command 1");
     });
 
-    it('should skip conflict files unless force is set', async () => {
+    it("should skip conflict files unless force is set", async () => {
       // First install
-      await manager.testInstallComponent('commands');
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testInstallComponent("commands");
+      await manager.testUpdateVersionFile("0.1.0");
 
       // User modifies a file
-      const cmd1Path = join(targetDir, 'commands', 'cmd1.md');
-      await writeFile(cmd1Path, 'User custom content', 'utf-8');
+      const cmd1Path = join(targetDir, "commands", "cmd1.md");
+      await writeFile(cmd1Path, "User custom content", "utf-8");
 
       // Source also modifies the file
-      await writeFile(join(sourceDir, 'commands', 'cmd1.md'), 'Source updated', 'utf-8');
+      await writeFile(join(sourceDir, "commands", "cmd1.md"), "Source updated", "utf-8");
 
       // This creates a conflict (both user and source modified)
       // Update version file with original hash to trigger conflict detection
-      const originalHash = await computeFileHash(join(sourceDir, 'commands', 'cmd1.md'));
+      const originalHash = await computeFileHash(join(sourceDir, "commands", "cmd1.md"));
       const versionData = await manager.testLoadVersionFile();
-      if (versionData?.components['commands']['cmd1.md']) {
-        versionData.components['commands']['cmd1.md'].hash = originalHash;
+      if (versionData?.components["commands"]["cmd1.md"]) {
+        versionData.components["commands"]["cmd1.md"].hash = originalHash;
       }
-      const yaml = require('yaml');
-      await writeFile(
-        join(targetDir, '.dr-test-version'),
-        yaml.stringify(versionData),
-        'utf-8'
-      );
+      const yaml = require("yaml");
+      await writeFile(join(targetDir, ".dr-test-version"), yaml.stringify(versionData), "utf-8");
 
       // Try to reinstall without force - conflict file should not be overwritten
-      await manager.testInstallComponent('commands', false);
-      const cmd1Content = await readFile(cmd1Path, 'utf-8');
-      expect(cmd1Content).toBe('User custom content');
+      await manager.testInstallComponent("commands", false);
+      const cmd1Content = await readFile(cmd1Path, "utf-8");
+      expect(cmd1Content).toBe("User custom content");
 
       // Now reinstall with force - file should be overwritten
-      await manager.testInstallComponent('commands', true);
-      const cmd1UpdatedContent = await readFile(cmd1Path, 'utf-8');
-      expect(cmd1UpdatedContent).toBe('Source updated');
+      await manager.testInstallComponent("commands", true);
+      const cmd1UpdatedContent = await readFile(cmd1Path, "utf-8");
+      expect(cmd1UpdatedContent).toBe("Source updated");
     });
   });
 
-  describe('Source path resolution', () => {
-    it('should handle relative source paths correctly', () => {
+  describe("Source path resolution", () => {
+    it("should handle relative source paths correctly", () => {
       // This test validates that getSourceRoot works with our test setup
       const sourceRoot = manager.testGetSourceRoot();
       expect(sourceRoot).toBeTruthy();
-      expect(sourceRoot).toContain('source');
+      expect(sourceRoot).toContain("source");
     });
   });
 
-  describe('Absolute target directory resolution (Bug #1)', () => {
-    it('should work with absolute paths directly', async () => {
+  describe("Absolute target directory resolution (Bug #1)", () => {
+    it("should work with absolute paths directly", async () => {
       // Create manager with absolute path
       const absoluteManager = new TestIntegrationManager(targetDir);
 
@@ -541,7 +535,7 @@ components:
       expect(resolvedPath).toBe(targetDir);
     });
 
-    it('isInstalled should work with absolute paths', async () => {
+    it("isInstalled should work with absolute paths", async () => {
       // Use absolute path manager
       const absoluteManager = new TestIntegrationManager(targetDir);
       absoluteManager.setSourceRoot(sourceDir);
@@ -551,12 +545,12 @@ components:
       expect(installed1).toBe(false);
 
       // Create version file
-      const versionFile = join(targetDir, '.dr-test-version');
+      const versionFile = join(targetDir, ".dr-test-version");
       await mkdir(dirname(versionFile), { recursive: true });
       await writeFile(
         versionFile,
         'version: "0.1.0"\ninstalled_at: "2024-01-01T00:00:00Z"',
-        'utf-8'
+        "utf-8"
       );
 
       // Should now be true
@@ -564,13 +558,13 @@ components:
       expect(installed2).toBe(true);
     });
 
-    it('loadVersionFile should work with absolute paths', async () => {
+    it("loadVersionFile should work with absolute paths", async () => {
       // Use absolute path manager
       const absoluteManager = new TestIntegrationManager(targetDir);
       absoluteManager.setSourceRoot(sourceDir);
 
       // Create version file
-      const versionFile = join(targetDir, '.dr-test-version');
+      const versionFile = join(targetDir, ".dr-test-version");
       await mkdir(dirname(versionFile), { recursive: true });
 
       const versionContent = `version: "0.1.0"
@@ -581,134 +575,134 @@ components:
       hash: "a1b2c3d4"
       modified: false`;
 
-      await writeFile(versionFile, versionContent, 'utf-8');
+      await writeFile(versionFile, versionContent, "utf-8");
 
       // Should load the version file
       const versionData = await absoluteManager.testLoadVersionFile();
       expect(versionData).not.toBeNull();
-      expect(versionData?.version).toBe('0.1.0');
-      expect(versionData?.components['commands']['test.md']).toEqual({
-        hash: 'a1b2c3d4',
+      expect(versionData?.version).toBe("0.1.0");
+      expect(versionData?.components["commands"]["test.md"]).toEqual({
+        hash: "a1b2c3d4",
         modified: false,
       });
     });
   });
 
-  describe('updateVersionFile - Hash Comparison Logic', () => {
-    it('should compute hashes from SOURCE directory, not TARGET', async () => {
+  describe("updateVersionFile - Hash Comparison Logic", () => {
+    it("should compute hashes from SOURCE directory, not TARGET", async () => {
       // Install with initial version
-      await manager.testInstallComponent('commands');
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testInstallComponent("commands");
+      await manager.testUpdateVersionFile("0.1.0");
 
       // Modify target file (simulate user edit)
-      const targetCmd1Path = join(targetDir, 'commands', 'cmd1.md');
-      const sourceCmd1Path = join(sourceDir, 'commands', 'cmd1.md');
-      await writeFile(targetCmd1Path, 'User modified content', 'utf-8');
+      const targetCmd1Path = join(targetDir, "commands", "cmd1.md");
+      const sourceCmd1Path = join(sourceDir, "commands", "cmd1.md");
+      await writeFile(targetCmd1Path, "User modified content", "utf-8");
 
       // Update version file again (should use SOURCE hash, not TARGET)
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
       const versionData = await manager.testLoadVersionFile();
 
       // The hash should match the SOURCE file, not the TARGET file
       const sourceHash = await computeFileHash(sourceCmd1Path);
-      const storedHash = versionData?.components['commands']['cmd1.md'].hash;
+      const storedHash = versionData?.components["commands"]["cmd1.md"].hash;
       expect(storedHash).toBe(sourceHash);
     });
 
-    it('should set modified=false when target matches source', async () => {
+    it("should set modified=false when target matches source", async () => {
       // Install files
-      await manager.testInstallComponent('commands');
+      await manager.testInstallComponent("commands");
 
       // Update version file - both source and target have same content
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
       const versionData = await manager.testLoadVersionFile();
 
       // Files should not be marked as modified since they match source
-      expect(versionData?.components['commands']['cmd1.md'].modified).toBe(false);
+      expect(versionData?.components["commands"]["cmd1.md"].modified).toBe(false);
     });
 
-    it('should set modified=true when target differs from source', async () => {
+    it("should set modified=true when target differs from source", async () => {
       // Install files
-      await manager.testInstallComponent('commands');
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testInstallComponent("commands");
+      await manager.testUpdateVersionFile("0.1.0");
 
       // User modifies target file
-      const targetCmd1Path = join(targetDir, 'commands', 'cmd1.md');
-      await writeFile(targetCmd1Path, 'User modified content', 'utf-8');
+      const targetCmd1Path = join(targetDir, "commands", "cmd1.md");
+      await writeFile(targetCmd1Path, "User modified content", "utf-8");
 
       // Update version file - should detect the modification
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
       const versionData = await manager.testLoadVersionFile();
 
       // File should be marked as modified
-      expect(versionData?.components['commands']['cmd1.md'].modified).toBe(true);
+      expect(versionData?.components["commands"]["cmd1.md"].modified).toBe(true);
     });
 
-    it('should default to modified=true on hash computation error', async () => {
+    it("should default to modified=true on hash computation error", async () => {
       // Install files
-      await manager.testInstallComponent('commands');
-      const targetCmd1Path = join(targetDir, 'commands', 'cmd1.md');
+      await manager.testInstallComponent("commands");
+      const targetCmd1Path = join(targetDir, "commands", "cmd1.md");
 
       // Delete the target file to simulate a file access error
       await rm(targetCmd1Path);
 
       // Update version file - should safely default to modified=true
       // This shouldn't throw; it should gracefully handle the error
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
       const versionData = await manager.testLoadVersionFile();
 
       // Should have a record for cmd1.md and modified should be true (safe default)
-      expect(versionData?.components['commands']['cmd1.md']).toBeDefined();
+      expect(versionData?.components["commands"]["cmd1.md"]).toBeDefined();
       // The modified flag might be true due to safe-default error handling
-      expect(versionData?.components['commands']['cmd1.md'].hash).toHaveLength(8);
+      expect(versionData?.components["commands"]["cmd1.md"].hash).toHaveLength(8);
     });
 
-    it('should include only tracked components in version file', async () => {
+    it("should include only tracked components in version file", async () => {
       // Install both tracked and non-tracked components
-      await manager.testInstallComponent('commands'); // tracked: true
-      await manager.testInstallComponent('agents'); // tracked: true
-      await manager.testInstallComponent('templates'); // tracked: false
+      await manager.testInstallComponent("commands"); // tracked: true
+      await manager.testInstallComponent("agents"); // tracked: true
+      await manager.testInstallComponent("templates"); // tracked: false
 
       // Update version file
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
       const versionData = await manager.testLoadVersionFile();
 
       // Tracked components should be included
-      expect(versionData?.components['commands']).toBeDefined();
-      expect(versionData?.components['agents']).toBeDefined();
+      expect(versionData?.components["commands"]).toBeDefined();
+      expect(versionData?.components["agents"]).toBeDefined();
 
       // Non-tracked components should NOT be included
-      expect(versionData?.components['templates']).toBeUndefined();
+      expect(versionData?.components["templates"]).toBeUndefined();
     });
   });
 
-  describe('Integration workflow', () => {
-    it('should handle complete install and update cycle', async () => {
+  describe("Integration workflow", () => {
+    it("should handle complete install and update cycle", async () => {
       // 1. Install component
-      const installed = await manager.testInstallComponent('commands');
+      const installed = await manager.testInstallComponent("commands");
       expect(installed).toBeGreaterThan(0);
 
       // 2. Create version file
-      await manager.testUpdateVersionFile('0.1.0');
+      await manager.testUpdateVersionFile("0.1.0");
       let versionData = await manager.testLoadVersionFile();
-      expect(versionData?.version).toBe('0.1.0');
+      expect(versionData?.version).toBe("0.1.0");
 
       // 3. Simulate source file change
-      await writeFile(join(sourceDir, 'commands', 'cmd1.md'), 'Modified Command 1', 'utf-8');
+      await writeFile(join(sourceDir, "commands", "cmd1.md"), "Modified Command 1", "utf-8");
 
       // 4. Check for updates
-      const changes = await manager.testCheckUpdates('commands', versionData!);
-      const modifiedFiles = changes.filter((c) => c.changeType === 'modified');
+      const changes = await manager.testCheckUpdates("commands", versionData!);
+      const modifiedFiles = changes.filter((c) => c.changeType === "modified");
       expect(modifiedFiles.length).toBeGreaterThan(0);
 
       // 5. Reinstall component
-      const updated = await manager.testInstallComponent('commands');
+      const updated = await manager.testInstallComponent("commands");
       expect(updated).toBeGreaterThan(0);
 
       // 6. Update version file again
-      await manager.testUpdateVersionFile('0.1.1');
+      await manager.testUpdateVersionFile("0.1.1");
       versionData = await manager.testLoadVersionFile();
-      expect(versionData?.version).toBe('0.1.1');
+      expect(versionData?.version).toBe("0.1.1");
     });
   });
 });

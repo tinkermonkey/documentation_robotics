@@ -2,10 +2,10 @@
  * Search for elements across the model
  */
 
-import ansis from 'ansis';
-import { Model } from '../core/model.js';
-import type { Element } from '../core/element.js';
-import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
+import ansis from "ansis";
+import { Model } from "../core/model.js";
+import type { Element } from "../core/element.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 export interface SearchOptions {
   layer?: string;
@@ -22,9 +22,7 @@ export interface SearchOptions {
  * - Converts backslashes to forward slashes
  */
 function normalizePath(path: string): string {
-  return path
-    .replace(/^\.\//, '')
-    .replace(/\\/g, '/');
+  return path.replace(/^\.\//, "").replace(/\\/g, "/");
 }
 
 /**
@@ -39,20 +37,22 @@ function matchesSourceFile(element: Element, sourceFilePath: string): boolean {
   const normalizedQuery = normalizePath(sourceFilePath);
 
   // Check if any location matches the queried file
-  return sourceRef.locations.some(loc => {
+  return sourceRef.locations.some((loc) => {
     const normalizedLoc = normalizePath(loc.file);
     return normalizedLoc === normalizedQuery;
   });
 }
 
 export async function searchCommand(query: string, options: SearchOptions): Promise<void> {
-  const span = isTelemetryEnabled ? startSpan('search.execute', {
-    'search.query': query,
-    'search.layer': options.layer,
-    'search.type': options.type,
-    'search.sourceFile': options.sourceFile,
-    'search.json': options.json === true,
-  }) : null;
+  const span = isTelemetryEnabled
+    ? startSpan("search.execute", {
+        "search.query": query,
+        "search.layer": options.layer,
+        "search.type": options.type,
+        "search.sourceFile": options.sourceFile,
+        "search.json": options.json === true,
+      })
+    : null;
 
   try {
     // Load model
@@ -124,7 +124,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     }
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('search.resultCount', results.length);
+      (span as any).setAttribute("search.resultCount", results.length);
       (span as any).setStatus({ code: 0 });
     }
 
@@ -138,7 +138,9 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     // Display results
     if (results.length === 0) {
       if (isSourceFileSearch) {
-        console.log(ansis.yellow(`No elements found referencing source file: ${options.sourceFile}`));
+        console.log(
+          ansis.yellow(`No elements found referencing source file: ${options.sourceFile}`)
+        );
       } else {
         console.log(ansis.yellow(`No elements matching "${query}"`));
       }
@@ -146,13 +148,15 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       return;
     }
 
-    console.log('');
+    console.log("");
     if (isSourceFileSearch) {
-      console.log(ansis.bold(`Found ${results.length} element(s) referencing ${options.sourceFile}:`));
+      console.log(
+        ansis.bold(`Found ${results.length} element(s) referencing ${options.sourceFile}:`)
+      );
     } else {
       console.log(ansis.bold(`Found ${results.length} element(s) matching "${query}":`));
     }
-    console.log(ansis.dim('─'.repeat(80)));
+    console.log(ansis.dim("─".repeat(80)));
 
     // Print header
     const layerWidth = 12;
@@ -161,9 +165,9 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     const nameWidth = 28;
 
     console.log(
-      `${ansis.cyan('LAYER'.padEnd(layerWidth))} ${ansis.cyan('ID'.padEnd(idWidth))} ${ansis.cyan('TYPE'.padEnd(typeWidth))} ${ansis.cyan('NAME')}`
+      `${ansis.cyan("LAYER".padEnd(layerWidth))} ${ansis.cyan("ID".padEnd(idWidth))} ${ansis.cyan("TYPE".padEnd(typeWidth))} ${ansis.cyan("NAME")}`
     );
-    console.log(ansis.dim('─'.repeat(80)));
+    console.log(ansis.dim("─".repeat(80)));
 
     // Print rows
     for (const result of results) {
@@ -180,18 +184,21 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
           console.log(ansis.dim(`  └─ Description: ${result.description}`));
         }
         if (result.sourceFile) {
-          const symbol = result.sourceSymbol ? ` | Symbol: ${result.sourceSymbol}` : '';
+          const symbol = result.sourceSymbol ? ` | Symbol: ${result.sourceSymbol}` : "";
           console.log(ansis.dim(`  └─ Source: ${result.sourceFile}${symbol}`));
         }
       }
     }
 
-    console.log(ansis.dim('─'.repeat(80)));
-    console.log('');
+    console.log(ansis.dim("─".repeat(80)));
+    console.log("");
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (span as any).setStatus({
+        code: 2,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));

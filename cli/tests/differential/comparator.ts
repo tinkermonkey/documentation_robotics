@@ -1,15 +1,15 @@
-import { describe, expect, test } from 'bun:test';
-import { deepEqual } from 'node:assert/strict';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { describe, expect, test } from "bun:test";
+import { deepEqual } from "node:assert/strict";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { parse as parseYaml } from "yaml";
 
 /**
  * Configuration for output comparison
  */
 export interface ComparisonConfig {
   /** Type of comparison to perform */
-  type: 'json' | 'text' | 'exit-code' | 'filesystem';
+  type: "json" | "text" | "exit-code" | "filesystem";
   /** Keys to ignore in JSON comparison (e.g., timestamps) */
   ignoreKeys?: string[];
   /** Whether to sort arrays before comparison */
@@ -54,10 +54,7 @@ export interface ComparisonResult {
 /**
  * Normalize JSON object by removing ignored keys and sorting arrays
  */
-function normalizeJson(
-  obj: unknown,
-  config: ComparisonConfig
-): unknown {
+function normalizeJson(obj: unknown, config: ComparisonConfig): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -66,14 +63,12 @@ function normalizeJson(
     const normalized = obj.map((item) => normalizeJson(item, config));
     if (config.sortArrays) {
       // Sort by JSON string representation for stable ordering
-      return normalized.sort((a, b) =>
-        JSON.stringify(a).localeCompare(JSON.stringify(b))
-      );
+      return normalized.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
     }
     return normalized;
   }
 
-  if (typeof obj === 'object') {
+  if (typeof obj === "object") {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       // Skip ignored keys
@@ -81,8 +76,8 @@ function normalizeJson(
         continue;
       }
       // Normalize paths if enabled
-      if (config.normalizePaths && typeof value === 'string') {
-        result[key] = value.replace(/\\/g, '/');
+      if (config.normalizePaths && typeof value === "string") {
+        result[key] = value.replace(/\\/g, "/");
       } else {
         result[key] = normalizeJson(value, config);
       }
@@ -96,7 +91,7 @@ function normalizeJson(
 /**
  * Recursively get all files matching patterns in a directory
  */
-function getFilesRecursive(dir: string, patterns: string[] = ['**/*.yaml', '**/*.yml']): string[] {
+function getFilesRecursive(dir: string, patterns: string[] = ["**/*.yaml", "**/*.yml"]): string[] {
   const files: string[] = [];
 
   if (!fs.existsSync(dir)) {
@@ -114,13 +109,13 @@ function getFilesRecursive(dir: string, patterns: string[] = ['**/*.yaml', '**/*
       } else if (entry.isFile()) {
         // Check if file matches any pattern
         const relativePath = path.relative(dir, fullPath);
-        const matches = patterns.some(pattern => {
+        const matches = patterns.some((pattern) => {
           // Simple glob matching for **/*.yaml and *.yaml patterns
-          if (pattern.startsWith('**/*.')) {
+          if (pattern.startsWith("**/*.")) {
             const ext = pattern.slice(4);
             return relativePath.endsWith(ext);
           }
-          if (pattern.startsWith('*.')) {
+          if (pattern.startsWith("*.")) {
             const ext = pattern.slice(1);
             return path.basename(relativePath).endsWith(ext);
           }
@@ -150,8 +145,8 @@ function compareFilesystems(
   const typescriptFiles = getFilesRecursive(typescriptRoot, patterns);
 
   // Get relative paths for comparison
-  const pythonRelPaths = pythonFiles.map(f => path.relative(pythonRoot, f)).sort();
-  const typescriptRelPaths = typescriptFiles.map(f => path.relative(typescriptRoot, f)).sort();
+  const pythonRelPaths = pythonFiles.map((f) => path.relative(pythonRoot, f)).sort();
+  const typescriptRelPaths = typescriptFiles.map((f) => path.relative(typescriptRoot, f)).sort();
 
   const differences: string[] = [];
 
@@ -178,11 +173,11 @@ function compareFilesystems(
       const typescriptFile = path.join(typescriptRoot, relPath);
 
       try {
-        const pythonContent = fs.readFileSync(pythonFile, 'utf-8');
-        const typescriptContent = fs.readFileSync(typescriptFile, 'utf-8');
+        const pythonContent = fs.readFileSync(pythonFile, "utf-8");
+        const typescriptContent = fs.readFileSync(typescriptFile, "utf-8");
 
         // Parse YAML and compare
-        if (relPath.endsWith('.yaml') || relPath.endsWith('.yml')) {
+        if (relPath.endsWith(".yaml") || relPath.endsWith(".yml")) {
           const pythonYaml = parseYaml(pythonContent);
           const typescriptYaml = parseYaml(typescriptContent);
 
@@ -195,7 +190,9 @@ function compareFilesystems(
           }
         }
       } catch (error) {
-        differences.push(`Error comparing ${relPath}: ${error instanceof Error ? error.message : String(error)}`);
+        differences.push(
+          `Error comparing ${relPath}: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   }
@@ -213,22 +210,22 @@ function normalizeText(text: string, config: ComparisonConfig): string {
   let normalized = text;
 
   // Normalize line endings
-  normalized = normalized.replace(/\r\n/g, '\n');
+  normalized = normalized.replace(/\r\n/g, "\n");
 
   // Normalize whitespace if enabled
   if (config.normalizeWhitespace) {
     // Trim each line
     normalized = normalized
-      .split('\n')
+      .split("\n")
       .map((line) => line.trim())
-      .join('\n');
+      .join("\n");
     // Remove empty lines at start/end
     normalized = normalized.trim();
   }
 
   // Normalize paths if enabled
   if (config.normalizePaths) {
-    normalized = normalized.replace(/\\/g, '/');
+    normalized = normalized.replace(/\\/g, "/");
   }
 
   return normalized;
@@ -237,11 +234,7 @@ function normalizeText(text: string, config: ComparisonConfig): string {
 /**
  * Generate detailed diff between two JSON objects
  */
-function generateJsonDiff(
-  a: unknown,
-  b: unknown,
-  path: string = 'root'
-): string[] {
+function generateJsonDiff(a: unknown, b: unknown, path: string = "root"): string[] {
   const diffs: string[] = [];
 
   if (typeof a !== typeof b) {
@@ -273,7 +266,7 @@ function generateJsonDiff(
     return diffs;
   }
 
-  if (typeof a === 'object' && typeof b === 'object') {
+  if (typeof a === "object" && typeof b === "object") {
     const aObj = a as Record<string, unknown>;
     const bObj = b as Record<string, unknown>;
     const allKeys = new Set([...Object.keys(aObj), ...Object.keys(bObj)]);
@@ -291,7 +284,7 @@ function generateJsonDiff(
   }
 
   // Primitive values
-  if (typeof a === 'number' && typeof b === 'number') {
+  if (typeof a === "number" && typeof b === "number") {
     // Use epsilon for floating point comparison
     const epsilon = 0.0001; // default epsilon
     if (Math.abs(a - b) > epsilon) {
@@ -312,7 +305,7 @@ export function compareOutputs(
   typescript: OutputPayload,
   config: ComparisonConfig
 ): ComparisonResult {
-  if (config.type === 'exit-code') {
+  if (config.type === "exit-code") {
     // Check for exact match first
     const matches = python.exitCode === typescript.exitCode;
 
@@ -322,18 +315,18 @@ export function compareOutputs(
       // Both CLIs working correctly, just different validation strictness
       if (python.exitCode === 0 && typescript.exitCode === 1) {
         const tsHasValidationWarnings =
-          typescript.stdout.includes('Validation failed') ||
-          typescript.stdout.includes('error(s)') ||
-          typescript.stdout.includes('Invalid element ID format');
+          typescript.stdout.includes("Validation failed") ||
+          typescript.stdout.includes("error(s)") ||
+          typescript.stdout.includes("Invalid element ID format");
 
         if (tsHasValidationWarnings) {
           return {
             matches: true,
             differences: [
-              'Validation philosophy difference (acceptable):',
+              "Validation philosophy difference (acceptable):",
               `  Python CLI: exit ${python.exitCode} (accepts current format)`,
               `  TypeScript CLI: exit ${typescript.exitCode} (enforces stricter naming conventions)`,
-              '  Both CLIs are working correctly with different validation rules',
+              "  Both CLIs are working correctly with different validation rules",
             ],
           };
         }
@@ -344,28 +337,26 @@ export function compareOutputs(
       matches,
       differences: matches
         ? undefined
-        : [
-            `Exit code mismatch: python=${python.exitCode}, typescript=${typescript.exitCode}`,
-          ],
+        : [`Exit code mismatch: python=${python.exitCode}, typescript=${typescript.exitCode}`],
     };
   }
 
-  if (config.type === 'filesystem') {
+  if (config.type === "filesystem") {
     if (!config.pythonRoot || !config.typescriptRoot) {
       return {
         matches: false,
-        differences: ['Filesystem comparison requires pythonRoot and typescriptRoot'],
+        differences: ["Filesystem comparison requires pythonRoot and typescriptRoot"],
       };
     }
 
-    const patterns = config.paths || ['**/*.yaml', '**/*.yml'];
+    const patterns = config.paths || ["**/*.yaml", "**/*.yml"];
     return compareFilesystems(config.pythonRoot, config.typescriptRoot, patterns);
   }
 
   const pythonOutput = python.stdout || python.stderr;
   const typescriptOutput = typescript.stdout || typescript.stderr;
 
-  if (config.type === 'json') {
+  if (config.type === "json") {
     try {
       const pythonJson = JSON.parse(pythonOutput);
       const typescriptJson = JSON.parse(typescriptOutput);
@@ -380,18 +371,20 @@ export function compareOutputs(
         differences: differences.length > 0 ? differences : undefined,
         normalized: {
           python: normalizedPython,
-          typescript: normalizedTypescript
-        }
+          typescript: normalizedTypescript,
+        },
       };
     } catch (error) {
       return {
         matches: false,
-        differences: [`JSON parse error: ${error instanceof Error ? error.message : String(error)}`]
+        differences: [
+          `JSON parse error: ${error instanceof Error ? error.message : String(error)}`,
+        ],
       };
     }
   }
 
-  if (config.type === 'text') {
+  if (config.type === "text") {
     const normalizedPython = normalizeText(pythonOutput, config);
     const normalizedTypescript = normalizeText(typescriptOutput, config);
 
@@ -400,20 +393,18 @@ export function compareOutputs(
     }
 
     // Generate line-by-line diff
-    const pythonLines = normalizedPython.split('\n');
-    const typescriptLines = normalizedTypescript.split('\n');
+    const pythonLines = normalizedPython.split("\n");
+    const typescriptLines = normalizedTypescript.split("\n");
     const differences: string[] = [];
 
     if (pythonLines.length !== typescriptLines.length) {
-      differences.push(
-        `Line count mismatch: ${pythonLines.length} vs ${typescriptLines.length}`
-      );
+      differences.push(`Line count mismatch: ${pythonLines.length} vs ${typescriptLines.length}`);
     }
 
     const maxLines = Math.max(pythonLines.length, typescriptLines.length);
     for (let i = 0; i < maxLines; i++) {
-      const pythonLine = pythonLines[i] || '';
-      const typescriptLine = typescriptLines[i] || '';
+      const pythonLine = pythonLines[i] || "";
+      const typescriptLine = typescriptLines[i] || "";
       if (pythonLine !== typescriptLine) {
         differences.push(
           `Line ${i + 1}:\n  Python:     "${pythonLine}"\n  TypeScript: "${typescriptLine}"`
@@ -426,14 +417,14 @@ export function compareOutputs(
       differences,
       normalized: {
         python: normalizedPython,
-        typescript: normalizedTypescript
-      }
+        typescript: normalizedTypescript,
+      },
     };
   }
 
   return {
     matches: false,
-    differences: ['Unknown comparison type']
+    differences: ["Unknown comparison type"],
   };
 }
 
@@ -442,19 +433,19 @@ export function compareOutputs(
  */
 export function formatComparisonResult(result: ComparisonResult): string {
   if (result.matches) {
-    return '✓ Outputs match';
+    return "✓ Outputs match";
   }
 
-  let output = '✗ Outputs differ:\n\n';
+  let output = "✗ Outputs differ:\n\n";
 
   if (result.differences) {
-    output += result.differences.map(d => `  - ${d}`).join('\n');
+    output += result.differences.map((d) => `  - ${d}`).join("\n");
   }
 
   if (result.normalized) {
-    output += '\n\nNormalized Python output:\n';
+    output += "\n\nNormalized Python output:\n";
     output += JSON.stringify(result.normalized.python, null, 2);
-    output += '\n\nNormalized TypeScript output:\n';
+    output += "\n\nNormalized TypeScript output:\n";
     output += JSON.stringify(result.normalized.typescript, null, 2);
   }
 

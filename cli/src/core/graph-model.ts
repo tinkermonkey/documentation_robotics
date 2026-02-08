@@ -6,11 +6,11 @@ import type { Relationship } from "../types/index.js";
  * Replaces Element class for graph-based storage
  */
 export interface GraphNode {
-  id: string;                          // Unique identifier
-  layer: string;                       // Layer this node belongs to
-  type: string;                        // Element type
-  name: string;                        // Display name
-  description?: string;                // Optional description
+  id: string; // Unique identifier
+  layer: string; // Layer this node belongs to
+  type: string; // Element type
+  name: string; // Display name
+  description?: string; // Optional description
   properties: Record<string, unknown>; // Custom properties
 }
 
@@ -18,23 +18,23 @@ export interface GraphNode {
  * Graph edge representing a relationship between nodes
  */
 export interface GraphEdge {
-  id: string;                          // Unique identifier
-  source: string;                      // Source node ID
-  destination: string;                 // Destination node ID
-  predicate: string;                   // Relationship type
+  id: string; // Unique identifier
+  source: string; // Source node ID
+  destination: string; // Destination node ID
+  predicate: string; // Relationship type
   properties?: Record<string, unknown>; // Optional properties
-  category?: 'structural' | 'behavioral';
+  category?: "structural" | "behavioral";
 }
 
 /**
  * Index structures for efficient querying
  */
 interface GraphIndices {
-  nodesByLayer: Map<string, Set<string>>;           // layer -> node IDs
-  nodesByType: Map<string, Set<string>>;            // type -> node IDs
-  edgesBySource: Map<string, Set<string>>;          // source node ID -> edge IDs
-  edgesByDestination: Map<string, Set<string>>;     // destination node ID -> edge IDs
-  edgesByPredicate: Map<string, Set<string>>;       // predicate -> edge IDs
+  nodesByLayer: Map<string, Set<string>>; // layer -> node IDs
+  nodesByType: Map<string, Set<string>>; // type -> node IDs
+  edgesBySource: Map<string, Set<string>>; // source node ID -> edge IDs
+  edgesByDestination: Map<string, Set<string>>; // destination node ID -> edge IDs
+  edgesByPredicate: Map<string, Set<string>>; // predicate -> edge IDs
 }
 
 /**
@@ -528,7 +528,7 @@ export class GraphModel implements IGraphModel {
   static fromElement(element: Element): GraphNode {
     return {
       id: element.id,
-      layer: element.layer || 'unknown',
+      layer: element.layer || "unknown",
       type: element.type,
       name: element.name,
       description: element.description,

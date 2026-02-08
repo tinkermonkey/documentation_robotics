@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { FileLock } from '../../src/utils/file-lock.js';
-import { mkdir, rm } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { FileLock } from "../../src/utils/file-lock.js";
+import { mkdir, rm } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
 
-import { mkdtemp } from 'fs/promises';
-import { tmpdir } from 'os';
+import { mkdtemp } from "fs/promises";
+import { tmpdir } from "os";
 
 let TEST_DIR: string;
 
-describe('FileLock', () => {
+describe("FileLock", () => {
   beforeEach(async () => {
     // Create unique temporary directory for this test
     // Ensure parent temp directory exists first
@@ -17,7 +17,7 @@ describe('FileLock', () => {
     if (!existsSync(parentDir)) {
       await mkdir(parentDir, { recursive: true });
     }
-    TEST_DIR = await mkdtemp(path.join(parentDir, 'file-lock-test-'));
+    TEST_DIR = await mkdtemp(path.join(parentDir, "file-lock-test-"));
   });
 
   afterEach(async () => {
@@ -28,19 +28,19 @@ describe('FileLock', () => {
     }
   });
 
-  describe('acquire()', () => {
-    it('should successfully acquire a lock', async () => {
-      const lock = new FileLock(path.join(TEST_DIR, 'resource'));
+  describe("acquire()", () => {
+    it("should successfully acquire a lock", async () => {
+      const lock = new FileLock(path.join(TEST_DIR, "resource"));
 
       await lock.acquire();
       expect(lock.isAcquired()).toBe(true);
-      expect(existsSync(path.join(TEST_DIR, 'resource.lock'))).toBe(true);
+      expect(existsSync(path.join(TEST_DIR, "resource.lock"))).toBe(true);
 
       await lock.release();
     });
 
-    it('should timeout if lock is held by another process', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should timeout if lock is held by another process", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
       const lock2 = new FileLock(lockPath);
 
@@ -57,21 +57,21 @@ describe('FileLock', () => {
       }
 
       expect(timeoutError).not.toBeNull();
-      expect(timeoutError?.message).toContain('Failed to acquire lock');
-      expect(timeoutError?.message).toContain('within 100ms');
+      expect(timeoutError?.message).toContain("Failed to acquire lock");
+      expect(timeoutError?.message).toContain("within 100ms");
 
       await lock1.release();
     });
 
-    it('should throw descriptive error for unexpected filesystem errors', async () => {
+    it("should throw descriptive error for unexpected filesystem errors", async () => {
       // Create a file (not a directory) at the lock path to force an error
-      const lockPath = path.join(TEST_DIR, 'resource');
+      const lockPath = path.join(TEST_DIR, "resource");
       const lockFile = `${lockPath}.lock`;
       await mkdir(path.dirname(lockFile), { recursive: true });
 
       // Write a file instead of creating a directory
-      const fs = await import('fs/promises');
-      await fs.writeFile(lockFile, 'blocking file');
+      const fs = await import("fs/promises");
+      await fs.writeFile(lockFile, "blocking file");
 
       const lock = new FileLock(lockPath);
 
@@ -83,16 +83,16 @@ describe('FileLock', () => {
       }
 
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('Failed to acquire lock');
+      expect(error?.message).toContain("Failed to acquire lock");
 
       // Cleanup
       await rm(lockFile);
     });
   });
 
-  describe('release()', () => {
-    it('should successfully release an acquired lock', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+  describe("release()", () => {
+    it("should successfully release an acquired lock", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       await lock.acquire();
@@ -103,19 +103,19 @@ describe('FileLock', () => {
       expect(existsSync(`${lockPath}.lock`)).toBe(false);
     });
 
-    it('should be a no-op if lock was never acquired', async () => {
-      const lock = new FileLock(path.join(TEST_DIR, 'resource'));
+    it("should be a no-op if lock was never acquired", async () => {
+      const lock = new FileLock(path.join(TEST_DIR, "resource"));
 
       // Should not throw
       await lock.release();
       expect(lock.isAcquired()).toBe(false);
     });
 
-    it('should throw error if lock file cannot be removed', async () => {
+    it("should throw error if lock file cannot be removed", async () => {
       // This test verifies that filesystem errors during release are thrown
       // We'll create a scenario where we can't remove the lock directory
 
-      const lockPath = path.join(TEST_DIR, 'resource');
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       await lock.acquire();
@@ -134,17 +134,17 @@ describe('FileLock', () => {
       expect(lock.isAcquired()).toBe(false);
     });
 
-    it('should throw descriptive error with lock state information', async () => {
+    it("should throw descriptive error with lock state information", async () => {
       // Create a lock file manually that can't be removed
-      const lockPath = path.join(TEST_DIR, 'resource');
+      const lockPath = path.join(TEST_DIR, "resource");
       const lockDir = `${lockPath}.lock`;
 
       await mkdir(lockDir, { recursive: true });
 
       // Create a child file that will cause issues on some systems
-      const childFile = path.join(lockDir, 'immovable.txt');
-      const fs = await import('fs/promises');
-      await fs.writeFile(childFile, 'content');
+      const childFile = path.join(lockDir, "immovable.txt");
+      const fs = await import("fs/promises");
+      await fs.writeFile(childFile, "content");
 
       // Create lock and manually set acquired state
       const lock = new FileLock(lockPath);
@@ -163,9 +163,9 @@ describe('FileLock', () => {
     });
   });
 
-  describe('withLock()', () => {
-    it('should acquire lock, execute function, and release lock', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+  describe("withLock()", () => {
+    it("should acquire lock, execute function, and release lock", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       let functionExecuted = false;
@@ -180,8 +180,8 @@ describe('FileLock', () => {
       expect(existsSync(`${lockPath}.lock`)).toBe(false);
     });
 
-    it('should release lock even if function throws', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should release lock even if function throws", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       let error: Error | null = null;
@@ -189,41 +189,41 @@ describe('FileLock', () => {
       try {
         await lock.withLock(async () => {
           expect(lock.isAcquired()).toBe(true);
-          throw new Error('Function error');
+          throw new Error("Function error");
         });
       } catch (err) {
         error = err as Error;
       }
 
       expect(error).not.toBeNull();
-      expect(error?.message).toBe('Function error');
+      expect(error?.message).toBe("Function error");
       expect(lock.isAcquired()).toBe(false);
       expect(existsSync(`${lockPath}.lock`)).toBe(false);
     });
 
-    it('should return function result on success', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should return function result on success", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       const result = await lock.withLock(async () => {
-        return 'success';
+        return "success";
       });
 
-      expect(result).toBe('success');
+      expect(result).toBe("success");
     });
 
-    it('should throw lock release errors and log function errors', async () => {
+    it("should throw lock release errors and log function errors", async () => {
       // This test verifies that lock release errors are prioritized
       // even if the function also threw an error
 
-      const lockPath = path.join(TEST_DIR, 'resource');
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       let releaseError: Error | null = null;
 
       try {
         await lock.withLock(async () => {
-          throw new Error('Function error');
+          throw new Error("Function error");
         });
       } catch (err) {
         releaseError = err as Error;
@@ -231,11 +231,11 @@ describe('FileLock', () => {
 
       // The error should be the function error (since we can actually release)
       expect(releaseError).not.toBeNull();
-      expect(releaseError?.message).toBe('Function error');
+      expect(releaseError?.message).toBe("Function error");
     });
 
-    it('should handle concurrent operations with timeout', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle concurrent operations with timeout", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
       const lock2 = new FileLock(lockPath);
 
@@ -243,7 +243,7 @@ describe('FileLock', () => {
 
       const op1 = lock1.withLock(async () => {
         // Hold the lock for a bit
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       });
 
       // Start second operation immediately (should timeout)
@@ -252,7 +252,7 @@ describe('FileLock', () => {
           await lock2.withLock(
             async () => {
               // This should not execute
-              throw new Error('Should not reach here');
+              throw new Error("Should not reach here");
             },
             { timeout: 50, retryInterval: 10 }
           );
@@ -264,13 +264,13 @@ describe('FileLock', () => {
       await Promise.all([op1, op2]);
 
       expect(concurrentError).not.toBeNull();
-      expect(concurrentError?.message).toContain('Failed to acquire lock');
+      expect(concurrentError?.message).toContain("Failed to acquire lock");
     });
   });
 
-  describe('stale lock detection', () => {
-    it('isLockStale - returns false for fresh locks', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+  describe("stale lock detection", () => {
+    it("isLockStale - returns false for fresh locks", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       await lock.acquire();
@@ -282,14 +282,14 @@ describe('FileLock', () => {
       await lock.release();
     });
 
-    it('isLockStale - returns true for old locks', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("isLockStale - returns true for old locks", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       await lock.acquire();
 
       // Wait 100ms to ensure lock age exceeds threshold
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Use a 50ms threshold so the lock (now ~100ms old) is stale
       const isStale = await FileLock.isLockStale(lockPath, 50);
@@ -298,22 +298,22 @@ describe('FileLock', () => {
       await lock.release();
     });
 
-    it('isLockStale - handles missing lock directory', async () => {
-      const lockPath = path.join(TEST_DIR, 'nonexistent');
+    it("isLockStale - handles missing lock directory", async () => {
+      const lockPath = path.join(TEST_DIR, "nonexistent");
 
       // Non-existent lock should not be stale
       const isStale = await FileLock.isLockStale(lockPath);
       expect(isStale).toBe(false);
     });
 
-    it('cleanupStaleLocks - removes stale lock', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("cleanupStaleLocks - removes stale lock", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       await lock.acquire();
 
       // Wait 100ms to ensure lock age exceeds threshold
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Cleanup with 50ms threshold to treat lock as stale
       await FileLock.cleanupStaleLocks(lockPath, 50);
@@ -322,8 +322,8 @@ describe('FileLock', () => {
       expect(FileLock.exists(lockPath)).toBe(false);
     });
 
-    it('cleanupStaleLocks - preserves fresh locks', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("cleanupStaleLocks - preserves fresh locks", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       await lock.acquire();
@@ -337,15 +337,15 @@ describe('FileLock', () => {
       await lock.release();
     });
 
-    it('acquire - automatically cleans up stale locks', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("acquire - automatically cleans up stale locks", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       // Create a stale lock
       await lock1.acquire();
 
       // Wait 100ms to ensure lock age exceeds threshold
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Create new lock instance with 50ms threshold to detect it as stale
       const lock2 = new FileLock(lockPath);
@@ -358,8 +358,8 @@ describe('FileLock', () => {
       await lock2.release();
     });
 
-    it('acquire - respects detectStaleLocks option', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("acquire - respects detectStaleLocks option", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       // Create a stale lock
@@ -382,13 +382,13 @@ describe('FileLock', () => {
 
       // Should timeout because detection is disabled
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('Failed to acquire lock');
+      expect(error?.message).toContain("Failed to acquire lock");
 
       await lock1.release();
     });
 
-    it('acquire - custom staleLockThreshold works', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("acquire - custom staleLockThreshold works", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       // Create a lock
@@ -410,15 +410,15 @@ describe('FileLock', () => {
 
       // Should timeout because lock is not considered stale with 60s threshold
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('Failed to acquire lock');
+      expect(error?.message).toContain("Failed to acquire lock");
 
       await lock1.release();
     });
   });
 
-  describe('static utilities', () => {
-    it('should check if lock exists', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+  describe("static utilities", () => {
+    it("should check if lock exists", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       expect(FileLock.exists(lockPath)).toBe(false);
@@ -430,8 +430,8 @@ describe('FileLock', () => {
       expect(FileLock.exists(lockPath)).toBe(false);
     });
 
-    it('should force remove a lock file', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should force remove a lock file", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       await lock.acquire();
@@ -446,8 +446,8 @@ describe('FileLock', () => {
       expect(lock.isAcquired()).toBe(true);
     });
 
-    it('should handle force remove on non-existent lock', async () => {
-      const lockPath = path.join(TEST_DIR, 'nonexistent');
+    it("should handle force remove on non-existent lock", async () => {
+      const lockPath = path.join(TEST_DIR, "nonexistent");
 
       // Should not throw
       await FileLock.forceRemove(lockPath);
@@ -455,9 +455,9 @@ describe('FileLock', () => {
     });
   });
 
-  describe('edge cases - concurrent scenarios', () => {
-    it('should handle rapid acquire/release cycles without corruption', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+  describe("edge cases - concurrent scenarios", () => {
+    it("should handle rapid acquire/release cycles without corruption", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
 
       // Perform 10 rapid cycles to stress-test state management
       for (let i = 0; i < 10; i++) {
@@ -474,8 +474,8 @@ describe('FileLock', () => {
       }
     });
 
-    it('should handle concurrent acquire attempts with proper timeout messages', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle concurrent acquire attempts with proper timeout messages", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       await lock1.acquire();
@@ -497,21 +497,21 @@ describe('FileLock', () => {
 
       // All attempts should fail
       expect(errors).toHaveLength(attempts);
-      errors.forEach(err => {
-        expect(err.message).toContain('Failed to acquire lock');
-        expect(err.message).toContain('within 50ms');
+      errors.forEach((err) => {
+        expect(err.message).toContain("Failed to acquire lock");
+        expect(err.message).toContain("within 50ms");
       });
 
       await lock1.release();
     });
 
-    it('should handle lock acquisition after cleanup of stale locks', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle lock acquisition after cleanup of stale locks", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       // Create initial stale lock
       await lock1.acquire();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Acquire with stale detection should clean up and succeed
       const lock2 = new FileLock(lockPath);
@@ -527,12 +527,12 @@ describe('FileLock', () => {
       expect(FileLock.exists(lockPath)).toBe(false);
     });
 
-    it('should prevent race condition when releasing after concurrent cleanup', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should prevent race condition when releasing after concurrent cleanup", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       await lock1.acquire();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Simulate another instance cleaning up the lock
       await FileLock.cleanupStaleLocks(lockPath, 50);
@@ -544,15 +544,15 @@ describe('FileLock', () => {
         // Expected to succeed due to force: true in rm()
       } catch (err) {
         // If it does throw, that's also acceptable as long as acquired state updates
-        expect((err as Error).message).toContain('Failed to release lock');
+        expect((err as Error).message).toContain("Failed to release lock");
       }
       expect(lock1.isAcquired()).toBe(false);
     });
   });
 
-  describe('edge cases - timeout and timing', () => {
-    it('should handle very small timeout correctly', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+  describe("edge cases - timeout and timing", () => {
+    it("should handle very small timeout correctly", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       await lock1.acquire();
@@ -567,14 +567,14 @@ describe('FileLock', () => {
       }
 
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('Failed to acquire lock');
-      expect(error?.message).toContain('within 10ms');
+      expect(error?.message).toContain("Failed to acquire lock");
+      expect(error?.message).toContain("within 10ms");
 
       await lock1.release();
     });
 
-    it('should measure timeout accurately across retry cycles', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should measure timeout accurately across retry cycles", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       await lock1.acquire();
@@ -597,8 +597,8 @@ describe('FileLock', () => {
       await lock1.release();
     });
 
-    it('should handle very small retry intervals without overwhelming CPU', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle very small retry intervals without overwhelming CPU", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       await lock1.acquire();
@@ -625,9 +625,9 @@ describe('FileLock', () => {
     });
   });
 
-  describe('edge cases - stale lock edge conditions', () => {
-    it('should handle multiple stale locks simultaneously', async () => {
-      const resources = ['res1', 'res2', 'res3'];
+  describe("edge cases - stale lock edge conditions", () => {
+    it("should handle multiple stale locks simultaneously", async () => {
+      const resources = ["res1", "res2", "res3"];
 
       // Create multiple stale locks
       for (const res of resources) {
@@ -637,7 +637,7 @@ describe('FileLock', () => {
       }
 
       // Wait for locks to become stale
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Cleanup should handle all stale locks
       for (const res of resources) {
@@ -647,15 +647,15 @@ describe('FileLock', () => {
       }
     });
 
-    it('should correctly detect staleness boundary condition', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should correctly detect staleness boundary condition", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       await lock.acquire();
 
       // Test lock at exactly the threshold
       const threshold = 80;
-      await new Promise(resolve => setTimeout(resolve, threshold));
+      await new Promise((resolve) => setTimeout(resolve, threshold));
 
       // At exactly the threshold, lock age should be >= threshold
       // so it should be considered stale
@@ -665,13 +665,13 @@ describe('FileLock', () => {
       await lock.release();
     });
 
-    it('should handle cleanup when lock changes owner mid-operation', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle cleanup when lock changes owner mid-operation", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       // Create initial lock
       await lock1.acquire();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Simulate another process taking over the lock
       await lock1.release();
@@ -690,9 +690,9 @@ describe('FileLock', () => {
     });
   });
 
-  describe('edge cases - error scenarios', () => {
-    it('should handle acquire failure when parent directory is deleted', async () => {
-      const lockPath = path.join(TEST_DIR, 'subdir', 'resource');
+  describe("edge cases - error scenarios", () => {
+    it("should handle acquire failure when parent directory is deleted", async () => {
+      const lockPath = path.join(TEST_DIR, "subdir", "resource");
 
       const lock = new FileLock(lockPath);
       let error: Error | null = null;
@@ -705,26 +705,26 @@ describe('FileLock', () => {
 
       // Should fail with descriptive error (parent directory doesn't exist)
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('Failed to acquire lock');
+      expect(error?.message).toContain("Failed to acquire lock");
     });
 
-    it('should handle isLockStale with permission errors gracefully', async () => {
+    it("should handle isLockStale with permission errors gracefully", async () => {
       // This test verifies graceful degradation
       // We create a lock normally but test the error path
 
-      const lockPath = path.join(TEST_DIR, 'resource');
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
       await lock.acquire();
 
       // Normal case should not throw
       const isStale = await FileLock.isLockStale(lockPath);
-      expect(typeof isStale).toBe('boolean');
+      expect(typeof isStale).toBe("boolean");
 
       await lock.release();
     });
 
-    it('should handle release when lock state is corrupted', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle release when lock state is corrupted", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
 
       // Create lock normally
       const lock = new FileLock(lockPath);
@@ -739,16 +739,16 @@ describe('FileLock', () => {
         await lock.release();
       } catch (err) {
         // Even if it throws, that's acceptable - we're testing state consistency
-        expect((err as Error).message).toContain('Failed to release lock');
+        expect((err as Error).message).toContain("Failed to release lock");
       }
 
       expect(lock.isAcquired()).toBe(false);
     });
   });
 
-  describe('edge cases - withLock wrapper', () => {
-    it('should maintain lock across long-running operations', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+  describe("edge cases - withLock wrapper", () => {
+    it("should maintain lock across long-running operations", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
       const lock2 = new FileLock(lockPath);
 
@@ -766,7 +766,7 @@ describe('FileLock', () => {
         })();
 
         // Wait to simulate long operation
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         await acquireOp;
       });
 
@@ -777,8 +777,8 @@ describe('FileLock', () => {
       expect(lock1.isAcquired()).toBe(false);
     });
 
-    it('should release lock even with nested errors', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should release lock even with nested errors", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       let capturedError: Error | null = null;
@@ -786,9 +786,9 @@ describe('FileLock', () => {
       try {
         await lock.withLock(async () => {
           try {
-            throw new Error('Inner error');
+            throw new Error("Inner error");
           } catch {
-            throw new Error('Wrapped error');
+            throw new Error("Wrapped error");
           }
         });
       } catch (err) {
@@ -797,15 +797,15 @@ describe('FileLock', () => {
 
       // Should have caught the error
       expect(capturedError).not.toBeNull();
-      expect(capturedError?.message).toContain('Wrapped error');
+      expect(capturedError?.message).toContain("Wrapped error");
 
       // Lock should be released
       expect(lock.isAcquired()).toBe(false);
       expect(FileLock.exists(lockPath)).toBe(false);
     });
 
-    it('should handle withLock with timeout options passed through', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle withLock with timeout options passed through", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
 
       await lock1.acquire();
@@ -816,7 +816,7 @@ describe('FileLock', () => {
       try {
         await lock2.withLock(
           async () => {
-            throw new Error('Should not reach');
+            throw new Error("Should not reach");
           },
           { timeout: 50, retryInterval: 10 }
         );
@@ -826,13 +826,13 @@ describe('FileLock', () => {
 
       // Should timeout during acquisition
       expect(capturedError).not.toBeNull();
-      expect(capturedError?.message).toContain('Failed to acquire lock');
+      expect(capturedError?.message).toContain("Failed to acquire lock");
 
       await lock1.release();
     });
 
-    it('should handle function that returns undefined', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle function that returns undefined", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       const result = await lock.withLock(async () => {
@@ -843,11 +843,11 @@ describe('FileLock', () => {
       expect(lock.isAcquired()).toBe(false);
     });
 
-    it('should handle function that returns complex object', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle function that returns complex object", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
-      const testData = { id: 123, name: 'test', nested: { value: true } };
+      const testData = { id: 123, name: "test", nested: { value: true } };
 
       const result = await lock.withLock(async () => {
         return testData;
@@ -858,9 +858,9 @@ describe('FileLock', () => {
     });
   });
 
-  describe('edge cases - state consistency', () => {
-    it('should not allow release of lock not acquired by this instance', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+  describe("edge cases - state consistency", () => {
+    it("should not allow release of lock not acquired by this instance", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock1 = new FileLock(lockPath);
       const lock2 = new FileLock(lockPath);
 
@@ -879,8 +879,8 @@ describe('FileLock', () => {
       await lock1.release();
     });
 
-    it('should maintain correct acquired state after error during release', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should maintain correct acquired state after error during release", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       // Create a scenario where release might fail
@@ -894,8 +894,8 @@ describe('FileLock', () => {
       expect(lock.isAcquired()).toBe(false);
     });
 
-    it('should handle multiple isAcquired checks during lifecycle', async () => {
-      const lockPath = path.join(TEST_DIR, 'resource');
+    it("should handle multiple isAcquired checks during lifecycle", async () => {
+      const lockPath = path.join(TEST_DIR, "resource");
       const lock = new FileLock(lockPath);
 
       // Check before acquire

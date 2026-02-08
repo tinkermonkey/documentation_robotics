@@ -7,12 +7,12 @@
  * Replaces the deprecated link-registry.json system.
  */
 
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import fs from 'node:fs/promises';
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs/promises";
 
 export interface RelationshipSemantics {
-  directionality: 'unidirectional' | 'bidirectional';
+  directionality: "unidirectional" | "bidirectional";
   transitivity: boolean;
   symmetry: boolean;
 }
@@ -72,10 +72,7 @@ export class RelationshipCatalog {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
     // Try bundled schemas first (installed/built mode)
-    const bundledPath = path.join(
-      currentDir,
-      '../schemas/bundled/relationship-catalog.json'
-    );
+    const bundledPath = path.join(currentDir, "../schemas/bundled/relationship-catalog.json");
 
     return bundledPath;
   }
@@ -85,17 +82,17 @@ export class RelationshipCatalog {
    */
   async load(): Promise<void> {
     try {
-      const content = await fs.readFile(this.catalogPath, 'utf-8');
+      const content = await fs.readFile(this.catalogPath, "utf-8");
       this.data = JSON.parse(content);
     } catch (error) {
       // Try fallback path
       try {
         const fallbackPath = path.join(
           __dirname,
-          '../../..',
-          'spec/schemas/relationship-catalog.json'
+          "../../..",
+          "spec/schemas/relationship-catalog.json"
         );
-        const content = await fs.readFile(fallbackPath, 'utf-8');
+        const content = await fs.readFile(fallbackPath, "utf-8");
         this.data = JSON.parse(content);
         this.catalogPath = fallbackPath;
       } catch {
@@ -111,7 +108,7 @@ export class RelationshipCatalog {
    */
   private ensureLoaded(): void {
     if (!this.data) {
-      throw new Error('Relationship catalog not loaded. Call load() first.');
+      throw new Error("Relationship catalog not loaded. Call load() first.");
     }
   }
 
@@ -155,11 +152,11 @@ export class RelationshipCatalog {
   getTypesForLayer(layer: string): RelationshipType[] {
     this.ensureLoaded();
     // Normalize layer format (remove leading zeros if present)
-    const normalizedLayer = layer.replace(/^0+/, '');
+    const normalizedLayer = layer.replace(/^0+/, "");
 
     return this.data!.relationshipTypes.filter((t) =>
       t.applicableLayers.some(
-        (l) => l === layer || l === normalizedLayer || l.replace(/^0+/, '') === normalizedLayer
+        (l) => l === layer || l === normalizedLayer || l.replace(/^0+/, "") === normalizedLayer
       )
     );
   }
@@ -202,8 +199,7 @@ export class RelationshipCatalog {
         t.id.toLowerCase().includes(lowerKeyword) ||
         t.predicate.toLowerCase().includes(lowerKeyword) ||
         t.description.toLowerCase().includes(lowerKeyword) ||
-        (t.inversePredicate &&
-          t.inversePredicate.toLowerCase().includes(lowerKeyword))
+        (t.inversePredicate && t.inversePredicate.toLowerCase().includes(lowerKeyword))
     );
   }
 

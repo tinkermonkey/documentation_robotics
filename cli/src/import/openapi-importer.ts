@@ -12,7 +12,7 @@ export class OpenAPIImporter implements Importer {
   supportedFormats = ["json"];
 
   async import(data: string, model: Model, _options: ImportOptions = {}): Promise<ImportResult> {
-    const span: Span | null = isTelemetryEnabled ? startSpan('import.format.openapi') : null;
+    const span: Span | null = isTelemetryEnabled ? startSpan("import.format.openapi") : null;
     const result: ImportResult = {
       success: false,
       nodesAdded: 0,
@@ -75,7 +75,8 @@ export class OpenAPIImporter implements Importer {
 
           for (const method of methods) {
             const operation = pathSpec_[method];
-            const operationId = operation.operationId || `${method}-${pathName}`.replace(/[^a-zA-Z0-9-]/g, "-");
+            const operationId =
+              operation.operationId || `${method}-${pathName}`.replace(/[^a-zA-Z0-9-]/g, "-");
             const endpointId = `api.endpoint.${operationId}`;
 
             // Create endpoint node
@@ -192,9 +193,9 @@ export class OpenAPIImporter implements Importer {
       result.success = result.errorsCount === 0;
 
       if (isTelemetryEnabled && span) {
-        span.setAttribute('import.nodesAdded', result.nodesAdded);
-        span.setAttribute('import.edgesAdded', result.edgesAdded);
-        span.setAttribute('import.errors', result.errorsCount);
+        span.setAttribute("import.nodesAdded", result.nodesAdded);
+        span.setAttribute("import.edgesAdded", result.edgesAdded);
+        span.setAttribute("import.errors", result.errorsCount);
         span.setStatus({ code: result.success ? 0 : 1 });
       }
 

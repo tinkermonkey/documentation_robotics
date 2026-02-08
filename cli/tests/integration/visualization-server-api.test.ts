@@ -7,16 +7,16 @@
  * - Concurrent execution would cause port conflicts and server startup failures
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
-import { mkdir, rm } from 'fs/promises';
-import { join } from 'path';
-import { spawnSync } from 'bun';
-import { portAllocator } from '../helpers.ts';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
+import { mkdir, rm } from "fs/promises";
+import { join } from "path";
+import { spawnSync } from "bun";
+import { portAllocator } from "../helpers.ts";
 
-const TEMP_DIR = '/tmp/dr-api-test';
+const TEMP_DIR = "/tmp/dr-api-test";
 const STARTUP_TIMEOUT = 10000;
-const CLI_ROOT = join(import.meta.dir, '../..');
-const CLI_PATH = join(CLI_ROOT, 'dist/cli.js');
+const CLI_ROOT = join(import.meta.dir, "../..");
+const CLI_PATH = join(CLI_ROOT, "dist/cli.js");
 
 let testDir: string;
 let testPort: number;
@@ -44,13 +44,13 @@ async function waitForServer(url: string, timeout: number = STARTUP_TIMEOUT): Pr
  */
 async function startServer(cwd: string, port: number): Promise<any> {
   const process = Bun.spawn({
-    cmd: ['bun', CLI_PATH, 'visualize', '--port', String(port), '--no-browser', '--no-auth'],
+    cmd: ["bun", CLI_PATH, "visualize", "--port", String(port), "--no-browser", "--no-auth"],
     cwd,
-    stdio: ['ignore', 'pipe', 'pipe'], // Capture output
+    stdio: ["ignore", "pipe", "pipe"], // Capture output
   });
 
   // Give server a moment to start
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 
   // Wait for health endpoint to confirm server is ready
   const ready = await waitForServer(`http://localhost:${port}/health`, STARTUP_TIMEOUT);
@@ -68,9 +68,17 @@ async function startServer(cwd: string, port: number): Promise<any> {
  */
 async function initializeTestModel(dir: string): Promise<void> {
   const result = spawnSync({
-    cmd: ['node', CLI_PATH, 'init', '--name', 'API Test Model', '--description', 'Model for API testing'],
+    cmd: [
+      "node",
+      CLI_PATH,
+      "init",
+      "--name",
+      "API Test Model",
+      "--description",
+      "Model for API testing",
+    ],
     cwd: dir,
-    stdio: ['pipe', 'pipe', 'pipe'],
+    stdio: ["pipe", "pipe", "pipe"],
   });
 
   if (result.exitCode !== 0) {
@@ -83,21 +91,28 @@ async function initializeTestModel(dir: string): Promise<void> {
  */
 async function addTestElements(dir: string): Promise<void> {
   const elements = [
-    ['business', 'business-service', 'customer-service', 'Customer Service', 'Handles customer interactions'],
-    ['application', 'application-service', 'customer-app', 'Customer App', 'Customer-facing application'],
-    ['api', 'endpoint', 'get-customers', 'Get Customers', 'Retrieve customer list'],
+    [
+      "business",
+      "business-service",
+      "customer-service",
+      "Customer Service",
+      "Handles customer interactions",
+    ],
+    [
+      "application",
+      "application-service",
+      "customer-app",
+      "Customer App",
+      "Customer-facing application",
+    ],
+    ["api", "endpoint", "get-customers", "Get Customers", "Retrieve customer list"],
   ];
 
   for (const [layer, type, id, name, description] of elements) {
     const result = spawnSync({
-      cmd: [
-        'node', CLI_PATH, 'add',
-        layer, type, id,
-        '--name', name,
-        '--description', description
-      ],
+      cmd: ["node", CLI_PATH, "add", layer, type, id, "--name", name, "--description", description],
       cwd: dir,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ["pipe", "pipe", "pipe"],
     });
 
     if (result.exitCode !== 0) {
@@ -109,7 +124,7 @@ async function addTestElements(dir: string): Promise<void> {
   // They can be added in specific tests if needed
 }
 
-describe.serial('Visualization Server API Endpoints', () => {
+describe.serial("Visualization Server API Endpoints", () => {
   beforeEach(async () => {
     testDir = join(TEMP_DIR, `test-${Date.now()}`);
     testPort = await portAllocator.allocatePort();
@@ -140,38 +155,38 @@ describe.serial('Visualization Server API Endpoints', () => {
     }
   });
 
-  describe('GET /api/model', () => {
-    it('should return complete model metadata', async () => {
+  describe("GET /api/model", () => {
+    it("should return complete model metadata", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/model`);
 
       expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toContain('application/json');
+      expect(response.headers.get("content-type")).toContain("application/json");
 
       const data = await response.json();
 
       // Validate structure
-      expect(data).toHaveProperty('manifest');
-      expect(data).toHaveProperty('layers');
-      expect(data).toHaveProperty('totalElements');
+      expect(data).toHaveProperty("manifest");
+      expect(data).toHaveProperty("layers");
+      expect(data).toHaveProperty("totalElements");
 
       // Validate manifest
-      expect(data.manifest.name).toBe('API Test Model');
-      expect(data.manifest.description).toBe('Model for API testing');
-      expect(data.manifest).toHaveProperty('version');
-      expect(data.manifest).toHaveProperty('specVersion');
+      expect(data.manifest.name).toBe("API Test Model");
+      expect(data.manifest.description).toBe("Model for API testing");
+      expect(data.manifest).toHaveProperty("version");
+      expect(data.manifest).toHaveProperty("specVersion");
 
       // Validate layers
-      expect(typeof data.layers).toBe('object');
+      expect(typeof data.layers).toBe("object");
       expect(Object.keys(data.layers).length).toBeGreaterThan(0);
 
       // Validate total elements
-      expect(typeof data.totalElements).toBe('number');
+      expect(typeof data.totalElements).toBe("number");
       expect(data.totalElements).toBeGreaterThanOrEqual(3);
     });
 
-    it('should include layer information with element counts', async () => {
+    it("should include layer information with element counts", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/model`);
@@ -179,9 +194,9 @@ describe.serial('Visualization Server API Endpoints', () => {
 
       // Check business layer
       expect(data.layers.business).toBeDefined();
-      expect(data.layers.business).toHaveProperty('name');
-      expect(data.layers.business).toHaveProperty('elements');
-      expect(data.layers.business).toHaveProperty('elementCount');
+      expect(data.layers.business).toHaveProperty("name");
+      expect(data.layers.business).toHaveProperty("elements");
+      expect(data.layers.business).toHaveProperty("elementCount");
       expect(Array.isArray(data.layers.business.elements)).toBe(true);
 
       // Check application layer
@@ -193,7 +208,7 @@ describe.serial('Visualization Server API Endpoints', () => {
       expect(data.layers.api.elementCount).toBeGreaterThan(0);
     });
 
-    it('should include elements with all required fields', async () => {
+    it("should include elements with all required fields", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/model`);
@@ -203,17 +218,17 @@ describe.serial('Visualization Server API Endpoints', () => {
       expect(businessElements.length).toBeGreaterThan(0);
 
       const element = businessElements[0];
-      expect(element).toHaveProperty('id');
-      expect(element).toHaveProperty('type');
-      expect(element).toHaveProperty('name');
-      expect(element).toHaveProperty('description');
-      expect(element).toHaveProperty('annotations');
+      expect(element).toHaveProperty("id");
+      expect(element).toHaveProperty("type");
+      expect(element).toHaveProperty("name");
+      expect(element).toHaveProperty("description");
+      expect(element).toHaveProperty("annotations");
       expect(Array.isArray(element.annotations)).toBe(true);
     });
   });
 
-  describe('GET /api/layers/:name', () => {
-    it('should return specific layer data', async () => {
+  describe("GET /api/layers/:name", () => {
+    it("should return specific layer data", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/layers/business`);
@@ -221,19 +236,28 @@ describe.serial('Visualization Server API Endpoints', () => {
       expect(response.status).toBe(200);
 
       const data = await response.json();
-      expect(data).toHaveProperty('name');
-      expect(data.name).toBe('business');
-      expect(data).toHaveProperty('elements');
+      expect(data).toHaveProperty("name");
+      expect(data.name).toBe("business");
+      expect(data).toHaveProperty("elements");
       expect(Array.isArray(data.elements)).toBe(true);
     });
 
-    it('should return all 12 standard layers', async () => {
+    it("should return all 12 standard layers", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const layers = [
-        'motivation', 'business', 'security', 'application',
-        'technology', 'api', 'data-model', 'data-store',
-        'ux', 'navigation', 'apm', 'testing'
+        "motivation",
+        "business",
+        "security",
+        "application",
+        "technology",
+        "api",
+        "data-model",
+        "data-store",
+        "ux",
+        "navigation",
+        "apm",
+        "testing",
       ];
 
       for (const layerName of layers) {
@@ -245,12 +269,12 @@ describe.serial('Visualization Server API Endpoints', () => {
         if (response.status === 200) {
           const data = await response.json();
           expect(data.name).toBe(layerName);
-          expect(data).toHaveProperty('elements');
+          expect(data).toHaveProperty("elements");
         }
       }
     });
 
-    it('should return 404 for non-existent layer', async () => {
+    it("should return 404 for non-existent layer", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/layers/non-existent-layer`);
@@ -258,11 +282,11 @@ describe.serial('Visualization Server API Endpoints', () => {
       expect(response.status).toBe(404);
 
       const data = await response.json();
-      expect(data).toHaveProperty('error');
-      expect(data.error).toContain('not found');
+      expect(data).toHaveProperty("error");
+      expect(data.error).toContain("not found");
     });
 
-    it('should include elements with all required fields', async () => {
+    it("should include elements with all required fields", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/layers/business`);
@@ -270,15 +294,15 @@ describe.serial('Visualization Server API Endpoints', () => {
 
       if (data.elements.length > 0) {
         const element = data.elements[0];
-        expect(element).toHaveProperty('id');
-        expect(element).toHaveProperty('name');
-        expect(element).toHaveProperty('type');
+        expect(element).toHaveProperty("id");
+        expect(element).toHaveProperty("name");
+        expect(element).toHaveProperty("type");
       }
     });
   });
 
-  describe('GET /api/elements/:id', () => {
-    it('should return element by ID', async () => {
+  describe("GET /api/elements/:id", () => {
+    it("should return element by ID", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       // First, get the model to see what elements exist
@@ -288,7 +312,7 @@ describe.serial('Visualization Server API Endpoints', () => {
       // Find a business element
       const businessElements = modelData.layers.business?.elements || [];
       if (businessElements.length === 0) {
-        console.log('No business elements found, skipping test');
+        console.log("No business elements found, skipping test");
         return;
       }
 
@@ -299,11 +323,11 @@ describe.serial('Visualization Server API Endpoints', () => {
 
       const data = await response.json();
       expect(data.id).toBe(element.id);
-      expect(data).toHaveProperty('name');
-      expect(data).toHaveProperty('type');
+      expect(data).toHaveProperty("name");
+      expect(data).toHaveProperty("type");
     });
 
-    it('should return elements from different layers', async () => {
+    it("should return elements from different layers", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       // Get all elements from the model
@@ -311,7 +335,7 @@ describe.serial('Visualization Server API Endpoints', () => {
       const modelData = await modelResponse.json();
 
       // Test elements from different layers
-      const testLayers = ['business', 'application', 'api'];
+      const testLayers = ["business", "application", "api"];
 
       for (const layerName of testLayers) {
         const elements = modelData.layers[layerName]?.elements || [];
@@ -328,19 +352,21 @@ describe.serial('Visualization Server API Endpoints', () => {
       }
     });
 
-    it('should return 404 for non-existent element', async () => {
+    it("should return 404 for non-existent element", async () => {
       serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${testPort}/api/elements/non-existent-element-id`);
+      const response = await fetch(
+        `http://localhost:${testPort}/api/elements/non-existent-element-id`
+      );
 
       expect(response.status).toBe(404);
 
       const data = await response.json();
-      expect(data).toHaveProperty('error');
-      expect(data.error).toContain('not found');
+      expect(data).toHaveProperty("error");
+      expect(data.error).toContain("not found");
     });
 
-    it('should include relationships field when relationships exist', async () => {
+    it("should include relationships field when relationships exist", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       // Get an element from the model
@@ -349,7 +375,7 @@ describe.serial('Visualization Server API Endpoints', () => {
 
       const businessElements = modelData.layers.business?.elements || [];
       if (businessElements.length === 0) {
-        console.log('No business elements found, skipping test');
+        console.log("No business elements found, skipping test");
         return;
       }
 
@@ -364,8 +390,8 @@ describe.serial('Visualization Server API Endpoints', () => {
     });
   });
 
-  describe('GET /health', () => {
-    it('should return healthy status', async () => {
+  describe("GET /health", () => {
+    it("should return healthy status", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/health`);
@@ -373,39 +399,39 @@ describe.serial('Visualization Server API Endpoints', () => {
       expect(response.status).toBe(200);
 
       const data = await response.json();
-      expect(data.status).toBe('ok');
+      expect(data.status).toBe("ok");
     });
   });
 
-  describe('GET /', () => {
-    it('should return HTML viewer page', async () => {
+  describe("GET /", () => {
+    it("should return HTML viewer page", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/`);
 
       expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toContain('text/html');
+      expect(response.headers.get("content-type")).toContain("text/html");
 
       const html = await response.text();
-      expect(html).toContain('<!DOCTYPE html>');
-      expect(html).toContain('Documentation Robotics Viewer');
+      expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toContain("Documentation Robotics Viewer");
       expect(html).toContain('id="model-tree"');
       expect(html).toContain('id="element-details"');
     });
 
-    it('should include WebSocket connection code', async () => {
+    it("should include WebSocket connection code", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/`);
       const html = await response.text();
 
-      expect(html).toContain('new WebSocket');
-      expect(html).toContain('/ws');
+      expect(html).toContain("new WebSocket");
+      expect(html).toContain("/ws");
     });
   });
 
-  describe('Error Handling', () => {
-    it('should return 404 for unknown routes', async () => {
+  describe("Error Handling", () => {
+    it("should return 404 for unknown routes", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/unknown-route`);
@@ -413,15 +439,17 @@ describe.serial('Visualization Server API Endpoints', () => {
       expect(response.status).toBe(404);
     });
 
-    it('should handle malformed element IDs gracefully', async () => {
+    it("should handle malformed element IDs gracefully", async () => {
       serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${testPort}/api/elements/invalid%20id%20with%20spaces`);
+      const response = await fetch(
+        `http://localhost:${testPort}/api/elements/invalid%20id%20with%20spaces`
+      );
 
       expect(response.status).toBe(404);
     });
 
-    it('should return consistent error format', async () => {
+    it("should return consistent error format", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/layers/invalid-layer`);
@@ -429,18 +457,18 @@ describe.serial('Visualization Server API Endpoints', () => {
       expect(response.status).toBe(404);
 
       const data = await response.json();
-      expect(data).toHaveProperty('error');
-      expect(typeof data.error).toBe('string');
+      expect(data).toHaveProperty("error");
+      expect(typeof data.error).toBe("string");
     });
   });
 
-  describe('CORS Headers', () => {
-    it('should include CORS headers in API responses', async () => {
+  describe("CORS Headers", () => {
+    it("should include CORS headers in API responses", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/model`);
 
-      expect(response.headers.has('access-control-allow-origin')).toBe(true);
+      expect(response.headers.has("access-control-allow-origin")).toBe(true);
     });
   });
 });

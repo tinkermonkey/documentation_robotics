@@ -3,8 +3,8 @@
  * Gathers metrics about elements, relationships, and model completeness
  */
 
-import { Model } from './model.js';
-import { Validator } from '../validators/validator.js';
+import { Model } from "./model.js";
+import { Validator } from "../validators/validator.js";
 
 export interface ElementTypeCount {
   [type: string]: number;
@@ -129,7 +129,8 @@ export class StatsCollector {
       // This can be enhanced with layer schema information
       const typeCount = Object.keys(elementsByType).length;
       const expectedTypeCount = this.getExpectedTypeCount(layerName);
-      const coverage = expectedTypeCount > 0 ? Math.min(100, (typeCount / expectedTypeCount) * 100) : 0;
+      const coverage =
+        expectedTypeCount > 0 ? Math.min(100, (typeCount / expectedTypeCount) * 100) : 0;
 
       stats.push({
         name: layerName,
@@ -154,8 +155,8 @@ export class StatsCollector {
       application: 2, // services, components
       technology: 4, // frameworks, libraries, databases, platforms
       api: 2, // operations, endpoints
-      'data-model': 1, // entities/schemas
-      'data-store': 1, // datastores
+      "data-model": 1, // entities/schemas
+      "data-store": 1, // datastores
       ux: 2, // views, components
       navigation: 2, // routes, menus
       apm: 4, // metrics, analytics, collectors, etc
@@ -184,8 +185,8 @@ export class StatsCollector {
       byPredicate[rel.predicate]++;
 
       // Extract layers
-      const sourceLayer = rel.source.split('.')[0];
-      const targetLayer = rel.target.split('.')[0];
+      const sourceLayer = rel.source.split(".")[0];
+      const targetLayer = rel.target.split(".")[0];
 
       // Count cross vs intra-layer
       if (sourceLayer === targetLayer) {

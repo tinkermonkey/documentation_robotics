@@ -3,10 +3,10 @@
  * Provides helpers for running dr commands in tests
  */
 
-import { spawnSync } from 'bun';
-import { mkdir, rm } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { spawnSync } from "bun";
+import { mkdir, rm } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
 
 /**
  * Result of running a CLI command
@@ -35,7 +35,10 @@ export async function createTempWorkdir(): Promise<{
   path: string;
   cleanup: () => Promise<void>;
 }> {
-  const path = join(tmpdir(), `dr-cli-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
+  const path = join(
+    tmpdir(),
+    `dr-cli-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+  );
 
   await mkdir(path, { recursive: true });
 
@@ -62,26 +65,24 @@ export async function createTempWorkdir(): Promise<{
  */
 export async function runDr(args: string[], options?: RunDrOptions): Promise<CLIResult> {
   try {
-    const cliPath = new URL('../../dist/cli.js', import.meta.url).pathname;
+    const cliPath = new URL("../../dist/cli.js", import.meta.url).pathname;
 
     // Ensure PATH includes /usr/local/bin for node executable
-    const env = options?.env
-      ? { ...process.env, ...options.env }
-      : { ...process.env };
+    const env = options?.env ? { ...process.env, ...options.env } : { ...process.env };
 
-    if (!env.PATH?.includes('/usr/local/bin')) {
+    if (!env.PATH?.includes("/usr/local/bin")) {
       env.PATH = `/usr/local/bin:${env.PATH}`;
     }
 
     const result = spawnSync({
-      cmd: ['node', cliPath, ...args],
+      cmd: ["node", cliPath, ...args],
       cwd: options?.cwd ?? process.cwd(),
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ["pipe", "pipe", "pipe"],
       env,
     });
 
-    const stdout = result.stdout?.toString() ?? '';
-    const stderr = result.stderr?.toString() ?? '';
+    const stdout = result.stdout?.toString() ?? "";
+    const stderr = result.stderr?.toString() ?? "";
     const exitCode = result.exitCode ?? 1;
 
     if (options?.throwOnError && exitCode !== 0) {
@@ -98,7 +99,7 @@ export async function runDr(args: string[], options?: RunDrOptions): Promise<CLI
 
     return {
       exitCode: 1,
-      stdout: '',
+      stdout: "",
       stderr: message,
     };
   }
@@ -122,7 +123,7 @@ export async function runDrSequential(
     results.push(result);
 
     if (options?.throwOnError && result.exitCode !== 0) {
-      throw new Error(`Command sequence failed at: dr ${args.join(' ')}\n${result.stderr}`);
+      throw new Error(`Command sequence failed at: dr ${args.join(" ")}\n${result.stderr}`);
     }
   }
 
@@ -138,7 +139,7 @@ export async function runDrSequential(
  */
 export function parseJsonOutput(result: CLIResult): unknown {
   if (!result.stdout) {
-    throw new Error('No output to parse');
+    throw new Error("No output to parse");
   }
 
   try {
@@ -158,7 +159,8 @@ export function parseJsonOutput(result: CLIResult): unknown {
 export function assertCliSuccess(result: CLIResult, message?: string): void {
   if (result.exitCode !== 0) {
     throw new Error(
-      message || `CLI command failed with exit code ${result.exitCode}: ${result.stderr || result.stdout}`
+      message ||
+        `CLI command failed with exit code ${result.exitCode}: ${result.stderr || result.stdout}`
     );
   }
 }
@@ -171,13 +173,22 @@ export function assertCliSuccess(result: CLIResult, message?: string): void {
  * @param message Optional error message
  * @throws Error if command succeeded unexpectedly
  */
-export function assertCliFailed(result: CLIResult, expectedExitCode: number = 1, message?: string): void {
+export function assertCliFailed(
+  result: CLIResult,
+  expectedExitCode: number = 1,
+  message?: string
+): void {
   if (result.exitCode === 0) {
-    throw new Error(message || `CLI command succeeded when it should have failed: ${result.stdout}`);
+    throw new Error(
+      message || `CLI command succeeded when it should have failed: ${result.stdout}`
+    );
   }
 
   if (result.exitCode !== expectedExitCode) {
-    throw new Error(message || `CLI command failed with exit code ${result.exitCode}, expected ${expectedExitCode}`);
+    throw new Error(
+      message ||
+        `CLI command failed with exit code ${result.exitCode}, expected ${expectedExitCode}`
+    );
   }
 }
 
@@ -193,7 +204,9 @@ export function assertOutputContains(result: CLIResult, text: string, message?: 
   const output = result.stdout + result.stderr;
 
   if (!output.includes(text)) {
-    throw new Error(message || `Output does not contain expected text: "${text}"\n\nActual output:\n${output}`);
+    throw new Error(
+      message || `Output does not contain expected text: "${text}"\n\nActual output:\n${output}`
+    );
   }
 }
 
@@ -205,5 +218,5 @@ export function assertOutputContains(result: CLIResult, text: string, message?: 
  */
 export function stripAnsi(text: string): string {
   // eslint-disable-next-line no-control-regex
-  return text.replace(/\u001b\[[0-9;]*m/g, '');
+  return text.replace(/\u001b\[[0-9;]*m/g, "");
 }

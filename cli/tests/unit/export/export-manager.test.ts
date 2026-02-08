@@ -74,9 +74,7 @@ describe("ExportManager", () => {
     } catch (error) {
       expect(error instanceof Error).toBe(true);
       if (error instanceof Error) {
-        expect(error.message).toContain(
-          "does not support layers"
-        );
+        expect(error.message).toContain("does not support layers");
       }
     }
   });

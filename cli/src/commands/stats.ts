@@ -2,12 +2,12 @@
  * Display statistics about the architecture model
  */
 
-import ansis from 'ansis';
-import { writeFile, ensureDir } from '../utils/file-io.js';
-import { Model } from '../core/model.js';
-import { StatsCollector } from '../core/stats-collector.js';
-import { formatStats, StatsFormat } from '../export/stats-formatters.js';
-import path from 'path';
+import ansis from "ansis";
+import { writeFile, ensureDir } from "../utils/file-io.js";
+import { Model } from "../core/model.js";
+import { StatsCollector } from "../core/stats-collector.js";
+import { formatStats, StatsFormat } from "../export/stats-formatters.js";
+import path from "path";
 
 export interface StatsOptions {
   format?: StatsFormat;
@@ -31,21 +31,21 @@ export async function statsCommand(options: StatsOptions): Promise<void> {
     const stats = await collector.collect();
 
     // Determine output format
-    let format: StatsFormat = options.format || 'text';
+    let format: StatsFormat = options.format || "text";
 
     // Auto-detect format from output file extension
     if (options.output) {
       const ext = path.extname(options.output).toLowerCase();
-      if (ext === '.json') {
-        format = 'json';
-      } else if (ext === '.md') {
-        format = 'markdown';
+      if (ext === ".json") {
+        format = "json";
+      } else if (ext === ".md") {
+        format = "markdown";
       }
     }
 
     // Use compact format if requested
     if (options.compact) {
-      format = 'compact';
+      format = "compact";
     }
 
     // Format output

@@ -2,8 +2,8 @@
  * Unit tests for BaseChatClient session management
  */
 
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { BaseChatClient, ChatSession } from '../../../src/coding-agents/base-chat-client';
+import { describe, it, expect, beforeEach } from "bun:test";
+import { BaseChatClient, ChatSession } from "../../../src/coding-agents/base-chat-client";
 
 // Create a concrete test implementation
 class TestChatClient extends BaseChatClient {
@@ -20,7 +20,7 @@ class TestChatClient extends BaseChatClient {
   }
 
   getClientName(): string {
-    return 'Test Client';
+    return "Test Client";
   }
 
   // Expose protected methods for testing
@@ -37,15 +37,15 @@ class TestChatClient extends BaseChatClient {
   }
 }
 
-describe('BaseChatClient', () => {
+describe("BaseChatClient", () => {
   let client: TestChatClient;
 
   beforeEach(() => {
     client = new TestChatClient();
   });
 
-  describe('session creation', () => {
-    it('should create a new session', () => {
+  describe("session creation", () => {
+    it("should create a new session", () => {
       const session = client.testCreateSession();
 
       expect(session).toBeDefined();
@@ -54,7 +54,7 @@ describe('BaseChatClient', () => {
       expect(session.lastMessageAt).toBeInstanceOf(Date);
     });
 
-    it('should generate unique session IDs', () => {
+    it("should generate unique session IDs", () => {
       const id1 = client.testGenerateSessionId();
       const id2 = client.testGenerateSessionId();
 
@@ -62,7 +62,7 @@ describe('BaseChatClient', () => {
       expect(id1).toMatch(/^session-\d+-[a-z0-9]+$/);
     });
 
-    it('should set current session when created', () => {
+    it("should set current session when created", () => {
       expect(client.getCurrentSession()).toBeUndefined();
 
       client.testCreateSession();
@@ -71,19 +71,19 @@ describe('BaseChatClient', () => {
     });
   });
 
-  describe('session management', () => {
-    it('should return undefined when no session exists', () => {
+  describe("session management", () => {
+    it("should return undefined when no session exists", () => {
       expect(client.getCurrentSession()).toBeUndefined();
     });
 
-    it('should return current session', () => {
+    it("should return current session", () => {
       const session = client.testCreateSession();
       const currentSession = client.getCurrentSession();
 
       expect(currentSession).toBe(session);
     });
 
-    it('should clear session', () => {
+    it("should clear session", () => {
       client.testCreateSession();
       expect(client.getCurrentSession()).toBeDefined();
 
@@ -93,19 +93,19 @@ describe('BaseChatClient', () => {
     });
   });
 
-  describe('sendMessage', () => {
-    it('should create session on first message', async () => {
+  describe("sendMessage", () => {
+    it("should create session on first message", async () => {
       expect(client.getCurrentSession()).toBeUndefined();
 
-      await client.sendMessage('test message');
+      await client.sendMessage("test message");
 
       expect(client.getCurrentSession()).toBeDefined();
     });
   });
 
-  describe('getClientName', () => {
-    it('should return client name', () => {
-      expect(client.getClientName()).toBe('Test Client');
+  describe("getClientName", () => {
+    it("should return client name", () => {
+      expect(client.getClientName()).toBe("Test Client");
     });
   });
 });

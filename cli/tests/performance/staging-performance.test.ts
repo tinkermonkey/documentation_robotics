@@ -1,23 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { VirtualProjectionEngine } from '../../src/core/virtual-projection.js';
-import { Model } from '../../src/core/model.js';
-import { Manifest } from '../../src/core/manifest.js';
-import { Layer } from '../../src/core/layer.js';
-import { Element } from '../../src/core/element.js';
-import { StagedChangesetStorage } from '../../src/core/staged-changeset-storage.js';
-import { BaseSnapshotManager } from '../../src/core/base-snapshot-manager.js';
-import { tmpdir } from 'os';
-import { mkdtemp, rm } from 'fs/promises';
-import { join } from 'path';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { VirtualProjectionEngine } from "../../src/core/virtual-projection.js";
+import { Model } from "../../src/core/model.js";
+import { Manifest } from "../../src/core/manifest.js";
+import { Layer } from "../../src/core/layer.js";
+import { Element } from "../../src/core/element.js";
+import { StagedChangesetStorage } from "../../src/core/staged-changeset-storage.js";
+import { BaseSnapshotManager } from "../../src/core/base-snapshot-manager.js";
+import { tmpdir } from "os";
+import { mkdtemp, rm } from "fs/promises";
+import { join } from "path";
 
-describe('Performance Requirements', () => {
+describe("Performance Requirements", () => {
   let engine: VirtualProjectionEngine;
   let storage: StagedChangesetStorage;
   let snapshotManager: BaseSnapshotManager;
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'dr-perf-test-'));
+    tempDir = await mkdtemp(join(tmpdir(), "dr-perf-test-"));
     engine = new VirtualProjectionEngine(tempDir);
     storage = new StagedChangesetStorage(tempDir);
     snapshotManager = new BaseSnapshotManager();
@@ -27,14 +27,14 @@ describe('Performance Requirements', () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
-  describe('Virtual Projection Performance', () => {
-    it('should project 1000-element model in <500ms', async () => {
+  describe("Virtual Projection Performance", () => {
+    it("should project 1000-element model in <500ms", async () => {
       // Create large test model
       const manifest = new Manifest({
-        name: 'Performance Test Model',
-        description: 'Large model for performance testing',
-        version: '1.0.0',
-        specVersion: '0.7.1',
+        name: "Performance Test Model",
+        description: "Large model for performance testing",
+        version: "1.0.0",
+        specVersion: "0.7.1",
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
       });
@@ -42,23 +42,23 @@ describe('Performance Requirements', () => {
       const model = new Model(tempDir, manifest);
 
       // Create API layer with 500 endpoints
-      const apiLayer = new Layer('api');
+      const apiLayer = new Layer("api");
       for (let i = 0; i < 500; i++) {
         const endpoint = new Element({
           id: `api-endpoint-perf-${i}`,
-          type: 'endpoint',
+          type: "endpoint",
           name: `Endpoint ${i}`,
-          properties: { method: 'GET', path: `/api/resource/${i}` },
+          properties: { method: "GET", path: `/api/resource/${i}` },
         });
         apiLayer.addElement(endpoint);
       }
 
       // Create data-model layer with 500 entities
-      const dataModelLayer = new Layer('data-model');
+      const dataModelLayer = new Layer("data-model");
       for (let i = 0; i < 500; i++) {
         const entity = new Element({
           id: `data-model-entity-perf-${i}`,
-          type: 'entity',
+          type: "entity",
           name: `Entity ${i}`,
         });
         dataModelLayer.addElement(entity);
@@ -68,28 +68,28 @@ describe('Performance Requirements', () => {
       model.addLayer(dataModelLayer);
 
       await model.saveManifest();
-      await model.saveLayer('api');
-      await model.saveLayer('data-model');
+      await model.saveLayer("api");
+      await model.saveLayer("data-model");
 
       // Create changeset with 50 changes
-      const changesetId = 'perf-projection-test';
+      const changesetId = "perf-projection-test";
       const baseSnapshot = await snapshotManager.captureSnapshot(model);
       const changeset = await storage.create(
         changesetId,
-        'Performance Test',
-        'Test projection performance',
+        "Performance Test",
+        "Test projection performance",
         baseSnapshot
       );
 
       // Add 50 changes
       for (let i = 0; i < 50; i++) {
         changeset.changes.push({
-          type: 'add',
+          type: "add",
           elementId: `api-endpoint-new-${i}`,
-          layerName: 'api',
+          layerName: "api",
           after: {
             id: `api-endpoint-new-${i}`,
-            type: 'endpoint',
+            type: "endpoint",
             name: `New Endpoint ${i}`,
           },
           sequenceNumber: i,
@@ -107,24 +107,24 @@ describe('Performance Requirements', () => {
       expect(duration).toBeLessThan(500);
     });
 
-    it('should compute diff for 100-change changeset in <200ms', async () => {
+    it("should compute diff for 100-change changeset in <200ms", async () => {
       // Create test model
       const manifest = new Manifest({
-        name: 'Diff Performance Test',
-        description: 'Model for diff performance testing',
-        version: '1.0.0',
-        specVersion: '0.7.1',
+        name: "Diff Performance Test",
+        description: "Model for diff performance testing",
+        version: "1.0.0",
+        specVersion: "0.7.1",
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
       });
 
       const model = new Model(tempDir, manifest);
 
-      const apiLayer = new Layer('api');
+      const apiLayer = new Layer("api");
       for (let i = 0; i < 100; i++) {
         const endpoint = new Element({
           id: `api-endpoint-diff-${i}`,
-          type: 'endpoint',
+          type: "endpoint",
           name: `Endpoint ${i}`,
         });
         apiLayer.addElement(endpoint);
@@ -132,26 +132,26 @@ describe('Performance Requirements', () => {
 
       model.addLayer(apiLayer);
       await model.saveManifest();
-      await model.saveLayer('api');
+      await model.saveLayer("api");
 
       // Create changeset with 100 changes
-      const changesetId = 'perf-diff-test';
+      const changesetId = "perf-diff-test";
       const baseSnapshot = await snapshotManager.captureSnapshot(model);
       const changeset = await storage.create(
         changesetId,
-        'Diff Performance Test',
-        'Test diff computation performance',
+        "Diff Performance Test",
+        "Test diff computation performance",
         baseSnapshot
       );
 
       for (let i = 0; i < 100; i++) {
         changeset.changes.push({
-          type: 'add',
+          type: "add",
           elementId: `api-endpoint-add-${i}`,
-          layerName: 'api',
+          layerName: "api",
           after: {
             id: `api-endpoint-add-${i}`,
-            type: 'endpoint',
+            type: "endpoint",
             name: `Added ${i}`,
           },
           sequenceNumber: i,
@@ -162,9 +162,9 @@ describe('Performance Requirements', () => {
       const start = performance.now();
 
       // Compute diff categories
-      const adds = changeset.changes.filter((c) => c.type === 'add');
-      const updates = changeset.changes.filter((c) => c.type === 'update');
-      const deletes = changeset.changes.filter((c) => c.type === 'delete');
+      const adds = changeset.changes.filter((c) => c.type === "add");
+      const updates = changeset.changes.filter((c) => c.type === "update");
+      const deletes = changeset.changes.filter((c) => c.type === "delete");
 
       const duration = performance.now() - start;
 
@@ -175,24 +175,24 @@ describe('Performance Requirements', () => {
       expect(deletes.length).toBe(0);
     });
 
-    it('should handle 50-change commit in <2s', async () => {
+    it("should handle 50-change commit in <2s", async () => {
       // Create test model
       const manifest = new Manifest({
-        name: 'Commit Performance Test',
-        description: 'Model for commit performance testing',
-        version: '1.0.0',
-        specVersion: '0.7.1',
+        name: "Commit Performance Test",
+        description: "Model for commit performance testing",
+        version: "1.0.0",
+        specVersion: "0.7.1",
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
       });
 
       const model = new Model(tempDir, manifest);
 
-      const apiLayer = new Layer('api');
+      const apiLayer = new Layer("api");
       for (let i = 0; i < 50; i++) {
         const endpoint = new Element({
           id: `api-endpoint-commit-${i}`,
-          type: 'endpoint',
+          type: "endpoint",
           name: `Endpoint ${i}`,
         });
         apiLayer.addElement(endpoint);
@@ -200,26 +200,26 @@ describe('Performance Requirements', () => {
 
       model.addLayer(apiLayer);
       await model.saveManifest();
-      await model.saveLayer('api');
+      await model.saveLayer("api");
 
       // Create changeset with 50 staged changes
-      const changesetId = 'perf-commit-test';
+      const changesetId = "perf-commit-test";
       const baseSnapshot = await snapshotManager.captureSnapshot(model);
       const changeset = await storage.create(
         changesetId,
-        'Commit Performance Test',
-        'Test commit performance',
+        "Commit Performance Test",
+        "Test commit performance",
         baseSnapshot
       );
 
       for (let i = 0; i < 50; i++) {
         changeset.changes.push({
-          type: 'add',
+          type: "add",
           elementId: `api-endpoint-commit-new-${i}`,
-          layerName: 'api',
+          layerName: "api",
           after: {
             id: `api-endpoint-commit-new-${i}`,
-            type: 'endpoint',
+            type: "endpoint",
             name: `New Endpoint ${i}`,
           },
           sequenceNumber: i,
@@ -232,40 +232,40 @@ describe('Performance Requirements', () => {
       const start = performance.now();
 
       // Simulate commit: transition status and save
-      changeset.status = 'committed';
+      changeset.status = "committed";
       await storage.save(changeset);
 
       const duration = performance.now() - start;
 
       // Requirement: commit <2s
       expect(duration).toBeLessThan(2000);
-      expect(changeset.status).toBe('committed');
+      expect(changeset.status).toBe("committed");
     });
 
-    it('should stage 100 sequential changes maintaining sequence numbers', async () => {
+    it("should stage 100 sequential changes maintaining sequence numbers", async () => {
       // Create test model
       const manifest = new Manifest({
-        name: 'Sequence Performance Test',
-        description: 'Model for sequence performance testing',
-        version: '1.0.0',
-        specVersion: '0.7.1',
+        name: "Sequence Performance Test",
+        description: "Model for sequence performance testing",
+        version: "1.0.0",
+        specVersion: "0.7.1",
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
       });
 
       const model = new Model(tempDir, manifest);
 
-      const apiLayer = new Layer('api');
+      const apiLayer = new Layer("api");
       model.addLayer(apiLayer);
       await model.saveManifest();
 
       // Create changeset and stage 100 changes sequentially
-      const changesetId = 'perf-sequence-test';
+      const changesetId = "perf-sequence-test";
       const baseSnapshot = await snapshotManager.captureSnapshot(model);
       const changeset = await storage.create(
         changesetId,
-        'Sequence Performance Test',
-        'Test sequential staging performance',
+        "Sequence Performance Test",
+        "Test sequential staging performance",
         baseSnapshot
       );
 
@@ -273,12 +273,12 @@ describe('Performance Requirements', () => {
 
       for (let i = 0; i < 100; i++) {
         changeset.changes.push({
-          type: 'add',
+          type: "add",
           elementId: `api-endpoint-seq-${i}`,
-          layerName: 'api',
+          layerName: "api",
           after: {
             id: `api-endpoint-seq-${i}`,
-            type: 'endpoint',
+            type: "endpoint",
             name: `Sequential ${i}`,
           },
           sequenceNumber: i,

@@ -10,17 +10,16 @@
  * Supports both legacy (draft/applied/reverted) and new staging (staged/committed/discarded) workflows.
  */
 
-
 /**
  * Represents a single change in a changeset.
  * Records element mutations with before/after snapshots for audit and reversion.
  */
 export interface Change {
-  type: 'add' | 'update' | 'delete';
+  type: "add" | "update" | "delete";
   elementId: string;
   layerName: string;
-  before?: Record<string, unknown>;  // Element state before change (for update/delete)
-  after?: Record<string, unknown>;   // Element state after change (for add/update)
+  before?: Record<string, unknown>; // Element state before change (for update/delete)
+  after?: Record<string, unknown>; // Element state after change (for add/update)
   timestamp?: string; // ISO timestamp; optional in interface but always set before storage
 }
 
@@ -45,7 +44,13 @@ export interface StagedChange extends Change {
  * - 'committed': Changes have been committed to base model
  * - 'discarded': Changes were discarded without applying
  */
-export type ChangesetStatus = 'draft' | 'applied' | 'reverted' | 'staged' | 'committed' | 'discarded';
+export type ChangesetStatus =
+  | "draft"
+  | "applied"
+  | "reverted"
+  | "staged"
+  | "committed"
+  | "discarded";
 
 /**
  * Changeset metadata for legacy and staging workflows.
@@ -54,8 +59,8 @@ export type ChangesetStatus = 'draft' | 'applied' | 'reverted' | 'staged' | 'com
 export interface ChangesetData {
   name: string;
   description?: string;
-  created: string;       // ISO timestamp of creation
-  modified: string;      // ISO timestamp of last modification
+  created: string; // ISO timestamp of creation
+  modified: string; // ISO timestamp of last modification
   changes: Change[];
   status: ChangesetStatus;
 }
@@ -65,14 +70,14 @@ export interface ChangesetData {
  * Includes base snapshot for drift detection and auto-computed stats.
  */
 export interface StagedChangesetData {
-  id: string;                     // Unique changeset ID
+  id: string; // Unique changeset ID
   name: string;
   description?: string;
-  created: string;                // ISO timestamp of creation
-  modified: string;               // ISO timestamp of last modification
+  created: string; // ISO timestamp of creation
+  modified: string; // ISO timestamp of last modification
   status: ChangesetStatus;
-  baseSnapshot: string;           // SHA256 hash of base model at creation (for drift detection)
-  changes: StagedChange[];        // Changes with sequence numbers
+  baseSnapshot: string; // SHA256 hash of base model at creation (for drift detection)
+  changes: StagedChange[]; // Changes with sequence numbers
   stats: {
     additions: number;
     modifications: number;
@@ -93,7 +98,7 @@ export class Changeset {
   created: string;
   modified: string;
   changes: Change[] = [];
-  status: ChangesetStatus = 'draft';
+  status: ChangesetStatus = "draft";
 
   // Extended staging fields (optional for backward compatibility with legacy changesets)
   id?: string;
@@ -111,9 +116,9 @@ export class Changeset {
     deletions: number;
   } {
     // Compute stats from changes array on-demand (never stale)
-    const additions = this.changes.filter(c => c.type === 'add').length;
-    const modifications = this.changes.filter(c => c.type === 'update').length;
-    const deletions = this.changes.filter(c => c.type === 'delete').length;
+    const additions = this.changes.filter((c) => c.type === "add").length;
+    const modifications = this.changes.filter((c) => c.type === "update").length;
+    const deletions = this.changes.filter((c) => c.type === "delete").length;
 
     return { additions, modifications, deletions };
   }
@@ -130,13 +135,13 @@ export class Changeset {
     this.created = data.created;
     this.modified = data.modified;
     this.changes = data.changes || [];
-    this.status = data.status || 'draft';
+    this.status = data.status || "draft";
 
     // Load extended staging fields if present
-    if ('id' in data) {
+    if ("id" in data) {
       this.id = (data as StagedChangesetData).id;
     }
-    if ('baseSnapshot' in data) {
+    if ("baseSnapshot" in data) {
       this.baseSnapshot = (data as StagedChangesetData).baseSnapshot;
     }
     // Note: Stats are computed from changes array via getter; ignore any stored stats
@@ -157,7 +162,7 @@ export class Changeset {
       created: now,
       modified: now,
       changes: [],
-      status: 'draft',
+      status: "draft",
     });
   }
 
@@ -173,7 +178,7 @@ export class Changeset {
    * @throws No exceptions; updates modified timestamp on success
    */
   addChange(
-    type: 'add' | 'update' | 'delete',
+    type: "add" | "update" | "delete",
     elementId: string,
     layerName: string,
     before?: Record<string, unknown>,
@@ -212,17 +217,16 @@ export class Changeset {
    * @param type - Type of changes to filter for
    * @returns Array of changes matching the type
    */
-  getChangesByType(type: 'add' | 'update' | 'delete'): Change[] {
+  getChangesByType(type: "add" | "update" | "delete"): Change[] {
     return this.changes.filter((c) => c.type === type);
   }
-
 
   /**
    * Mark changeset as applied (legacy workflow).
    * Updates status and modified timestamp.
    */
   markApplied(): void {
-    this.status = 'applied';
+    this.status = "applied";
     this.updateModified();
   }
 
@@ -231,7 +235,7 @@ export class Changeset {
    * Updates status and modified timestamp.
    */
   markReverted(): void {
-    this.status = 'reverted';
+    this.status = "reverted";
     this.updateModified();
   }
 
@@ -241,7 +245,7 @@ export class Changeset {
    * Updates status and modified timestamp.
    */
   markStaged(): void {
-    this.status = 'staged';
+    this.status = "staged";
     this.updateModified();
   }
 
@@ -251,7 +255,7 @@ export class Changeset {
    * Updates status and modified timestamp.
    */
   markCommitted(): void {
-    this.status = 'committed';
+    this.status = "committed";
     this.updateModified();
   }
 
@@ -261,7 +265,7 @@ export class Changeset {
    * Updates status and modified timestamp.
    */
   markDiscarded(): void {
-    this.status = 'discarded';
+    this.status = "discarded";
     this.updateModified();
   }
 

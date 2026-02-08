@@ -13,5 +13,5 @@ declare const TELEMETRY_ENABLED: boolean;
  * @returns true if telemetry is enabled, false otherwise
  */
 export function isTelemetryBuiltIn(): boolean {
-  return typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+  return typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 }

@@ -2,10 +2,10 @@
  * List elements in a layer
  */
 
-import ansis from 'ansis';
-import { Model } from '../core/model.js';
-import { CLIError, ErrorCategory, ModelNotFoundError, handleError } from '../utils/errors.js';
-import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
+import ansis from "ansis";
+import { Model } from "../core/model.js";
+import { CLIError, ErrorCategory, ModelNotFoundError, handleError } from "../utils/errors.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 export interface ListOptions {
   type?: string;
@@ -16,11 +16,13 @@ export interface ListOptions {
 }
 
 export async function listCommand(layer: string, options: ListOptions): Promise<void> {
-  const span = isTelemetryEnabled ? startSpan('list.execute', {
-    'list.layer': layer,
-    'list.type': options.type,
-    'list.json': options.json === true,
-  }) : null;
+  const span = isTelemetryEnabled
+    ? startSpan("list.execute", {
+        "list.layer": layer,
+        "list.type": options.type,
+        "list.json": options.json === true,
+      })
+    : null;
 
   try {
     // Load model (with error handling for missing models)
@@ -30,10 +32,12 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       // Check for any model-not-found error pattern
-      if (message.includes('No DR project') ||
-          message.includes('Model not found') ||
-          message.includes('No model found') ||
-          message.includes('Could not find documentation_robotics')) {
+      if (
+        message.includes("No DR project") ||
+        message.includes("Model not found") ||
+        message.includes("No model found") ||
+        message.includes("Could not find documentation_robotics")
+      ) {
         throw new ModelNotFoundError();
       }
       throw error;
@@ -42,14 +46,10 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
     // Get layer
     const layerObj = await model.getLayer(layer);
     if (!layerObj) {
-      throw new CLIError(
-        `Layer ${layer} not found`,
-        ErrorCategory.NOT_FOUND,
-        [
-          'Use "dr list" to see all available layers',
-          'Use "dr add <layer> <type> <name>" to add an element to a new layer',
-        ]
-      );
+      throw new CLIError(`Layer ${layer} not found`, ErrorCategory.NOT_FOUND, [
+        'Use "dr list" to see all available layers',
+        'Use "dr add <layer> <type> <name>" to add an element to a new layer',
+      ]);
     }
 
     // Get elements
@@ -61,13 +61,19 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
     }
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('list.elementCount', elements.length);
+      (span as any).setAttribute("list.elementCount", elements.length);
       (span as any).setStatus({ code: 0 });
     }
 
     // Output as JSON if requested
     if (options.json) {
-      console.log(JSON.stringify(elements.map((e) => e.toJSON()), null, 2));
+      console.log(
+        JSON.stringify(
+          elements.map((e) => e.toJSON()),
+          null,
+          2
+        )
+      );
       return;
     }
 
@@ -77,9 +83,9 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
       return;
     }
 
-    console.log('');
+    console.log("");
     console.log(ansis.bold(`Elements in ${ansis.cyan(layer)} layer:`));
-    console.log(ansis.dim('─'.repeat(80)));
+    console.log(ansis.dim("─".repeat(80)));
 
     // Print header
     const idWidth = 30;
@@ -87,9 +93,9 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
     const nameWidth = 35;
 
     console.log(
-      `${ansis.cyan('ID'.padEnd(idWidth))} ${ansis.cyan('TYPE'.padEnd(typeWidth))} ${ansis.cyan('NAME')}`
+      `${ansis.cyan("ID".padEnd(idWidth))} ${ansis.cyan("TYPE".padEnd(typeWidth))} ${ansis.cyan("NAME")}`
     );
-    console.log(ansis.dim('─'.repeat(80)));
+    console.log(ansis.dim("─".repeat(80)));
 
     // Print rows
     for (const element of elements) {
@@ -104,13 +110,16 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
       }
     }
 
-    console.log(ansis.dim('─'.repeat(80)));
+    console.log(ansis.dim("─".repeat(80)));
     console.log(ansis.dim(`Total: ${elements.length} element(s)`));
-    console.log('');
+    console.log("");
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (span as any).setStatus({
+        code: 2,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
     handleError(error);
   } finally {

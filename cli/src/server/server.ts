@@ -3,20 +3,20 @@
  * HTTP server with WebSocket support for real-time model updates
  */
 
-import { Hono } from 'hono';
-import { upgradeWebSocket, websocket } from 'hono/bun';
-import { cors } from 'hono/cors';
-import { serve } from 'bun';
-import { Model } from '../core/model.js';
-import { Element } from '../core/element.js';
-import { telemetryMiddleware } from './telemetry-middleware.js';
-import { BaseChatClient } from '../coding-agents/base-chat-client.js';
-import { ClaudeCodeClient } from '../coding-agents/claude-code-client.js';
-import { CopilotClient } from '../coding-agents/copilot-client.js';
-import { detectAvailableClients, selectChatClient } from '../coding-agents/chat-utils.js';
+import { Hono } from "hono";
+import { upgradeWebSocket, websocket } from "hono/bun";
+import { cors } from "hono/cors";
+import { serve } from "bun";
+import { Model } from "../core/model.js";
+import { Element } from "../core/element.js";
+import { telemetryMiddleware } from "./telemetry-middleware.js";
+import { BaseChatClient } from "../coding-agents/base-chat-client.js";
+import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
+import { CopilotClient } from "../coding-agents/copilot-client.js";
+import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
 
 interface WSMessage {
-  type: 'subscribe' | 'annotate' | 'ping';
+  type: "subscribe" | "annotate" | "ping";
   topics?: string[];
   annotation?: {
     elementId: string;
@@ -51,8 +51,8 @@ interface ClientAnnotation {
   createdAt: string;
   updatedAt?: string;
   tags?: string[];
-  resolved?: boolean;  // Track resolution status
-  replies?: AnnotationReply[];  // Include replies when serializing
+  resolved?: boolean; // Track resolution status
+  replies?: AnnotationReply[]; // Include replies when serializing
 }
 
 interface Changeset {
@@ -60,8 +60,8 @@ interface Changeset {
     id: string;
     name: string;
     description?: string;
-    type: 'feature' | 'bugfix' | 'exploration';
-    status: 'active' | 'applied' | 'abandoned';
+    type: "feature" | "bugfix" | "exploration";
+    status: "active" | "applied" | "abandoned";
     created_at: string;
     updated_at?: string;
     workflow?: string;
@@ -75,7 +75,7 @@ interface Changeset {
     version: string;
     changes: Array<{
       timestamp: string;
-      operation: 'add' | 'update' | 'delete';
+      operation: "add" | "update" | "delete";
       element_id: string;
       layer: string;
       element_type: string;
@@ -122,41 +122,41 @@ export class VisualizationServer {
     this.model = model;
 
     // Auth configuration (CLI options override environment variables)
-    this.authEnabled = options?.authEnabled ?? (process.env.DR_AUTH_ENABLED !== 'false');
+    this.authEnabled = options?.authEnabled ?? process.env.DR_AUTH_ENABLED !== "false";
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
     this.withDanger = options?.withDanger || false;
     this.viewerPath = options?.viewerPath;
 
     // Add CORS middleware
-    this.app.use('/*', cors());
+    this.app.use("/*", cors());
 
     // Add telemetry middleware to instrument all HTTP requests
-    this.app.use('/*', telemetryMiddleware);
+    this.app.use("/*", telemetryMiddleware);
 
     // Add authentication middleware (except for health endpoint and root)
-    this.app.use('/api/*', async (c, next) => {
+    this.app.use("/api/*", async (c, next) => {
       if (!this.authEnabled) {
         return next();
       }
 
       // Check for token in Authorization header or query parameter
-      const authHeader = c.req.header('Authorization');
-      const queryToken = c.req.query('token');
+      const authHeader = c.req.header("Authorization");
+      const queryToken = c.req.query("token");
 
       let providedToken: string | null = null;
 
-      if (authHeader && authHeader.startsWith('Bearer ')) {
+      if (authHeader && authHeader.startsWith("Bearer ")) {
         providedToken = authHeader.substring(7);
       } else if (queryToken) {
         providedToken = queryToken;
       }
 
       if (!providedToken) {
-        return c.json({ error: 'Authentication required. Please provide a valid token.' }, 401);
+        return c.json({ error: "Authentication required. Please provide a valid token." }, 401);
       }
 
       if (providedToken !== this.authToken) {
-        return c.json({ error: 'Invalid authentication token' }, 403);
+        return c.json({ error: "Invalid authentication token" }, 403);
       }
 
       return next();
@@ -171,7 +171,7 @@ export class VisualizationServer {
 
     // Initialize chat clients asynchronously
     this.initializeChatClients().catch((error) => {
-      console.error('[Chat] Failed to initialize chat clients:', error);
+      console.error("[Chat] Failed to initialize chat clients:", error);
     });
   }
 
@@ -186,15 +186,20 @@ export class VisualizationServer {
     this.selectedChatClient = selectChatClient(clients, preferredAgent);
 
     // Log warnings/info if needed
-    if (preferredAgent && this.selectedChatClient &&
-        this.selectedChatClient.getClientName() !== preferredAgent) {
-      console.warn(`[Chat] Preferred client "${preferredAgent}" not available, using ${this.selectedChatClient.getClientName()}`);
+    if (
+      preferredAgent &&
+      this.selectedChatClient &&
+      this.selectedChatClient.getClientName() !== preferredAgent
+    ) {
+      console.warn(
+        `[Chat] Preferred client "${preferredAgent}" not available, using ${this.selectedChatClient.getClientName()}`
+      );
     }
 
     if (this.selectedChatClient && process.env.VERBOSE) {
       console.log(`[Chat] Using chat client: ${this.selectedChatClient.getClientName()}`);
     } else if (clients.length === 0 && process.env.VERBOSE) {
-      console.log('[Chat] No chat clients available');
+      console.log("[Chat] No chat clients available");
     }
   }
 
@@ -210,10 +215,10 @@ export class VisualizationServer {
    */
   private setupRoutes(): void {
     // Static viewer HTML at root
-    this.app.get('/', (c) => {
+    this.app.get("/", (c) => {
       if (this.viewerPath) {
         // Serve custom viewer index.html
-        return this.serveCustomViewer('index.html');
+        return this.serveCustomViewer("index.html");
       }
       return c.html(this.getViewerHTML());
     });
@@ -221,12 +226,12 @@ export class VisualizationServer {
     // Serve static files from custom viewer path if provided
     // Note: This catch-all route must skip API/WS routes by passing to next handler
     if (this.viewerPath) {
-      this.app.get('/*', async (c, next) => {
+      this.app.get("/*", async (c, next) => {
         const requestPath = c.req.path;
         console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
 
         // Skip API routes and WebSocket - let them be handled by their specific routes
-        if (requestPath.startsWith('/api/') || requestPath === '/ws' || requestPath === '/health') {
+        if (requestPath.startsWith("/api/") || requestPath === "/ws" || requestPath === "/health") {
           console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
           return next(); // Pass to next handler instead of returning 404
         }
@@ -237,22 +242,24 @@ export class VisualizationServer {
     }
 
     // Health check endpoint
-    this.app.get('/health', (c) => {
+    this.app.get("/health", (c) => {
       return c.json({
-        status: 'ok',
-        version: '0.1.0'
+        status: "ok",
+        version: "0.1.0",
       });
     });
 
     // REST API endpoints
 
     // Get full model
-    this.app.get('/api/model', async (c) => {
+    this.app.get("/api/model", async (c) => {
       console.log(`[ROUTE] /api/model handler called`);
       try {
         console.log(`[ROUTE] /api/model serializing model...`);
         const modelData = await this.serializeModel();
-        console.log(`[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`);
+        console.log(
+          `[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`
+        );
         return c.json(modelData);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -262,18 +269,16 @@ export class VisualizationServer {
     });
 
     // Get specific layer
-    this.app.get('/api/layers/:name', async (c) => {
+    this.app.get("/api/layers/:name", async (c) => {
       try {
-        const layerName = c.req.param('name');
+        const layerName = c.req.param("name");
         const layer = await this.model.getLayer(layerName);
 
         if (!layer) {
-          return c.json({ error: 'Layer not found' }, 404);
+          return c.json({ error: "Layer not found" }, 404);
         }
 
-        const elements = layer
-          .listElements()
-          .map((e) => e.toJSON());
+        const elements = layer.listElements().map((e) => e.toJSON());
 
         return c.json({
           name: layerName,
@@ -287,13 +292,13 @@ export class VisualizationServer {
     });
 
     // Get specific element
-    this.app.get('/api/elements/:id', async (c) => {
+    this.app.get("/api/elements/:id", async (c) => {
       try {
-        const elementId = c.req.param('id');
+        const elementId = c.req.param("id");
         const element = await this.findElement(elementId);
 
         if (!element) {
-          return c.json({ error: 'Element not found' }, 404);
+          return c.json({ error: "Element not found" }, 404);
         }
 
         return c.json({
@@ -307,14 +312,14 @@ export class VisualizationServer {
     });
 
     // Get JSON Schema specifications
-    this.app.get('/api/spec', async (c) => {
+    this.app.get("/api/spec", async (c) => {
       try {
         const schemas = await this.loadSchemas();
         return c.json({
-          version: '0.1.0',
-          type: 'schema-collection',
-          description: 'JSON Schema definitions from dr CLI',
-          source: 'dr-cli',
+          version: "0.1.0",
+          type: "schema-collection",
+          description: "JSON Schema definitions from dr CLI",
+          source: "dr-cli",
           schemas,
           schemaCount: Object.keys(schemas).length,
         });
@@ -325,7 +330,7 @@ export class VisualizationServer {
     });
 
     // Get link registry
-    this.app.get('/api/link-registry', async (c) => {
+    this.app.get("/api/link-registry", async (c) => {
       try {
         const linkRegistry = await this.loadLinkRegistry();
         return c.json(linkRegistry);
@@ -338,14 +343,14 @@ export class VisualizationServer {
     // Annotations API (spec-compliant routes)
 
     // Get all annotations (optionally filtered by elementId)
-    this.app.get('/api/annotations', (c) => {
-      const elementId = c.req.query('elementId');
+    this.app.get("/api/annotations", (c) => {
+      const elementId = c.req.query("elementId");
 
       if (elementId) {
         // Filter by element
         const annotationIds = this.annotationsByElement.get(elementId) || new Set();
         const annotations = Array.from(annotationIds)
-          .map(id => this.annotations.get(id))
+          .map((id) => this.annotations.get(id))
           .filter((a): a is ClientAnnotation => a !== undefined);
 
         return c.json({ annotations });
@@ -357,32 +362,35 @@ export class VisualizationServer {
     });
 
     // Create annotation
-    this.app.post('/api/annotations', async (c) => {
+    this.app.post("/api/annotations", async (c) => {
       try {
         const body = await c.req.json();
 
         // Validate required fields (author is optional)
         if (!body.elementId || !body.content) {
-          return c.json({
-            error: 'Missing required fields: elementId, content'
-          }, 400);
+          return c.json(
+            {
+              error: "Missing required fields: elementId, content",
+            },
+            400
+          );
         }
 
         // Verify element exists
         const element = await this.findElement(body.elementId);
         if (!element) {
-          return c.json({ error: 'Element not found' }, 404);
+          return c.json({ error: "Element not found" }, 404);
         }
 
         // Create annotation
         const annotation: ClientAnnotation = {
           id: this.generateAnnotationId(),
           elementId: String(body.elementId),
-          author: body.author ? String(body.author) : 'Anonymous',  // Default to Anonymous if not provided
+          author: body.author ? String(body.author) : "Anonymous", // Default to Anonymous if not provided
           content: String(body.content),
           createdAt: new Date().toISOString(),
           tags: body.tags || [],
-          resolved: false,  // Default to unresolved
+          resolved: false, // Default to unresolved
         };
 
         // Store annotation
@@ -394,7 +402,7 @@ export class VisualizationServer {
 
         // Broadcast to all clients
         await this.broadcastMessage({
-          type: 'annotation.added',
+          type: "annotation.added",
           annotationId: annotation.id,
           elementId: annotation.elementId,
           timestamp: annotation.createdAt,
@@ -408,13 +416,13 @@ export class VisualizationServer {
     });
 
     // Update annotation
-    this.app.put('/api/annotations/:annotationId', async (c) => {
+    this.app.put("/api/annotations/:annotationId", async (c) => {
       try {
-        const annotationId = c.req.param('annotationId');
+        const annotationId = c.req.param("annotationId");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
-          return c.json({ error: 'Annotation not found' }, 404);
+          return c.json({ error: "Annotation not found" }, 404);
         }
 
         const body = await c.req.json();
@@ -433,7 +441,7 @@ export class VisualizationServer {
 
         // Broadcast to all clients
         await this.broadcastMessage({
-          type: 'annotation.updated',
+          type: "annotation.updated",
           annotationId: annotation.id,
           timestamp: annotation.updatedAt,
         });
@@ -446,13 +454,13 @@ export class VisualizationServer {
     });
 
     // PATCH annotation (partial update - recommended)
-    this.app.patch('/api/annotations/:annotationId', async (c) => {
+    this.app.patch("/api/annotations/:annotationId", async (c) => {
       try {
-        const annotationId = c.req.param('annotationId');
+        const annotationId = c.req.param("annotationId");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
-          return c.json({ error: 'Annotation not found' }, 404);
+          return c.json({ error: "Annotation not found" }, 404);
         }
 
         const body = await c.req.json();
@@ -471,7 +479,7 @@ export class VisualizationServer {
 
         // Broadcast to all clients
         await this.broadcastMessage({
-          type: 'annotation.updated',
+          type: "annotation.updated",
           annotationId: annotation.id,
           timestamp: annotation.updatedAt,
         });
@@ -484,18 +492,18 @@ export class VisualizationServer {
     });
 
     // Delete annotation
-    this.app.delete('/api/annotations/:annotationId', async (c) => {
+    this.app.delete("/api/annotations/:annotationId", async (c) => {
       try {
-        const annotationId = c.req.param('annotationId');
+        const annotationId = c.req.param("annotationId");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
-          return c.json({ error: 'Annotation not found' }, 404);
+          return c.json({ error: "Annotation not found" }, 404);
         }
 
         // Remove from storage
         this.annotations.delete(annotationId);
-        this.replies.delete(annotationId);  // Clean up replies
+        this.replies.delete(annotationId); // Clean up replies
         const elementAnnotations = this.annotationsByElement.get(annotation.elementId);
         if (elementAnnotations) {
           elementAnnotations.delete(annotationId);
@@ -503,7 +511,7 @@ export class VisualizationServer {
 
         // Broadcast to all clients
         await this.broadcastMessage({
-          type: 'annotation.deleted',
+          type: "annotation.deleted",
           annotationId,
           timestamp: new Date().toISOString(),
         });
@@ -516,12 +524,12 @@ export class VisualizationServer {
     });
 
     // GET annotation replies
-    this.app.get('/api/annotations/:annotationId/replies', (c) => {
-      const annotationId = c.req.param('annotationId');
+    this.app.get("/api/annotations/:annotationId/replies", (c) => {
+      const annotationId = c.req.param("annotationId");
       const annotation = this.annotations.get(annotationId);
 
       if (!annotation) {
-        return c.json({ error: 'Annotation not found' }, 404);
+        return c.json({ error: "Annotation not found" }, 404);
       }
 
       const replies = this.replies.get(annotationId) || [];
@@ -529,22 +537,25 @@ export class VisualizationServer {
     });
 
     // POST annotation reply
-    this.app.post('/api/annotations/:annotationId/replies', async (c) => {
+    this.app.post("/api/annotations/:annotationId/replies", async (c) => {
       try {
-        const annotationId = c.req.param('annotationId');
+        const annotationId = c.req.param("annotationId");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
-          return c.json({ error: 'Annotation not found' }, 404);
+          return c.json({ error: "Annotation not found" }, 404);
         }
 
         const body = await c.req.json();
 
         // Validate required fields
         if (!body.author || !body.content) {
-          return c.json({
-            error: 'Missing required fields: author, content'
-          }, 400);
+          return c.json(
+            {
+              error: "Missing required fields: author, content",
+            },
+            400
+          );
         }
 
         const reply: AnnotationReply = {
@@ -562,7 +573,7 @@ export class VisualizationServer {
 
         // Broadcast to all clients
         await this.broadcastMessage({
-          type: 'annotation.reply.added',
+          type: "annotation.reply.added",
           annotationId,
           replyId: reply.id,
           timestamp: reply.createdAt,
@@ -578,7 +589,7 @@ export class VisualizationServer {
     // Changesets API
 
     // Get all changesets
-    this.app.get('/api/changesets', (c) => {
+    this.app.get("/api/changesets", (c) => {
       const changesets: Record<string, any> = {};
 
       for (const [id, changeset] of this.changesets) {
@@ -592,18 +603,18 @@ export class VisualizationServer {
       }
 
       return c.json({
-        version: '1.0.0',
+        version: "1.0.0",
         changesets,
       });
     });
 
     // Get specific changeset
-    this.app.get('/api/changesets/:changesetId', (c) => {
-      const changesetId = c.req.param('changesetId');
+    this.app.get("/api/changesets/:changesetId", (c) => {
+      const changesetId = c.req.param("changesetId");
       const changeset = this.changesets.get(changesetId);
 
       if (!changeset) {
-        return c.json({ error: 'Changeset not found' }, 404);
+        return c.json({ error: "Changeset not found" }, 404);
       }
 
       return c.json(changeset);
@@ -611,7 +622,7 @@ export class VisualizationServer {
 
     // WebSocket endpoint
     this.app.get(
-      '/ws',
+      "/ws",
       async (c, next) => {
         // Check WebSocket auth if enabled
         if (this.authEnabled) {
@@ -620,43 +631,45 @@ export class VisualizationServer {
           // 2. Sec-WebSocket-Protocol header: token, <actual-token> (browser-compatible workaround)
           // 3. Authorization header: Bearer <token> (non-browser clients only)
 
-          const queryToken = c.req.query('token');
+          const queryToken = c.req.query("token");
 
           // Check Sec-WebSocket-Protocol header (browser-compatible method)
           // Format: "token, <actual-token>" or "token,<actual-token>"
-          const wsProtocol = c.req.header('Sec-WebSocket-Protocol');
+          const wsProtocol = c.req.header("Sec-WebSocket-Protocol");
           let protocolToken: string | null = null;
           if (wsProtocol) {
-            const protocols = wsProtocol.split(',').map(p => p.trim());
+            const protocols = wsProtocol.split(",").map((p) => p.trim());
             // Look for protocol pair: ['token', '<actual-token>']
-            const tokenIndex = protocols.indexOf('token');
+            const tokenIndex = protocols.indexOf("token");
             if (tokenIndex !== -1 && protocols.length > tokenIndex + 1) {
               protocolToken = protocols[tokenIndex + 1];
             }
           }
 
           // Check Authorization header (non-browser clients)
-          const authHeader = c.req.header('Authorization');
-          const bearerToken = authHeader?.startsWith('Bearer ')
-            ? authHeader.substring(7)
-            : null;
+          const authHeader = c.req.header("Authorization");
+          const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
 
           const token = queryToken || protocolToken || bearerToken;
 
           if (!token) {
-            return c.json({
-              error: 'Authentication required. Provide token via: 1) Query param (?token=YOUR_TOKEN), 2) Sec-WebSocket-Protocol header (browser: new WebSocket(url, ["token", "YOUR_TOKEN"])), or 3) Authorization header (Bearer YOUR_TOKEN)'
-            }, 401);
+            return c.json(
+              {
+                error:
+                  'Authentication required. Provide token via: 1) Query param (?token=YOUR_TOKEN), 2) Sec-WebSocket-Protocol header (browser: new WebSocket(url, ["token", "YOUR_TOKEN"])), or 3) Authorization header (Bearer YOUR_TOKEN)',
+              },
+              401
+            );
           }
 
           if (token !== this.authToken) {
-            return c.json({ error: 'Invalid authentication token' }, 403);
+            return c.json({ error: "Invalid authentication token" }, 403);
           }
 
           // If token came from Sec-WebSocket-Protocol, we need to respond with the protocol
           // This is required by the WebSocket spec for subprotocol negotiation
           if (protocolToken) {
-            c.header('Sec-WebSocket-Protocol', 'token');
+            c.header("Sec-WebSocket-Protocol", "token");
           }
         }
 
@@ -665,18 +678,20 @@ export class VisualizationServer {
       upgradeWebSocket(() => ({
         onOpen: async (_evt, ws) => {
           // Telemetry: Track WebSocket connection
-          await this.recordWebSocketEvent('ws.connection.open', {
-            'ws.client_count': this.clients.size + 1,
+          await this.recordWebSocketEvent("ws.connection.open", {
+            "ws.client_count": this.clients.size + 1,
           });
 
           this.clients.add(ws);
 
           // Send connected message per spec
-          ws.send(JSON.stringify({
-            type: 'connected',
-            version: '0.1.0',
-            timestamp: new Date().toISOString(),
-          }));
+          ws.send(
+            JSON.stringify({
+              type: "connected",
+              version: "0.1.0",
+              timestamp: new Date().toISOString(),
+            })
+          );
 
           if (process.env.VERBOSE) {
             console.log(`[WebSocket] Client connected (total: ${this.clients.size})`);
@@ -685,21 +700,19 @@ export class VisualizationServer {
 
         onClose: async (_evt, ws) => {
           // Telemetry: Track WebSocket disconnection
-          await this.recordWebSocketEvent('ws.connection.close', {
-            'ws.client_count': this.clients.size - 1,
+          await this.recordWebSocketEvent("ws.connection.close", {
+            "ws.client_count": this.clients.size - 1,
           });
 
           this.clients.delete(ws);
           if (process.env.VERBOSE) {
-            console.log(
-              `[WebSocket] Client disconnected (total: ${this.clients.size})`
-            );
+            console.log(`[WebSocket] Client disconnected (total: ${this.clients.size})`);
           }
         },
 
         onMessage: async (message, ws) => {
           const messageStartTime = Date.now();
-          let messageType = 'unknown';
+          let messageType = "unknown";
 
           try {
             // Extract the actual message data
@@ -708,7 +721,7 @@ export class VisualizationServer {
 
             // Handle different message types (string, Buffer, ArrayBuffer)
             let msgStr: string;
-            if (typeof rawData === 'string') {
+            if (typeof rawData === "string") {
               msgStr = rawData;
             } else if (rawData instanceof Buffer || rawData instanceof Uint8Array) {
               msgStr = new TextDecoder().decode(rawData);
@@ -716,16 +729,17 @@ export class VisualizationServer {
               msgStr = String(rawData);
             }
             const data = JSON.parse(msgStr) as WSMessage;
-            messageType = data.jsonrpc === '2.0' ? data.method || 'jsonrpc' : data.type || 'unknown';
+            messageType =
+              data.jsonrpc === "2.0" ? data.method || "jsonrpc" : data.type || "unknown";
 
             // Telemetry: Track message processing
-            await this.recordWebSocketEvent('ws.message.received', {
-              'ws.message.type': messageType,
-              'ws.message.size_bytes': msgStr.length,
+            await this.recordWebSocketEvent("ws.message.received", {
+              "ws.message.type": messageType,
+              "ws.message.size_bytes": msgStr.length,
             });
 
             // Check if it's a JSON-RPC message
-            if (data.jsonrpc === '2.0') {
+            if (data.jsonrpc === "2.0") {
               await this.handleJSONRPCMessage(ws, data);
             } else {
               await this.handleWSMessage(ws, data);
@@ -733,21 +747,21 @@ export class VisualizationServer {
 
             // Telemetry: Track successful message processing
             const durationMs = Date.now() - messageStartTime;
-            await this.recordWebSocketEvent('ws.message.processed', {
-              'ws.message.type': messageType,
-              'ws.message.duration_ms': durationMs,
-              'ws.message.status': 'success',
+            await this.recordWebSocketEvent("ws.message.processed", {
+              "ws.message.type": messageType,
+              "ws.message.duration_ms": durationMs,
+              "ws.message.status": "success",
             });
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
             const durationMs = Date.now() - messageStartTime;
 
             // Telemetry: Track message processing error
-            await this.recordWebSocketEvent('ws.message.error', {
-              'ws.message.type': messageType,
-              'ws.message.duration_ms': durationMs,
-              'ws.message.status': 'error',
-              'error.message': errorMsg,
+            await this.recordWebSocketEvent("ws.message.error", {
+              "ws.message.type": messageType,
+              "ws.message.duration_ms": durationMs,
+              "ws.message.status": "error",
+              "error.message": errorMsg,
             });
 
             if (process.env.DEBUG) {
@@ -755,7 +769,7 @@ export class VisualizationServer {
             }
             ws.send(
               JSON.stringify({
-                type: 'error',
+                type: "error",
                 message: errorMsg,
               })
             );
@@ -766,9 +780,9 @@ export class VisualizationServer {
           const message = error instanceof Error ? error.message : String(error);
 
           // Telemetry: Track WebSocket error
-          await this.recordWebSocketEvent('ws.error', {
-            'error.type': error instanceof Error ? error.constructor.name : 'unknown',
-            'error.message': message,
+          await this.recordWebSocketEvent("ws.error", {
+            "error.type": error instanceof Error ? error.constructor.name : "unknown",
+            "error.message": message,
           });
 
           console.error(`[WebSocket] Error: ${message}`);
@@ -784,26 +798,24 @@ export class VisualizationServer {
     const layers: any = {};
 
     for (const [name, layer] of this.model.layers) {
-      const elements = layer
-        .listElements()
-        .map((e) => {
-          const annotationIds = this.annotationsByElement.get(e.id) || new Set();
-          const annotations = Array.from(annotationIds)
-            .map(id => {
-              const annotation = this.annotations.get(id);
-              if (!annotation) return undefined;
+      const elements = layer.listElements().map((e) => {
+        const annotationIds = this.annotationsByElement.get(e.id) || new Set();
+        const annotations = Array.from(annotationIds)
+          .map((id) => {
+            const annotation = this.annotations.get(id);
+            if (!annotation) return undefined;
 
-              // Include replies in annotation response
-              const replies = this.replies.get(id) || [];
-              return { ...annotation, replies };
-            })
-            .filter(a => a !== undefined);
+            // Include replies in annotation response
+            const replies = this.replies.get(id) || [];
+            return { ...annotation, replies };
+          })
+          .filter((a) => a !== undefined);
 
-          return {
-            ...e.toJSON(),
-            annotations,
-          };
-        });
+        return {
+          ...e.toJSON(),
+          annotations,
+        };
+      });
 
       layers[name] = {
         name,
@@ -841,13 +853,13 @@ export class VisualizationServer {
    */
   private async broadcastMessage(message: any): Promise<void> {
     const messageStr = JSON.stringify(message);
-    const messageType = message.type || 'unknown';
+    const messageType = message.type || "unknown";
 
     // Telemetry: Track broadcast start
-    await this.recordWebSocketEvent('ws.broadcast.start', {
-      'ws.broadcast.type': messageType,
-      'ws.broadcast.client_count': this.clients.size,
-      'ws.broadcast.message_size_bytes': messageStr.length,
+    await this.recordWebSocketEvent("ws.broadcast.start", {
+      "ws.broadcast.type": messageType,
+      "ws.broadcast.client_count": this.clients.size,
+      "ws.broadcast.message_size_bytes": messageStr.length,
     });
 
     let failureCount = 0;
@@ -864,14 +876,16 @@ export class VisualizationServer {
     }
 
     // Telemetry: Track broadcast completion
-    await this.recordWebSocketEvent('ws.broadcast.complete', {
-      'ws.broadcast.type': messageType,
-      'ws.broadcast.success_count': this.clients.size - failureCount,
-      'ws.broadcast.failure_count': failureCount,
+    await this.recordWebSocketEvent("ws.broadcast.complete", {
+      "ws.broadcast.type": messageType,
+      "ws.broadcast.success_count": this.clients.size - failureCount,
+      "ws.broadcast.failure_count": failureCount,
     });
 
     if (failureCount > 0 && process.env.VERBOSE) {
-      console.warn(`[WebSocket] Failed to send message to ${failureCount}/${this.clients.size} clients`);
+      console.warn(
+        `[WebSocket] Failed to send message to ${failureCount}/${this.clients.size} clients`
+      );
     }
   }
 
@@ -879,10 +893,13 @@ export class VisualizationServer {
    * Record WebSocket telemetry event
    * Creates spans for WebSocket operations when telemetry is enabled
    */
-  private async recordWebSocketEvent(eventName: string, attributes: Record<string, any>): Promise<void> {
+  private async recordWebSocketEvent(
+    eventName: string,
+    attributes: Record<string, any>
+  ): Promise<void> {
     // Check if telemetry is enabled (compile-time constant set by esbuild)
     // @ts-ignore - TELEMETRY_ENABLED is a global constant defined at build time
-    const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+    const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
     if (!isTelemetryEnabled) {
       return;
@@ -890,7 +907,7 @@ export class VisualizationServer {
 
     try {
       // Dynamic import for tree-shaking
-      const { startSpan, endSpan } = await import('../telemetry/index.js');
+      const { startSpan, endSpan } = await import("../telemetry/index.js");
 
       // Create span for WebSocket event
       const span = startSpan(eventName, attributes);
@@ -921,38 +938,42 @@ export class VisualizationServer {
    */
   private async handleWSMessage(ws: HonoWSContext, data: WSMessage): Promise<void> {
     switch (data.type) {
-      case 'subscribe':
+      case "subscribe":
         // Send subscribed confirmation
-        const topics = data.topics || ['model', 'annotations'];
-        ws.send(JSON.stringify({
-          type: 'subscribed',
-          topics,
-          timestamp: new Date().toISOString(),
-        }));
+        const topics = data.topics || ["model", "annotations"];
+        ws.send(
+          JSON.stringify({
+            type: "subscribed",
+            topics,
+            timestamp: new Date().toISOString(),
+          })
+        );
 
         // Send initial model state
         const modelData = await this.serializeModel();
         ws.send(
           JSON.stringify({
-            type: 'model',
+            type: "model",
             data: modelData,
             timestamp: new Date().toISOString(),
           })
         );
         break;
 
-      case 'ping':
+      case "ping":
         // Respond with pong
-        ws.send(JSON.stringify({
-          type: 'pong',
-          timestamp: new Date().toISOString(),
-        }));
+        ws.send(
+          JSON.stringify({
+            type: "pong",
+            timestamp: new Date().toISOString(),
+          })
+        );
         break;
 
-      case 'annotate':
+      case "annotate":
         if (data.annotation) {
           await this.broadcastMessage({
-            type: 'annotation',
+            type: "annotation",
             data: data.annotation,
           });
         }
@@ -961,7 +982,7 @@ export class VisualizationServer {
       default:
         ws.send(
           JSON.stringify({
-            type: 'error',
+            type: "error",
             message: `Unknown message type: ${data.type}`,
           })
         );
@@ -976,44 +997,53 @@ export class VisualizationServer {
 
     // Helper to send JSON-RPC response
     const sendResponse = (result: any) => {
-      ws.send(JSON.stringify({
-        jsonrpc: '2.0',
-        result,
-        id,
-      }));
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          result,
+          id,
+        })
+      );
     };
 
     // Helper to send JSON-RPC error
     const sendError = (code: number, message: string, data?: any) => {
-      ws.send(JSON.stringify({
-        jsonrpc: '2.0',
-        error: { code, message, data },
-        id,
-      }));
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code, message, data },
+          id,
+        })
+      );
     };
 
     try {
       switch (method) {
-        case 'chat.status':
+        case "chat.status":
           // Check if any chat client is available
           const hasClient = this.selectedChatClient !== undefined;
           sendResponse({
             sdk_available: hasClient,
             sdk_version: hasClient ? this.selectedChatClient!.getClientName() : null,
-            error_message: hasClient ? null : 'No chat client available. Install Claude Code or GitHub Copilot.'
+            error_message: hasClient
+              ? null
+              : "No chat client available. Install Claude Code or GitHub Copilot.",
           });
           break;
 
-        case 'chat.send':
+        case "chat.send":
           // Validate params
           if (!params || !params.message) {
-            sendError(-32602, 'Message cannot be empty');
+            sendError(-32602, "Message cannot be empty");
             return;
           }
 
           // Check if chat client is available
           if (!this.selectedChatClient) {
-            sendError(-32001, 'No chat client available. Install Claude Code or GitHub Copilot to enable chat.');
+            sendError(
+              -32001,
+              "No chat client available. Install Claude Code or GitHub Copilot to enable chat."
+            );
             return;
           }
 
@@ -1024,7 +1054,7 @@ export class VisualizationServer {
           await this.launchChat(ws, conversationId, params.message, id);
           break;
 
-        case 'chat.cancel':
+        case "chat.cancel":
           // Find and cancel any active conversation
           let cancelled = false;
           let cancelledConvId = null;
@@ -1043,7 +1073,7 @@ export class VisualizationServer {
 
           sendResponse({
             cancelled,
-            conversation_id: cancelledConvId
+            conversation_id: cancelledConvId,
           });
           break;
 
@@ -1052,7 +1082,7 @@ export class VisualizationServer {
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      sendError(-32603, 'Internal error', errorMsg);
+      sendError(-32603, "Internal error", errorMsg);
     }
   }
 
@@ -1066,14 +1096,16 @@ export class VisualizationServer {
     requestId: string | number | undefined
   ): Promise<void> {
     if (!this.selectedChatClient) {
-      ws.send(JSON.stringify({
-        jsonrpc: '2.0',
-        error: {
-          code: -32001,
-          message: 'No chat client available',
-        },
-        id: requestId,
-      }));
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32001,
+            message: "No chat client available",
+          },
+          id: requestId,
+        })
+      );
       return;
     }
 
@@ -1083,14 +1115,16 @@ export class VisualizationServer {
     } else if (this.selectedChatClient instanceof CopilotClient) {
       await this.launchCopilotChat(ws, conversationId, message, requestId);
     } else {
-      ws.send(JSON.stringify({
-        jsonrpc: '2.0',
-        error: {
-          code: -32001,
-          message: 'Unknown chat client type',
-        },
-        id: requestId,
-      }));
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32001,
+            message: "Unknown chat client type",
+          },
+          id: requestId,
+        })
+      );
     }
   }
 
@@ -1105,22 +1139,22 @@ export class VisualizationServer {
   ): Promise<void> {
     try {
       // Build command arguments
-      const cmd = ['claude', '--agent', 'dr-architect', '--print'];
+      const cmd = ["claude", "--agent", "dr-architect", "--print"];
 
       // Add dangerously-skip-permissions flag if withDanger is enabled
       if (this.withDanger) {
-        cmd.push('--dangerously-skip-permissions');
+        cmd.push("--dangerously-skip-permissions");
       }
 
-      cmd.push('--verbose', '--output-format', 'stream-json');
+      cmd.push("--verbose", "--output-format", "stream-json");
 
       // Launch claude with dr-architect agent for comprehensive DR expertise
       const proc = Bun.spawn({
         cmd,
         cwd: this.model.rootPath,
-        stdin: 'pipe',
-        stdout: 'pipe',
-        stderr: 'pipe',
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
       });
 
       // Store active process
@@ -1135,8 +1169,8 @@ export class VisualizationServer {
       const decoder = new TextDecoder();
 
       const streamOutput = async () => {
-        let accumulatedText = '';
-        let buffer = '';
+        let accumulatedText = "";
+        let buffer = "";
 
         try {
           while (true) {
@@ -1147,8 +1181,8 @@ export class VisualizationServer {
             buffer += chunk;
 
             // Process complete lines (JSON events)
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
 
             for (const line of lines) {
               if (!line.trim()) continue;
@@ -1156,77 +1190,87 @@ export class VisualizationServer {
               try {
                 const event = JSON.parse(line);
 
-                if (event.type === 'assistant') {
+                if (event.type === "assistant") {
                   // Extract content blocks from assistant message
                   const content = event.message?.content || [];
                   for (const block of content) {
-                    if (block.type === 'text') {
+                    if (block.type === "text") {
                       accumulatedText += block.text;
                       // Send text chunk notification
-                      ws.send(JSON.stringify({
-                        jsonrpc: '2.0',
-                        method: 'chat.response.chunk',
-                        params: {
-                          conversation_id: conversationId,
-                          content: block.text,
-                          is_final: false,
-                          timestamp: new Date().toISOString(),
-                        },
-                      }));
-                    } else if (block.type === 'tool_use') {
+                      ws.send(
+                        JSON.stringify({
+                          jsonrpc: "2.0",
+                          method: "chat.response.chunk",
+                          params: {
+                            conversation_id: conversationId,
+                            content: block.text,
+                            is_final: false,
+                            timestamp: new Date().toISOString(),
+                          },
+                        })
+                      );
+                    } else if (block.type === "tool_use") {
                       // Send tool invocation notification
-                      ws.send(JSON.stringify({
-                        jsonrpc: '2.0',
-                        method: 'chat.tool.invoke',
-                        params: {
-                          conversation_id: conversationId,
-                          tool_name: block.name,
-                          tool_input: block.input,
-                          timestamp: new Date().toISOString(),
-                        },
-                      }));
+                      ws.send(
+                        JSON.stringify({
+                          jsonrpc: "2.0",
+                          method: "chat.tool.invoke",
+                          params: {
+                            conversation_id: conversationId,
+                            tool_name: block.name,
+                            tool_input: block.input,
+                            timestamp: new Date().toISOString(),
+                          },
+                        })
+                      );
                     }
                   }
-                } else if (event.type === 'result') {
+                } else if (event.type === "result") {
                   // Tool result
-                  ws.send(JSON.stringify({
-                    jsonrpc: '2.0',
-                    method: 'chat.tool.result',
-                    params: {
-                      conversation_id: conversationId,
-                      result: event.result,
-                      timestamp: new Date().toISOString(),
-                    },
-                  }));
+                  ws.send(
+                    JSON.stringify({
+                      jsonrpc: "2.0",
+                      method: "chat.tool.result",
+                      params: {
+                        conversation_id: conversationId,
+                        result: event.result,
+                        timestamp: new Date().toISOString(),
+                      },
+                    })
+                  );
                 }
               } catch {
                 // Non-JSON line, send as raw text chunk
-                ws.send(JSON.stringify({
-                  jsonrpc: '2.0',
-                  method: 'chat.response.chunk',
-                  params: {
-                    conversation_id: conversationId,
-                    content: line + '\n',
-                    is_final: false,
-                    timestamp: new Date().toISOString(),
-                  },
-                }));
+                ws.send(
+                  JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "chat.response.chunk",
+                    params: {
+                      conversation_id: conversationId,
+                      content: line + "\n",
+                      is_final: false,
+                      timestamp: new Date().toISOString(),
+                    },
+                  })
+                );
               }
             }
           }
 
           // Process remaining buffer
           if (buffer.trim()) {
-            ws.send(JSON.stringify({
-              jsonrpc: '2.0',
-              method: 'chat.response.chunk',
-              params: {
-                conversation_id: conversationId,
-                content: buffer,
-                is_final: true,
-                timestamp: new Date().toISOString(),
-              },
-            }));
+            ws.send(
+              JSON.stringify({
+                jsonrpc: "2.0",
+                method: "chat.response.chunk",
+                params: {
+                  conversation_id: conversationId,
+                  content: buffer,
+                  is_final: true,
+                  timestamp: new Date().toISOString(),
+                },
+              })
+            );
           }
 
           // Wait for process to complete
@@ -1236,28 +1280,32 @@ export class VisualizationServer {
           this.activeChatProcesses.delete(conversationId);
 
           // Send completion response
-          ws.send(JSON.stringify({
-            jsonrpc: '2.0',
-            result: {
-              conversation_id: conversationId,
-              status: exitCode === 0 ? 'complete' : 'error',
-              exit_code: exitCode,
-              full_response: accumulatedText,
-              timestamp: new Date().toISOString(),
-            },
-            id: requestId,
-          }));
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              result: {
+                conversation_id: conversationId,
+                status: exitCode === 0 ? "complete" : "error",
+                exit_code: exitCode,
+                full_response: accumulatedText,
+                timestamp: new Date().toISOString(),
+              },
+              id: requestId,
+            })
+          );
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
 
-          ws.send(JSON.stringify({
-            jsonrpc: '2.0',
-            error: {
-              code: -32603,
-              message: `Chat failed: ${errorMsg}`,
-            },
-            id: requestId,
-          }));
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: -32603,
+                message: `Chat failed: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
 
           this.activeChatProcesses.delete(conversationId);
 
@@ -1274,17 +1322,18 @@ export class VisualizationServer {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
 
-      ws.send(JSON.stringify({
-        jsonrpc: '2.0',
-        error: {
-          code: -32603,
-          message: `Failed to launch Claude Code: ${errorMsg}`,
-        },
-        id: requestId,
-      }));
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32603,
+            message: `Failed to launch Claude Code: ${errorMsg}`,
+          },
+          id: requestId,
+        })
+      );
     }
   }
-
 
   /**
    * Launch GitHub Copilot CLI and stream responses via WebSocket
@@ -1301,27 +1350,27 @@ export class VisualizationServer {
 
       // Check if gh CLI with copilot extension is available
       const ghResult = Bun.spawnSync({
-        cmd: ['gh', 'copilot', '--version'],
-        stdout: 'pipe',
-        stderr: 'pipe',
+        cmd: ["gh", "copilot", "--version"],
+        stdout: "pipe",
+        stderr: "pipe",
       });
 
       if (ghResult.exitCode === 0) {
-        cmd = ['gh', 'copilot', 'explain'];
+        cmd = ["gh", "copilot", "explain"];
 
         // Add allow-all-tools flag if withDanger is enabled
         if (this.withDanger) {
-          cmd.push('--allow-all-tools');
+          cmd.push("--allow-all-tools");
         }
 
         cmd.push(message);
       } else {
         // Try standalone copilot
-        cmd = ['copilot', 'explain'];
+        cmd = ["copilot", "explain"];
 
         // Add allow-all-tools flag if withDanger is enabled
         if (this.withDanger) {
-          cmd.push('--allow-all-tools');
+          cmd.push("--allow-all-tools");
         }
 
         cmd.push(message);
@@ -1331,9 +1380,9 @@ export class VisualizationServer {
       const proc = Bun.spawn({
         cmd,
         cwd: this.model.rootPath,
-        stdin: 'pipe',
-        stdout: 'pipe',
-        stderr: 'pipe',
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
       });
 
       // Store active process
@@ -1344,7 +1393,7 @@ export class VisualizationServer {
       const decoder = new TextDecoder();
 
       const streamOutput = async () => {
-        let accumulatedText = '';
+        let accumulatedText = "";
 
         try {
           while (true) {
@@ -1355,16 +1404,18 @@ export class VisualizationServer {
             accumulatedText += chunk;
 
             // Send text chunk as it arrives
-            ws.send(JSON.stringify({
-              jsonrpc: '2.0',
-              method: 'chat.response.chunk',
-              params: {
-                conversation_id: conversationId,
-                content: chunk,
-                is_final: false,
-                timestamp: new Date().toISOString(),
-              },
-            }));
+            ws.send(
+              JSON.stringify({
+                jsonrpc: "2.0",
+                method: "chat.response.chunk",
+                params: {
+                  conversation_id: conversationId,
+                  content: chunk,
+                  is_final: false,
+                  timestamp: new Date().toISOString(),
+                },
+              })
+            );
           }
 
           // Wait for process to complete
@@ -1374,28 +1425,32 @@ export class VisualizationServer {
           this.activeChatProcesses.delete(conversationId);
 
           // Send completion response
-          ws.send(JSON.stringify({
-            jsonrpc: '2.0',
-            result: {
-              conversation_id: conversationId,
-              status: exitCode === 0 ? 'complete' : 'error',
-              exit_code: exitCode,
-              full_response: accumulatedText,
-              timestamp: new Date().toISOString(),
-            },
-            id: requestId,
-          }));
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              result: {
+                conversation_id: conversationId,
+                status: exitCode === 0 ? "complete" : "error",
+                exit_code: exitCode,
+                full_response: accumulatedText,
+                timestamp: new Date().toISOString(),
+              },
+              id: requestId,
+            })
+          );
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
 
-          ws.send(JSON.stringify({
-            jsonrpc: '2.0',
-            error: {
-              code: -32603,
-              message: `Chat failed: ${errorMsg}`,
-            },
-            id: requestId,
-          }));
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: -32603,
+                message: `Chat failed: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
 
           this.activeChatProcesses.delete(conversationId);
 
@@ -1412,14 +1467,16 @@ export class VisualizationServer {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
 
-      ws.send(JSON.stringify({
-        jsonrpc: '2.0',
-        error: {
-          code: -32603,
-          message: `Failed to launch GitHub Copilot: ${errorMsg}`,
-        },
-        id: requestId,
-      }));
+      ws.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32603,
+            message: `Failed to launch GitHub Copilot: ${errorMsg}`,
+          },
+          id: requestId,
+        })
+      );
     }
   }
 
@@ -1432,7 +1489,7 @@ export class VisualizationServer {
     // Use Bun's global watch API (cast to any due to type definitions)
     const bunWatch = (globalThis as any).Bun?.watch;
     if (!bunWatch) {
-      console.warn('[Watcher] Bun.watch not available, file watching disabled');
+      console.warn("[Watcher] Bun.watch not available, file watching disabled");
       return;
     }
 
@@ -1450,7 +1507,7 @@ export class VisualizationServer {
           // Broadcast update to all clients
           const modelData = await this.serializeModel();
           const message = JSON.stringify({
-            type: 'model.updated',
+            type: "model.updated",
             data: modelData,
             timestamp: new Date().toISOString(),
           });
@@ -1477,27 +1534,27 @@ export class VisualizationServer {
    * Load all JSON schemas from bundled directory
    */
   private async loadSchemas(): Promise<Record<string, any>> {
-    const schemasPath = new URL('../schemas/bundled/', import.meta.url).pathname;
+    const schemasPath = new URL("../schemas/bundled/", import.meta.url).pathname;
     const schemas: Record<string, any> = {};
 
     try {
-      const fs = await import('fs/promises');
-      const path = await import('path');
+      const fs = await import("fs/promises");
+      const path = await import("path");
 
       const fileList = await fs.readdir(schemasPath);
 
       for (const file of fileList) {
-        if (file.endsWith('.schema.json') || file.endsWith('.json')) {
+        if (file.endsWith(".schema.json") || file.endsWith(".json")) {
           const filePath = path.join(schemasPath, file);
-          const content = await fs.readFile(filePath, 'utf-8');
+          const content = await fs.readFile(filePath, "utf-8");
           schemas[file] = JSON.parse(content);
         }
       }
 
       return schemas;
     } catch (error) {
-      console.error('Failed to load schemas:', error);
-      throw new Error('Failed to load schema files');
+      console.error("Failed to load schemas:", error);
+      throw new Error("Failed to load schema files");
     }
   }
 
@@ -1505,15 +1562,16 @@ export class VisualizationServer {
    * Load link registry from bundled directory
    */
   private async loadLinkRegistry(): Promise<any> {
-    const linkRegistryPath = new URL('../schemas/bundled/link-registry.json', import.meta.url).pathname;
+    const linkRegistryPath = new URL("../schemas/bundled/link-registry.json", import.meta.url)
+      .pathname;
 
     try {
-      const fs = await import('fs/promises');
-      const content = await fs.readFile(linkRegistryPath, 'utf-8');
+      const fs = await import("fs/promises");
+      const content = await fs.readFile(linkRegistryPath, "utf-8");
       return JSON.parse(content);
     } catch (error) {
-      console.error('Failed to load link registry:', error);
-      throw new Error('Link registry not found');
+      console.error("Failed to load link registry:", error);
+      throw new Error("Link registry not found");
     }
   }
 
@@ -2117,12 +2175,12 @@ export class VisualizationServer {
 
     if (!this.viewerPath) {
       console.error(`[VIEWER] Custom viewer path not configured`);
-      return new Response('Custom viewer path not configured', { status: 500 });
+      return new Response("Custom viewer path not configured", { status: 500 });
     }
 
     try {
-      const path = await import('path');
-      const fs = await import('fs/promises');
+      const path = await import("path");
+      const fs = await import("fs/promises");
 
       // Resolve absolute path and prevent directory traversal
       const fullPath = path.resolve(this.viewerPath, filePath);
@@ -2131,7 +2189,7 @@ export class VisualizationServer {
       // Security check: ensure the resolved path is within viewerPath
       if (!fullPath.startsWith(path.resolve(this.viewerPath))) {
         console.error(`[VIEWER] Security check failed - path outside viewer directory`);
-        return new Response('Forbidden', { status: 403 });
+        return new Response("Forbidden", { status: 403 });
       }
 
       // Read file
@@ -2141,38 +2199,38 @@ export class VisualizationServer {
       // Determine content type
       const ext = path.extname(fullPath).toLowerCase();
       const contentTypes: Record<string, string> = {
-        '.html': 'text/html',
-        '.css': 'text/css',
-        '.js': 'application/javascript',
-        '.json': 'application/json',
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.gif': 'image/gif',
-        '.svg': 'image/svg+xml',
-        '.ico': 'image/x-icon',
-        '.woff': 'font/woff',
-        '.woff2': 'font/woff2',
-        '.ttf': 'font/ttf',
-        '.eot': 'application/vnd.ms-fontobject',
+        ".html": "text/html",
+        ".css": "text/css",
+        ".js": "application/javascript",
+        ".json": "application/json",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".svg": "image/svg+xml",
+        ".ico": "image/x-icon",
+        ".woff": "font/woff",
+        ".woff2": "font/woff2",
+        ".ttf": "font/ttf",
+        ".eot": "application/vnd.ms-fontobject",
       };
 
-      const contentType = contentTypes[ext] || 'application/octet-stream';
+      const contentType = contentTypes[ext] || "application/octet-stream";
 
       console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
       return new Response(content, {
         status: 200,
         headers: {
-          'Content-Type': contentType,
+          "Content-Type": contentType,
         },
       });
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if ((error as any).code === "ENOENT") {
         console.error(`[VIEWER] File not found: ${filePath}`);
-        return new Response('File not found', { status: 404 });
+        return new Response("File not found", { status: 404 });
       }
       console.error(`[VIEWER] Error serving custom viewer file ${filePath}:`, error);
-      return new Response('Internal server error', { status: 500 });
+      return new Response("Internal server error", { status: 500 });
     }
   }
 
@@ -2185,12 +2243,10 @@ export class VisualizationServer {
     this._server = serve({
       port,
       fetch: this.app.fetch,
-      websocket,  // Add WebSocket handler from hono/bun
+      websocket, // Add WebSocket handler from hono/bun
     });
 
-    console.log(
-      `✓ Visualization server running at http://localhost:${port}`
-    );
+    console.log(`✓ Visualization server running at http://localhost:${port}`);
   }
 
   /**

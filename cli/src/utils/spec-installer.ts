@@ -5,11 +5,11 @@
  * This is an ephemeral folder that should be git-ignored
  */
 
-import { ensureDir, writeFile } from './file-io.js';
-import { join, dirname } from 'path';
-import { getCliBundledSpecVersion } from './spec-version.js';
-import fs from 'fs/promises';
-import { fileURLToPath } from 'url';
+import { ensureDir, writeFile } from "./file-io.js";
+import { join, dirname } from "path";
+import { getCliBundledSpecVersion } from "./spec-version.js";
+import fs from "fs/promises";
+import { fileURLToPath } from "url";
 
 /**
  * Install or update the .dr/ spec reference folder
@@ -27,17 +27,17 @@ export async function installSpecReference(
   projectRoot: string,
   _force: boolean = false
 ): Promise<void> {
-  const drPath = join(projectRoot, '.dr');
+  const drPath = join(projectRoot, ".dr");
   const specVersion = getCliBundledSpecVersion();
 
   // Create .dr directory structure
   await ensureDir(drPath);
-  await ensureDir(join(drPath, 'schemas'));
-  await ensureDir(join(drPath, 'schemas', 'common'));
-  await ensureDir(join(drPath, 'changesets'));
+  await ensureDir(join(drPath, "schemas"));
+  await ensureDir(join(drPath, "schemas", "common"));
+  await ensureDir(join(drPath, "changesets"));
 
   // Write manifest.json
-  const manifestPath = join(drPath, 'manifest.json');
+  const manifestPath = join(drPath, "manifest.json");
   const manifest = {
     specVersion: specVersion,
     installedAt: new Date().toISOString(),
@@ -46,28 +46,28 @@ export async function installSpecReference(
 
   // Copy bundled schemas
   // Resolve schema source directory with fallback
-  let schemaSourceDir: string = '';
+  let schemaSourceDir: string = "";
   let schemaSourcePath: string | null = null;
 
   // Try paths in order, recording which one works
   const pathsToTry = [
     {
-      path: join(dirname(fileURLToPath(import.meta.url)), '../schemas/bundled'),
-      description: 'bundled from CLI installation',
+      path: join(dirname(fileURLToPath(import.meta.url)), "../schemas/bundled"),
+      description: "bundled from CLI installation",
     },
     {
-      path: join(projectRoot, 'src/schemas/bundled'),
-      description: 'source directory (src)',
+      path: join(projectRoot, "src/schemas/bundled"),
+      description: "source directory (src)",
     },
     {
-      path: join(projectRoot, 'dist/schemas/bundled'),
-      description: 'built directory (dist)',
+      path: join(projectRoot, "dist/schemas/bundled"),
+      description: "built directory (dist)",
     },
   ];
 
   for (const { path, description } of pathsToTry) {
     try {
-      await fs.access(join(path, '01-motivation-layer.schema.json'));
+      await fs.access(join(path, "01-motivation-layer.schema.json"));
       schemaSourceDir = path;
       schemaSourcePath = description;
       break;
@@ -79,62 +79,62 @@ export async function installSpecReference(
   if (!schemaSourcePath) {
     throw new Error(
       `Could not find bundled schemas at any of the expected locations:\n` +
-      pathsToTry.map((p) => `  - ${p.path} (${p.description})`).join('\n')
+        pathsToTry.map((p) => `  - ${p.path} (${p.description})`).join("\n")
     );
   }
 
   // Copy layer schemas
   const layerSchemas = [
-    '01-motivation-layer.schema.json',
-    '02-business-layer.schema.json',
-    '03-security-layer.schema.json',
-    '04-application-layer.schema.json',
-    '05-technology-layer.schema.json',
-    '06-api-layer.schema.json',
-    '07-data-model-layer.schema.json',
-    '08-data-store-layer.schema.json',
-    '09-ux-layer.schema.json',
-    '10-navigation-layer.schema.json',
-    '11-apm-observability-layer.schema.json',
-    '12-testing-layer.schema.json',
+    "01-motivation-layer.schema.json",
+    "02-business-layer.schema.json",
+    "03-security-layer.schema.json",
+    "04-application-layer.schema.json",
+    "05-technology-layer.schema.json",
+    "06-api-layer.schema.json",
+    "07-data-model-layer.schema.json",
+    "08-data-store-layer.schema.json",
+    "09-ux-layer.schema.json",
+    "10-navigation-layer.schema.json",
+    "11-apm-observability-layer.schema.json",
+    "12-testing-layer.schema.json",
   ];
 
   for (const schema of layerSchemas) {
     const sourcePath = join(schemaSourceDir, schema);
-    const targetPath = join(drPath, 'schemas', schema);
+    const targetPath = join(drPath, "schemas", schema);
     await fs.copyFile(sourcePath, targetPath);
   }
 
   // Copy catalog and registry files
   const catalogFiles = [
-    'relationship-catalog.json',
-    'link-registry.json',
-    'link-registry.schema.json',
-    'relationship-type.schema.json',
+    "relationship-catalog.json",
+    "link-registry.json",
+    "link-registry.schema.json",
+    "relationship-type.schema.json",
   ];
 
   for (const file of catalogFiles) {
     const sourcePath = join(schemaSourceDir, file);
-    const targetPath = join(drPath, 'schemas', file);
+    const targetPath = join(drPath, "schemas", file);
     await fs.copyFile(sourcePath, targetPath);
   }
 
   // Copy common schemas
   const commonSchemas = [
-    'layer-extensions.schema.json',
-    'predicates.schema.json',
-    'relationships.schema.json',
-    'source-references.schema.json',
+    "layer-extensions.schema.json",
+    "predicates.schema.json",
+    "relationships.schema.json",
+    "source-references.schema.json",
   ];
 
   for (const schema of commonSchemas) {
-    const sourcePath = join(schemaSourceDir, 'common', schema);
-    const targetPath = join(drPath, 'schemas', 'common', schema);
+    const sourcePath = join(schemaSourceDir, "common", schema);
+    const targetPath = join(drPath, "schemas", "common", schema);
     await fs.copyFile(sourcePath, targetPath);
   }
 
   // Create README.md
-  const readmePath = join(drPath, 'README.md');
+  const readmePath = join(drPath, "README.md");
   const readme = `# Documentation Robotics - Spec Reference
 
 This directory contains the specification reference for Documentation Robotics.
@@ -166,10 +166,10 @@ Do not manually edit files in this directory.
  * @returns True if installation/update is needed
  */
 export async function needsSpecReferenceInstall(projectRoot: string): Promise<boolean> {
-  const manifestPath = join(projectRoot, '.dr', 'manifest.json');
+  const manifestPath = join(projectRoot, ".dr", "manifest.json");
 
   try {
-    const fs = await import('fs/promises');
+    const fs = await import("fs/promises");
     await fs.access(manifestPath);
     return false;
   } catch {

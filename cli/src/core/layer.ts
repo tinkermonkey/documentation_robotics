@@ -14,7 +14,11 @@ export class Layer {
   private cachedElements: Map<string, Element> | null = null;
   private cachedNodesVersion: number = 0;
 
-  constructor(name: string, elementsOrGraph?: Element[] | GraphModel, elementsIfGraphPassed?: Element[]) {
+  constructor(
+    name: string,
+    elementsOrGraph?: Element[] | GraphModel,
+    elementsIfGraphPassed?: Element[]
+  ) {
     this.name = name;
 
     // Handle overloaded constructor:
@@ -52,10 +56,10 @@ export class Layer {
 
       // Store references and relationships as node properties for preservation
       if (element.references && element.references.length > 0) {
-        node.properties['__references__'] = element.references;
+        node.properties["__references__"] = element.references;
       }
       if (element.relationships && element.relationships.length > 0) {
-        node.properties['__relationships__'] = element.relationships;
+        node.properties["__relationships__"] = element.relationships;
       }
 
       this.graph.addNode(node);
@@ -88,8 +92,8 @@ export class Layer {
         description: node.description,
         properties: node.properties,
         layer: node.layer,
-        references: (node.properties['__references__'] ?? []) as Reference[],
-        relationships: (node.properties['__relationships__'] ?? []) as Relationship[],
+        references: (node.properties["__references__"] ?? []) as Reference[],
+        relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
       });
       result.set(node.id, element);
     }
@@ -109,10 +113,10 @@ export class Layer {
 
     // Store references and relationships as node properties for preservation
     if (element.references && element.references.length > 0) {
-      node.properties['__references__'] = element.references;
+      node.properties["__references__"] = element.references;
     }
     if (element.relationships && element.relationships.length > 0) {
-      node.properties['__relationships__'] = element.relationships;
+      node.properties["__relationships__"] = element.relationships;
     }
 
     this.graph.addNode(node);
@@ -135,8 +139,8 @@ export class Layer {
       description: node.description,
       properties: node.properties,
       layer: node.layer,
-      references: (node.properties['__references__'] ?? []) as Reference[],
-      relationships: (node.properties['__relationships__'] ?? []) as Relationship[],
+      references: (node.properties["__references__"] ?? []) as Reference[],
+      relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
     });
   }
 
@@ -154,15 +158,15 @@ export class Layer {
 
     // Persist references and relationships as node properties
     if (element.references && element.references.length > 0) {
-      properties['__references__'] = element.references;
+      properties["__references__"] = element.references;
     } else {
-      delete properties['__references__'];
+      delete properties["__references__"];
     }
 
     if (element.relationships && element.relationships.length > 0) {
-      properties['__relationships__'] = element.relationships;
+      properties["__relationships__"] = element.relationships;
     } else {
-      delete properties['__relationships__'];
+      delete properties["__relationships__"];
     }
 
     // Convert element to graph node and update in place
@@ -199,17 +203,18 @@ export class Layer {
    */
   listElements(): Element[] {
     const nodes = this.graph.getNodesByLayer(this.name);
-    return nodes.map((node) =>
-      new Element({
-        id: node.id,
-        type: node.type,
-        name: node.name,
-        description: node.description,
-        properties: node.properties,
-        layer: node.layer,
-        references: (node.properties['__references__'] ?? []) as Reference[],
-        relationships: (node.properties['__relationships__'] ?? []) as Relationship[],
-      })
+    return nodes.map(
+      (node) =>
+        new Element({
+          id: node.id,
+          type: node.type,
+          name: node.name,
+          description: node.description,
+          properties: node.properties,
+          layer: node.layer,
+          references: (node.properties["__references__"] ?? []) as Reference[],
+          relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
+        })
     );
   }
 

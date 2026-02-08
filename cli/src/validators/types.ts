@@ -9,7 +9,7 @@ export interface ValidationIssue {
   layer: string;
   elementId?: string;
   message: string;
-  severity: 'error' | 'warning';
+  severity: "error" | "warning";
   location?: string;
   fixSuggestion?: string;
 }
@@ -31,15 +31,15 @@ export class ValidationResult {
   /**
    * Add an error to the result
    */
-  addError(issue: Omit<ValidationIssue, 'severity'>): void {
-    this.errors.push({ ...issue, severity: 'error' });
+  addError(issue: Omit<ValidationIssue, "severity">): void {
+    this.errors.push({ ...issue, severity: "error" });
   }
 
   /**
    * Add a warning to the result
    */
-  addWarning(issue: Omit<ValidationIssue, 'severity'>): void {
-    this.warnings.push({ ...issue, severity: 'warning' });
+  addWarning(issue: Omit<ValidationIssue, "severity">): void {
+    this.warnings.push({ ...issue, severity: "warning" });
   }
 
   /**

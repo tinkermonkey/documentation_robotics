@@ -5,26 +5,26 @@
  * deprecated link-registry system with modern relationship-catalog.json
  */
 
-import { Command } from 'commander';
-import ansis from 'ansis';
-import { RelationshipCatalog } from '../core/relationship-catalog.js';
-import { Model } from '../core/model.js';
+import { Command } from "commander";
+import ansis from "ansis";
+import { RelationshipCatalog } from "../core/relationship-catalog.js";
+import { Model } from "../core/model.js";
 
 export function catalogCommands(program: Command): void {
   const catalog = program
-    .command('catalog')
-    .description('Query relationship catalog and semantic definitions');
+    .command("catalog")
+    .description("Query relationship catalog and semantic definitions");
 
   // catalog types - List relationship types
   catalog
-    .command('types')
-    .description('List relationship types from catalog')
-    .option('--category <category>', 'Filter by category (e.g., structural, behavioral)')
-    .option('--layer <layer>', 'Filter by applicable layer (e.g., 02, business)')
-    .option('--format <format>', 'Output format: table, json, markdown', 'table')
-    .option('--predicates', 'Show predicate information')
+    .command("types")
+    .description("List relationship types from catalog")
+    .option("--category <category>", "Filter by category (e.g., structural, behavioral)")
+    .option("--layer <layer>", "Filter by applicable layer (e.g., 02, business)")
+    .option("--format <format>", "Output format: table, json, markdown", "table")
+    .option("--predicates", "Show predicate information")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr catalog types
@@ -50,12 +50,12 @@ Examples:
         }
 
         if (types.length === 0) {
-          console.log(ansis.yellow('No relationship types found for the specified filters.'));
+          console.log(ansis.yellow("No relationship types found for the specified filters."));
           return;
         }
 
         // Output in requested format
-        if (options.format === 'json') {
+        if (options.format === "json") {
           const output = types.map((t) => ({
             id: t.id,
             predicate: t.predicate,
@@ -66,45 +66,51 @@ Examples:
             archimateAlignment: t.archimateAlignment,
           }));
           console.log(JSON.stringify(output, null, 2));
-        } else if (options.format === 'markdown') {
+        } else if (options.format === "markdown") {
           // Markdown table output
-          console.log('');
-          console.log('# Relationship Types');
-          console.log('');
-          console.log('| ID | Predicate | Category | Applicable Layers |');
-          console.log('|----|-----------|----------|-------------------|');
+          console.log("");
+          console.log("# Relationship Types");
+          console.log("");
+          console.log("| ID | Predicate | Category | Applicable Layers |");
+          console.log("|----|-----------|----------|-------------------|");
 
-          for (const type of types.sort((a, b) => a.category.localeCompare(b.category) || a.id.localeCompare(b.id))) {
-            const layers = type.applicableLayers.join(', ');
+          for (const type of types.sort(
+            (a, b) => a.category.localeCompare(b.category) || a.id.localeCompare(b.id)
+          )) {
+            const layers = type.applicableLayers.join(", ");
             console.log(`| ${type.id} | ${type.predicate} | ${type.category} | ${layers} |`);
           }
 
-          console.log('');
+          console.log("");
           console.log(`**Total:** ${types.length} relationship types`);
         } else {
           // Table output
-          console.log('');
+          console.log("");
 
           if (options.predicates) {
             console.log(
-              `${ansis.bold('ID').padEnd(25)} ${ansis.bold('Predicate').padEnd(20)} ${ansis.bold('Inverse').padEnd(20)} ${ansis.bold('Category').padEnd(15)}`
+              `${ansis.bold("ID").padEnd(25)} ${ansis.bold("Predicate").padEnd(20)} ${ansis.bold("Inverse").padEnd(20)} ${ansis.bold("Category").padEnd(15)}`
             );
-            console.log('='.repeat(85));
+            console.log("=".repeat(85));
 
-            for (const type of types.sort((a, b) => a.category.localeCompare(b.category) || a.id.localeCompare(b.id))) {
-              const inverse = type.inversePredicate || 'N/A';
+            for (const type of types.sort(
+              (a, b) => a.category.localeCompare(b.category) || a.id.localeCompare(b.id)
+            )) {
+              const inverse = type.inversePredicate || "N/A";
               console.log(
                 `${type.id.padEnd(25)} ${type.predicate.padEnd(20)} ${inverse.padEnd(20)} ${type.category.padEnd(15)}`
               );
             }
           } else {
             console.log(
-              `${ansis.bold('ID').padEnd(25)} ${ansis.bold('Predicate').padEnd(20)} ${ansis.bold('Category').padEnd(15)} ${ansis.bold('Layers').padEnd(20)}`
+              `${ansis.bold("ID").padEnd(25)} ${ansis.bold("Predicate").padEnd(20)} ${ansis.bold("Category").padEnd(15)} ${ansis.bold("Layers").padEnd(20)}`
             );
-            console.log('='.repeat(85));
+            console.log("=".repeat(85));
 
-            for (const type of types.sort((a, b) => a.category.localeCompare(b.category) || a.id.localeCompare(b.id))) {
-              const layers = type.applicableLayers.slice(0, 3).join(', ');
+            for (const type of types.sort(
+              (a, b) => a.category.localeCompare(b.category) || a.id.localeCompare(b.id)
+            )) {
+              const layers = type.applicableLayers.slice(0, 3).join(", ");
               const layersDisplay = type.applicableLayers.length > 3 ? `${layers}...` : layers;
               console.log(
                 `${type.id.padEnd(25)} ${type.predicate.padEnd(20)} ${type.category.padEnd(15)} ${layersDisplay.padEnd(20)}`
@@ -112,7 +118,7 @@ Examples:
             }
           }
 
-          console.log('');
+          console.log("");
           console.log(ansis.dim(`Total: ${types.length} relationship types`));
         }
       } catch (error) {
@@ -124,10 +130,10 @@ Examples:
 
   // catalog info - Show catalog metadata
   catalog
-    .command('info')
-    .description('Show relationship catalog metadata')
+    .command("info")
+    .description("Show relationship catalog metadata")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr catalog info`
@@ -140,26 +146,26 @@ Examples:
         const metadata = catalogInstance.getMetadata();
         const categories = catalogInstance.getCategories();
 
-        console.log('');
-        console.log(ansis.bold(ansis.blue('Relationship Catalog Information')));
-        console.log(ansis.dim('─'.repeat(60)));
-        console.log('');
-        console.log(`${ansis.bold('Version:')}        ${metadata.version}`);
-        console.log(`${ansis.bold('Generated By:')}   ${metadata.generatedBy}`);
-        console.log(`${ansis.bold('Last Updated:')}   ${metadata.lastUpdated}`);
-        console.log(`${ansis.bold('Total Types:')}    ${metadata.totalTypes}`);
-        console.log('');
+        console.log("");
+        console.log(ansis.bold(ansis.blue("Relationship Catalog Information")));
+        console.log(ansis.dim("─".repeat(60)));
+        console.log("");
+        console.log(`${ansis.bold("Version:")}        ${metadata.version}`);
+        console.log(`${ansis.bold("Generated By:")}   ${metadata.generatedBy}`);
+        console.log(`${ansis.bold("Last Updated:")}   ${metadata.lastUpdated}`);
+        console.log(`${ansis.bold("Total Types:")}    ${metadata.totalTypes}`);
+        console.log("");
 
         if (Object.keys(categories).length > 0) {
-          console.log(ansis.bold('Categories:'));
-          console.log('');
+          console.log(ansis.bold("Categories:"));
+          console.log("");
 
           for (const [key, info] of Object.entries(categories)) {
             const types = catalogInstance.getTypesByCategory(key);
             console.log(`  ${ansis.cyan(info.name)}`);
             console.log(`  ${ansis.dim(info.description)}`);
             console.log(`  ${ansis.dim(`Count: ${types.length} types`)}`);
-            console.log('');
+            console.log("");
           }
         }
       } catch (error) {
@@ -171,11 +177,11 @@ Examples:
 
   // catalog search - Search relationship types
   catalog
-    .command('search <keyword>')
-    .description('Search relationship types by keyword')
-    .option('--format <format>', 'Output format: table, json', 'table')
+    .command("search <keyword>")
+    .description("Search relationship types by keyword")
+    .option("--format <format>", "Output format: table, json", "table")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr catalog search composition
@@ -194,7 +200,7 @@ Examples:
           return;
         }
 
-        if (options.format === 'json') {
+        if (options.format === "json") {
           const output = results.map((t) => ({
             id: t.id,
             predicate: t.predicate,
@@ -204,9 +210,9 @@ Examples:
           }));
           console.log(JSON.stringify(output, null, 2));
         } else {
-          console.log('');
+          console.log("");
           console.log(ansis.bold(`Search results for "${keyword}":`));
-          console.log('');
+          console.log("");
 
           for (const type of results) {
             console.log(`  ${ansis.cyan(type.id)}`);
@@ -216,7 +222,7 @@ Examples:
             }
             console.log(`    Category: ${type.category}`);
             console.log(`    ${ansis.dim(type.description)}`);
-            console.log('');
+            console.log("");
           }
 
           console.log(ansis.dim(`Found ${results.length} matching types`));
@@ -230,12 +236,12 @@ Examples:
 
   // catalog validate - Validate relationships in model
   catalog
-    .command('validate')
-    .description('Validate relationships in the current model against catalog')
-    .option('--layer <layer>', 'Validate specific layer only')
-    .option('--strict', 'Treat warnings as errors')
+    .command("validate")
+    .description("Validate relationships in the current model against catalog")
+    .option("--layer <layer>", "Validate specific layer only")
+    .option("--strict", "Treat warnings as errors")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr catalog validate
@@ -264,7 +270,10 @@ Examples:
             const elementRelationships = model.relationships.getForElement(element.id);
 
             // Check both outgoing and incoming relationships
-            const allRelationships = [...elementRelationships.outgoing, ...elementRelationships.incoming];
+            const allRelationships = [
+              ...elementRelationships.outgoing,
+              ...elementRelationships.incoming,
+            ];
 
             for (const rel of allRelationships) {
               // Check if predicate exists in catalog
@@ -272,7 +281,7 @@ Examples:
 
               if (!type) {
                 issues.push(
-                  `${ansis.yellow('Warning')}: Unknown predicate "${rel.predicate}" in relationship ${rel.source} -> ${rel.target}`
+                  `${ansis.yellow("Warning")}: Unknown predicate "${rel.predicate}" in relationship ${rel.source} -> ${rel.target}`
                 );
                 warningCount++;
                 continue;
@@ -282,7 +291,7 @@ Examples:
               const layerNumber = layerName.match(/\d+/)?.[0];
               if (layerNumber && !type.applicableLayers.some((l) => l.includes(layerNumber))) {
                 issues.push(
-                  `${ansis.red('Error')}: Predicate "${rel.predicate}" not applicable to layer ${layerName} (${rel.source} -> ${rel.target})`
+                  `${ansis.red("Error")}: Predicate "${rel.predicate}" not applicable to layer ${layerName} (${rel.source} -> ${rel.target})`
                 );
                 errorCount++;
               }
@@ -291,30 +300,30 @@ Examples:
         }
 
         // Display results
-        console.log('');
-        console.log(ansis.bold(ansis.blue('Relationship Validation Report')));
-        console.log(ansis.dim('─'.repeat(60)));
-        console.log('');
+        console.log("");
+        console.log(ansis.bold(ansis.blue("Relationship Validation Report")));
+        console.log(ansis.dim("─".repeat(60)));
+        console.log("");
 
         if (issues.length === 0) {
-          console.log(ansis.green('✓ All relationships are valid'));
+          console.log(ansis.green("✓ All relationships are valid"));
         } else {
           for (const issue of issues) {
             console.log(issue);
           }
 
-          console.log('');
+          console.log("");
           console.log(ansis.dim(`Total issues: ${errorCount} errors, ${warningCount} warnings`));
 
           if (options.strict && warningCount > 0) {
-            console.log('');
-            console.log(ansis.red('Validation failed (strict mode: warnings treated as errors)'));
+            console.log("");
+            console.log(ansis.red("Validation failed (strict mode: warnings treated as errors)"));
             process.exit(1);
           }
 
           if (errorCount > 0) {
-            console.log('');
-            console.log(ansis.red('Validation failed'));
+            console.log("");
+            console.log(ansis.red("Validation failed"));
             process.exit(1);
           }
         }
@@ -327,13 +336,13 @@ Examples:
 
   // catalog docs - Generate documentation
   catalog
-    .command('docs')
-    .description('Generate relationship catalog documentation')
-    .option('--output <file>', 'Output file (default: stdout)')
-    .option('--format <format>', 'Output format: markdown, json', 'markdown')
-    .option('--category <category>', 'Document specific category only')
+    .command("docs")
+    .description("Generate relationship catalog documentation")
+    .option("--output <file>", "Output file (default: stdout)")
+    .option("--format <format>", "Output format: markdown, json", "markdown")
+    .option("--category <category>", "Document specific category only")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr catalog docs
@@ -351,11 +360,11 @@ Examples:
           ? catalogInstance.getTypesByCategory(options.category)
           : catalogInstance.getAllTypes();
 
-        let output = '';
+        let output = "";
 
-        if (options.format === 'markdown') {
+        if (options.format === "markdown") {
           // Generate markdown documentation
-          output += '# Relationship Catalog Documentation\n\n';
+          output += "# Relationship Catalog Documentation\n\n";
           output += `**Version:** ${metadata.version}  \n`;
           output += `**Generated:** ${new Date().toISOString()}  \n`;
           output += `**Total Types:** ${types.length}\n\n`;
@@ -381,14 +390,14 @@ Examples:
               if (type.archimateAlignment) {
                 output += `**ArchiMate Alignment:** ${type.archimateAlignment}  \n`;
               }
-              output += `**Applicable Layers:** ${type.applicableLayers.join(', ')}  \n\n`;
+              output += `**Applicable Layers:** ${type.applicableLayers.join(", ")}  \n\n`;
               output += `**Description:** ${type.description}\n\n`;
 
               // Semantics
               output += `**Semantics:**\n`;
               output += `- Directionality: ${type.semantics.directionality}\n`;
-              output += `- Transitivity: ${type.semantics.transitivity ? 'Yes' : 'No'}\n`;
-              output += `- Symmetry: ${type.semantics.symmetry ? 'Yes' : 'No'}\n\n`;
+              output += `- Transitivity: ${type.semantics.transitivity ? "Yes" : "No"}\n`;
+              output += `- Symmetry: ${type.semantics.symmetry ? "Yes" : "No"}\n\n`;
 
               // Examples
               if (type.examples.length > 0) {
@@ -400,10 +409,10 @@ Examples:
                     output += `  *(Layer: ${example.layer})*\n`;
                   }
                 }
-                output += '\n';
+                output += "\n";
               }
 
-              output += '---\n\n';
+              output += "---\n\n";
             }
           }
         } else {
@@ -433,8 +442,8 @@ Examples:
         }
 
         if (options.output) {
-          const fs = await import('fs/promises');
-          await fs.writeFile(options.output, output, 'utf-8');
+          const fs = await import("fs/promises");
+          await fs.writeFile(options.output, output, "utf-8");
           console.log(ansis.green(`✓ Documentation written to ${options.output}`));
         } else {
           console.log(output);

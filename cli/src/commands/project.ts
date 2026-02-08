@@ -2,8 +2,8 @@
  * Project command - project elements across layers using projection rules
  */
 
-import ansis from 'ansis';
-import { Model } from '../core/model.js';
+import ansis from "ansis";
+import { Model } from "../core/model.js";
 
 export async function projectCommand(
   elementId: string,
@@ -30,12 +30,12 @@ export async function projectCommand(
     const engine = model.getProjectionEngine();
 
     // Parse target layers
-    const layers = targetLayers.split(',').map((l) => l.trim());
+    const layers = targetLayers.split(",").map((l) => l.trim());
 
-    console.log('');
+    console.log("");
     console.log(ansis.bold(`Projecting element: ${ansis.yellow(elementId)}`));
-    console.log(ansis.bold(`Target layers: ${ansis.cyan(layers.join(', '))}`));
-    console.log('');
+    console.log(ansis.bold(`Target layers: ${ansis.cyan(layers.join(", "))}`));
+    console.log("");
 
     // Project to each layer
     const results: Array<{ layer: string; element: any }> = [];
@@ -61,9 +61,7 @@ export async function projectCommand(
 
         if (!projectionRule) {
           console.log(
-            ansis.yellow(
-              `⚠  Warning: Rule '${options.rule}' not found for ${targetLayer}`
-            )
+            ansis.yellow(`⚠  Warning: Rule '${options.rule}' not found for ${targetLayer}`)
           );
           continue;
         }
@@ -87,61 +85,58 @@ export async function projectCommand(
 
     // Display results
     if (results.length > 0) {
-      console.log(ansis.bold.green('✓ Projection successful'));
-      console.log('');
+      console.log(ansis.bold.green("✓ Projection successful"));
+      console.log("");
 
       // Table header
-      const colLayer = 'Target Layer';
-      const colId = 'Element ID';
-      const colName = 'Name';
+      const colLayer = "Target Layer";
+      const colId = "Element ID";
+      const colName = "Name";
 
-      const maxLayerLen = Math.max(
-        colLayer.length,
-        ...results.map((r) => r.layer.length)
-      );
+      const maxLayerLen = Math.max(colLayer.length, ...results.map((r) => r.layer.length));
       const maxIdLen = Math.max(colId.length, ...results.map((r) => r.element.id.length));
       const maxNameLen = Math.max(
         colName.length,
-        ...results.map((r) => (r.element.name || '').length)
+        ...results.map((r) => (r.element.name || "").length)
       );
 
       // Print header
       console.log(
         ansis.bold(
           ansis.cyan(colLayer.padEnd(maxLayerLen)) +
-            '  ' +
+            "  " +
             ansis.white(colId.padEnd(maxIdLen)) +
-            '  ' +
+            "  " +
             ansis.green(colName.padEnd(maxNameLen))
         )
       );
-      console.log(ansis.dim('─'.repeat(maxLayerLen + maxIdLen + maxNameLen + 4)));
+      console.log(ansis.dim("─".repeat(maxLayerLen + maxIdLen + maxNameLen + 4)));
 
       // Print rows
       for (const { layer, element } of results) {
         console.log(
           ansis.cyan(layer.padEnd(maxLayerLen)) +
-            '  ' +
+            "  " +
             ansis.white(element.id.padEnd(maxIdLen)) +
-            '  ' +
-            ansis.green((element.name || '').padEnd(maxNameLen))
+            "  " +
+            ansis.green((element.name || "").padEnd(maxNameLen))
         );
       }
 
-      console.log('');
+      console.log("");
 
       if (options.dryRun) {
-        console.log(ansis.yellow('Dry run - elements not saved'));
+        console.log(ansis.yellow("Dry run - elements not saved"));
       } else {
         // Save model
         await model.save();
-        console.log(ansis.green('Model saved successfully'));
+        console.log(ansis.green("Model saved successfully"));
       }
     } else {
-      console.log(ansis.yellow('No elements were projected'));
+      console.log(ansis.yellow("No elements were projected"));
     }
 
-    console.log('');
+    console.log("");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
@@ -149,12 +144,14 @@ export async function projectCommand(
   }
 }
 
-export async function projectAllCommand(options: {
-  from?: string;
-  to?: string;
-  dryRun?: boolean;
-  model?: string;
-} = {}): Promise<void> {
+export async function projectAllCommand(
+  options: {
+    from?: string;
+    to?: string;
+    dryRun?: boolean;
+    model?: string;
+  } = {}
+): Promise<void> {
   try {
     // Load model
     const model = await Model.load(options.model);
@@ -162,9 +159,9 @@ export async function projectAllCommand(options: {
     // Initialize projection engine
     const engine = model.getProjectionEngine();
 
-    console.log('');
-    console.log(ansis.bold('Projecting all applicable elements...'));
-    console.log('');
+    console.log("");
+    console.log(ansis.bold("Projecting all applicable elements..."));
+    console.log("");
 
     if (options.from) {
       console.log(`From layer: ${options.from}`);
@@ -173,7 +170,7 @@ export async function projectAllCommand(options: {
       console.log(`To layer: ${options.to}`);
     }
     if (options.from || options.to) {
-      console.log('');
+      console.log("");
     }
 
     // Perform projections
@@ -186,12 +183,12 @@ export async function projectAllCommand(options: {
     // Display results
     if (projected.length > 0) {
       console.log(ansis.bold.green(`✓ Projected ${projected.length} element(s)`));
-      console.log('');
+      console.log("");
 
       // Group by layer
       const byLayer = new Map<string, any[]>();
       for (const element of projected) {
-        const layer = element.layer || 'unknown';
+        const layer = element.layer || "unknown";
         if (!byLayer.has(layer)) {
           byLayer.set(layer, []);
         }
@@ -202,23 +199,25 @@ export async function projectAllCommand(options: {
       for (const [layer, elements] of Array.from(byLayer.entries()).sort()) {
         console.log(ansis.bold(`${layer}:`));
         for (const element of elements) {
-          console.log(`  ${ansis.dim('•')} ${element.id} ${ansis.gray(`(${element.name || 'unnamed'})`)}`);
+          console.log(
+            `  ${ansis.dim("•")} ${element.id} ${ansis.gray(`(${element.name || "unnamed"})`)}`
+          );
         }
-        console.log('');
+        console.log("");
       }
 
       if (options.dryRun) {
-        console.log(ansis.yellow('Dry run - elements not saved'));
+        console.log(ansis.yellow("Dry run - elements not saved"));
       } else {
         // Save model
         await model.save();
-        console.log(ansis.green('Model saved successfully'));
+        console.log(ansis.green("Model saved successfully"));
       }
     } else {
-      console.log(ansis.yellow('No elements were projected'));
+      console.log(ansis.yellow("No elements were projected"));
     }
 
-    console.log('');
+    console.log("");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));

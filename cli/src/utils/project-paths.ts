@@ -15,12 +15,12 @@
  *     └── changesets/
  */
 
-import { fileExists } from './file-io.js';
-import { join, dirname } from 'path';
+import { fileExists } from "./file-io.js";
+import { join, dirname } from "path";
 
 const MAX_SEARCH_DEPTH = 5;
-const PROJECT_FOLDER_NAME = 'documentation-robotics';
-const SPEC_FOLDER_NAME = '.dr';
+const PROJECT_FOLDER_NAME = "documentation-robotics";
+const SPEC_FOLDER_NAME = ".dr";
 
 /**
  * Find the project root by searching for the documentation-robotics/ folder
@@ -81,8 +81,8 @@ export async function getModelPath(startPath?: string): Promise<string | null> {
   const drPath = await getDocumentationRobotsPath(startPath);
   if (!drPath) return null;
 
-  const modelPath = join(drPath, 'model');
-  return await fileExists(modelPath) ? modelPath : null;
+  const modelPath = join(drPath, "model");
+  return (await fileExists(modelPath)) ? modelPath : null;
 }
 
 /**
@@ -96,7 +96,7 @@ export async function getSpecReferencePath(startPath?: string): Promise<string |
   if (!root) return null;
 
   const specPath = join(root, SPEC_FOLDER_NAME);
-  return await fileExists(specPath) ? specPath : null;
+  return (await fileExists(specPath)) ? specPath : null;
 }
 
 /**

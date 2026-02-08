@@ -3,14 +3,18 @@
  * Tests cover message transmission, error handling, signal handling, and stream processing
  */
 
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { BaseChatClient, ChatSession, ChatOptions } from '../../../src/coding-agents/base-chat-client';
+import { describe, it, expect, beforeEach } from "bun:test";
+import {
+  BaseChatClient,
+  ChatSession,
+  ChatOptions,
+} from "../../../src/coding-agents/base-chat-client";
 
 // Test implementation of BaseChatClient
 class TestChatClient extends BaseChatClient {
   private messageLog: Array<{ message: string; options?: ChatOptions }> = [];
   private shouldFail = false;
-  private failReason = 'Test failure';
+  private failReason = "Test failure";
   private responseDelay = 0;
 
   async isAvailable(): Promise<boolean> {
@@ -35,7 +39,7 @@ class TestChatClient extends BaseChatClient {
   }
 
   getClientName(): string {
-    return 'Test Client';
+    return "Test Client";
   }
 
   // Test helpers
@@ -43,7 +47,7 @@ class TestChatClient extends BaseChatClient {
     return this.messageLog;
   }
 
-  setFailure(shouldFail: boolean, reason = 'Test failure'): void {
+  setFailure(shouldFail: boolean, reason = "Test failure"): void {
     this.shouldFail = shouldFail;
     this.failReason = reason;
   }
@@ -57,16 +61,16 @@ class TestChatClient extends BaseChatClient {
   }
 }
 
-describe('Client Communication and Subprocess Handling', () => {
+describe("Client Communication and Subprocess Handling", () => {
   let client: TestChatClient;
 
   beforeEach(() => {
     client = new TestChatClient();
   });
 
-  describe('message transmission', () => {
-    it('should transmit user message to chat client', async () => {
-      const message = 'Hello, what is 2+2?';
+  describe("message transmission", () => {
+    it("should transmit user message to chat client", async () => {
+      const message = "Hello, what is 2+2?";
       await client.sendMessage(message);
 
       const log = client.getMessageLog();
@@ -74,8 +78,8 @@ describe('Client Communication and Subprocess Handling', () => {
       expect(log[0].message).toBe(message);
     });
 
-    it('should transmit multiple messages in sequence', async () => {
-      const messages = ['Message 1', 'Message 2', 'Message 3'];
+    it("should transmit multiple messages in sequence", async () => {
+      const messages = ["Message 1", "Message 2", "Message 3"];
 
       for (const msg of messages) {
         await client.sendMessage(msg);
@@ -88,23 +92,23 @@ describe('Client Communication and Subprocess Handling', () => {
       }
     });
 
-    it('should handle empty message transmission', async () => {
-      await client.sendMessage('');
+    it("should handle empty message transmission", async () => {
+      await client.sendMessage("");
 
       const log = client.getMessageLog();
       expect(log.length).toBe(1);
-      expect(log[0].message).toBe('');
+      expect(log[0].message).toBe("");
     });
 
-    it('should handle very long messages', async () => {
-      const longMessage = 'x'.repeat(100000);
+    it("should handle very long messages", async () => {
+      const longMessage = "x".repeat(100000);
       await client.sendMessage(longMessage);
 
       const log = client.getMessageLog();
       expect(log[0].message.length).toBe(100000);
     });
 
-    it('should handle messages with special characters', async () => {
+    it("should handle messages with special characters", async () => {
       const specialMessage = 'Test with "quotes", \\backslashes\\, and unicode: café 你好 🚀';
       await client.sendMessage(specialMessage);
 
@@ -112,54 +116,54 @@ describe('Client Communication and Subprocess Handling', () => {
       expect(log[0].message).toBe(specialMessage);
     });
 
-    it('should handle multiline messages', async () => {
+    it("should handle multiline messages", async () => {
       const multilineMessage = `Line 1
 Line 2
 Line 3`;
       await client.sendMessage(multilineMessage);
 
       const log = client.getMessageLog();
-      expect(log[0].message).toContain('Line 1');
-      expect(log[0].message).toContain('Line 2');
-      expect(log[0].message).toContain('Line 3');
+      expect(log[0].message).toContain("Line 1");
+      expect(log[0].message).toContain("Line 2");
+      expect(log[0].message).toContain("Line 3");
     });
 
-    it('should transmit chat options along with message', async () => {
+    it("should transmit chat options along with message", async () => {
       const options: ChatOptions = {
-        agent: 'dr-architect',
-        workingDirectory: '/tmp/test',
-        sessionId: 'session-123',
+        agent: "dr-architect",
+        workingDirectory: "/tmp/test",
+        sessionId: "session-123",
         withDanger: true,
       };
 
-      await client.sendMessage('Test message', options);
+      await client.sendMessage("Test message", options);
 
       const log = client.getMessageLog();
       expect(log[0].options).toEqual(options);
     });
 
-    it('should handle partial chat options', async () => {
+    it("should handle partial chat options", async () => {
       const options: ChatOptions = {
-        agent: 'dr-architect',
+        agent: "dr-architect",
       };
 
-      await client.sendMessage('Test', options);
+      await client.sendMessage("Test", options);
 
       const log = client.getMessageLog();
-      expect(log[0].options?.agent).toBe('dr-architect');
+      expect(log[0].options?.agent).toBe("dr-architect");
       expect(log[0].options?.workingDirectory).toBeUndefined();
     });
 
-    it('should handle message transmission without options', async () => {
-      await client.sendMessage('Test message');
+    it("should handle message transmission without options", async () => {
+      await client.sendMessage("Test message");
 
       const log = client.getMessageLog();
       expect(log[0].options).toBeUndefined();
     });
   });
 
-  describe('concurrent message transmission', () => {
-    it('should handle concurrent message sends', async () => {
+  describe("concurrent message transmission", () => {
+    it("should handle concurrent message sends", async () => {
       const messages = Array.from({ length: 10 }, (_, i) => `Message ${i}`);
       const sendPromises = messages.map((msg) => client.sendMessage(msg));
 
@@ -172,10 +176,8 @@ Line 3`;
       });
     });
 
-    it('should maintain session consistency with concurrent sends', async () => {
-      const sendPromises = Array.from({ length: 5 }, (_, i) =>
-        client.sendMessage(`Message ${i}`)
-      );
+    it("should maintain session consistency with concurrent sends", async () => {
+      const sendPromises = Array.from({ length: 5 }, (_, i) => client.sendMessage(`Message ${i}`));
 
       await Promise.all(sendPromises);
 
@@ -183,14 +185,14 @@ Line 3`;
       expect(session1).toBeDefined();
 
       // Send more messages
-      await client.sendMessage('Another message');
+      await client.sendMessage("Another message");
       const session2 = client.getCurrentSession();
 
       // Session ID should remain the same
       expect(session1?.id).toBe(session2?.id);
     });
 
-    it('should handle rapid sequential messages', async () => {
+    it("should handle rapid sequential messages", async () => {
       for (let i = 0; i < 20; i++) {
         await client.sendMessage(`Rapid message ${i}`);
       }
@@ -200,98 +202,98 @@ Line 3`;
     });
   });
 
-  describe('error handling', () => {
-    it('should catch and propagate transmission errors', async () => {
-      client.setFailure(true, 'Connection failed');
+  describe("error handling", () => {
+    it("should catch and propagate transmission errors", async () => {
+      client.setFailure(true, "Connection failed");
 
       let caught = false;
       try {
-        await client.sendMessage('Test message');
+        await client.sendMessage("Test message");
       } catch (error) {
         caught = true;
         expect(error).toBeDefined();
-        expect((error as Error).message).toContain('Connection failed');
+        expect((error as Error).message).toContain("Connection failed");
       }
       expect(caught).toBe(true);
     });
 
-    it('should handle subprocess exit code errors', async () => {
-      client.setFailure(true, 'Process exited with code 127');
+    it("should handle subprocess exit code errors", async () => {
+      client.setFailure(true, "Process exited with code 127");
 
       let caught = false;
       try {
-        await client.sendMessage('Test');
+        await client.sendMessage("Test");
       } catch (error) {
         caught = true;
         expect(error).toBeDefined();
-        expect((error as Error).message).toContain('Process exited');
+        expect((error as Error).message).toContain("Process exited");
       }
       expect(caught).toBe(true);
     });
 
-    it('should handle timeout errors gracefully', async () => {
-      client.setFailure(true, 'Request timeout after 30s');
+    it("should handle timeout errors gracefully", async () => {
+      client.setFailure(true, "Request timeout after 30s");
 
       try {
-        await client.sendMessage('Test');
+        await client.sendMessage("Test");
       } catch (error) {
         expect(error).toBeDefined();
       }
     });
 
-    it('should recover from transient errors', async () => {
+    it("should recover from transient errors", async () => {
       // First message fails
-      client.setFailure(true, 'Transient error');
+      client.setFailure(true, "Transient error");
       try {
-        await client.sendMessage('Message 1');
+        await client.sendMessage("Message 1");
       } catch (error) {
         expect(error).toBeDefined();
       }
 
       // Recovery: error is cleared and next message succeeds
       client.setFailure(false);
-      await client.sendMessage('Message 2');
+      await client.sendMessage("Message 2");
 
       const log = client.getMessageLog();
       expect(log.length).toBe(1); // Only second message was sent
-      expect(log[0].message).toBe('Message 2');
+      expect(log[0].message).toBe("Message 2");
     });
 
-    it('should handle stdin stream errors', async () => {
-      client.setFailure(true, 'EPIPE: Broken pipe');
+    it("should handle stdin stream errors", async () => {
+      client.setFailure(true, "EPIPE: Broken pipe");
 
       try {
-        await client.sendMessage('Test');
-        throw new Error('Should have thrown error for broken pipe');
+        await client.sendMessage("Test");
+        throw new Error("Should have thrown error for broken pipe");
       } catch (error) {
         expect(error).toBeDefined();
-        expect((error as Error).message).toContain('pipe');
+        expect((error as Error).message).toContain("pipe");
       }
     });
 
-    it('should handle stdout stream errors', async () => {
-      client.setFailure(true, 'ENOTCONN: Socket is not connected');
+    it("should handle stdout stream errors", async () => {
+      client.setFailure(true, "ENOTCONN: Socket is not connected");
 
       try {
-        await client.sendMessage('Test');
+        await client.sendMessage("Test");
       } catch (error) {
         expect(error).toBeDefined();
       }
     });
   });
 
-  describe('stream processing', () => {
-    it('should process message through output stream', async () => {
-      await client.sendMessage('Test message');
+  describe("stream processing", () => {
+    it("should process message through output stream", async () => {
+      await client.sendMessage("Test message");
 
       // Verify message was processed
       const log = client.getMessageLog();
       expect(log.length).toBe(1);
-      expect(log[0].message).toBe('Test message');
+      expect(log[0].message).toBe("Test message");
     });
 
-    it('should handle streaming responses in order', async () => {
-      const messages = ['First', 'Second', 'Third'];
+    it("should handle streaming responses in order", async () => {
+      const messages = ["First", "Second", "Third"];
 
       for (const msg of messages) {
         await client.sendMessage(msg);
@@ -303,97 +305,97 @@ Line 3`;
       }
     });
 
-    it('should handle large response streams', async () => {
-      const largeMessage = 'x'.repeat(1000000); // 1MB message
+    it("should handle large response streams", async () => {
+      const largeMessage = "x".repeat(1000000); // 1MB message
       await client.sendMessage(largeMessage);
 
       const log = client.getMessageLog();
       expect(log[0].message.length).toBe(1000000);
     });
 
-    it('should handle incomplete stream data', async () => {
+    it("should handle incomplete stream data", async () => {
       // Simulate partial message
-      await client.sendMessage('Incomplete');
+      await client.sendMessage("Incomplete");
 
       const log = client.getMessageLog();
       expect(log.length).toBe(1);
     });
   });
 
-  describe('session management during communication', () => {
-    it('should create session on first message', async () => {
+  describe("session management during communication", () => {
+    it("should create session on first message", async () => {
       expect(client.getCurrentSession()).toBeUndefined();
 
-      await client.sendMessage('First message');
+      await client.sendMessage("First message");
 
       expect(client.getCurrentSession()).toBeDefined();
       expect(client.getCurrentSession()?.id).toBeDefined();
     });
 
-    it('should maintain session across multiple messages', async () => {
-      await client.sendMessage('Message 1');
+    it("should maintain session across multiple messages", async () => {
+      await client.sendMessage("Message 1");
       const session1 = client.getCurrentSession();
 
-      await client.sendMessage('Message 2');
+      await client.sendMessage("Message 2");
       const session2 = client.getCurrentSession();
 
       expect(session1?.id).toBe(session2?.id);
     });
 
-    it('should update session timestamp on each message', async () => {
-      await client.sendMessage('Message 1');
+    it("should update session timestamp on each message", async () => {
+      await client.sendMessage("Message 1");
       const session1 = client.getCurrentSession();
       const time1 = session1?.lastMessageAt || new Date(0);
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      await client.sendMessage('Message 2');
+      await client.sendMessage("Message 2");
       const session2 = client.getCurrentSession();
       const time2 = session2?.lastMessageAt || new Date(0);
 
       expect(time2.getTime()).toBeGreaterThanOrEqual(time1.getTime());
     });
 
-    it('should preserve session through error recovery', async () => {
-      await client.sendMessage('Message 1');
+    it("should preserve session through error recovery", async () => {
+      await client.sendMessage("Message 1");
       const session1 = client.getCurrentSession();
 
       // Simulate error
       client.setFailure(true);
       try {
-        await client.sendMessage('Failing message');
+        await client.sendMessage("Failing message");
       } catch {
         // Expected
       }
 
       // Recovery
       client.setFailure(false);
-      await client.sendMessage('Message 2');
+      await client.sendMessage("Message 2");
       const session2 = client.getCurrentSession();
 
       expect(session1?.id).toBe(session2?.id);
     });
 
-    it('should allow session clearing between messages', async () => {
-      await client.sendMessage('Message 1');
+    it("should allow session clearing between messages", async () => {
+      await client.sendMessage("Message 1");
       const session1 = client.getCurrentSession();
 
       client.clearSession();
-      await client.sendMessage('Message 2');
+      await client.sendMessage("Message 2");
       const session2 = client.getCurrentSession();
 
       expect(session1?.id).not.toBe(session2?.id);
     });
 
-    it('should support session continuation with explicit sessionId', async () => {
-      await client.sendMessage('Message 1', { sessionId: 'custom-session-123' });
+    it("should support session continuation with explicit sessionId", async () => {
+      await client.sendMessage("Message 1", { sessionId: "custom-session-123" });
       const session1 = client.getCurrentSession();
 
       // Clear and resume
       client.clearSession();
       expect(client.getCurrentSession()).toBeUndefined();
 
-      await client.sendMessage('Message 2', { sessionId: 'custom-session-123' });
+      await client.sendMessage("Message 2", { sessionId: "custom-session-123" });
       const session2 = client.getCurrentSession();
 
       expect(session1?.id).toBeDefined();
@@ -401,87 +403,87 @@ Line 3`;
     });
   });
 
-  describe('message options handling', () => {
-    it('should handle agent option', async () => {
-      await client.sendMessage('Test', { agent: 'dr-architect' });
+  describe("message options handling", () => {
+    it("should handle agent option", async () => {
+      await client.sendMessage("Test", { agent: "dr-architect" });
 
       const log = client.getMessageLog();
-      expect(log[0].options?.agent).toBe('dr-architect');
+      expect(log[0].options?.agent).toBe("dr-architect");
     });
 
-    it('should handle working directory option', async () => {
-      const workDir = '/home/user/project';
-      await client.sendMessage('Test', { workingDirectory: workDir });
+    it("should handle working directory option", async () => {
+      const workDir = "/home/user/project";
+      await client.sendMessage("Test", { workingDirectory: workDir });
 
       const log = client.getMessageLog();
       expect(log[0].options?.workingDirectory).toBe(workDir);
     });
 
-    it('should handle session ID option', async () => {
-      const sessionId = 'custom-session-456';
-      await client.sendMessage('Test', { sessionId });
+    it("should handle session ID option", async () => {
+      const sessionId = "custom-session-456";
+      await client.sendMessage("Test", { sessionId });
 
       const log = client.getMessageLog();
       expect(log[0].options?.sessionId).toBe(sessionId);
     });
 
-    it('should handle danger mode option', async () => {
-      await client.sendMessage('Test', { withDanger: true });
+    it("should handle danger mode option", async () => {
+      await client.sendMessage("Test", { withDanger: true });
 
       const log = client.getMessageLog();
       expect(log[0].options?.withDanger).toBe(true);
     });
 
-    it('should handle combination of all options', async () => {
+    it("should handle combination of all options", async () => {
       const options: ChatOptions = {
-        agent: 'test-agent',
-        workingDirectory: '/test/dir',
-        sessionId: 'test-session',
+        agent: "test-agent",
+        workingDirectory: "/test/dir",
+        sessionId: "test-session",
         withDanger: false,
       };
 
-      await client.sendMessage('Test', options);
+      await client.sendMessage("Test", options);
 
       const log = client.getMessageLog();
       expect(log[0].options).toEqual(options);
     });
   });
 
-  describe('availability detection', () => {
-    it('should be available by default', async () => {
+  describe("availability detection", () => {
+    it("should be available by default", async () => {
       const available = await client.isAvailable();
       expect(available).toBe(true);
     });
 
-    it('should handle availability check errors', async () => {
+    it("should handle availability check errors", async () => {
       // This would be implementation-specific for real clients
       const available = await client.isAvailable();
-      expect(typeof available).toBe('boolean');
+      expect(typeof available).toBe("boolean");
     });
   });
 
-  describe('client name retrieval', () => {
-    it('should return consistent client name', () => {
+  describe("client name retrieval", () => {
+    it("should return consistent client name", () => {
       const name1 = client.getClientName();
       const name2 = client.getClientName();
 
       expect(name1).toBe(name2);
-      expect(name1).toBe('Test Client');
+      expect(name1).toBe("Test Client");
     });
   });
 
-  describe('performance and timing', () => {
-    it('should handle response delays', async () => {
+  describe("performance and timing", () => {
+    it("should handle response delays", async () => {
       client.setResponseDelay(50);
       const startTime = Date.now();
 
-      await client.sendMessage('Test');
+      await client.sendMessage("Test");
 
       const duration = Date.now() - startTime;
       expect(duration).toBeGreaterThanOrEqual(50);
     });
 
-    it('should maintain performance with large message counts', async () => {
+    it("should maintain performance with large message counts", async () => {
       const messageCount = 100;
       const startTime = Date.now();
 
@@ -498,33 +500,33 @@ Line 3`;
     });
   });
 
-  describe('state consistency', () => {
-    it('should maintain consistent state after multiple operations', async () => {
-      await client.sendMessage('Message 1');
+  describe("state consistency", () => {
+    it("should maintain consistent state after multiple operations", async () => {
+      await client.sendMessage("Message 1");
       const session1 = client.getCurrentSession();
 
-      await client.sendMessage('Message 2');
+      await client.sendMessage("Message 2");
       const session2 = client.getCurrentSession();
 
       client.clearSession();
       expect(client.getCurrentSession()).toBeUndefined();
 
-      await client.sendMessage('Message 3');
+      await client.sendMessage("Message 3");
       const session3 = client.getCurrentSession();
 
       expect(session1?.id).toBe(session2?.id);
       expect(session1?.id).not.toBe(session3?.id);
     });
 
-    it('should track all messages independently of session state', async () => {
-      await client.sendMessage('Before clear');
+    it("should track all messages independently of session state", async () => {
+      await client.sendMessage("Before clear");
       client.clearSession();
-      await client.sendMessage('After clear');
+      await client.sendMessage("After clear");
 
       const log = client.getMessageLog();
       expect(log.length).toBe(2);
-      expect(log[0].message).toBe('Before clear');
-      expect(log[1].message).toBe('After clear');
+      expect(log[0].message).toBe("Before clear");
+      expect(log[1].message).toBe("After clear");
     });
   });
 });

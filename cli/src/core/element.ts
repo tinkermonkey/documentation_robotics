@@ -1,4 +1,9 @@
-import type { Element as IElement, Reference, Relationship, SourceReference } from "../types/index.js";
+import type {
+  Element as IElement,
+  Reference,
+  Relationship,
+  SourceReference,
+} from "../types/index.js";
 
 /**
  * Type guard to check if a value is a SourceReference
@@ -8,15 +13,12 @@ import type { Element as IElement, Reference, Relationship, SourceReference } fr
  * @returns true if obj matches SourceReference structure
  */
 function isSourceReference(obj: unknown): obj is SourceReference {
-  if (!obj || typeof obj !== 'object') {
+  if (!obj || typeof obj !== "object") {
     return false;
   }
 
   const entry = obj as Record<string, unknown>;
-  return (
-    typeof entry.provenance === 'string' &&
-    Array.isArray(entry.locations)
-  );
+  return typeof entry.provenance === "string" && Array.isArray(entry.locations);
 }
 
 /**
@@ -27,7 +29,7 @@ function isSourceReference(obj: unknown): obj is SourceReference {
  * @returns true if obj is an object (not null, not array)
  */
 function isRecord(obj: unknown): obj is Record<string, unknown> {
-  return obj !== null && typeof obj === 'object' && !Array.isArray(obj);
+  return obj !== null && typeof obj === "object" && !Array.isArray(obj);
 }
 
 /**
@@ -44,9 +46,9 @@ export class Element implements IElement {
   properties: Record<string, unknown>;
   references: Reference[];
   relationships: Relationship[];
-  layer?: string;  // Track which layer this element belongs to (Python CLI compatibility)
-  filePath?: string;  // Track source file path for saving back (Python CLI compatibility)
-  rawData?: any;  // Preserve raw YAML data to avoid losing unknown fields (Python CLI compatibility)
+  layer?: string; // Track which layer this element belongs to (Python CLI compatibility)
+  filePath?: string; // Track source file path for saving back (Python CLI compatibility)
+  rawData?: any; // Preserve raw YAML data to avoid losing unknown fields (Python CLI compatibility)
 
   constructor(data: {
     id: string;
@@ -119,14 +121,14 @@ export class Element implements IElement {
    */
   getSourceReference(): SourceReference | undefined {
     // For layers 6-8 (API, Data Model, Data Store), source reference is at x-source-reference
-    const xSourceRef = this.getProperty<unknown>('x-source-reference');
+    const xSourceRef = this.getProperty<unknown>("x-source-reference");
     if (isSourceReference(xSourceRef)) {
       return xSourceRef;
     }
 
     // For layers 4-5, 9-12, source reference is at properties.source.reference
-    const sourceObj = this.getProperty<unknown>('source');
-    if (isRecord(sourceObj) && 'reference' in sourceObj) {
+    const sourceObj = this.getProperty<unknown>("source");
+    if (isRecord(sourceObj) && "reference" in sourceObj) {
       const ref = sourceObj.reference;
       if (isSourceReference(ref)) {
         return ref;
@@ -151,13 +153,13 @@ export class Element implements IElement {
   setSourceReference(sourceRef: SourceReference | undefined): void {
     if (!sourceRef) {
       // Remove source reference from both possible locations
-      delete this.properties['x-source-reference'];
+      delete this.properties["x-source-reference"];
 
-      const sourceObj = this.properties['source'];
+      const sourceObj = this.properties["source"];
       if (isRecord(sourceObj)) {
         delete sourceObj.reference;
         if (Object.keys(sourceObj).length === 0) {
-          delete this.properties['source'];
+          delete this.properties["source"];
         }
       }
       return;
@@ -165,14 +167,14 @@ export class Element implements IElement {
 
     // Layer-aware storage: use layer-specific property paths
     if (!this.layer) {
-      throw new Error('Cannot set source reference: element has no layer assigned');
+      throw new Error("Cannot set source reference: element has no layer assigned");
     }
 
-    const layerNum = parseInt(this.layer.split('-')[0], 10);
+    const layerNum = parseInt(this.layer.split("-")[0], 10);
 
     // For layers 6-8 (API, Data Model, Data Store), use x-source-reference (OpenAPI pattern)
     if (layerNum >= 6 && layerNum <= 8) {
-      this.properties['x-source-reference'] = sourceRef;
+      this.properties["x-source-reference"] = sourceRef;
       return;
     }
 

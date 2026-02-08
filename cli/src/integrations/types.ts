@@ -23,7 +23,7 @@ export interface ComponentConfig {
   prefix?: string;
 
   /** Whether component contains individual files or subdirectories */
-  type: 'files' | 'dirs';
+  type: "files" | "dirs";
 
   /**
    * Whether this component is DR-owned (tracked in version file for updates)
@@ -69,21 +69,21 @@ export interface VersionData {
  * @throws Error if validation fails
  */
 export function validateVersionData(data: unknown): VersionData {
-  if (typeof data !== 'object' || data === null) {
-    throw new Error('Version data must be an object');
+  if (typeof data !== "object" || data === null) {
+    throw new Error("Version data must be an object");
   }
 
   const obj = data as Record<string, unknown>;
 
-  if (typeof obj.version !== 'string') {
+  if (typeof obj.version !== "string") {
     throw new Error('Missing or invalid "version" field in version file');
   }
 
-  if (typeof obj.installed_at !== 'string') {
+  if (typeof obj.installed_at !== "string") {
     throw new Error('Missing or invalid "installed_at" field in version file');
   }
 
-  if (typeof obj.components !== 'object' || obj.components === null) {
+  if (typeof obj.components !== "object" || obj.components === null) {
     throw new Error('Missing or invalid "components" field in version file');
   }
 
@@ -103,7 +103,7 @@ export interface FileChange {
   component: string;
 
   /** Type of change detected */
-  changeType: 'added' | 'modified' | 'deleted' | 'user-modified' | 'conflict';
+  changeType: "added" | "modified" | "deleted" | "user-modified" | "conflict";
 
   /** Hash of source file (if it exists in source) */
   sourceHash?: string;

@@ -5,49 +5,49 @@
  * For testing, we mock it as false to test the no-op behavior.
  */
 
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, mock } from "bun:test";
 
 // Mock TELEMETRY_ENABLED as false for testing
 (globalThis as any).TELEMETRY_ENABLED = false;
 
 // Import after setting the global
-import * as telemetry from '../../src/telemetry/index';
-import { ResilientOTLPExporter } from '../../src/telemetry/resilient-exporter';
+import * as telemetry from "../../src/telemetry/index";
+import { ResilientOTLPExporter } from "../../src/telemetry/resilient-exporter";
 
-describe('Telemetry Module (Production No-Op Mode)', () => {
-  describe('initTelemetry()', () => {
-    it('should initialize without errors', () => {
+describe("Telemetry Module (Production No-Op Mode)", () => {
+  describe("initTelemetry()", () => {
+    it("should initialize without errors", () => {
       // Should not throw when TELEMETRY_ENABLED is false
       expect(() => telemetry.initTelemetry()).not.toThrow();
     });
   });
 
-  describe('startSpan()', () => {
-    it('should return null when TELEMETRY_ENABLED is false', () => {
-      const span = telemetry.startSpan('test-span', {
-        'test.attr': 'value',
+  describe("startSpan()", () => {
+    it("should return null when TELEMETRY_ENABLED is false", () => {
+      const span = telemetry.startSpan("test-span", {
+        "test.attr": "value",
       });
       // In production mode (TELEMETRY_ENABLED=false), returns null
       expect(span).toBeNull();
     });
   });
 
-  describe('endSpan()', () => {
-    it('should safely handle null spans', () => {
+  describe("endSpan()", () => {
+    it("should safely handle null spans", () => {
       // Should not throw when passed null
       expect(() => telemetry.endSpan(null)).not.toThrow();
     });
 
-    it('should be no-op with null span', () => {
-      const span = telemetry.startSpan('test');
+    it("should be no-op with null span", () => {
+      const span = telemetry.startSpan("test");
       expect(span).toBeNull();
       // Should not throw when passed null
       expect(() => telemetry.endSpan(span)).not.toThrow();
     });
   });
 
-  describe('shutdownTelemetry()', () => {
-    it('should shutdown gracefully', async () => {
+  describe("shutdownTelemetry()", () => {
+    it("should shutdown gracefully", async () => {
       // Should not throw even if no SDK was initialized
       const result = await telemetry.shutdownTelemetry();
       expect(result === undefined).toBe(true);
@@ -55,19 +55,19 @@ describe('Telemetry Module (Production No-Op Mode)', () => {
   });
 });
 
-describe('Project Name Propagation', () => {
-  it('should load project name from manifest file', () => {
+describe("Project Name Propagation", () => {
+  it("should load project name from manifest file", () => {
     // Mock fs module
-    const originalFs = require('fs');
-    const originalPath = require('path');
+    const originalFs = require("fs");
+    const originalPath = require("path");
     const mockFs = {
       existsSync: mock((path: string) => {
-        return path.includes('.dr/manifest.json');
+        return path.includes(".dr/manifest.json");
       }),
       readFileSync: mock((path: string, encoding: string) => {
         return JSON.stringify({
-          name: 'TestProjectName',
-          version: '1.0.0',
+          name: "TestProjectName",
+          version: "1.0.0",
         });
       }),
     };
@@ -75,7 +75,7 @@ describe('Project Name Propagation', () => {
     // Mock require to return our mock fs
     const originalRequire = require;
     (globalThis as any).require = (module: string) => {
-      if (module === 'fs') return mockFs;
+      if (module === "fs") return mockFs;
       return originalRequire(module);
     };
 
@@ -83,7 +83,7 @@ describe('Project Name Propagation', () => {
       // This test verifies that initTelemetry can load project names
       // In production, this would be called with the modelPath parameter
       expect(() => {
-        telemetry.initTelemetry('.test/model/path');
+        telemetry.initTelemetry(".test/model/path");
       }).not.toThrow();
     } finally {
       // Restore original require
@@ -91,16 +91,16 @@ describe('Project Name Propagation', () => {
     }
   });
 
-  it('should fallback to unknown when manifest missing', () => {
+  it("should fallback to unknown when manifest missing", () => {
     // Mock fs module that returns no manifest
     const mockFs = {
       existsSync: mock(() => false),
-      readFileSync: mock(() => ''),
+      readFileSync: mock(() => ""),
     };
 
     const originalRequire = require;
     (globalThis as any).require = (module: string) => {
-      if (module === 'fs') return mockFs;
+      if (module === "fs") return mockFs;
       return originalRequire(module);
     };
 
@@ -114,15 +114,15 @@ describe('Project Name Propagation', () => {
     }
   });
 
-  it('should handle invalid manifest JSON gracefully', () => {
+  it("should handle invalid manifest JSON gracefully", () => {
     const mockFs = {
       existsSync: mock(() => true),
-      readFileSync: mock(() => 'invalid json {{{'),
+      readFileSync: mock(() => "invalid json {{{"),
     };
 
     const originalRequire = require;
     (globalThis as any).require = (module: string) => {
-      if (module === 'fs') return mockFs;
+      if (module === "fs") return mockFs;
       return originalRequire(module);
     };
 
@@ -137,7 +137,7 @@ describe('Project Name Propagation', () => {
   });
 });
 
-describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
+describe("ResilientOTLPExporter - Circuit Breaker Logic", () => {
   let exporter: ResilientOTLPExporter;
   let mockDelegate: any;
 
@@ -153,7 +153,7 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
 
     // Create exporter with mocked configuration
     exporter = new ResilientOTLPExporter({
-      url: 'http://localhost:4318/v1/traces',
+      url: "http://localhost:4318/v1/traces",
       timeoutMillis: 500,
     });
 
@@ -161,8 +161,8 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
     (exporter as any).delegate = mockDelegate;
   });
 
-  describe('export()', () => {
-    it('should export spans when circuit breaker is closed', () => {
+  describe("export()", () => {
+    it("should export spans when circuit breaker is closed", () => {
       const spans: any[] = [];
       const callback = mock((_result: any) => {});
 
@@ -172,7 +172,7 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
       expect(callback).toHaveBeenCalledTimes(1);
     });
 
-    it('should set 30-second backoff on export failure', () => {
+    it("should set 30-second backoff on export failure", () => {
       const spans: any[] = [];
       let exportCallback: any;
 
@@ -191,7 +191,7 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
       expect(retryAfter).toBeLessThanOrEqual(beforeTime + 30001);
     });
 
-    it('should discard spans during backoff period', () => {
+    it("should discard spans during backoff period", () => {
       // Manually set backoff period
       (exporter as any).retryAfter = Date.now() + 10000;
 
@@ -206,7 +206,7 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
       expect(callback).toHaveBeenCalledWith({ code: 0 }); // SUCCESS
     });
 
-    it('should reset backoff on successful export', () => {
+    it("should reset backoff on successful export", () => {
       const spans: any[] = [];
       let exportCallback: any;
 
@@ -223,7 +223,7 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
       expect(retryAfter).toBe(0);
     });
 
-    it('should respect timeout configuration', () => {
+    it("should respect timeout configuration", () => {
       // Timeout is set in constructor and passed to delegate
       // This is verified indirectly through the constructor call
       expect(() => {
@@ -232,14 +232,14 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
     });
   });
 
-  describe('forceFlush()', () => {
-    it('should flush when circuit breaker is closed', async () => {
+  describe("forceFlush()", () => {
+    it("should flush when circuit breaker is closed", async () => {
       await exporter.forceFlush();
 
       expect(mockDelegate.forceFlush).toHaveBeenCalledTimes(1);
     });
 
-    it('should skip flush during backoff period', async () => {
+    it("should skip flush during backoff period", async () => {
       // Set backoff period
       (exporter as any).retryAfter = Date.now() + 10000;
 
@@ -249,9 +249,9 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
       expect(mockDelegate.forceFlush).not.toHaveBeenCalled();
     });
 
-    it('should handle flush errors gracefully', async () => {
+    it("should handle flush errors gracefully", async () => {
       mockDelegate.forceFlush = mock(async () => {
-        throw new Error('Flush failed');
+        throw new Error("Flush failed");
       });
 
       // Should not throw
@@ -261,16 +261,16 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
     });
   });
 
-  describe('shutdown()', () => {
-    it('should shutdown delegate gracefully', async () => {
+  describe("shutdown()", () => {
+    it("should shutdown delegate gracefully", async () => {
       await exporter.shutdown();
 
       expect(mockDelegate.shutdown).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle shutdown errors gracefully', async () => {
+    it("should handle shutdown errors gracefully", async () => {
       mockDelegate.shutdown = mock(async () => {
-        throw new Error('Shutdown failed');
+        throw new Error("Shutdown failed");
       });
 
       // Should not throw
@@ -280,8 +280,8 @@ describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
     });
   });
 
-  describe('Boundary Conditions', () => {
-    it('should retry immediately when Date.now() equals retryAfter', () => {
+  describe("Boundary Conditions", () => {
+    it("should retry immediately when Date.now() equals retryAfter", () => {
       const now = Date.now();
       (exporter as any).retryAfter = now;
 

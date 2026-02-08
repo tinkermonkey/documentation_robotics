@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { ResilientLogExporter } from '@/telemetry/resilient-log-exporter';
-import type { ReadableLogRecord } from '@opentelemetry/sdk-logs';
-import type { ExportResult } from '@opentelemetry/core';
-import { ExportResultCode } from '@opentelemetry/core';
+import { describe, it, expect, beforeEach } from "bun:test";
+import { ResilientLogExporter } from "@/telemetry/resilient-log-exporter";
+import type { ReadableLogRecord } from "@opentelemetry/sdk-logs";
+import type { ExportResult } from "@opentelemetry/core";
+import { ExportResultCode } from "@opentelemetry/core";
 
-describe('ResilientLogExporter', () => {
+describe("ResilientLogExporter", () => {
   let exporter: ResilientLogExporter;
   let mockLogRecords: Partial<ReadableLogRecord>[];
 
@@ -13,55 +13,55 @@ describe('ResilientLogExporter', () => {
     mockLogRecords = [
       {
         severityNumber: 9,
-        body: 'Test log message',
+        body: "Test log message",
         attributes: {},
       },
     ];
   });
 
-  describe('constructor', () => {
-    it('creates exporter with default URL', () => {
+  describe("constructor", () => {
+    it("creates exporter with default URL", () => {
       exporter = new ResilientLogExporter();
       expect(exporter).toBeDefined();
       expect(exporter instanceof ResilientLogExporter).toBe(true);
     });
 
-    it('creates exporter with custom URL', () => {
-      const customUrl = 'http://custom-collector:4318/v1/logs';
+    it("creates exporter with custom URL", () => {
+      const customUrl = "http://custom-collector:4318/v1/logs";
       exporter = new ResilientLogExporter({ url: customUrl });
       expect(exporter).toBeDefined();
     });
 
-    it('creates exporter with custom timeout', () => {
+    it("creates exporter with custom timeout", () => {
       exporter = new ResilientLogExporter({ timeoutMillis: 1000 });
       expect(exporter).toBeDefined();
     });
 
-    it('creates exporter with both custom URL and timeout', () => {
+    it("creates exporter with both custom URL and timeout", () => {
       exporter = new ResilientLogExporter({
-        url: 'http://localhost:4318/v1/logs',
+        url: "http://localhost:4318/v1/logs",
         timeoutMillis: 300,
       });
       expect(exporter).toBeDefined();
     });
   });
 
-  describe('forceFlush', () => {
+  describe("forceFlush", () => {
     beforeEach(() => {
       exporter = new ResilientLogExporter();
     });
 
-    it('completes forceFlush call', async () => {
+    it("completes forceFlush call", async () => {
       const result = await exporter.forceFlush();
       expect(result).toBeUndefined();
     });
 
-    it('silently ignores flush errors', async () => {
+    it("silently ignores flush errors", async () => {
       const result = await exporter.forceFlush();
       expect(result).toBeUndefined();
     });
 
-    it('returns promise that resolves', async () => {
+    it("returns promise that resolves", async () => {
       const flushPromise = exporter.forceFlush();
       expect(flushPromise instanceof Promise).toBe(true);
       const result = await flushPromise;
@@ -70,28 +70,28 @@ describe('ResilientLogExporter', () => {
     });
   });
 
-  describe('shutdown', () => {
+  describe("shutdown", () => {
     beforeEach(() => {
       exporter = new ResilientLogExporter();
     });
 
-    it('completes shutdown gracefully', async () => {
+    it("completes shutdown gracefully", async () => {
       const result = await exporter.shutdown();
       expect(result).toBeUndefined();
     });
 
-    it('silently ignores shutdown errors', async () => {
+    it("silently ignores shutdown errors", async () => {
       const result = await exporter.shutdown();
       expect(result).toBeUndefined();
     });
 
-    it('can be called multiple times safely', async () => {
+    it("can be called multiple times safely", async () => {
       await exporter.shutdown();
       const result = await exporter.shutdown();
       expect(result).toBeUndefined();
     });
 
-    it('returns promise that resolves', async () => {
+    it("returns promise that resolves", async () => {
       const shutdownPromise = exporter.shutdown();
       expect(shutdownPromise instanceof Promise).toBe(true);
       const result = await shutdownPromise;
@@ -100,18 +100,18 @@ describe('ResilientLogExporter', () => {
     });
   });
 
-  describe('interface compliance', () => {
+  describe("interface compliance", () => {
     beforeEach(() => {
       exporter = new ResilientLogExporter();
     });
 
-    it('implements LogRecordExporter interface', () => {
-      expect(typeof exporter.export).toBe('function');
-      expect(typeof exporter.shutdown).toBe('function');
-      expect(typeof exporter.forceFlush).toBe('function');
+    it("implements LogRecordExporter interface", () => {
+      expect(typeof exporter.export).toBe("function");
+      expect(typeof exporter.shutdown).toBe("function");
+      expect(typeof exporter.forceFlush).toBe("function");
     });
 
-    it('export method is callable', () => {
+    it("export method is callable", () => {
       const callback = (result: ExportResult) => {
         expect(result.code).toBeDefined();
       };
@@ -126,61 +126,61 @@ describe('ResilientLogExporter', () => {
     });
   });
 
-  describe('configuration', () => {
-    it('accepts url configuration', () => {
-      const customUrl = 'http://my-collector:4318/v1/logs';
+  describe("configuration", () => {
+    it("accepts url configuration", () => {
+      const customUrl = "http://my-collector:4318/v1/logs";
       const testExporter = new ResilientLogExporter({ url: customUrl });
       expect(testExporter).toBeDefined();
     });
 
-    it('accepts timeoutMillis configuration', () => {
+    it("accepts timeoutMillis configuration", () => {
       const testExporter = new ResilientLogExporter({ timeoutMillis: 1000 });
       expect(testExporter).toBeDefined();
     });
 
-    it('accepts both url and timeoutMillis configuration', () => {
+    it("accepts both url and timeoutMillis configuration", () => {
       const testExporter = new ResilientLogExporter({
-        url: 'http://collector:4318/v1/logs',
+        url: "http://collector:4318/v1/logs",
         timeoutMillis: 750,
       });
       expect(testExporter).toBeDefined();
     });
 
-    it('uses default values when no configuration provided', () => {
+    it("uses default values when no configuration provided", () => {
       const testExporter = new ResilientLogExporter();
       expect(testExporter).toBeDefined();
     });
 
-    it('preserves other configuration properties passed to delegate', () => {
+    it("preserves other configuration properties passed to delegate", () => {
       const testExporter = new ResilientLogExporter({
-        url: 'http://localhost:4318/v1/logs',
+        url: "http://localhost:4318/v1/logs",
         timeoutMillis: 500,
       });
       expect(testExporter).toBeDefined();
     });
   });
 
-  describe('circuit-breaker timeout configuration', () => {
-    it('respects configured timeout of 250ms', () => {
+  describe("circuit-breaker timeout configuration", () => {
+    it("respects configured timeout of 250ms", () => {
       const testExporter = new ResilientLogExporter({
         timeoutMillis: 250,
       });
       expect(testExporter).toBeDefined();
     });
 
-    it('respects configured timeout of 500ms', () => {
+    it("respects configured timeout of 500ms", () => {
       const testExporter = new ResilientLogExporter({
         timeoutMillis: 500,
       });
       expect(testExporter).toBeDefined();
     });
 
-    it('uses default 500ms timeout when not specified', () => {
+    it("uses default 500ms timeout when not specified", () => {
       const testExporter = new ResilientLogExporter();
       expect(testExporter).toBeDefined();
     });
 
-    it('respects custom timeout values', () => {
+    it("respects custom timeout values", () => {
       const testExporter = new ResilientLogExporter({
         timeoutMillis: 300,
       });
@@ -188,35 +188,35 @@ describe('ResilientLogExporter', () => {
     });
   });
 
-  describe('default endpoint configuration', () => {
-    it('uses http://localhost:4318/v1/logs as default endpoint', () => {
+  describe("default endpoint configuration", () => {
+    it("uses http://localhost:4318/v1/logs as default endpoint", () => {
       const testExporter = new ResilientLogExporter();
       expect(testExporter).toBeDefined();
     });
 
-    it('overrides default with custom URL', () => {
-      const customUrl = 'http://my-telemetry-backend:4318/v1/logs';
+    it("overrides default with custom URL", () => {
+      const customUrl = "http://my-telemetry-backend:4318/v1/logs";
       const testExporter = new ResilientLogExporter({ url: customUrl });
       expect(testExporter).toBeDefined();
     });
 
-    it('supports custom port in URL', () => {
+    it("supports custom port in URL", () => {
       const testExporter = new ResilientLogExporter({
-        url: 'http://localhost:9999/v1/logs',
+        url: "http://localhost:9999/v1/logs",
       });
       expect(testExporter).toBeDefined();
     });
 
-    it('supports custom host in URL', () => {
+    it("supports custom host in URL", () => {
       const testExporter = new ResilientLogExporter({
-        url: 'http://otel-collector.monitoring:4318/v1/logs',
+        url: "http://otel-collector.monitoring:4318/v1/logs",
       });
       expect(testExporter).toBeDefined();
     });
   });
 
-  describe('30-second backoff window', () => {
-    it('specifies 30000ms (30 seconds) backoff duration', () => {
+  describe("30-second backoff window", () => {
+    it("specifies 30000ms (30 seconds) backoff duration", () => {
       // The resilient-log-exporter.ts file specifies:
       // this.retryAfter = Date.now() + 30000;
       // This test verifies the concept is in place
@@ -225,18 +225,18 @@ describe('ResilientLogExporter', () => {
     });
   });
 
-  describe('export result code', () => {
-    it('implements ExportResultCode.SUCCESS', () => {
+  describe("export result code", () => {
+    it("implements ExportResultCode.SUCCESS", () => {
       expect(ExportResultCode.SUCCESS).toBeDefined();
     });
 
-    it('implements ExportResultCode.FAILED', () => {
+    it("implements ExportResultCode.FAILED", () => {
       expect(ExportResultCode.FAILED).toBeDefined();
     });
   });
 
-  describe('empty log records', () => {
-    it('handles empty array gracefully', () => {
+  describe("empty log records", () => {
+    it("handles empty array gracefully", () => {
       exporter = new ResilientLogExporter();
       const callback = (result: ExportResult) => {
         // Callback should be invoked
@@ -251,48 +251,48 @@ describe('ResilientLogExporter', () => {
     });
   });
 
-  describe('log record attributes', () => {
-    it('preserves severity level', () => {
+  describe("log record attributes", () => {
+    it("preserves severity level", () => {
       const record: Partial<ReadableLogRecord> = {
         severityNumber: 9,
-        body: 'Info level log',
+        body: "Info level log",
       };
       expect(record.severityNumber).toBe(9);
     });
 
-    it('preserves log body text', () => {
+    it("preserves log body text", () => {
       const record: Partial<ReadableLogRecord> = {
-        body: 'Test message',
+        body: "Test message",
       };
-      expect(record.body).toBe('Test message');
+      expect(record.body).toBe("Test message");
     });
 
-    it('preserves custom attributes', () => {
+    it("preserves custom attributes", () => {
       const record: Partial<ReadableLogRecord> = {
         attributes: {
-          'user.id': '123',
-          'request.id': 'abc-def',
+          "user.id": "123",
+          "request.id": "abc-def",
         },
       };
-      expect(record.attributes?.['user.id']).toBe('123');
+      expect(record.attributes?.["user.id"]).toBe("123");
     });
   });
 
-  describe('implementation details', () => {
-    it('creates instance for telemetry use', () => {
+  describe("implementation details", () => {
+    it("creates instance for telemetry use", () => {
       exporter = new ResilientLogExporter({
-        url: 'http://localhost:4318/v1/logs',
+        url: "http://localhost:4318/v1/logs",
         timeoutMillis: 500,
       });
       expect(exporter instanceof ResilientLogExporter).toBe(true);
     });
 
-    it('supports reconfiguration via multiple instances', () => {
+    it("supports reconfiguration via multiple instances", () => {
       const exporter1 = new ResilientLogExporter({
-        url: 'http://collector1:4318/v1/logs',
+        url: "http://collector1:4318/v1/logs",
       });
       const exporter2 = new ResilientLogExporter({
-        url: 'http://collector2:4318/v1/logs',
+        url: "http://collector2:4318/v1/logs",
       });
       expect(exporter1).toBeDefined();
       expect(exporter2).toBeDefined();

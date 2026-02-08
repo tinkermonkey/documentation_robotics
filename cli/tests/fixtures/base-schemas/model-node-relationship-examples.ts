@@ -13,8 +13,8 @@ export const modelNodeRelationshipExamples = {
     destination_layer_id: "motivation",
     predicate: "supports",
     attributes: {
-      reason: "Higher-level goal depends on achieving this supporting goal"
-    }
+      reason: "Higher-level goal depends on achieving this supporting goal",
+    },
   },
 
   realizesRelationship: {
@@ -24,7 +24,7 @@ export const modelNodeRelationshipExamples = {
     source_layer_id: "motivation",
     destination_node_id: "880a1722-152e-74a7-d949-779988773333",
     destination_layer_id: "business",
-    predicate: "realizes"
+    predicate: "realizes",
   },
 
   implementsRelationship: {
@@ -34,7 +34,7 @@ export const modelNodeRelationshipExamples = {
     source_layer_id: "api",
     destination_node_id: "aa0c3944-374d-96c9-fb61-991100995555",
     destination_layer_id: "data-model",
-    predicate: "implements"
+    predicate: "implements",
   },
 
   persistsRelationship: {
@@ -44,7 +44,7 @@ export const modelNodeRelationshipExamples = {
     source_layer_id: "data-model",
     destination_node_id: "cc2e5166-596f-18e1-ad83-113322117777",
     destination_layer_id: "data-store",
-    predicate: "persists-to"
+    predicate: "persists-to",
   },
 
   testsRelationship: {
@@ -57,8 +57,8 @@ export const modelNodeRelationshipExamples = {
     predicate: "tests",
     attributes: {
       coverage_percentage: 85,
-      last_run_date: "2025-02-07T14:30:00Z"
-    }
+      last_run_date: "2025-02-07T14:30:00Z",
+    },
   },
 
   consumesRelationship: {
@@ -70,14 +70,14 @@ export const modelNodeRelationshipExamples = {
     destination_layer_id: "api",
     predicate: "consumes",
     attributes: {
-      frequency: "frequent"
+      frequency: "frequent",
     },
     metadata: {
       created_at: "2025-01-10T09:00:00Z",
       updated_at: "2025-02-07T14:30:00Z",
       created_by: "architect@example.com",
-      version: 3
-    }
+      version: 3,
+    },
   },
 
   minimalRelationship: {
@@ -85,7 +85,7 @@ export const modelNodeRelationshipExamples = {
     spec_relationship_id: "custom.uses.custom",
     source_node_id: "ee4b7388-718c-30b3-bf05-335544340000",
     destination_node_id: "ff5c8499-829d-41c4-ca16-446655440001",
-    predicate: "uses"
+    predicate: "uses",
   },
 
   relationshipWithSourceReference: {
@@ -101,11 +101,11 @@ export const modelNodeRelationshipExamples = {
       locations: [
         {
           file: "documentation/architecture.md",
-          symbol: "goal-dependency-001"
-        }
-      ]
-    }
-  }
+          symbol: "goal-dependency-001",
+        },
+      ],
+    },
+  },
 };
 
 export const invalidModelNodeRelationshipExamples = {
@@ -116,7 +116,7 @@ export const invalidModelNodeRelationshipExamples = {
     source_layer_id: "motivation",
     destination_node_id: "770f0611-041d-63f6-c938-668877662222",
     destination_layer_id: "motivation",
-    predicate: "supports"
+    predicate: "supports",
   },
 
   invalidSourceNodeId: {
@@ -126,7 +126,7 @@ export const invalidModelNodeRelationshipExamples = {
     source_layer_id: "motivation",
     destination_node_id: "770f0611-041d-63f6-c938-668877662222",
     destination_layer_id: "motivation",
-    predicate: "supports"
+    predicate: "supports",
   },
 
   missingDestinationLayer: {
@@ -136,7 +136,7 @@ export const invalidModelNodeRelationshipExamples = {
     source_layer_id: "motivation",
     destination_node_id: "770f0611-041d-63f6-c938-668877662222",
     // missing destination_layer_id
-    predicate: "supports"
+    predicate: "supports",
   },
 
   invalidSpecRelationshipId: {
@@ -146,7 +146,7 @@ export const invalidModelNodeRelationshipExamples = {
     source_layer_id: "motivation",
     destination_node_id: "770f0611-041d-63f6-c938-668877662222",
     destination_layer_id: "motivation",
-    predicate: "supports"
+    predicate: "supports",
   },
 
   invalidSourceReference: {
@@ -159,8 +159,8 @@ export const invalidModelNodeRelationshipExamples = {
     predicate: "supports",
     source_reference: {
       provenance: "invalid-provenance", // not in enum
-      locations: [{ file: "test.txt" }]
-    }
+      locations: [{ file: "test.txt" }],
+    },
   },
 
   extraProperties: {
@@ -171,6 +171,6 @@ export const invalidModelNodeRelationshipExamples = {
     destination_node_id: "770f0611-041d-63f6-c938-668877662222",
     destination_layer_id: "motivation",
     predicate: "supports",
-    extra_field: "not allowed"
-  }
+    extra_field: "not allowed",
+  },
 };

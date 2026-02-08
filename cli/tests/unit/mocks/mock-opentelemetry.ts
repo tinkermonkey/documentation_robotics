@@ -14,7 +14,7 @@ export class MockSpan {
   private traceId: string;
   private spanName: string;
 
-  constructor(spanName: string = 'test.span', traceId?: string) {
+  constructor(spanName: string = "test.span", traceId?: string) {
     this.spanName = spanName;
     this.traceId = traceId || this.generateTraceId();
   }

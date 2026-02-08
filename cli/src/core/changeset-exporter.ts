@@ -7,18 +7,18 @@
  * - Patch: Git-style unified diff format for version control
  */
 
-import { readFile, writeFile } from 'fs/promises';
-import { fileExists } from '../utils/file-io.js';
-import yaml from 'yaml';
-import { Changeset, type ChangesetStatus, type Change } from './changeset.js';
-import { StagedChangesetStorage } from './staged-changeset-storage.js';
-import type { Model } from './model.js';
-import { BaseSnapshotManager } from './base-snapshot-manager.js';
+import { readFile, writeFile } from "fs/promises";
+import { fileExists } from "../utils/file-io.js";
+import yaml from "yaml";
+import { Changeset, type ChangesetStatus, type Change } from "./changeset.js";
+import { StagedChangesetStorage } from "./staged-changeset-storage.js";
+import type { Model } from "./model.js";
+import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 
 /**
  * Export format type
  */
-export type ExportFormat = 'yaml' | 'json' | 'patch';
+export type ExportFormat = "yaml" | "json" | "patch";
 
 /**
  * Compatibility report for imported changesets
@@ -46,21 +46,18 @@ export class ChangesetExporter {
   /**
    * Export changeset to string in specified format
    */
-  async export(
-    changesetId: string,
-    format: ExportFormat = 'yaml'
-  ): Promise<string> {
+  async export(changesetId: string, format: ExportFormat = "yaml"): Promise<string> {
     const changeset = await this.storage.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
     switch (format) {
-      case 'yaml':
+      case "yaml":
         return this.exportToYaml(changeset);
-      case 'json':
+      case "json":
         return this.exportToJson(changeset);
-      case 'patch':
+      case "patch":
         return this.exportToPatch(changeset);
       default:
         throw new Error(`Unsupported export format: ${format}`);
@@ -73,10 +70,10 @@ export class ChangesetExporter {
   async exportToFile(
     changesetId: string,
     outputPath: string,
-    format: ExportFormat = 'yaml'
+    format: ExportFormat = "yaml"
   ): Promise<void> {
     const content = await this.export(changesetId, format);
-    await writeFile(outputPath, content, 'utf-8');
+    await writeFile(outputPath, content, "utf-8");
   }
 
   /**
@@ -89,11 +86,11 @@ export class ChangesetExporter {
     }
 
     switch (format) {
-      case 'yaml':
+      case "yaml":
         return this.importFromYaml(data);
-      case 'json':
+      case "json":
         return this.importFromJson(data);
-      case 'patch':
+      case "patch":
         return this.importFromPatch(data);
       default:
         throw new Error(`Unsupported import format: ${format}`);
@@ -108,7 +105,7 @@ export class ChangesetExporter {
       throw new Error(`File not found: ${inputPath}`);
     }
 
-    const data = await readFile(inputPath, 'utf-8');
+    const data = await readFile(inputPath, "utf-8");
     const format = this.detectFormat(data);
 
     return this.import(data, format);
@@ -131,14 +128,10 @@ export class ChangesetExporter {
 
     // Check base snapshot match
     if (changeset.baseSnapshot) {
-      const currentSnapshot = await this.snapshotManager.captureSnapshot(
-        currentModel
-      );
+      const currentSnapshot = await this.snapshotManager.captureSnapshot(currentModel);
       if (changeset.baseSnapshot !== currentSnapshot) {
         report.baseSnapshotMatch = false;
-        report.warnings.push(
-          'Base model has changed since changeset was created'
-        );
+        report.warnings.push("Base model has changed since changeset was created");
       }
     }
 
@@ -149,11 +142,11 @@ export class ChangesetExporter {
     for (const change of changeset.changes || []) {
       affectedLayerSet.add(change.layerName);
 
-      if (change.type === 'update' || change.type === 'delete') {
+      if (change.type === "update" || change.type === "delete") {
         // For updates and deletes, element must exist in current model
         const layer = await currentModel.getLayer(change.layerName);
         if (!layer || !layer.getElement(change.elementId)) {
-          if (change.type === 'delete') {
+          if (change.type === "delete") {
             // Deletes of non-existent elements are warnings, not blockers
             report.warnings.push(
               `Element ${change.elementId} not found in layer ${change.layerName} (will be skipped)`
@@ -162,15 +155,13 @@ export class ChangesetExporter {
             // Updates of non-existent elements are errors
             report.compatible = false;
             report.missingElements.push(change.elementId);
-            report.warnings.push(
-              `Cannot update non-existent element ${change.elementId}`
-            );
+            report.warnings.push(`Cannot update non-existent element ${change.elementId}`);
           }
         }
       }
 
       // For adds, element must not exist
-      if (change.type === 'add') {
+      if (change.type === "add") {
         const layer = await currentModel.getLayer(change.layerName);
         if (layer && layer.getElement(change.elementId)) {
           report.compatible = false;
@@ -199,9 +190,9 @@ export class ChangesetExporter {
       status: changeset.status,
       baseSnapshot: changeset.baseSnapshot,
       export: {
-        version: '0.1.0',
+        version: "0.1.0",
         exportedAt: new Date().toISOString(),
-        format: 'yaml',
+        format: "yaml",
       },
       stats: changeset.stats || {
         additions: 0,
@@ -230,9 +221,9 @@ export class ChangesetExporter {
       status: changeset.status,
       baseSnapshot: changeset.baseSnapshot,
       export: {
-        version: '0.1.0',
+        version: "0.1.0",
         exportedAt: new Date().toISOString(),
-        format: 'json',
+        format: "json",
       },
       stats: changeset.stats || {
         additions: 0,
@@ -258,10 +249,10 @@ export class ChangesetExporter {
       lines.push(`Base: ${changeset.baseSnapshot}`);
     }
     lines.push(`Subject: ${changeset.name}`);
-    lines.push('');
+    lines.push("");
     if (changeset.description) {
       lines.push(changeset.description);
-      lines.push('');
+      lines.push("");
     }
 
     // Summary statistics
@@ -270,11 +261,11 @@ export class ChangesetExporter {
       modifications: 0,
       deletions: 0,
     };
-    lines.push('---');
+    lines.push("---");
     lines.push(
-      ` ${stats.additions + stats.modifications + stats.deletions} file${stats.additions + stats.modifications + stats.deletions !== 1 ? 's' : ''} changed, ${stats.additions} insertions(+), ${stats.deletions} deletions(-)`
+      ` ${stats.additions + stats.modifications + stats.deletions} file${stats.additions + stats.modifications + stats.deletions !== 1 ? "s" : ""} changed, ${stats.additions} insertions(+), ${stats.deletions} deletions(-)`
     );
-    lines.push('');
+    lines.push("");
 
     // Group changes by layer for diff-style output
     const layerMap = new Map<string, (typeof changeset.changes)[number][]>();
@@ -298,7 +289,7 @@ export class ChangesetExporter {
 
       // Show context and changes
       for (const change of changes) {
-        if (change.type === 'add') {
+        if (change.type === "add") {
           lines.push(`+ - id: ${change.elementId}`);
           if (change.after) {
             const afterData = change.after as Record<string, unknown>;
@@ -309,12 +300,10 @@ export class ChangesetExporter {
               lines.push(`+   type: ${afterData.type}`);
             }
             if (afterData.properties) {
-              lines.push(
-                `+   properties: ${JSON.stringify(afterData.properties)}`
-              );
+              lines.push(`+   properties: ${JSON.stringify(afterData.properties)}`);
             }
           }
-        } else if (change.type === 'delete') {
+        } else if (change.type === "delete") {
           lines.push(`- - id: ${change.elementId}`);
           if (change.before) {
             const beforeData = change.before as Record<string, unknown>;
@@ -325,7 +314,7 @@ export class ChangesetExporter {
               lines.push(`-   type: ${beforeData.type}`);
             }
           }
-        } else if (change.type === 'update') {
+        } else if (change.type === "update") {
           // Show context line and changes
           lines.push(`  - id: ${change.elementId}`);
           if (change.before && change.after) {
@@ -339,10 +328,10 @@ export class ChangesetExporter {
         }
       }
 
-      lines.push('');
+      lines.push("");
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -351,8 +340,8 @@ export class ChangesetExporter {
   private importFromYaml(data: string): Changeset {
     const parsed = yaml.parse(data);
 
-    if (!parsed || typeof parsed !== 'object') {
-      throw new Error('Invalid YAML format');
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error("Invalid YAML format");
     }
 
     const parsedRecord = parsed as Record<string, unknown>;
@@ -369,25 +358,23 @@ export class ChangesetExporter {
     } = parsedRecord;
 
     if (!id || !name || !created || !modified) {
-      throw new Error(
-        'Missing required fields: id, name, created, modified'
-      );
+      throw new Error("Missing required fields: id, name, created, modified");
     }
 
     // Reconstruct changeset with defaults for optional fields
-    const changesetStatus = (typeof status === 'string' ? status : 'draft') as ChangesetStatus;
+    const changesetStatus = (typeof status === "string" ? status : "draft") as ChangesetStatus;
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
-      additions: typeof statsRecord?.additions === 'number' ? statsRecord.additions : 0,
-      modifications: typeof statsRecord?.modifications === 'number' ? statsRecord.modifications : 0,
-      deletions: typeof statsRecord?.deletions === 'number' ? statsRecord.deletions : 0,
+      additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
+      modifications: typeof statsRecord?.modifications === "number" ? statsRecord.modifications : 0,
+      deletions: typeof statsRecord?.deletions === "number" ? statsRecord.deletions : 0,
     };
-    const changesetSnapshot = typeof baseSnapshot === 'string' ? baseSnapshot : 'unknown';
+    const changesetSnapshot = typeof baseSnapshot === "string" ? baseSnapshot : "unknown";
 
     const changeset = new Changeset({
       id: String(id),
       name: String(name),
-      description: typeof description === 'string' ? description : undefined,
+      description: typeof description === "string" ? description : undefined,
       created: String(created),
       modified: String(modified),
       status: changesetStatus,
@@ -405,8 +392,8 @@ export class ChangesetExporter {
   private importFromJson(data: string): Changeset {
     const parsed = JSON.parse(data);
 
-    if (!parsed || typeof parsed !== 'object') {
-      throw new Error('Invalid JSON format');
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error("Invalid JSON format");
     }
 
     const parsedRecord = parsed as Record<string, unknown>;
@@ -423,25 +410,23 @@ export class ChangesetExporter {
     } = parsedRecord;
 
     if (!id || !name || !created || !modified) {
-      throw new Error(
-        'Missing required fields: id, name, created, modified'
-      );
+      throw new Error("Missing required fields: id, name, created, modified");
     }
 
     // Reconstruct changeset with defaults for optional fields
-    const changesetStatus = (typeof status === 'string' ? status : 'draft') as ChangesetStatus;
+    const changesetStatus = (typeof status === "string" ? status : "draft") as ChangesetStatus;
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
-      additions: typeof statsRecord?.additions === 'number' ? statsRecord.additions : 0,
-      modifications: typeof statsRecord?.modifications === 'number' ? statsRecord.modifications : 0,
-      deletions: typeof statsRecord?.deletions === 'number' ? statsRecord.deletions : 0,
+      additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
+      modifications: typeof statsRecord?.modifications === "number" ? statsRecord.modifications : 0,
+      deletions: typeof statsRecord?.deletions === "number" ? statsRecord.deletions : 0,
     };
-    const changesetSnapshot = typeof baseSnapshot === 'string' ? baseSnapshot : 'unknown';
+    const changesetSnapshot = typeof baseSnapshot === "string" ? baseSnapshot : "unknown";
 
     const changeset = new Changeset({
       id: String(id),
       name: String(name),
-      description: typeof description === 'string' ? description : undefined,
+      description: typeof description === "string" ? description : undefined,
       created: String(created),
       modified: String(modified),
       status: changesetStatus,
@@ -465,44 +450,44 @@ export class ChangesetExporter {
    * change data. Patch format is recommended for email-based sharing and archival.
    */
   private importFromPatch(data: string): Changeset {
-    const lines = data.split('\n');
+    const lines = data.split("\n");
     const metadata: Record<string, string> = {};
     const changes: Change[] = [];
 
     let i = 0;
     // Parse header lines - continue until we hit the --- marker or blank line
-    while (i < lines.length && !lines[i].startsWith('---') && lines[i].trim() !== '') {
+    while (i < lines.length && !lines[i].startsWith("---") && lines[i].trim() !== "") {
       const line = lines[i];
-      if (line.startsWith('From:')) {
-        metadata.id = line.substring('From:'.length).trim();
-      } else if (line.startsWith('Date:')) {
-        metadata.exportedAt = line.substring('Date:'.length).trim();
-      } else if (line.startsWith('Base:')) {
-        metadata.baseSnapshot = line.substring('Base:'.length).trim();
-      } else if (line.startsWith('Subject:')) {
-        metadata.name = line.substring('Subject:'.length).trim();
+      if (line.startsWith("From:")) {
+        metadata.id = line.substring("From:".length).trim();
+      } else if (line.startsWith("Date:")) {
+        metadata.exportedAt = line.substring("Date:".length).trim();
+      } else if (line.startsWith("Base:")) {
+        metadata.baseSnapshot = line.substring("Base:".length).trim();
+      } else if (line.startsWith("Subject:")) {
+        metadata.name = line.substring("Subject:".length).trim();
       }
       i++;
     }
 
     // Skip blank lines
-    while (i < lines.length && lines[i].trim() === '') {
+    while (i < lines.length && lines[i].trim() === "") {
       i++;
     }
 
     // Description is between header and --- marker
     const descriptionLines: string[] = [];
-    while (i < lines.length && !lines[i].startsWith('---')) {
+    while (i < lines.length && !lines[i].startsWith("---")) {
       descriptionLines.push(lines[i]);
       i++;
     }
     if (descriptionLines.length > 0) {
-      metadata.description = descriptionLines.join('\n').trim();
+      metadata.description = descriptionLines.join("\n").trim();
     }
 
     // Validate required metadata
     if (!metadata.id || !metadata.name) {
-      throw new Error('Missing required fields in patch header: id, name');
+      throw new Error("Missing required fields in patch header: id, name");
     }
 
     // Create changeset with extracted metadata
@@ -513,8 +498,8 @@ export class ChangesetExporter {
       description: metadata.description,
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
-      status: 'draft',
-      baseSnapshot: metadata.baseSnapshot || 'unknown',
+      status: "draft",
+      baseSnapshot: metadata.baseSnapshot || "unknown",
       changes,
       stats: {
         additions: 0,
@@ -533,31 +518,31 @@ export class ChangesetExporter {
     const trimmed = data.trim();
 
     // Check for JSON
-    if (trimmed.startsWith('{')) {
+    if (trimmed.startsWith("{")) {
       try {
         JSON.parse(trimmed);
-        return 'json';
+        return "json";
       } catch {
         // Not valid JSON, try next format
       }
     }
 
     // Check for YAML
-    if (trimmed.includes('id:') && trimmed.includes('name:')) {
+    if (trimmed.includes("id:") && trimmed.includes("name:")) {
       try {
         yaml.parse(trimmed);
-        return 'yaml';
+        return "yaml";
       } catch {
         // Not valid YAML, try next format
       }
     }
 
     // Check for patch format
-    if (trimmed.startsWith('From:')) {
-      return 'patch';
+    if (trimmed.startsWith("From:")) {
+      return "patch";
     }
 
     // Default to YAML
-    return 'yaml';
+    return "yaml";
   }
 }

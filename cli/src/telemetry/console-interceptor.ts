@@ -14,7 +14,7 @@
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 // Store original console methods before any wrapping
 const originalConsole = {
@@ -31,7 +31,7 @@ const originalConsole = {
 function formatArgs(args: any[]): string {
   return args
     .map((arg) => {
-      if (typeof arg === 'object' && arg !== null) {
+      if (typeof arg === "object" && arg !== null) {
         try {
           return JSON.stringify(arg);
         } catch {
@@ -40,7 +40,7 @@ function formatArgs(args: any[]): string {
       }
       return String(arg);
     })
-    .join(' ');
+    .join(" ");
 }
 
 /**
@@ -51,8 +51,8 @@ function extractStackTrace(args: any[]): Record<string, string> {
   const errorArg = args.find((arg) => arg instanceof Error);
   if (errorArg) {
     return {
-      'error.message': errorArg.message,
-      'error.stack': errorArg.stack || '',
+      "error.message": errorArg.message,
+      "error.stack": errorArg.stack || "",
     };
   }
   return {};
@@ -78,8 +78,8 @@ export async function installConsoleInterceptor(): Promise<void> {
   if (!isTelemetryEnabled) return;
 
   const [{ SeverityNumber }, { emitLog }] = await Promise.all([
-    import('@opentelemetry/api-logs'),
-    import('./index.js')
+    import("@opentelemetry/api-logs"),
+    import("./index.js"),
   ]);
 
   console.log = (...args: any[]): void => {

@@ -4,8 +4,8 @@ import type { Model } from "../core/model.js";
  * Options for import operations
  */
 export interface ImportOptions {
-  mergeStrategy?: 'add' | 'update' | 'skip';  // How to handle existing elements
-  validateSchema?: boolean;                     // Validate against JSON schema
+  mergeStrategy?: "add" | "update" | "skip"; // How to handle existing elements
+  validateSchema?: boolean; // Validate against JSON schema
 }
 
 /**

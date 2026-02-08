@@ -11,21 +11,27 @@
  * - integrationSourceDir: Integration directory name (claude_code or github_copilot)
  */
 
-import * as yaml from 'yaml';
-import { join, dirname, isAbsolute } from 'node:path';
+import * as yaml from "yaml";
+import { join, dirname, isAbsolute } from "node:path";
 import {
   mkdir,
   readFile as fsReadFile,
   writeFile as fsWriteFile,
   rm,
   copyFile,
-} from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { computeDirectoryHashes, computeFileHash } from './hash-utils.js';
-import { ComponentConfig, VersionData, FileChange, ObsoleteFile, validateVersionData } from './types.js';
-import { findProjectRoot } from '../utils/project-paths.js';
-import { getCliVersion as getCliVersionFromUtils } from '../utils/spec-version.js';
+} from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { computeDirectoryHashes, computeFileHash } from "./hash-utils.js";
+import {
+  ComponentConfig,
+  VersionData,
+  FileChange,
+  ObsoleteFile,
+  validateVersionData,
+} from "./types.js";
+import { findProjectRoot } from "../utils/project-paths.js";
+import { getCliVersion as getCliVersionFromUtils } from "../utils/spec-version.js";
 
 /**
  * Abstract base class for integration managers
@@ -86,7 +92,7 @@ export abstract class BaseIntegrationManager {
     // Development: integrations/{integrationSourceDir}/ relative to repo root
     // From dist/integrations/base-manager.js, go up 3 levels to repo root
     const repoRoot = dirname(dirname(dirname(dirname(cliDir))));
-    const devPath = join(repoRoot, 'integrations', this.integrationSourceDir);
+    const devPath = join(repoRoot, "integrations", this.integrationSourceDir);
     if (existsSync(devPath)) {
       return devPath;
     }
@@ -150,7 +156,7 @@ export abstract class BaseIntegrationManager {
     }
 
     try {
-      const content = await fsReadFile(versionFilePath, 'utf-8');
+      const content = await fsReadFile(versionFilePath, "utf-8");
       const parsed = yaml.parse(content);
       // Validate deserialized data at boundary to catch corrupted files early
       return validateVersionData(parsed);
@@ -191,7 +197,7 @@ export abstract class BaseIntegrationManager {
    * @throws Error if version file cannot be written
    */
   protected async updateVersionFile(cliVersion: string): Promise<void> {
-    const components: VersionData['components'] = {};
+    const components: VersionData["components"] = {};
     const sourceRoot = this.getSourceRoot();
     const absoluteTargetDir = await this.getAbsoluteTargetDir();
 
@@ -226,7 +232,9 @@ export abstract class BaseIntegrationManager {
               modified = sourceHash !== targetHash;
             } catch (error) {
               // If we can't compute hash, assume modified to prevent data loss
-              console.warn(`⚠ Warning: Could not compute hash for ${targetFilePath}: ${error instanceof Error ? error.message : String(error)}`);
+              console.warn(
+                `⚠ Warning: Could not compute hash for ${targetFilePath}: ${error instanceof Error ? error.message : String(error)}`
+              );
               modified = true;
             }
           }
@@ -249,7 +257,7 @@ export abstract class BaseIntegrationManager {
       const versionFilePath = join(absoluteTargetDir, this.versionFileName);
       await mkdir(dirname(versionFilePath), { recursive: true });
       const yamlContent = yaml.stringify(versionData);
-      await fsWriteFile(versionFilePath, yamlContent, 'utf-8');
+      await fsWriteFile(versionFilePath, yamlContent, "utf-8");
     } catch (error) {
       throw new Error(`Failed to update version file: ${error}`);
     }
@@ -349,7 +357,7 @@ export abstract class BaseIntegrationManager {
         changes.push({
           path: filePath,
           component: componentName,
-          changeType: 'added',
+          changeType: "added",
           sourceHash,
         });
       } else if (sourceHash !== recordedHash) {
@@ -359,7 +367,7 @@ export abstract class BaseIntegrationManager {
           changes.push({
             path: filePath,
             component: componentName,
-            changeType: 'conflict',
+            changeType: "conflict",
             sourceHash,
             installedHash,
           });
@@ -368,7 +376,7 @@ export abstract class BaseIntegrationManager {
           changes.push({
             path: filePath,
             component: componentName,
-            changeType: 'modified',
+            changeType: "modified",
             sourceHash,
             installedHash,
           });
@@ -378,7 +386,7 @@ export abstract class BaseIntegrationManager {
         changes.push({
           path: filePath,
           component: componentName,
-          changeType: 'user-modified',
+          changeType: "user-modified",
           sourceHash,
           installedHash,
         });
@@ -391,7 +399,7 @@ export abstract class BaseIntegrationManager {
         changes.push({
           path: filePath,
           component: componentName,
-          changeType: 'deleted',
+          changeType: "deleted",
           installedHash: installedHashes.get(filePath),
         });
       }
@@ -411,10 +419,7 @@ export abstract class BaseIntegrationManager {
    * @returns Number of files installed/updated
    * @throws Error if installation fails
    */
-  protected async installComponent(
-    componentName: string,
-    force: boolean = false
-  ): Promise<number> {
+  protected async installComponent(componentName: string, force: boolean = false): Promise<number> {
     const config = this.components[componentName];
 
     if (!config) {
@@ -444,11 +449,11 @@ export abstract class BaseIntegrationManager {
       const change = changes.find((c) => c.path === filePath);
       if (change && !force) {
         // Skip user-modified files unless force is set
-        if (change.changeType === 'user-modified') {
+        if (change.changeType === "user-modified") {
           continue;
         }
         // Skip conflict files - they require explicit resolution
-        if (change.changeType === 'conflict') {
+        if (change.changeType === "conflict") {
           continue;
         }
       }
@@ -525,5 +530,4 @@ export abstract class BaseIntegrationManager {
   protected async getCliVersion(): Promise<string> {
     return getCliVersionFromUtils();
   }
-
 }

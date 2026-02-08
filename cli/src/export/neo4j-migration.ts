@@ -60,12 +60,8 @@ export class Neo4jCypherGenerator {
 
     // Add indexes
     lines.push("// Create indexes for common queries");
-    lines.push(
-      "CREATE INDEX node_layer IF NOT EXISTS FOR (n:Element) ON (n.layer);"
-    );
-    lines.push(
-      "CREATE INDEX node_type IF NOT EXISTS FOR (n:Element) ON (n.type);"
-    );
+    lines.push("CREATE INDEX node_layer IF NOT EXISTS FOR (n:Element) ON (n.layer);");
+    lines.push("CREATE INDEX node_type IF NOT EXISTS FOR (n:Element) ON (n.type);");
     lines.push("");
 
     // Create nodes
@@ -139,9 +135,7 @@ export class Neo4jCypherGenerator {
     // Add query examples
     lines.push("// Example queries to validate migration");
     lines.push("");
-    lines.push(
-      "// 1. Count total nodes and edges"
-    );
+    lines.push("// 1. Count total nodes and edges");
     lines.push("MATCH (n) RETURN COUNT(n) AS totalNodes;");
     lines.push("MATCH ()-[r]->() RETURN COUNT(r) AS totalEdges;");
     lines.push("");
@@ -155,9 +149,7 @@ export class Neo4jCypherGenerator {
     lines.push("");
 
     lines.push("// 4. Find connected components");
-    lines.push(
-      "MATCH (n:Element)-[r*0..2]-(m:Element) RETURN DISTINCT n, m, COUNT(r) as hops;"
-    );
+    lines.push("MATCH (n:Element)-[r*0..2]-(m:Element) RETURN DISTINCT n, m, COUNT(r) as hops;");
     lines.push("");
 
     return lines.join("\n");
@@ -232,9 +224,7 @@ export class Neo4jMigrationService {
 
       return result;
     } catch (error) {
-      result.errors.push(
-        error instanceof Error ? error.message : String(error)
-      );
+      result.errors.push(error instanceof Error ? error.message : String(error));
       return result;
     }
   }
@@ -273,9 +263,7 @@ export class Neo4jMigrationService {
   private generateNodeBatch(nodes: GraphNode[]): string {
     const lines: string[] = [];
 
-    lines.push(
-      `// Batch: Create ${nodes.length} nodes (${nodes.map((n) => n.id).join(", ")})`
-    );
+    lines.push(`// Batch: Create ${nodes.length} nodes (${nodes.map((n) => n.id).join(", ")})`);
     lines.push("UNWIND $nodes AS nodeData");
     lines.push("CREATE (n:Element)");
     lines.push("SET n = nodeData.properties");
@@ -291,15 +279,11 @@ export class Neo4jMigrationService {
   private generateEdgeBatch(edges: GraphEdge[]): string {
     const lines: string[] = [];
 
-    lines.push(
-      `// Batch: Create ${edges.length} relationships`
-    );
+    lines.push(`// Batch: Create ${edges.length} relationships`);
     lines.push("UNWIND $edges AS edgeData");
     lines.push("MATCH (source:Element {id: edgeData.source})");
     lines.push("MATCH (target:Element {id: edgeData.target})");
-    lines.push(
-      "CREATE (source)-[r:RELATIONSHIP]->(target)"
-    );
+    lines.push("CREATE (source)-[r:RELATIONSHIP]->(target)");
     lines.push("SET r = edgeData.properties");
     lines.push("SET r.type = edgeData.relationship");
     lines.push("RETURN COUNT(r) as created");
@@ -332,13 +316,11 @@ export class Neo4jMigrationService {
     // Rows
     for (const node of nodes) {
       const labels = (node.labels || ["Element"]).join(";");
-      const name = this.escapeCsv(node.properties.name as string || "");
-      const layer = this.escapeCsv(node.properties.layer as string || "");
-      const type = this.escapeCsv(node.properties.type as string || "");
+      const name = this.escapeCsv((node.properties.name as string) || "");
+      const layer = this.escapeCsv((node.properties.layer as string) || "");
+      const type = this.escapeCsv((node.properties.type as string) || "");
 
-      lines.push(
-        `"${node.id}","${name}","${layer}","${type}",${labels}`
-      );
+      lines.push(`"${node.id}","${name}","${layer}","${type}",${labels}`);
     }
 
     return lines.join("\n");
@@ -355,9 +337,7 @@ export class Neo4jMigrationService {
 
     // Rows
     for (const edge of edges) {
-      lines.push(
-        `"${edge.source}","${edge.relationship}","${edge.target}","${edge.relationship}"`
-      );
+      lines.push(`"${edge.source}","${edge.relationship}","${edge.target}","${edge.relationship}"`);
     }
 
     return lines.join("\n");

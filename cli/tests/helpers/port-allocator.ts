@@ -33,7 +33,7 @@ export class PortAllocator {
       attempts++;
     }
 
-    throw new Error('Could not allocate available port after 100 attempts');
+    throw new Error("Could not allocate available port after 100 attempts");
   }
 
   /**

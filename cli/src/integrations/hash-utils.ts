@@ -5,11 +5,11 @@
  * Uses streaming for memory efficiency when handling large files.
  */
 
-import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { readdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { existsSync } from 'node:fs';
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
+import { existsSync } from "node:fs";
 
 /**
  * Compute SHA256 hash of a file, truncated to 8 characters
@@ -28,19 +28,19 @@ import { existsSync } from 'node:fs';
  */
 export async function computeFileHash(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const hash = createHash('sha256');
+    const hash = createHash("sha256");
     const stream = createReadStream(filePath);
 
-    stream.on('data', (data: Buffer) => {
+    stream.on("data", (data: Buffer) => {
       hash.update(data);
     });
 
-    stream.on('end', () => {
-      const fullHash = hash.digest('hex');
+    stream.on("end", () => {
+      const fullHash = hash.digest("hex");
       resolve(fullHash.substring(0, 8));
     });
 
-    stream.on('error', (error: Error) => {
+    stream.on("error", (error: Error) => {
       reject(error);
     });
   });
@@ -73,7 +73,7 @@ export async function computeDirectoryHashes(
     return hashes;
   }
 
-  async function scanDir(dir: string, relativePrefix: string = ''): Promise<void> {
+  async function scanDir(dir: string, relativePrefix: string = ""): Promise<void> {
     try {
       const entries = await readdir(dir, { withFileTypes: true });
 

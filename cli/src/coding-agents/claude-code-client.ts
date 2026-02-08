@@ -12,11 +12,17 @@
  * - Session management per process invocation
  */
 
-import { BaseChatClient, ChatOptions } from './base-chat-client.js';
-import { spawnSync, spawn, ChildProcess } from 'child_process';
-import ansis from 'ansis';
-import { getChatLogger } from '../utils/chat-logger.js';
-import { isTelemetryEnabled, startSpan, endSpan, emitLog, SeverityNumber } from '../telemetry/index.js';
+import { BaseChatClient, ChatOptions } from "./base-chat-client.js";
+import { spawnSync, spawn, ChildProcess } from "child_process";
+import ansis from "ansis";
+import { getChatLogger } from "../utils/chat-logger.js";
+import {
+  isTelemetryEnabled,
+  startSpan,
+  endSpan,
+  emitLog,
+  SeverityNumber,
+} from "../telemetry/index.js";
 
 /**
  * Claude Code CLI event types
@@ -36,24 +42,24 @@ interface ClaudeEvent {
  * Claude Code CLI Client
  */
 export class ClaudeCodeClient extends BaseChatClient {
-  private isFirstMessage: boolean = true;  // Track first message for session management
+  private isFirstMessage: boolean = true; // Track first message for session management
 
   /**
    * Check if Claude Code CLI is available
    */
   async isAvailable(): Promise<boolean> {
-    const span = isTelemetryEnabled ? startSpan('claude-code.availability-check') : null;
+    const span = isTelemetryEnabled ? startSpan("claude-code.availability-check") : null;
 
     try {
-      const result = spawnSync('which', ['claude'], {
-        stdio: 'pipe',
-        encoding: 'utf-8',
+      const result = spawnSync("which", ["claude"], {
+        stdio: "pipe",
+        encoding: "utf-8",
       });
       const available = result.status === 0;
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('client.available', available);
-        (span as any).setAttribute('client.name', 'Claude Code');
+        (span as any).setAttribute("client.available", available);
+        (span as any).setAttribute("client.name", "Claude Code");
         (span as any).setStatus({ code: 0 });
       }
 
@@ -61,9 +67,12 @@ export class ClaudeCodeClient extends BaseChatClient {
     } catch (error) {
       if (isTelemetryEnabled && span) {
         (span as any).recordException(error as Error);
-        (span as any).setAttribute('client.available', false);
-        (span as any).setAttribute('client.name', 'Claude Code');
-        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+        (span as any).setAttribute("client.available", false);
+        (span as any).setAttribute("client.name", "Claude Code");
+        (span as any).setStatus({
+          code: 2,
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
       return false;
     } finally {
@@ -77,24 +86,26 @@ export class ClaudeCodeClient extends BaseChatClient {
    * @param options Chat options
    */
   async sendMessage(message: string, options?: ChatOptions): Promise<void> {
-    const span = isTelemetryEnabled ? startSpan('claude-code.send-message', {
-      'message.length': message.length,
-      'message.content': message.substring(0, 500), // First 500 chars for context
-      'client.name': 'Claude Code',
-      'client.agent': options?.agent,
-      'client.withDanger': options?.withDanger === true,
-      'client.isFirstMessage': this.isFirstMessage,
-      'options.workingDirectory': options?.workingDirectory,
-      'options.sessionId': options?.sessionId,
-      'client.workingDirectory': options?.workingDirectory,
-      'client.sessionId': options?.sessionId,
-    }) : null;
+    const span = isTelemetryEnabled
+      ? startSpan("claude-code.send-message", {
+          "message.length": message.length,
+          "message.content": message.substring(0, 500), // First 500 chars for context
+          "client.name": "Claude Code",
+          "client.agent": options?.agent,
+          "client.withDanger": options?.withDanger === true,
+          "client.isFirstMessage": this.isFirstMessage,
+          "options.workingDirectory": options?.workingDirectory,
+          "options.sessionId": options?.sessionId,
+          "client.workingDirectory": options?.workingDirectory,
+          "client.sessionId": options?.sessionId,
+        })
+      : null;
 
     // Log the user message
     const logger = getChatLogger();
     if (logger) {
       await logger.logUserMessage(message, {
-        client: 'Claude Code',
+        client: "Claude Code",
         agent: options?.agent,
       });
     }
@@ -112,26 +123,29 @@ export class ClaudeCodeClient extends BaseChatClient {
     }
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('client.sessionCreated', true);
-      (span as any).setAttribute('client.internalSessionId', this.getCurrentSession()?.id ?? 'none');
+      (span as any).setAttribute("client.sessionCreated", true);
+      (span as any).setAttribute(
+        "client.internalSessionId",
+        this.getCurrentSession()?.id ?? "none"
+      );
     }
 
     return new Promise((resolve, reject) => {
-        const proc = this.spawnClaudeProcess(message, options, currentIsFirst);
+      const proc = this.spawnClaudeProcess(message, options, currentIsFirst);
 
-        let buffer = '';
-        let assistantOutput = '';
-        let eventCount = 0;
-        let toolUseCount = 0;
+      let buffer = "";
+      let assistantOutput = "";
+      let eventCount = 0;
+      let toolUseCount = 0;
 
       // Handle stdout - JSON event stream
-      proc.stdout?.on('data', (data: Buffer) => {
+      proc.stdout?.on("data", (data: Buffer) => {
         const chunk = data.toString();
         buffer += chunk;
 
         // Process complete lines (each line is a JSON event)
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
           if (!line.trim()) continue;
@@ -149,29 +163,32 @@ export class ClaudeCodeClient extends BaseChatClient {
           } catch (error) {
             // Log JSON parse failure - this indicates a protocol mismatch or CLI bug
             if (isTelemetryEnabled && span) {
-              emitLog(SeverityNumber.WARN, 'Failed to parse Claude event JSON', {
-                'error.message': error instanceof Error ? error.message : String(error),
-                'event.rawLine': line.substring(0, 200),
-                'event.lineLength': line.length,
+              emitLog(SeverityNumber.WARN, "Failed to parse Claude event JSON", {
+                "error.message": error instanceof Error ? error.message : String(error),
+                "event.rawLine": line.substring(0, 200),
+                "event.lineLength": line.length,
               });
             }
             if (logger) {
-              void logger.logError(`Failed to parse Claude event: ${error instanceof Error ? error.message : String(error)}`, {
-                source: 'json-parse',
-                client: 'Claude Code',
-                rawLine: line.substring(0, 200),
-              });
+              void logger.logError(
+                `Failed to parse Claude event: ${error instanceof Error ? error.message : String(error)}`,
+                {
+                  source: "json-parse",
+                  client: "Claude Code",
+                  rawLine: line.substring(0, 200),
+                }
+              );
             }
 
             // Non-JSON line, print as-is (expected for some CLI output)
-            process.stdout.write(line + '\n');
-            assistantOutput += line + '\n';
+            process.stdout.write(line + "\n");
+            assistantOutput += line + "\n";
           }
         }
       });
 
       // Handle stderr - always log for debugging, with severity detection
-      proc.stderr?.on('data', (data: Buffer) => {
+      proc.stderr?.on("data", (data: Buffer) => {
         const stderrText = data.toString().trim();
         if (!stderrText) return; // Skip empty lines
 
@@ -181,77 +198,87 @@ export class ClaudeCodeClient extends BaseChatClient {
 
         // Always log to telemetry and ChatLogger for debugging
         if (isTelemetryEnabled && span) {
-          const severity = isError ? SeverityNumber.ERROR :
-                           isWarning ? SeverityNumber.WARN :
-                           SeverityNumber.DEBUG;
-          emitLog(severity, 'Claude Code stderr output', {
-            'stderr.source': 'claude-cli',
-            'stderr.text': stderrText.substring(0, 500),
-            'stderr.isError': isError,
-            'stderr.isWarning': isWarning,
+          const severity = isError
+            ? SeverityNumber.ERROR
+            : isWarning
+              ? SeverityNumber.WARN
+              : SeverityNumber.DEBUG;
+          emitLog(severity, "Claude Code stderr output", {
+            "stderr.source": "claude-cli",
+            "stderr.text": stderrText.substring(0, 500),
+            "stderr.isError": isError,
+            "stderr.isWarning": isWarning,
           });
         }
 
         if (logger) {
           if (isError) {
             void logger.logError(stderrText, {
-              source: 'stderr',
-              client: 'Claude Code',
+              source: "stderr",
+              client: "Claude Code",
             });
           } else {
             // Log non-errors as events for complete session history
-            void logger.logEvent('stderr_output', {
+            void logger.logEvent("stderr_output", {
               text: stderrText.substring(0, 500),
               isWarning,
-              client: 'Claude Code',
+              client: "Claude Code",
             });
           }
         }
 
         // Display errors and warnings to user
         if (isError || isWarning) {
-          const prefix = isError ? '[ERROR]' : '[WARNING]';
+          const prefix = isError ? "[ERROR]" : "[WARNING]";
           process.stderr.write(`${ansis.yellow(prefix)} ${stderrText}\n`);
         }
       });
 
       // Handle errors
-      proc.on('error', (error) => {
+      proc.on("error", (error) => {
         const errorContext = {
-          'error.message': error.message,
-          'error.stack': error.stack,
-          'error.code': (error as any).code, // ENOENT, EACCES, etc.
-          'process.command': 'claude',
-          'process.args': JSON.stringify(this.getProcessArgs(options)),
-          'process.sessionId': options?.sessionId,
-          'process.agent': options?.agent,
-          'process.workingDirectory': options?.workingDirectory || process.cwd(),
-          'message.length': message.length,
-          'message.preview': message.substring(0, 100),
+          "error.message": error.message,
+          "error.stack": error.stack,
+          "error.code": (error as any).code, // ENOENT, EACCES, etc.
+          "process.command": "claude",
+          "process.args": JSON.stringify(this.getProcessArgs(options)),
+          "process.sessionId": options?.sessionId,
+          "process.agent": options?.agent,
+          "process.workingDirectory": options?.workingDirectory || process.cwd(),
+          "message.length": message.length,
+          "message.preview": message.substring(0, 100),
         };
 
         if (isTelemetryEnabled && span) {
-          emitLog(SeverityNumber.ERROR, 'Claude Code process error', errorContext);
+          emitLog(SeverityNumber.ERROR, "Claude Code process error", errorContext);
           (span as any).recordException(error);
         }
         if (logger) {
           void logger.logError(
             `Claude process failed to spawn or encountered error: ${error.message}`,
             {
-              source: 'process',
-              client: 'Claude Code',
+              source: "process",
+              client: "Claude Code",
               ...errorContext,
             }
           );
         }
 
         // Log to console for immediate visibility
-        console.error('[ClaudeCodeClient] Process error:', error.message);
-        console.error('[ClaudeCodeClient]   Command:', 'claude', this.getProcessArgs(options).join(' '));
-        if ((error as any).code === 'ENOENT') {
-          console.error('[ClaudeCodeClient]   Claude CLI not found - ensure it is installed and in PATH');
-        } else if ((error as any).code === 'EACCES') {
-          console.error('[ClaudeCodeClient]   Permission denied - check Claude CLI executable permissions');
+        console.error("[ClaudeCodeClient] Process error:", error.message);
+        console.error(
+          "[ClaudeCodeClient]   Command:",
+          "claude",
+          this.getProcessArgs(options).join(" ")
+        );
+        if ((error as any).code === "ENOENT") {
+          console.error(
+            "[ClaudeCodeClient]   Claude CLI not found - ensure it is installed and in PATH"
+          );
+        } else if ((error as any).code === "EACCES") {
+          console.error(
+            "[ClaudeCodeClient]   Permission denied - check Claude CLI executable permissions"
+          );
         }
 
         endSpan(span);
@@ -259,7 +286,7 @@ export class ClaudeCodeClient extends BaseChatClient {
       });
 
       // Handle process exit
-      proc.on('close', (exitCode) => {
+      proc.on("close", (exitCode) => {
         // Print any remaining buffer
         if (buffer.trim()) {
           try {
@@ -275,18 +302,21 @@ export class ClaudeCodeClient extends BaseChatClient {
           } catch (error) {
             // Log JSON parse failure for remaining buffer
             if (isTelemetryEnabled && span) {
-              emitLog(SeverityNumber.WARN, 'Failed to parse remaining buffer as JSON', {
-                'error.message': error instanceof Error ? error.message : String(error),
-                'buffer.content': buffer.substring(0, 200),
-                'buffer.length': buffer.length,
+              emitLog(SeverityNumber.WARN, "Failed to parse remaining buffer as JSON", {
+                "error.message": error instanceof Error ? error.message : String(error),
+                "buffer.content": buffer.substring(0, 200),
+                "buffer.length": buffer.length,
               });
             }
             if (logger) {
-              void logger.logError(`Failed to parse remaining buffer: ${error instanceof Error ? error.message : String(error)}`, {
-                source: 'json-parse-buffer',
-                client: 'Claude Code',
-                bufferContent: buffer.substring(0, 200),
-              });
+              void logger.logError(
+                `Failed to parse remaining buffer: ${error instanceof Error ? error.message : String(error)}`,
+                {
+                  source: "json-parse-buffer",
+                  client: "Claude Code",
+                  bufferContent: buffer.substring(0, 200),
+                }
+              );
             }
 
             process.stdout.write(buffer);
@@ -295,19 +325,19 @@ export class ClaudeCodeClient extends BaseChatClient {
         }
 
         if (isTelemetryEnabled && span) {
-          (span as any).setAttribute('client.eventCount', eventCount);
-          (span as any).setAttribute('client.toolUseCount', toolUseCount);
-          (span as any).setAttribute('client.outputLength', assistantOutput.length);
-          (span as any).setAttribute('client.exitCode', exitCode || 0);
-          (span as any).setAttribute('response.content', assistantOutput.substring(0, 1000)); // First 1000 chars
-          (span as any).setAttribute('response.preview', assistantOutput.substring(0, 200)); // Short preview
+          (span as any).setAttribute("client.eventCount", eventCount);
+          (span as any).setAttribute("client.toolUseCount", toolUseCount);
+          (span as any).setAttribute("client.outputLength", assistantOutput.length);
+          (span as any).setAttribute("client.exitCode", exitCode || 0);
+          (span as any).setAttribute("response.content", assistantOutput.substring(0, 1000)); // First 1000 chars
+          (span as any).setAttribute("response.preview", assistantOutput.substring(0, 200)); // Short preview
         }
 
         if (exitCode === 0) {
           // Log assistant message if we got output
           if (logger && assistantOutput.trim()) {
             void logger.logAssistantMessage(assistantOutput, {
-              client: 'Claude Code',
+              client: "Claude Code",
             });
           }
           if (isTelemetryEnabled && span) {
@@ -318,15 +348,15 @@ export class ClaudeCodeClient extends BaseChatClient {
         } else {
           const errorMsg = `Claude process exited with code ${exitCode}`;
           if (isTelemetryEnabled && span) {
-            emitLog(SeverityNumber.ERROR, 'Claude Code process exited with error', {
-              'process.exitCode': exitCode,
+            emitLog(SeverityNumber.ERROR, "Claude Code process exited with error", {
+              "process.exitCode": exitCode,
             });
             (span as any).setStatus({ code: 2, message: errorMsg });
           }
           if (logger) {
             void logger.logError(errorMsg, {
               exitCode,
-              client: 'Claude Code',
+              client: "Claude Code",
             });
           }
           endSpan(span);
@@ -342,17 +372,17 @@ export class ClaudeCodeClient extends BaseChatClient {
    * @returns Object with output text and tool use flag
    */
   private handleClaudeEvent(event: ClaudeEvent): { output: string; usedTool: boolean } {
-    let output = '';
+    let output = "";
     let usedTool = false;
 
-    if (event.type === 'assistant') {
+    if (event.type === "assistant") {
       const content = event.message?.content || [];
       for (const block of content) {
-        if (block.type === 'text') {
-          const text = block.text || '';
+        if (block.type === "text") {
+          const text = block.text || "";
           process.stdout.write(text);
           output += text;
-        } else if (block.type === 'tool_use') {
+        } else if (block.type === "tool_use") {
           usedTool = true;
           const toolMsg = ansis.dim(`\n[Using tool: ${block.name}]\n`);
           process.stdout.write(toolMsg);
@@ -371,27 +401,27 @@ export class ClaudeCodeClient extends BaseChatClient {
    * @returns Array of command line arguments
    */
   private getProcessArgs(options?: ChatOptions, isFirstMessage: boolean = true): string[] {
-    const args = ['--print'];
+    const args = ["--print"];
 
     // Add dangerously-skip-permissions flag if withDanger is enabled
     if (options?.withDanger) {
-      args.push('--dangerously-skip-permissions');
+      args.push("--dangerously-skip-permissions");
     }
 
-    args.push('--verbose', '--output-format', 'stream-json');
+    args.push("--verbose", "--output-format", "stream-json");
 
     // Session management:
     // - First message: Start with our session ID for traceability
     // - Subsequent messages: Resume that specific session
     if (isFirstMessage && options?.sessionId) {
-      args.push('--session-id', options.sessionId);
+      args.push("--session-id", options.sessionId);
     } else if (!isFirstMessage && options?.sessionId) {
-      args.push('--resume', options.sessionId);
+      args.push("--resume", options.sessionId);
     }
 
     // Add agent if specified
     if (options?.agent) {
-      args.unshift('--agent', options.agent);
+      args.unshift("--agent", options.agent);
     }
 
     return args;
@@ -409,44 +439,44 @@ export class ClaudeCodeClient extends BaseChatClient {
     options?: ChatOptions,
     isFirstMessage: boolean = true
   ): ChildProcess {
-    const span = isTelemetryEnabled ? startSpan('claude-code.spawn-process') : null;
+    const span = isTelemetryEnabled ? startSpan("claude-code.spawn-process") : null;
 
     try {
       const args = this.getProcessArgs(options, isFirstMessage);
       const cwd = options?.workingDirectory || process.cwd();
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('process.command', 'claude');
-        (span as any).setAttribute('process.args', args.join(' '));
-        (span as any).setAttribute('process.argCount', args.length);
-        (span as any).setAttribute('process.isFirstMessage', isFirstMessage);
-        (span as any).setAttribute('process.hasResume', args.includes('--resume'));
-        (span as any).setAttribute('process.hasSessionId', args.includes('--session-id'));
-        (span as any).setAttribute('process.hasAgent', !!options?.agent);
-        (span as any).setAttribute('process.agent', options?.agent);
-        (span as any).setAttribute('process.withDanger', options?.withDanger === true);
-        (span as any).setAttribute('process.workingDirectory', cwd);
-        (span as any).setAttribute('process.messageLength', message.length);
+        (span as any).setAttribute("process.command", "claude");
+        (span as any).setAttribute("process.args", args.join(" "));
+        (span as any).setAttribute("process.argCount", args.length);
+        (span as any).setAttribute("process.isFirstMessage", isFirstMessage);
+        (span as any).setAttribute("process.hasResume", args.includes("--resume"));
+        (span as any).setAttribute("process.hasSessionId", args.includes("--session-id"));
+        (span as any).setAttribute("process.hasAgent", !!options?.agent);
+        (span as any).setAttribute("process.agent", options?.agent);
+        (span as any).setAttribute("process.withDanger", options?.withDanger === true);
+        (span as any).setAttribute("process.workingDirectory", cwd);
+        (span as any).setAttribute("process.messageLength", message.length);
       }
 
       // Log the command that's being executed
       const logger = getChatLogger();
       if (logger) {
-        void logger.logCommand('claude', args, {
-          client: 'Claude Code',
+        void logger.logCommand("claude", args, {
+          client: "Claude Code",
           workingDirectory: cwd,
           agent: options?.agent,
           withDanger: options?.withDanger || false,
           messageLength: message.length,
-          hasVerboseFlag: args.includes('--verbose'),
-          hasOutputFormat: args.includes('--output-format'),
+          hasVerboseFlag: args.includes("--verbose"),
+          hasOutputFormat: args.includes("--output-format"),
           sessionId: options?.sessionId,
         });
       }
 
-      const proc = spawn('claude', args, {
+      const proc = spawn("claude", args, {
         cwd,
-        stdio: ['pipe', 'pipe', 'pipe'],
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       // Send message via stdin
@@ -454,8 +484,8 @@ export class ClaudeCodeClient extends BaseChatClient {
       proc.stdin?.end();
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('process.spawned', true);
-        (span as any).setAttribute('process.pid', proc.pid);
+        (span as any).setAttribute("process.spawned", true);
+        (span as any).setAttribute("process.pid", proc.pid);
         (span as any).setStatus({ code: 0 });
       }
 
@@ -463,7 +493,10 @@ export class ClaudeCodeClient extends BaseChatClient {
     } catch (error) {
       if (isTelemetryEnabled && span) {
         (span as any).recordException(error as Error);
-        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+        (span as any).setStatus({
+          code: 2,
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
       throw error;
     } finally {
@@ -475,6 +508,6 @@ export class ClaudeCodeClient extends BaseChatClient {
    * Get the name of this client
    */
   getClientName(): string {
-    return 'Claude Code';
+    return "Claude Code";
   }
 }

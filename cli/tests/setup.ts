@@ -20,8 +20,8 @@
  * These are complementary systems serving different test requirements.
  */
 
-import { randomUUID } from 'crypto';
-import { GoldenCopyCacheManager } from '../dist/core/golden-copy-cache.js';
+import { randomUUID } from "crypto";
+import { GoldenCopyCacheManager } from "../dist/core/golden-copy-cache.js";
 
 // Global test configuration for parallel execution
 declare global {
@@ -43,16 +43,16 @@ process.env.TEST_TEMP_DIR = `/tmp/test-${globalThis.__TEST_ID__}`;
 
 // Suppress verbose CLI output in tests
 if (!process.env.TEST_VERBOSE) {
-  process.env.CLI_QUIET = 'true';
+  process.env.CLI_QUIET = "true";
 }
 
 // Enable test-specific configuration
-process.env.NODE_ENV = 'test';
+process.env.NODE_ENV = "test";
 
 // Initialize golden copy cache asynchronously
 // This runs once per worker and provides a shared model for cloning
 const initializeGoldenCopyAsync = async () => {
-  if (process.env.DISABLE_GOLDEN_COPY === 'true') {
+  if (process.env.DISABLE_GOLDEN_COPY === "true") {
     if (process.env.DEBUG_TEST_SETUP) {
       console.log(`[Setup] Golden copy disabled via DISABLE_GOLDEN_COPY environment variable`);
     }
@@ -61,8 +61,8 @@ const initializeGoldenCopyAsync = async () => {
 
   try {
     const manager = GoldenCopyCacheManager.getInstance({
-      warmup: process.env.GOLDEN_COPY_WARMUP === 'true',
-      eagerLoad: process.env.GOLDEN_COPY_EAGER === 'true',
+      warmup: process.env.GOLDEN_COPY_WARMUP === "true",
+      eagerLoad: process.env.GOLDEN_COPY_EAGER === "true",
     });
 
     // Initialize the golden copy cache (creates or loads shared model)
@@ -77,14 +77,17 @@ const initializeGoldenCopyAsync = async () => {
       console.log(`[Setup] Cache location: ${manager.getCacheDir()}`);
     }
   } catch (error) {
-    console.error('[Setup] Failed to initialize golden copy cache:', error instanceof Error ? error.message : String(error));
+    console.error(
+      "[Setup] Failed to initialize golden copy cache:",
+      error instanceof Error ? error.message : String(error)
+    );
     // Don't fail setup if golden copy fails - tests will fall back to createTestModel
   }
 };
 
 // Kick off initialization (don't wait, let it happen in background)
 initializeGoldenCopyAsync().catch((error) => {
-  console.error('[Setup] Unexpected error in golden copy initialization:', error);
+  console.error("[Setup] Unexpected error in golden copy initialization:", error);
 });
 
 // Log test environment setup
@@ -97,7 +100,7 @@ if (process.env.DEBUG_TEST_SETUP) {
 // Set up cleanup on process exit
 // The 'exit' event is synchronous, so we use 'beforeExit' for async cleanup
 // beforeExit is fired when the event loop drains with no pending work
-process.on('beforeExit', async () => {
+process.on("beforeExit", async () => {
   if (globalThis.__GOLDEN_COPY_INITIALIZED__) {
     try {
       const manager = GoldenCopyCacheManager.getInstance();
@@ -109,8 +112,8 @@ process.on('beforeExit', async () => {
       // Always log cleanup errors, not just in debug mode
       console.error(
         `[Setup] ERROR: Failed to clean up golden copy cache. ` +
-        `This may cause disk space issues. ` +
-        `Error: ${error instanceof Error ? error.message : String(error)}`
+          `This may cause disk space issues. ` +
+          `Error: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }

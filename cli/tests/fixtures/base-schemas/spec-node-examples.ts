@@ -13,19 +13,19 @@ export const specNodeExamples = {
       priority: {
         type: "enum",
         enum_values: ["critical", "high", "medium", "low"],
-        description: "Priority level of the goal"
+        description: "Priority level of the goal",
       },
       owner: {
         type: "string",
-        description: "Team or person responsible for achieving this goal"
+        description: "Team or person responsible for achieving this goal",
       },
       target_date: {
         type: "string",
         format: "date",
-        description: "Target date for goal achievement"
-      }
+        description: "Target date for goal achievement",
+      },
     },
-    required_attributes: ["priority"]
+    required_attributes: ["priority"],
   },
 
   requirementNode: {
@@ -37,15 +37,15 @@ export const specNodeExamples = {
       type: {
         type: "enum",
         enum_values: ["functional", "non-functional", "constraint"],
-        description: "Type of requirement"
+        description: "Type of requirement",
       },
       status: {
         type: "enum",
         enum_values: ["proposed", "approved", "implemented", "deprecated"],
         description: "Status of the requirement",
-        default: "proposed"
-      }
-    }
+        default: "proposed",
+      },
+    },
   },
 
   endpointNode: {
@@ -57,19 +57,19 @@ export const specNodeExamples = {
       method: {
         type: "enum",
         enum_values: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-        description: "HTTP method"
+        description: "HTTP method",
       },
       path: {
         type: "string",
-        description: "URL path"
+        description: "URL path",
       },
       deprecated: {
         type: "boolean",
         description: "Whether this endpoint is deprecated",
-        default: false
-      }
+        default: false,
+      },
     },
-    required_attributes: ["method", "path"]
+    required_attributes: ["method", "path"],
   },
 
   tableNode: {
@@ -80,13 +80,13 @@ export const specNodeExamples = {
     attributes: {
       columns: {
         type: "integer",
-        description: "Number of columns"
+        description: "Number of columns",
       },
       indexed: {
         type: "boolean",
-        description: "Whether table has primary index"
-      }
-    }
+        description: "Whether table has primary index",
+      },
+    },
   },
 
   testCaseNode: {
@@ -99,14 +99,14 @@ export const specNodeExamples = {
         type: "enum",
         enum_values: ["active", "inactive", "archived"],
         description: "Status of test case",
-        default: "active"
+        default: "active",
       },
       complexity: {
         type: "enum",
         enum_values: ["simple", "moderate", "complex"],
-        description: "Complexity level"
-      }
-    }
+        description: "Complexity level",
+      },
+    },
   },
 
   minimalNode: {
@@ -114,7 +114,7 @@ export const specNodeExamples = {
     layer_id: "custom",
     name: "Minimal Node",
     description: "Node with minimal attributes",
-    attributes: {}
+    attributes: {},
   },
 
   entityNode: {
@@ -126,18 +126,18 @@ export const specNodeExamples = {
       abstract: {
         type: "boolean",
         description: "Whether this is an abstract entity",
-        default: false
+        default: false,
       },
       version: {
         type: "integer",
-        description: "Schema version"
+        description: "Schema version",
       },
       tags: {
         type: "array",
-        description: "Metadata tags"
-      }
-    }
-  }
+        description: "Metadata tags",
+      },
+    },
+  },
 };
 
 export const invalidSpecNodeExamples = {
@@ -146,7 +146,7 @@ export const invalidSpecNodeExamples = {
     layer_id: "test",
     name: "Invalid",
     description: "Invalid ID format",
-    attributes: {}
+    attributes: {},
   },
 
   mismatchedLayerId: {
@@ -154,7 +154,7 @@ export const invalidSpecNodeExamples = {
     layer_id: "business", // doesn't match prefix
     name: "Invalid",
     description: "Layer ID mismatch",
-    attributes: {}
+    attributes: {},
   },
 
   invalidAttributeType: {
@@ -165,9 +165,9 @@ export const invalidSpecNodeExamples = {
     attributes: {
       bad_attr: {
         type: "invalid-type", // not in enum
-        description: "Bad type"
-      }
-    }
+        description: "Bad type",
+      },
+    },
   },
 
   enumWithoutValues: {
@@ -178,10 +178,10 @@ export const invalidSpecNodeExamples = {
     attributes: {
       status: {
         type: "enum",
-        description: "Missing enum_values"
+        description: "Missing enum_values",
         // missing enum_values
-      }
-    }
+      },
+    },
   },
 
   missingDescription: {
@@ -189,7 +189,7 @@ export const invalidSpecNodeExamples = {
     layer_id: "test",
     name: "Invalid",
     // missing description
-    attributes: {}
+    attributes: {},
   },
 
   invalidRequiredAttribute: {
@@ -200,9 +200,9 @@ export const invalidSpecNodeExamples = {
     attributes: {
       existing: {
         type: "string",
-        description: "An existing attribute"
-      }
+        description: "An existing attribute",
+      },
     },
-    required_attributes: ["nonexistent"] // references non-existent attribute
-  }
+    required_attributes: ["nonexistent"], // references non-existent attribute
+  },
 };

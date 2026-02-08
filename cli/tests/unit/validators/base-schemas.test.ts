@@ -11,11 +11,26 @@ import * as path from "path";
 import { fileURLToPath } from "url";
 
 // Import test fixtures
-import { specLayerExamples, invalidSpecLayerExamples } from "../../fixtures/base-schemas/spec-layer-examples";
-import { specNodeExamples, invalidSpecNodeExamples } from "../../fixtures/base-schemas/spec-node-examples";
-import { specNodeRelationshipExamples, invalidSpecNodeRelationshipExamples } from "../../fixtures/base-schemas/spec-node-relationship-examples";
-import { modelNodeExamples, invalidModelNodeExamples } from "../../fixtures/base-schemas/model-node-examples";
-import { modelNodeRelationshipExamples, invalidModelNodeRelationshipExamples } from "../../fixtures/base-schemas/model-node-relationship-examples";
+import {
+  specLayerExamples,
+  invalidSpecLayerExamples,
+} from "../../fixtures/base-schemas/spec-layer-examples";
+import {
+  specNodeExamples,
+  invalidSpecNodeExamples,
+} from "../../fixtures/base-schemas/spec-node-examples";
+import {
+  specNodeRelationshipExamples,
+  invalidSpecNodeRelationshipExamples,
+} from "../../fixtures/base-schemas/spec-node-relationship-examples";
+import {
+  modelNodeExamples,
+  invalidModelNodeExamples,
+} from "../../fixtures/base-schemas/model-node-examples";
+import {
+  modelNodeRelationshipExamples,
+  invalidModelNodeRelationshipExamples,
+} from "../../fixtures/base-schemas/model-node-relationship-examples";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const schemasDir = path.join(__dirname, "../../../../spec/schemas/base");
@@ -178,7 +193,7 @@ describe("Base Schema Validation", () => {
       const validate = ajv.compile(specNodeSchema);
       const valid = validate(invalidSpecNodeExamples.enumWithoutValues);
       expect(valid).toBe(false); // if/then constraint requires enum_values when type is 'enum'
-      expect(validate.errors?.some(e => e.keyword === "required")).toBe(true);
+      expect(validate.errors?.some((e) => e.keyword === "required")).toBe(true);
     });
 
     it("should reject node with missing description", () => {
@@ -229,7 +244,7 @@ describe("Base Schema Validation", () => {
         source_spec_node_id: "motivation.goal",
         destination_spec_node_id: "motivation.goal",
         destination_layer: "motivation",
-        predicate: "supports"
+        predicate: "supports",
       });
       // This should be valid because source_layer is optional/denormalized
       expect(valid).toBe(true);
@@ -276,7 +291,7 @@ describe("Base Schema Validation", () => {
         id: "550e8400-e29b-41d4-a716-446655440000",
         spec_node_id: "test.element",
         type: "element",
-        name: "Test Node"
+        name: "Test Node",
       };
       const valid = validate(minimalNode);
       expect(valid).toBe(true);
@@ -352,7 +367,7 @@ describe("Base Schema Validation", () => {
         source_layer_id: "motivation",
         destination_node_id: "880e8500-e29b-41d4-a716-446655440001",
         destination_layer_id: "business",
-        predicate: "realizes"
+        predicate: "realizes",
       };
       const valid = validate(instance);
       expect(valid).toBe(true);
@@ -365,7 +380,7 @@ describe("Base Schema Validation", () => {
         spec_relationship_id: "test.uses.test",
         source_node_id: "550e8400-e29b-41d4-a716-446655440000",
         destination_node_id: "770f0611-041d-63f6-c938-668877662222",
-        predicate: "uses"
+        predicate: "uses",
       };
       const valid = validate(minimalRelationship);
       expect(valid).toBe(true);
@@ -383,8 +398,8 @@ describe("Base Schema Validation", () => {
         predicate: "tests",
         attributes: {
           coverage_percentage: 85,
-          last_run_date: "2025-02-07T14:30:00Z"
-        }
+          last_run_date: "2025-02-07T14:30:00Z",
+        },
       };
       const valid = validate(instance);
       expect(valid).toBe(true);
@@ -405,10 +420,10 @@ describe("Base Schema Validation", () => {
           locations: [
             {
               file: "documentation/architecture.md",
-              symbol: "goal-dependency-001"
-            }
-          ]
-        }
+              symbol: "goal-dependency-001",
+            },
+          ],
+        },
       };
       const valid = validate(instance);
       expect(valid).toBe(true);
@@ -438,7 +453,7 @@ describe("Base Schema Validation", () => {
         source_layer_id: "motivation",
         destination_node_id: "770f0611-041d-63f6-c938-668877662222",
         // missing destination_layer_id
-        predicate: "supports"
+        predicate: "supports",
       };
       const valid = validate(instance);
       // This should be valid because destination_layer_id is optional
@@ -481,10 +496,10 @@ describe("Base Schema Validation", () => {
               directionality: "bidirectional",
               transitivity: true,
               symmetry: false,
-              reflexivity: false
-            }
-          }
-        }
+              reflexivity: false,
+            },
+          },
+        },
       };
       const valid = validate(catalogData);
       expect(valid).toBe(true);
@@ -504,11 +519,11 @@ describe("Base Schema Validation", () => {
               directionality: "unidirectional",
               transitivity: false,
               symmetry: false,
-              reflexivity: true
+              reflexivity: true,
             },
-            default_strength: "high"
-          }
-        }
+            default_strength: "high",
+          },
+        },
       };
       const valid = validate(catalogData);
       expect(valid).toBe(true);
@@ -527,10 +542,10 @@ describe("Base Schema Validation", () => {
       const catalogData = {
         predicates: {
           invalid: {
-            predicate: "invalid"
+            predicate: "invalid",
             // missing inverse, category, description
-          }
-        }
+          },
+        },
       };
       const valid = validate(catalogData);
       expect(valid).toBe(false);
@@ -544,9 +559,9 @@ describe("Base Schema Validation", () => {
             predicate: "invalid",
             inverse: "invalid-inverse",
             category: "invalid-category",
-            description: "Invalid"
-          }
-        }
+            description: "Invalid",
+          },
+        },
       };
       const valid = validate(catalogData);
       expect(valid).toBe(false);
@@ -566,10 +581,10 @@ describe("Base Schema Validation", () => {
               directionality: "invalid", // not in enum
               transitivity: true,
               symmetry: false,
-              reflexivity: false
-            }
-          }
-        }
+              reflexivity: false,
+            },
+          },
+        },
       };
       const valid = validate(catalogData);
       expect(valid).toBe(false);

@@ -8,19 +8,20 @@ export const specLayerExamples = {
     id: "motivation",
     number: 1,
     name: "Motivation Layer",
-    description: "Captures stakeholder concerns, goals, requirements, and constraints that drive architectural decisions using ArchiMate motivation elements.",
+    description:
+      "Captures stakeholder concerns, goals, requirements, and constraints that drive architectural decisions using ArchiMate motivation elements.",
     inspired_by: {
       standard: "ArchiMate 3.2",
       version: "3.2",
-      url: "https://pubs.opengroup.org/architecture/archimate32-doc/"
+      url: "https://pubs.opengroup.org/architecture/archimate32-doc/",
     },
     node_types: [
       "motivation.goal",
       "motivation.requirement",
       "motivation.constraint",
       "motivation.stakeholder",
-      "motivation.driver"
-    ]
+      "motivation.driver",
+    ],
   },
 
   businessLayer: {
@@ -31,9 +32,9 @@ export const specLayerExamples = {
     inspired_by: {
       standard: "ArchiMate 3.2",
       version: "3.2",
-      url: "https://pubs.opengroup.org/architecture/archimate32-doc/"
+      url: "https://pubs.opengroup.org/architecture/archimate32-doc/",
     },
-    node_types: ["business.service", "business.process", "business.actor"]
+    node_types: ["business.service", "business.process", "business.actor"],
   },
 
   dataModelLayer: {
@@ -44,9 +45,9 @@ export const specLayerExamples = {
     inspired_by: {
       standard: "JSON Schema Draft 7",
       version: "Draft 7",
-      url: "https://json-schema.org/"
+      url: "https://json-schema.org/",
     },
-    node_types: ["data-model.entity", "data-model.value-object"]
+    node_types: ["data-model.entity", "data-model.value-object"],
   },
 
   dataStoreLayer: {
@@ -54,7 +55,7 @@ export const specLayerExamples = {
     number: 8,
     name: "Data Store Layer",
     description: "Represents physical database schemas and storage structures.",
-    node_types: ["data-store.table", "data-store.index", "data-store.view"]
+    node_types: ["data-store.table", "data-store.index", "data-store.view"],
   },
 
   apiLayer: {
@@ -65,9 +66,9 @@ export const specLayerExamples = {
     inspired_by: {
       standard: "OpenAPI 3.0",
       version: "3.0.0",
-      url: "https://spec.openapis.org/oas/v3.0.0"
+      url: "https://spec.openapis.org/oas/v3.0.0",
     },
-    node_types: ["api.endpoint", "api.schema"]
+    node_types: ["api.endpoint", "api.schema"],
   },
 
   testingLayer: {
@@ -75,15 +76,15 @@ export const specLayerExamples = {
     number: 12,
     name: "Testing Layer",
     description: "Defines test strategies, test cases, and test data structures.",
-    node_types: ["testing.test-case", "testing.test-suite"]
+    node_types: ["testing.test-case", "testing.test-suite"],
   },
 
   minimalLayer: {
     id: "minimal",
     number: 13,
     name: "Minimal Layer",
-    description: "Layer with only required fields"
-  }
+    description: "Layer with only required fields",
+  },
 };
 
 export const invalidSpecLayerExamples = {
@@ -91,21 +92,21 @@ export const invalidSpecLayerExamples = {
     id: "Invalid-Id", // starts with uppercase
     number: 1,
     name: "Invalid",
-    description: "Invalid ID pattern"
+    description: "Invalid ID pattern",
   },
 
   invalidNumber: {
     id: "valid",
     number: 0, // must be >= 1
     name: "Invalid",
-    description: "Invalid number"
+    description: "Invalid number",
   },
 
   missingRequired: {
     id: "valid",
     // missing number
     name: "Invalid",
-    description: "Missing required field"
+    description: "Missing required field",
   },
 
   extraProperties: {
@@ -113,7 +114,7 @@ export const invalidSpecLayerExamples = {
     number: 1,
     name: "Invalid",
     description: "Has extra property",
-    extra_field: "should not be allowed"
+    extra_field: "should not be allowed",
   },
 
   invalidNodeTypeRef: {
@@ -123,7 +124,7 @@ export const invalidSpecLayerExamples = {
     description: "Valid",
     node_types: [
       "invalid-node-id-format", // missing dot
-      "valid.node"
-    ]
-  }
+      "valid.node",
+    ],
+  },
 };

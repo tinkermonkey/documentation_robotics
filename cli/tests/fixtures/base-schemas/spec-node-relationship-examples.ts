@@ -17,9 +17,9 @@ export const specNodeRelationshipExamples = {
     attributes: {
       reason: {
         type: "string",
-        description: "Explanation for why this goal supports another"
-      }
-    }
+        description: "Explanation for why this goal supports another",
+      },
+    },
   },
 
   realizesRelationship: {
@@ -30,7 +30,7 @@ export const specNodeRelationshipExamples = {
     destination_layer: "business",
     predicate: "realizes",
     cardinality: "many-to-one",
-    strength: "high"
+    strength: "high",
   },
 
   implementsRelationship: {
@@ -42,7 +42,7 @@ export const specNodeRelationshipExamples = {
     predicate: "implements",
     cardinality: "one-to-many",
     strength: "critical",
-    required: true
+    required: true,
   },
 
   persistsRelationship: {
@@ -53,7 +53,7 @@ export const specNodeRelationshipExamples = {
     destination_layer: "data-store",
     predicate: "persists-to",
     cardinality: "one-to-one",
-    strength: "critical"
+    strength: "critical",
   },
 
   testsRelationship: {
@@ -64,14 +64,14 @@ export const specNodeRelationshipExamples = {
     destination_layer: "api",
     predicate: "tests",
     cardinality: "many-to-many",
-    strength: "medium"
+    strength: "medium",
   },
 
   minimalRelationship: {
     id: "custom.uses.custom",
     source_spec_node_id: "custom.element",
     destination_spec_node_id: "custom.element",
-    predicate: "uses"
+    predicate: "uses",
   },
 
   consumesRelationship: {
@@ -88,10 +88,10 @@ export const specNodeRelationshipExamples = {
       frequency: {
         type: "enum",
         enum_values: ["realtime", "frequent", "occasional", "rare"],
-        description: "How often this relationship is used"
-      }
-    }
-  }
+        description: "How often this relationship is used",
+      },
+    },
+  },
 };
 
 export const invalidSpecNodeRelationshipExamples = {
@@ -101,7 +101,7 @@ export const invalidSpecNodeRelationshipExamples = {
     source_layer: "motivation",
     destination_spec_node_id: "motivation.goal",
     destination_layer: "motivation",
-    predicate: "supports"
+    predicate: "supports",
   },
 
   missingSourceLayer: {
@@ -110,7 +110,7 @@ export const invalidSpecNodeRelationshipExamples = {
     // missing source_layer
     destination_spec_node_id: "motivation.goal",
     destination_layer: "motivation",
-    predicate: "supports"
+    predicate: "supports",
   },
 
   invalidCardinality: {
@@ -120,7 +120,7 @@ export const invalidSpecNodeRelationshipExamples = {
     destination_spec_node_id: "motivation.goal",
     destination_layer: "motivation",
     predicate: "supports",
-    cardinality: "invalid-cardinality" // not in enum
+    cardinality: "invalid-cardinality", // not in enum
   },
 
   invalidStrength: {
@@ -130,7 +130,7 @@ export const invalidSpecNodeRelationshipExamples = {
     destination_spec_node_id: "motivation.goal",
     destination_layer: "motivation",
     predicate: "supports",
-    strength: "super-high" // not in enum
+    strength: "super-high", // not in enum
   },
 
   extraProperties: {
@@ -140,6 +140,6 @@ export const invalidSpecNodeRelationshipExamples = {
     destination_spec_node_id: "motivation.goal",
     destination_layer: "motivation",
     predicate: "supports",
-    extra_field: "not allowed"
-  }
+    extra_field: "not allowed",
+  },
 };

@@ -9,15 +9,15 @@
  * - Concurrent execution would cause port conflicts and WebSocket binding failures
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
-import { Model } from '../../src/core/model.js';
-import { VisualizationServer } from '../../src/server/server.js';
-import { Element } from '../../src/core/element.js';
-import { Layer } from '../../src/core/layer.js';
-import { portAllocator } from '../helpers/port-allocator.js';
-import { createTestModel } from '../helpers/test-model.js';
-import * as fs from 'fs/promises';
-import { tmpdir } from 'os';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { Model } from "../../src/core/model.js";
+import { VisualizationServer } from "../../src/server/server.js";
+import { Element } from "../../src/core/element.js";
+import { Layer } from "../../src/core/layer.js";
+import { portAllocator } from "../helpers/port-allocator.js";
+import { createTestModel } from "../helpers/test-model.js";
+import * as fs from "fs/promises";
+import { tmpdir } from "os";
 
 /**
  * Generate unique test directory using cross-platform temp directory
@@ -29,11 +29,7 @@ function getTestDir(): string {
 /**
  * Helper to wait for a WebSocket message of a specific type
  */
-function waitForMessage(
-  ws: WebSocket,
-  expectedType: string,
-  timeout: number = 5000
-): Promise<any> {
+function waitForMessage(ws: WebSocket, expectedType: string, timeout: number = 5000): Promise<any> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Timeout waiting for message type: ${expectedType}`));
@@ -43,7 +39,7 @@ function waitForMessage(
       try {
         const message = JSON.parse(event.data);
         if (message.type === expectedType) {
-          ws.removeEventListener('message', handler);
+          ws.removeEventListener("message", handler);
           clearTimeout(timer);
           resolve(message);
         }
@@ -52,11 +48,11 @@ function waitForMessage(
       }
     };
 
-    ws.addEventListener('message', handler);
+    ws.addEventListener("message", handler);
   });
 }
 
-describe.serial('WebSocket Connection Lifecycle', () => {
+describe.serial("WebSocket Connection Lifecycle", () => {
   let server: VisualizationServer;
   let model: Model;
   let port: number;
@@ -78,7 +74,7 @@ describe.serial('WebSocket Connection Lifecycle', () => {
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
-  it('should accept WebSocket connections on /ws', async () => {
+  it("should accept WebSocket connections on /ws", async () => {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(wsUrl);
 
@@ -92,11 +88,11 @@ describe.serial('WebSocket Connection Lifecycle', () => {
         reject(new Error(`Failed to connect: ${error}`));
       };
 
-      setTimeout(() => reject(new Error('Connection timeout')), 5000);
+      setTimeout(() => reject(new Error("Connection timeout")), 5000);
     });
   });
 
-  it('should handle normal connection close', async () => {
+  it("should handle normal connection close", async () => {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(wsUrl);
 
@@ -113,19 +109,19 @@ describe.serial('WebSocket Connection Lifecycle', () => {
         reject(error);
       };
 
-      setTimeout(() => reject(new Error('Close timeout')), 5000);
+      setTimeout(() => reject(new Error("Close timeout")), 5000);
     });
   });
 
-  it('should send connected message upon connection', async () => {
+  it("should send connected message upon connection", async () => {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(wsUrl);
 
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          if (message.type === 'connected') {
-            expect(message).toHaveProperty('version');
+          if (message.type === "connected") {
+            expect(message).toHaveProperty("version");
             ws.close();
             resolve();
           }
@@ -138,11 +134,11 @@ describe.serial('WebSocket Connection Lifecycle', () => {
         reject(error);
       };
 
-      setTimeout(() => reject(new Error('Message timeout')), 5000);
+      setTimeout(() => reject(new Error("Message timeout")), 5000);
     });
   });
 
-  it('should handle terminate gracefully', async () => {
+  it("should handle terminate gracefully", async () => {
     const ws = new WebSocket(wsUrl);
 
     await new Promise<void>((resolve) => {
@@ -167,22 +163,22 @@ describe.serial('WebSocket Connection Lifecycle', () => {
         reject(error);
       };
 
-      setTimeout(() => reject(new Error('Second connection timeout')), 5000);
+      setTimeout(() => reject(new Error("Second connection timeout")), 5000);
     });
   });
 
-  it('should respond to ping messages with pong', async () => {
+  it("should respond to ping messages with pong", async () => {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'ping' }));
+        ws.send(JSON.stringify({ type: "ping" }));
       };
 
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          if (message.type === 'pong') {
+          if (message.type === "pong") {
             ws.close();
             resolve();
           }
@@ -195,12 +191,12 @@ describe.serial('WebSocket Connection Lifecycle', () => {
         reject(error);
       };
 
-      setTimeout(() => reject(new Error('Pong timeout')), 5000);
+      setTimeout(() => reject(new Error("Pong timeout")), 5000);
     });
   });
 });
 
-describe.serial('WebSocket Real-time Event Streaming', () => {
+describe.serial("WebSocket Real-time Event Streaming", () => {
   let server: VisualizationServer;
   let model: Model;
   let port: number;
@@ -224,14 +220,14 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
-  it('should broadcast annotation create events to subscribed clients', async () => {
+  it("should broadcast annotation create events to subscribed clients", async () => {
     return new Promise<void>(async (resolve, reject) => {
       const ws = new WebSocket(wsUrl);
       const messages: any[] = [];
 
       ws.onopen = () => {
         // Subscribe to annotations
-        ws.send(JSON.stringify({ type: 'subscribe', topics: ['annotations'] }));
+        ws.send(JSON.stringify({ type: "subscribe", topics: ["annotations"] }));
       };
 
       ws.onmessage = (event) => {
@@ -239,9 +235,9 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
           const message = JSON.parse(event.data);
           messages.push(message);
 
-          if (message.type === 'annotation.added') {
-            expect(message).toHaveProperty('elementId');
-            expect(message).toHaveProperty('annotationId');
+          if (message.type === "annotation.added") {
+            expect(message).toHaveProperty("elementId");
+            expect(message).toHaveProperty("annotationId");
             ws.close();
             resolve();
           }
@@ -258,34 +254,34 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
       setTimeout(async () => {
         try {
           await fetch(`${baseUrl}/api/annotations`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              elementId: 'motivation-goal-ws-1',
-              author: 'Test User',
-              content: 'Test annotation for event broadcast'
-            })
+              elementId: "motivation-goal-ws-1",
+              author: "Test User",
+              content: "Test annotation for event broadcast",
+            }),
           });
         } catch (error) {
           reject(error);
         }
       }, 100);
 
-      setTimeout(() => reject(new Error('Event broadcast timeout')), 8000);
+      setTimeout(() => reject(new Error("Event broadcast timeout")), 8000);
     });
   });
 
-  it('should broadcast annotation update events', async () => {
+  it("should broadcast annotation update events", async () => {
     return new Promise<void>(async (resolve, reject) => {
       // First, create an annotation
       const createRes = await fetch(`${baseUrl}/api/annotations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          elementId: 'motivation-goal-ws-2',
-          author: 'Test User',
-          content: 'Original content'
-        })
+          elementId: "motivation-goal-ws-2",
+          author: "Test User",
+          content: "Original content",
+        }),
       });
 
       const createdAnnotation = await createRes.json();
@@ -295,7 +291,7 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'subscribe', topics: ['annotations'] }));
+        ws.send(JSON.stringify({ type: "subscribe", topics: ["annotations"] }));
       };
 
       ws.onerror = (error) => {
@@ -306,11 +302,11 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
       setTimeout(async () => {
         try {
           await fetch(`${baseUrl}/api/annotations/${annotationId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              content: 'Updated content'
-            })
+              content: "Updated content",
+            }),
           });
         } catch (error) {
           reject(error);
@@ -319,8 +315,8 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
 
       // Use helper to wait for specific message type
       try {
-        const message = await waitForMessage(ws, 'annotation.updated', 8000);
-        expect(message).toHaveProperty('annotationId');
+        const message = await waitForMessage(ws, "annotation.updated", 8000);
+        expect(message).toHaveProperty("annotationId");
         ws.close();
         resolve();
       } catch (error) {
@@ -330,17 +326,17 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
     });
   });
 
-  it('should broadcast annotation delete events', async () => {
+  it("should broadcast annotation delete events", async () => {
     return new Promise<void>(async (resolve, reject) => {
       // Create annotation
       const createRes = await fetch(`${baseUrl}/api/annotations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          elementId: 'motivation-goal-ws-1',
-          author: 'Test User',
-          content: 'To be deleted'
-        })
+          elementId: "motivation-goal-ws-1",
+          author: "Test User",
+          content: "To be deleted",
+        }),
       });
 
       const createdAnnotation = await createRes.json();
@@ -349,7 +345,7 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'subscribe', topics: ['annotations'] }));
+        ws.send(JSON.stringify({ type: "subscribe", topics: ["annotations"] }));
       };
 
       ws.onerror = (error) => {
@@ -359,7 +355,7 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
       setTimeout(async () => {
         try {
           await fetch(`${baseUrl}/api/annotations/${annotationId}`, {
-            method: 'DELETE'
+            method: "DELETE",
           });
         } catch (error) {
           reject(error);
@@ -368,8 +364,8 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
 
       // Use helper to wait for specific message type
       try {
-        const message = await waitForMessage(ws, 'annotation.deleted', 8000);
-        expect(message).toHaveProperty('annotationId');
+        const message = await waitForMessage(ws, "annotation.deleted", 8000);
+        expect(message).toHaveProperty("annotationId");
         ws.close();
         resolve();
       } catch (error) {
@@ -380,7 +376,7 @@ describe.serial('WebSocket Real-time Event Streaming', () => {
   });
 });
 
-describe.serial('WebSocket Concurrent Client Handling', () => {
+describe.serial("WebSocket Concurrent Client Handling", () => {
   let server: VisualizationServer;
   let model: Model;
   let port: number;
@@ -404,7 +400,7 @@ describe.serial('WebSocket Concurrent Client Handling', () => {
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
-  it('should handle multiple concurrent WebSocket connections', async () => {
+  it("should handle multiple concurrent WebSocket connections", async () => {
     const clientCount = 5;
     const clients: WebSocket[] = [];
 
@@ -437,13 +433,13 @@ describe.serial('WebSocket Concurrent Client Handling', () => {
         await Promise.all(connectionPromises);
 
         // Verify all are open
-        expect(clients.every(ws => ws.readyState === WebSocket.OPEN)).toBe(true);
+        expect(clients.every((ws) => ws.readyState === WebSocket.OPEN)).toBe(true);
 
         // Close all connections
-        clients.forEach(ws => ws.close());
+        clients.forEach((ws) => ws.close());
         resolve();
       } catch (error) {
-        clients.forEach(ws => {
+        clients.forEach((ws) => {
           if (ws.readyState === WebSocket.OPEN) ws.close();
         });
         reject(error);
@@ -451,7 +447,7 @@ describe.serial('WebSocket Concurrent Client Handling', () => {
     });
   });
 
-  it('should broadcast events to all connected clients', async () => {
+  it("should broadcast events to all connected clients", async () => {
     const clientCount = 3;
     const clients: WebSocket[] = [];
     const receivedMessages: any[][] = Array.from({ length: clientCount }, () => []);
@@ -492,40 +488,40 @@ describe.serial('WebSocket Concurrent Client Handling', () => {
         await Promise.all(connectionPromises);
 
         // Subscribe all clients to annotations
-        clients.forEach(ws => {
+        clients.forEach((ws) => {
           if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'subscribe', topics: ['annotations'] }));
+            ws.send(JSON.stringify({ type: "subscribe", topics: ["annotations"] }));
           }
         });
 
         // Wait a moment for subscriptions to register
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 200));
 
         // Create an annotation
         await fetch(`${baseUrl}/api/annotations`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            elementId: 'motivation-goal-ws-1',
-            author: 'Broadcast Test',
-            content: 'Event should reach all clients'
-          })
+            elementId: "motivation-goal-ws-1",
+            author: "Broadcast Test",
+            content: "Event should reach all clients",
+          }),
         });
 
         // Wait for events to propagate
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 500));
 
         // Verify all clients received the annotation event
-        const allReceived = receivedMessages.every(msgs =>
-          msgs.some(m => m.type === 'annotation.added')
+        const allReceived = receivedMessages.every((msgs) =>
+          msgs.some((m) => m.type === "annotation.added")
         );
         expect(allReceived).toBe(true);
 
         // Close connections
-        clients.forEach(ws => ws.close());
+        clients.forEach((ws) => ws.close());
         resolve();
       } catch (error) {
-        clients.forEach(ws => {
+        clients.forEach((ws) => {
           if (ws.readyState === WebSocket.OPEN) ws.close();
         });
         reject(error);
@@ -533,7 +529,7 @@ describe.serial('WebSocket Concurrent Client Handling', () => {
     });
   });
 
-  it('should handle client disconnections without affecting others', async () => {
+  it("should handle client disconnections without affecting others", async () => {
     let client1Closed = false;
     let client2Open = false;
 
@@ -571,12 +567,12 @@ describe.serial('WebSocket Concurrent Client Handling', () => {
         resolve();
       }, 2000);
 
-      setTimeout(() => reject(new Error('Test timeout')), 10000);
+      setTimeout(() => reject(new Error("Test timeout")), 10000);
     });
   });
 });
 
-describe.serial('WebSocket Subscription Management', () => {
+describe.serial("WebSocket Subscription Management", () => {
   let server: VisualizationServer;
   let model: Model;
   let port: number;
@@ -598,22 +594,24 @@ describe.serial('WebSocket Subscription Management', () => {
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
-  it('should handle subscribe messages with topic list', async () => {
+  it("should handle subscribe messages with topic list", async () => {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({
-          type: 'subscribe',
-          topics: ['model', 'annotations']
-        }));
+        ws.send(
+          JSON.stringify({
+            type: "subscribe",
+            topics: ["model", "annotations"],
+          })
+        );
       };
 
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          if (message.type === 'subscribed') {
-            expect(message).toHaveProperty('topics');
+          if (message.type === "subscribed") {
+            expect(message).toHaveProperty("topics");
             expect(Array.isArray(message.topics)).toBe(true);
             ws.close();
             resolve();
@@ -627,17 +625,17 @@ describe.serial('WebSocket Subscription Management', () => {
         reject(error);
       };
 
-      setTimeout(() => reject(new Error('Subscribe timeout')), 5000);
+      setTimeout(() => reject(new Error("Subscribe timeout")), 5000);
     });
   });
 
-  it('should handle invalid JSON messages gracefully', async () => {
+  it("should handle invalid JSON messages gracefully", async () => {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         // Send invalid JSON
-        ws.send('{ invalid json }');
+        ws.send("{ invalid json }");
         // Server should not crash, allow for error response
         setTimeout(() => {
           ws.close();
@@ -651,7 +649,7 @@ describe.serial('WebSocket Subscription Management', () => {
         resolve();
       };
 
-      setTimeout(() => reject(new Error('Invalid JSON test timeout')), 5000);
+      setTimeout(() => reject(new Error("Invalid JSON test timeout")), 5000);
     });
   });
 });

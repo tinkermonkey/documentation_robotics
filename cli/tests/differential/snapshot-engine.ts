@@ -1,7 +1,7 @@
-import { readdir, stat, readFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
-import { join, relative } from 'node:path';
-import { diffLines } from 'diff';
+import { readdir, stat, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { join, relative } from "node:path";
+import { diffLines } from "diff";
 
 /**
  * Represents a snapshot of a single file's state
@@ -34,7 +34,7 @@ export interface FileChange {
   /** Relative path to the file */
   path: string;
   /** Type of change */
-  type: 'added' | 'deleted' | 'modified' | 'unchanged';
+  type: "added" | "deleted" | "modified" | "unchanged";
   /** Hash before change (if applicable) */
   beforeHash?: string;
   /** Hash after change (if applicable) */
@@ -68,19 +68,19 @@ async function walkDirectory(
 
   for (const entry of entries) {
     // Skip hidden files and common non-essential directories
-    if (entry.name.startsWith('.') && entry.name !== '.dr') {
+    if (entry.name.startsWith(".") && entry.name !== ".dr") {
       continue;
     }
 
     const fullPath = join(dir, entry.name);
-    const relativePath = relative(basePath, fullPath).replace(/\\/g, '/');
+    const relativePath = relative(basePath, fullPath).replace(/\\/g, "/");
 
     if (entry.isDirectory()) {
       await walkDirectory(fullPath, basePath, files, captureContent);
     } else if (entry.isFile()) {
       const stats = await stat(fullPath);
-      const content = await readFile(fullPath, 'utf-8');
-      const hash = createHash('sha256').update(content).digest('hex');
+      const content = await readFile(fullPath, "utf-8");
+      const hash = createHash("sha256").update(content).digest("hex");
 
       files.set(relativePath, {
         exists: true,
@@ -105,9 +105,7 @@ async function walkDirectory(
  * @param directory - Directory to snapshot
  * @returns FilesystemSnapshot with file state information
  */
-export async function captureSnapshot(
-  directory: string
-): Promise<FilesystemSnapshot> {
+export async function captureSnapshot(directory: string): Promise<FilesystemSnapshot> {
   const files = new Map<string, FileSnapshot>();
   await walkDirectory(directory, directory, files, false);
   return { files };
@@ -157,7 +155,7 @@ export async function captureSnapshotWithContent(
 function matchesFilters(path: string, filters: string[]): boolean {
   return filters.some((filter) => {
     // Handle directory patterns like "01_motivation/"
-    if (filter.endsWith('/')) {
+    if (filter.endsWith("/")) {
       return path.startsWith(filter);
     }
     // Handle exact file matches
@@ -200,7 +198,7 @@ export function generateUnifiedDiff(
   let currentHunk = { changes: [] as typeof diffs, beforeStart: 1, afterStart: 1 };
 
   for (const diff of diffs) {
-    const lineCount = diff.value.split('\n').length - 1; // -1 because split on final newline
+    const lineCount = diff.value.split("\n").length - 1; // -1 because split on final newline
 
     if (diff.added) {
       afterLineNum += lineCount;
@@ -247,7 +245,7 @@ export function generateUnifiedDiff(
     let hunkAfterCount = 0;
 
     for (const diff of hunk.changes) {
-      const lines = diff.value.split('\n').filter((l) => l.length > 0);
+      const lines = diff.value.split("\n").filter((l) => l.length > 0);
 
       if (diff.added) {
         hunkAfterCount += lines.length;
@@ -275,7 +273,7 @@ export function generateUnifiedDiff(
     if (hunkLines.length > 0) {
       // Add hunk header
       result += `@@ -${hunk.beforeStart},${hunkBeforeCount} +${hunk.afterStart},${hunkAfterCount} @@\n`;
-      result += hunkLines.join('\n') + '\n';
+      result += hunkLines.join("\n") + "\n";
     }
   }
 
@@ -324,21 +322,21 @@ export async function diffSnapshots(
       // File was added
       changes.push({
         path,
-        type: 'added',
+        type: "added",
         afterHash: afterFile.hash,
       });
     } else if (beforeFile && !afterFile) {
       // File was deleted
       changes.push({
         path,
-        type: 'deleted',
+        type: "deleted",
         beforeHash: beforeFile.hash,
       });
     } else if (beforeFile && afterFile && beforeFile.hash !== afterFile.hash) {
       // File was modified
       const change: FileChange = {
         path,
-        type: 'modified',
+        type: "modified",
         beforeHash: beforeFile.hash,
         afterHash: afterFile.hash,
       };
@@ -353,14 +351,14 @@ export async function diffSnapshots(
           // If content wasn't captured in the snapshot, try reading from disk
           if (!beforeContent) {
             try {
-              beforeContent = await readFile(join(afterDir, path), 'utf-8');
+              beforeContent = await readFile(join(afterDir, path), "utf-8");
             } catch (error) {
               // Content not available; continue without it
             }
           }
           if (!afterContent) {
             try {
-              afterContent = await readFile(join(afterDir, path), 'utf-8');
+              afterContent = await readFile(join(afterDir, path), "utf-8");
             } catch (error) {
               // Content not available; continue without it
             }
@@ -382,7 +380,7 @@ export async function diffSnapshots(
       // File unchanged
       changes.push({
         path,
-        type: 'unchanged',
+        type: "unchanged",
         beforeHash: beforeFile?.hash,
         afterHash: afterFile?.hash,
       });
@@ -397,10 +395,10 @@ export async function diffSnapshots(
  */
 export function formatChange(change: FileChange): string {
   const typeSymbol = {
-    added: '✚',
-    deleted: '✖',
-    modified: '◆',
-    unchanged: '◯',
+    added: "✚",
+    deleted: "✖",
+    modified: "◆",
+    unchanged: "◯",
   }[change.type];
 
   let output = `${typeSymbol} ${change.path} (${change.type})`;
@@ -422,10 +420,10 @@ export function formatChange(change: FileChange): string {
  */
 export function formatComparisonResults(changes: FileChange[]): string {
   const summary = {
-    added: changes.filter((c) => c.type === 'added').length,
-    deleted: changes.filter((c) => c.type === 'deleted').length,
-    modified: changes.filter((c) => c.type === 'modified').length,
-    unchanged: changes.filter((c) => c.type === 'unchanged').length,
+    added: changes.filter((c) => c.type === "added").length,
+    deleted: changes.filter((c) => c.type === "deleted").length,
+    modified: changes.filter((c) => c.type === "modified").length,
+    unchanged: changes.filter((c) => c.type === "unchanged").length,
   };
 
   let output = `Filesystem Changes Summary:\n`;
@@ -435,8 +433,8 @@ export function formatComparisonResults(changes: FileChange[]): string {
   output += `  Unchanged:  ${summary.unchanged}\n`;
   output += `  Total:      ${changes.length}\n\n`;
 
-  output += 'Changes:\n';
-  output += changes.map((c) => `  ${formatChange(c)}`).join('\n');
+  output += "Changes:\n";
+  output += changes.map((c) => `  ${formatChange(c)}`).join("\n");
 
   return output;
 }

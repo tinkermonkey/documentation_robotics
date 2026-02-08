@@ -4,23 +4,24 @@
  * It receives configuration via environment variables and starts the server
  */
 
-import { Model } from './core/model.js';
-import { VisualizationServer } from './server/server.js';
+import { Model } from "./core/model.js";
+import { VisualizationServer } from "./server/server.js";
 
 // Get configuration from environment variables
-const port = parseInt(process.env.DR_VISUALIZE_PORT || '8080', 10);
+const port = parseInt(process.env.DR_VISUALIZE_PORT || "8080", 10);
 const projectPath = process.env.DR_PROJECT_PATH || process.cwd();
-const authEnabled = process.env.DR_AUTH_ENABLED !== 'false';
+const authEnabled = process.env.DR_AUTH_ENABLED !== "false";
 // Only pass authToken if it's a non-empty string, otherwise let server generate one
-const authToken = process.env.DR_AUTH_TOKEN && process.env.DR_AUTH_TOKEN.length > 0
-  ? process.env.DR_AUTH_TOKEN
-  : undefined;
-const withDanger = process.env.DR_WITH_DANGER === 'true';
+const authToken =
+  process.env.DR_AUTH_TOKEN && process.env.DR_AUTH_TOKEN.length > 0
+    ? process.env.DR_AUTH_TOKEN
+    : undefined;
+const withDanger = process.env.DR_WITH_DANGER === "true";
 const viewerPath = process.env.DR_VIEWER_PATH;
 
 // Conditional telemetry import based on compile-time flag
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 let serverInstance: VisualizationServer | null = null;
 let isShuttingDown = false;
@@ -31,11 +32,11 @@ async function main() {
     // Without this, no spans will be created or exported even though TELEMETRY_ENABLED=true
     if (isTelemetryEnabled) {
       try {
-        const { initTelemetry } = await import('./telemetry/index.js');
+        const { initTelemetry } = await import("./telemetry/index.js");
         await initTelemetry();
 
         // Load and display actual OTLP configuration
-        const { loadOTLPConfig } = await import('./telemetry/config.js');
+        const { loadOTLPConfig } = await import("./telemetry/config.js");
         const otlpConfig = await loadOTLPConfig();
 
         if (process.env.DEBUG || process.env.VERBOSE) {
@@ -45,7 +46,7 @@ async function main() {
           console.log(`[Telemetry] Service name: ${otlpConfig.serviceName}`);
 
           // Runtime detection and compatibility info
-          const isBun = typeof (globalThis as any).Bun !== 'undefined';
+          const isBun = typeof (globalThis as any).Bun !== "undefined";
           if (isBun) {
             console.log(`[Telemetry] Runtime: Bun (using fetch-based OTLP exporter)`);
           } else {
@@ -54,8 +55,8 @@ async function main() {
         }
       } catch (error) {
         // Log telemetry initialization errors but don't fail the server
-        console.error('[Telemetry] Failed to initialize telemetry:', error);
-        console.error('[Telemetry] Server will continue without telemetry');
+        console.error("[Telemetry] Failed to initialize telemetry:", error);
+        console.error("[Telemetry] Server will continue without telemetry");
       }
     } else if (process.env.DEBUG || process.env.VERBOSE) {
       console.log(`[Telemetry] TELEMETRY_ENABLED is false - telemetry disabled`);
@@ -65,7 +66,12 @@ async function main() {
     const model = await Model.load(projectPath, { lazyLoad: false });
 
     // Create and start server
-    const server = new VisualizationServer(model, { authEnabled, authToken, withDanger, viewerPath });
+    const server = new VisualizationServer(model, {
+      authEnabled,
+      authToken,
+      withDanger,
+      viewerPath,
+    });
     serverInstance = server; // Store for signal handlers
     await server.start(port);
 
@@ -104,19 +110,19 @@ async function gracefulShutdown(exitCode: number = 0): Promise<void> {
 
     // Flush telemetry spans before exit
     if (isTelemetryEnabled) {
-      console.log('[Telemetry] Shutting down telemetry and flushing spans...');
-      const { shutdownTelemetry } = await import('./telemetry/index.js');
+      console.log("[Telemetry] Shutting down telemetry and flushing spans...");
+      const { shutdownTelemetry } = await import("./telemetry/index.js");
       await shutdownTelemetry();
-      console.log('[Telemetry] Telemetry shutdown complete');
+      console.log("[Telemetry] Telemetry shutdown complete");
     } else {
       if (process.env.DEBUG) {
-        console.log('[Telemetry] Telemetry is disabled (TELEMETRY_ENABLED=false at build time)');
+        console.log("[Telemetry] Telemetry is disabled (TELEMETRY_ENABLED=false at build time)");
       }
     }
   } catch (error) {
     // Don't block shutdown on errors
     if (process.env.DEBUG) {
-      console.error('Error during shutdown:', error);
+      console.error("Error during shutdown:", error);
     }
   } finally {
     process.exit(exitCode);
@@ -128,26 +134,26 @@ async function gracefulShutdown(exitCode: number = 0): Promise<void> {
  */
 function setupShutdownHandlers(): void {
   // Handle Ctrl-C (SIGINT)
-  process.on('SIGINT', async () => {
-    console.log('\n[SIGINT] Shutting down visualization server...');
+  process.on("SIGINT", async () => {
+    console.log("\n[SIGINT] Shutting down visualization server...");
     await gracefulShutdown(0);
   });
 
   // Handle termination signal (SIGTERM)
-  process.on('SIGTERM', async () => {
-    console.log('\n[SIGTERM] Shutting down visualization server...');
+  process.on("SIGTERM", async () => {
+    console.log("\n[SIGTERM] Shutting down visualization server...");
     await gracefulShutdown(0);
   });
 
   // Handle uncaught exceptions
-  process.on('uncaughtException', async (error) => {
-    console.error('Uncaught exception:', error);
+  process.on("uncaughtException", async (error) => {
+    console.error("Uncaught exception:", error);
     await gracefulShutdown(1);
   });
 
   // Handle unhandled promise rejections
-  process.on('unhandledRejection', async (reason) => {
-    console.error('Unhandled rejection:', reason);
+  process.on("unhandledRejection", async (reason) => {
+    console.error("Unhandled rejection:", reason);
     await gracefulShutdown(1);
   });
 }

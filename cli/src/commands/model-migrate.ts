@@ -8,10 +8,7 @@
 import ansis from "ansis";
 import * as path from "path";
 import { Model } from "../core/model.js";
-import {
-  ModelMigrationService,
-  type ModelMigrationResult,
-} from "../export/model-migration.js";
+import { ModelMigrationService, type ModelMigrationResult } from "../export/model-migration.js";
 
 /**
  * Model migration command options
@@ -37,9 +34,7 @@ export interface MigrateRollbackOptions {
 /**
  * Migrate command handler - transforms layer YAML to graph format
  */
-export async function modelMigrateCommand(
-  options: ModelMigrateOptions
-): Promise<void> {
+export async function modelMigrateCommand(options: ModelMigrateOptions): Promise<void> {
   const sourceDir = options.source || process.cwd();
   const targetDir = options.target || path.join(sourceDir, "model-v2");
 
@@ -73,8 +68,8 @@ export async function modelMigrateCommand(
           totalElements += elements.length;
 
           for (const element of elements) {
-            totalRelationships += (element.references?.length || 0);
-            totalRelationships += (element.relationships?.length || 0);
+            totalRelationships += element.references?.length || 0;
+            totalRelationships += element.relationships?.length || 0;
           }
         }
       }
@@ -110,9 +105,7 @@ export async function modelMigrateCommand(
       console.log(ansis.dim(`  Backup saved to: ${result.backupDir}`));
       console.log(
         ansis.dim(
-          `  Rollback: dr migrate-model rollback --backup ${path.basename(
-            result.backupDir
-          )}`
+          `  Rollback: dr migrate-model rollback --backup ${path.basename(result.backupDir)}`
         )
       );
     }
@@ -126,18 +119,14 @@ export async function modelMigrateCommand(
 /**
  * Rollback command handler - restore from backup
  */
-export async function migrateRollbackCommand(
-  options: MigrateRollbackOptions
-): Promise<void> {
+export async function migrateRollbackCommand(options: MigrateRollbackOptions): Promise<void> {
   const backupDir = options.backup;
   const targetDir = options.target || process.cwd();
 
   try {
     console.log(ansis.bold(`\n↩️  Migration Rollback\n`));
     console.log(ansis.cyan(`Backup: ${path.relative(process.cwd(), backupDir)}`));
-    console.log(
-      ansis.cyan(`Target: ${path.relative(process.cwd(), targetDir)}\n`)
-    );
+    console.log(ansis.cyan(`Target: ${path.relative(process.cwd(), targetDir)}\n`));
 
     const model = await Model.load(targetDir, { lazyLoad: false });
     const service = new ModelMigrationService(model);
@@ -157,14 +146,9 @@ export async function migrateRollbackCommand(
 /**
  * Display migration results with formatting
  */
-function displayMigrationResults(
-  result: ModelMigrationResult,
-  verbose: boolean
-): void {
+function displayMigrationResults(result: ModelMigrationResult, verbose: boolean): void {
   console.log(ansis.dim("Migration Summary:"));
-  console.log(
-    ansis.dim(`  Elements migrated: ${ansis.cyan(result.elementCount.toString())}`)
-  );
+  console.log(ansis.dim(`  Elements migrated: ${ansis.cyan(result.elementCount.toString())}`));
   console.log(
     ansis.dim(`  Relationships created: ${ansis.cyan(result.relationshipCount.toString())}`)
   );
@@ -183,19 +167,13 @@ function displayMigrationResults(
       console.log(ansis.dim(`    - ${e}`));
     });
     if (result.validationErrors.length > 5) {
-      console.log(
-        ansis.dim(
-          `    ... and ${result.validationErrors.length - 5} more errors`
-        )
-      );
+      console.log(ansis.dim(`    ... and ${result.validationErrors.length - 5} more errors`));
     }
   }
 
   if (verbose && result.mappingFilePath) {
     console.log(
-      ansis.dim(
-        `\n  Mapping table: ${path.relative(process.cwd(), result.mappingFilePath)}`
-      )
+      ansis.dim(`\n  Mapping table: ${path.relative(process.cwd(), result.mappingFilePath)}`)
     );
   }
 }
