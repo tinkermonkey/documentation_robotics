@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/data-model/jsonschema.archimate-ref.applicationservice.relationship.schema.json",
+  "title": "Jsonschema Archimate Ref Applicationservice",
+  "description": "Defines relationship: data-model.jsonschema archimate-ref application.applicationservice",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-model.archimate-ref.application"
+    },
+    "source_spec_node_id": {
+      "const": "data-model.jsonschema"
+    },
+    "source_layer": {
+      "const": "data-model"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationservice"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "archimate-ref"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

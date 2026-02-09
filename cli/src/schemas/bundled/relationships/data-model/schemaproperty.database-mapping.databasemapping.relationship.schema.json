@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/data-model/schemaproperty.database-mapping.databasemapping.relationship.schema.json",
+  "title": "Schemaproperty Database Mapping Databasemapping",
+  "description": "Defines relationship: data-model.schemaproperty database-mapping data-model.databasemapping",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-model.database-mapping.data-model"
+    },
+    "source_spec_node_id": {
+      "const": "data-model.schemaproperty"
+    },
+    "source_layer": {
+      "const": "data-model"
+    },
+    "destination_spec_node_id": {
+      "const": "data-model.databasemapping"
+    },
+    "destination_layer": {
+      "const": "data-model"
+    },
+    "predicate": {
+      "const": "database-mapping"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/testing/partitiondependency.triggers.coveragerequirement.relationship.schema.json",
+  "title": "Partitiondependency Triggers Coveragerequirement",
+  "description": "Defines relationship: testing.partitiondependency triggers testing.coveragerequirement",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.triggers.testing"
+    },
+    "source_spec_node_id": {
+      "const": "testing.partitiondependency"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.coveragerequirement"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "triggers"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

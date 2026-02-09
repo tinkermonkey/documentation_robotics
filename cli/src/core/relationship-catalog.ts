@@ -1,20 +1,20 @@
 /**
  * Relationship Catalog - Manages catalog of semantic relationship types
  *
- * This module provides access to the relationship catalog defined in
- * spec/schemas/relationship-catalog.json (v2.1.0+).
- *
- * Replaced the former link-registry.json system (removed in v0.8.0).
+ * Loads predicates from spec/schemas/base/predicates.json and computes
+ * derived metadata (applicableLayers) by scanning relationship schemas.
  */
 
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath } from "url";
 import fs from "node:fs/promises";
+import { glob } from "glob";
 
 export interface RelationshipSemantics {
   directionality: "unidirectional" | "bidirectional";
   transitivity: boolean;
   symmetry: boolean;
+  reflexivity?: boolean;
 }
 
 export interface RelationshipExample {
@@ -32,8 +32,21 @@ export interface RelationshipType {
   archimateAlignment: string | null;
   description: string;
   semantics: RelationshipSemantics;
-  applicableLayers: string[];
-  examples: RelationshipExample[];
+  applicableLayers: string[];  // Computed from relationship schemas
+  examples: RelationshipExample[];  // Empty for now
+}
+
+export interface PredicateDefinition {
+  predicate: string;
+  inverse: string;
+  category: string;
+  description: string;
+  archimate_alignment: string | null;
+  semantics: RelationshipSemantics;
+}
+
+export interface PredicatesData {
+  predicates: Record<string, PredicateDefinition>;
 }
 
 export interface CategoryInfo {
@@ -42,72 +55,154 @@ export interface CategoryInfo {
   color?: string;
 }
 
-export interface RelationshipCatalogData {
-  $schema: string;
-  title: string;
-  description: string;
-  version: string;
-  generatedBy: string;
-  lastUpdated: string;
-  categories?: Record<string, CategoryInfo>;
-  relationshipTypes: RelationshipType[];
-}
-
 /**
  * Relationship catalog providing access to semantic relationship type definitions
  */
 export class RelationshipCatalog {
-  private data: RelationshipCatalogData | null = null;
-  private catalogPath: string;
+  private predicatesData: PredicatesData | null = null;
+  private relationshipTypes: RelationshipType[] | null = null;
+  private predicatesPath: string;
+  private relationshipSchemasPath: string;
 
-  constructor(catalogPath?: string) {
-    this.catalogPath = catalogPath || this.getDefaultCatalogPath();
+  constructor(predicatesPath?: string, relationshipSchemasPath?: string) {
+    this.predicatesPath = predicatesPath || this.getDefaultPredicatesPath();
+    this.relationshipSchemasPath = relationshipSchemasPath || this.getDefaultRelationshipSchemasPath();
   }
 
   /**
-   * Get default path to relationship-catalog.json
+   * Get default path to predicates.json
    */
-  private getDefaultCatalogPath(): string {
-    // Get current file's directory (ES module compatible)
+  private getDefaultPredicatesPath(): string {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
-    // Try bundled schemas first (installed/built mode)
-    const bundledPath = path.join(currentDir, "../schemas/bundled/relationship-catalog.json");
-
+    // Try bundled schemas first
+    const bundledPath = path.join(currentDir, "../schemas/bundled/base/predicates.json");
     return bundledPath;
   }
 
   /**
-   * Load the relationship catalog
+   * Get default path to relationship schemas directory
+   */
+  private getDefaultRelationshipSchemasPath(): string {
+    const currentDir = path.dirname(fileURLToPath(import.meta.url));
+
+    // Try bundled schemas first
+    const bundledPath = path.join(currentDir, "../schemas/bundled/relationships");
+    return bundledPath;
+  }
+
+  /**
+   * Load predicates and compute derived metadata
    */
   async load(): Promise<void> {
+    // Load predicates.json
     try {
-      const content = await fs.readFile(this.catalogPath, "utf-8");
-      this.data = JSON.parse(content);
+      const content = await fs.readFile(this.predicatesPath, "utf-8");
+      this.predicatesData = JSON.parse(content);
     } catch (error) {
       // Try fallback path
       try {
         const fallbackPath = path.join(
-          __dirname,
-          "../../..",
-          "spec/schemas/relationship-catalog.json"
+          path.dirname(fileURLToPath(import.meta.url)),
+          "../../../spec/schemas/base/predicates.json"
         );
         const content = await fs.readFile(fallbackPath, "utf-8");
-        this.data = JSON.parse(content);
-        this.catalogPath = fallbackPath;
+        this.predicatesData = JSON.parse(content);
+        this.predicatesPath = fallbackPath;
       } catch {
         throw new Error(
-          `Failed to load relationship catalog from ${this.catalogPath}: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to load predicates from ${this.predicatesPath}: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
+
+    // Compute applicableLayers by scanning relationship schemas
+    const applicableLayersByPredicate = await this.computeApplicableLayers();
+
+    // Convert predicates to RelationshipType format
+    this.relationshipTypes = Object.entries(this.predicatesData!.predicates).map(([key, pred]) => ({
+      id: key,
+      predicate: pred.predicate,
+      inversePredicate: pred.inverse,
+      category: pred.category,
+      archimateAlignment: pred.archimate_alignment,
+      description: pred.description,
+      semantics: pred.semantics,
+      applicableLayers: applicableLayersByPredicate[pred.predicate] || [],
+      examples: [],  // Examples are documentation, not stored in predicates
+    }));
+  }
+
+  /**
+   * Compute which layers each predicate is used in by scanning relationship schemas
+   */
+  private async computeApplicableLayers(): Promise<Record<string, string[]>> {
+    const layersByPredicate: Record<string, Set<string>> = {};
+
+    try {
+      // Try to find relationship schemas
+      let relationshipFiles: string[] = [];
+
+      // Try bundled path
+      try {
+        await fs.access(this.relationshipSchemasPath);
+        relationshipFiles = await glob(`${this.relationshipSchemasPath}/**/*.relationship.schema.json`);
+      } catch {
+        // Try fallback to spec path
+        const fallbackPath = path.join(
+          path.dirname(fileURLToPath(import.meta.url)),
+          "../../../spec/schemas/relationships"
+        );
+        try {
+          await fs.access(fallbackPath);
+          relationshipFiles = await glob(`${fallbackPath}/**/*.relationship.schema.json`);
+        } catch {
+          // No relationship schemas found, return empty
+          return {};
+        }
+      }
+
+      // Scan each relationship schema
+      for (const file of relationshipFiles) {
+        try {
+          const content = await fs.readFile(file, "utf-8");
+          const schema = JSON.parse(content);
+
+          // Extract predicate and layer from schema
+          const predicate = schema.properties?.predicate?.const;
+          const sourceLayer = schema.properties?.source_layer?.const;
+
+          if (predicate && sourceLayer) {
+            if (!layersByPredicate[predicate]) {
+              layersByPredicate[predicate] = new Set();
+            }
+            // Add layer from schema (format: "01-motivation", "02-business", etc.)
+            layersByPredicate[predicate].add(sourceLayer);
+          }
+        } catch (error) {
+          // Skip files that can't be parsed
+          continue;
+        }
+      }
+    } catch (error) {
+      // If scanning fails, return empty (predicates will have no applicable layers)
+      console.warn("Could not scan relationship schemas:", error);
+    }
+
+    // Convert Sets to sorted arrays
+    const result: Record<string, string[]> = {};
+    for (const [predicate, layers] of Object.entries(layersByPredicate)) {
+      result[predicate] = Array.from(layers).sort();
+    }
+
+    return result;
   }
 
   /**
    * Ensure catalog is loaded
    */
   private ensureLoaded(): void {
-    if (!this.data) {
+    if (!this.relationshipTypes) {
       throw new Error("Relationship catalog not loaded. Call load() first.");
     }
   }
@@ -117,7 +212,7 @@ export class RelationshipCatalog {
    */
   getAllTypes(): RelationshipType[] {
     this.ensureLoaded();
-    return this.data!.relationshipTypes;
+    return this.relationshipTypes!;
   }
 
   /**
@@ -125,7 +220,7 @@ export class RelationshipCatalog {
    */
   getTypeById(id: string): RelationshipType | undefined {
     this.ensureLoaded();
-    return this.data!.relationshipTypes.find((t) => t.id === id);
+    return this.relationshipTypes!.find((t) => t.id === id);
   }
 
   /**
@@ -133,7 +228,7 @@ export class RelationshipCatalog {
    */
   getTypeByPredicate(predicate: string): RelationshipType | undefined {
     this.ensureLoaded();
-    return this.data!.relationshipTypes.find(
+    return this.relationshipTypes!.find(
       (t) => t.predicate === predicate || t.inversePredicate === predicate
     );
   }
@@ -143,7 +238,7 @@ export class RelationshipCatalog {
    */
   getTypesByCategory(category: string): RelationshipType[] {
     this.ensureLoaded();
-    return this.data!.relationshipTypes.filter((t) => t.category === category);
+    return this.relationshipTypes!.filter((t) => t.category === category);
   }
 
   /**
@@ -154,7 +249,7 @@ export class RelationshipCatalog {
     // Normalize layer format (remove leading zeros if present)
     const normalizedLayer = layer.replace(/^0+/, "");
 
-    return this.data!.relationshipTypes.filter((t) =>
+    return this.relationshipTypes!.filter((t) =>
       t.applicableLayers.some(
         (l) => l === layer || l === normalizedLayer || l.replace(/^0+/, "") === normalizedLayer
       )
@@ -166,7 +261,50 @@ export class RelationshipCatalog {
    */
   getCategories(): Record<string, CategoryInfo> {
     this.ensureLoaded();
-    return this.data!.categories || {};
+
+    // Derive categories from relationship types
+    const categories: Record<string, CategoryInfo> = {};
+    const categoryCounts: Record<string, number> = {};
+
+    for (const type of this.relationshipTypes!) {
+      if (!categoryCounts[type.category]) {
+        categoryCounts[type.category] = 0;
+        categories[type.category] = {
+          name: type.category.charAt(0).toUpperCase() + type.category.slice(1),
+          description: `${type.category} relationships`,
+        };
+      }
+      categoryCounts[type.category]++;
+    }
+
+    return categories;
+  }
+
+  /**
+   * Get statistics about the catalog
+   */
+  getStats(): {
+    totalTypes: number;
+    categoryCounts: Record<string, number>;
+    archimateAligned: number;
+  } {
+    this.ensureLoaded();
+
+    const categoryCounts: Record<string, number> = {};
+    let archimateAligned = 0;
+
+    for (const type of this.relationshipTypes!) {
+      categoryCounts[type.category] = (categoryCounts[type.category] || 0) + 1;
+      if (type.archimateAlignment) {
+        archimateAligned++;
+      }
+    }
+
+    return {
+      totalTypes: this.relationshipTypes!.length,
+      categoryCounts,
+      archimateAligned,
+    };
   }
 
   /**
@@ -180,10 +318,10 @@ export class RelationshipCatalog {
   } {
     this.ensureLoaded();
     return {
-      version: this.data!.version,
-      generatedBy: this.data!.generatedBy,
-      lastUpdated: this.data!.lastUpdated,
-      totalTypes: this.data!.relationshipTypes.length,
+      version: "1.0.0",
+      generatedBy: "relationship-catalog (predicates.json)",
+      lastUpdated: new Date().toISOString(),
+      totalTypes: this.relationshipTypes!.length,
     };
   }
 
@@ -194,39 +332,13 @@ export class RelationshipCatalog {
     this.ensureLoaded();
     const lowerKeyword = keyword.toLowerCase();
 
-    return this.data!.relationshipTypes.filter(
+    return this.relationshipTypes!.filter(
       (t) =>
         t.id.toLowerCase().includes(lowerKeyword) ||
         t.predicate.toLowerCase().includes(lowerKeyword) ||
+        (t.inversePredicate && t.inversePredicate.toLowerCase().includes(lowerKeyword)) ||
         t.description.toLowerCase().includes(lowerKeyword) ||
-        (t.inversePredicate && t.inversePredicate.toLowerCase().includes(lowerKeyword))
+        t.category.toLowerCase().includes(lowerKeyword)
     );
-  }
-
-  /**
-   * Validate if a predicate is valid
-   */
-  isValidPredicate(predicate: string): boolean {
-    this.ensureLoaded();
-    return this.data!.relationshipTypes.some(
-      (t) => t.predicate === predicate || t.inversePredicate === predicate
-    );
-  }
-
-  /**
-   * Get suggested predicates for a layer
-   */
-  getSuggestedPredicates(layer: string): string[] {
-    const types = this.getTypesForLayer(layer);
-    const predicates = new Set<string>();
-
-    for (const type of types) {
-      predicates.add(type.predicate);
-      if (type.inversePredicate) {
-        predicates.add(type.inversePredicate);
-      }
-    }
-
-    return Array.from(predicates).sort();
   }
 }

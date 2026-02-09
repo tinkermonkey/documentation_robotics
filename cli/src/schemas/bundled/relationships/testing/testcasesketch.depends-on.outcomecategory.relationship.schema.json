@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/testing/testcasesketch.depends-on.outcomecategory.relationship.schema.json",
+  "title": "Testcasesketch Depends On Outcomecategory",
+  "description": "Defines relationship: testing.testcasesketch depends-on testing.outcomecategory",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.depends-on.testing"
+    },
+    "source_spec_node_id": {
+      "const": "testing.testcasesketch"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.outcomecategory"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "depends-on"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

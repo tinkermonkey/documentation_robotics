@@ -35,7 +35,6 @@ export async function installSpecReference(
   // Create .dr directory structure
   await ensureDir(drPath);
   await ensureDir(join(drPath, "schemas"));
-  await ensureDir(join(drPath, "schemas", "common"));
   await ensureDir(join(drPath, "changesets"));
 
   // Write manifest.json
@@ -94,6 +93,7 @@ export async function installSpecReference(
     "spec-layer.schema.json",
     "source-references.schema.json",
     "attribute-spec.schema.json",
+    "predicates.json",
   ];
 
   for (const schema of baseSchemas) {
@@ -106,13 +106,8 @@ export async function installSpecReference(
     }
   }
 
-  // Copy relationship catalog
-  const catalogPath = join(schemaSourceDir, "relationship-catalog.json");
-  const catalogTarget = join(drPath, "schemas", "relationship-catalog.json");
-  await fs.copyFile(catalogPath, catalogTarget);
-
-  // Note: Common schemas (source-references, attribute-spec) are now in base/
-  // and are already copied above with the base schemas
+  // Note: Common schemas and predicates are now in base/
+  // and are copied above with the base schemas
 
   // Create README.md
   const readmePath = join(drPath, "README.md");

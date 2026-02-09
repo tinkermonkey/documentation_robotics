@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/api/operation.apm-trace.traceconfiguration.relationship.schema.json",
+  "title": "Operation Apm Trace Traceconfiguration",
+  "description": "Defines relationship: api.operation apm-trace apm.traceconfiguration",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.apm-trace.apm"
+    },
+    "source_spec_node_id": {
+      "const": "api.operation"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "apm.traceconfiguration"
+    },
+    "destination_layer": {
+      "const": "apm"
+    },
+    "predicate": {
+      "const": "apm-trace"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

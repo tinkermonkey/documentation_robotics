@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/motivation/outcome.associated-with.value.relationship.schema.json",
+  "title": "Outcome Associated With Value",
+  "description": "Defines relationship: motivation.outcome associated-with motivation.value",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "motivation.associated-with.motivation"
+    },
+    "source_spec_node_id": {
+      "const": "motivation.outcome"
+    },
+    "source_layer": {
+      "const": "motivation"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.value"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "associated-with"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}
