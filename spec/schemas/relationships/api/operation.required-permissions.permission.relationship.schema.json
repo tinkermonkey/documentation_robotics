@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/api/operation.required-permissions.permission.relationship.schema.json",
   "title": "Operation Required Permissions Permission",
   "description": "Defines relationship: api.operation required-permissions security.permission",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {

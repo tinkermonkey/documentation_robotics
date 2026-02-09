@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/motivation/outcome.node.schema.json",
   "title": "Outcome",
   "description": "End result that has been achieved",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node.schema.json"
+      "$ref": "../../base/spec-node.schema.json"
     }
   ],
   "properties": {

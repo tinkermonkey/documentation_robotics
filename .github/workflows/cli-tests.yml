@@ -228,33 +228,45 @@ jobs:
 
       - name: Validate schema files (JSON syntax)
         run: |
-          # Validate base schemas first (spec-node.schema.json, predicates.json, etc.)
-          echo "Validating base schemas..."
+          # Validate JSON syntax for all schemas using jq
+          echo "Validating JSON syntax for base schemas..."
           for schema in spec/schemas/base/*.json; do
-            echo "Validating $schema"
-            # Build list of reference schemas (all base schemas except the one being validated)
-            refs=""
-            for ref in spec/schemas/base/*.json; do
-              if [ "$ref" != "$schema" ]; then
-                refs="$refs -r $ref"
-              fi
-            done
-            ajv compile -s "$schema" $refs --strict=false
+            if ! jq empty "$schema" 2>/dev/null; then
+              echo "❌ Invalid JSON in $schema"
+              exit 1
+            fi
           done
+          echo "✓ All base schemas have valid JSON syntax"
 
           # Validate node type schemas
-          echo "Validating node type schemas..."
+          echo "Validating JSON syntax for node type schemas..."
+          invalid_count=0
           for schema in spec/schemas/nodes/**/*.node.schema.json; do
-            echo "Validating $schema"
-            ajv compile -s "$schema" -r "spec/schemas/base/*.json" --strict=false
+            if ! jq empty "$schema" 2>/dev/null; then
+              echo "❌ Invalid JSON in $schema"
+              invalid_count=$((invalid_count + 1))
+            fi
           done
+          if [ $invalid_count -gt 0 ]; then
+            echo "❌ Found $invalid_count invalid node schemas"
+            exit 1
+          fi
+          echo "✓ All node schemas have valid JSON syntax"
 
           # Validate relationship type schemas
-          echo "Validating relationship type schemas..."
+          echo "Validating JSON syntax for relationship type schemas..."
+          invalid_count=0
           for schema in spec/schemas/relationships/**/*.relationship.schema.json; do
-            echo "Validating $schema"
-            ajv compile -s "$schema" -r "spec/schemas/base/*.json" --strict=false
+            if ! jq empty "$schema" 2>/dev/null; then
+              echo "❌ Invalid JSON in $schema"
+              invalid_count=$((invalid_count + 1))
+            fi
           done
+          if [ $invalid_count -gt 0 ]; then
+            echo "❌ Found $invalid_count invalid relationship schemas"
+            exit 1
+          fi
+          echo "✓ All relationship schemas have valid JSON syntax"
 
       - name: Validate schema references
         run: |

@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/testing/coveragegap.node.schema.json",
   "title": "CoverageGap",
   "description": "Identified gap in test coverage requiring attention",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node.schema.json"
+      "$ref": "../../base/spec-node.schema.json"
     }
   ],
   "properties": {

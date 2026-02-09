@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/apm/meterconfig.node.schema.json",
   "title": "MeterConfig",
   "description": "Configuration for metric collection meters, specifying aggregation temporality, cardinality limits, and collection intervals. Controls how metrics are gathered and aggregated.",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node.schema.json"
+      "$ref": "../../base/spec-node.schema.json"
     }
   ],
   "properties": {

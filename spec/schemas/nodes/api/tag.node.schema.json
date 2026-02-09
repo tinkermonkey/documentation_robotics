@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/api/tag.node.schema.json",
   "title": "Tag",
   "description": "A metadata label used to group and categorize API operations for documentation organization. Enables logical grouping of endpoints in generated API documentation.",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node.schema.json"
+      "$ref": "../../base/spec-node.schema.json"
     }
   ],
   "properties": {

@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/motivation/driver.influence.principle.relationship.schema.json",
   "title": "Driver Influence Principle",
   "description": "Defines relationship: motivation.driver influence motivation.principle",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {

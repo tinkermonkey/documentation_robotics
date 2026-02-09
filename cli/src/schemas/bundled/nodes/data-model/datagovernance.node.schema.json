@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/data-model/datagovernance.node.schema.json",
   "title": "DataGovernance",
   "description": "Metadata about data ownership, classification, sensitivity level, and handling requirements. Ensures data is managed according to organizational policies and regulations.",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node.schema.json"
+      "$ref": "../../base/spec-node.schema.json"
     }
   ],
   "properties": {

@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/apm/meterconfig.composes.spanevent.relationship.schema.json",
   "title": "Meterconfig Composes Spanevent",
   "description": "Defines relationship: apm.meterconfig composes apm.spanevent",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {

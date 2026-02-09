@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/testing/inputselection.references.partitionvalue.relationship.schema.json",
   "title": "Inputselection References Partitionvalue",
   "description": "Defines relationship: testing.inputselection references testing.partitionvalue",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {

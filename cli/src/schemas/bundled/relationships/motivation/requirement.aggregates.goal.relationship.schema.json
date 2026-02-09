@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/motivation/requirement.aggregates.goal.relationship.schema.json",
   "title": "Requirement Aggregates Goal",
   "description": "Defines relationship: motivation.requirement aggregates motivation.goal",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {

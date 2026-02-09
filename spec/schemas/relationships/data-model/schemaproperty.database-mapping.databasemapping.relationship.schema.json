@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/data-model/schemaproperty.database-mapping.databasemapping.relationship.schema.json",
   "title": "Schemaproperty Database Mapping Databasemapping",
   "description": "Defines relationship: data-model.schemaproperty database-mapping data-model.databasemapping",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {

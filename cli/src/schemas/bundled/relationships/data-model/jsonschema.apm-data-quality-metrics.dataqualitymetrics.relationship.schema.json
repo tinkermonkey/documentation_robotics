@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/data-model/jsonschema.apm-data-quality-metrics.dataqualitymetrics.relationship.schema.json",
   "title": "Jsonschema Apm Data Quality Metrics Dataqualitymetrics",
   "description": "Defines relationship: data-model.jsonschema apm-data-quality-metrics data-model.dataqualitymetrics",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {

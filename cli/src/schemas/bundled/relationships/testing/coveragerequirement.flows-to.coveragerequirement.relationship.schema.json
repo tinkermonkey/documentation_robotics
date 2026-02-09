@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/testing/coveragerequirement.flows-to.coveragerequirement.relationship.schema.json",
   "title": "Coveragerequirement Flows To Coveragerequirement",
   "description": "Defines relationship: testing.coveragerequirement flows-to testing.coveragerequirement",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {

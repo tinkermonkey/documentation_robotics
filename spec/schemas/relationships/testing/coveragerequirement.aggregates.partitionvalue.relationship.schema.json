@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/testing/coveragerequirement.aggregates.partitionvalue.relationship.schema.json",
   "title": "Coveragerequirement Aggregates Partitionvalue",
   "description": "Defines relationship: testing.coveragerequirement aggregates testing.partitionvalue",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {

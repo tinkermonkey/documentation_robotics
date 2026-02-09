@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/apm/instrumentationconfig.serves.apmconfiguration.relationship.schema.json",
   "title": "Instrumentationconfig Serves Apmconfiguration",
   "description": "Defines relationship: apm.instrumentationconfig serves apm.apmconfiguration",
   "allOf": [
     {
-      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+      "$ref": "../../base/spec-node-relationship.schema.json"
     }
   ],
   "properties": {
