@@ -1,8 +1,0 @@
-{
-  "totalLayers": 12,
-  "layersWithIntraLayerRelationships": 6,
-  "layersWithCrossLayerRelationships": 12,
-  "totalIntraLayerRelationshipTypes": 33,
-  "totalOutgoingCrossLayerRelationships": 80,
-  "totalIncomingCrossLayerRelationships": 31
-}
