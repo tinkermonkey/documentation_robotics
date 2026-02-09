@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Documentation Robotics - Federated Architecture Modeling",
   "scripts": {
+    "export:spec-neo4j": "npx tsx scripts/export-spec-to-neo4j.ts",
     "test:fs-compatibility": "cd cli-validation/test-suite && npm run test:compatibility",
     "test:fs-compatibility:fast": "cd cli-validation/test-suite && npm run test:compatibility:fast",
     "test:fs-compatibility:ci": "cd cli-validation/test-suite && npm run test:compatibility:ci",
