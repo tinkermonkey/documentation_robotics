@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/business/businessactor.assigned-to.businessrole.relationship.schema.json",
+  "title": "Businessactor Assigned To Businessrole",
+  "description": "Defines relationship: business.businessactor assigned-to business.businessrole",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "business.assigned-to.business"
+    },
+    "source_spec_node_id": {
+      "const": "business.businessactor"
+    },
+    "source_layer": {
+      "const": "business"
+    },
+    "destination_spec_node_id": {
+      "const": "business.businessrole"
+    },
+    "destination_layer": {
+      "const": "business"
+    },
+    "predicate": {
+      "const": "assigned-to"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

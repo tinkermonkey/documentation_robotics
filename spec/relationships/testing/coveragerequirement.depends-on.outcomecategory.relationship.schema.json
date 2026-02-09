@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/testing/coveragerequirement.depends-on.outcomecategory.relationship.schema.json",
+  "title": "Coveragerequirement Depends On Outcomecategory",
+  "description": "Defines relationship: testing.coveragerequirement depends-on testing.outcomecategory",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.depends-on.testing"
+    },
+    "source_spec_node_id": {
+      "const": "testing.coveragerequirement"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.outcomecategory"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "depends-on"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/api/components.composes.responses.relationship.schema.json",
+  "title": "Components Composes Responses",
+  "description": "Defines relationship: api.components composes api.responses",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.composes.api"
+    },
+    "source_spec_node_id": {
+      "const": "api.components"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "api.responses"
+    },
+    "destination_layer": {
+      "const": "api"
+    },
+    "predicate": {
+      "const": "composes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

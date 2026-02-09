@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/testing/inputpartitionselection.aggregates.partitionvalue.relationship.schema.json",
+  "title": "Inputpartitionselection Aggregates Partitionvalue",
+  "description": "Defines relationship: testing.inputpartitionselection aggregates testing.partitionvalue",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.aggregates.testing"
+    },
+    "source_spec_node_id": {
+      "const": "testing.inputpartitionselection"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.partitionvalue"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

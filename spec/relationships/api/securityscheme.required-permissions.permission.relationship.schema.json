@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/api/securityscheme.required-permissions.permission.relationship.schema.json",
+  "title": "Securityscheme Required Permissions Permission",
+  "description": "Defines relationship: api.securityscheme required-permissions security.permission",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.required-permissions.security"
+    },
+    "source_spec_node_id": {
+      "const": "api.securityscheme"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "security.permission"
+    },
+    "destination_layer": {
+      "const": "security"
+    },
+    "predicate": {
+      "const": "required-permissions"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "critical"
+    }
+  }
+}

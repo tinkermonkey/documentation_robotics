@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/apm/instrumentationscope.aggregates.exporterconfig.relationship.schema.json",
+  "title": "Instrumentationscope Aggregates Exporterconfig",
+  "description": "Defines relationship: apm.instrumentationscope aggregates apm.exporterconfig",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "apm.aggregates.apm"
+    },
+    "source_spec_node_id": {
+      "const": "apm.instrumentationscope"
+    },
+    "source_layer": {
+      "const": "apm"
+    },
+    "destination_spec_node_id": {
+      "const": "apm.exporterconfig"
+    },
+    "destination_layer": {
+      "const": "apm"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

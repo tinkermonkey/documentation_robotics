@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/data-model/jsonschema.apm-data-quality-metrics.dataqualitymetrics.relationship.schema.json",
+  "title": "Jsonschema Apm Data Quality Metrics Dataqualitymetrics",
+  "description": "Defines relationship: data-model.jsonschema apm-data-quality-metrics data-model.dataqualitymetrics",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-model.apm-data-quality-metrics.data-model"
+    },
+    "source_spec_node_id": {
+      "const": "data-model.jsonschema"
+    },
+    "source_layer": {
+      "const": "data-model"
+    },
+    "destination_spec_node_id": {
+      "const": "data-model.dataqualitymetrics"
+    },
+    "destination_layer": {
+      "const": "data-model"
+    },
+    "predicate": {
+      "const": "apm-data-quality-metrics"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

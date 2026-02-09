@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/apm/span.depends-on.instrumentationscope.relationship.schema.json",
+  "title": "Span Depends On Instrumentationscope",
+  "description": "Defines relationship: apm.span depends-on apm.instrumentationscope",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "apm.depends-on.apm"
+    },
+    "source_spec_node_id": {
+      "const": "apm.span"
+    },
+    "source_layer": {
+      "const": "apm"
+    },
+    "destination_spec_node_id": {
+      "const": "apm.instrumentationscope"
+    },
+    "destination_layer": {
+      "const": "apm"
+    },
+    "predicate": {
+      "const": "depends-on"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

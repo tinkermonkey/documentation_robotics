@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/data-store/databaseschema.composes.databaseschema.relationship.schema.json",
+  "title": "Databaseschema Composes Databaseschema",
+  "description": "Defines relationship: data-store.databaseschema composes data-store.databaseschema",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-store.composes.data-store"
+    },
+    "source_spec_node_id": {
+      "const": "data-store.databaseschema"
+    },
+    "source_layer": {
+      "const": "data-store"
+    },
+    "destination_spec_node_id": {
+      "const": "data-store.databaseschema"
+    },
+    "destination_layer": {
+      "const": "data-store"
+    },
+    "predicate": {
+      "const": "composes"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

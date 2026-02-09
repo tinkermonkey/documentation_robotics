@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/apm/logprocessor.flows-to.logprocessor.relationship.schema.json",
+  "title": "Logprocessor Flows To Logprocessor",
+  "description": "Defines relationship: apm.logprocessor flows-to apm.logprocessor",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "apm.flows-to.apm"
+    },
+    "source_spec_node_id": {
+      "const": "apm.logprocessor"
+    },
+    "source_layer": {
+      "const": "apm"
+    },
+    "destination_spec_node_id": {
+      "const": "apm.logprocessor"
+    },
+    "destination_layer": {
+      "const": "apm"
+    },
+    "predicate": {
+      "const": "flows-to"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

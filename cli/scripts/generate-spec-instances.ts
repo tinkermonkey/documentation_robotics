@@ -2,7 +2,11 @@
 
 import fs from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
 import Ajv from "ajv";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface LayerSource {
   schemaPath: string;
@@ -306,6 +310,112 @@ function extractAttributesSchema(
   return { properties: schemaProps };
 }
 
+async function generateSpecNodeRelationships(
+  outputDir: string,
+  dryRun: boolean
+): Promise<ValidationResult> {
+  const specRelationships = [];
+  const errors: string[] = [];
+  const BASE_URI = "https://github.com/tinkermonkey/documentation_robotics/spec/relationships";
+
+  // Scan all relationship directories
+  const relationshipsDir = path.join(outputDir, "relationships");
+
+  try {
+    const layerDirs = await fs.readdir(relationshipsDir);
+
+    for (const layerName of layerDirs) {
+      const layerPath = path.join(relationshipsDir, layerName);
+      const stat = await fs.stat(layerPath);
+
+      if (!stat.isDirectory()) {
+        continue;
+      }
+
+      const files = await fs.readdir(layerPath);
+
+      for (const filename of files) {
+        if (!filename.endsWith(".relationship.json")) {
+          continue;
+        }
+
+        const filePath = path.join(layerPath, filename);
+
+        try {
+          // Read the existing relationship data
+          const relationshipData = await readJson(filePath);
+
+          // Extract type names from spec_node_ids for title generation
+          const sourceType = relationshipData.source_spec_node_id.split(".").pop() || "";
+          const destType = relationshipData.destination_spec_node_id.split(".").pop() || "";
+          const predicate = relationshipData.predicate || "";
+
+          // Generate human-readable title
+          const titleSourceType = sourceType.charAt(0).toUpperCase() + sourceType.slice(1);
+          const titleDestType = destType.charAt(0).toUpperCase() + destType.slice(1);
+          const titlePredicate = predicate.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          const title = `${titleSourceType} ${titlePredicate} ${titleDestType}`;
+
+          // Generate description
+          const description = `Defines relationship: ${relationshipData.source_spec_node_id} ${predicate} ${relationshipData.destination_spec_node_id}`;
+
+          // Build schema filename (replace .json with .schema.json)
+          const schemaFilename = filename.replace(".relationship.json", ".relationship.schema.json");
+
+          // Build the schema with const constraints
+          const relationshipSchema: Record<string, any> = {
+            $schema: "http://json-schema.org/draft-07/schema#",
+            $id: `${BASE_URI}/${layerName}/${schemaFilename}`,
+            title,
+            description,
+            allOf: [{ $ref: "../../schemas/base/spec-node-relationship.schema.json" }],
+            properties: {
+              id: { const: relationshipData.id },
+              source_spec_node_id: { const: relationshipData.source_spec_node_id },
+              source_layer: { const: relationshipData.source_layer },
+              destination_spec_node_id: { const: relationshipData.destination_spec_node_id },
+              destination_layer: { const: relationshipData.destination_layer },
+              predicate: { const: relationshipData.predicate },
+              cardinality: { const: relationshipData.cardinality },
+              strength: { const: relationshipData.strength },
+            },
+          };
+
+          // Add optional fields if they exist
+          if (relationshipData.required !== undefined) {
+            relationshipSchema.properties.required = { const: relationshipData.required };
+          }
+
+          if (relationshipData.attributes && Object.keys(relationshipData.attributes).length > 0) {
+            relationshipSchema.properties.attributes = {
+              type: "object",
+              properties: relationshipData.attributes,
+              additionalProperties: false,
+            };
+          }
+
+          specRelationships.push(relationshipSchema);
+
+          if (!dryRun) {
+            const outputPath = path.join(layerPath, schemaFilename);
+            await writeJson(outputPath, relationshipSchema);
+          }
+        } catch (error) {
+          errors.push(`Failed to process ${layerName}/${filename}: ${error}`);
+        }
+      }
+    }
+  } catch (error) {
+    errors.push(`Failed to scan relationships directory: ${error}`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    instanceCount: specRelationships.length,
+  };
+}
+
 
 async function consolidatePredicates(
   schemasDir: string,
@@ -473,7 +583,15 @@ async function main() {
     }
     console.log("");
 
-    console.log("4️⃣  Consolidating predicate catalog...");
+    console.log("4️⃣  Generating SpecNodeRelationship schemas...");
+    const specNodeRelationshipsResult = await generateSpecNodeRelationships(outputDir, dryRun);
+    console.log(`   ✓ Generated ${specNodeRelationshipsResult.instanceCount} SpecNodeRelationship schemas`);
+    if (specNodeRelationshipsResult.errors.length > 0) {
+      console.log("   ⚠️  Errors:", specNodeRelationshipsResult.errors);
+    }
+    console.log("");
+
+    console.log("5️⃣  Consolidating predicate catalog...");
     const predicatesResult = await consolidatePredicates(schemasDir, outputDir, dryRun);
     console.log(`   ✓ Consolidated ${predicatesResult.instanceCount} predicates`);
     if (predicatesResult.errors.length > 0) {
@@ -488,7 +606,7 @@ async function main() {
     };
 
     if (validate && !dryRun) {
-      console.log("5️⃣  Validating generated instances...");
+      console.log("6️⃣  Validating generated instances...");
       try {
         validationResults = await validateInstances(outputDir, schemasDir);
       } catch (error) {
@@ -535,9 +653,9 @@ async function main() {
         instanceCount: specNodesResult.instanceCount,
       },
       specNodeRelationships: {
-        valid: true,
-        errors: [],
-        instanceCount: 0, // Relationship validation deferred to future implementation
+        valid: specNodeRelationshipsResult.valid,
+        errors: specNodeRelationshipsResult.errors,
+        instanceCount: specNodeRelationshipsResult.instanceCount,
       },
       predicateCatalog: {
         valid: predicatesResult.valid,
@@ -545,14 +663,17 @@ async function main() {
         instanceCount: predicatesResult.instanceCount,
       },
       totalInstancesGenerated:
-        specLayersResult.instanceCount + specNodesResult.instanceCount + predicatesResult.instanceCount,
+        specLayersResult.instanceCount + specNodesResult.instanceCount +
+        specNodeRelationshipsResult.instanceCount + predicatesResult.instanceCount,
       totalInstancesValid:
         (specLayersResult.valid ? specLayersResult.instanceCount : 0) +
         (specNodesResult.valid ? specNodesResult.instanceCount : 0) +
+        (specNodeRelationshipsResult.valid ? specNodeRelationshipsResult.instanceCount : 0) +
         (predicatesResult.valid ? predicatesResult.instanceCount : 0),
       success:
         specLayersResult.valid &&
         specNodesResult.valid &&
+        specNodeRelationshipsResult.valid &&
         predicatesResult.valid &&
         (!validate || (validationResults.specLayers.valid && validationResults.specNodes.valid && validationResults.predicates.valid)),
     };

@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/relationships/business/businessprocess.referenced-by.separationofduty.relationship.schema.json",
+  "title": "Businessprocess Referenced By Separationofduty",
+  "description": "Defines relationship: business.businessprocess referenced-by security.separationofduty",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "business.referenced-by.security"
+    },
+    "source_spec_node_id": {
+      "const": "business.businessprocess"
+    },
+    "source_layer": {
+      "const": "business"
+    },
+    "destination_spec_node_id": {
+      "const": "security.separationofduty"
+    },
+    "destination_layer": {
+      "const": "security"
+    },
+    "predicate": {
+      "const": "referenced-by"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}
