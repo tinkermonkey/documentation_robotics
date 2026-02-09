@@ -9,21 +9,30 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Changed
 
+- **BREAKING: Schema Validation Architecture Simplified**:
+  - Model elements now validate against per-type spec node schemas instead of layer-specific schemas
+  - Removed 24 layer-specific schemas (12 from spec/, 12 from CLI bundled/)
+  - Removed generation script (conversion to schema-based architecture complete)
+  - Spec node schemas are now the single source of truth (hand-maintained)
+  - Schema validator refactored to validate each element individually with better error messages
+  - Manifest no longer includes schema path references
+
 - **Spec Relationships Converted to JSON Schemas**:
   - All 252 relationship files converted from data instances (`.relationship.json`) to JSON Schemas (`.relationship.schema.json`)
   - Each schema extends `spec-node-relationship.schema.json` via `allOf`
   - Uses `const` constraints for all identifying fields (id, source_spec_node_id, predicate, etc.)
   - Follows same pattern as spec nodes from issue #316
-  - Enables validation of model relationship instances against their type schemas
+  - Hand-maintained (no generation needed)
   - Old `.relationship.json` files backed up and removed
+
+### Removed
+
+- **Layer-Specific Schemas**: Removed redundant `{NN}-{layer}-layer.schema.json` files
+- **Generation Script**: Removed `cli/scripts/generate-spec-instances.ts` (one-time conversion complete)
 
 ### Added
 
-- **Relationship Schema Generation**:
-  - Added `generateSpecNodeRelationships()` to `cli/scripts/generate-spec-instances.ts`
-  - Automated generation from existing relationship data
-  - Generates human-readable titles and descriptions
-  - Supports regeneration if source data changes
+- **Spec Node Schema Bundling**: CLI now bundles 354 spec node schemas for runtime validation
 
 ## [0.8.0] - 2026-02-06
 

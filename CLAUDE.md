@@ -15,26 +15,31 @@
 
 ```
 documentation_robotics/
-├── spec/                        # SPECIFICATION
+├── spec/                        # SPECIFICATION (source of truth)
 │   ├── VERSION                  # Spec version number
 │   ├── layers/                  # 12 SpecLayer instance files (.layer.json)
-│   ├── nodes/                   # 212 per-type JSON Schemas (.node.schema.json)
+│   ├── nodes/                   # 354 per-type node schemas (.node.schema.json)
 │   │   ├── motivation/          #   Organized by layer
-│   │   ├── business/
-│   │   └── ...
-│   ├── relationships/           # 252 SpecNodeRelationship instances
+│   │   ├── business/            #   Defines valid model element types
+│   │   └── ...                  #   Hand-maintained
+│   ├── relationships/           # 252 per-type relationship schemas
+│   │   ├── motivation/          #   (.relationship.schema.json)
+│   │   └── ...                  #   Hand-maintained
 │   ├── predicates.json          # Consolidated predicate catalog
-│   └── schemas/                 # JSON Schema definitions
-│       ├── base/                #   Base schemas (spec-node, spec-layer, etc.)
-│       └── common/              #   Shared schemas (attribute-spec, source-references)
+│   └── schemas/                 # Base JSON Schema definitions
+│       ├── base/                #   spec-node, spec-layer, spec-node-relationship
+│       └── common/              #   attribute-spec, source-references
 │
 └── cli/                         # TYPESCRIPT CLI
     ├── src/
     │   ├── commands/           # 30 command implementations
     │   ├── core/               # Domain models & registries
-    │   ├── validators/         # Validation pipeline
+    │   ├── validators/         # Validation pipeline (uses spec node schemas)
     │   ├── export/             # Export handlers
-    │   └── schemas/            # Bundled JSON schemas (synced from spec/)
+    │   └── schemas/bundled/    # Bundled schemas (synced from spec/)
+    │       ├── base/           #   Base schemas
+    │       ├── common/         #   Common schemas
+    │       └── nodes/          #   354 spec node schemas for validation
     └── tests/                  # Unit & integration tests (~114 test files)
 ```
 
@@ -57,9 +62,14 @@ See `cli/README.md` for complete setup and usage documentation.
 
 - **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli/package.json`)
 - **Schema synchronization**: Schema changes require updating BOTH locations:
-  - `spec/schemas/` → `cli/src/schemas/bundled/` (base and common schemas)
-  - Layer schemas: `spec/schemas/{NN}-{layer}.schema.json` → `cli/src/schemas/bundled/`
-- **Spec node changes**: Per-type node schemas live in `spec/nodes/{layer}/*.node.schema.json` — these extend `spec-node.schema.json` via `allOf`
+  - Base schemas: `spec/schemas/base/` → `cli/src/schemas/bundled/base/`
+  - Common schemas: `spec/schemas/common/` → `cli/src/schemas/bundled/common/`
+  - Node schemas: `spec/nodes/` → `cli/src/schemas/bundled/nodes/`
+  - Run `npm run build` in CLI (triggers `scripts/sync-spec-schemas.sh`)
+- **Sources of truth (hand-maintained)**:
+  - Spec node schemas: `spec/nodes/{layer}/*.node.schema.json` (extend `spec-node.schema.json` via `allOf`)
+  - Spec relationship schemas: `spec/relationships/{layer}/*.relationship.schema.json` (extend `spec-node-relationship.schema.json` via `allOf`)
+  - Layer instances: `spec/layers/*.layer.json`
 
 ### 2. When to Ask First
 
