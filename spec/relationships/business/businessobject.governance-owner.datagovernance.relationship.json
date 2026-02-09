@@ -1,0 +1,10 @@
+{
+  "id": "business.governance-owner.data-model",
+  "source_spec_node_id": "business.businessobject",
+  "source_layer": "business",
+  "destination_spec_node_id": "data-model.datagovernance",
+  "destination_layer": "data-model",
+  "predicate": "governance-owner",
+  "cardinality": "many-to-one",
+  "strength": "medium"
+}

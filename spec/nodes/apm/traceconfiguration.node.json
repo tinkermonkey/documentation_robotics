@@ -28,7 +28,35 @@
     "source": {
       "type": "object",
       "description": "Source code reference for trace configuration"
+    },
+    "propagator": {
+      "type": "enum",
+      "description": "PropagatorType classification",
+      "enum_values": [
+        "w3c-trace-context",
+        "w3c-baggage",
+        "b3",
+        "jaeger",
+        "xray",
+        "ottrace"
+      ]
+    },
+    "sampler_type": {
+      "type": "enum",
+      "description": "SamplerType classification",
+      "enum_values": [
+        "always_on",
+        "always_off",
+        "traceidratio",
+        "parentbased_always_on",
+        "parentbased_always_off",
+        "parentbased_traceidratio"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "serviceName"]
+  "required_attributes": [
+    "id",
+    "name",
+    "serviceName"
+  ]
 }

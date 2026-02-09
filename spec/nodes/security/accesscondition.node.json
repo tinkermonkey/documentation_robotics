@@ -18,8 +18,25 @@
       "description": ""
     },
     "operator": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "equals",
+        "notEquals",
+        "in",
+        "notIn",
+        "greaterThan",
+        "lessThan",
+        "greaterThanOrEqual",
+        "lessThanOrEqual",
+        "contains",
+        "notContains",
+        "startsWith",
+        "endsWith",
+        "matches",
+        "exists",
+        "notExists"
+      ]
     },
     "value": {
       "type": "string",
@@ -30,9 +47,24 @@
       "description": ""
     },
     "source": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "constant",
+        "user-attribute",
+        "resource-field",
+        "context",
+        "computed"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "field", "operator", "value", "message", "source"]
+  "required_attributes": [
+    "id",
+    "name",
+    "field",
+    "operator",
+    "value",
+    "message",
+    "source"
+  ]
 }

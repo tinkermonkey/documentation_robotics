@@ -1,8 +1,0 @@
-{
-  "id": "ux.labelposition",
-  "layer_id": "ux",
-  "name": "LabelPosition",
-  "description": "LabelPosition element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

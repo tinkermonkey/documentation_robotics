@@ -34,8 +34,14 @@
       "description": ""
     },
     "security": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "apiKey",
+        "http",
+        "oauth2",
+        "openIdConnect"
+      ]
     },
     "tags": {
       "type": "string",
@@ -46,5 +52,14 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "openapi", "info", "servers", "paths", "security", "tags"]
+  "required_attributes": [
+    "id",
+    "name",
+    "openapi",
+    "info",
+    "servers",
+    "paths",
+    "security",
+    "tags"
+  ]
 }

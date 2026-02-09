@@ -1,8 +1,0 @@
-{
-  "id": "data-model.referentialaction",
-  "layer_id": "data-model",
-  "name": "ReferentialAction",
-  "description": "ReferentialAction element in Data Model Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -1,0 +1,10 @@
+{
+  "id": "data-store.composes.data-store",
+  "source_spec_node_id": "data-store.databaseschema",
+  "source_layer": "data-store",
+  "destination_spec_node_id": "data-store.databaseschema",
+  "destination_layer": "data-store",
+  "predicate": "composes",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

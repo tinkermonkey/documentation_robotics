@@ -14,8 +14,14 @@
       "description": ""
     },
     "action": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "redirect",
+        "show-error",
+        "navigate-back",
+        "abort"
+      ]
     },
     "target": {
       "type": "string",
@@ -30,5 +36,12 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "action", "target", "message", "preserveRoute"]
+  "required_attributes": [
+    "id",
+    "name",
+    "action",
+    "target",
+    "message",
+    "preserveRoute"
+  ]
 }

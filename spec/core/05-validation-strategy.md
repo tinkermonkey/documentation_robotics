@@ -122,8 +122,8 @@ const linkValidationResults = {
 
 Conformant implementations MUST:
 
-- Load link definitions from `/spec/schemas/link-registry.json`
-- Validate all 60+ link types across 9 categories
+- Load relationship definitions from `/spec/schemas/relationship-catalog.json`
+- Validate all 60+ relationship types across 9 categories
 - Support both warning and strict validation modes
 - Provide actionable error messages with suggestions
 

@@ -18,9 +18,22 @@
       "description": ""
     },
     "logLevel": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "TRACE",
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "FATAL"
+      ]
     }
   },
-  "required_attributes": ["name", "id", "serviceName", "logLevel"]
+  "required_attributes": [
+    "name",
+    "id",
+    "serviceName",
+    "logLevel"
+  ]
 }

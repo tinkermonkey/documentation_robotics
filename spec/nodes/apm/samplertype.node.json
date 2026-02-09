@@ -1,8 +1,0 @@
-{
-  "id": "apm.samplertype",
-  "layer_id": "apm",
-  "name": "SamplerType",
-  "description": "SamplerType element in APM Observability Layer",
-  "attributes": {},
-  "required_attributes": []
-}

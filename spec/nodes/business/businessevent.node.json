@@ -18,13 +18,22 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "time-driven",
+        "state-change",
+        "external"
+      ]
     },
     "properties": {
       "type": "object",
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": ["id", "name", "type"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
 }

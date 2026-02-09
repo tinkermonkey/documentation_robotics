@@ -1,8 +1,0 @@
-{
-  "id": "data-store.parallelsafety",
-  "layer_id": "data-store",
-  "name": "ParallelSafety",
-  "description": "ParallelSafety element in Data Store Layer",
-  "attributes": {},
-  "required_attributes": []
-}

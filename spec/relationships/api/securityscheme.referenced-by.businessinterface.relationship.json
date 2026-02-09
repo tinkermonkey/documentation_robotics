@@ -1,0 +1,10 @@
+{
+  "id": "api.referenced-by.business",
+  "source_spec_node_id": "api.securityscheme",
+  "source_layer": "api",
+  "destination_spec_node_id": "business.businessinterface",
+  "destination_layer": "business",
+  "predicate": "referenced-by",
+  "cardinality": "many-to-one",
+  "strength": "medium"
+}

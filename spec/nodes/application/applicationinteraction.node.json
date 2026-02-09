@@ -18,9 +18,19 @@
       "description": ""
     },
     "pattern": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "request-response",
+        "publish-subscribe",
+        "async-messaging",
+        "streaming"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "pattern"]
+  "required_attributes": [
+    "id",
+    "name",
+    "pattern"
+  ]
 }

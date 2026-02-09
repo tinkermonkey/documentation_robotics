@@ -1,8 +1,0 @@
-{
-  "id": "apm.severitynumber",
-  "layer_id": "apm",
-  "name": "SeverityNumber",
-  "description": "SeverityNumber element in APM Observability Layer",
-  "attributes": {},
-  "required_attributes": []
-}

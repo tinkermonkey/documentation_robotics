@@ -5,8 +5,14 @@
   "description": "A single classification level defining data sensitivity and protection requirements",
   "attributes": {
     "level": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ]
     },
     "label": {
       "type": "string",
@@ -17,5 +23,9 @@
       "description": ""
     }
   },
-  "required_attributes": ["level", "label", "description"]
+  "required_attributes": [
+    "level",
+    "label",
+    "description"
+  ]
 }

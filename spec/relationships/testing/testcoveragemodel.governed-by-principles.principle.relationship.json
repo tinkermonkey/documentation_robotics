@@ -1,0 +1,10 @@
+{
+  "id": "testing.governed-by-principles.motivation",
+  "source_spec_node_id": "testing.testcoveragemodel",
+  "source_layer": "testing",
+  "destination_spec_node_id": "motivation.principle",
+  "destination_layer": "motivation",
+  "predicate": "governed-by-principles",
+  "cardinality": "many-to-many",
+  "strength": "high"
+}

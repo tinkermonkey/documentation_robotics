@@ -1,8 +1,0 @@
-{
-  "id": "motivation.assessmenttype",
-  "layer_id": "motivation",
-  "name": "AssessmentType",
-  "description": "AssessmentType element in Motivation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

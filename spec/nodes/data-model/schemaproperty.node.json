@@ -56,6 +56,19 @@
     "examples": {
       "type": "string",
       "description": ""
+    },
+    "constraint_type": {
+      "type": "enum",
+      "description": "ConstraintType classification",
+      "enum_values": [
+        "primary-key",
+        "foreign-key",
+        "unique",
+        "not-null",
+        "check",
+        "default",
+        "exclusion"
+      ]
     }
   },
   "required_attributes": [

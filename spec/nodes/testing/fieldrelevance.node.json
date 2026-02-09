@@ -1,8 +1,0 @@
-{
-  "id": "testing.fieldrelevance",
-  "layer_id": "testing",
-  "name": "FieldRelevance",
-  "description": "FieldRelevance element in Testing Layer",
-  "attributes": {},
-  "required_attributes": []
-}

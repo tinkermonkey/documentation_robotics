@@ -18,8 +18,20 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "line",
+        "area",
+        "bar",
+        "column",
+        "pie",
+        "donut",
+        "scatter",
+        "bubble",
+        "radar",
+        "heatmap"
+      ]
     },
     "dataField": {
       "type": "string",
@@ -28,7 +40,21 @@
     "categoryField": {
       "type": "string",
       "description": ""
+    },
+    "line_style": {
+      "type": "enum",
+      "description": "LineStyle classification",
+      "enum_values": [
+        "solid",
+        "dashed",
+        "dotted"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "label", "dataField"]
+  "required_attributes": [
+    "id",
+    "name",
+    "label",
+    "dataField"
+  ]
 }

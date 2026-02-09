@@ -1,8 +1,0 @@
-{
-  "id": "testing.priority",
-  "layer_id": "testing",
-  "name": "Priority",
-  "description": "Priority element in Testing Layer",
-  "attributes": {},
-  "required_attributes": []
-}

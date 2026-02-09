@@ -1,8 +1,0 @@
-{
-  "id": "ux.aligncontent",
-  "layer_id": "ux",
-  "name": "AlignContent",
-  "description": "AlignContent element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

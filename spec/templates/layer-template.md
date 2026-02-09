@@ -331,7 +331,7 @@ All entities must validate against: `spec/schemas/NN-[layer-name]-layer.schema.j
 
 - [Relationship Taxonomy](../core/07-relationship-taxonomy.md) - Complete predicate definitions
 - [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md) - Valid link patterns
-- [Link Registry](../schemas/link-registry.json) - Machine-readable link definitions
+- [Relationship Catalog](../schemas/relationship-catalog.json) - Machine-readable relationship definitions
 - [Layer Schema](../schemas/NN-[layer-name]-layer.schema.json) - JSON Schema validation
 
 ---

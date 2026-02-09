@@ -1,8 +1,0 @@
-{
-  "id": "application.interfaceprotocol",
-  "layer_id": "application",
-  "name": "InterfaceProtocol",
-  "description": "InterfaceProtocol element in Application Layer",
-  "attributes": {},
-  "required_attributes": []
-}

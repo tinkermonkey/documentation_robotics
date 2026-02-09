@@ -1,0 +1,10 @@
+{
+  "id": "api.triggers.api",
+  "source_spec_node_id": "api.operation",
+  "source_layer": "api",
+  "destination_spec_node_id": "api.callback",
+  "destination_layer": "api",
+  "predicate": "triggers",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

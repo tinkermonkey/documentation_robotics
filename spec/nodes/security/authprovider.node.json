@@ -1,8 +1,0 @@
-{
-  "id": "security.authprovider",
-  "layer_id": "security",
-  "name": "AuthProvider",
-  "description": "AuthProvider element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

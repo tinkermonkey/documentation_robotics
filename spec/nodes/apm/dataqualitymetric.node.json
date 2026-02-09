@@ -5,8 +5,18 @@
   "description": "Individual data quality metric",
   "attributes": {
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "completeness",
+        "accuracy",
+        "freshness",
+        "consistency",
+        "uniqueness",
+        "validity",
+        "timeliness",
+        "integrity"
+      ]
     },
     "name": {
       "type": "string",
@@ -29,5 +39,10 @@
       "description": ""
     }
   },
-  "required_attributes": ["type", "name", "measurement", "threshold"]
+  "required_attributes": [
+    "type",
+    "name",
+    "measurement",
+    "threshold"
+  ]
 }

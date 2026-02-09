@@ -1,8 +1,0 @@
-{
-  "id": "ux.viewtype",
-  "layer_id": "ux",
-  "name": "ViewType",
-  "description": "ViewType element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

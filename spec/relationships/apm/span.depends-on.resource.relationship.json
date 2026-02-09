@@ -1,0 +1,10 @@
+{
+  "id": "apm.depends-on.apm",
+  "source_spec_node_id": "apm.span",
+  "source_layer": "apm",
+  "destination_spec_node_id": "apm.resource",
+  "destination_layer": "apm",
+  "predicate": "depends-on",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

@@ -22,8 +22,14 @@
       "description": ""
     },
     "effect": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "requires",
+        "excludes",
+        "enables",
+        "modifies"
+      ]
     },
     "affectedValues": {
       "type": "string",

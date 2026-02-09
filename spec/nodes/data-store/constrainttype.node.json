@@ -1,8 +1,0 @@
-{
-  "id": "data-store.constrainttype",
-  "layer_id": "data-store",
-  "name": "ConstraintType",
-  "description": "ConstraintType element in Data Store Layer",
-  "attributes": {},
-  "required_attributes": []
-}

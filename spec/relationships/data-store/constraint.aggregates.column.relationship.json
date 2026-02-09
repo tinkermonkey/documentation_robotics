@@ -1,0 +1,10 @@
+{
+  "id": "data-store.aggregates.data-store",
+  "source_spec_node_id": "data-store.constraint",
+  "source_layer": "data-store",
+  "destination_spec_node_id": "data-store.column",
+  "destination_layer": "data-store",
+  "predicate": "aggregates",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

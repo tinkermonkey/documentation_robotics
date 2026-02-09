@@ -1,8 +1,0 @@
-{
-  "id": "security.requirementlevel",
-  "layer_id": "security",
-  "name": "RequirementLevel",
-  "description": "RequirementLevel element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

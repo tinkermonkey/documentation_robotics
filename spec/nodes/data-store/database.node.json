@@ -14,8 +14,16 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "PostgreSQL",
+        "MySQL",
+        "SQLite",
+        "MariaDB",
+        "Oracle",
+        "SQL Server"
+      ]
     },
     "version": {
       "type": "string",
@@ -34,5 +42,10 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": ["id", "name", "type", "version"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "version"
+  ]
 }

@@ -14,13 +14,29 @@
       "description": ""
     },
     "action": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "fetchData",
+        "saveData",
+        "deleteData",
+        "validateForm",
+        "clearForm",
+        "showNotification",
+        "navigateTo",
+        "callAPI",
+        "updateState",
+        "computeValue"
+      ]
     },
     "description": {
       "type": "string",
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "action"]
+  "required_attributes": [
+    "id",
+    "name",
+    "action"
+  ]
 }

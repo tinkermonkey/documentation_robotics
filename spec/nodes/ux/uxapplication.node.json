@@ -22,13 +22,24 @@
       "description": ""
     },
     "channel": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "visual",
+        "voice",
+        "chat",
+        "sms",
+        "multimodal"
+      ]
     },
     "experiences": {
       "type": "array",
       "description": "Contains relationship"
     }
   },
-  "required_attributes": ["id", "name", "channel"]
+  "required_attributes": [
+    "id",
+    "name",
+    "channel"
+  ]
 }

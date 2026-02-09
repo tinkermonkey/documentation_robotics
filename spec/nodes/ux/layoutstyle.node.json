@@ -1,8 +1,0 @@
-{
-  "id": "ux.layoutstyle",
-  "layer_id": "ux",
-  "name": "LayoutStyle",
-  "description": "LayoutStyle element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

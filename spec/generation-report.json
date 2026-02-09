@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-07T22:33:05.987Z",
+  "timestamp": "2026-02-09T00:00:00.000Z",
   "specLayers": {
     "valid": true,
     "errors": [],
@@ -8,19 +8,19 @@
   "specNodes": {
     "valid": true,
     "errors": [],
-    "instanceCount": 364
+    "instanceCount": 212
   },
   "specNodeRelationships": {
     "valid": true,
     "errors": [],
-    "instanceCount": 0
+    "instanceCount": 252
   },
   "predicateCatalog": {
     "valid": true,
     "errors": [],
-    "instanceCount": 22
+    "instanceCount": 63
   },
-  "totalInstancesGenerated": 398,
-  "totalInstancesValid": 398,
+  "totalInstancesGenerated": 539,
+  "totalInstancesValid": 539,
   "success": true
 }

@@ -14,8 +14,15 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "authentication",
+        "authorization",
+        "validation",
+        "data-loaded",
+        "custom"
+      ]
     },
     "description": {
       "type": "string",
@@ -30,5 +37,10 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "type", "order"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "order"
+  ]
 }

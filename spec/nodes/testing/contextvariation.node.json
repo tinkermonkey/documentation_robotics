@@ -18,13 +18,24 @@
       "description": ""
     },
     "contextType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "ui-entry",
+        "api-entry",
+        "event-triggered",
+        "scheduled",
+        "integration"
+      ]
     },
     "environmentFactors": {
       "type": "array",
       "description": "Contains relationship"
     }
   },
-  "required_attributes": ["id", "name", "contextType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "contextType"
+  ]
 }

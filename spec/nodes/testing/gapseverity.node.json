@@ -1,8 +1,0 @@
-{
-  "id": "testing.gapseverity",
-  "layer_id": "testing",
-  "name": "GapSeverity",
-  "description": "GapSeverity element in Testing Layer",
-  "attributes": {},
-  "required_attributes": []
-}

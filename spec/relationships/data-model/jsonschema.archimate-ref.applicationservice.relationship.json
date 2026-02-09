@@ -1,0 +1,10 @@
+{
+  "id": "data-model.archimate-ref.application",
+  "source_spec_node_id": "data-model.jsonschema",
+  "source_layer": "data-model",
+  "destination_spec_node_id": "application.applicationservice",
+  "destination_layer": "application",
+  "predicate": "archimate-ref",
+  "cardinality": "many-to-one",
+  "strength": "medium"
+}

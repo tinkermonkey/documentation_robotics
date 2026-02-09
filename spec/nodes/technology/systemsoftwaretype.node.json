@@ -1,8 +1,0 @@
-{
-  "id": "technology.systemsoftwaretype",
-  "layer_id": "technology",
-  "name": "SystemSoftwareType",
-  "description": "SystemSoftwareType element in Technology Layer",
-  "attributes": {},
-  "required_attributes": []
-}

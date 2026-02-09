@@ -18,8 +18,15 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "api",
+        "screen",
+        "data",
+        "file",
+        "service"
+      ]
     },
     "description": {
       "type": "string",
@@ -34,5 +41,10 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": ["resource", "id", "name", "type"]
+  "required_attributes": [
+    "resource",
+    "id",
+    "name",
+    "type"
+  ]
 }

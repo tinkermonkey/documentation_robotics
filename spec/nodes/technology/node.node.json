@@ -18,8 +18,16 @@
       "description": ""
     },
     "nodeType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "server",
+        "container",
+        "vm",
+        "kubernetes-cluster",
+        "serverless-function",
+        "database-cluster"
+      ]
     },
     "properties": {
       "type": "object",
@@ -30,5 +38,9 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "nodeType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "nodeType"
+  ]
 }

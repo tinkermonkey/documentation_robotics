@@ -18,17 +18,35 @@
       "description": ""
     },
     "scope": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "flow",
+        "session",
+        "user"
+      ]
     },
     "persistedIn": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "memory",
+        "session-storage",
+        "local-storage",
+        "server-session",
+        "database"
+      ]
     },
     "defaultValue": {
       "type": "string",
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "schemaRef", "scope", "persistedIn"]
+  "required_attributes": [
+    "id",
+    "name",
+    "schemaRef",
+    "scope",
+    "persistedIn"
+  ]
 }

@@ -1,8 +1,0 @@
-{
-  "id": "technology.nodetype",
-  "layer_id": "technology",
-  "name": "NodeType",
-  "description": "NodeType element in Technology Layer",
-  "attributes": {},
-  "required_attributes": []
-}

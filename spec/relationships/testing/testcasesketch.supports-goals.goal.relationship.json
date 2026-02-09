@@ -1,0 +1,10 @@
+{
+  "id": "testing.supports-goals.motivation",
+  "source_spec_node_id": "testing.testcasesketch",
+  "source_layer": "testing",
+  "destination_spec_node_id": "motivation.goal",
+  "destination_layer": "motivation",
+  "predicate": "supports-goals",
+  "cardinality": "many-to-many",
+  "strength": "high"
+}

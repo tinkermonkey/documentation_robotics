@@ -1,8 +1,0 @@
-{
-  "id": "security.policytarget",
-  "layer_id": "security",
-  "name": "PolicyTarget",
-  "description": "PolicyTarget element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

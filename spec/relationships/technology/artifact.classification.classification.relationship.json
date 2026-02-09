@@ -1,0 +1,10 @@
+{
+  "id": "technology.classification.security",
+  "source_spec_node_id": "technology.artifact",
+  "source_layer": "technology",
+  "destination_spec_node_id": "security.classification",
+  "destination_layer": "security",
+  "predicate": "classification",
+  "cardinality": "many-to-one",
+  "strength": "low"
+}

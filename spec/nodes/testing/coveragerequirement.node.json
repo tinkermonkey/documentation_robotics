@@ -18,12 +18,27 @@
       "description": ""
     },
     "coverageCriteria": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "exhaustive",
+        "pairwise",
+        "each-choice",
+        "boundary",
+        "risk-based",
+        "happy-path",
+        "error-path"
+      ]
     },
     "priority": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
     },
     "inputPartitionSelections": {
       "type": "array",
@@ -42,5 +57,9 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": ["id", "name", "coverageCriteria"]
+  "required_attributes": [
+    "id",
+    "name",
+    "coverageCriteria"
+  ]
 }

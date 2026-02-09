@@ -18,13 +18,25 @@
       "description": ""
     },
     "constraintType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "budget",
+        "time",
+        "technology",
+        "regulatory",
+        "organizational",
+        "resource"
+      ]
     },
     "properties": {
       "type": "object",
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": ["id", "name", "constraintType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "constraintType"
+  ]
 }

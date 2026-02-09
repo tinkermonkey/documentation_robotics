@@ -1,8 +1,0 @@
-{
-  "id": "testing.implementationformat",
-  "layer_id": "testing",
-  "name": "ImplementationFormat",
-  "description": "ImplementationFormat element in Testing Layer",
-  "attributes": {},
-  "required_attributes": []
-}

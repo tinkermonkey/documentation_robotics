@@ -18,13 +18,24 @@
       "description": ""
     },
     "valueType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "financial",
+        "customer",
+        "operational",
+        "strategic",
+        "social"
+      ]
     },
     "properties": {
       "type": "object",
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": ["id", "name", "valueType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "valueType"
+  ]
 }

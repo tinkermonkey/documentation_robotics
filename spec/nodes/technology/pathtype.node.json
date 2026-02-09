@@ -1,8 +1,0 @@
-{
-  "id": "technology.pathtype",
-  "layer_id": "technology",
-  "name": "PathType",
-  "description": "PathType element in Technology Layer",
-  "attributes": {},
-  "required_attributes": []
-}

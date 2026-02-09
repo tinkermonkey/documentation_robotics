@@ -1,8 +1,0 @@
-{
-  "id": "data-model.maskingstrategy",
-  "layer_id": "data-model",
-  "name": "MaskingStrategy",
-  "description": "MaskingStrategy element in Data Model Layer",
-  "attributes": {},
-  "required_attributes": []
-}

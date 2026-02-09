@@ -30,8 +30,15 @@
       "description": ""
     },
     "category": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "typical",
+        "boundary",
+        "invalid",
+        "None",
+        "special"
+      ]
     },
     "representativeValue": {
       "type": "string",

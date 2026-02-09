@@ -1,8 +1,0 @@
-{
-  "id": "data-model.dataclassificationlevel",
-  "layer_id": "data-model",
-  "name": "DataClassificationLevel",
-  "description": "DataClassificationLevel element in Data Model Layer",
-  "attributes": {},
-  "required_attributes": []
-}

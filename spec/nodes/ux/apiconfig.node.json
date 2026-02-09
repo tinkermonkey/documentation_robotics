@@ -18,8 +18,17 @@
       "description": ""
     },
     "method": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "HEAD",
+        "OPTIONS"
+      ]
     },
     "endpoint": {
       "type": "string",
@@ -30,5 +39,12 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "operationId", "method", "endpoint", "baseUrl"]
+  "required_attributes": [
+    "id",
+    "name",
+    "operationId",
+    "method",
+    "endpoint",
+    "baseUrl"
+  ]
 }

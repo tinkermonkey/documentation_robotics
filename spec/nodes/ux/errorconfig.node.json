@@ -18,8 +18,15 @@
       "description": ""
     },
     "notificationType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "toast",
+        "alert",
+        "inline",
+        "banner",
+        "none"
+      ]
     },
     "errorMessage": {
       "type": "string",
@@ -30,5 +37,8 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name"]
+  "required_attributes": [
+    "id",
+    "name"
+  ]
 }

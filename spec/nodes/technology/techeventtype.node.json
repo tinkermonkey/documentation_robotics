@@ -1,8 +1,0 @@
-{
-  "id": "technology.techeventtype",
-  "layer_id": "technology",
-  "name": "TechEventType",
-  "description": "TechEventType element in Technology Layer",
-  "attributes": {},
-  "required_attributes": []
-}

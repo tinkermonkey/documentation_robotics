@@ -1,8 +1,0 @@
-{
-  "id": "testing.contexttype",
-  "layer_id": "testing",
-  "name": "ContextType",
-  "description": "ContextType element in Testing Layer",
-  "attributes": {},
-  "required_attributes": []
-}

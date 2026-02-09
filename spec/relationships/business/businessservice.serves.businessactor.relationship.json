@@ -1,0 +1,10 @@
+{
+  "id": "business.serves.business",
+  "source_spec_node_id": "business.businessservice",
+  "source_layer": "business",
+  "destination_spec_node_id": "business.businessactor",
+  "destination_layer": "business",
+  "predicate": "serves",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

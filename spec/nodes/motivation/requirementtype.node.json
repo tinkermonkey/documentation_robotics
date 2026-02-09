@@ -1,8 +1,0 @@
-{
-  "id": "motivation.requirementtype",
-  "layer_id": "motivation",
-  "name": "RequirementType",
-  "description": "RequirementType element in Motivation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -1,8 +1,0 @@
-{
-  "id": "ux.validationtype",
-  "layer_id": "ux",
-  "name": "ValidationType",
-  "description": "ValidationType element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

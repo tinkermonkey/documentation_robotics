@@ -32,7 +32,28 @@
     "items": {
       "type": "array",
       "description": "Contains relationship"
+    },
+    "index_type": {
+      "type": "enum",
+      "description": "IndexType classification",
+      "enum_values": [
+        "btree",
+        "hash",
+        "gin",
+        "gist",
+        "brin",
+        "fulltext",
+        "spatial",
+        "composite",
+        "unique",
+        "partial"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "title", "type"]
+  "required_attributes": [
+    "id",
+    "name",
+    "title",
+    "type"
+  ]
 }

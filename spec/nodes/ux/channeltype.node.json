@@ -1,8 +1,0 @@
-{
-  "id": "ux.channeltype",
-  "layer_id": "ux",
-  "name": "ChannelType",
-  "description": "ChannelType element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -1,0 +1,10 @@
+{
+  "id": "testing.flows-to.testing",
+  "source_spec_node_id": "testing.testcoveragetarget",
+  "source_layer": "testing",
+  "destination_spec_node_id": "testing.coveragerequirement",
+  "destination_layer": "testing",
+  "predicate": "flows-to",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

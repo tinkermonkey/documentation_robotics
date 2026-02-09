@@ -1,0 +1,10 @@
+{
+  "id": "api.required-permissions.security",
+  "source_spec_node_id": "api.operation",
+  "source_layer": "api",
+  "destination_spec_node_id": "security.permission",
+  "destination_layer": "security",
+  "predicate": "required-permissions",
+  "cardinality": "many-to-many",
+  "strength": "critical"
+}

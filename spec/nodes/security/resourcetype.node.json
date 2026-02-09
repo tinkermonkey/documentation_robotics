@@ -1,8 +1,0 @@
-{
-  "id": "security.resourcetype",
-  "layer_id": "security",
-  "name": "ResourceType",
-  "description": "ResourceType element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -1,8 +1,0 @@
-{
-  "id": "data-store.referentialaction",
-  "layer_id": "data-store",
-  "name": "ReferentialAction",
-  "description": "ReferentialAction element in Data Store Layer",
-  "attributes": {},
-  "required_attributes": []
-}

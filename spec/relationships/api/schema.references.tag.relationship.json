@@ -1,0 +1,10 @@
+{
+  "id": "api.references.api",
+  "source_spec_node_id": "api.schema",
+  "source_layer": "api",
+  "destination_spec_node_id": "api.tag",
+  "destination_layer": "api",
+  "predicate": "references",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

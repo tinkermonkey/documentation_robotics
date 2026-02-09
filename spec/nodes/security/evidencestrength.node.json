@@ -1,8 +1,0 @@
-{
-  "id": "security.evidencestrength",
-  "layer_id": "security",
-  "name": "EvidenceStrength",
-  "description": "EvidenceStrength element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -32,7 +32,56 @@
     "maxWidth": {
       "type": "string",
       "description": ""
+    },
+    "display_type": {
+      "type": "enum",
+      "description": "ColumnDisplayType classification",
+      "enum_values": [
+        "text",
+        "number",
+        "currency",
+        "date",
+        "datetime",
+        "boolean",
+        "badge",
+        "link",
+        "image",
+        "avatar",
+        "actions",
+        "custom"
+      ]
+    },
+    "sort_direction": {
+      "type": "enum",
+      "description": "SortDirection classification",
+      "enum_values": [
+        "asc",
+        "desc"
+      ]
+    },
+    "sticky": {
+      "type": "enum",
+      "description": "StickyPosition classification",
+      "enum_values": [
+        "left",
+        "right",
+        "none"
+      ]
+    },
+    "text_align": {
+      "type": "enum",
+      "description": "TextAlign classification",
+      "enum_values": [
+        "left",
+        "center",
+        "right"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "header", "field"]
+  "required_attributes": [
+    "id",
+    "name",
+    "header",
+    "field"
+  ]
 }

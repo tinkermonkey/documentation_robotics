@@ -26,8 +26,14 @@
       "description": ""
     },
     "target": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "all",
+        "api",
+        "data",
+        "screen"
+      ]
     },
     "rules": {
       "type": "array",
@@ -38,5 +44,10 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "priority", "target"]
+  "required_attributes": [
+    "id",
+    "name",
+    "priority",
+    "target"
+  ]
 }

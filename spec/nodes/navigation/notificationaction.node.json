@@ -14,8 +14,14 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "email",
+        "sms",
+        "push",
+        "webhook"
+      ]
     },
     "template": {
       "type": "string",
@@ -26,5 +32,11 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "type", "template", "recipients"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "template",
+    "recipients"
+  ]
 }

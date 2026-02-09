@@ -1,0 +1,10 @@
+{
+  "id": "api.serves.api",
+  "source_spec_node_id": "api.securityscheme",
+  "source_layer": "api",
+  "destination_spec_node_id": "api.operation",
+  "destination_layer": "api",
+  "predicate": "serves",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

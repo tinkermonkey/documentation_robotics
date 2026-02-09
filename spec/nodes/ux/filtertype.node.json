@@ -1,8 +1,0 @@
-{
-  "id": "ux.filtertype",
-  "layer_id": "ux",
-  "name": "FilterType",
-  "description": "FilterType element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

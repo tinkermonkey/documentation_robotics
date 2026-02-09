@@ -1,8 +1,0 @@
-{
-  "id": "data-store.sequencedatatype",
-  "layer_id": "data-store",
-  "name": "SequenceDataType",
-  "description": "SequenceDataType element in Data Store Layer",
-  "attributes": {},
-  "required_attributes": []
-}

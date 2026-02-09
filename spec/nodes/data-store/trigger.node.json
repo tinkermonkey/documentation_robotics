@@ -18,16 +18,25 @@
       "description": ""
     },
     "timing": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "BEFORE",
+        "AFTER",
+        "INSTEAD_OF"
+      ]
     },
     "events": {
       "type": "string",
       "description": ""
     },
     "forEach": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "ROW",
+        "STATEMENT"
+      ]
     },
     "functionName": {
       "type": "string",
@@ -40,6 +49,16 @@
     "enabled": {
       "type": "boolean",
       "description": ""
+    },
+    "event": {
+      "type": "enum",
+      "description": "TriggerEvent classification",
+      "enum_values": [
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE"
+      ]
     }
   },
   "required_attributes": [

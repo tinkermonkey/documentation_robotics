@@ -1,8 +1,0 @@
-{
-  "id": "apm.logprocessortype",
-  "layer_id": "apm",
-  "name": "LogProcessorType",
-  "description": "LogProcessorType element in APM Observability Layer",
-  "attributes": {},
-  "required_attributes": []
-}

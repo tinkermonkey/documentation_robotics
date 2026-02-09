@@ -18,8 +18,16 @@
       "description": ""
     },
     "status": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "planned",
+        "implemented",
+        "automated",
+        "manual",
+        "blocked",
+        "deprecated"
+      ]
     },
     "inputSelections": {
       "type": "array",
@@ -30,5 +38,9 @@
       "description": "Source code reference to the test case implementation"
     }
   },
-  "required_attributes": ["id", "name", "status"]
+  "required_attributes": [
+    "id",
+    "name",
+    "status"
+  ]
 }

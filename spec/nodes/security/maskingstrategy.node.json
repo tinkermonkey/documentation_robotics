@@ -1,8 +1,0 @@
-{
-  "id": "security.maskingstrategy",
-  "layer_id": "security",
-  "name": "MaskingStrategy",
-  "description": "MaskingStrategy element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

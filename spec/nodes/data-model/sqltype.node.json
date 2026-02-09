@@ -1,8 +1,0 @@
-{
-  "id": "data-model.sqltype",
-  "layer_id": "data-model",
-  "name": "SQLType",
-  "description": "SQLType element in Data Model Layer",
-  "attributes": {},
-  "required_attributes": []
-}

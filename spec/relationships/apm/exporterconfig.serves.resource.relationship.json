@@ -1,0 +1,10 @@
+{
+  "id": "apm.serves.apm",
+  "source_spec_node_id": "apm.exporterconfig",
+  "source_layer": "apm",
+  "destination_spec_node_id": "apm.resource",
+  "destination_layer": "apm",
+  "predicate": "serves",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

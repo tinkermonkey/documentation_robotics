@@ -1,8 +1,0 @@
-{
-  "id": "data-store.securitydefiner",
-  "layer_id": "data-store",
-  "name": "SecurityDefiner",
-  "description": "SecurityDefiner element in Data Store Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -1,8 +1,0 @@
-{
-  "id": "apm.propagatortype",
-  "layer_id": "apm",
-  "name": "PropagatorType",
-  "description": "PropagatorType element in APM Observability Layer",
-  "attributes": {},
-  "required_attributes": []
-}

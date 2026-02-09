@@ -14,13 +14,22 @@
       "description": ""
     },
     "code": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "UNSET",
+        "OK",
+        "ERROR"
+      ]
     },
     "message": {
       "type": "string",
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "code"]
+  "required_attributes": [
+    "id",
+    "name",
+    "code"
+  ]
 }

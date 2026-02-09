@@ -1,8 +1,0 @@
-{
-  "id": "navigation.truncationtype",
-  "layer_id": "navigation",
-  "name": "TruncationType",
-  "description": "TruncationType element in Navigation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

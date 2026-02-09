@@ -22,8 +22,19 @@
       "description": ""
     },
     "trigger": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "user-action",
+        "submit",
+        "success",
+        "failure",
+        "cancel",
+        "automatic",
+        "deeplink",
+        "back",
+        "timeout"
+      ]
     },
     "description": {
       "type": "string",
@@ -34,5 +45,11 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": ["id", "name", "from", "to", "trigger"]
+  "required_attributes": [
+    "id",
+    "name",
+    "from",
+    "to",
+    "trigger"
+  ]
 }

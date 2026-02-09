@@ -1,8 +1,0 @@
-{
-  "id": "technology.techservicetype",
-  "layer_id": "technology",
-  "name": "TechServiceType",
-  "description": "TechServiceType element in Technology Layer",
-  "attributes": {},
-  "required_attributes": []
-}

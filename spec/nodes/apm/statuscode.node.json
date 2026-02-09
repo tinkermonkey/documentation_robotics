@@ -1,8 +1,0 @@
-{
-  "id": "apm.statuscode",
-  "layer_id": "apm",
-  "name": "StatusCode",
-  "description": "StatusCode element in APM Observability Layer",
-  "attributes": {},
-  "required_attributes": []
-}

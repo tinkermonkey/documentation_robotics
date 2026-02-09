@@ -1,8 +1,0 @@
-{
-  "id": "navigation.routetype",
-  "layer_id": "navigation",
-  "name": "RouteType",
-  "description": "RouteType element in Navigation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

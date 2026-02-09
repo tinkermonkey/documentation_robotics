@@ -1,8 +1,0 @@
-{
-  "id": "ux.notificationtype",
-  "layer_id": "ux",
-  "name": "NotificationType",
-  "description": "NotificationType element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

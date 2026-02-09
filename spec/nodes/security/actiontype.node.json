@@ -1,8 +1,0 @@
-{
-  "id": "security.actiontype",
-  "layer_id": "security",
-  "name": "ActionType",
-  "description": "ActionType element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

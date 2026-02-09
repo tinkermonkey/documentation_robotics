@@ -1,8 +1,0 @@
-{
-  "id": "security.verificationlevel",
-  "layer_id": "security",
-  "name": "VerificationLevel",
-  "description": "VerificationLevel element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

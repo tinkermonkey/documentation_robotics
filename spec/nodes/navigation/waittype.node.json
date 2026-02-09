@@ -1,8 +1,0 @@
-{
-  "id": "navigation.waittype",
-  "layer_id": "navigation",
-  "name": "WaitType",
-  "description": "WaitType element in Navigation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

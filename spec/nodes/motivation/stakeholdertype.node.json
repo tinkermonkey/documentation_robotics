@@ -1,8 +1,0 @@
-{
-  "id": "motivation.stakeholdertype",
-  "layer_id": "motivation",
-  "name": "StakeholderType",
-  "description": "StakeholderType element in Motivation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

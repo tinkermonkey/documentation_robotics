@@ -1,8 +1,0 @@
-{
-  "id": "ux.cachestrategy",
-  "layer_id": "ux",
-  "name": "CacheStrategy",
-  "description": "CacheStrategy element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -1,8 +1,0 @@
-{
-  "id": "data-model.constrainttype",
-  "layer_id": "data-model",
-  "name": "ConstraintType",
-  "description": "ConstraintType element in Data Model Layer",
-  "attributes": {},
-  "required_attributes": []
-}

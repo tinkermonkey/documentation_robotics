@@ -14,8 +14,24 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "form-field",
+        "table",
+        "chart",
+        "card",
+        "list",
+        "text",
+        "image",
+        "video",
+        "audio",
+        "map",
+        "calendar",
+        "timeline",
+        "tree",
+        "custom"
+      ]
     },
     "label": {
       "type": "string",
@@ -34,5 +50,9 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "type"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
 }

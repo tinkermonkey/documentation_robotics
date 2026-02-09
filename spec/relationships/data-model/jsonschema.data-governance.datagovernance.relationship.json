@@ -1,0 +1,10 @@
+{
+  "id": "data-model.data-governance.data-model",
+  "source_spec_node_id": "data-model.jsonschema",
+  "source_layer": "data-model",
+  "destination_spec_node_id": "data-model.datagovernance",
+  "destination_layer": "data-model",
+  "predicate": "data-governance",
+  "cardinality": "many-to-one",
+  "strength": "medium"
+}

@@ -1,8 +1,0 @@
-{
-  "id": "navigation.httpmethod",
-  "layer_id": "navigation",
-  "name": "HttpMethod",
-  "description": "HttpMethod element in Navigation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

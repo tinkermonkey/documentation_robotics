@@ -22,8 +22,15 @@
       "description": ""
     },
     "scope": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "global",
+        "user",
+        "ip",
+        "api-key",
+        "tenant"
+      ]
     },
     "keyBy": {
       "type": "string",
@@ -32,7 +39,23 @@
     "source": {
       "type": "object",
       "description": "Source code reference"
+    },
+    "action": {
+      "type": "enum",
+      "description": "RateLimitAction classification",
+      "enum_values": [
+        "reject",
+        "queue",
+        "throttle",
+        "degrade"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "requests", "window", "keyBy"]
+  "required_attributes": [
+    "id",
+    "name",
+    "requests",
+    "window",
+    "keyBy"
+  ]
 }

@@ -1,8 +1,0 @@
-{
-  "id": "security.evaluationtype",
-  "layer_id": "security",
-  "name": "EvaluationType",
-  "description": "EvaluationType element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

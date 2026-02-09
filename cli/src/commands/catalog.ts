@@ -1,8 +1,8 @@
 /**
  * Catalog command - Query relationship catalog and documentation
  *
- * Provides access to the semantic relationship catalog, replacing the
- * deprecated link-registry system with modern relationship-catalog.json
+ * Provides access to the semantic relationship catalog (relationship-catalog.json),
+ * which replaced the former link-registry system
  */
 
 import { Command } from "commander";

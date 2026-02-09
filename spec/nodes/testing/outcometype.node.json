@@ -1,8 +1,0 @@
-{
-  "id": "testing.outcometype",
-  "layer_id": "testing",
-  "name": "OutcomeType",
-  "description": "OutcomeType element in Testing Layer",
-  "attributes": {},
-  "required_attributes": []
-}

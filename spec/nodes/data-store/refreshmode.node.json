@@ -1,8 +1,0 @@
-{
-  "id": "data-store.refreshmode",
-  "layer_id": "data-store",
-  "name": "RefreshMode",
-  "description": "RefreshMode element in Data Store Layer",
-  "attributes": {},
-  "required_attributes": []
-}

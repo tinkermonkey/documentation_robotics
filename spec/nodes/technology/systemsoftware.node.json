@@ -18,8 +18,16 @@
       "description": ""
     },
     "softwareType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "operating-system",
+        "database",
+        "middleware",
+        "container-runtime",
+        "web-server",
+        "message-broker"
+      ]
     },
     "properties": {
       "type": "object",
@@ -30,5 +38,9 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "softwareType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "softwareType"
+  ]
 }

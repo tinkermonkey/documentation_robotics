@@ -18,9 +18,19 @@
       "description": ""
     },
     "criticality": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "description"]
+  "required_attributes": [
+    "id",
+    "name",
+    "description"
+  ]
 }

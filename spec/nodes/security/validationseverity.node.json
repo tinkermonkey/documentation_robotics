@@ -1,8 +1,0 @@
-{
-  "id": "security.validationseverity",
-  "layer_id": "security",
-  "name": "ValidationSeverity",
-  "description": "ValidationSeverity element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -4,7 +4,7 @@
  * This module provides access to the relationship catalog defined in
  * spec/schemas/relationship-catalog.json (v2.1.0+).
  *
- * Replaces the deprecated link-registry.json system.
+ * Replaced the former link-registry.json system (removed in v0.8.0).
  */
 
 import path from "node:path";

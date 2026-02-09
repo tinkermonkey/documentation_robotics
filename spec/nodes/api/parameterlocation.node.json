@@ -1,8 +1,0 @@
-{
-  "id": "api.parameterlocation",
-  "layer_id": "api",
-  "name": "ParameterLocation",
-  "description": "ParameterLocation element in API Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -1,0 +1,10 @@
+{
+  "id": "motivation.associated-with.motivation",
+  "source_spec_node_id": "motivation.value",
+  "source_layer": "motivation",
+  "destination_spec_node_id": "motivation.stakeholder",
+  "destination_layer": "motivation",
+  "predicate": "associated-with",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

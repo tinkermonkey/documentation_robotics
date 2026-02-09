@@ -1,0 +1,10 @@
+{
+  "id": "api.archimate-ref.application",
+  "source_spec_node_id": "api.operation",
+  "source_layer": "api",
+  "destination_spec_node_id": "application.applicationservice",
+  "destination_layer": "application",
+  "predicate": "archimate-ref",
+  "cardinality": "many-to-one",
+  "strength": "medium"
+}

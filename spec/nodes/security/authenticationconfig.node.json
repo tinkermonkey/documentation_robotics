@@ -14,8 +14,17 @@
       "description": ""
     },
     "provider": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "oauth2",
+        "openid-connect",
+        "saml",
+        "jwt",
+        "session",
+        "api-key",
+        "certificate"
+      ]
     },
     "sessionTimeout": {
       "type": "integer",
@@ -34,5 +43,10 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "provider", "sessionTimeout"]
+  "required_attributes": [
+    "id",
+    "name",
+    "provider",
+    "sessionTimeout"
+  ]
 }

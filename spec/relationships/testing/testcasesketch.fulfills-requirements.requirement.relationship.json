@@ -1,0 +1,10 @@
+{
+  "id": "testing.fulfills-requirements.motivation",
+  "source_spec_node_id": "testing.testcasesketch",
+  "source_layer": "testing",
+  "destination_spec_node_id": "motivation.requirement",
+  "destination_layer": "motivation",
+  "predicate": "fulfills-requirements",
+  "cardinality": "many-to-many",
+  "strength": "high"
+}

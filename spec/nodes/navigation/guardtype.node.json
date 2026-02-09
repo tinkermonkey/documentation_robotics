@@ -1,8 +1,0 @@
-{
-  "id": "navigation.guardtype",
-  "layer_id": "navigation",
-  "name": "GuardType",
-  "description": "GuardType element in Navigation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

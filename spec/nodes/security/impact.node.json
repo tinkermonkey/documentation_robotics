@@ -1,8 +1,0 @@
-{
-  "id": "security.impact",
-  "layer_id": "security",
-  "name": "Impact",
-  "description": "Impact element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -1,0 +1,10 @@
+{
+  "id": "testing.accesses.testing",
+  "source_spec_node_id": "testing.coveragerequirement",
+  "source_layer": "testing",
+  "destination_spec_node_id": "testing.inputpartitionselection",
+  "destination_layer": "testing",
+  "predicate": "accesses",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

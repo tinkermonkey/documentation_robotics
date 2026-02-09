@@ -14,8 +14,19 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "required",
+        "minLength",
+        "maxLength",
+        "pattern",
+        "email",
+        "url",
+        "min",
+        "max",
+        "custom"
+      ]
     },
     "message": {
       "type": "string",
@@ -26,5 +37,9 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "type"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
 }

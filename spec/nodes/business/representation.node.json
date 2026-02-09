@@ -18,9 +18,19 @@
       "description": ""
     },
     "format": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "document",
+        "report",
+        "form",
+        "message"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "format"]
+  "required_attributes": [
+    "id",
+    "name",
+    "format"
+  ]
 }

@@ -18,13 +18,34 @@
       "description": ""
     },
     "classification": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ]
     },
     "authorizationRequirements": {
       "type": "array",
       "description": "Contains relationship"
+    },
+    "encryption": {
+      "type": "enum",
+      "description": "EncryptionRequirement classification",
+      "enum_values": [
+        "none",
+        "in-transit",
+        "at-rest",
+        "both",
+        "end-to-end"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "classification"]
+  "required_attributes": [
+    "id",
+    "name",
+    "classification"
+  ]
 }

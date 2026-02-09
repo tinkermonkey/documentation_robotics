@@ -20,7 +20,19 @@
     "materialized": {
       "type": "boolean",
       "description": ""
+    },
+    "refresh_mode": {
+      "type": "enum",
+      "description": "RefreshMode classification",
+      "enum_values": [
+        "ON_COMMIT",
+        "ON_DEMAND",
+        "SCHEDULED"
+      ]
     }
   },
-  "required_attributes": ["id", "name"]
+  "required_attributes": [
+    "id",
+    "name"
+  ]
 }

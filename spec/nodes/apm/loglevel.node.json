@@ -1,8 +1,0 @@
-{
-  "id": "apm.loglevel",
-  "layer_id": "apm",
-  "name": "LogLevel",
-  "description": "LogLevel element in APM Observability Layer",
-  "attributes": {},
-  "required_attributes": []
-}

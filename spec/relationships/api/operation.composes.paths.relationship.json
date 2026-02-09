@@ -1,0 +1,10 @@
+{
+  "id": "api.composes.api",
+  "source_spec_node_id": "api.operation",
+  "source_layer": "api",
+  "destination_spec_node_id": "api.paths",
+  "destination_layer": "api",
+  "predicate": "composes",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

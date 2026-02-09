@@ -1,8 +1,0 @@
-{
-  "id": "application.servicetype",
-  "layer_id": "application",
-  "name": "ServiceType",
-  "description": "ServiceType element in Application Layer",
-  "attributes": {},
-  "required_attributes": []
-}

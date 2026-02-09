@@ -1,8 +1,0 @@
-{
-  "id": "apm.spankind",
-  "layer_id": "apm",
-  "name": "SpanKind",
-  "description": "SpanKind element in APM Observability Layer",
-  "attributes": {},
-  "required_attributes": []
-}

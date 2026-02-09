@@ -1,0 +1,10 @@
+{
+  "id": "testing.references.testing",
+  "source_spec_node_id": "testing.coveragerequirement",
+  "source_layer": "testing",
+  "destination_spec_node_id": "testing.coveragerequirement",
+  "destination_layer": "testing",
+  "predicate": "references",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

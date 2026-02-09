@@ -1,0 +1,10 @@
+{
+  "id": "business.referenced-by.security",
+  "source_spec_node_id": "business.businessprocess",
+  "source_layer": "business",
+  "destination_spec_node_id": "security.separationofduty",
+  "destination_layer": "security",
+  "predicate": "referenced-by",
+  "cardinality": "many-to-one",
+  "strength": "medium"
+}

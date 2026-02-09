@@ -1,0 +1,10 @@
+{
+  "id": "business.flows-to.business",
+  "source_spec_node_id": "business.businessprocess",
+  "source_layer": "business",
+  "destination_spec_node_id": "business.businessprocess",
+  "destination_layer": "business",
+  "predicate": "flows-to",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

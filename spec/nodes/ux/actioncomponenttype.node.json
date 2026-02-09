@@ -1,8 +1,0 @@
-{
-  "id": "ux.actioncomponenttype",
-  "layer_id": "ux",
-  "name": "ActionComponentType",
-  "description": "ActionComponentType element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

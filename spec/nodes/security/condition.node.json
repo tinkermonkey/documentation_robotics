@@ -22,13 +22,22 @@
       "description": ""
     },
     "evaluationType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "synchronous",
+        "asynchronous",
+        "cached"
+      ]
     },
     "source": {
       "type": "object",
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "expression"]
+  "required_attributes": [
+    "id",
+    "name",
+    "expression"
+  ]
 }

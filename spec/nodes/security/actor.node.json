@@ -14,16 +14,29 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "role",
+        "agent",
+        "organization",
+        "system"
+      ]
     },
     "description": {
       "type": "string",
       "description": ""
     },
     "trustLevel": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "full"
+      ]
     },
     "objectives": {
       "type": "array",
@@ -34,5 +47,9 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": ["id", "name", "type"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
 }

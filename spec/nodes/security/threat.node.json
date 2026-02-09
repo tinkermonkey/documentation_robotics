@@ -22,12 +22,26 @@
       "description": ""
     },
     "likelihood": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "very-low",
+        "low",
+        "medium",
+        "high",
+        "very-high"
+      ]
     },
     "impact": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "negligible",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
     },
     "countermeasures": {
       "type": "array",
@@ -38,5 +52,12 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "description", "threatens", "likelihood", "impact"]
+  "required_attributes": [
+    "id",
+    "name",
+    "description",
+    "threatens",
+    "likelihood",
+    "impact"
+  ]
 }

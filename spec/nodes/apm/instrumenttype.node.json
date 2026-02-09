@@ -1,8 +1,0 @@
-{
-  "id": "apm.instrumenttype",
-  "layer_id": "apm",
-  "name": "InstrumentType",
-  "description": "InstrumentType element in APM Observability Layer",
-  "attributes": {},
-  "required_attributes": []
-}

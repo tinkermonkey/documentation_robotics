@@ -26,9 +26,22 @@
       "description": ""
     },
     "criticality": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "dependee", "resource", "objective", "criticality"]
+  "required_attributes": [
+    "id",
+    "name",
+    "dependee",
+    "resource",
+    "objective",
+    "criticality"
+  ]
 }

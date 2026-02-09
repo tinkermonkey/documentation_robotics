@@ -1,0 +1,10 @@
+{
+  "id": "business.process-steps.application",
+  "source_spec_node_id": "business.businessprocess",
+  "source_layer": "business",
+  "destination_spec_node_id": "application.applicationprocess",
+  "destination_layer": "application",
+  "predicate": "process-steps",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

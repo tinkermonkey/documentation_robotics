@@ -1,0 +1,10 @@
+{
+  "id": "business.triggers.business",
+  "source_spec_node_id": "business.businessevent",
+  "source_layer": "business",
+  "destination_spec_node_id": "business.businessprocess",
+  "destination_layer": "business",
+  "predicate": "triggers",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

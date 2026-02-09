@@ -1,8 +1,0 @@
-{
-  "id": "ux.textalign",
-  "layer_id": "ux",
-  "name": "TextAlign",
-  "description": "TextAlign element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

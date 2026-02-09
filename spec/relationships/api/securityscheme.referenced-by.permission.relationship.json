@@ -1,0 +1,10 @@
+{
+  "id": "api.referenced-by.security",
+  "source_spec_node_id": "api.securityscheme",
+  "source_layer": "api",
+  "destination_spec_node_id": "security.permission",
+  "destination_layer": "security",
+  "predicate": "referenced-by",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

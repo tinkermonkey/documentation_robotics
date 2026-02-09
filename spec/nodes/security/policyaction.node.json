@@ -14,8 +14,22 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "allow",
+        "deny",
+        "audit-access",
+        "require-mfa",
+        "require-approval",
+        "apply-mask",
+        "apply-encryption",
+        "apply-retention",
+        "notify",
+        "rate-limit",
+        "check-ip-whitelist",
+        "check-time-window"
+      ]
     },
     "parameters": {
       "type": "object",
@@ -26,5 +40,10 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "type", "parameters"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "parameters"
+  ]
 }

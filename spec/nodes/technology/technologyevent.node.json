@@ -18,9 +18,20 @@
       "description": ""
     },
     "eventType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "startup",
+        "shutdown",
+        "failure",
+        "scaling",
+        "maintenance"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "eventType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "eventType"
+  ]
 }

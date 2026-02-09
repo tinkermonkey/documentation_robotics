@@ -14,8 +14,17 @@
       "description": ""
     },
     "source": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "api-response",
+        "form-data",
+        "route-params",
+        "query-params",
+        "local-storage",
+        "constant",
+        "computed"
+      ]
     },
     "target": {
       "type": "string",
@@ -26,5 +35,10 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "source", "target"]
+  "required_attributes": [
+    "id",
+    "name",
+    "source",
+    "target"
+  ]
 }

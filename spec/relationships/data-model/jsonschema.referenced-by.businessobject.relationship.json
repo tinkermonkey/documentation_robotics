@@ -1,0 +1,10 @@
+{
+  "id": "data-model.referenced-by.business",
+  "source_spec_node_id": "data-model.jsonschema",
+  "source_layer": "data-model",
+  "destination_spec_node_id": "business.businessobject",
+  "destination_layer": "business",
+  "predicate": "referenced-by",
+  "cardinality": "many-to-one",
+  "strength": "medium"
+}

@@ -1,8 +1,0 @@
-{
-  "id": "ux.componenttype",
-  "layer_id": "ux",
-  "name": "ComponentType",
-  "description": "ComponentType element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -1,0 +1,10 @@
+{
+  "id": "testing.composes.testing",
+  "source_spec_node_id": "testing.testcoveragetarget",
+  "source_layer": "testing",
+  "destination_spec_node_id": "testing.inputpartitionselection",
+  "destination_layer": "testing",
+  "predicate": "composes",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

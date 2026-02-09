@@ -1,8 +1,0 @@
-{
-  "id": "ux.httpmethod",
-  "layer_id": "ux",
-  "name": "HttpMethod",
-  "description": "HttpMethod element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

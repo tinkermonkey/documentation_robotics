@@ -1,8 +1,0 @@
-{
-  "id": "ux.buttonstyle",
-  "layer_id": "ux",
-  "name": "ButtonStyle",
-  "description": "ButtonStyle element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

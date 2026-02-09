@@ -18,8 +18,17 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "button",
+        "menu-item",
+        "link",
+        "voice-command",
+        "chat-button",
+        "sms-keyword",
+        "custom"
+      ]
     },
     "icon": {
       "type": "string",
@@ -40,7 +49,24 @@
     "children": {
       "type": "array",
       "description": "Contains relationship"
+    },
+    "style": {
+      "type": "enum",
+      "description": "ButtonStyle classification",
+      "enum_values": [
+        "primary",
+        "secondary",
+        "danger",
+        "success",
+        "warning",
+        "ghost",
+        "icon"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "type"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
 }

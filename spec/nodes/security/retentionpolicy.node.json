@@ -20,7 +20,32 @@
     "description": {
       "type": "string",
       "description": ""
+    },
+    "deletion_method": {
+      "type": "enum",
+      "description": "DeletionMethod classification",
+      "enum_values": [
+        "soft",
+        "hard",
+        "cryptographic",
+        "overwrite",
+        "physical"
+      ]
+    },
+    "storage_class": {
+      "type": "enum",
+      "description": "StorageClass classification",
+      "enum_values": [
+        "hot",
+        "warm",
+        "cold",
+        "archive"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "period"]
+  "required_attributes": [
+    "id",
+    "name",
+    "period"
+  ]
 }

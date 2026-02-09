@@ -14,8 +14,19 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "batch",
+        "resource",
+        "filter",
+        "transform",
+        "sampling",
+        "redact",
+        "routing",
+        "memory-limiter",
+        "custom"
+      ]
     },
     "order": {
       "type": "integer",
@@ -24,7 +35,24 @@
     "enabled": {
       "type": "boolean",
       "description": ""
+    },
+    "operation": {
+      "type": "enum",
+      "description": "TransformOperation classification",
+      "enum_values": [
+        "set-attribute",
+        "delete-attribute",
+        "rename-attribute",
+        "hash-attribute",
+        "truncate-body",
+        "extract-attribute",
+        "convert-severity"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "type"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
 }

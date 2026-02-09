@@ -782,7 +782,7 @@ Field paths encode predicates in YAML/JSON property definitions:
 ### Backward Compatibility
 
 - Existing field paths remain valid (e.g., `motivation.supports-goals`)
-- New `predicate` field in link-registry.json is additive
+- Predicates are defined in `relationship-catalog.json`
 - Existing examples and documentation continue to work
 - Migration tools available in `scripts/migration/`
 
@@ -792,8 +792,7 @@ Field paths encode predicates in YAML/JSON property definitions:
 
 - [Cross-Layer Reference Registry](06-cross-layer-reference-registry.md) - Registry of valid link patterns
 - [Reference Directionality](04-reference-directionality.md) - Upward-flowing traceability design
-- Link Registry Schema (`spec/schemas/link-registry.json`) - Machine-readable link definitions
-- Relationship Catalog (`spec/schemas/relationship-catalog.json`) - Complete predicate catalog
+- Relationship Catalog (`spec/schemas/relationship-catalog.json`) - Complete predicate catalog (machine-readable)
 
 ---
 

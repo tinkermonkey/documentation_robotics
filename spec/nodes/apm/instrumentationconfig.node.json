@@ -14,8 +14,23 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "http",
+        "database",
+        "redis",
+        "grpc",
+        "messaging",
+        "graphql",
+        "aws-sdk",
+        "mongodb",
+        "elasticsearch",
+        "fs",
+        "dns",
+        "net",
+        "custom"
+      ]
     },
     "enabled": {
       "type": "boolean",
@@ -26,5 +41,9 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "type"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
 }

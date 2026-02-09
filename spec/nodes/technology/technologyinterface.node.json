@@ -18,8 +18,18 @@
       "description": ""
     },
     "protocol": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "HTTP",
+        "HTTPS",
+        "TCP",
+        "UDP",
+        "WebSocket",
+        "AMQP",
+        "MQTT",
+        "SQL"
+      ]
     },
     "properties": {
       "type": "object",
@@ -30,5 +40,9 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "protocol"]
+  "required_attributes": [
+    "id",
+    "name",
+    "protocol"
+  ]
 }

@@ -28,7 +28,25 @@
     "engine": {
       "type": "string",
       "description": ""
+    },
+    "partition_strategy": {
+      "type": "enum",
+      "description": "PartitionStrategy classification",
+      "enum_values": [
+        "range",
+        "list",
+        "hash",
+        "composite",
+        "none"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "table", "schema", "catalog", "engine"]
+  "required_attributes": [
+    "id",
+    "name",
+    "table",
+    "schema",
+    "catalog",
+    "engine"
+  ]
 }

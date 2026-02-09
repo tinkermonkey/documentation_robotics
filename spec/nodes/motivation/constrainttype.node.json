@@ -1,8 +1,0 @@
-{
-  "id": "motivation.constrainttype",
-  "layer_id": "motivation",
-  "name": "ConstraintType",
-  "description": "ConstraintType element in Motivation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

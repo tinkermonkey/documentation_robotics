@@ -1,8 +1,0 @@
-{
-  "id": "data-store.sqldatatype",
-  "layer_id": "data-store",
-  "name": "SQLDataType",
-  "description": "SQLDataType element in Data Store Layer",
-  "attributes": {},
-  "required_attributes": []
-}

@@ -30,8 +30,15 @@
       "description": ""
     },
     "spanKind": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "INTERNAL",
+        "SERVER",
+        "CLIENT",
+        "PRODUCER",
+        "CONSUMER"
+      ]
     },
     "startTimeUnixNano": {
       "type": "string",

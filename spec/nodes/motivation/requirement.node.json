@@ -18,17 +18,36 @@
       "description": ""
     },
     "requirementType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "functional",
+        "non-functional",
+        "business",
+        "technical",
+        "compliance",
+        "user"
+      ]
     },
     "priority": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
     },
     "properties": {
       "type": "object",
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": ["id", "name", "requirementType", "priority"]
+  "required_attributes": [
+    "id",
+    "name",
+    "requirementType",
+    "priority"
+  ]
 }

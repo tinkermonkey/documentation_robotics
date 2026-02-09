@@ -18,8 +18,13 @@
       "description": ""
     },
     "dataType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "SMALLINT",
+        "INTEGER",
+        "BIGINT"
+      ]
     },
     "startValue": {
       "type": "integer",
@@ -50,5 +55,8 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name"]
+  "required_attributes": [
+    "id",
+    "name"
+  ]
 }

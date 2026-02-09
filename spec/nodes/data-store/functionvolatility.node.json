@@ -1,8 +1,0 @@
-{
-  "id": "data-store.functionvolatility",
-  "layer_id": "data-store",
-  "name": "FunctionVolatility",
-  "description": "FunctionVolatility element in Data Store Layer",
-  "attributes": {},
-  "required_attributes": []
-}

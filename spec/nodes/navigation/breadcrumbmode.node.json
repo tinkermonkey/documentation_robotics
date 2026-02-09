@@ -1,8 +1,0 @@
-{
-  "id": "navigation.breadcrumbmode",
-  "layer_id": "navigation",
-  "name": "BreadcrumbMode",
-  "description": "BreadcrumbMode element in Navigation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

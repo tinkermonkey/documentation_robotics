@@ -18,13 +18,29 @@
       "description": ""
     },
     "outcomeType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "success",
+        "validation-error",
+        "authorization-denied",
+        "not-found",
+        "conflict",
+        "precondition-failed",
+        "idempotent-noop",
+        "partial-success",
+        "error"
+      ]
     },
     "httpStatusRange": {
       "type": "string",
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "outcomeType", "httpStatusRange"]
+  "required_attributes": [
+    "id",
+    "name",
+    "outcomeType",
+    "httpStatusRange"
+  ]
 }

@@ -1,8 +1,0 @@
-{
-  "id": "security.policyeffect",
-  "layer_id": "security",
-  "name": "PolicyEffect",
-  "description": "PolicyEffect element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

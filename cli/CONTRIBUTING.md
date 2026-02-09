@@ -247,7 +247,7 @@ Core types defined in `src/types/index.ts`:
 All JSON schemas from `spec/schemas/` are bundled into the CLI distribution:
 
 - **Layer Schemas**: 01-motivation through 12-testing
-- **Catalogs**: relationship-catalog.json, link-registry.json
+- **Catalogs**: relationship-catalog.json
 - **Common Schemas**: predicates, relationships, source-references, layer-extensions
 
 Schemas are loaded at build time via `src/schemas/bundled/` and do not require filesystem access at runtime.

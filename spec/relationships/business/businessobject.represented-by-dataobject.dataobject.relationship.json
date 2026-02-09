@@ -1,0 +1,10 @@
+{
+  "id": "business.represented-by-dataobject.application",
+  "source_spec_node_id": "business.businessobject",
+  "source_layer": "business",
+  "destination_spec_node_id": "application.dataobject",
+  "destination_layer": "application",
+  "predicate": "represented-by-dataobject",
+  "cardinality": "many-to-one",
+  "strength": "medium"
+}

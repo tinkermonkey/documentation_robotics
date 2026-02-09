@@ -44,26 +44,45 @@ spec/
 │   └── 05-validation-strategy.md   # Multi-layer validation
 │
 ├── layers/                     # Layer specifications (normative)
-│   ├── 01-motivation-layer.md      # WHY - Goals, requirements
-│   ├── 02-business-layer.md        # WHAT - Business processes
-│   ├── 03-security-layer.md        # WHO CAN - Access control
-│   ├── 04-application-layer.md     # HOW - Application services
-│   ├── 05-technology-layer.md      # WITH WHAT - Technology stack
-│   ├── 06-api-layer.md             # INTERFACE - Service contracts
-│   ├── 07-data-model-layer.md      # STRUCTURE - Data definitions
-│   ├── 08-data-store-layer.md      # STORAGE - Database schemas
-│   ├── 09-ux-layer.md              # PRESENTATION - User experience (3-tier architecture)
-│   ├── 10-navigation-layer.md      # FLOW - Navigation patterns
-│   ├── 11-apm-observability-layer.md   # OBSERVE - Monitoring
-│   └── 12-testing-layer.md         # VERIFY - Test coverage modeling
+│   ├── 01-motivation.layer.json    # Source of truth (JSON spec instance)
+│   ├── 01-motivation-layer.md      # Generated markdown (human-readable)
+│   ├── 02-business.layer.json
+│   ├── 02-business-layer.md
+│   ├── ...                         # One .layer.json + .md pair per layer
+│   ├── 12-testing.layer.json
+│   └── 12-testing-layer.md
+│
+├── nodes/                      # Node type definitions (NEW in v0.8.0)
+│   ├── motivation/                 # Per-layer subdirectories
+│   │   ├── goal.node.json          # One .node.json per entity type
+│   │   ├── requirement.node.json
+│   │   └── ...
+│   ├── business/
+│   ├── security/
+│   ├── application/
+│   ├── technology/
+│   ├── api/
+│   ├── data-model/
+│   ├── data-store/
+│   ├── ux/
+│   ├── navigation/
+│   ├── apm/
+│   └── testing/
 │
 ├── schemas/                    # JSON Schemas (normative)
-│   ├── common/                      # Cross-layer shared schemas (NEW in v0.7.1)
+│   ├── base/                        # Spec-level base schemas (NEW in v0.8.0)
+│   │   ├── spec-layer.schema.json           # Validates .layer.json files
+│   │   ├── spec-node.schema.json            # Validates .node.json files
+│   │   ├── spec-node-relationship.schema.json  # Node relationship schemas
+│   │   ├── model-node.schema.json           # Model-level node validation
+│   │   ├── model-node-relationship.schema.json # Model-level relationship validation
+│   │   └── predicate-catalog.schema.json    # Predicate catalog schema
+│   ├── common/                      # Cross-layer shared schemas (v0.7.1)
 │   │   ├── source-references.schema.json    # Source code location tracking
 │   │   ├── layer-extensions.schema.json     # Layer metadata and relationships
 │   │   ├── relationships.schema.json        # Relationship type definitions
 │   │   └── predicates.schema.json           # Predicate definitions
-│   ├── link-registry.json           # Cross-layer link registry
+│   ├── relationship-catalog.json    # Semantic relationship catalog
 │   ├── 01-motivation-layer.schema.json
 │   ├── 02-business-layer.schema.json
 │   └── ...                     # One schema per layer
@@ -112,6 +131,30 @@ spec/
     └── bibliography.md
 ```
 
+## Schema-Driven Documentation Model
+
+As of v0.8.0, the specification uses a **schema-driven documentation model** where JSON spec instances are the source of truth and markdown is generated for human readability.
+
+### Two-Tier Schema Architecture
+
+- **Spec-level schemas** (`schemas/base/`) - Validate the specification itself (`.layer.json` and `.node.json` files)
+- **Model-level schemas** (`schemas/*.schema.json`) - Validate architecture model instances created by users
+
+### Source of Truth
+
+- **`.layer.json` files** (`spec/layers/`) - Define each layer's metadata, purpose, entity types, and relationships
+- **`.node.json` files** (`spec/nodes/`) - Define individual entity types with their properties, validation rules, and relationships
+- **Generated `.md` files** (`spec/layers/`) - Human-readable markdown generated from JSON specs
+
+### Workflow
+
+1. Edit the JSON source files (`.layer.json` or `.node.json`)
+2. Run `dr docs generate` to regenerate markdown
+3. Run `dr docs validate` to verify JSON/markdown sync
+4. Commit both JSON and generated markdown
+
+See [docs/SCHEMA_DRIVEN_DOCS.md](../docs/SCHEMA_DRIVEN_DOCS.md) for full details on the schema-driven documentation model.
+
 ## The Vision
 
 The specification aims to be a comprehensive, standards-based approach to describing:
@@ -139,6 +182,8 @@ For the broader motivation, see [The Need](../README.md#the-need) in the main RE
 4. Browse layer specifications relevant to your work
 5. Check [examples/](examples/) for practical patterns
 6. Use [guides/getting-started.md](guides/getting-started.md) to start modeling
+
+> **Note:** The `.md` files in `spec/layers/` are generated from JSON spec instances (`.layer.json` and `.node.json`). To modify layer specifications, edit the JSON source files and run `dr docs generate` to regenerate markdown.
 
 **Time Investment:** 2-3 hours for overview, then explore as needed
 
@@ -227,6 +272,19 @@ See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationa
 ✅ **Pragmatic** - Layer ordering matches real-world workflows
 
 ## Recent Enhancements
+
+### Schema-Driven Documentation Model (v0.8.0)
+
+The v0.8.0 release introduces a schema-driven documentation model where JSON spec instances are the source of truth:
+
+- **Schema-Driven Architecture** - JSON spec instances (`.layer.json`, `.node.json`) are the authoritative source; markdown is generated
+- **Base Schemas Directory** (`spec/schemas/base/`) - 6 schemas for validating spec-level and model-level artifacts
+- **Node Type Definitions** (`spec/nodes/**/*.node.json`) - Per-layer entity type definitions with properties, validation rules, and relationships
+- **Layer Metadata Files** (`spec/layers/*.layer.json`) - Layer-level metadata, purpose, entity types, and relationship declarations
+- **Documentation Generation** - `dr docs generate` produces markdown from JSON specs; `dr docs validate` ensures sync
+- **Link Registry Removal** - The deprecated `link-registry.json` (deprecated in v0.7.0) has been removed; use `relationship-catalog.json` instead
+
+See [CHANGELOG.md](CHANGELOG.md#080---2026-02-07) for complete details.
 
 ### Source Code Reference Infrastructure (v0.7.1)
 

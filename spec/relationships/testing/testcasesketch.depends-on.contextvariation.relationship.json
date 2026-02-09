@@ -1,0 +1,10 @@
+{
+  "id": "testing.depends-on.testing",
+  "source_spec_node_id": "testing.testcasesketch",
+  "source_layer": "testing",
+  "destination_spec_node_id": "testing.contextvariation",
+  "destination_layer": "testing",
+  "predicate": "depends-on",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

@@ -22,8 +22,13 @@
       "description": ""
     },
     "presenceRule": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "required",
+        "optional",
+        "conditional"
+      ]
     },
     "partitions": {
       "type": "array",
@@ -34,5 +39,10 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": ["id", "name", "fieldRef", "presenceRule"]
+  "required_attributes": [
+    "id",
+    "name",
+    "fieldRef",
+    "presenceRule"
+  ]
 }

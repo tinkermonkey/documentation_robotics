@@ -18,9 +18,21 @@
       "description": ""
     },
     "assessmentType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "strength",
+        "weakness",
+        "opportunity",
+        "threat",
+        "risk",
+        "gap"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "assessmentType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "assessmentType"
+  ]
 }

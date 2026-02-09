@@ -1,8 +1,0 @@
-{
-  "id": "data-model.indextype",
-  "layer_id": "data-model",
-  "name": "IndexType",
-  "description": "IndexType element in Data Model Layer",
-  "attributes": {},
-  "required_attributes": []
-}

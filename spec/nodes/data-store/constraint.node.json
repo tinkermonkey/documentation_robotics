@@ -14,9 +14,31 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "PRIMARY_KEY",
+        "UNIQUE",
+        "FOREIGN_KEY",
+        "CHECK",
+        "EXCLUSION"
+      ]
+    },
+    "on_delete": {
+      "type": "enum",
+      "description": "ReferentialAction classification",
+      "enum_values": [
+        "CASCADE",
+        "SET_NULL",
+        "SET_DEFAULT",
+        "RESTRICT",
+        "NO_ACTION"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "type"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
 }

@@ -18,8 +18,15 @@
       "description": ""
     },
     "serviceType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "infrastructure",
+        "platform",
+        "storage",
+        "compute",
+        "network"
+      ]
     },
     "properties": {
       "type": "object",
@@ -30,5 +37,9 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "serviceType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "serviceType"
+  ]
 }

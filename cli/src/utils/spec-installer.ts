@@ -112,8 +112,6 @@ export async function installSpecReference(
   // Copy catalog and registry files
   const catalogFiles = [
     "relationship-catalog.json",
-    "link-registry.json",
-    "link-registry.schema.json",
     "relationship-type.schema.json",
   ];
 

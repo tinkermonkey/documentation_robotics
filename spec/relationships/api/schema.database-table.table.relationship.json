@@ -1,0 +1,10 @@
+{
+  "id": "api.database-table.data-store",
+  "source_spec_node_id": "api.schema",
+  "source_layer": "api",
+  "destination_spec_node_id": "data-store.table",
+  "destination_layer": "data-store",
+  "predicate": "database-table",
+  "cardinality": "many-to-one",
+  "strength": "medium"
+}

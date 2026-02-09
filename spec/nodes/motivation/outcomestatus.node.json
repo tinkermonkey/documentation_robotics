@@ -1,8 +1,0 @@
-{
-  "id": "motivation.outcomestatus",
-  "layer_id": "motivation",
-  "name": "OutcomeStatus",
-  "description": "OutcomeStatus element in Motivation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

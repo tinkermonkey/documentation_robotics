@@ -1,8 +1,0 @@
-{
-  "id": "ux.seriestype",
-  "layer_id": "ux",
-  "name": "SeriesType",
-  "description": "SeriesType element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

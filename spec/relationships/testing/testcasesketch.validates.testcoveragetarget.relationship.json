@@ -1,0 +1,10 @@
+{
+  "id": "testing.validates.testing",
+  "source_spec_node_id": "testing.testcasesketch",
+  "source_layer": "testing",
+  "destination_spec_node_id": "testing.testcoveragetarget",
+  "destination_layer": "testing",
+  "predicate": "validates",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

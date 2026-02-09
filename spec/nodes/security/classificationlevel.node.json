@@ -1,8 +1,0 @@
-{
-  "id": "security.classificationlevel",
-  "layer_id": "security",
-  "name": "ClassificationLevel",
-  "description": "ClassificationLevel element in Security Layer",
-  "attributes": {},
-  "required_attributes": []
-}

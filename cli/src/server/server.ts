@@ -329,17 +329,6 @@ export class VisualizationServer {
       }
     });
 
-    // Get link registry
-    this.app.get("/api/link-registry", async (c) => {
-      try {
-        const linkRegistry = await this.loadLinkRegistry();
-        return c.json(linkRegistry);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return c.json({ error: message }, 404);
-      }
-    });
-
     // Annotations API (spec-compliant routes)
 
     // Get all annotations (optionally filtered by elementId)
@@ -1555,23 +1544,6 @@ export class VisualizationServer {
     } catch (error) {
       console.error("Failed to load schemas:", error);
       throw new Error("Failed to load schema files");
-    }
-  }
-
-  /**
-   * Load link registry from bundled directory
-   */
-  private async loadLinkRegistry(): Promise<any> {
-    const linkRegistryPath = new URL("../schemas/bundled/link-registry.json", import.meta.url)
-      .pathname;
-
-    try {
-      const fs = await import("fs/promises");
-      const content = await fs.readFile(linkRegistryPath, "utf-8");
-      return JSON.parse(content);
-    } catch (error) {
-      console.error("Failed to load link registry:", error);
-      throw new Error("Link registry not found");
     }
   }
 

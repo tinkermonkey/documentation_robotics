@@ -1,8 +1,0 @@
-{
-  "id": "testing.coveragecriteria",
-  "layer_id": "testing",
-  "name": "CoverageCriteria",
-  "description": "CoverageCriteria element in Testing Layer",
-  "attributes": {},
-  "required_attributes": []
-}

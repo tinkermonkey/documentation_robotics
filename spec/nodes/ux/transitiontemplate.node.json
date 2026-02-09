@@ -18,13 +18,28 @@
       "description": ""
     },
     "trigger": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "success",
+        "failure",
+        "submit",
+        "cancel",
+        "click",
+        "timeout",
+        "dataReady",
+        "custom"
+      ]
     },
     "description": {
       "type": "string",
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "to", "trigger"]
+  "required_attributes": [
+    "id",
+    "name",
+    "to",
+    "trigger"
+  ]
 }

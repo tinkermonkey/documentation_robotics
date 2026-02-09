@@ -22,8 +22,16 @@
       "description": ""
     },
     "method": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "BTREE",
+        "HASH",
+        "GIN",
+        "GIST",
+        "BRIN",
+        "SP-GIST"
+      ]
     },
     "where": {
       "type": "string",
@@ -34,5 +42,8 @@
       "description": ""
     }
   },
-  "required_attributes": ["id", "name"]
+  "required_attributes": [
+    "id",
+    "name"
+  ]
 }

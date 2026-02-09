@@ -1,8 +1,0 @@
-{
-  "id": "data-model.securityclassification",
-  "layer_id": "data-model",
-  "name": "SecurityClassification",
-  "description": "SecurityClassification element in Data Model Layer",
-  "attributes": {},
-  "required_attributes": []
-}

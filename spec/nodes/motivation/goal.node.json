@@ -18,13 +18,23 @@
       "description": ""
     },
     "priority": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
     },
     "properties": {
       "type": "object",
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": ["id", "name", "priority"]
+  "required_attributes": [
+    "id",
+    "name",
+    "priority"
+  ]
 }

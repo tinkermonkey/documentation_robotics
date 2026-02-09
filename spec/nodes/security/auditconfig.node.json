@@ -18,8 +18,14 @@
       "description": ""
     },
     "level": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "none",
+        "minimal",
+        "standard",
+        "comprehensive"
+      ]
     },
     "includePayload": {
       "type": "boolean",
@@ -36,7 +42,22 @@
     "source": {
       "type": "object",
       "description": "Source code reference"
+    },
+    "destination_type": {
+      "type": "enum",
+      "description": "DestinationType classification",
+      "enum_values": [
+        "database",
+        "log-service",
+        "siem",
+        "file"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "level", "sanitizeFields"]
+  "required_attributes": [
+    "id",
+    "name",
+    "level",
+    "sanitizeFields"
+  ]
 }

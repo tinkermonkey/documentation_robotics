@@ -8,7 +8,7 @@
   "definitions": {
     "PredicateType": {
       "type": "string",
-      "description": "Semantic predicate describing a relationship type",
+      "description": "Semantic predicate describing a relationship type. Includes both forward and inverse forms.",
       "enum": [
         "supports",
         "supported-by",
@@ -32,8 +32,9 @@
         "consumed-by",
         "requires",
         "required-by",
-        "assigned",
+        "assigns",
         "assigned-to",
+        "associated-with",
         "protects",
         "protected-by",
         "mitigates",
@@ -42,34 +43,51 @@
         "accessed-by",
         "uses",
         "used-by",
-        "deployed-on",
-        "hosts",
-        "runs-on",
-        "supports-runtime",
-        "exposes",
-        "exposed-by",
         "implements",
         "implemented-by",
+        "specializes",
+        "generalized-by",
+        "influences",
+        "influenced-by",
+        "serves",
+        "served-by",
         "references",
         "referenced-by",
-        "persists-to",
-        "stores",
-        "maps-to",
-        "mapped-from",
-        "renders",
-        "rendered-by",
-        "navigates-to",
-        "navigated-from",
-        "monitors",
-        "monitored-by",
-        "has-sla",
-        "applies-to",
+        "depends-on",
+        "dependency-of",
+        "supports-goals",
+        "fulfills-requirements",
+        "delivers-value",
+        "measures-outcome",
+        "governed-by-principles",
+        "enforces-requirement",
+        "enforced-by",
         "traces",
         "traced-by",
+        "monitors",
+        "monitored-by",
+        "measures",
+        "measured-by",
+        "authenticates",
+        "authenticated-by",
+        "authorizes",
+        "authorized-by",
+        "renders",
+        "rendered-by",
+        "binds-to",
+        "bound-by",
+        "navigates-to",
+        "navigated-from",
+        "maps-to",
+        "mapped-from",
+        "references-table",
+        "table-referenced-by",
+        "derives-from",
+        "derived-by",
         "tests",
         "tested-by",
-        "covers",
-        "covered-by",
+        "validates",
+        "validated-by",
         "composes",
         "composed-of",
         "aggregates",
@@ -78,8 +96,44 @@
         "triggered-by",
         "flows-to",
         "flows-from",
-        "serves",
-        "served-by"
+        "master-data-source",
+        "master-data-for",
+        "process-steps",
+        "step-of-process",
+        "realized-by-process",
+        "realizes-process",
+        "represented-by-dataobject",
+        "represents",
+        "archimate-ref",
+        "archimate-source",
+        "business-object-ref",
+        "data-model-source",
+        "business-interface-ref",
+        "business-service-ref",
+        "apm-data-quality-metrics",
+        "quality-measured-by",
+        "data-governance",
+        "governs-data",
+        "database-mapping",
+        "mapped-from-schema",
+        "database-column",
+        "column-source",
+        "database-table",
+        "table-source",
+        "encryption-required",
+        "requires-encryption-for",
+        "security-controls",
+        "controls-process",
+        "apm-trace",
+        "traced-from",
+        "traced",
+        "traces-service",
+        "governance-owner",
+        "owned-data-governance",
+        "classification",
+        "separation-of-duty",
+        "required-permissions",
+        "security-resource"
       ]
     },
 
@@ -107,20 +161,22 @@
         "testing",
         "structural",
         "behavioral",
-        "dependency"
+        "dependency",
+        "traceability",
+        "governance"
       ]
     },
 
     "PredicateDefinition": {
       "type": "object",
-      "description": "Full definition of a semantic predicate",
-      "required": ["predicate", "inversePredicate", "category", "description"],
+      "description": "Full definition of a semantic predicate. Field names use snake_case to match spec/predicates.json.",
+      "required": ["predicate", "inverse", "category", "description"],
       "properties": {
         "predicate": {
           "$ref": "#/definitions/PredicateType",
           "description": "Forward direction predicate"
         },
-        "inversePredicate": {
+        "inverse": {
           "$ref": "#/definitions/PredicateType",
           "description": "Reverse direction predicate"
         },
@@ -132,7 +188,7 @@
           "type": "string",
           "description": "Human-readable description of the predicate"
         },
-        "archimateAlignment": {
+        "archimate_alignment": {
           "type": "string",
           "description": "Corresponding ArchiMate relationship type (if applicable)",
           "enum": [
@@ -152,6 +208,7 @@
         "semantics": {
           "type": "object",
           "description": "Semantic properties of the relationship",
+          "required": ["directionality", "transitivity", "symmetry", "reflexivity"],
           "properties": {
             "directionality": {
               "type": "string",
@@ -172,7 +229,7 @@
             }
           }
         },
-        "defaultStrength": {
+        "default_strength": {
           "$ref": "#/definitions/RelationshipStrength",
           "description": "Default strength for this predicate type"
         }
@@ -183,311 +240,311 @@
   "predicates": {
     "supports": {
       "predicate": "supports",
-      "inversePredicate": "supported-by",
+      "inverse": "supported-by",
       "category": "motivation",
       "description": "Element contributes to achieving or enabling another element",
-      "archimateAlignment": "Influence",
+      "archimate_alignment": "Influence",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": true,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "realizes": {
       "predicate": "realizes",
-      "inversePredicate": "realized-by",
+      "inverse": "realized-by",
       "category": "structural",
       "description": "Element implements or makes concrete another element",
-      "archimateAlignment": "Realization",
+      "archimate_alignment": "Realization",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": true,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "fulfills": {
       "predicate": "fulfills",
-      "inversePredicate": "fulfilled-by",
+      "inverse": "fulfilled-by",
       "category": "motivation",
       "description": "Element satisfies the needs specified by another element",
-      "archimateAlignment": "Realization",
+      "archimate_alignment": "Realization",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "delivers": {
       "predicate": "delivers",
-      "inversePredicate": "delivered-by",
+      "inverse": "delivered-by",
       "category": "motivation",
       "description": "Element provides value or benefit",
-      "archimateAlignment": "Realization",
+      "archimate_alignment": "Realization",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "constrains": {
       "predicate": "constrains",
-      "inversePredicate": "constrained-by",
+      "inverse": "constrained-by",
       "category": "motivation",
       "description": "Element limits or restricts another element",
-      "archimateAlignment": "Influence",
+      "archimate_alignment": "Influence",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     },
     "governs": {
       "predicate": "governs",
-      "inversePredicate": "governed-by",
+      "inverse": "governed-by",
       "category": "motivation",
       "description": "Element provides rules or guidelines for another element",
-      "archimateAlignment": "Influence",
+      "archimate_alignment": "Influence",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "owns": {
       "predicate": "owns",
-      "inversePredicate": "owned-by",
+      "inverse": "owned-by",
       "category": "business",
       "description": "Element has responsibility or authority over another element",
-      "archimateAlignment": "Assignment",
+      "archimate_alignment": "Assignment",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     },
     "performs": {
       "predicate": "performs",
-      "inversePredicate": "performed-by",
+      "inverse": "performed-by",
       "category": "business",
       "description": "Element executes or carries out another element",
-      "archimateAlignment": "Assignment",
+      "archimate_alignment": "Assignment",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     },
     "provides": {
       "predicate": "provides",
-      "inversePredicate": "provided-by",
+      "inverse": "provided-by",
       "category": "structural",
       "description": "Element makes functionality available",
-      "archimateAlignment": "Serving",
+      "archimate_alignment": "Serving",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "consumes": {
       "predicate": "consumes",
-      "inversePredicate": "consumed-by",
+      "inverse": "consumed-by",
       "category": "dependency",
       "description": "Element uses or depends on another element's functionality",
-      "archimateAlignment": "Serving",
+      "archimate_alignment": "Serving",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     },
     "requires": {
       "predicate": "requires",
-      "inversePredicate": "required-by",
+      "inverse": "required-by",
       "category": "security",
       "description": "Element needs another element to function correctly",
-      "archimateAlignment": "Access",
+      "archimate_alignment": "Access",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "critical"
+      "default_strength": "critical"
     },
     "protects": {
       "predicate": "protects",
-      "inversePredicate": "protected-by",
+      "inverse": "protected-by",
       "category": "security",
       "description": "Element provides security for another element",
-      "archimateAlignment": "Influence",
+      "archimate_alignment": "Influence",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "mitigates": {
       "predicate": "mitigates",
-      "inversePredicate": "mitigated-by",
+      "inverse": "mitigated-by",
       "category": "security",
       "description": "Element reduces or addresses a risk or threat",
-      "archimateAlignment": "Influence",
+      "archimate_alignment": "Influence",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "accesses": {
       "predicate": "accesses",
-      "inversePredicate": "accessed-by",
+      "inverse": "accessed-by",
       "category": "security",
       "description": "Element can read or modify another element",
-      "archimateAlignment": "Access",
+      "archimate_alignment": "Access",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "critical"
+      "default_strength": "critical"
     },
     "uses": {
       "predicate": "uses",
-      "inversePredicate": "used-by",
+      "inverse": "used-by",
       "category": "dependency",
       "description": "Element depends on or utilizes another element",
-      "archimateAlignment": "Serving",
+      "archimate_alignment": "Serving",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     },
     "implements": {
       "predicate": "implements",
-      "inversePredicate": "implemented-by",
+      "inverse": "implemented-by",
       "category": "structural",
       "description": "Element provides concrete implementation of another element",
-      "archimateAlignment": "Realization",
+      "archimate_alignment": "Realization",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "composes": {
       "predicate": "composes",
-      "inversePredicate": "composed-of",
+      "inverse": "composed-of",
       "category": "structural",
       "description": "Whole-part relationship where part cannot exist without whole",
-      "archimateAlignment": "Composition",
+      "archimate_alignment": "Composition",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "high"
+      "default_strength": "high"
     },
     "aggregates": {
       "predicate": "aggregates",
-      "inversePredicate": "aggregated-by",
+      "inverse": "aggregated-by",
       "category": "structural",
       "description": "Whole-part relationship where part can exist independently",
-      "archimateAlignment": "Aggregation",
+      "archimate_alignment": "Aggregation",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     },
     "triggers": {
       "predicate": "triggers",
-      "inversePredicate": "triggered-by",
+      "inverse": "triggered-by",
       "category": "behavioral",
       "description": "Element causes or initiates another element",
-      "archimateAlignment": "Triggering",
+      "archimate_alignment": "Triggering",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     },
     "flows-to": {
       "predicate": "flows-to",
-      "inversePredicate": "flows-from",
+      "inverse": "flows-from",
       "category": "behavioral",
       "description": "Data or control flows from one element to another",
-      "archimateAlignment": "Flow",
+      "archimate_alignment": "Flow",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": true,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     },
     "monitors": {
       "predicate": "monitors",
-      "inversePredicate": "monitored-by",
+      "inverse": "monitored-by",
       "category": "apm",
       "description": "Element observes or tracks another element",
-      "archimateAlignment": "Serving",
+      "archimate_alignment": "Serving",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     },
     "tests": {
       "predicate": "tests",
-      "inversePredicate": "tested-by",
+      "inverse": "tested-by",
       "category": "testing",
       "description": "Element validates or verifies another element",
-      "archimateAlignment": "Serving",
+      "archimate_alignment": "Serving",
       "semantics": {
         "directionality": "bidirectional",
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
       },
-      "defaultStrength": "medium"
+      "default_strength": "medium"
     }
   }
 }

@@ -66,7 +66,7 @@ export class MigrationRegistry {
       apply: async () => {
         // This migration updates layer schemas with relationship metadata sections
         // - All 12 layer schemas now include layerMetadata, intraLayerRelationships, crossLayerRelationships
-        // - Deprecates link-registry.json (will be removed in v0.8.0)
+        // - Deprecated link-registry.json (removed in v0.8.0)
         // - Terminology change: "cross-layer links" → "cross-layer relationships"
         // Fully backward compatible - existing models continue to work
         return {

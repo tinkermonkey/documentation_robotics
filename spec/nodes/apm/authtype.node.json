@@ -1,8 +1,0 @@
-{
-  "id": "apm.authtype",
-  "layer_id": "apm",
-  "name": "AuthType",
-  "description": "AuthType element in APM Observability Layer",
-  "attributes": {},
-  "required_attributes": []
-}

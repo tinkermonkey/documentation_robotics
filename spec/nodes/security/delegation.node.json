@@ -22,13 +22,24 @@
       "description": ""
     },
     "delegationType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "execution",
+        "permission",
+        "approval"
+      ]
     },
     "description": {
       "type": "string",
       "description": ""
     }
   },
-  "required_attributes": ["id", "name", "delegator", "delegatee", "delegationType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "delegator",
+    "delegatee",
+    "delegationType"
+  ]
 }

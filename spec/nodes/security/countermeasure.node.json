@@ -22,8 +22,14 @@
       "description": ""
     },
     "effectiveness": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "low",
+        "medium",
+        "high",
+        "very-high"
+      ]
     },
     "implemented": {
       "type": "boolean",
@@ -34,5 +40,10 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": ["id", "name", "type", "description"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "description"
+  ]
 }

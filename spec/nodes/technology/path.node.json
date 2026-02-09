@@ -18,13 +18,23 @@
       "description": ""
     },
     "pathType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "network",
+        "vpn",
+        "direct-connect",
+        "internet"
+      ]
     },
     "properties": {
       "type": "object",
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": ["id", "name", "pathType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "pathType"
+  ]
 }

@@ -1,8 +1,0 @@
-{
-  "id": "navigation.contextscope",
-  "layer_id": "navigation",
-  "name": "ContextScope",
-  "description": "ContextScope element in Navigation Layer",
-  "attributes": {},
-  "required_attributes": []
-}

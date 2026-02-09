@@ -1,8 +1,0 @@
-{
-  "id": "ux.linestyle",
-  "layer_id": "ux",
-  "name": "LineStyle",
-  "description": "LineStyle element in UX Layer",
-  "attributes": {},
-  "required_attributes": []
-}

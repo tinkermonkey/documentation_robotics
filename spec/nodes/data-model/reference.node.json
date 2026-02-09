@@ -12,7 +12,21 @@
     "name": {
       "type": "string",
       "description": ""
+    },
+    "on_delete": {
+      "type": "enum",
+      "description": "ReferentialAction classification",
+      "enum_values": [
+        "CASCADE",
+        "SET NULL",
+        "SET DEFAULT",
+        "RESTRICT",
+        "NO ACTION"
+      ]
     }
   },
-  "required_attributes": ["id", "name"]
+  "required_attributes": [
+    "id",
+    "name"
+  ]
 }

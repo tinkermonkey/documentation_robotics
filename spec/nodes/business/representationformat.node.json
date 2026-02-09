@@ -1,8 +1,0 @@
-{
-  "id": "business.representationformat",
-  "layer_id": "business",
-  "name": "RepresentationFormat",
-  "description": "RepresentationFormat element in Business Layer",
-  "attributes": {},
-  "required_attributes": []
-}

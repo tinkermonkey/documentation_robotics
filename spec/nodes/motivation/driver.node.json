@@ -18,9 +18,21 @@
       "description": ""
     },
     "category": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "market",
+        "regulatory",
+        "technology",
+        "competitive",
+        "operational",
+        "strategic"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "category"]
+  "required_attributes": [
+    "id",
+    "name",
+    "category"
+  ]
 }

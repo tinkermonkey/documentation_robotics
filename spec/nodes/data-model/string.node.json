@@ -1,8 +1,39 @@
 {
   "id": "data-model.string",
   "layer_id": "data-model",
-  "name": "string",
-  "description": "string element in Data Model Layer",
-  "attributes": {},
-  "required_attributes": []
+  "name": "String",
+  "description": "String type definition for data model properties",
+  "attributes": {
+    "value": {
+      "type": "string",
+      "description": "A string value"
+    },
+    "format": {
+      "type": "enum",
+      "description": "StringFormat classification",
+      "enum_values": [
+        "date-time",
+        "date",
+        "time",
+        "duration",
+        "email",
+        "idn-email",
+        "hostname",
+        "idn-hostname",
+        "ipv4",
+        "ipv6",
+        "uri",
+        "uri-reference",
+        "iri",
+        "iri-reference",
+        "uuid",
+        "json-pointer",
+        "relative-json-pointer",
+        "regex"
+      ]
+    }
+  },
+  "required_attributes": [
+    "value"
+  ]
 }

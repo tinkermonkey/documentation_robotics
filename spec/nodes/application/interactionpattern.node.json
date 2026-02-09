@@ -1,8 +1,0 @@
-{
-  "id": "application.interactionpattern",
-  "layer_id": "application",
-  "name": "InteractionPattern",
-  "description": "InteractionPattern element in Application Layer",
-  "attributes": {},
-  "required_attributes": []
-}

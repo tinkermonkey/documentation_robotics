@@ -18,13 +18,23 @@
       "description": ""
     },
     "status": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "planned",
+        "in-progress",
+        "achieved",
+        "not-achieved"
+      ]
     },
     "properties": {
       "type": "object",
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": ["id", "name", "status"]
+  "required_attributes": [
+    "id",
+    "name",
+    "status"
+  ]
 }

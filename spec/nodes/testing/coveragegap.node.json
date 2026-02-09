@@ -9,13 +9,23 @@
       "description": ""
     },
     "severity": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
     },
     "affectedRequirements": {
       "type": "string",
       "description": ""
     }
   },
-  "required_attributes": ["description", "severity", "affectedRequirements"]
+  "required_attributes": [
+    "description",
+    "severity",
+    "affectedRequirements"
+  ]
 }

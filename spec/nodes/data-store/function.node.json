@@ -18,28 +18,50 @@
       "description": ""
     },
     "language": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "SQL",
+        "PLPGSQL",
+        "PLPYTHON3U",
+        "PLPERL",
+        "PLPYTHON",
+        "C"
+      ]
     },
     "returnType": {
       "type": "string",
       "description": ""
     },
     "volatility": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "IMMUTABLE",
+        "STABLE",
+        "VOLATILE"
+      ]
     },
     "parallel": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "UNSAFE",
+        "RESTRICTED",
+        "SAFE"
+      ]
     },
     "strict": {
       "type": "boolean",
       "description": ""
     },
     "security": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "INVOKER",
+        "DEFINER"
+      ]
     },
     "cost": {
       "type": "integer",
@@ -52,7 +74,22 @@
     "x-source-reference": {
       "type": "string",
       "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
+    },
+    "parameter_mode": {
+      "type": "enum",
+      "description": "ParameterMode classification",
+      "enum_values": [
+        "IN",
+        "OUT",
+        "INOUT",
+        "VARIADIC"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "language", "returnType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "language",
+    "returnType"
+  ]
 }

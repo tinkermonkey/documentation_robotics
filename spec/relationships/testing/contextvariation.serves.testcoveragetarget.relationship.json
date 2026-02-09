@@ -1,0 +1,10 @@
+{
+  "id": "testing.serves.testing",
+  "source_spec_node_id": "testing.contextvariation",
+  "source_layer": "testing",
+  "destination_spec_node_id": "testing.testcoveragetarget",
+  "destination_layer": "testing",
+  "predicate": "serves",
+  "cardinality": "many-to-many",
+  "strength": "medium"
+}

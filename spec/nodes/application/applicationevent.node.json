@@ -18,13 +18,23 @@
       "description": ""
     },
     "eventType": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "domain-event",
+        "integration-event",
+        "system-event",
+        "audit-event"
+      ]
     },
     "properties": {
       "type": "object",
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": ["id", "name", "eventType"]
+  "required_attributes": [
+    "id",
+    "name",
+    "eventType"
+  ]
 }

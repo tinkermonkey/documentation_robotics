@@ -14,17 +14,49 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "digital-signature",
+        "timestamp",
+        "ip-address",
+        "device-fingerprint",
+        "biometric",
+        "user-authentication",
+        "access-reason",
+        "approval-chain",
+        "video-recording"
+      ]
     },
     "strength": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "weak",
+        "moderate",
+        "strong",
+        "cryptographic"
+      ]
     },
     "source": {
       "type": "string",
       "description": ""
+    },
+    "verification_level": {
+      "type": "enum",
+      "description": "VerificationLevel classification",
+      "enum_values": [
+        "none",
+        "manual",
+        "automated",
+        "continuous"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "type", "source"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "source"
+  ]
 }

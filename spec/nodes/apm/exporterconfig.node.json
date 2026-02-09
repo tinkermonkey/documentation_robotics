@@ -14,8 +14,18 @@
       "description": ""
     },
     "type": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "otlp",
+        "jaeger",
+        "zipkin",
+        "prometheus",
+        "console",
+        "file",
+        "logging",
+        "noop"
+      ]
     },
     "enabled": {
       "type": "boolean",
@@ -26,9 +36,40 @@
       "description": ""
     },
     "protocol": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "grpc",
+        "http",
+        "http/json"
+      ]
+    },
+    "auth_type": {
+      "type": "enum",
+      "description": "AuthType classification",
+      "enum_values": [
+        "none",
+        "api-key",
+        "bearer",
+        "basic",
+        "oauth2",
+        "mTLS"
+      ]
+    },
+    "compression": {
+      "type": "enum",
+      "description": "CompressionType classification",
+      "enum_values": [
+        "none",
+        "gzip",
+        "zstd"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "type", "endpoint"]
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "endpoint"
+  ]
 }

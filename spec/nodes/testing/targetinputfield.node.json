@@ -26,9 +26,19 @@
       "description": ""
     },
     "relevance": {
-      "type": "string",
-      "description": ""
+      "type": "enum",
+      "description": "",
+      "enum_values": [
+        "primary",
+        "secondary",
+        "contextual"
+      ]
     }
   },
-  "required_attributes": ["id", "name", "fieldRef", "partitionRef"]
+  "required_attributes": [
+    "id",
+    "name",
+    "fieldRef",
+    "partitionRef"
+  ]
 }

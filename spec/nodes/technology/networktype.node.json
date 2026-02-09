@@ -1,8 +1,0 @@
-{
-  "id": "technology.networktype",
-  "layer_id": "technology",
-  "name": "NetworkType",
-  "description": "NetworkType element in Technology Layer",
-  "attributes": {},
-  "required_attributes": []
-}
