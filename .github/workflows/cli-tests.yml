@@ -228,22 +228,49 @@ jobs:
 
       - name: Validate schema files (JSON syntax)
         run: |
-          # Validate common schemas first
-          for schema in spec/schemas/common/*.json; do
+          # Validate base schemas first (spec-node.schema.json, predicates.json, etc.)
+          echo "Validating base schemas..."
+          for schema in spec/schemas/base/*.json; do
             echo "Validating $schema"
             ajv compile -s "$schema" --strict=false
           done
 
-          # Validate layer schemas with references to common schemas
-          for schema in spec/schemas/*.json; do
+          # Validate node type schemas
+          echo "Validating node type schemas..."
+          for schema in spec/schemas/nodes/**/*.node.schema.json; do
             echo "Validating $schema"
-            ajv compile -s "$schema" -r "spec/schemas/common/*.json" --strict=false
+            ajv compile -s "$schema" -r "spec/schemas/base/*.json" --strict=false
+          done
+
+          # Validate relationship type schemas
+          echo "Validating relationship type schemas..."
+          for schema in spec/schemas/relationships/**/*.relationship.schema.json; do
+            echo "Validating $schema"
+            ajv compile -s "$schema" -r "spec/schemas/base/*.json" --strict=false
           done
 
       - name: Validate schema references
         run: |
-          echo "Checking schema file integrity..."
-          for schema in spec/schemas/*.json; do
+          echo "Checking base schema file integrity..."
+          for schema in spec/schemas/base/*.json; do
+            if ! jq empty "$schema" 2>/dev/null; then
+              echo "❌ Invalid JSON in $schema"
+              exit 1
+            fi
+            echo "✓ $schema"
+          done
+
+          echo "Checking node schema file integrity..."
+          for schema in spec/schemas/nodes/**/*.node.schema.json; do
+            if ! jq empty "$schema" 2>/dev/null; then
+              echo "❌ Invalid JSON in $schema"
+              exit 1
+            fi
+            echo "✓ $schema"
+          done
+
+          echo "Checking relationship schema file integrity..."
+          for schema in spec/schemas/relationships/**/*.relationship.schema.json; do
             if ! jq empty "$schema" 2>/dev/null; then
               echo "❌ Invalid JSON in $schema"
               exit 1

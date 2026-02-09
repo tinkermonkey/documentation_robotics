@@ -10,7 +10,7 @@ describe("Node Type Extraction", () => {
   });
 
   test("should generate spec node schemas for motivation layer", async () => {
-    const layerPath = path.join(specsDir, "nodes", "motivation");
+    const layerPath = path.join(specsDir, "schemas", "nodes", "motivation");
     const files = await fs.readdir(layerPath);
     const nodeFiles = files.filter((f) => f.endsWith(".node.schema.json"));
 
@@ -20,7 +20,7 @@ describe("Node Type Extraction", () => {
   });
 
   test("should have valid per-type schema structure", async () => {
-    const nodeFile = path.join(specsDir, "nodes", "motivation", "goal.node.schema.json");
+    const nodeFile = path.join(specsDir, "schemas", "nodes", "motivation", "goal.node.schema.json");
     const content = await fs.readFile(nodeFile, "utf-8");
     const schema = JSON.parse(content);
 
@@ -36,7 +36,7 @@ describe("Node Type Extraction", () => {
   });
 
   test("should have type-specific attribute schemas", async () => {
-    const nodeFile = path.join(specsDir, "nodes", "motivation", "goal.node.schema.json");
+    const nodeFile = path.join(specsDir, "schemas", "nodes", "motivation", "goal.node.schema.json");
     const content = await fs.readFile(nodeFile, "utf-8");
     const schema = JSON.parse(content);
 
@@ -70,7 +70,7 @@ describe("Node Type Extraction", () => {
     ];
 
     for (const layerId of layerIds) {
-      const layerPath = path.join(specsDir, "nodes", layerId);
+      const layerPath = path.join(specsDir, "schemas", "nodes", layerId);
       const stats = await fs.stat(layerPath);
       expect(stats.isDirectory()).toBe(true);
 
@@ -81,7 +81,7 @@ describe("Node Type Extraction", () => {
   });
 
   test("should have consistent spec_node_id pattern", async () => {
-    const nodeFile = path.join(specsDir, "nodes", "motivation", "goal.node.schema.json");
+    const nodeFile = path.join(specsDir, "schemas", "nodes", "motivation", "goal.node.schema.json");
     const content = await fs.readFile(nodeFile, "utf-8");
     const schema = JSON.parse(content);
 
