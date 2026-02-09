@@ -10,7 +10,7 @@ describe("Predicate Catalog Consolidation", () => {
   });
 
   test("should load predicate catalog", async () => {
-    const predicateFile = path.join(specsDir, "predicates.json");
+    const predicateFile = path.join(specsDir, "schemas", "base", "predicates.json");
     const content = await fs.readFile(predicateFile, "utf-8");
     const catalog = JSON.parse(content);
 
@@ -19,7 +19,7 @@ describe("Predicate Catalog Consolidation", () => {
   });
 
   test("should have consolidated predicates from common schema", async () => {
-    const predicateFile = path.join(specsDir, "predicates.json");
+    const predicateFile = path.join(specsDir, "schemas", "base", "predicates.json");
     const content = await fs.readFile(predicateFile, "utf-8");
     const catalog = JSON.parse(content);
 
@@ -28,7 +28,7 @@ describe("Predicate Catalog Consolidation", () => {
   });
 
   test("should have predicate definitions with required fields", async () => {
-    const predicateFile = path.join(specsDir, "predicates.json");
+    const predicateFile = path.join(specsDir, "schemas", "base", "predicates.json");
     const content = await fs.readFile(predicateFile, "utf-8");
     const catalog = JSON.parse(content);
 
@@ -42,7 +42,7 @@ describe("Predicate Catalog Consolidation", () => {
   });
 
   test("should have semantics properties for predicates", async () => {
-    const predicateFile = path.join(specsDir, "predicates.json");
+    const predicateFile = path.join(specsDir, "schemas", "base", "predicates.json");
     const content = await fs.readFile(predicateFile, "utf-8");
     const catalog = JSON.parse(content);
 
@@ -61,7 +61,7 @@ describe("Predicate Catalog Consolidation", () => {
   });
 
   test("should include archimate_alignment where applicable", async () => {
-    const predicateFile = path.join(specsDir, "predicates.json");
+    const predicateFile = path.join(specsDir, "schemas", "base", "predicates.json");
     const content = await fs.readFile(predicateFile, "utf-8");
     const catalog = JSON.parse(content);
 

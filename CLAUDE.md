@@ -18,10 +18,9 @@ documentation_robotics/
 ├── spec/                        # SPECIFICATION (source of truth)
 │   ├── VERSION                  # Spec version number
 │   ├── layers/                  # 12 SpecLayer instance files (.layer.json)
-│   ├── predicates.json          # Consolidated predicate catalog
 │   └── schemas/                 # All JSON Schema definitions
 │       ├── base/                #   Core schemas: spec-node, spec-layer, spec-node-relationship,
-│       │                        #   attribute-spec, source-references
+│       │                        #   attribute-spec, source-references, predicates.json
 │       ├── nodes/               #   354 per-type node schemas (.node.schema.json)
 │       │   ├── motivation/      #     Organized by layer
 │       │   ├── business/        #     Defines valid model element types
