@@ -63,7 +63,7 @@
       "type": "object",
       "description": "Optional schema defining attributes that can appear on relationship instances of this type",
       "additionalProperties": {
-        "$ref": "attribute-spec.schema.json#/definitions/AttributeSpec"
+        "$ref": "./attribute-spec.schema.json#/definitions/AttributeSpec"
       },
       "minProperties": 0,
       "examples": [

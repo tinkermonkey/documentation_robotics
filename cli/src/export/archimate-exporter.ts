@@ -74,10 +74,21 @@ export class ArchiMateExporter implements Exporter {
         if (propKeys.length > 0) {
           for (const key of propKeys) {
             const val = node.properties[key];
-            const strValue = this.valueToString(val);
-            lines.push(
-              `        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`
-            );
+
+            // Special handling for source reference structure
+            if (key === "source" && val && typeof val === "object" && "reference" in val) {
+              const flattenedProps = this.flattenSourceReference(val.reference);
+              for (const [flatKey, flatValue] of Object.entries(flattenedProps)) {
+                lines.push(
+                  `        <property key="${escapeXml(flatKey)}" value="${escapeXml(String(flatValue))}" />`
+                );
+              }
+            } else {
+              const strValue = this.valueToString(val);
+              lines.push(
+                `        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`
+              );
+            }
           }
         }
 
@@ -211,5 +222,56 @@ export class ArchiMateExporter implements Exporter {
       return JSON.stringify(value);
     }
     return String(value);
+  }
+
+  /**
+   * Flatten source reference structure into ArchiMate properties
+   * Converts nested structure like { provenance: "extracted", locations: [...] }
+   * into flat properties like "source.provenance", "source.file.0", etc.
+   */
+  private flattenSourceReference(sourceRef: any): Record<string, string> {
+    const props: Record<string, string> = {};
+
+    if (!sourceRef || typeof sourceRef !== "object") {
+      return props;
+    }
+
+    // Add provenance
+    if (sourceRef.provenance) {
+      props["source.provenance"] = sourceRef.provenance;
+    }
+
+    // Add locations
+    if (Array.isArray(sourceRef.locations)) {
+      sourceRef.locations.forEach((location: any, index: number) => {
+        if (location.file) {
+          props[`source.file.${index}`] = location.file;
+        }
+        if (location.symbol) {
+          props[`source.symbol.${index}`] = location.symbol;
+        }
+        if (location.line !== undefined) {
+          props[`source.line.${index}`] = String(location.line);
+        }
+        if (location.column !== undefined) {
+          props[`source.column.${index}`] = String(location.column);
+        }
+      });
+    }
+
+    // Add repository info
+    if (sourceRef.repository) {
+      if (sourceRef.repository.url) {
+        props["source.repository.url"] = sourceRef.repository.url;
+      }
+      if (sourceRef.repository.commit) {
+        props["source.repository.commit"] = sourceRef.repository.commit;
+      }
+      if (sourceRef.repository.branch) {
+        props["source.repository.branch"] = sourceRef.repository.branch;
+      }
+    }
+
+    return props;
   }
 }

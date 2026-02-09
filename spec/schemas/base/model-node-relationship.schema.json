@@ -55,7 +55,7 @@
       ]
     },
     "source_reference": {
-      "$ref": "source-references.schema.json#/definitions/SourceReference",
+      "$ref": "./source-references.schema.json#/definitions/SourceReference",
       "description": "Optional provenance tracking linking this relationship to source code locations or comments"
     },
     "metadata": {
