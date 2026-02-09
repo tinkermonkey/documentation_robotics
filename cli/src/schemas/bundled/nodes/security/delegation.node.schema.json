@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/security/delegation.node.schema.json",
+  "title": "Delegation",
+  "description": "Explicit delegation of permissions or goals",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.delegation"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "delegation"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "delegator": {
+          "type": "string"
+        },
+        "delegatee": {
+          "type": "string"
+        },
+        "delegationType": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "delegator",
+        "delegatee",
+        "delegationType"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

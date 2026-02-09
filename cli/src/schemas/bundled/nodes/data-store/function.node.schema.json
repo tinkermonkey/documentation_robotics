@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/data-store/function.node.schema.json",
+  "title": "Function",
+  "description": "A stored database function that encapsulates reusable computation logic. Returns a value and can be used in SQL expressions for data transformation or validation.",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.function"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "function"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "returnType": {
+          "type": "string"
+        },
+        "volatility": {
+          "type": "string"
+        },
+        "parallel": {
+          "type": "string"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "security": {
+          "type": "string"
+        },
+        "cost": {
+          "type": "integer"
+        },
+        "rows": {
+          "type": "integer"
+        },
+        "x-source-reference": {
+          "type": "string",
+          "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
+        }
+      },
+      "required": [
+        "language",
+        "returnType"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

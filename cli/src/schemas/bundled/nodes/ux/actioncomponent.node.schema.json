@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/ux/actioncomponent.node.schema.json",
+  "title": "ActionComponent",
+  "description": "Interactive element that triggers actions (button, menu, link, voice command)",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.actioncomponent"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "actioncomponent"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "tooltip": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "children": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,15 +1,20 @@
 /**
  * Schema validation using AJV
+ *
+ * Validates model elements against their corresponding spec node schemas.
+ * Each element type has a dedicated schema in spec/nodes/{layer}/{type}.node.schema.json
  */
 
 import Ajv, { ValidateFunction, ErrorObject } from "ajv";
 import addFormats from "ajv-formats";
 import { ValidationResult } from "./types.js";
 import type { Layer } from "../core/layer.js";
+import type { Element } from "../core/element.js";
 import { fileURLToPath } from "url";
 import path from "path";
 import { readFile } from "../utils/file-io.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
+import { existsSync } from "fs";
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -18,17 +23,16 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
 /**
  * Validator for JSON Schema compliance
  *
- * This validator currently uses layer schemas for validation.
- * Future work will integrate SpecNode schema validation once SpecNode
- * definitions are fully available.
- *
- * See: https://github.com/tinkermonkey/documentation_robotics/discussions/317
+ * Validates model elements against spec node schemas. Each element is validated
+ * against its type-specific schema (e.g., motivation.goal elements validate against
+ * spec/nodes/motivation/goal.node.schema.json).
  */
 export class SchemaValidator {
   private ajv: Ajv;
-  private compiledSchemas: Map<string, ValidateFunction> = new Map();
-  private schemasLoaded: boolean = false;
+  private compiledSchemas: Map<string, ValidateFunction> = new Map(); // Key: layer.type
+  private baseSchemaLoaded: boolean = false;
   private loadedSchemaIds: Set<string> = new Set();
+  private schemasDir: string;
 
   constructor() {
     this.ajv = new Ajv({
@@ -37,139 +41,107 @@ export class SchemaValidator {
       validateFormats: true,
     });
     addFormats(this.ajv);
-    // Note: schemas are loaded lazily on first validation
+
+    // Determine schemas directory (spec node schemas bundled with CLI)
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    this.schemasDir = path.join(__dirname, "..", "schemas", "bundled");
   }
 
   /**
-   * Ensure schemas are precompiled before validation
+   * Ensure base schemas are loaded before validation
    */
-  private async ensureSchemasLoaded(): Promise<void> {
-    if (this.schemasLoaded) {
+  private async ensureBaseSchemaLoaded(): Promise<void> {
+    if (this.baseSchemaLoaded) {
       return;
     }
 
-    await this.precompileSchemas();
-    this.schemasLoaded = true;
-  }
+    // Load base spec-node schema
+    try {
+      const baseSchemaPath = path.join(this.schemasDir, "base", "spec-node.schema.json");
+      const schemaContent = await readFile(baseSchemaPath);
+      const schema = JSON.parse(schemaContent);
 
-  /**
-   * Precompile all layer schemas for efficient validation
-   */
-  private async precompileSchemas(): Promise<void> {
-    const layerMappings = {
-      motivation: "01-motivation-layer.schema.json",
-      business: "02-business-layer.schema.json",
-      security: "03-security-layer.schema.json",
-      application: "04-application-layer.schema.json",
-      technology: "05-technology-layer.schema.json",
-      api: "06-api-layer.schema.json",
-      "data-model": "07-data-model-layer.schema.json",
-      "data-store": "08-data-store-layer.schema.json",
-      ux: "09-ux-layer.schema.json",
-      navigation: "10-navigation-layer.schema.json",
-      apm: "11-apm-observability-layer.schema.json",
-      testing: "12-testing-layer.schema.json",
-    };
+      if (schema.$id) {
+        this.loadedSchemaIds.add(schema.$id);
+        this.ajv.addSchema(schema);
+      }
+    } catch (error: any) {
+      console.warn(`Warning: Failed to load base spec-node schema: ${error.message}`);
+      // Non-fatal - individual schemas may still work with embedded definitions
+    }
 
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const schemasDir = path.join(__dirname, "..", "schemas", "bundled");
-
-    // Pre-load all common schemas that layer schemas reference
-    // This avoids duplicate registration warnings when AJV auto-loads them
-    // during layer schema compilation by pre-registering them with their $id
+    // Load common schemas
     const commonSchemas = [
       "common/source-references.schema.json",
-      "common/predicates.schema.json",
-      "common/relationships.schema.json",
-      "common/layer-extensions.schema.json",
+      "common/attribute-spec.schema.json",
     ];
-
-    const commonSchemaErrors: Array<{ file: string; error: Error }> = [];
 
     for (const commonSchemaFile of commonSchemas) {
       try {
-        const schemaPath = path.join(schemasDir, commonSchemaFile);
+        const schemaPath = path.join(this.schemasDir, commonSchemaFile);
+        if (!existsSync(schemaPath)) {
+          continue;
+        }
         const schemaContent = await readFile(schemaPath);
         const schema = JSON.parse(schemaContent);
-        // Track the $id to avoid duplicate registration
-        if (schema.$id) {
+
+        if (schema.$id && !this.loadedSchemaIds.has(schema.$id)) {
           this.loadedSchemaIds.add(schema.$id);
-          // Only add to AJV if not already present
-          try {
-            this.ajv.addSchema(schema);
-          } catch (addError: any) {
-            // Check if schema is already registered
-            if (this.ajv.getSchema(schema.$id)) {
-              // Schema already exists - this is acceptable
-              continue;
-            }
-            // Re-throw actual errors
-            throw addError;
-          }
+          this.ajv.addSchema(schema);
         }
       } catch (error: any) {
-        // Track common schema loading errors but don't fail immediately
-        // Some common schemas may be optional
-        commonSchemaErrors.push({
-          file: commonSchemaFile,
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
+        console.warn(`Warning: Failed to load common schema ${commonSchemaFile}: ${error.message}`);
       }
     }
 
-    // Load all layer schemas - these are REQUIRED
-    const layerSchemaErrors: Array<{ layer: string; error: Error }> = [];
+    this.baseSchemaLoaded = true;
+  }
 
-    for (const [layerName, schemaFileName] of Object.entries(layerMappings)) {
-      try {
-        // Try primary schema path first (development)
-        let schemaPath = path.join(schemasDir, schemaFileName);
+  /**
+   * Load and compile a spec node schema for a specific element type
+   */
+  private async loadSpecNodeSchema(layer: string, type: string): Promise<ValidateFunction | null> {
+    const cacheKey = `${layer}.${type}`;
 
-        let schemaContent: string;
-        try {
-          schemaContent = await readFile(schemaPath);
-        } catch {
-          // Fallback to alternative path for bundled deployments
-          schemaPath = path.join(__dirname, "schemas", "bundled", schemaFileName);
-          schemaContent = await readFile(schemaPath);
-        }
+    // Check cache first
+    if (this.compiledSchemas.has(cacheKey)) {
+      return this.compiledSchemas.get(cacheKey)!;
+    }
 
-        const schema = JSON.parse(schemaContent);
+    // Ensure base schemas are loaded
+    await this.ensureBaseSchemaLoaded();
 
-        // Compile the schema. This automatically registers it with AJV using its $id.
-        // If it's already registered, compile() will handle it gracefully
-        const validate = this.ajv.compile(schema);
-        this.compiledSchemas.set(layerName, validate);
+    try {
+      // Try primary path: spec/nodes/{layer}/{type}.node.schema.json (from bundled schemas)
+      const schemaPath = path.join(this.schemasDir, "nodes", layer, `${type}.node.schema.json`);
 
-        // Track that this schema ID has been loaded
-        if (schema.$id) {
-          this.loadedSchemaIds.add(schema.$id);
-        }
-      } catch (error: any) {
-        // Track layer schema loading errors
-        layerSchemaErrors.push({
-          layer: layerName,
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
+      if (!existsSync(schemaPath)) {
+        // Schema file doesn't exist - this is acceptable for newer/custom types
+        return null;
       }
-    }
 
-    // If any required layer schemas failed to load, fail initialization
-    if (layerSchemaErrors.length > 0) {
-      const errorDetails = layerSchemaErrors
-        .map((e) => `  - Layer "${e.layer}": ${e.error.message}`)
-        .join("\n");
-      throw new Error(`Failed to load required layer schemas:\n${errorDetails}`);
-    }
+      const schemaContent = await readFile(schemaPath);
+      const schema = JSON.parse(schemaContent);
 
-    // Warn about common schema loading failures (these are not fatal)
-    for (const { file, error } of commonSchemaErrors) {
-      console.warn(`Warning: Failed to load common schema ${file}: ${error.message}`);
+      // Compile and cache the schema
+      const validate = this.ajv.compile(schema);
+      this.compiledSchemas.set(cacheKey, validate);
+
+      if (schema.$id) {
+        this.loadedSchemaIds.add(schema.$id);
+      }
+
+      return validate;
+    } catch (error: any) {
+      console.warn(`Warning: Failed to load spec node schema for ${layer}.${type}: ${error.message}`);
+      return null;
     }
   }
 
   /**
-   * Validate a layer against its schema
+   * Validate a layer against its spec node schemas
+   *
+   * This validates each element in the layer against its corresponding spec node schema.
    */
   async validateLayer(layer: Layer): Promise<ValidationResult> {
     const span = isTelemetryEnabled
@@ -180,47 +152,100 @@ export class SchemaValidator {
 
     try {
       const result = new ValidationResult();
+      let validatedCount = 0;
+      let skippedCount = 0;
 
-      // Ensure schemas are loaded
-      await this.ensureSchemasLoaded();
+      // Validate each element individually
+      for (const element of layer.elements.values()) {
+        const elementResult = await this.validateElement(element, layer.name);
 
-      const validate = this.compiledSchemas.get(layer.name);
-
-      if (!validate) {
-        // Schema not found - skip validation silently (matching Python CLI behavior)
-        // Some layers may not have schemas yet, which is acceptable
-        // Don't add warning - just return success
-        if (isTelemetryEnabled && span) {
-          span.setAttribute("schema.valid", true);
-          span.setAttribute("schema.skipped", true);
+        if (elementResult.hasErrors) {
+          // Add element-specific errors to layer result
+          for (const error of elementResult.errors) {
+            result.addError({
+              layer: layer.name,
+              elementId: element.id,
+              message: error.message,
+              location: error.location,
+              fixSuggestion: error.fixSuggestion,
+            });
+          }
         }
 
-        return result;
-      }
-
-      const layerData = layer.toJSON();
-      const valid = validate(layerData);
-
-      if (!valid && validate.errors) {
-        for (const error of validate.errors) {
-          result.addError({
-            layer: layer.name,
-            message: `Schema validation failed: ${this.formatAjvError(error)}`,
-            location: error.instancePath || "/",
-            fixSuggestion: this.generateFixSuggestion(error),
-          });
+        if (elementResult.validated) {
+          validatedCount++;
+        } else {
+          skippedCount++;
         }
       }
 
       if (isTelemetryEnabled && span) {
-        span.setAttribute("schema.valid", valid);
-        span.setAttribute("schema.error_count", validate.errors?.length || 0);
+        span.setAttribute("schema.valid", result.isValid());
+        span.setAttribute("schema.error_count", result.errors.length);
+        span.setAttribute("schema.validated_count", validatedCount);
+        span.setAttribute("schema.skipped_count", skippedCount);
       }
 
       return result;
     } finally {
       endSpan(span);
     }
+  }
+
+  /**
+   * Validate a single element against its spec node schema
+   */
+  private async validateElement(element: Element, layerName: string): Promise<{
+    validated: boolean;
+    hasErrors: boolean;
+    errors: Array<{ message: string; location: string; fixSuggestion?: string }>;
+  }> {
+    const result = {
+      validated: false,
+      hasErrors: false,
+      errors: [] as Array<{ message: string; location: string; fixSuggestion?: string }>,
+    };
+
+    // Load the spec node schema for this element type
+    const validate = await this.loadSpecNodeSchema(layerName, element.type);
+
+    if (!validate) {
+      // No schema found - skip validation
+      // This is acceptable for custom types or types without schemas yet
+      return result;
+    }
+
+    result.validated = true;
+
+    // Prepare element data for validation
+    // Map Element structure to spec node structure
+    const elementData = {
+      spec_node_id: `${layerName}.${element.type}`,
+      layer_id: layerName,
+      type: element.type,
+      attributes: {
+        id: element.id,
+        name: element.name,
+        ...(element.description && { description: element.description }),
+        ...element.properties, // Spread all other properties
+      },
+    };
+
+    // Validate
+    const valid = validate(elementData);
+
+    if (!valid && validate.errors) {
+      result.hasErrors = true;
+      for (const error of validate.errors) {
+        result.errors.push({
+          message: `Element '${element.id}': ${this.formatAjvError(error)}`,
+          location: error.instancePath || "/",
+          fixSuggestion: this.generateFixSuggestion(error),
+        });
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -249,6 +274,8 @@ export class SchemaValidator {
         return `At ${dataPath}: value must be <= ${error.params?.limit}`;
       case "additionalProperties":
         return `At ${dataPath}: unexpected property '${error.params?.additionalProperty}'`;
+      case "const":
+        return `At ${dataPath}: value must be ${JSON.stringify(error.params?.allowedValue)}`;
       default:
         return error.message || `Validation failed`;
     }
@@ -271,6 +298,8 @@ export class SchemaValidator {
         return `Value must match pattern: ${error.params?.pattern}`;
       case "additionalProperties":
         return `Remove unexpected property: ${error.params?.additionalProperty}`;
+      case "const":
+        return `Value must be exactly: ${JSON.stringify(error.params?.allowedValue)}`;
       default:
         return undefined;
     }

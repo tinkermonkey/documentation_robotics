@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/ux/tablecolumn.node.schema.json",
+  "title": "TableColumn",
+  "description": "Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior.",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.tablecolumn"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "tablecolumn"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "header": {
+          "type": "string"
+        },
+        "field": {
+          "type": "string"
+        },
+        "width": {
+          "type": "string"
+        },
+        "minWidth": {
+          "type": "string"
+        },
+        "maxWidth": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "header",
+        "field"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

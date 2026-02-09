@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/data-model/stringschema.node.schema.json",
+  "title": "StringSchema",
+  "description": "StringSchema validation rules",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-model.stringschema"
+    },
+    "layer_id": {
+      "const": "data-model"
+    },
+    "type": {
+      "const": "stringschema"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "minLength": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

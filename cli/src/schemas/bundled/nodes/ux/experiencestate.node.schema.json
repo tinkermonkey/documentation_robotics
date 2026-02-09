@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/ux/experiencestate.node.schema.json",
+  "title": "ExperienceState",
+  "description": "Distinct state that the experience can be in (works across all channels)",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.experiencestate"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "experiencestate"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "initial": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "onEnter": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "onExit": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "transitions": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "enabledComponents": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "disabledComponents": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "hiddenComponents": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

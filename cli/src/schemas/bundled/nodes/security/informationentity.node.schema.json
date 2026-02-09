@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/security/informationentity.node.schema.json",
+  "title": "InformationEntity",
+  "description": "Information asset with fine-grained rights",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.informationentity"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "informationentity"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "authorizationRequirements": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "classification"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

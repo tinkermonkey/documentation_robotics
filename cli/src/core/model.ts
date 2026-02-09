@@ -475,7 +475,6 @@ export class Model {
           order: i + 1,
           name: layerName.charAt(0).toUpperCase() + layerName.slice(1).replace("-", " "),
           path: `documentation-robotics/model/${orderNum}_${layerName}/`,
-          schema: `.dr/schemas/${orderNum}-${layerName}-layer.schema.json`,
           enabled: true,
           ...(layer && { elements: this.getLayerElementCounts(layer) }),
         };

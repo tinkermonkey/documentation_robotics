@@ -72,7 +72,7 @@ export async function installSpecReference(
   ];
 
   for (const { path, description } of pathsToTry) {
-    if (existsSync(join(path, "01-motivation-layer.schema.json"))) {
+    if (existsSync(join(path, "base", "spec-node.schema.json"))) {
       schemaSourceDir = path;
       schemaSourcePath = description;
       logDebug(`Using bundled schemas from: ${description} (${path})`);
@@ -87,26 +87,18 @@ export async function installSpecReference(
     );
   }
 
-  // Copy layer schemas
-  const layerSchemas = [
-    "01-motivation-layer.schema.json",
-    "02-business-layer.schema.json",
-    "03-security-layer.schema.json",
-    "04-application-layer.schema.json",
-    "05-technology-layer.schema.json",
-    "06-api-layer.schema.json",
-    "07-data-model-layer.schema.json",
-    "08-data-store-layer.schema.json",
-    "09-ux-layer.schema.json",
-    "10-navigation-layer.schema.json",
-    "11-apm-observability-layer.schema.json",
-    "12-testing-layer.schema.json",
-  ];
+  // Copy base schemas
+  await ensureDir(join(drPath, "schemas", "base"));
+  const baseSchemas = ["spec-node.schema.json", "spec-layer.schema.json"];
 
-  for (const schema of layerSchemas) {
-    const sourcePath = join(schemaSourceDir, schema);
-    const targetPath = join(drPath, "schemas", schema);
-    await fs.copyFile(sourcePath, targetPath);
+  for (const schema of baseSchemas) {
+    try {
+      const sourcePath = join(schemaSourceDir, "base", schema);
+      const targetPath = join(drPath, "schemas", "base", schema);
+      await fs.copyFile(sourcePath, targetPath);
+    } catch (error: any) {
+      logDebug(`Note: Could not copy base schema ${schema}: ${error.message}`);
+    }
   }
 
   // Copy catalog and registry files

@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/data-store/index.node.schema.json",
+  "title": "Index",
+  "description": "Database index for query optimization",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.index"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "index"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "string"
+        },
+        "unique": {
+          "type": "boolean"
+        },
+        "method": {
+          "type": "string"
+        },
+        "where": {
+          "type": "string"
+        },
+        "include": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

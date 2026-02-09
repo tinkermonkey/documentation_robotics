@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/navigation/datamapping.node.schema.json",
+  "title": "DataMapping",
+  "description": "Maps data between flow context and experience (Gap #2: Data handoff)",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "navigation.datamapping"
+    },
+    "layer_id": {
+      "const": "navigation"
+    },
+    "type": {
+      "const": "datamapping"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "transform": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "transform"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

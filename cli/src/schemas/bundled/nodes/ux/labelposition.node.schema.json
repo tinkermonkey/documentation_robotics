@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/ux/labelposition.node.schema.json",
+  "title": "LabelPosition",
+  "description": "LabelPosition element in UX Layer",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.labelposition"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "labelposition"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

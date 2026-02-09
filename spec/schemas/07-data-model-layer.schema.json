@@ -1,9 +1,0 @@
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/07-data-model-layer.schema.json",
-  "title": "Data Model Layer Layer Schema",
-  "description": "**Standard**: [JSON Schema Draft 7](https://json-schema.org/draft-07/)",
-  "type": "object",
-  "properties": {},
-  "definitions": {}
-}

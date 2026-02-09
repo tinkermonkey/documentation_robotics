@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/data-model/databasemapping.node.schema.json",
+  "title": "DatabaseMapping",
+  "description": "Specifies how a logical data model entity maps to physical database storage, including table names, column mappings, and storage optimizations. Bridges logical and physical data layers.",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-model.databasemapping"
+    },
+    "layer_id": {
+      "const": "data-model"
+    },
+    "type": {
+      "const": "databasemapping"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "table": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "catalog": {
+          "type": "string"
+        },
+        "engine": {
+          "type": "string"
+        },
+        "partition_strategy": {
+          "type": "string",
+          "enum": [
+            "range",
+            "list",
+            "hash",
+            "composite",
+            "none"
+          ],
+          "description": "PartitionStrategy classification"
+        }
+      },
+      "required": [
+        "table",
+        "schema",
+        "catalog",
+        "engine"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

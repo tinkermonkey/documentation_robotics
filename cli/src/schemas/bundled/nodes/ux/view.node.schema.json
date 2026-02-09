@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/ux/view.node.schema.json",
+  "title": "View",
+  "description": "Routable grouping of components (a complete user experience)",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.view"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "view"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "routable": {
+          "type": "boolean"
+        },
+        "layout": {
+          "type": "string"
+        },
+        "subViews": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "components": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "actions": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
