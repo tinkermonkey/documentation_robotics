@@ -129,10 +129,10 @@ async function loadLayers(baseDir: string): Promise<SpecLayer[]> {
 }
 
 /**
- * Load all SpecNode instances from spec/nodes/
+ * Load all SpecNode instances from spec/schemas/nodes/
  */
 async function loadNodes(baseDir: string): Promise<SpecNode[]> {
-  const nodesDir = path.join(baseDir, "spec", "nodes");
+  const nodesDir = path.join(baseDir, "spec", "schemas", "nodes");
   const nodes: SpecNode[] = [];
 
   let layerDirs: string[];
@@ -140,9 +140,9 @@ async function loadNodes(baseDir: string): Promise<SpecNode[]> {
     layerDirs = fs.readdirSync(nodesDir);
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-      throw new Error(`spec/nodes directory not found at ${nodesDir}`);
+      throw new Error(`spec/schemas/nodes directory not found at ${nodesDir}`);
     }
-    throw new Error(`Failed to read spec/nodes directory: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Failed to read spec/schemas/nodes directory: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   for (const layerDir of layerDirs) {
@@ -164,7 +164,7 @@ async function loadNodes(baseDir: string): Promise<SpecNode[]> {
       files = fs.readdirSync(layerPath);
     } catch (readError) {
       throw new Error(
-        `Failed to read spec/nodes/${layerDir}: ${readError instanceof Error ? readError.message : String(readError)}`
+        `Failed to read spec/schemas/nodes/${layerDir}: ${readError instanceof Error ? readError.message : String(readError)}`
       );
     }
 
@@ -179,12 +179,12 @@ async function loadNodes(baseDir: string): Promise<SpecNode[]> {
           nodes.push(node);
         } catch (parseError) {
           throw new Error(
-            `Failed to parse spec/nodes/${layerDir}/${file}: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+            `Failed to parse spec/schemas/nodes/${layerDir}/${file}: ${parseError instanceof Error ? parseError.message : String(parseError)}`
           );
         }
       } catch (readError) {
         throw new Error(
-          `Failed to read spec/nodes/${layerDir}/${file}: ${readError instanceof Error ? readError.message : String(readError)}`
+          `Failed to read spec/schemas/nodes/${layerDir}/${file}: ${readError instanceof Error ? readError.message : String(readError)}`
         );
       }
     }

@@ -32,8 +32,8 @@ Dual maintenance burden
 ```
 Specification Instances (Source)
 ├── spec/layers/*.layer.json       (SpecLayer definitions)
-├── spec/nodes/**/*.node.schema.json      (SpecNode definitions)
-└── spec/relationships/...         (SpecNodeRelationship definitions)
+├── spec/schemas/nodes/**/*.node.schema.json      (SpecNode definitions)
+└── spec/schemas/relationships/...         (SpecNodeRelationship definitions)
     ↓
 Auto-generate Markdown Documentation
     ↓
@@ -54,7 +54,7 @@ Human-readable documentation
 
 ### 1. Specification Instances
 
-**Location**: `spec/layers/` and `spec/nodes/`
+**Location**: `spec/layers/` and `spec/schemas/nodes/`
 
 These JSON files define the architecture specification:
 
@@ -118,7 +118,7 @@ Each `*.node.schema.json` file contains:
 The TypeScript generator:
 
 1. Loads all SpecLayer instances from `spec/layers/*.layer.json`
-2. Loads all SpecNode instances from `spec/nodes/**/*.node.schema.json`
+2. Loads all SpecNode instances from `spec/schemas/nodes/**/*.node.schema.json`
 3. Generates markdown documentation for each layer
 4. Creates an index document with cross-references
 
@@ -314,7 +314,7 @@ If transitioning from markdown-first to schema-first:
 The generator:
 
 1. Reads `spec/layers/*.layer.json` files
-2. Reads `spec/nodes/**/*.node.schema.json` files
+2. Reads `spec/schemas/nodes/**/*.node.schema.json` files
 3. Groups nodes by layer_id
 4. Sorts layers by number for consistent output
 
@@ -344,5 +344,5 @@ A master index document:
 
 - [Layer Specifications](../spec/layers/) - Generated documentation
 - [Specification Instances](../spec/layers/) - SpecLayer JSON files
-- [Node Definitions](../spec/nodes/) - SpecNode JSON files
+- [Node Definitions](../spec/schemas/nodes/) - SpecNode JSON files
 - [Generate Layer Docs Script](../scripts/generate-layer-docs.ts) - Generator implementation

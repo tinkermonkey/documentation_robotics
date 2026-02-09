@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/security/encryptionrequirement.node.schema.json",
+  "title": "EncryptionRequirement",
+  "description": "EncryptionRequirement element in Security Layer",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.encryptionrequirement"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "encryptionrequirement"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

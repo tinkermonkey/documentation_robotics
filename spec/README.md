@@ -145,7 +145,7 @@ As of v0.8.0, the specification uses a **schema-driven documentation model** whe
 ### Source of Truth
 
 - **`.layer.json` files** (`spec/layers/`) - Define each layer's metadata, purpose, entity types, and relationships
-- **`.node.schema.json` files** (`spec/nodes/`) - Per-type JSON Schemas defining type-specific attribute constraints for model node instances
+- **`.node.schema.json` files** (`spec/schemas/nodes/`) - Per-type JSON Schemas defining type-specific attribute constraints for model node instances
 - **Generated `.md` files** (`spec/layers/`) - Human-readable markdown generated from JSON specs
 
 ### Workflow
@@ -281,7 +281,7 @@ The v0.8.0 release introduces a schema-driven documentation model where JSON spe
 
 - **Schema-Driven Architecture** - JSON spec instances (`.layer.json`, `.node.schema.json`) are the authoritative source; markdown is generated
 - **Base Schemas Directory** (`spec/schemas/base/`) - 6 schemas for validating spec-level and model-level artifacts
-- **Per-Type Node Schemas** (`spec/nodes/**/*.node.schema.json`) - JSON Schemas extending the base schema with type-specific attribute constraints
+- **Per-Type Node Schemas** (`spec/schemas/nodes/**/*.node.schema.json`) - JSON Schemas extending the base schema with type-specific attribute constraints
 - **Layer Metadata Files** (`spec/layers/*.layer.json`) - Layer-level metadata, purpose, entity types, and relationship declarations
 - **Documentation Generation** - `dr docs generate` produces markdown from JSON specs; `dr docs validate` ensures sync
 - **Link Registry Removal** - The deprecated `link-registry.json` (deprecated in v0.7.0) has been removed; use `relationship-catalog.json` instead

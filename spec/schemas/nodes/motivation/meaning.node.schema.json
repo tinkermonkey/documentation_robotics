@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/motivation/meaning.node.schema.json",
+  "title": "Meaning",
+  "description": "Knowledge or expertise present in a representation",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "motivation.meaning"
+    },
+    "layer_id": {
+      "const": "motivation"
+    },
+    "type": {
+      "const": "meaning"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "documentation": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/navigation/routetype.node.schema.json",
+  "title": "RouteType",
+  "description": "RouteType element in Navigation Layer",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "navigation.routetype"
+    },
+    "layer_id": {
+      "const": "navigation"
+    },
+    "type": {
+      "const": "routetype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

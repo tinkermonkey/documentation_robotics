@@ -2,7 +2,7 @@
  * Schema validation using AJV
  *
  * Validates model elements against their corresponding spec node schemas.
- * Each element type has a dedicated schema in spec/nodes/{layer}/{type}.node.schema.json
+ * Each element type has a dedicated schema in spec/schemas/nodes/{layer}/{type}.node.schema.json
  */
 
 import Ajv, { ValidateFunction, ErrorObject } from "ajv";
@@ -25,7 +25,7 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
  *
  * Validates model elements against spec node schemas. Each element is validated
  * against its type-specific schema (e.g., motivation.goal elements validate against
- * spec/nodes/motivation/goal.node.schema.json).
+ * spec/schemas/nodes/motivation/goal.node.schema.json).
  */
 export class SchemaValidator {
   private ajv: Ajv;
@@ -112,7 +112,7 @@ export class SchemaValidator {
     await this.ensureBaseSchemaLoaded();
 
     try {
-      // Try primary path: spec/nodes/{layer}/{type}.node.schema.json (from bundled schemas)
+      // Try primary path: spec/schemas/nodes/{layer}/{type}.node.schema.json (from bundled schemas)
       const schemaPath = path.join(this.schemasDir, "nodes", layer, `${type}.node.schema.json`);
 
       if (!existsSync(schemaPath)) {

@@ -187,7 +187,7 @@ Examples:
   $ dr docs generate --layer motivation    # Generate motivation layer only
   $ dr docs generate --output ./docs/      # Output to custom directory
 
-Note: Requires spec/layers/*.layer.json and spec/nodes/**/*.node.schema.json files.
+Note: Requires spec/layers/*.layer.json and spec/schemas/nodes/**/*.node.schema.json files.
 The generation script reads these spec instances and creates markdown documentation.`
     )
     .action(docsGenerateCommand);

@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/security/accountabilityrequirement.node.schema.json",
+  "title": "AccountabilityRequirement",
+  "description": "Accountability and non-repudiation requirements",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.accountabilityrequirement"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "accountabilityrequirement"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "resource": {
+          "type": "string"
+        },
+        "nonRepudiation": {
+          "type": "boolean"
+        },
+        "purposeDeclaration": {
+          "type": "string"
+        },
+        "challengeable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "action",
+        "resource",
+        "nonRepudiation",
+        "purposeDeclaration",
+        "challengeable"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

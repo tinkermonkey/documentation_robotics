@@ -18,17 +18,19 @@ documentation_robotics/
 ├── spec/                        # SPECIFICATION (source of truth)
 │   ├── VERSION                  # Spec version number
 │   ├── layers/                  # 12 SpecLayer instance files (.layer.json)
-│   ├── nodes/                   # 354 per-type node schemas (.node.schema.json)
-│   │   ├── motivation/          #   Organized by layer
-│   │   ├── business/            #   Defines valid model element types
-│   │   └── ...                  #   Hand-maintained
-│   ├── relationships/           # 252 per-type relationship schemas
-│   │   ├── motivation/          #   (.relationship.schema.json)
-│   │   └── ...                  #   Hand-maintained
 │   ├── predicates.json          # Consolidated predicate catalog
-│   └── schemas/                 # Base JSON Schema definitions
+│   └── schemas/                 # All JSON Schema definitions
 │       ├── base/                #   spec-node, spec-layer, spec-node-relationship
-│       └── common/              #   attribute-spec, source-references
+│       ├── common/              #   attribute-spec, source-references
+│       ├── nodes/               #   354 per-type node schemas (.node.schema.json)
+│       │   ├── motivation/      #     Organized by layer
+│       │   ├── business/        #     Defines valid model element types
+│       │   └── ...              #     Hand-maintained
+│       ├── relationships/       #   252 per-type relationship schemas
+│       │   ├── motivation/      #     (.relationship.schema.json)
+│       │   └── ...              #     Hand-maintained
+│       ├── relationship-catalog.json
+│       └── relationship-type.schema.json
 │
 └── cli/                         # TYPESCRIPT CLI
     ├── src/
@@ -64,11 +66,11 @@ See `cli/README.md` for complete setup and usage documentation.
 - **Schema synchronization**: Schema changes require updating BOTH locations:
   - Base schemas: `spec/schemas/base/` → `cli/src/schemas/bundled/base/`
   - Common schemas: `spec/schemas/common/` → `cli/src/schemas/bundled/common/`
-  - Node schemas: `spec/nodes/` → `cli/src/schemas/bundled/nodes/`
+  - Node schemas: `spec/schemas/nodes/` → `cli/src/schemas/bundled/nodes/`
   - Run `npm run build` in CLI (triggers `scripts/sync-spec-schemas.sh`)
 - **Sources of truth (hand-maintained)**:
-  - Spec node schemas: `spec/nodes/{layer}/*.node.schema.json` (extend `spec-node.schema.json` via `allOf`)
-  - Spec relationship schemas: `spec/relationships/{layer}/*.relationship.schema.json` (extend `spec-node-relationship.schema.json` via `allOf`)
+  - Spec node schemas: `spec/schemas/nodes/{layer}/*.node.schema.json` (extend `spec-node.schema.json` via `allOf`)
+  - Spec relationship schemas: `spec/schemas/relationships/{layer}/*.relationship.schema.json` (extend `spec-node-relationship.schema.json` via `allOf`)
   - Layer instances: `spec/layers/*.layer.json`
 
 ### 2. When to Ask First
@@ -245,7 +247,7 @@ This applies to:
 
 1. **ASK FIRST** - Layer changes affect spec
 2. Update `spec/layers/{NN}-{layer}.layer.json`
-3. Update node schemas in `spec/nodes/{layer}/*.node.schema.json` if adding/changing types
+3. Update node schemas in `spec/schemas/nodes/{layer}/*.node.schema.json` if adding/changing types
 4. Update `spec/schemas/{NN}-{layer}-layer.schema.json` if schema structure changes
 5. Sync changed schemas to `cli/src/schemas/bundled/`
 6. Update validators and tests as needed
