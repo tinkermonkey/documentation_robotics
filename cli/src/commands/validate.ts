@@ -33,6 +33,27 @@ export interface ValidateOptions {
  * Validate schema synchronization between spec/ and cli/src/schemas/bundled/
  * @throws {Error} if schema synchronization validation fails
  */
+/**
+ * Recursively find all JSON schema files in a directory
+ */
+async function findJsonFiles(dir: string, baseDir: string = dir): Promise<string[]> {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const subFiles = await findJsonFiles(fullPath, baseDir);
+      files.push(...subFiles);
+    } else if (entry.name.endsWith(".json")) {
+      // Store relative path from base directory
+      files.push(path.relative(baseDir, fullPath));
+    }
+  }
+
+  return files;
+}
+
 async function validateSchemaSynchronization(): Promise<void> {
   console.log("");
   console.log(ansis.bold("Validating schema synchronization..."));
@@ -46,18 +67,17 @@ async function validateSchemaSynchronization(): Promise<void> {
   const specSchemaDir = path.join(projectRoot, "spec", "schemas");
   const bundledSchemaDir = path.join(__dirname, "../schemas/bundled");
 
-  const specSchemaFiles = await fs.readdir(specSchemaDir);
-  const bundledSchemaFiles = await fs.readdir(bundledSchemaDir);
+  // Find all JSON files recursively
+  const specSchemaFiles = await findJsonFiles(specSchemaDir);
+  const bundledSchemaFiles = await findJsonFiles(bundledSchemaDir);
 
-  const schemaFiles = specSchemaFiles.filter((f) => f.endsWith(".json"));
-
-  if (schemaFiles.length === 0) {
+  if (specSchemaFiles.length === 0) {
     throw new Error("No schema files found in spec/schemas/");
   }
 
   let mismatches: string[] = [];
 
-  for (const schemaFile of schemaFiles) {
+  for (const schemaFile of specSchemaFiles) {
     const specPath = path.join(specSchemaDir, schemaFile);
     const bundledPath = path.join(bundledSchemaDir, schemaFile);
 
@@ -97,7 +117,7 @@ async function validateSchemaSynchronization(): Promise<void> {
 
   // Check for extra files in bundled that aren't in spec
   for (const bundledFile of bundledSchemaFiles) {
-    if (bundledFile.endsWith(".json") && !schemaFiles.includes(bundledFile)) {
+    if (!specSchemaFiles.includes(bundledFile)) {
       mismatches.push(
         `  ${ansis.red("✗")} ${bundledFile} - Extra file in cli/src/schemas/bundled/ (not in spec/)`
       );
