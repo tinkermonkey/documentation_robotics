@@ -7,6 +7,24 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Changed
+
+- **Spec Relationships Converted to JSON Schemas**:
+  - All 252 relationship files converted from data instances (`.relationship.json`) to JSON Schemas (`.relationship.schema.json`)
+  - Each schema extends `spec-node-relationship.schema.json` via `allOf`
+  - Uses `const` constraints for all identifying fields (id, source_spec_node_id, predicate, etc.)
+  - Follows same pattern as spec nodes from issue #316
+  - Enables validation of model relationship instances against their type schemas
+  - Old `.relationship.json` files backed up and removed
+
+### Added
+
+- **Relationship Schema Generation**:
+  - Added `generateSpecNodeRelationships()` to `cli/scripts/generate-spec-instances.ts`
+  - Automated generation from existing relationship data
+  - Generates human-readable titles and descriptions
+  - Supports regeneration if source data changes
+
 ## [0.8.0] - 2026-02-06
 
 ### Breaking Changes
