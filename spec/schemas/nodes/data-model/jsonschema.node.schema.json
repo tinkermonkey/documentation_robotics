@@ -23,6 +23,7 @@
         "$schema": {
           "type": "string"
         },
+        "$id": {
           "type": "string"
         },
         "title": {
