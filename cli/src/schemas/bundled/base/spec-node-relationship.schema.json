@@ -63,7 +63,7 @@
       "type": "object",
       "description": "Optional schema defining attributes that can appear on relationship instances of this type",
       "additionalProperties": {
-        "$ref": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/spec-node.schema.json#/definitions/AttributeSpec"
+        "$ref": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/common/attribute-spec.schema.json#/definitions/AttributeSpec"
       },
       "minProperties": 0,
       "examples": [

@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/apm/span.node.schema.json",
+  "title": "Span",
+  "description": "Unit of work in distributed tracing",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.span"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "span"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "traceId": {
+          "type": "string"
+        },
+        "spanId": {
+          "type": "string"
+        },
+        "traceState": {
+          "type": "string"
+        },
+        "parentSpanId": {
+          "type": "string"
+        },
+        "spanKind": {
+          "type": "string",
+          "enum": [
+            "INTERNAL",
+            "SERVER",
+            "CLIENT",
+            "PRODUCER",
+            "CONSUMER"
+          ]
+        },
+        "startTimeUnixNano": {
+          "type": "string"
+        },
+        "endTimeUnixNano": {
+          "type": "string"
+        },
+        "droppedAttributesCount": {
+          "type": "string"
+        },
+        "droppedEventsCount": {
+          "type": "string"
+        },
+        "droppedLinksCount": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "traceId",
+        "spanId",
+        "traceState",
+        "parentSpanId",
+        "spanKind",
+        "startTimeUnixNano",
+        "endTimeUnixNano",
+        "droppedAttributesCount",
+        "droppedEventsCount",
+        "droppedLinksCount"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

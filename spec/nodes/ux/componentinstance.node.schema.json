@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/ux/componentinstance.node.schema.json",
+  "title": "ComponentInstance",
+  "description": "Instance of a LibraryComponent with application-specific configuration",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.componentinstance"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "componentinstance"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

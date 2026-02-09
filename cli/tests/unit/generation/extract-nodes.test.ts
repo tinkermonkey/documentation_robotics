@@ -9,44 +9,51 @@ describe("Node Type Extraction", () => {
     specsDir = path.resolve(path.join(__dirname, "..", "..", "..", "..", "spec"));
   });
 
-  test("should generate spec nodes for motivation layer", async () => {
+  test("should generate spec node schemas for motivation layer", async () => {
     const layerPath = path.join(specsDir, "nodes", "motivation");
     const files = await fs.readdir(layerPath);
-    const nodeFiles = files.filter((f) => f.endsWith(".node.json"));
+    const nodeFiles = files.filter((f) => f.endsWith(".node.schema.json"));
 
     expect(nodeFiles.length).toBeGreaterThan(0);
-    expect(nodeFiles).toContain("goal.node.json");
-    expect(nodeFiles).toContain("stakeholder.node.json");
+    expect(nodeFiles).toContain("goal.node.schema.json");
+    expect(nodeFiles).toContain("stakeholder.node.schema.json");
   });
 
-  test("should have valid node structure", async () => {
-    const nodeFile = path.join(specsDir, "nodes", "motivation", "goal.node.json");
+  test("should have valid per-type schema structure", async () => {
+    const nodeFile = path.join(specsDir, "nodes", "motivation", "goal.node.schema.json");
     const content = await fs.readFile(nodeFile, "utf-8");
-    const node = JSON.parse(content);
+    const schema = JSON.parse(content);
 
-    expect(node.id).toBe("motivation.goal");
-    expect(node.layer_id).toBe("motivation");
-    expect(node.name).toBe("Goal");
-    expect(node.description).toBeDefined();
-    expect(node.attributes).toBeDefined();
-    expect(Array.isArray(node.required_attributes)).toBe(true);
+    expect(schema.$schema).toBe("http://json-schema.org/draft-07/schema#");
+    expect(schema.allOf).toBeDefined();
+    expect(schema.allOf[0].$ref).toContain("spec-node.schema.json");
+    expect(schema.properties.spec_node_id.const).toBe("motivation.goal");
+    expect(schema.properties.layer_id.const).toBe("motivation");
+    expect(schema.properties.type.const).toBe("goal");
+    expect(schema.title).toBe("Goal");
+    expect(schema.description).toBeDefined();
+    expect(schema.properties.attributes).toBeDefined();
   });
 
-  test("should extract attributes from node types", async () => {
-    const nodeFile = path.join(specsDir, "nodes", "motivation", "goal.node.json");
+  test("should have type-specific attribute schemas", async () => {
+    const nodeFile = path.join(specsDir, "nodes", "motivation", "goal.node.schema.json");
     const content = await fs.readFile(nodeFile, "utf-8");
-    const node = JSON.parse(content);
+    const schema = JSON.parse(content);
 
-    expect(Object.keys(node.attributes).length).toBeGreaterThanOrEqual(0);
-    // Attributes should have type and description
-    for (const [, attr] of Object.entries(node.attributes)) {
-      const attrDef = attr as Record<string, any>;
-      expect(attrDef.type).toBeDefined();
-      expect(attrDef.description).toBeDefined();
+    const attrs = schema.properties.attributes;
+    expect(attrs.type).toBe("object");
+    expect(attrs.additionalProperties).toBe(false);
+
+    // Attributes should be JSON Schema properties
+    if (attrs.properties) {
+      for (const [, prop] of Object.entries(attrs.properties)) {
+        const propDef = prop as Record<string, any>;
+        expect(propDef.type).toBeDefined();
+      }
     }
   });
 
-  test("should generate nodes for all 12 layers", async () => {
+  test("should generate node schemas for all 12 layers", async () => {
     const layerIds = [
       "motivation",
       "business",
@@ -68,17 +75,17 @@ describe("Node Type Extraction", () => {
       expect(stats.isDirectory()).toBe(true);
 
       const files = await fs.readdir(layerPath);
-      const nodeFiles = files.filter((f) => f.endsWith(".node.json"));
+      const nodeFiles = files.filter((f) => f.endsWith(".node.schema.json"));
       expect(nodeFiles.length).toBeGreaterThan(0);
     }
   });
 
-  test("should have consistent node id pattern", async () => {
-    const nodeFile = path.join(specsDir, "nodes", "motivation", "goal.node.json");
+  test("should have consistent spec_node_id pattern", async () => {
+    const nodeFile = path.join(specsDir, "nodes", "motivation", "goal.node.schema.json");
     const content = await fs.readFile(nodeFile, "utf-8");
-    const node = JSON.parse(content);
+    const schema = JSON.parse(content);
 
-    // Node ID should follow pattern: {layer}.{element-type}
-    expect(node.id).toMatch(/^[a-z-]+\.[a-z][a-z0-9-]*$/);
+    // spec_node_id const should follow pattern: {layer}.{element-type}
+    expect(schema.properties.spec_node_id.const).toMatch(/^[a-z-]+\.[a-z][a-z0-9-]*$/);
   });
 });

@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/api/info.node.schema.json",
+  "title": "Info",
+  "description": "Metadata about the API",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.info"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "info"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "termsOfService": {
+          "type": "string"
+        },
+        "contact": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "version",
+        "termsOfService"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

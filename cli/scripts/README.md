@@ -40,8 +40,8 @@ spec/
 │   └── ... (12 layer instances)
 ├── nodes/
 │   ├── motivation/
-│   │   ├── goal.node.json
-│   │   ├── stakeholder.node.json
+│   │   ├── goal.node.schema.json
+│   │   ├── stakeholder.node.schema.json
 │   │   └── ... (motivation node types)
 │   ├── business/
 │   │   └── ... (business node types)

@@ -47,6 +47,38 @@ interface SpecNode {
   required_attributes: string[];
 }
 
+/**
+ * Convert a per-type .node.schema.json file to a SpecNode for documentation rendering
+ */
+function nodeSchemaToSpecNode(schema: any): SpecNode {
+  const props = schema.properties || {};
+  const specNodeId = props.spec_node_id?.const || "";
+  const layerId = props.layer_id?.const || "";
+  const attrsSchema = props.attributes || {};
+  const attrsProps = attrsSchema.properties || {};
+  const attrsRequired = attrsSchema.required || [];
+
+  const attributes: Record<string, SpecNodeAttribute> = {};
+  for (const [key, prop] of Object.entries(attrsProps)) {
+    const p = prop as any;
+    attributes[key] = {
+      type: p.enum ? "enum" : (p.type || "string"),
+      description: p.description || "",
+      ...(p.format ? { format: p.format } : {}),
+      ...(p.enum ? { enum: p.enum } : {}),
+    };
+  }
+
+  return {
+    id: specNodeId,
+    layer_id: layerId,
+    name: schema.title || "",
+    description: schema.description || "",
+    attributes,
+    required_attributes: attrsRequired,
+  };
+}
+
 interface LayerDocumentation {
   layerId: string;
   number: number;
@@ -137,12 +169,13 @@ async function loadNodes(baseDir: string): Promise<SpecNode[]> {
     }
 
     for (const file of files) {
-      if (!file.endsWith(".node.json")) continue;
+      if (!file.endsWith(".node.schema.json")) continue;
 
       try {
         const content = fs.readFileSync(path.join(layerPath, file), "utf-8");
         try {
-          const node = JSON.parse(content) as SpecNode;
+          const schema = JSON.parse(content);
+          const node = nodeSchemaToSpecNode(schema);
           nodes.push(node);
         } catch (parseError) {
           throw new Error(

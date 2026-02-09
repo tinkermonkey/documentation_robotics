@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/technology/device.node.schema.json",
+  "title": "Device",
+  "description": "Physical IT resource with processing capability",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "technology.device"
+    },
+    "layer_id": {
+      "const": "technology"
+    },
+    "type": {
+      "const": "device"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "deviceType": {
+          "type": "string",
+          "enum": [
+            "server",
+            "workstation",
+            "mobile",
+            "iot-device",
+            "network-device"
+          ]
+        }
+      },
+      "required": [
+        "deviceType"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

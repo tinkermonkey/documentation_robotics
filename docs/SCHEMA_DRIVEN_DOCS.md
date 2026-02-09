@@ -32,7 +32,7 @@ Dual maintenance burden
 ```
 Specification Instances (Source)
 ├── spec/layers/*.layer.json       (SpecLayer definitions)
-├── spec/nodes/**/*.node.json      (SpecNode definitions)
+├── spec/nodes/**/*.node.schema.json      (SpecNode definitions)
 └── spec/relationships/...         (SpecNodeRelationship definitions)
     ↓
 Auto-generate Markdown Documentation
@@ -66,8 +66,8 @@ spec/
 │   └── ...
 └── nodes/
     ├── motivation/
-    │   ├── stakeholder.node.json
-    │   ├── goal.node.json
+    │   ├── stakeholder.node.schema.json
+    │   ├── goal.node.schema.json
     │   └── ...
     ├── business/
     │   └── ...
@@ -91,7 +91,7 @@ Each `*.layer.json` file contains:
 }
 ```
 
-Each `*.node.json` file contains:
+Each `*.node.schema.json` file contains:
 
 ```json
 {
@@ -118,7 +118,7 @@ Each `*.node.json` file contains:
 The TypeScript generator:
 
 1. Loads all SpecLayer instances from `spec/layers/*.layer.json`
-2. Loads all SpecNode instances from `spec/nodes/**/*.node.json`
+2. Loads all SpecNode instances from `spec/nodes/**/*.node.schema.json`
 3. Generates markdown documentation for each layer
 4. Creates an index document with cross-references
 
@@ -269,7 +269,7 @@ If transitioning from markdown-first to schema-first:
 
 1. **Extract specifications** from markdown files into JSON
    - One `*.layer.json` per layer
-   - One `*.node.json` per node type
+   - One `*.node.schema.json` per node type
 2. **Generate documentation**:
 
    ```bash
@@ -314,7 +314,7 @@ If transitioning from markdown-first to schema-first:
 The generator:
 
 1. Reads `spec/layers/*.layer.json` files
-2. Reads `spec/nodes/**/*.node.json` files
+2. Reads `spec/nodes/**/*.node.schema.json` files
 3. Groups nodes by layer_id
 4. Sorts layers by number for consistent output
 

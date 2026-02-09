@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/navigation/navigationgraph.node.schema.json",
+  "title": "NavigationGraph",
+  "description": "Complete navigation structure for application",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "navigation.navigationgraph"
+    },
+    "layer_id": {
+      "const": "navigation"
+    },
+    "type": {
+      "const": "navigationgraph"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "application": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "application"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

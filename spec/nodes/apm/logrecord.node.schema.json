@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/apm/logrecord.node.schema.json",
+  "title": "LogRecord",
+  "description": "OpenTelemetry log entry",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.logrecord"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "logrecord"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "timeUnixNano": {
+          "type": "string"
+        },
+        "observedTimeUnixNano": {
+          "type": "string"
+        },
+        "severityNumber": {
+          "type": "string",
+          "enum": [
+            "UNSPECIFIED",
+            "TRACE",
+            "TRACE2",
+            "TRACE3",
+            "TRACE4",
+            "DEBUG",
+            "DEBUG2",
+            "DEBUG3",
+            "DEBUG4",
+            "INFO",
+            "INFO2",
+            "INFO3",
+            "INFO4",
+            "WARN",
+            "WARN2",
+            "WARN3",
+            "WARN4",
+            "ERROR",
+            "ERROR2",
+            "ERROR3",
+            "ERROR4",
+            "FATAL",
+            "FATAL2",
+            "FATAL3",
+            "FATAL4"
+          ]
+        },
+        "severityText": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "string"
+        },
+        "droppedAttributesCount": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "timeUnixNano",
+        "observedTimeUnixNano",
+        "severityNumber",
+        "body",
+        "flags",
+        "droppedAttributesCount"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

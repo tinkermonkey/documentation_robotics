@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/apm/logprocessor.node.schema.json",
+  "title": "LogProcessor",
+  "description": "A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.logprocessor"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "logprocessor"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "batch",
+            "resource",
+            "filter",
+            "transform",
+            "sampling",
+            "redact",
+            "routing",
+            "memory-limiter",
+            "custom"
+          ]
+        },
+        "order": {
+          "type": "integer"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "set-attribute",
+            "delete-attribute",
+            "rename-attribute",
+            "hash-attribute",
+            "truncate-body",
+            "extract-attribute",
+            "convert-severity"
+          ],
+          "description": "TransformOperation classification"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

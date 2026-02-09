@@ -54,10 +54,10 @@ describe("Base Schema Validation", () => {
   let specLayerSchema: any;
   let specNodeSchema: any;
   let specNodeRelationshipSchema: any;
-  let modelNodeSchema: any;
   let modelNodeRelationshipSchema: any;
   let predicateCatalogSchema: any;
   let sourceReferencesSchema: any;
+  let attributeSpecSchema: any;
 
   beforeAll(() => {
     ajv = new Ajv({
@@ -73,15 +73,16 @@ describe("Base Schema Validation", () => {
     specLayerSchema = loadSchema("spec-layer.schema.json");
     specNodeSchema = loadSchema("spec-node.schema.json");
     specNodeRelationshipSchema = loadSchema("spec-node-relationship.schema.json");
-    modelNodeSchema = loadSchema("model-node.schema.json");
     modelNodeRelationshipSchema = loadSchema("model-node-relationship.schema.json");
     predicateCatalogSchema = loadSchema("predicate-catalog.schema.json");
     sourceReferencesSchema = loadCommonSchema("source-references.schema.json");
+    attributeSpecSchema = loadCommonSchema("attribute-spec.schema.json");
 
     // Add schemas to AJV for reference resolution
     ajv.addSchema(sourceReferencesSchema, sourceReferencesSchema.$id);
     ajv.addSchema(specNodeSchema, specNodeSchema.$id);
     ajv.addSchema(specNodeRelationshipSchema, specNodeRelationshipSchema.$id);
+    ajv.addSchema(attributeSpecSchema, attributeSpecSchema.$id);
   });
 
   describe("SpecLayer Schema", () => {
@@ -144,63 +145,134 @@ describe("Base Schema Validation", () => {
     });
   });
 
-  describe("SpecNode Schema", () => {
-    it("should validate a valid goal node", () => {
+  describe("SpecNode Per-Type Schemas", () => {
+    it("per-type schema has required structural elements (allOf, properties, const constraints)", () => {
+      const schema = specNodeExamples.goalNode;
+      expect(schema.$schema).toBe("http://json-schema.org/draft-07/schema#");
+      expect(schema.allOf).toBeDefined();
+      expect(schema.allOf.length).toBeGreaterThan(0);
+      expect(schema.allOf[0].$ref).toContain("spec-node.schema.json");
+      expect(schema.properties.spec_node_id.const).toBe("motivation.goal");
+      expect(schema.properties.layer_id.const).toBe("motivation");
+      expect(schema.properties.type.const).toBe("goal");
+    });
+
+    it("per-type schema attributes define JSON Schema properties with additionalProperties: false", () => {
+      const schema = specNodeExamples.goalNode;
+      expect(schema.properties.attributes.type).toBe("object");
+      expect(schema.properties.attributes.additionalProperties).toBe(false);
+      expect(schema.properties.attributes.properties.priority).toBeDefined();
+      expect(schema.properties.attributes.properties.priority.type).toBe("string");
+      expect(schema.properties.attributes.properties.priority.enum).toContain("critical");
+    });
+
+    it("per-type schema with required attributes has required array in attributes", () => {
+      const schema = specNodeExamples.goalNode;
+      expect(schema.properties.attributes.required).toContain("priority");
+    });
+
+    it("endpoint per-type schema has correct constraints", () => {
+      const schema = specNodeExamples.endpointNode;
+      expect(schema.properties.spec_node_id.const).toBe("api.endpoint");
+      expect(schema.properties.attributes.properties.method.enum).toContain("POST");
+      expect(schema.properties.attributes.required).toContain("method");
+      expect(schema.properties.attributes.required).toContain("path");
+    });
+
+    it("minimal per-type schema has empty attributes with additionalProperties: false", () => {
+      const schema = specNodeExamples.minimalNode;
+      expect(schema.properties.attributes.type).toBe("object");
+      expect(schema.properties.attributes.additionalProperties).toBe(false);
+      expect(schema.properties.attributes.properties).toBeUndefined();
+    });
+
+    it("requirement per-type schema supports enum attributes with defaults", () => {
+      const schema = specNodeExamples.requirementNode;
+      expect(schema.properties.attributes.properties.status.enum).toContain("proposed");
+      expect(schema.properties.attributes.properties.status.default).toBe("proposed");
+    });
+
+    it("per-type schema without allOf is structurally incomplete", () => {
+      const schema = invalidSpecNodeExamples.missingAllOf;
+      expect(schema.allOf).toBeUndefined();
+    });
+  });
+
+  describe("SpecNode Base Schema (validates model instances)", () => {
+    it("should validate a valid goal node instance", () => {
       const validate = ajv.compile(specNodeSchema);
-      const valid = validate(specNodeExamples.goalNode);
+      const valid = validate(modelNodeExamples.goalNode);
       expect(valid).toBe(true);
     });
 
-    it("should validate a valid endpoint node", () => {
+    it("should validate a valid endpoint node instance", () => {
       const validate = ajv.compile(specNodeSchema);
-      const valid = validate(specNodeExamples.endpointNode);
+      const valid = validate(modelNodeExamples.endpointNode);
       expect(valid).toBe(true);
     });
 
-    it("should validate minimal node with empty attributes", () => {
+    it("should validate minimal node without optional fields", () => {
       const validate = ajv.compile(specNodeSchema);
-      const valid = validate(specNodeExamples.minimalNode);
+      const minimalNode = {
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        spec_node_id: "test.element",
+        type: "element",
+        name: "Test Node",
+      };
+      const valid = validate(minimalNode);
       expect(valid).toBe(true);
     });
 
-    it("should validate node with enum attributes", () => {
+    it("should validate node with metadata", () => {
       const validate = ajv.compile(specNodeSchema);
-      const valid = validate(specNodeExamples.requirementNode);
+      const valid = validate(modelNodeExamples.goalNode);
       expect(valid).toBe(true);
     });
 
-    it("should reject node with invalid ID format", () => {
+    it("should validate node with source reference", () => {
       const validate = ajv.compile(specNodeSchema);
-      const valid = validate(invalidSpecNodeExamples.invalidId);
+      const valid = validate(modelNodeExamples.goalNode);
+      expect(valid).toBe(true);
+    });
+
+    it("should reject node with invalid UUID", () => {
+      const validate = ajv.compile(specNodeSchema);
+      const valid = validate(invalidModelNodeExamples.invalidUuid);
+      expect(valid).toBe(false);
+      expect(validate.errors?.[0]?.keyword).toBe("format");
+    });
+
+    it("should reject node with missing spec_node_id", () => {
+      const validate = ajv.compile(specNodeSchema);
+      const valid = validate(invalidModelNodeExamples.missingSpecNodeId);
+      expect(valid).toBe(false);
+      expect(validate.errors?.[0]?.keyword).toBe("required");
+    });
+
+    it("should reject node with invalid spec_node_id format", () => {
+      const validate = ajv.compile(specNodeSchema);
+      const valid = validate(invalidModelNodeExamples.invalidSpecNodeIdFormat);
       expect(valid).toBe(false);
       expect(validate.errors?.[0]?.keyword).toBe("pattern");
     });
 
-    it("should accept node with mismatched layer ID (schema limitation: layer_id not validated against id prefix)", () => {
+    it("should reject node with extra properties", () => {
       const validate = ajv.compile(specNodeSchema);
-      const valid = validate(invalidSpecNodeExamples.mismatchedLayerId);
-      expect(valid).toBe(true); // Schema doesn't validate layer_id prefix consistency - runtime validators should enforce this
-    });
-
-    it("should reject node with invalid attribute type", () => {
-      const validate = ajv.compile(specNodeSchema);
-      const valid = validate(invalidSpecNodeExamples.invalidAttributeType);
+      const valid = validate(invalidModelNodeExamples.extraProperties);
       expect(valid).toBe(false);
-      expect(validate.errors?.[0]?.keyword).toBe("enum");
+      expect(validate.errors?.[0]?.keyword).toBe("additionalProperties");
     });
 
-    it("should reject enum attribute without enum_values", () => {
+    it("should reject node with invalid metadata", () => {
       const validate = ajv.compile(specNodeSchema);
-      const valid = validate(invalidSpecNodeExamples.enumWithoutValues);
-      expect(valid).toBe(false); // if/then constraint requires enum_values when type is 'enum'
-      expect(validate.errors?.some((e) => e.keyword === "required")).toBe(true);
-    });
-
-    it("should reject node with missing description", () => {
-      const validate = ajv.compile(specNodeSchema);
-      const valid = validate(invalidSpecNodeExamples.missingDescription);
+      const valid = validate(invalidModelNodeExamples.invalidMetadata);
       expect(valid).toBe(false);
-      expect(validate.errors?.[0]?.keyword).toBe("required");
+    });
+
+    it("should reject node with invalid source reference", () => {
+      const validate = ajv.compile(specNodeSchema);
+      const valid = validate(invalidModelNodeExamples.invalidSourceReference);
+      expect(valid).toBe(false);
     });
   });
 
@@ -269,84 +341,6 @@ describe("Base Schema Validation", () => {
       const valid = validate(invalidSpecNodeRelationshipExamples.extraProperties);
       expect(valid).toBe(false);
       expect(validate.errors?.[0]?.keyword).toBe("additionalProperties");
-    });
-  });
-
-  describe("ModelNode Schema", () => {
-    it("should validate a valid goal node instance", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(modelNodeExamples.goalNode);
-      expect(valid).toBe(true);
-    });
-
-    it("should validate a valid endpoint node instance", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(modelNodeExamples.endpointNode);
-      expect(valid).toBe(true);
-    });
-
-    it("should validate minimal node without optional fields", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const minimalNode = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
-        spec_node_id: "test.element",
-        type: "element",
-        name: "Test Node",
-      };
-      const valid = validate(minimalNode);
-      expect(valid).toBe(true);
-    });
-
-    it("should validate node with metadata", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(modelNodeExamples.goalNode);
-      expect(valid).toBe(true);
-    });
-
-    it("should validate node with source reference", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(modelNodeExamples.goalNode);
-      expect(valid).toBe(true);
-    });
-
-    it("should reject node with invalid UUID", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(invalidModelNodeExamples.invalidUuid);
-      expect(valid).toBe(false);
-      expect(validate.errors?.[0]?.keyword).toBe("format");
-    });
-
-    it("should reject node with missing spec_node_id", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(invalidModelNodeExamples.missingSpecNodeId);
-      expect(valid).toBe(false);
-      expect(validate.errors?.[0]?.keyword).toBe("required");
-    });
-
-    it("should reject node with invalid spec_node_id format", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(invalidModelNodeExamples.invalidSpecNodeIdFormat);
-      expect(valid).toBe(false);
-      expect(validate.errors?.[0]?.keyword).toBe("pattern");
-    });
-
-    it("should reject node with extra properties", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(invalidModelNodeExamples.extraProperties);
-      expect(valid).toBe(false);
-      expect(validate.errors?.[0]?.keyword).toBe("additionalProperties");
-    });
-
-    it("should reject node with invalid metadata", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(invalidModelNodeExamples.invalidMetadata);
-      expect(valid).toBe(false);
-    });
-
-    it("should reject node with invalid source reference", () => {
-      const validate = ajv.compile(modelNodeSchema);
-      const valid = validate(invalidModelNodeExamples.invalidSourceReference);
-      expect(valid).toBe(false);
     });
   });
 
@@ -599,11 +593,14 @@ describe("Base Schema Validation", () => {
       expect(specLayerSchema.type).toBe("object");
     });
 
-    it("spec-node schema is valid JSON Schema Draft 7", () => {
+    it("spec-node base schema is valid JSON Schema Draft 7", () => {
       expect(specNodeSchema.$schema).toBe("http://json-schema.org/draft-07/schema#");
       expect(specNodeSchema.$id).toBeTruthy();
-      expect(specNodeSchema.title).toBeTruthy();
+      expect(specNodeSchema.title).toBe("SpecNode");
       expect(specNodeSchema.type).toBe("object");
+      // Base schema now validates model node instances
+      expect(specNodeSchema.required).toContain("spec_node_id");
+      expect(specNodeSchema.properties.id.format).toBe("uuid");
     });
 
     it("spec-node-relationship schema is valid JSON Schema Draft 7", () => {
@@ -611,13 +608,6 @@ describe("Base Schema Validation", () => {
       expect(specNodeRelationshipSchema.$id).toBeTruthy();
       expect(specNodeRelationshipSchema.title).toBeTruthy();
       expect(specNodeRelationshipSchema.type).toBe("object");
-    });
-
-    it("model-node schema is valid JSON Schema Draft 7", () => {
-      expect(modelNodeSchema.$schema).toBe("http://json-schema.org/draft-07/schema#");
-      expect(modelNodeSchema.$id).toBeTruthy();
-      expect(modelNodeSchema.title).toBeTruthy();
-      expect(modelNodeSchema.type).toBe("object");
     });
 
     it("model-node-relationship schema is valid JSON Schema Draft 7", () => {
@@ -632,6 +622,12 @@ describe("Base Schema Validation", () => {
       expect(predicateCatalogSchema.$id).toBeTruthy();
       expect(predicateCatalogSchema.title).toBeTruthy();
       expect(predicateCatalogSchema.type).toBe("object");
+    });
+
+    it("attribute-spec schema is valid JSON Schema Draft 7", () => {
+      expect(attributeSpecSchema.$schema).toBe("http://json-schema.org/draft-07/schema#");
+      expect(attributeSpecSchema.$id).toBeTruthy();
+      expect(attributeSpecSchema.definitions.AttributeSpec).toBeDefined();
     });
   });
 });

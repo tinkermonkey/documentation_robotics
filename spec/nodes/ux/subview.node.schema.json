@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/ux/subview.node.schema.json",
+  "title": "SubView",
+  "description": "Instance of a LibrarySubView or custom sub-view definition",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.subview"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "subview"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "order": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

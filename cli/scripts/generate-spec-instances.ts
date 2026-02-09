@@ -210,25 +210,46 @@ async function generateSpecNodes(
 ): Promise<ValidationResult> {
   const specNodes = [];
   const errors: string[] = [];
+  const BASE_URI = "https://github.com/tinkermonkey/documentation_robotics/spec/nodes";
 
   for (const layer of layers) {
     const layerDir = path.join(outputDir, "nodes", layer.layerMetadata.layerId);
 
     for (const [typeName, typeDefinition] of Object.entries(layer.elementTypes)) {
-      const specNode = {
-        id: `${layer.layerMetadata.layerId}.${typeName.toLowerCase()}`,
-        layer_id: layer.layerMetadata.layerId,
-        name: typeName,
-        description: typeDefinition.description || `${typeName} element in ${layer.layerMetadata.layerName}`,
-        attributes: extractAttributes(typeDefinition.properties || {}),
-        required_attributes: typeDefinition.required || [],
+      const lowerTypeName = typeName.toLowerCase();
+      const specNodeId = `${layer.layerMetadata.layerId}.${lowerTypeName}`;
+      const description = typeDefinition.description || `${typeName} element in ${layer.layerMetadata.layerName}`;
+      const attributesSchema = extractAttributesSchema(typeDefinition.properties || {});
+      const requiredAttrs = (typeDefinition.required || []).filter(
+        (r: string) => r !== "id" && r !== "name" && r !== "description" && attributesSchema.properties?.[r]
+      );
+
+      const nodeSchema: Record<string, any> = {
+        $schema: "http://json-schema.org/draft-07/schema#",
+        $id: `${BASE_URI}/${layer.layerMetadata.layerId}/${lowerTypeName}.node.schema.json`,
+        title: typeName,
+        description,
+        allOf: [{ $ref: "../../schemas/base/spec-node.schema.json" }],
+        properties: {
+          spec_node_id: { const: specNodeId },
+          layer_id: { const: layer.layerMetadata.layerId },
+          type: { const: lowerTypeName },
+          attributes: {
+            type: "object",
+            ...(attributesSchema.properties && Object.keys(attributesSchema.properties).length > 0
+              ? { properties: attributesSchema.properties }
+              : {}),
+            ...(requiredAttrs.length > 0 ? { required: requiredAttrs } : {}),
+            additionalProperties: false,
+          },
+        },
       };
 
-      specNodes.push(specNode);
+      specNodes.push(nodeSchema);
 
       if (!dryRun) {
-        const filePath = path.join(layerDir, `${typeName.toLowerCase()}.node.json`);
-        await writeJson(filePath, specNode);
+        const filePath = path.join(layerDir, `${lowerTypeName}.node.schema.json`);
+        await writeJson(filePath, nodeSchema);
       }
     }
   }
@@ -240,10 +261,10 @@ async function generateSpecNodes(
   };
 }
 
-function extractAttributes(
+function extractAttributesSchema(
   properties: Record<string, any>
-): Record<string, any> {
-  const attributes: Record<string, any> = {};
+): { properties: Record<string, any> } {
+  const schemaProps: Record<string, any> = {};
 
   for (const [propName, propDef] of Object.entries(properties)) {
     // Skip relationship fields
@@ -260,15 +281,29 @@ function extractAttributes(
       continue;
     }
 
-    attributes[propName] = {
-      type: propDef.type || "string",
-      description: propDef.description || "",
-      ...(propDef.enum && { enum_values: propDef.enum }),
-      ...(propDef.format && { format: propDef.format }),
-    };
+    const prop: Record<string, any> = {};
+
+    if (propDef.enum) {
+      prop.type = "string";
+      prop.enum = propDef.enum;
+    } else {
+      prop.type = propDef.type || "string";
+    }
+
+    if (propDef.description) {
+      prop.description = propDef.description;
+    }
+    if (propDef.format) {
+      prop.format = propDef.format;
+    }
+    if (propDef.default !== undefined) {
+      prop.default = propDef.default;
+    }
+
+    schemaProps[propName] = prop;
   }
 
-  return attributes;
+  return { properties: schemaProps };
 }
 
 
@@ -366,11 +401,14 @@ async function validateInstances(
       const layerPath = path.join(nodesDir, layer);
       const files = await fs.readdir(layerPath);
       for (const file of files) {
-        if (file.endsWith(".node.json")) {
+        if (file.endsWith(".node.schema.json")) {
           const data = await readJson(path.join(layerPath, file));
-          if (!validateNode(data)) {
+          // Per-type schemas are JSON Schemas themselves; validate structural correctness
+          const hasAllOf = Array.isArray(data.allOf) && data.allOf.length > 0;
+          const hasSpecNodeId = data.properties?.spec_node_id?.const;
+          if (!hasAllOf || !hasSpecNodeId) {
             results.specNodes.valid = false;
-            results.specNodes.errors.push(`${layer}/${file}: ${JSON.stringify(validateNode.errors)}`);
+            results.specNodes.errors.push(`${layer}/${file}: missing allOf or spec_node_id const`);
           }
           results.specNodes.instanceCount++;
         }

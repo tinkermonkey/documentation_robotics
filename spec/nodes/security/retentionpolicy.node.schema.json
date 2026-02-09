@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/security/retentionpolicy.node.schema.json",
+  "title": "RetentionPolicy",
+  "description": "Defines how long security-related data (audit logs, access records, encryption keys) must be retained, archival strategies, and secure deletion procedures. Ensures compliance with regulatory requirements.",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.retentionpolicy"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "retentionpolicy"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "type": "string"
+        },
+        "deletion_method": {
+          "type": "string",
+          "enum": [
+            "soft",
+            "hard",
+            "cryptographic",
+            "overwrite",
+            "physical"
+          ],
+          "description": "DeletionMethod classification"
+        },
+        "storage_class": {
+          "type": "string",
+          "enum": [
+            "hot",
+            "warm",
+            "cold",
+            "archive"
+          ],
+          "description": "StorageClass classification"
+        }
+      },
+      "required": [
+        "period"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

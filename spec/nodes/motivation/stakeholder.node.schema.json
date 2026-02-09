@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/motivation/stakeholder.node.schema.json",
+  "title": "Stakeholder",
+  "description": "Individual, team, or organization with interest in the outcome",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "motivation.stakeholder"
+    },
+    "layer_id": {
+      "const": "motivation"
+    },
+    "type": {
+      "const": "stakeholder"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "internal",
+            "external",
+            "customer",
+            "partner",
+            "regulator"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

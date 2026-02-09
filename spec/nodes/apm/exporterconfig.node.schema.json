@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/apm/exporterconfig.node.schema.json",
+  "title": "ExporterConfig",
+  "description": "Configuration for telemetry data export destinations, specifying protocol (OTLP, Jaeger, Prometheus), endpoints, authentication, batching, and retry policies. Controls where observability data is sent.",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.exporterconfig"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "exporterconfig"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "otlp",
+            "jaeger",
+            "zipkin",
+            "prometheus",
+            "console",
+            "file",
+            "logging",
+            "noop"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": [
+            "grpc",
+            "http",
+            "http/json"
+          ]
+        },
+        "auth_type": {
+          "type": "string",
+          "enum": [
+            "none",
+            "api-key",
+            "bearer",
+            "basic",
+            "oauth2",
+            "mTLS"
+          ],
+          "description": "AuthType classification"
+        },
+        "compression": {
+          "type": "string",
+          "enum": [
+            "none",
+            "gzip",
+            "zstd"
+          ],
+          "description": "CompressionType classification"
+        }
+      },
+      "required": [
+        "type",
+        "endpoint"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

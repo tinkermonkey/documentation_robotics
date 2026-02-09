@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/ux/librarycomponent.node.schema.json",
+  "title": "LibraryComponent",
+  "description": "Reusable UI component definition that can be instantiated in multiple UXSpecs",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.librarycomponent"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "librarycomponent"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "form-field",
+            "table",
+            "chart",
+            "card",
+            "list",
+            "text",
+            "image",
+            "video",
+            "audio",
+            "map",
+            "calendar",
+            "timeline",
+            "tree",
+            "custom"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

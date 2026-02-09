@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/testing/coveragesummary.node.schema.json",
+  "title": "CoverageSummary",
+  "description": "Summary of coverage status (can be computed or declared)",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.coveragesummary"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "coveragesummary"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "generatedAt": {
+          "type": "string"
+        },
+        "totalTargets": {
+          "type": "integer"
+        },
+        "totalRequirements": {
+          "type": "integer"
+        },
+        "totalSketches": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "totalTargets",
+        "totalRequirements",
+        "totalSketches"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

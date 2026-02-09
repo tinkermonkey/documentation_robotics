@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/data-store/table.node.schema.json",
+  "title": "Table",
+  "description": "Database table definition",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.table"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "table"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "type": "string"
+        },
+        "tablespace": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

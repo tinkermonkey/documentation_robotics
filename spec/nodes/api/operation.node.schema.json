@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/api/operation.node.schema.json",
+  "title": "Operation",
+  "description": "Single API operation (HTTP method on a path)",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.operation"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "operation"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "string"
+        },
+        "deprecated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operationId",
+        "summary",
+        "tags"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "description"
+  ]
+}

@@ -2,107 +2,73 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/spec-node.schema.json",
   "title": "SpecNode",
-  "description": "Base type for node type definitions in the specification. Defines what attributes a node type can have and which are required.\n\nNote: This schema does not validate that the layer_id prefix in the 'id' field matches the 'layer_id' property (e.g., id='motivation.goal' with layer_id='motivation'). Runtime validators should enforce this consistency to prevent configuration errors.",
+  "description": "Base schema for all spec node types. Each node type schema extends this with type-specific attribute constraints via allOf.",
   "type": "object",
-  "required": ["id", "layer_id", "name", "description", "attributes"],
+  "required": ["id", "spec_node_id", "type", "name"],
   "additionalProperties": false,
   "properties": {
     "id": {
       "type": "string",
+      "format": "uuid",
+      "description": "Unique node instance identifier (UUIDv4). Globally unique across the entire model.",
+      "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+    },
+    "spec_node_id": {
+      "type": "string",
       "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
-      "description": "Unique node type ID in format: {layer-id}.{type-name}. The layer-id must match the layer_id property.",
-      "examples": ["motivation.goal", "motivation.requirement", "api.endpoint", "data-store.table"]
+      "description": "Reference to the spec node type that this node conforms to (e.g., 'motivation.goal')"
+    },
+    "type": {
+      "type": "string",
+      "description": "Denormalized node type for efficient filtering and queries. Extracted from spec_node_id (the part after the dot).",
+      "examples": ["goal", "requirement", "endpoint", "table"]
     },
     "layer_id": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$",
-      "description": "The ID of the layer this node type belongs to"
+      "description": "Denormalized layer ID for efficient layer-scoped queries. Extracted from spec_node_id (the part before the dot)."
     },
     "name": {
       "type": "string",
-      "description": "Human-readable type name (typically PascalCase for display)",
-      "examples": ["Goal", "Requirement", "API Endpoint", "Database Table"]
+      "description": "Human-readable instance name",
+      "examples": ["Improve Customer Satisfaction", "User Login API", "Customer Table"]
     },
     "description": {
       "type": "string",
-      "description": "Purpose, semantics, and usage guidelines for this node type"
+      "description": "Optional detailed description of this specific node instance"
     },
     "attributes": {
       "type": "object",
-      "description": "Schema defining what attributes instances of this node type can have",
-      "additionalProperties": {
-        "$ref": "#/definitions/AttributeSpec"
-      },
-      "minProperties": 0,
-      "examples": [
-        {
-          "priority": {
-            "type": "enum",
-            "enum_values": ["critical", "high", "medium", "low"],
-            "description": "Priority level of the goal"
-          },
-          "owner": {
-            "type": "string",
-            "description": "Team or person responsible"
-          }
-        }
-      ]
+      "description": "Attribute values for this node instance. Keys must correspond to attributes defined in the per-type schema, and values must conform to the type constraints."
     },
-    "required_attributes": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "List of attribute names that must be present on all instances of this node type. Each name must exist as a key in the attributes object.",
-      "examples": [["name", "description"]]
-    }
-  },
-  "definitions": {
-    "AttributeSpec": {
+    "source_reference": {
+      "$ref": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/common/source-references.schema.json#/definitions/SourceReference",
+      "description": "Optional provenance tracking linking this node to source code locations"
+    },
+    "metadata": {
       "type": "object",
-      "title": "AttributeSpec",
-      "description": "Specification for a single attribute that can appear on node instances",
-      "required": ["type", "description"],
+      "description": "Optional metadata about the lifecycle and version of this node instance",
       "additionalProperties": false,
       "properties": {
-        "type": {
+        "created_at": {
           "type": "string",
-          "enum": ["string", "integer", "number", "boolean", "array", "object", "enum"],
-          "description": "The JSON type of this attribute"
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when this node was created"
         },
-        "description": {
+        "updated_at": {
           "type": "string",
-          "description": "Human-readable description of this attribute's purpose"
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of the last modification"
         },
-        "enum_values": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Required when type is 'enum'. Lists the valid string values for this attribute.",
-          "examples": [
-            ["high", "medium", "low"],
-            ["active", "inactive", "archived"]
-          ]
-        },
-        "format": {
+        "created_by": {
           "type": "string",
-          "description": "Optional format constraint for string types (e.g., 'email', 'uri', 'date-time')",
-          "examples": ["email", "uri", "date-time", "uuid"]
+          "description": "User or system that created this node"
         },
-        "default": {
-          "description": "Default value for this attribute when not provided on a node instance. Can be any JSON value."
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Version number of this node (incremented on updates)"
         }
-      },
-      "if": {
-        "properties": {
-          "type": {
-            "const": "enum"
-          }
-        }
-      },
-      "then": {
-        "required": ["type", "description", "enum_values"]
       }
     }
   }

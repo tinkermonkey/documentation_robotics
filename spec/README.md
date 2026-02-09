@@ -52,10 +52,10 @@ spec/
 │   ├── 12-testing.layer.json
 │   └── 12-testing-layer.md
 │
-├── nodes/                      # Node type definitions (NEW in v0.8.0)
+├── nodes/                      # Node type schemas (v0.8.0+)
 │   ├── motivation/                 # Per-layer subdirectories
-│   │   ├── goal.node.json          # One .node.json per entity type
-│   │   ├── requirement.node.json
+│   │   ├── goal.node.schema.json   # Per-type JSON Schema extending spec-node base
+│   │   ├── requirement.node.schema.json
 │   │   └── ...
 │   ├── business/
 │   ├── security/
@@ -70,15 +70,15 @@ spec/
 │   └── testing/
 │
 ├── schemas/                    # JSON Schemas (normative)
-│   ├── base/                        # Spec-level base schemas (NEW in v0.8.0)
+│   ├── base/                        # Spec-level base schemas (v0.8.0+)
 │   │   ├── spec-layer.schema.json           # Validates .layer.json files
-│   │   ├── spec-node.schema.json            # Validates .node.json files
-│   │   ├── spec-node-relationship.schema.json  # Node relationship schemas
-│   │   ├── model-node.schema.json           # Model-level node validation
+│   │   ├── spec-node.schema.json            # Base schema for model node instances
+│   │   ├── spec-node-relationship.schema.json  # Spec relationship schemas
 │   │   ├── model-node-relationship.schema.json # Model-level relationship validation
 │   │   └── predicate-catalog.schema.json    # Predicate catalog schema
-│   ├── common/                      # Cross-layer shared schemas (v0.7.1)
+│   ├── common/                      # Cross-layer shared schemas (v0.7.1+)
 │   │   ├── source-references.schema.json    # Source code location tracking
+│   │   ├── attribute-spec.schema.json       # AttributeSpec for relationship attributes
 │   │   ├── layer-extensions.schema.json     # Layer metadata and relationships
 │   │   ├── relationships.schema.json        # Relationship type definitions
 │   │   └── predicates.schema.json           # Predicate definitions
@@ -135,23 +135,25 @@ spec/
 
 As of v0.8.0, the specification uses a **schema-driven documentation model** where JSON spec instances are the source of truth and markdown is generated for human readability.
 
-### Two-Tier Schema Architecture
+### Schema Architecture
 
-- **Spec-level schemas** (`schemas/base/`) - Validate the specification itself (`.layer.json` and `.node.json` files)
+- **Base schema** (`schemas/base/spec-node.schema.json`) - Validates model node instances with common fields (id, spec_node_id, type, name, attributes, metadata)
+- **Per-type schemas** (`nodes/**/*.node.schema.json`) - Extend the base schema via `allOf` to add type-specific attribute constraints
+- **Spec-level schemas** (`schemas/base/`) - Validate specification artifacts (`.layer.json` files, relationships)
 - **Model-level schemas** (`schemas/*.schema.json`) - Validate architecture model instances created by users
 
 ### Source of Truth
 
 - **`.layer.json` files** (`spec/layers/`) - Define each layer's metadata, purpose, entity types, and relationships
-- **`.node.json` files** (`spec/nodes/`) - Define individual entity types with their properties, validation rules, and relationships
+- **`.node.schema.json` files** (`spec/nodes/`) - Per-type JSON Schemas defining type-specific attribute constraints for model node instances
 - **Generated `.md` files** (`spec/layers/`) - Human-readable markdown generated from JSON specs
 
 ### Workflow
 
-1. Edit the JSON source files (`.layer.json` or `.node.json`)
+1. Edit the JSON source files (`.layer.json` or `.node.schema.json`)
 2. Run `dr docs generate` to regenerate markdown
 3. Run `dr docs validate` to verify JSON/markdown sync
-4. Commit both JSON and generated markdown
+4. Commit both JSON schemas and generated markdown
 
 See [docs/SCHEMA_DRIVEN_DOCS.md](../docs/SCHEMA_DRIVEN_DOCS.md) for full details on the schema-driven documentation model.
 
@@ -183,7 +185,7 @@ For the broader motivation, see [The Need](../README.md#the-need) in the main RE
 5. Check [examples/](examples/) for practical patterns
 6. Use [guides/getting-started.md](guides/getting-started.md) to start modeling
 
-> **Note:** The `.md` files in `spec/layers/` are generated from JSON spec instances (`.layer.json` and `.node.json`). To modify layer specifications, edit the JSON source files and run `dr docs generate` to regenerate markdown.
+> **Note:** The `.md` files in `spec/layers/` are generated from JSON spec instances (`.layer.json` and `.node.schema.json`). To modify layer specifications, edit the JSON source files and run `dr docs generate` to regenerate markdown.
 
 **Time Investment:** 2-3 hours for overview, then explore as needed
 
@@ -277,9 +279,9 @@ See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationa
 
 The v0.8.0 release introduces a schema-driven documentation model where JSON spec instances are the source of truth:
 
-- **Schema-Driven Architecture** - JSON spec instances (`.layer.json`, `.node.json`) are the authoritative source; markdown is generated
+- **Schema-Driven Architecture** - JSON spec instances (`.layer.json`, `.node.schema.json`) are the authoritative source; markdown is generated
 - **Base Schemas Directory** (`spec/schemas/base/`) - 6 schemas for validating spec-level and model-level artifacts
-- **Node Type Definitions** (`spec/nodes/**/*.node.json`) - Per-layer entity type definitions with properties, validation rules, and relationships
+- **Per-Type Node Schemas** (`spec/nodes/**/*.node.schema.json`) - JSON Schemas extending the base schema with type-specific attribute constraints
 - **Layer Metadata Files** (`spec/layers/*.layer.json`) - Layer-level metadata, purpose, entity types, and relationship declarations
 - **Documentation Generation** - `dr docs generate` produces markdown from JSON specs; `dr docs validate` ensures sync
 - **Link Registry Removal** - The deprecated `link-registry.json` (deprecated in v0.7.0) has been removed; use `relationship-catalog.json` instead

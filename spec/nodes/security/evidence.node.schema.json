@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/nodes/security/evidence.node.schema.json",
+  "title": "Evidence",
+  "description": "Evidence required for accountability",
+  "allOf": [
+    {
+      "$ref": "../../schemas/base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.evidence"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "evidence"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "digital-signature",
+            "timestamp",
+            "ip-address",
+            "device-fingerprint",
+            "biometric",
+            "user-authentication",
+            "access-reason",
+            "approval-chain",
+            "video-recording"
+          ]
+        },
+        "strength": {
+          "type": "string",
+          "enum": [
+            "weak",
+            "moderate",
+            "strong",
+            "cryptographic"
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "verification_level": {
+          "type": "string",
+          "enum": [
+            "none",
+            "manual",
+            "automated",
+            "continuous"
+          ],
+          "description": "VerificationLevel classification"
+        }
+      },
+      "required": [
+        "type",
+        "source"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
