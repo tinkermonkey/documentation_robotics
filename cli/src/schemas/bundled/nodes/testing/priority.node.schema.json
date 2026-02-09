@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Priority",
+  "description": "Priority element in Testing Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.priority"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "priority"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

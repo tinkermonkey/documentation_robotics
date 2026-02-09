@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Condition",
+  "description": "Boolean expression for guard conditions",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.condition"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "condition"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "expression": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

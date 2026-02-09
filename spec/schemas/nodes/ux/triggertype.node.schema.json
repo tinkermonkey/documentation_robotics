@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TriggerType",
+  "description": "TriggerType element in UX Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.triggertype"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "triggertype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

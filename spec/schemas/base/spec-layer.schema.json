@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "spec-layer.schema.json",
+  "title": "SpecLayer",
+  "description": "Base type for layer definitions in the specification. Defines the structure and metadata of a layer that contains nodes and relationships.",
+  "type": "object",
+  "required": ["id", "number", "name", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Unique layer identifier using lowercase letters, numbers, and hyphens (e.g., 'motivation', 'data-model', 'data-store')",
+      "examples": ["motivation", "business", "data-model", "data-store", "apm"]
+    },
+    "number": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99,
+      "description": "Layer number for ordering and cross-layer references. Maps to layer position in the 12-layer model.",
+      "examples": [1, 2, 3, 12]
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable layer name",
+      "examples": ["Motivation Layer", "Business Layer", "Data Model Layer"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Purpose and scope of this layer within the architecture model",
+      "examples": ["Captures stakeholder concerns, goals, requirements, and constraints"]
+    },
+    "inspired_by": {
+      "type": "object",
+      "description": "External standard or model that inspired the design of this layer",
+      "additionalProperties": false,
+      "properties": {
+        "standard": {
+          "type": "string",
+          "description": "Name of the standard (e.g., 'ArchiMate', 'OpenAPI')",
+          "examples": ["ArchiMate 3.2", "OpenAPI 3.0", "JSON Schema Draft 7"]
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the standard",
+          "examples": ["3.2", "3.0", "Draft 7"]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the standard specification",
+          "examples": ["https://pubs.opengroup.org/architecture/archimate32-doc/"]
+        }
+      }
+    },
+    "node_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
+        "description": "Reference to a SpecNode ID"
+      },
+      "description": "List of SpecNode IDs that are valid in this layer. Used to define which node types can belong to this layer.",
+      "examples": [["motivation.goal", "motivation.requirement", "motivation.constraint"]]
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JSONSchema",
+  "description": "Root schema document",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-model.jsonschema"
+    },
+    "layer_id": {
+      "const": "data-model"
+    },
+    "type": {
+      "const": "jsonschema"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "$id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "$schema",
+        "$id",
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

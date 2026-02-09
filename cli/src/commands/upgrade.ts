@@ -8,20 +8,20 @@
  * Shows upgrade plan and prompts for confirmation before proceeding.
  */
 
-import ansis from 'ansis';
-import { confirm } from '@clack/prompts';
-import { findProjectRoot, getSpecReferencePath, getModelPath } from '../utils/project-paths.js';
+import ansis from "ansis";
+import { confirm } from "@clack/prompts";
+import { findProjectRoot, getSpecReferencePath, getModelPath } from "../utils/project-paths.js";
 import {
   getCliVersion,
   getCliBundledSpecVersion,
   getInstalledSpecVersion,
   getModelSpecVersion,
-} from '../utils/spec-version.js';
-import { MigrationRegistry } from '../core/migration-registry.js';
-import { installSpecReference } from '../utils/spec-installer.js';
-import { Model } from '../core/model.js';
-import { ClaudeIntegrationManager } from '../integrations/claude-manager.js';
-import { CopilotIntegrationManager } from '../integrations/copilot-manager.js';
+} from "../utils/spec-version.js";
+import { MigrationRegistry } from "../core/migration-registry.js";
+import { installSpecReference } from "../utils/spec-installer.js";
+import { Model } from "../core/model.js";
+import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
+import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 
 export interface UpgradeOptions {
   yes?: boolean;
@@ -30,7 +30,7 @@ export interface UpgradeOptions {
 }
 
 interface UpgradeAction {
-  type: 'spec' | 'model';
+  type: "spec" | "model";
   description: string;
   fromVersion?: string;
   toVersion: string;
@@ -58,10 +58,9 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
     if (claudeVersion && claudeVersion.version !== cliVersion) {
       claudeOutdated = true;
       messages.push(
-        ansis.yellow('⚠') +
-          ` Claude integration outdated: ${claudeVersion.version} → ${cliVersion}`
+        ansis.yellow("⚠") + ` Claude integration outdated: ${claudeVersion.version} → ${cliVersion}`
       );
-      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr claude upgrade'));
+      messages.push(ansis.dim("  Run: ") + ansis.cyan("dr claude upgrade"));
     }
   }
 
@@ -72,10 +71,10 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
     if (copilotVersion && copilotVersion.version !== cliVersion) {
       copilotOutdated = true;
       messages.push(
-        ansis.yellow('⚠') +
+        ansis.yellow("⚠") +
           ` GitHub Copilot integration outdated: ${copilotVersion.version} → ${cliVersion}`
       );
-      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr copilot upgrade'));
+      messages.push(ansis.dim("  Run: ") + ansis.cyan("dr copilot upgrade"));
     }
   }
 
@@ -84,12 +83,12 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
 
 export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void> {
   try {
-    console.log(ansis.bold('\nScanning for available upgrades...\n'));
+    console.log(ansis.bold("\nScanning for available upgrades...\n"));
 
     // Find project root
     const projectRoot = await findProjectRoot();
     if (!projectRoot) {
-      console.error(ansis.red('Error: No DR project found'));
+      console.error(ansis.red("Error: No DR project found"));
       console.error(ansis.dim('Run "dr init" to create a new project'));
       process.exit(1);
     }
@@ -106,12 +105,12 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
     if (!drPath) {
       actions.push({
-        type: 'spec',
-        description: 'Install spec reference',
+        type: "spec",
+        description: "Install spec reference",
         toVersion: bundledSpecVersion,
         details: [
-          'Create .dr/ folder',
-          'Install schema files',
+          "Create .dr/ folder",
+          "Install schema files",
           `Set spec version to ${bundledSpecVersion}`,
         ],
       });
@@ -121,25 +120,22 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
       if (!installedSpecVersion) {
         actions.push({
-          type: 'spec',
-          description: 'Reinstall spec reference (manifest missing)',
+          type: "spec",
+          description: "Reinstall spec reference (manifest missing)",
           toVersion: bundledSpecVersion,
           details: [
-            'Recreate .dr/manifest.json',
-            'Update schema files',
+            "Recreate .dr/manifest.json",
+            "Update schema files",
             `Set spec version to ${bundledSpecVersion}`,
           ],
         });
       } else if (installedSpecVersion !== bundledSpecVersion) {
         actions.push({
-          type: 'spec',
-          description: 'Upgrade spec reference',
+          type: "spec",
+          description: "Upgrade spec reference",
           fromVersion: installedSpecVersion,
           toVersion: bundledSpecVersion,
-          details: [
-            'Update schema files',
-            'Update .dr/manifest.json',
-          ],
+          details: ["Update schema files", "Update .dr/manifest.json"],
         });
       }
     }
@@ -150,7 +146,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
     const modelPath = await getModelPath();
     if (!modelPath) {
-      console.log(ansis.yellow('⚠ No model found'));
+      console.log(ansis.yellow("⚠ No model found"));
       console.log(ansis.dim('  Run "dr init" to create a model\n'));
 
       // If only spec needs upgrade, handle it
@@ -164,8 +160,8 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
     const modelSpecVersion = await getModelSpecVersion(modelPath);
     if (!modelSpecVersion) {
-      console.log(ansis.yellow('⚠ Model manifest.yaml not found or missing specVersion'));
-      console.log(ansis.dim('  Check documentation_robotics/model/manifest.yaml\n'));
+      console.log(ansis.yellow("⚠ Model manifest.yaml not found or missing specVersion"));
+      console.log(ansis.dim("  Check documentation_robotics/model/manifest.yaml\n"));
 
       // If only spec needs upgrade, handle it
       if (actions.length > 0) {
@@ -190,10 +186,12 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
             `⚠ No migration path found from model v${modelSpecVersion} to v${targetSpecVersion}`
           )
         );
-        console.log(ansis.dim('\nAvailable migrations:'));
-        const allMigrations = registry.getMigrationSummary('0.5.0').migrations;
+        console.log(ansis.dim("\nAvailable migrations:"));
+        const allMigrations = registry.getMigrationSummary("0.5.0").migrations;
         for (const migration of allMigrations) {
-          console.log(ansis.dim(`  • ${migration.from} → ${migration.to}: ${migration.description}`));
+          console.log(
+            ansis.dim(`  • ${migration.from} → ${migration.to}: ${migration.description}`)
+          );
         }
         console.log();
         process.exit(1);
@@ -204,8 +202,8 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       );
 
       actions.push({
-        type: 'model',
-        description: 'Migrate model data',
+        type: "model",
+        description: "Migrate model data",
         fromVersion: modelSpecVersion,
         toVersion: targetSpecVersion,
         details: migrationDetails,
@@ -224,7 +222,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     // ============================================================================
 
     if (actions.length === 0 && integrationStatus.messages.length === 0) {
-      console.log(ansis.green('✓ Everything is up to date!\n'));
+      console.log(ansis.green("✓ Everything is up to date!\n"));
       console.log(ansis.dim(`  Spec reference: v${currentSpecVersion || bundledSpecVersion}`));
       console.log(ansis.dim(`  Model: v${modelSpecVersion}\n`));
       return;
@@ -232,9 +230,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
     await handleUpgrade(projectRoot, actions, options, integrationStatus);
   } catch (error) {
-    console.error(
-      ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
-    );
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
   }
 }
@@ -246,18 +242,22 @@ async function handleUpgrade(
   projectRoot: string,
   actions: UpgradeAction[],
   options: UpgradeOptions,
-  integrationStatus: IntegrationStatus = { claudeOutdated: false, copilotOutdated: false, messages: [] }
+  integrationStatus: IntegrationStatus = {
+    claudeOutdated: false,
+    copilotOutdated: false,
+    messages: [],
+  }
 ): Promise<void> {
   // Display upgrade plan
   if (actions.length > 0) {
-    console.log(ansis.bold('Upgrade Plan:\n'));
+    console.log(ansis.bold("Upgrade Plan:\n"));
 
     for (const action of actions) {
       const versionChange = action.fromVersion
         ? `${action.fromVersion} → ${action.toVersion}`
         : `v${action.toVersion}`;
 
-      console.log(ansis.yellow(`${action.type === 'spec' ? '📦' : '🔄'} ${action.description}`));
+      console.log(ansis.yellow(`${action.type === "spec" ? "📦" : "🔄"} ${action.description}`));
       console.log(ansis.dim(`   Version: ${versionChange}`));
 
       if (action.details && action.details.length > 0) {
@@ -271,14 +271,14 @@ async function handleUpgrade(
 
   // Display integration status
   if (integrationStatus.messages.length > 0) {
-    console.log(ansis.bold('Integration Updates Available:'));
-    integrationStatus.messages.forEach(msg => console.log(msg));
+    console.log(ansis.bold("Integration Updates Available:"));
+    integrationStatus.messages.forEach((msg) => console.log(msg));
     console.log();
   }
 
   // Handle dry-run mode
   if (options.dryRun) {
-    console.log(ansis.yellow('[DRY RUN] No changes will be made\n'));
+    console.log(ansis.yellow("[DRY RUN] No changes will be made\n"));
     return;
   }
 
@@ -290,49 +290,49 @@ async function handleUpgrade(
 
     if (isInteractive) {
       const response = await confirm({
-        message: 'Proceed with upgrade?',
+        message: "Proceed with upgrade?",
       });
       shouldProceed = response === true;
     } else {
       console.error(
-        ansis.red('Error: Non-interactive mode requires --yes flag to proceed with upgrade')
+        ansis.red("Error: Non-interactive mode requires --yes flag to proceed with upgrade")
       );
       process.exit(1);
     }
   }
 
   if (!shouldProceed) {
-    console.log(ansis.dim('\nUpgrade cancelled\n'));
+    console.log(ansis.dim("\nUpgrade cancelled\n"));
     return;
   }
 
-  console.log(ansis.bold('\nExecuting upgrades...\n'));
+  console.log(ansis.bold("\nExecuting upgrades...\n"));
 
   // Execute actions in order: spec first, then model
   for (const action of actions) {
-    if (action.type === 'spec') {
+    if (action.type === "spec") {
       await executeSpecUpgrade(projectRoot, action);
-    } else if (action.type === 'model') {
+    } else if (action.type === "model") {
       await executeModelMigration(action, options);
     }
   }
 
   // Execute integration updates
   if (integrationStatus.claudeOutdated) {
-    await executeIntegrationUpdate('Claude', async () => {
+    await executeIntegrationUpdate("Claude", async () => {
       const claudeManager = new ClaudeIntegrationManager();
       await claudeManager.upgrade({ force: true });
     });
   }
 
   if (integrationStatus.copilotOutdated) {
-    await executeIntegrationUpdate('GitHub Copilot', async () => {
+    await executeIntegrationUpdate("GitHub Copilot", async () => {
       const copilotManager = new CopilotIntegrationManager();
       await copilotManager.upgrade({ force: true });
     });
   }
 
-  console.log(ansis.green('\n✓ All upgrades completed successfully!\n'));
+  console.log(ansis.green("\n✓ All upgrades completed successfully!\n"));
 }
 
 /**
@@ -356,9 +356,14 @@ async function executeSpecUpgrade(projectRoot: string, action: UpgradeAction): P
 /**
  * Execute model migration
  */
-async function executeModelMigration(action: UpgradeAction, options: UpgradeOptions): Promise<void> {
+async function executeModelMigration(
+  action: UpgradeAction,
+  options: UpgradeOptions
+): Promise<void> {
   try {
-    console.log(ansis.dim(`Migrating model from v${action.fromVersion} to v${action.toVersion}...`));
+    console.log(
+      ansis.dim(`Migrating model from v${action.fromVersion} to v${action.toVersion}...`)
+    );
 
     // Load the model
     const model = await Model.load(process.cwd(), { lazyLoad: false });

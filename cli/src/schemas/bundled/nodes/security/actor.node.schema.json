@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Actor",
+  "description": "Actor in the system (beyond roles)",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.actor"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "actor"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "trustLevel": {
+          "type": "string"
+        },
+        "objectives": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

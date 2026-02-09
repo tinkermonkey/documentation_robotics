@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InputSelection",
+  "description": "Specific partition value selected for a test case",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.inputselection"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "inputselection"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "partitionRef": {
+          "type": "string"
+        },
+        "selectedValue": {
+          "type": "string"
+        },
+        "concreteValue": {
+          "type": "string"
+        },
+        "valueSource": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "partitionRef",
+        "selectedValue",
+        "concreteValue",
+        "valueSource"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

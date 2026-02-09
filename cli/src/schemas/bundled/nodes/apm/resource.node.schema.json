@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Resource",
+  "description": "Immutable representation of entity producing telemetry",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.resource"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "resource"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "schemaUrl": {
+          "type": "string"
+        },
+        "droppedAttributesCount": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "droppedAttributesCount"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

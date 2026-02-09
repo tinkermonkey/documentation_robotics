@@ -9,20 +9,23 @@
  * 5. Session continuity is preserved when using the same session ID
  */
 
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { ClaudeCodeClient } from '../../src/coding-agents/claude-code-client.js';
-import { ChatOptions } from '../../src/coding-agents/base-chat-client.js';
-import { initializeChatLogger, getChatLogger, ChatLogger } from '../../src/utils/chat-logger.js';
-import { mkdirSync, rmSync, existsSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { ClaudeCodeClient } from "../../src/coding-agents/claude-code-client.js";
+import { ChatOptions } from "../../src/coding-agents/base-chat-client.js";
+import { initializeChatLogger, getChatLogger, ChatLogger } from "../../src/utils/chat-logger.js";
+import { mkdirSync, rmSync, existsSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
-describe('ClaudeCodeClient Session Management Integration Tests', () => {
+describe("ClaudeCodeClient Session Management Integration Tests", () => {
   let testDir: string;
   let client: ClaudeCodeClient;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `claude-client-session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+    testDir = join(
+      tmpdir(),
+      `claude-client-session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    );
     mkdirSync(testDir, { recursive: true });
     client = new ClaudeCodeClient();
   });
@@ -33,14 +36,16 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
     }
   });
 
-  describe('Session ID Passing to Subprocess', () => {
-    it('should include session ID in options when sending message', async () => {
+  describe("Session ID Passing to Subprocess", () => {
+    it("should include session ID in options when sending message", async () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
       // Verify session ID is available from logger
       expect(sessionId).toBeDefined();
-      expect(sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      expect(sessionId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      );
 
       // Verify we can pass it in options
       const options: ChatOptions = {
@@ -51,38 +56,38 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       expect(options.sessionId).toEqual(sessionId);
     });
 
-    it('should accept session ID in ChatOptions interface', () => {
-      const sessionId = '550e8400-e29b-41d4-a716-446655440000';
+    it("should accept session ID in ChatOptions interface", () => {
+      const sessionId = "550e8400-e29b-41d4-a716-446655440000";
       const options: ChatOptions = {
         sessionId,
-        agent: 'dr-architect',
+        agent: "dr-architect",
         withDanger: false,
       };
 
       expect(options.sessionId).toEqual(sessionId);
-      expect(options.agent).toEqual('dr-architect');
+      expect(options.agent).toEqual("dr-architect");
     });
 
-    it('should make session ID accessible via options parameter', () => {
+    it("should make session ID accessible via options parameter", () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
       const options: ChatOptions = {
         sessionId,
         workingDirectory: testDir,
-        agent: 'dr-architect',
+        agent: "dr-architect",
       };
 
       // Verify all components are accessible
-      expect(options).toHaveProperty('sessionId');
+      expect(options).toHaveProperty("sessionId");
       expect(options.sessionId).toEqual(sessionId);
       expect(options.workingDirectory).toEqual(testDir);
-      expect(options.agent).toEqual('dr-architect');
+      expect(options.agent).toEqual("dr-architect");
     });
   });
 
-  describe('Session Continuity Across Messages', () => {
-    it('should use same session ID for multiple message options', () => {
+  describe("Session Continuity Across Messages", () => {
+    it("should use same session ID for multiple message options", () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
@@ -100,7 +105,7 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       expect(message2Options.sessionId).toEqual(message3Options.sessionId);
     });
 
-    it('should maintain session ID across multiple client invocations', () => {
+    it("should maintain session ID across multiple client invocations", () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
@@ -116,8 +121,8 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
     });
   });
 
-  describe('Session Isolation Between Invocations', () => {
-    it('should generate different session IDs for different loggers', () => {
+  describe("Session Isolation Between Invocations", () => {
+    it("should generate different session IDs for different loggers", () => {
       const logger1 = initializeChatLogger(testDir);
       const sessionId1 = logger1.getSessionId();
 
@@ -129,7 +134,7 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       expect(sessionId1).not.toEqual(sessionId2);
     });
 
-    it('should not cross-contaminate options between different sessions', () => {
+    it("should not cross-contaminate options between different sessions", () => {
       const logger1 = initializeChatLogger(testDir);
       const sessionId1 = logger1.getSessionId();
 
@@ -148,34 +153,35 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
     });
   });
 
-  describe('Session ID Format and Validation', () => {
-    it('should provide UUID v4 format session ID', () => {
+  describe("Session ID Format and Validation", () => {
+    it("should provide UUID v4 format session ID", () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
-      const uuidv4Pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const uuidv4Pattern =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       expect(sessionId).toMatch(uuidv4Pattern);
     });
 
-    it('should include session ID in logging metadata', async () => {
+    it("should include session ID in logging metadata", async () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
       await logger.ensureLogDirectory();
-      await logger.logCommand('claude', ['--session-id', sessionId, '--print', '--verbose'], {
+      await logger.logCommand("claude", ["--session-id", sessionId, "--print", "--verbose"], {
         sessionId,
       });
 
       const entries = await logger.readEntries();
-      const command = entries.find((e) => e.type === 'command');
+      const command = entries.find((e) => e.type === "command");
 
       expect(command).toBeDefined();
       expect(command?.metadata?.sessionId).toEqual(sessionId);
     });
   });
 
-  describe('Client Session State Management', () => {
-    it('should have no session before any message is sent', () => {
+  describe("Client Session State Management", () => {
+    it("should have no session before any message is sent", () => {
       const client = new ClaudeCodeClient();
 
       // Initially no session
@@ -184,28 +190,28 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
     });
   });
 
-  describe('Session ID in ChatOptions', () => {
-    it('should support optional session ID in options', () => {
+  describe("Session ID in ChatOptions", () => {
+    it("should support optional session ID in options", () => {
       const optionsWithoutId: ChatOptions = {
-        agent: 'dr-architect',
+        agent: "dr-architect",
       };
       expect(optionsWithoutId.sessionId).toBeUndefined();
 
       const optionsWithId: ChatOptions = {
-        sessionId: '550e8400-e29b-41d4-a716-446655440000',
-        agent: 'dr-architect',
+        sessionId: "550e8400-e29b-41d4-a716-446655440000",
+        agent: "dr-architect",
       };
       expect(optionsWithId.sessionId).toBeDefined();
     });
 
-    it('should preserve session ID through options chain', () => {
+    it("should preserve session ID through options chain", () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
       const options: ChatOptions = {
         sessionId,
         workingDirectory: testDir,
-        agent: 'dr-architect',
+        agent: "dr-architect",
         withDanger: false,
       };
 
@@ -216,85 +222,85 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       expect(copiedOptions).toEqual(options);
     });
 
-    it('should handle undefined session ID gracefully', () => {
+    it("should handle undefined session ID gracefully", () => {
       const options: ChatOptions = {
-        workingDirectory: '/tmp',
-        agent: 'dr-architect',
+        workingDirectory: "/tmp",
+        agent: "dr-architect",
       };
 
       expect(options.sessionId).toBeUndefined();
 
       // Should not throw when checking
       if (options.sessionId) {
-        throw new Error('Should be undefined');
+        throw new Error("Should be undefined");
       }
     });
   });
 
-  describe('Subprocess Argument Composition', () => {
-    it('should construct args array with session ID', () => {
-      const sessionId = '550e8400-e29b-41d4-a716-446655440000';
+  describe("Subprocess Argument Composition", () => {
+    it("should construct args array with session ID", () => {
+      const sessionId = "550e8400-e29b-41d4-a716-446655440000";
       const args: string[] = [];
 
       // Simulate how spawnClaudeProcess constructs args
-      args.push('--print');
-      args.push('--verbose', '--output-format', 'stream-json');
+      args.push("--print");
+      args.push("--verbose", "--output-format", "stream-json");
 
       if (sessionId) {
-        args.push('--session-id', sessionId);
+        args.push("--session-id", sessionId);
       }
 
-      expect(args).toContain('--session-id');
+      expect(args).toContain("--session-id");
       expect(args).toContain(sessionId);
 
       // Verify order
-      const sessionIdIndex = args.indexOf('--session-id');
+      const sessionIdIndex = args.indexOf("--session-id");
       expect(args[sessionIdIndex + 1]).toEqual(sessionId);
     });
 
-    it('should skip session ID flag when undefined', () => {
+    it("should skip session ID flag when undefined", () => {
       const sessionId: string | undefined = undefined;
       const args: string[] = [];
 
-      args.push('--print');
-      args.push('--verbose', '--output-format', 'stream-json');
+      args.push("--print");
+      args.push("--verbose", "--output-format", "stream-json");
 
       if (sessionId) {
-        args.push('--session-id', sessionId);
+        args.push("--session-id", sessionId);
       }
 
-      expect(args).not.toContain('--session-id');
+      expect(args).not.toContain("--session-id");
     });
 
-    it('should position session ID correctly with other args', () => {
-      const sessionId = '550e8400-e29b-41d4-a716-446655440000';
+    it("should position session ID correctly with other args", () => {
+      const sessionId = "550e8400-e29b-41d4-a716-446655440000";
       const args: string[] = [];
 
       // Simulate complete argument construction
-      args.push('--agent', 'dr-architect');
-      args.push('--print');
-      args.push('--dangerously-skip-permissions');
-      args.push('--verbose', '--output-format', 'stream-json');
+      args.push("--agent", "dr-architect");
+      args.push("--print");
+      args.push("--dangerously-skip-permissions");
+      args.push("--verbose", "--output-format", "stream-json");
 
       if (sessionId) {
-        args.push('--session-id', sessionId);
+        args.push("--session-id", sessionId);
       }
 
       // Verify all components
-      expect(args).toContain('--agent');
-      expect(args).toContain('dr-architect');
-      expect(args).toContain('--print');
-      expect(args).toContain('--session-id');
+      expect(args).toContain("--agent");
+      expect(args).toContain("dr-architect");
+      expect(args).toContain("--print");
+      expect(args).toContain("--session-id");
       expect(args).toContain(sessionId);
 
       // Verify session ID is at the end
       expect(args[args.length - 1]).toEqual(sessionId);
-      expect(args[args.length - 2]).toEqual('--session-id');
+      expect(args[args.length - 2]).toEqual("--session-id");
     });
   });
 
-  describe('Logger Integration with Client', () => {
-    it('should retrieve session ID from chat logger', () => {
+  describe("Logger Integration with Client", () => {
+    it("should retrieve session ID from chat logger", () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
@@ -304,7 +310,7 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       expect(retrievedLogger?.getSessionId()).toEqual(sessionId);
     });
 
-    it('should use logger session ID for options', () => {
+    it("should use logger session ID for options", () => {
       const logger = initializeChatLogger(testDir);
       const loggerSessionId = logger.getSessionId();
 
@@ -316,31 +322,31 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       expect(options.sessionId).toEqual(loggerSessionId);
     });
 
-    it('should log command with session ID', async () => {
+    it("should log command with session ID", async () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
       await logger.ensureLogDirectory();
 
       // Simulate logging a command invocation
-      const args = ['--session-id', sessionId, '--print', '--verbose'];
-      await logger.logCommand('claude', args, {
+      const args = ["--session-id", sessionId, "--print", "--verbose"];
+      await logger.logCommand("claude", args, {
         sessionId,
-        client: 'Claude Code',
+        client: "Claude Code",
       });
 
       const entries = await logger.readEntries();
-      const commandEntry = entries.find((e) => e.type === 'command');
+      const commandEntry = entries.find((e) => e.type === "command");
 
       expect(commandEntry).toBeDefined();
       expect(commandEntry?.metadata?.sessionId).toEqual(sessionId);
-      expect(commandEntry?.metadata?.args).toContain('--session-id');
+      expect(commandEntry?.metadata?.args).toContain("--session-id");
       expect(commandEntry?.metadata?.args).toContain(sessionId);
     });
   });
 
-  describe('Message Flow with Session ID', () => {
-    it('should pass session ID from logger to options to subprocess', async () => {
+  describe("Message Flow with Session ID", () => {
+    it("should pass session ID from logger to options to subprocess", async () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
@@ -351,26 +357,26 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       const options: ChatOptions = {
         sessionId,
         workingDirectory: testDir,
-        agent: 'dr-architect',
+        agent: "dr-architect",
       };
 
       expect(options.sessionId).toEqual(sessionId);
 
       // Step 3: Simulate subprocess args construction
       const args: string[] = [];
-      args.push('--print');
-      args.push('--verbose', '--output-format', 'stream-json');
+      args.push("--print");
+      args.push("--verbose", "--output-format", "stream-json");
       if (options.sessionId) {
-        args.push('--session-id', options.sessionId);
+        args.push("--session-id", options.sessionId);
       }
 
       // Verify session ID flows through entire chain
-      expect(args).toContain('--session-id');
+      expect(args).toContain("--session-id");
       expect(args).toContain(sessionId);
       expect(options.sessionId).toEqual(sessionId);
     });
 
-    it('should maintain session ID across multiple message invocations', async () => {
+    it("should maintain session ID across multiple message invocations", async () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
@@ -389,56 +395,56 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       }
 
       const entries = await logger.readEntries();
-      const messages = entries.filter((e) => e.role === 'user');
+      const messages = entries.filter((e) => e.role === "user");
 
       expect(messages.length).toBe(3);
     });
   });
 
-  describe('Error Handling with Session ID', () => {
-    it('should handle missing session ID gracefully', () => {
+  describe("Error Handling with Session ID", () => {
+    it("should handle missing session ID gracefully", () => {
       const options: ChatOptions = {
-        workingDirectory: '/tmp',
+        workingDirectory: "/tmp",
       };
 
       // Should not throw
       expect(() => {
         if (options.sessionId) {
           // This should not execute
-          throw new Error('Session ID should be undefined');
+          throw new Error("Session ID should be undefined");
         }
       }).not.toThrow();
     });
 
-    it('should log error while preserving session ID', async () => {
+    it("should log error while preserving session ID", async () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
       await logger.ensureLogDirectory();
 
       // Simulate error scenario
-      const errorMsg = 'Claude CLI process failed';
+      const errorMsg = "Claude CLI process failed";
       await logger.logError(errorMsg, {
         sessionId,
-        client: 'Claude Code',
+        client: "Claude Code",
       });
 
       const entries = await logger.readEntries();
-      const errorEntry = entries.find((e) => e.type === 'error');
+      const errorEntry = entries.find((e) => e.type === "error");
 
       expect(errorEntry).toBeDefined();
       expect(errorEntry?.metadata?.sessionId).toEqual(sessionId);
     });
 
-    it('should continue with same session ID after error', async () => {
+    it("should continue with same session ID after error", async () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
       await logger.ensureLogDirectory();
 
-      await logger.logUserMessage('First message');
-      await logger.logError('An error occurred', { sessionId });
-      await logger.logUserMessage('Continue message');
+      await logger.logUserMessage("First message");
+      await logger.logError("An error occurred", { sessionId });
+      await logger.logUserMessage("Continue message");
 
       const entries = await logger.readEntries();
 
@@ -451,8 +457,8 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
     });
   });
 
-  describe('Session ID Validation and Edge Cases', () => {
-    it('should handle undefined sessionId without including flag in subprocess args', async () => {
+  describe("Session ID Validation and Edge Cases", () => {
+    it("should handle undefined sessionId without including flag in subprocess args", async () => {
       const logger = initializeChatLogger(testDir);
       await logger.ensureLogDirectory();
 
@@ -472,7 +478,7 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       expect(options.workingDirectory).toBe(testDir);
     });
 
-    it('should handle null sessionId gracefully', async () => {
+    it("should handle null sessionId gracefully", async () => {
       const logger = initializeChatLogger(testDir);
       await logger.ensureLogDirectory();
 
@@ -486,7 +492,7 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       expect(options.sessionId).toBeNull();
     });
 
-    it('should validate UUID v4 format for session IDs', () => {
+    it("should validate UUID v4 format for session IDs", () => {
       const logger = initializeChatLogger(testDir);
       const sessionId = logger.getSessionId();
 
@@ -497,13 +503,13 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       expect(sessionId).toMatch(uuidV4Regex);
     });
 
-    it('should reject or handle malformed session IDs appropriately', () => {
+    it("should reject or handle malformed session IDs appropriately", () => {
       const invalidSessionIds = [
-        'not-a-uuid',
-        '12345',
-        '',
-        'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', // Wrong format (not UUID v4)
-        'g0000000-0000-0000-0000-000000000000', // Invalid hex character
+        "not-a-uuid",
+        "12345",
+        "",
+        "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", // Wrong format (not UUID v4)
+        "g0000000-0000-0000-0000-000000000000", // Invalid hex character
       ];
 
       for (const invalidId of invalidSessionIds) {
@@ -522,28 +528,28 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       }
     });
 
-    it('should handle empty string sessionId', async () => {
+    it("should handle empty string sessionId", async () => {
       const logger = initializeChatLogger(testDir);
       await logger.ensureLogDirectory();
 
       // Empty string should be handled like undefined (flag not included)
       const options: ChatOptions = {
-        sessionId: '',
+        sessionId: "",
         workingDirectory: testDir,
       };
 
       // Empty string is falsy in JavaScript, so the conditional check
       // in spawnClaudeProcess should skip adding --session-id flag
-      expect(options.sessionId).toBe('');
+      expect(options.sessionId).toBe("");
       expect(!options.sessionId).toBe(true); // Verifies falsy behavior
     });
 
-    it('should handle very long session IDs without path length issues', async () => {
+    it("should handle very long session IDs without path length issues", async () => {
       const logger = initializeChatLogger(testDir);
       await logger.ensureLogDirectory();
 
       // Test with abnormally long session ID (500 characters)
-      const veryLongId = 'x'.repeat(500);
+      const veryLongId = "x".repeat(500);
       const options: ChatOptions = {
         sessionId: veryLongId,
         workingDirectory: testDir,

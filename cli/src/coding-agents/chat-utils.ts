@@ -4,9 +4,9 @@
  * Common utilities for chat client detection and management.
  */
 
-import { BaseChatClient } from './base-chat-client.js';
-import { ClaudeCodeClient } from './claude-code-client.js';
-import { CopilotClient } from './copilot-client.js';
+import { BaseChatClient } from "./base-chat-client.js";
+import { ClaudeCodeClient } from "./claude-code-client.js";
+import { CopilotClient } from "./copilot-client.js";
 
 /**
  * Detect available AI chat clients
@@ -45,7 +45,7 @@ export function selectChatClient(
 
   // If a preference is specified, try to find it
   if (preferredClientName) {
-    const preferred = clients.find(c => c.getClientName() === preferredClientName);
+    const preferred = clients.find((c) => c.getClientName() === preferredClientName);
     if (preferred) {
       return preferred;
     }

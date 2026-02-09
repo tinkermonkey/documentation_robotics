@@ -127,15 +127,13 @@ describe("ReferenceRegistry", () => {
 
       const refs = registry.getReferencesByType("realizes");
       expect(refs).toHaveLength(2);
-      expect(refs.every(ref => ref.type === "realizes")).toBe(true);
+      expect(refs.every((ref) => ref.type === "realizes")).toBe(true);
     });
   });
 
   describe("hasReference", () => {
     it("should return false for non-existent reference", () => {
-      expect(
-        registry.hasReference("01-goal-test", "02-process-test")
-      ).toBe(false);
+      expect(registry.hasReference("01-goal-test", "02-process-test")).toBe(false);
     });
 
     it("should return true for existing reference", () => {
@@ -147,9 +145,7 @@ describe("ReferenceRegistry", () => {
 
       registry.addReference(ref);
 
-      expect(
-        registry.hasReference("01-goal-test", "02-process-test")
-      ).toBe(true);
+      expect(registry.hasReference("01-goal-test", "02-process-test")).toBe(true);
     });
   });
 
@@ -173,7 +169,7 @@ describe("ReferenceRegistry", () => {
         },
       ];
 
-      refs.forEach(ref => registry.addReference(ref));
+      refs.forEach((ref) => registry.addReference(ref));
 
       expect(registry.getAllReferences()).toHaveLength(3);
     });
@@ -207,7 +203,7 @@ describe("ReferenceRegistry", () => {
         },
       ];
 
-      refs.forEach(ref => registry.addReference(ref));
+      refs.forEach((ref) => registry.addReference(ref));
 
       const stats = registry.getStats();
       expect(stats.totalReferences).toBe(3);
@@ -264,7 +260,7 @@ describe("ReferenceRegistry", () => {
         { source: "01-goal-test", target: "03-nonexistent", type: "requires" },
       ];
 
-      refs.forEach(ref => registry.addReference(ref));
+      refs.forEach((ref) => registry.addReference(ref));
 
       const validIds = new Set(["01-goal-test", "02-process-test"]);
       const broken = registry.findBrokenReferences(validIds);
@@ -274,11 +270,9 @@ describe("ReferenceRegistry", () => {
     });
 
     it("should return empty array if no broken references", () => {
-      const refs = [
-        { source: "01-goal-test", target: "02-process-test", type: "realizes" },
-      ];
+      const refs = [{ source: "01-goal-test", target: "02-process-test", type: "realizes" }];
 
-      refs.forEach(ref => registry.addReference(ref));
+      refs.forEach((ref) => registry.addReference(ref));
 
       const validIds = new Set(["01-goal-test", "02-process-test"]);
       const broken = registry.findBrokenReferences(validIds);
@@ -294,7 +288,7 @@ describe("ReferenceRegistry", () => {
         { source: "02-process-test", target: "03-policy-test", type: "requires" },
       ];
 
-      refs.forEach(ref => registry.addReference(ref));
+      refs.forEach((ref) => registry.addReference(ref));
 
       const graph = registry.getDependencyGraph();
 
@@ -324,13 +318,10 @@ describe("ReferenceRegistry", () => {
         },
       ];
 
-      refs.forEach(ref => registry.addReference(ref));
+      refs.forEach((ref) => registry.addReference(ref));
 
       const graph = registry.getDependencyGraph();
-      const edge = graph.getEdgeAttributes(
-        "01-goal-test",
-        "02-process-test"
-      );
+      const edge = graph.getEdgeAttributes("01-goal-test", "02-process-test");
 
       expect(edge.type).toBe("realizes");
       expect(edge.description).toBe("Goal is realized by process");

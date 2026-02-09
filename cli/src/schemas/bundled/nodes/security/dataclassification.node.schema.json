@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DataClassification",
+  "description": "Data classification and protection policies",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.dataclassification"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "dataclassification"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "classifications": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

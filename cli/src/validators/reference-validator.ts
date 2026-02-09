@@ -2,8 +2,8 @@
  * Reference validation for cross-layer integrity
  */
 
-import { ValidationResult } from './types.js';
-import type { Model } from '../core/model.js';
+import { ValidationResult } from "./types.js";
+import type { Model } from "../core/model.js";
 
 /**
  * Validator for cross-layer references
@@ -17,8 +17,8 @@ export class ReferenceValidator {
     application: 4,
     technology: 5,
     api: 6,
-    'data-model': 7,
-    'data-store': 8,
+    "data-model": 7,
+    "data-store": 8,
     ux: 9,
     navigation: 10,
     apm: 11,
@@ -27,18 +27,18 @@ export class ReferenceValidator {
 
   // Known layer names (including hyphenated ones)
   private readonly KNOWN_LAYERS = [
-    'motivation',
-    'business',
-    'security',
-    'application',
-    'technology',
-    'api',
-    'data-model',
-    'data-store',
-    'ux',
-    'navigation',
-    'apm',
-    'testing',
+    "motivation",
+    "business",
+    "security",
+    "application",
+    "technology",
+    "api",
+    "data-model",
+    "data-store",
+    "ux",
+    "navigation",
+    "apm",
+    "testing",
   ];
 
   /**
@@ -110,7 +110,8 @@ export class ReferenceValidator {
           layer: sourceLayerName,
           elementId,
           message: `Unknown source layer: ${sourceLayerName}`,
-          fixSuggestion: 'Use one of the valid layers: motivation, business, security, application, technology, api, data-model, data-store, ux, navigation, apm, testing',
+          fixSuggestion:
+            "Use one of the valid layers: motivation, business, security, application, technology, api, data-model, data-store, ux, navigation, apm, testing",
         });
         continue;
       }
@@ -133,26 +134,30 @@ export class ReferenceValidator {
           elementId,
           message: `Invalid reference direction: ${sourceLayerName} (level ${sourceLevel}) cannot reference ${targetLayerName} (level ${targetLevel})`,
           fixSuggestion:
-            'References must go from higher layers to lower layers (motivation → testing)',
+            "References must go from higher layers to lower layers (motivation → testing)",
         });
       }
     }
   }
 
   /**
-   * Extract layer name from element ID, handling hyphenated layer names
+   * Extract layer name from element ID, handling both dot-separated and hyphenated layer names
    */
   private extractLayerFromId(elementId: string): string {
+    // Determine if using dot-separated format (e.g., motivation.goal.name) or hyphenated (e.g., motivation-goal-name)
+    const isDotSeparated = elementId.includes(".");
+    const separator = isDotSeparated ? "." : "-";
+
     // Try to match known layers in order of specificity (longest first)
     const sortedLayers = [...this.KNOWN_LAYERS].sort((a, b) => b.length - a.length);
 
     for (const layer of sortedLayers) {
-      if (elementId.startsWith(layer + '-')) {
+      if (elementId.startsWith(layer + separator)) {
         return layer;
       }
     }
 
     // Fallback: return first segment (shouldn't reach here with valid element IDs)
-    return elementId.split('-')[0] || '';
+    return elementId.split(separator)[0] || "";
   }
 }

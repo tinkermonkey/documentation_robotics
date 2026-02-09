@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EvidenceType",
+  "description": "EvidenceType element in Security Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.evidencetype"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "evidencetype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProcessTracking",
+  "description": "Tracks business process instance across flow (Gap #3: Process correlation)",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "navigation.processtracking"
+    },
+    "layer_id": {
+      "const": "navigation"
+    },
+    "type": {
+      "const": "processtracking"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "resumable": {
+          "type": "boolean"
+        },
+        "timeoutMinutes": {
+          "type": "integer"
+        },
+        "stateCheckpoint": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "processInstanceId",
+        "timeoutMinutes",
+        "stateCheckpoint"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

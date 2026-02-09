@@ -2,11 +2,11 @@
  * Add an element to a layer
  */
 
-import ansis from 'ansis';
-import { Model } from '../core/model.js';
-import { Layer } from '../core/layer.js';
-import { Element } from '../core/element.js';
-import { MutationHandler } from '../core/mutation-handler.js';
+import ansis from "ansis";
+import { Model } from "../core/model.js";
+import { Layer } from "../core/layer.js";
+import { Element } from "../core/element.js";
+import { MutationHandler } from "../core/mutation-handler.js";
 import {
   InvalidJSONError,
   CLIError,
@@ -16,29 +16,29 @@ import {
   findSimilar,
   formatValidOptions,
   ModelNotFoundError,
-} from '../utils/errors.js';
-import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
-import { startSpan, endSpan } from '../telemetry/index.js';
-import { generateElementId } from '../utils/id-generator.js';
+} from "../utils/errors.js";
+import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
+import { startSpan, endSpan } from "../telemetry/index.js";
+import { generateElementId } from "../utils/id-generator.js";
 
 // Telemetry flag check
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 // Valid canonical layer names (from CLAUDE.md section 4.1)
 const VALID_LAYERS = [
-  'motivation',
-  'business',
-  'security',
-  'application',
-  'technology',
-  'api',
-  'data-model',
-  'data-store',
-  'ux',
-  'navigation',
-  'apm',
-  'testing',
+  "motivation",
+  "business",
+  "security",
+  "application",
+  "technology",
+  "api",
+  "data-model",
+  "data-store",
+  "ux",
+  "navigation",
+  "apm",
+  "testing",
 ];
 
 export interface AddOptions {
@@ -66,29 +66,27 @@ export async function addCommand(
     // Validate layer name
     if (!VALID_LAYERS.includes(layer)) {
       const similar = findSimilar(layer, VALID_LAYERS, 3);
-      const suggestions: string[] = [
-        `Use a valid layer name: ${formatValidOptions(VALID_LAYERS)}`,
-      ];
+      const suggestions: string[] = [`Use a valid layer name: ${formatValidOptions(VALID_LAYERS)}`];
       if (similar.length > 0) {
-        suggestions.unshift(`Did you mean: ${similar.join(' or ')}?`);
+        suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
       }
-      throw new CLIError(
-        `Unknown layer "${layer}"`,
-        ErrorCategory.USER,
-        suggestions,
-        { operation: 'add', context: `Layer: ${layer}, Type: ${type}, Name: ${name}` }
-      );
+      throw new CLIError(`Unknown layer "${layer}"`, ErrorCategory.USER, suggestions, {
+        operation: "add",
+        context: `Layer: ${layer}, Type: ${type}, Name: ${name}`,
+      });
     }
 
     // Generate full element ID: {layer}.{type}.{kebab-name}
     // This matches Python CLI format for compatibility
     const elementId = generateElementId(layer, type, name);
 
-    span = isTelemetryEnabled ? startSpan('element.add', {
-      'layer.name': layer,
-      'element.type': type,
-      'element.id': elementId,
-    }) : null;
+    span = isTelemetryEnabled
+      ? startSpan("element.add", {
+          "layer.name": layer,
+          "element.type": type,
+          "element.id": elementId,
+        })
+      : null;
 
     // Validate source reference options
     validateSourceReferenceOptions(options);
@@ -99,7 +97,7 @@ export async function addCommand(
       model = await Model.load();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('No DR project') || message.includes('Model not found')) {
+      if (message.includes("No DR project") || message.includes("Model not found")) {
         throw new ModelNotFoundError();
       }
       throw error;
@@ -118,7 +116,7 @@ export async function addCommand(
       try {
         properties = JSON.parse(options.properties);
       } catch (e) {
-        throw new InvalidJSONError(options.properties, '--properties');
+        throw new InvalidJSONError(options.properties, "--properties");
       }
     }
 
@@ -148,7 +146,7 @@ export async function addCommand(
           `Use "dr update ${elementId}" to modify it`,
           `Use "dr delete ${elementId}" to remove it first if you want to recreate it`,
         ],
-        { operation: 'add', context: `Duplicate element ID` }
+        { operation: "add", context: `Duplicate element ID` }
       );
     }
 
@@ -166,20 +164,23 @@ export async function addCommand(
       // Check if we went through staging path
       const stagingManager = handler.getStagingManager();
       const activeChangeset = await stagingManager.getActive();
-      if (activeChangeset && activeChangeset.status === 'staged') {
+      if (activeChangeset && activeChangeset.status === "staged") {
         // Staging path
-        handleSuccess(`Staged element ${ansis.bold(elementId)} to ${ansis.bold(activeChangeset.name)}`, {
-          status: 'staged',
-          changeset: activeChangeset.name,
-          type,
-          name: options.name || name,
-        });
+        handleSuccess(
+          `Staged element ${ansis.bold(elementId)} to ${ansis.bold(activeChangeset.name)}`,
+          {
+            status: "staged",
+            changeset: activeChangeset.name,
+            type,
+            name: options.name || name,
+          }
+        );
       } else {
         // Base model path
         handleSuccess(`Added element ${ansis.bold(elementId)} to ${ansis.bold(layer)} layer`, {
           type,
           name: options.name || name,
-          description: options.description || '(none)',
+          description: options.description || "(none)",
         });
       }
     }

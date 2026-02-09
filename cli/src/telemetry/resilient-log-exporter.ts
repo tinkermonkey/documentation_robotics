@@ -4,13 +4,10 @@
  * instead of blocking CLI execution.
  */
 
-import type {
-  LogRecordExporter,
-  ReadableLogRecord,
-} from '@opentelemetry/sdk-logs';
-import type { ExportResult } from '@opentelemetry/core';
-import { ExportResultCode } from '@opentelemetry/core';
-import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+import type { LogRecordExporter, ReadableLogRecord } from "@opentelemetry/sdk-logs";
+import type { ExportResult } from "@opentelemetry/core";
+import { ExportResultCode } from "@opentelemetry/core";
+import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 
 /**
  * OTLP log exporter with circuit-breaker pattern for graceful failure.
@@ -24,7 +21,7 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
  */
 export class ResilientLogExporter implements LogRecordExporter {
   private delegate: OTLPLogExporter;
-  private retryAfter = 0;  // Circuit-breaker timestamp
+  private retryAfter = 0; // Circuit-breaker timestamp
   private readonly url: string;
   private readonly debug: boolean;
 
@@ -34,16 +31,17 @@ export class ResilientLogExporter implements LogRecordExporter {
       timeoutMillis?: number;
     }
   ) {
-    this.url = config?.url || 'http://localhost:4318/v1/logs';
+    this.url = config?.url || "http://localhost:4318/v1/logs";
     // Enable debug logging if any debug flag is set (consistent with telemetry/index.ts)
-    this.debug = process.env.DR_TELEMETRY_DEBUG === '1' ||
-                 process.env.DEBUG === '1' ||
-                 process.env.VERBOSE === '1';
+    this.debug =
+      process.env.DR_TELEMETRY_DEBUG === "1" ||
+      process.env.DEBUG === "1" ||
+      process.env.VERBOSE === "1";
 
     this.delegate = new OTLPLogExporter({
       ...config,
       url: this.url,
-      timeoutMillis: config?.timeoutMillis ?? 5000,  // 5s timeout to allow for network latency
+      timeoutMillis: config?.timeoutMillis ?? 5000, // 5s timeout to allow for network latency
     });
 
     if (this.debug) {
@@ -51,16 +49,15 @@ export class ResilientLogExporter implements LogRecordExporter {
     }
   }
 
-  export(
-    records: ReadableLogRecord[],
-    resultCallback: (result: ExportResult) => void
-  ): void {
+  export(records: ReadableLogRecord[], resultCallback: (result: ExportResult) => void): void {
     // Circuit breaker: skip export if recently failed.
     // Boundary: when Date.now() === this.retryAfter, retry immediately (intended behavior).
     if (Date.now() < this.retryAfter) {
       // Pretend success and silently discard log records
       if (this.debug) {
-        process.stderr.write(`[TELEMETRY] Circuit breaker OPEN - discarding ${records.length} log(s)\n`);
+        process.stderr.write(
+          `[TELEMETRY] Circuit breaker OPEN - discarding ${records.length} log(s)\n`
+        );
       }
       resultCallback({ code: ExportResultCode.SUCCESS });
       return;

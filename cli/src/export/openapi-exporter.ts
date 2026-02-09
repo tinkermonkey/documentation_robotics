@@ -1,6 +1,5 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
-import type { Element } from "../core/element.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
@@ -72,9 +71,17 @@ interface OpenAPISpec {
  * Endpoint mapping entry
  * Groups endpoints by path and method for processing
  */
+interface EndpointData {
+  name: string;
+  id: string;
+  description?: string;
+  getProperty: (key: string) => unknown;
+  getSourceReference: () => unknown;
+}
+
 interface EndpointMapping {
   method: string;
-  element: Element;
+  element: EndpointData;
 }
 
 /**
@@ -85,204 +92,222 @@ export class OpenAPIExporter implements Exporter {
   supportedLayers = ["api"];
 
   async export(model: Model, _options: ExportOptions = {}): Promise<string> {
-    const span = isTelemetryEnabled ? startSpan('export.format.openapi') : null;
+    const span = isTelemetryEnabled ? startSpan("export.format.openapi") : null;
 
     try {
-      const layer = await model.getLayer("api");
-      if (!layer) {
+      // Query graph model for API layer nodes
+      const nodes = model.graph.getNodesByLayer("api");
+      if (nodes.length === 0) {
         throw new Error("No API layer found in model");
       }
 
-    // Note: _options is not used for OpenAPI exporter as it only supports the api layer
-    // The parameter is kept for interface consistency with other exporters
+      // Note: _options is not used for OpenAPI exporter as it only supports the api layer
+      // The parameter is kept for interface consistency with other exporters
 
-    const spec: OpenAPISpec = {
-      openapi: "3.0.0",
-      info: {
-        title: model.manifest.name,
-        version: model.manifest.version || "1.0.0",
-      },
-      paths: {},
-      components: {
-        schemas: {},
-        responses: {},
-        parameters: {},
-        requestBodies: {},
-        headers: {},
-        securitySchemes: {},
-      },
-    };
+      const spec: OpenAPISpec = {
+        openapi: "3.0.0",
+        info: {
+          title: model.manifest.name,
+          version: model.manifest.version || "1.0.0",
+        },
+        paths: {},
+        components: {
+          schemas: {},
+          responses: {},
+          parameters: {},
+          requestBodies: {},
+          headers: {},
+          securitySchemes: {},
+        },
+      };
 
-    if (model.manifest.description) {
-      spec.info.description = model.manifest.description;
-    }
-
-    // Group endpoints by path
-    const pathGroups = new Map<string, EndpointMapping[]>();
-
-    for (const element of layer.listElements()) {
-      if (element.type === "endpoint") {
-        const path = element.getProperty<string>("path") || "/";
-        const method = (element.getProperty<string>("method") || "get").toLowerCase();
-
-        if (!pathGroups.has(path)) {
-          pathGroups.set(path, []);
-        }
-        pathGroups.get(path)!.push({ method, element });
-      }
-    }
-
-    // Build paths section
-    for (const [path, endpoints] of pathGroups) {
-      const pathItem: Record<string, unknown> = {};
-
-      for (const { method, element } of endpoints) {
-        const operation: Record<string, unknown> = {
-          summary: element.name,
-          operationId: element.id,
-          responses: element.getProperty("responses") || {
-            "200": {
-              description: "Successful response",
-            },
-          },
-        };
-
-        if (element.description) {
-          operation.description = element.description;
-        }
-
-        const tags = element.getProperty("tags");
-        if (tags) {
-          operation.tags = tags;
-        }
-
-        const parameters = element.getProperty("parameters");
-        if (parameters) {
-          operation.parameters = parameters;
-        }
-
-        const requestBody = element.getProperty("requestBody");
-        if (requestBody) {
-          operation.requestBody = requestBody;
-        }
-
-        const security = element.getProperty("security");
-        if (security) {
-          operation.security = security;
-        }
-
-        const deprecated = element.getProperty("deprecated");
-        if (deprecated) {
-          operation.deprecated = deprecated;
-        }
-
-        // Add source reference if present
-        const sourceRef = element.getSourceReference();
-        if (sourceRef) {
-          operation['x-source-reference'] = sourceRef;
-        }
-
-        pathItem[method] = operation;
+      if (model.manifest.description) {
+        spec.info.description = model.manifest.description;
       }
 
-      // Add source reference to PathItem if any endpoint has one
-      // (Use first endpoint's source reference for the path)
-      if (endpoints.length > 0) {
-        const firstSourceRef = endpoints[0].element.getSourceReference();
-        if (firstSourceRef) {
-          pathItem['x-source-reference'] = firstSourceRef;
-        }
-      }
+      // Group endpoints by path
+      const pathGroups = new Map<string, EndpointMapping[]>();
 
-      (spec.paths as Record<string, unknown>)[path] = pathItem;
-    }
+      // Query graph for endpoint nodes
+      for (const node of nodes) {
+        if (node.type === "endpoint") {
+          const path = (node.properties.path as string) || "/";
+          const method = ((node.properties.method as string) || "get").toLowerCase();
 
-    // Collect all schema definitions from elements
-    for (const element of layer.listElements()) {
-      if (element.type === "schema") {
-        const schemaName = element.getProperty<string>("schemaName") || element.id;
-        const schema = element.getProperty("schema");
-        if (schema) {
-          spec.components.schemas![schemaName] = schema;
-        }
-      }
-    }
+          if (!pathGroups.has(path)) {
+            pathGroups.set(path, []);
+          }
 
-    // Collect security schemes if defined
-    for (const element of layer.listElements()) {
-      if (element.type === "security-scheme") {
-        const schemeName = element.name;
-        const schemeType = element.getProperty<string>("type");
-        if (schemeType) {
-          const scheme: Record<string, unknown> = {
-            type: schemeType,
+          // Create a minimal element-like object for compatibility
+          const endpointData = {
+            name: node.name,
+            id: node.id,
+            description: node.description,
+            getProperty: (key: string) => node.properties[key],
+            getSourceReference: () => node.properties["x-source-reference"],
           };
 
-          const schemeProp = element.getProperty("scheme");
-          if (schemeProp) {
-            scheme.scheme = schemeProp;
-          }
-
-          const bearerFormat = element.getProperty("bearerFormat");
-          if (bearerFormat) {
-            scheme.bearerFormat = bearerFormat;
-          }
-
-          const flows = element.getProperty("flows");
-          if (flows) {
-            scheme.flows = flows;
-          }
-
-          const openIdConnectUrl = element.getProperty("openIdConnectUrl");
-          if (openIdConnectUrl) {
-            scheme.openIdConnectUrl = openIdConnectUrl;
-          }
-
-          if (element.description) {
-            scheme.description = element.description;
-          }
-
-          spec.components.securitySchemes![schemeName] = scheme;
+          pathGroups.get(path)!.push({ method, element: endpointData as any });
         }
       }
-    }
 
-    // Add servers if defined in manifest (would be stored separately)
-    // For now, servers would need to be added via layer properties
-    // This could be extended in the future
+      // Build paths section
+      for (const [path, endpoints] of pathGroups) {
+        const pathItem: Record<string, unknown> = {};
 
-    // Remove empty component sections
-    const components = spec.components;
-    if (components.schemas && Object.keys(components.schemas).length === 0) {
-      delete components.schemas;
-    }
-    if (components.responses && Object.keys(components.responses).length === 0) {
-      delete components.responses;
-    }
-    if (components.parameters && Object.keys(components.parameters).length === 0) {
-      delete components.parameters;
-    }
-    if (components.requestBodies && Object.keys(components.requestBodies).length === 0) {
-      delete components.requestBodies;
-    }
-    if (components.headers && Object.keys(components.headers).length === 0) {
-      delete components.headers;
-    }
-    if (components.securitySchemes && Object.keys(components.securitySchemes).length === 0) {
-      delete components.securitySchemes;
-    }
-    if (Object.keys(components).length === 0) {
-      delete (spec as Partial<OpenAPISpec>).components;
-    }
+        for (const { method, element } of endpoints) {
+          const operation: Record<string, unknown> = {
+            summary: element.name,
+            operationId: element.id,
+            responses: element.getProperty("responses") || {
+              "200": {
+                description: "Successful response",
+              },
+            },
+          };
 
-    const result = JSON.stringify(spec, null, 2);
+          if (element.description) {
+            operation.description = element.description;
+          }
+
+          const tags = element.getProperty("tags");
+          if (tags) {
+            operation.tags = tags;
+          }
+
+          const parameters = element.getProperty("parameters");
+          if (parameters) {
+            operation.parameters = parameters;
+          }
+
+          const requestBody = element.getProperty("requestBody");
+          if (requestBody) {
+            operation.requestBody = requestBody;
+          }
+
+          const security = element.getProperty("security");
+          if (security) {
+            operation.security = security;
+          }
+
+          const deprecated = element.getProperty("deprecated");
+          if (deprecated) {
+            operation.deprecated = deprecated;
+          }
+
+          // Add source reference if present
+          const sourceRef = element.getSourceReference();
+          if (sourceRef) {
+            operation["x-source-reference"] = sourceRef;
+          }
+
+          pathItem[method] = operation;
+        }
+
+        // Add source reference to PathItem if any endpoint has one
+        // (Use first endpoint's source reference for the path)
+        if (endpoints.length > 0) {
+          const firstSourceRef = endpoints[0].element.getSourceReference();
+          if (firstSourceRef) {
+            pathItem["x-source-reference"] = firstSourceRef;
+          }
+        }
+
+        (spec.paths as Record<string, unknown>)[path] = pathItem;
+      }
+
+      // Collect all schema definitions from nodes
+      for (const node of nodes) {
+        if (node.type === "schema") {
+          const schemaName = (node.properties.schemaName as string) || node.id;
+          const schema = node.properties.schema;
+          if (schema) {
+            spec.components.schemas![schemaName] = schema;
+          }
+        }
+      }
+
+      // Collect security schemes if defined
+      for (const node of nodes) {
+        if (node.type === "security-scheme") {
+          const schemeName = node.name;
+          const schemeType = node.properties.type as string;
+          if (schemeType) {
+            const scheme: Record<string, unknown> = {
+              type: schemeType,
+            };
+
+            const schemeProp = node.properties.scheme;
+            if (schemeProp) {
+              scheme.scheme = schemeProp;
+            }
+
+            const bearerFormat = node.properties.bearerFormat;
+            if (bearerFormat) {
+              scheme.bearerFormat = bearerFormat;
+            }
+
+            const flows = node.properties.flows;
+            if (flows) {
+              scheme.flows = flows;
+            }
+
+            const openIdConnectUrl = node.properties.openIdConnectUrl;
+            if (openIdConnectUrl) {
+              scheme.openIdConnectUrl = openIdConnectUrl;
+            }
+
+            if (node.description) {
+              scheme.description = node.description;
+            }
+
+            spec.components.securitySchemes![schemeName] = scheme;
+          }
+        }
+      }
+
+      // Add servers if defined in manifest (would be stored separately)
+      // For now, servers would need to be added via layer properties
+      // This could be extended in the future
+
+      // Remove empty component sections
+      const components = spec.components;
+      if (components.schemas && Object.keys(components.schemas).length === 0) {
+        delete components.schemas;
+      }
+      if (components.responses && Object.keys(components.responses).length === 0) {
+        delete components.responses;
+      }
+      if (components.parameters && Object.keys(components.parameters).length === 0) {
+        delete components.parameters;
+      }
+      if (components.requestBodies && Object.keys(components.requestBodies).length === 0) {
+        delete components.requestBodies;
+      }
+      if (components.headers && Object.keys(components.headers).length === 0) {
+        delete components.headers;
+      }
+      if (components.securitySchemes && Object.keys(components.securitySchemes).length === 0) {
+        delete components.securitySchemes;
+      }
+      if (Object.keys(components).length === 0) {
+        delete (spec as Partial<OpenAPISpec>).components;
+      }
+
+      const result = JSON.stringify(spec, null, 2);
 
       if (isTelemetryEnabled && span) {
-        const endpointCount = Array.from(pathGroups.values()).reduce((sum, endpoints) => sum + endpoints.length, 0);
-        (span as any).setAttribute('export.endpointCount', endpointCount);
-        (span as any).setAttribute('export.pathCount', pathGroups.size);
-        (span as any).setAttribute('export.schemaCount', Object.keys(spec.components.schemas || {}).length);
-        (span as any).setAttribute('export.size', result.length);
+        const endpointCount = Array.from(pathGroups.values()).reduce(
+          (sum, endpoints) => sum + endpoints.length,
+          0
+        );
+        (span as any).setAttribute("export.endpointCount", endpointCount);
+        (span as any).setAttribute("export.pathCount", pathGroups.size);
+        (span as any).setAttribute(
+          "export.schemaCount",
+          Object.keys(spec.components.schemas || {}).length
+        );
+        (span as any).setAttribute("export.size", result.length);
         (span as any).setStatus({ code: 0 });
       }
 
@@ -290,7 +315,10 @@ export class OpenAPIExporter implements Exporter {
     } catch (error) {
       if (isTelemetryEnabled && span) {
         (span as any).recordException(error as Error);
-        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+        (span as any).setStatus({
+          code: 2,
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
       throw error;
     } finally {

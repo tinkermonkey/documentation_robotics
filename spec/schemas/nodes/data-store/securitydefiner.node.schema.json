@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SecurityDefiner",
+  "description": "SecurityDefiner element in Data Store Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.securitydefiner"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "securitydefiner"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

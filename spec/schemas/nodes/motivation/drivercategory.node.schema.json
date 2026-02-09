@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DriverCategory",
+  "description": "DriverCategory element in Motivation Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "motivation.drivercategory"
+    },
+    "layer_id": {
+      "const": "motivation"
+    },
+    "type": {
+      "const": "drivercategory"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

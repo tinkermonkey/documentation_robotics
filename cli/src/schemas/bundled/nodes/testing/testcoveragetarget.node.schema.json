@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TestCoverageTarget",
+  "description": "An artifact or functionality that requires test coverage",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.testcoveragetarget"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "testcoveragetarget"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "targetType": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string"
+        },
+        "applicableContexts": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "inputFields": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "outcomeCategories": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference for the artifact requiring test coverage"
+        }
+      },
+      "required": [
+        "targetType"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

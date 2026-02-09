@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NavigationTransition",
+  "description": "Transition from one route to another",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "navigation.navigationtransition"
+    },
+    "layer_id": {
+      "const": "navigation"
+    },
+    "type": {
+      "const": "navigationtransition"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "guards": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "trigger"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

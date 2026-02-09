@@ -1,0 +1,39 @@
+{
+  "id": "navigation",
+  "number": 10,
+  "name": "Navigation Layer",
+  "description": "Layer 10: Navigation Layer",
+  "inspired_by": {
+    "standard": "SPA Navigation Patterns",
+    "version": "1.0",
+    "url": "https://www.w3.org/TR/navigation-timing-2/"
+  },
+  "node_types": [
+    "navigation.breadcrumbconfig",
+    "navigation.breadcrumbmode",
+    "navigation.contextscope",
+    "navigation.contextvariable",
+    "navigation.datamapping",
+    "navigation.flowanalytics",
+    "navigation.flowstep",
+    "navigation.guardaction",
+    "navigation.guardactiontype",
+    "navigation.guardcondition",
+    "navigation.guardtype",
+    "navigation.httpmethod",
+    "navigation.navigationflow",
+    "navigation.navigationgraph",
+    "navigation.navigationguard",
+    "navigation.navigationtransition",
+    "navigation.navigationtrigger",
+    "navigation.notificationaction",
+    "navigation.notificationtype",
+    "navigation.processtracking",
+    "navigation.route",
+    "navigation.routemeta",
+    "navigation.routetype",
+    "navigation.storagetype",
+    "navigation.truncationtype",
+    "navigation.waittype"
+  ]
+}

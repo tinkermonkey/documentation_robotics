@@ -1,21 +1,21 @@
-import { describe, it, expect } from 'bun:test';
-import { NamingValidator } from '@/validators/naming-validator';
-import { Layer } from '@/core/layer';
-import { Element } from '@/core/element';
+import { describe, it, expect } from "bun:test";
+import { NamingValidator } from "@/validators/naming-validator";
+import { Layer } from "@/core/layer";
+import { Element } from "@/core/element";
 
-describe('NamingValidator', () => {
-  it('should validate correct element IDs', () => {
+describe("NamingValidator", () => {
+  it("should validate correct element IDs", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('motivation', [
+    const layer = new Layer("motivation", [
       new Element({
-        id: 'motivation-goal-increase-revenue',
-        type: 'Goal',
-        name: 'Increase Revenue',
+        id: "motivation-goal-increase-revenue",
+        type: "Goal",
+        name: "Increase Revenue",
       }),
       new Element({
-        id: 'motivation-requirement-user-login',
-        type: 'Requirement',
-        name: 'User Login',
+        id: "motivation-requirement-user-login",
+        type: "Requirement",
+        name: "User Login",
       }),
     ]);
 
@@ -25,13 +25,13 @@ describe('NamingValidator', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('should detect invalid ID format (too few parts)', () => {
+  it("should detect invalid ID format (too few parts)", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('motivation', [
+    const layer = new Layer("motivation", [
       new Element({
-        id: 'motivation-goal',
-        type: 'Goal',
-        name: 'Test',
+        id: "motivation-goal",
+        type: "Goal",
+        name: "Test",
       }),
     ]);
 
@@ -39,16 +39,16 @@ describe('NamingValidator', () => {
 
     expect(result.isValid()).toBe(false);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toContain('must have type and name components after layer');
+    expect(result.errors[0].message).toContain("must have type and name components after layer");
   });
 
-  it('should detect mismatched layer prefix', () => {
+  it("should detect mismatched layer prefix", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('motivation', [
+    const layer = new Layer("motivation", [
       new Element({
-        id: 'business-goal-test',
-        type: 'Goal',
-        name: 'Test',
+        id: "business-goal-test",
+        type: "Goal",
+        name: "Test",
       }),
     ]);
 
@@ -56,17 +56,17 @@ describe('NamingValidator', () => {
 
     expect(result.isValid()).toBe(false);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toContain('does not match layer');
-    expect(result.errors[0].fixSuggestion).toContain('motivation');
+    expect(result.errors[0].message).toContain("does not match layer");
+    expect(result.errors[0].fixSuggestion).toContain("motivation");
   });
 
-  it('should detect missing type component', () => {
+  it("should detect missing type component", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('motivation', [
+    const layer = new Layer("motivation", [
       new Element({
-        id: 'motivation--test',
-        type: 'Goal',
-        name: 'Test',
+        id: "motivation--test",
+        type: "Goal",
+        name: "Test",
       }),
     ]);
 
@@ -76,13 +76,13 @@ describe('NamingValidator', () => {
     expect(result.errors).toHaveLength(1);
   });
 
-  it('should detect missing name component', () => {
+  it("should detect missing name component", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('business', [
+    const layer = new Layer("business", [
       new Element({
-        id: 'business-process-',
-        type: 'Process',
-        name: 'Test',
+        id: "business-process-",
+        type: "Process",
+        name: "Test",
       }),
     ]);
 
@@ -92,13 +92,13 @@ describe('NamingValidator', () => {
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  it('should validate multi-word kebab-case names', () => {
+  it("should validate multi-word kebab-case names", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('technology', [
+    const layer = new Layer("technology", [
       new Element({
-        id: 'technology-infrastructure-kubernetes-cluster',
-        type: 'Infrastructure',
-        name: 'Kubernetes Cluster',
+        id: "technology-infrastructure-kubernetes-cluster",
+        type: "Infrastructure",
+        name: "Kubernetes Cluster",
       }),
     ]);
 
@@ -107,13 +107,13 @@ describe('NamingValidator', () => {
     expect(result.isValid()).toBe(true);
   });
 
-  it('should detect uppercase characters in ID', () => {
+  it("should detect uppercase characters in ID", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('motivation', [
+    const layer = new Layer("motivation", [
       new Element({
-        id: 'motivation-Goal-test',
-        type: 'Goal',
-        name: 'Test',
+        id: "motivation-Goal-test",
+        type: "Goal",
+        name: "Test",
       }),
     ]);
 
@@ -123,23 +123,23 @@ describe('NamingValidator', () => {
     expect(result.errors).toHaveLength(1);
   });
 
-  it('should validate multiple elements', () => {
+  it("should validate multiple elements", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('api', [
+    const layer = new Layer("api", [
       new Element({
-        id: 'api-endpoint-get-users',
-        type: 'Endpoint',
-        name: 'Get Users',
+        id: "api-endpoint-get-users",
+        type: "Endpoint",
+        name: "Get Users",
       }),
       new Element({
-        id: 'api-endpoint-create-user',
-        type: 'Endpoint',
-        name: 'Create User',
+        id: "api-endpoint-create-user",
+        type: "Endpoint",
+        name: "Create User",
       }),
       new Element({
-        id: 'invalid-format',
-        type: 'Endpoint',
-        name: 'Invalid',
+        id: "invalid-format",
+        type: "Endpoint",
+        name: "Invalid",
       }),
     ]);
 
@@ -147,16 +147,16 @@ describe('NamingValidator', () => {
 
     expect(result.isValid()).toBe(false);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].elementId).toBe('invalid-format');
+    expect(result.errors[0].elementId).toBe("invalid-format");
   });
 
-  it('should handle numeric characters in IDs', () => {
+  it("should handle numeric characters in IDs", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('data-model', [
+    const layer = new Layer("data-model", [
       new Element({
-        id: 'data-model-entity-user-v2',
-        type: 'Entity',
-        name: 'User V2',
+        id: "data-model-entity-user-v2",
+        type: "Entity",
+        name: "User V2",
       }),
     ]);
 
@@ -165,18 +165,18 @@ describe('NamingValidator', () => {
     expect(result.isValid()).toBe(true);
   });
 
-  it('should validate data-store layer elements', () => {
+  it("should validate data-store layer elements", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('data-store', [
+    const layer = new Layer("data-store", [
       new Element({
-        id: 'data-store-table-users',
-        type: 'Table',
-        name: 'Users Table',
+        id: "data-store-table-users",
+        type: "Table",
+        name: "Users Table",
       }),
       new Element({
-        id: 'data-store-schema-inventory',
-        type: 'Schema',
-        name: 'Inventory Schema',
+        id: "data-store-schema-inventory",
+        type: "Schema",
+        name: "Inventory Schema",
       }),
     ]);
 
@@ -186,13 +186,13 @@ describe('NamingValidator', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('should reject data-store elements with wrong layer prefix', () => {
+  it("should reject data-store elements with wrong layer prefix", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('data-store', [
+    const layer = new Layer("data-store", [
       new Element({
-        id: 'data-model-table-users',
-        type: 'Table',
-        name: 'Users Table',
+        id: "data-model-table-users",
+        type: "Table",
+        name: "Users Table",
       }),
     ]);
 
@@ -200,17 +200,17 @@ describe('NamingValidator', () => {
 
     expect(result.isValid()).toBe(false);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toContain('data-model');
-    expect(result.errors[0].message).toContain('data-store');
+    expect(result.errors[0].message).toContain("data-model");
+    expect(result.errors[0].message).toContain("data-store");
   });
 
-  it('should validate data-model elements with complex names', () => {
+  it("should validate data-model elements with complex names", () => {
     const validator = new NamingValidator();
-    const layer = new Layer('data-model', [
+    const layer = new Layer("data-model", [
       new Element({
-        id: 'data-model-relationship-user-to-order',
-        type: 'Relationship',
-        name: 'User To Order',
+        id: "data-model-relationship-user-to-order",
+        type: "Relationship",
+        name: "User To Order",
       }),
     ]);
 
@@ -219,83 +219,89 @@ describe('NamingValidator', () => {
     expect(result.isValid()).toBe(true);
   });
 
-  it('should handle all hyphenated layer names correctly', () => {
+  it("should handle all hyphenated layer names correctly", () => {
     const validator = new NamingValidator();
 
     const testCases = [
-      { layerName: 'data-model', elementId: 'data-model-entity-customer', valid: true },
-      { layerName: 'data-store', elementId: 'data-store-table-orders', valid: true },
-      { layerName: 'data-model', elementId: 'data-store-entity-customer', valid: false },
-      { layerName: 'data-store', elementId: 'data-model-table-orders', valid: false },
+      { layerName: "data-model", elementId: "data-model-entity-customer", valid: true },
+      { layerName: "data-store", elementId: "data-store-table-orders", valid: true },
+      { layerName: "data-model", elementId: "data-store-entity-customer", valid: false },
+      { layerName: "data-store", elementId: "data-model-table-orders", valid: false },
     ];
 
     for (const testCase of testCases) {
       const layer = new Layer(testCase.layerName, [
         new Element({
           id: testCase.elementId,
-          type: 'Type',
-          name: 'Test',
+          type: "Type",
+          name: "Test",
         }),
       ]);
 
       const result = validator.validateLayer(layer);
 
-      expect(result.isValid()).toBe(testCase.valid,
-        `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
+      expect(result.isValid()).toBe(
+        testCase.valid,
+        `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? "valid" : "invalid"}`
+      );
     }
   });
 
-  it('should validate dot-separated format with hyphenated layer names', () => {
+  it("should validate dot-separated format with hyphenated layer names", () => {
     const validator = new NamingValidator();
 
     const testCases = [
-      { layerName: 'data-model', elementId: 'data-model.entity.customer', valid: true },
-      { layerName: 'data-store', elementId: 'data-store.table.orders', valid: true },
-      { layerName: 'data-model', elementId: 'data-model.object-schema.task-info', valid: true },
-      { layerName: 'data-store', elementId: 'data-store.index.primary-key', valid: true },
-      { layerName: 'data-model', elementId: 'data-store.entity.customer', valid: false },
-      { layerName: 'data-store', elementId: 'data-model.table.orders', valid: false },
+      { layerName: "data-model", elementId: "data-model.entity.customer", valid: true },
+      { layerName: "data-store", elementId: "data-store.table.orders", valid: true },
+      { layerName: "data-model", elementId: "data-model.object-schema.task-info", valid: true },
+      { layerName: "data-store", elementId: "data-store.index.primary-key", valid: true },
+      { layerName: "data-model", elementId: "data-store.entity.customer", valid: false },
+      { layerName: "data-store", elementId: "data-model.table.orders", valid: false },
     ];
 
     for (const testCase of testCases) {
       const layer = new Layer(testCase.layerName, [
         new Element({
           id: testCase.elementId,
-          type: 'Type',
-          name: 'Test',
+          type: "Type",
+          name: "Test",
         }),
       ]);
 
       const result = validator.validateLayer(layer);
 
-      expect(result.isValid()).toBe(testCase.valid,
-        `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
+      expect(result.isValid()).toBe(
+        testCase.valid,
+        `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? "valid" : "invalid"}`
+      );
     }
   });
 
-  it('should validate mixed underscore and hyphenated layer names', () => {
+  it("should validate mixed underscore and hyphenated layer names", () => {
     const validator = new NamingValidator();
 
     const testCases = [
-      { layerName: 'data-model', elementId: 'data_model.entity.user', valid: true },
-      { layerName: 'data_model', elementId: 'data-model.entity.user', valid: true },
-      { layerName: 'data-store', elementId: 'data_store.table.users', valid: true },
-      { layerName: 'data_store', elementId: 'data-store.table.users', valid: true },
+      { layerName: "data-model", elementId: "data_model.entity.user", valid: true },
+      { layerName: "data_model", elementId: "data-model.entity.user", valid: true },
+      { layerName: "data-store", elementId: "data_store.table.users", valid: true },
+      { layerName: "data_store", elementId: "data-store.table.users", valid: true },
     ];
 
     for (const testCase of testCases) {
       const layer = new Layer(testCase.layerName, [
         new Element({
           id: testCase.elementId,
-          type: 'Type',
-          name: 'Test',
+          type: "Type",
+          name: "Test",
         }),
       ]);
 
       const result = validator.validateLayer(layer);
 
-      expect(result.isValid()).toBe(testCase.valid,
-        `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
+      expect(result.isValid()).toBe(
+        testCase.valid,
+        `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? "valid" : "invalid"}`
+      );
     }
   });
 });

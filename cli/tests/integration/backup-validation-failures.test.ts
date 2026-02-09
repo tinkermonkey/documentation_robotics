@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { Model } from '../../src/core/model.js';
-import { StagingAreaManager } from '../../src/core/staging-area.js';
-import { rm, readFile, writeFile, readdir, chmod } from 'fs/promises';
-import path from 'path';
-import { createHash } from 'crypto';
-import { fileExists, ensureDir } from '../../src/utils/file-io.js';
-import { createTestWorkdir } from '../helpers/golden-copy.js';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { Model } from "../../src/core/model.js";
+import { StagingAreaManager } from "../../src/core/staging-area.js";
+import { rm, readFile, writeFile, readdir, chmod } from "fs/promises";
+import path from "path";
+import { createHash } from "crypto";
+import { fileExists, ensureDir } from "../../src/utils/file-io.js";
+import { createTestWorkdir } from "../helpers/golden-copy.js";
 
-describe('Backup Validation Failure Paths', () => {
+describe("Backup Validation Failure Paths", () => {
   let model: Model;
   let TEST_DIR: string;
   let cleanup: () => Promise<void>;
@@ -30,14 +30,14 @@ describe('Backup Validation Failure Paths', () => {
     }
   });
 
-  describe('manifest validation failures', () => {
-    it('should detect malformed JSON in backup manifest', async () => {
+  describe("manifest validation failures", () => {
+    it("should detect malformed JSON in backup manifest", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Corrupt the backup manifest with invalid JSON
-      const manifestPath = path.join(backupDir, '.backup-manifest.json');
-      await writeFile(manifestPath, '{ invalid json }');
+      const manifestPath = path.join(backupDir, ".backup-manifest.json");
+      await writeFile(manifestPath, "{ invalid json }");
 
       // Validate should fail with clear error
       try {
@@ -47,16 +47,16 @@ describe('Backup Validation Failure Paths', () => {
         expect(error instanceof Error).toBe(true);
         const message = (error as Error).message.toLowerCase();
         // Should mention backup manifest and that there's a parse/read error
-        expect(message).toContain('backup manifest' || 'parse' || 'json');
+        expect(message).toContain("backup manifest" || "parse" || "json");
       }
     });
 
-    it('should detect missing files array in manifest', async () => {
+    it("should detect missing files array in manifest", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Write manifest without files array
-      const manifestPath = path.join(backupDir, '.backup-manifest.json');
+      const manifestPath = path.join(backupDir, ".backup-manifest.json");
       await writeFile(manifestPath, JSON.stringify({ timestamp: Date.now() }));
 
       // Validate should throw with clear error about invalid manifest
@@ -66,17 +66,17 @@ describe('Backup Validation Failure Paths', () => {
       } catch (error) {
         expect(error instanceof Error).toBe(true);
         const message = (error as Error).message.toLowerCase();
-        expect(message).toContain('backup manifest' || 'files array' || 'invalid');
+        expect(message).toContain("backup manifest" || "files array" || "invalid");
       }
     });
 
-    it('should detect manifest with missing file metadata fields', async () => {
+    it("should detect manifest with missing file metadata fields", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Corrupt manifest by removing checksum from a file entry
-      const manifestPath = path.join(backupDir, '.backup-manifest.json');
-      const originalManifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
+      const manifestPath = path.join(backupDir, ".backup-manifest.json");
+      const originalManifest = JSON.parse(await readFile(manifestPath, "utf-8"));
 
       if (originalManifest.files && originalManifest.files.length > 0) {
         originalManifest.files[0].checksum = undefined; // Remove checksum
@@ -91,32 +91,37 @@ describe('Backup Validation Failure Paths', () => {
       }
     });
 
-    it('should provide detailed error on manifest read failure', async () => {
+    it("should provide detailed error on manifest read failure", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
-      const fakeBackupDir = path.join(TEST_DIR, 'documentation-robotics', '.backups', 'fake-backup');
+      const fakeBackupDir = path.join(
+        TEST_DIR,
+        "documentation-robotics",
+        ".backups",
+        "fake-backup"
+      );
       await ensureDir(fakeBackupDir);
 
       // Create manifest file with empty content
-      const manifestPath = path.join(fakeBackupDir, '.backup-manifest.json');
-      await writeFile(manifestPath, '');
+      const manifestPath = path.join(fakeBackupDir, ".backup-manifest.json");
+      await writeFile(manifestPath, "");
 
       try {
         await manager.validateBackupIntegrity(fakeBackupDir);
         expect(true).toBe(false); // Should throw
       } catch (error) {
         expect(error instanceof Error).toBe(true);
-        expect((error as Error).message.toLowerCase()).toContain('manifest');
+        expect((error as Error).message.toLowerCase()).toContain("manifest");
       }
     });
   });
 
-  describe('file integrity validation failures', () => {
-    it('should detect size mismatch in backup files', async () => {
+  describe("file integrity validation failures", () => {
+    it("should detect size mismatch in backup files", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Corrupt a file and update manifest with wrong size
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       const layerSubDirs = await readdir(layersDir);
 
       if (layerSubDirs.length > 0) {
@@ -125,11 +130,11 @@ describe('Backup Validation Failure Paths', () => {
 
         if (layerFiles.length > 0) {
           const filePath = path.join(layerDir, layerFiles[0]);
-          await writeFile(filePath, 'SHORT_CONTENT');
+          await writeFile(filePath, "SHORT_CONTENT");
 
           // Update manifest with original size
-          const manifestPath = path.join(backupDir, '.backup-manifest.json');
-          const manifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
+          const manifestPath = path.join(backupDir, ".backup-manifest.json");
+          const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
           const fileEntry = manifest.files.find((f: any) => f.path.includes(layerFiles[0]));
           if (fileEntry) {
             fileEntry.size = 10000; // Wrong size
@@ -145,12 +150,12 @@ describe('Backup Validation Failure Paths', () => {
       }
     });
 
-    it('should detect multiple file integrity failures', async () => {
+    it("should detect multiple file integrity failures", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Corrupt multiple files
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       const layerSubDirs = await readdir(layersDir);
       let corruptedCount = 0;
 
@@ -160,7 +165,7 @@ describe('Backup Validation Failure Paths', () => {
 
         if (layerFiles.length > 0) {
           const filePath = path.join(layerDir, layerFiles[0]);
-          await writeFile(filePath, 'CORRUPTED_' + i);
+          await writeFile(filePath, "CORRUPTED_" + i);
           corruptedCount++;
         }
       }
@@ -173,12 +178,12 @@ describe('Backup Validation Failure Paths', () => {
       }
     });
 
-    it('should report all file errors in single validation run', async () => {
+    it("should report all file errors in single validation run", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Corrupt multiple files - find layers with actual files
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       const layerSubDirs = await readdir(layersDir);
       let corruptedCount = 0;
 
@@ -188,7 +193,7 @@ describe('Backup Validation Failure Paths', () => {
         // Only corrupt from non-empty layers
         if (layerFiles.length > 0 && corruptedCount < 2) {
           const filePath = path.join(layerDir, layerFiles[0]);
-          await writeFile(filePath, 'CORRUPTED');
+          await writeFile(filePath, "CORRUPTED");
           corruptedCount++;
         }
       }
@@ -205,8 +210,8 @@ describe('Backup Validation Failure Paths', () => {
     });
   });
 
-  describe('validation with filesystem errors', () => {
-    it('should handle unreadable backup directory', async () => {
+  describe("validation with filesystem errors", () => {
+    it("should handle unreadable backup directory", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
@@ -229,29 +234,36 @@ describe('Backup Validation Failure Paths', () => {
       }
     });
 
-    it('should detect when layer directory is missing', async () => {
+    it("should detect when layer directory is missing", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Remove entire layers directory
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       await rm(layersDir, { recursive: true, force: true });
 
       const health = await manager.validateBackupIntegrity(backupDir);
 
       expect(health.isValid).toBe(false);
-      expect(health.errors.some(e => e.includes('Missing') || e.includes('not found'))).toBe(true);
+      expect(health.errors.some((e) => e.includes("Missing") || e.includes("not found"))).toBe(
+        true
+      );
     });
   });
 
-  describe('partial backup handling', () => {
-    it('should detect empty backup directory', async () => {
+  describe("partial backup handling", () => {
+    it("should detect empty backup directory", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
-      const fakeBackupDir = path.join(TEST_DIR, 'documentation-robotics', '.backups', 'empty-backup');
+      const fakeBackupDir = path.join(
+        TEST_DIR,
+        "documentation-robotics",
+        ".backups",
+        "empty-backup"
+      );
       await ensureDir(fakeBackupDir);
 
       // Create empty manifest
-      const manifestPath = path.join(fakeBackupDir, '.backup-manifest.json');
+      const manifestPath = path.join(fakeBackupDir, ".backup-manifest.json");
       await writeFile(manifestPath, JSON.stringify({ files: [] }));
 
       const health = await manager.validateBackupIntegrity(fakeBackupDir);
@@ -260,17 +272,19 @@ describe('Backup Validation Failure Paths', () => {
       expect(health.filesChecked).toBeGreaterThanOrEqual(0);
     });
 
-    it('should detect incomplete layer backup', async () => {
+    it("should detect incomplete layer backup", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Count original layers in manifest
-      const manifestPath = path.join(backupDir, '.backup-manifest.json');
-      const manifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
-      const originalLayerCount = manifest.files.filter((f: any) => f.path.startsWith('layers/')).length;
+      const manifestPath = path.join(backupDir, ".backup-manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
+      const originalLayerCount = manifest.files.filter((f: any) =>
+        f.path.startsWith("layers/")
+      ).length;
 
       // Remove half of the layer files
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       const layerSubDirs = await readdir(layersDir);
       for (let i = 0; i < Math.floor(layerSubDirs.length / 2); i++) {
         const layerDir = path.join(layersDir, layerSubDirs[i]);
@@ -284,16 +298,16 @@ describe('Backup Validation Failure Paths', () => {
       const health = await manager.validateBackupIntegrity(backupDir);
 
       expect(health.isValid).toBe(false);
-      expect(health.errors.some(e => e.includes('Missing'))).toBe(true);
+      expect(health.errors.some((e) => e.includes("Missing"))).toBe(true);
     });
 
-    it('should report accurate file count in validation results', async () => {
+    it("should report accurate file count in validation results", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Get expected file count from manifest
-      const manifestPath = path.join(backupDir, '.backup-manifest.json');
-      const manifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
+      const manifestPath = path.join(backupDir, ".backup-manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
       const expectedCount = manifest.files.length;
 
       // Validate intact backup
@@ -306,13 +320,13 @@ describe('Backup Validation Failure Paths', () => {
     });
   });
 
-  describe('validation result accuracy', () => {
-    it('should include specific file paths in error messages', async () => {
+  describe("validation result accuracy", () => {
+    it("should include specific file paths in error messages", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Corrupt a specific layer file
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       const layerSubDirs = await readdir(layersDir);
       const targetLayer = layerSubDirs[0];
 
@@ -323,24 +337,26 @@ describe('Backup Validation Failure Paths', () => {
         if (layerFiles.length > 0) {
           const targetFile = layerFiles[0];
           const filePath = path.join(layerDir, targetFile);
-          await writeFile(filePath, 'CORRUPTED');
+          await writeFile(filePath, "CORRUPTED");
 
           const health = await manager.validateBackupIntegrity(backupDir);
 
           expect(health.isValid).toBe(false);
-          expect(health.errors.some(e => e.includes(targetFile) || e.includes(targetLayer))).toBe(true);
+          expect(health.errors.some((e) => e.includes(targetFile) || e.includes(targetLayer))).toBe(
+            true
+          );
         }
       }
     });
 
-    it('should distinguish between different error types', async () => {
+    it("should distinguish between different error types", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Create multiple error types
       // 1. Remove a file (missing)
-      const manifestPath = path.join(backupDir, '.backup-manifest.json');
-      let manifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
+      const manifestPath = path.join(backupDir, ".backup-manifest.json");
+      let manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
 
       if (manifest.files.length > 0) {
         const firstFile = manifest.files[0];
@@ -352,7 +368,7 @@ describe('Backup Validation Failure Paths', () => {
           const secondFile = manifest.files[1];
           const secondFilePath = path.join(backupDir, secondFile.path);
           if (await fileExists(secondFilePath)) {
-            await writeFile(secondFilePath, 'CORRUPTED');
+            await writeFile(secondFilePath, "CORRUPTED");
           }
         }
       }
@@ -364,32 +380,32 @@ describe('Backup Validation Failure Paths', () => {
 
       // Should have both missing and checksum errors (if we created both)
       const hasMultipleErrorTypes =
-        health.errors.some(e => e.includes('Missing')) ||
-        health.errors.some(e => e.includes('Checksum mismatch'));
+        health.errors.some((e) => e.includes("Missing")) ||
+        health.errors.some((e) => e.includes("Checksum mismatch"));
 
       expect(hasMultipleErrorTypes).toBe(true);
     });
 
-    it('should handle validation of very large backups', async () => {
+    it("should handle validation of very large backups", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Add extra large files to the backup
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       const layerSubDirs = await readdir(layersDir);
 
       if (layerSubDirs.length > 0) {
         const layerDir = path.join(layersDir, layerSubDirs[0]);
-        const largeContent = 'x'.repeat(1000000); // 1MB
-        await writeFile(path.join(layerDir, 'large-file.txt'), largeContent);
+        const largeContent = "x".repeat(1000000); // 1MB
+        await writeFile(path.join(layerDir, "large-file.txt"), largeContent);
 
         // Update manifest to include new file
-        const manifestPath = path.join(backupDir, '.backup-manifest.json');
-        const manifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
+        const manifestPath = path.join(backupDir, ".backup-manifest.json");
+        const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
         manifest.files.push({
           path: `layers/${layerSubDirs[0]}/large-file.txt`,
-          checksum: createHash('sha256').update(largeContent).digest('hex'),
-          size: largeContent.length
+          checksum: createHash("sha256").update(largeContent).digest("hex"),
+          size: largeContent.length,
         });
         await writeFile(manifestPath, JSON.stringify(manifest));
 
@@ -400,13 +416,13 @@ describe('Backup Validation Failure Paths', () => {
     });
   });
 
-  describe('validation error recovery suggestions', () => {
-    it('should provide actionable recovery suggestions on validation failure', async () => {
+  describe("validation error recovery suggestions", () => {
+    it("should provide actionable recovery suggestions on validation failure", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Corrupt the backup - find a layer with actual files
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       const layerSubDirs = await readdir(layersDir);
       let corrupted = false;
 
@@ -416,7 +432,7 @@ describe('Backup Validation Failure Paths', () => {
 
         if (layerFiles.length > 0) {
           const filePath = path.join(layerDir, layerFiles[0]);
-          await writeFile(filePath, 'CORRUPTED');
+          await writeFile(filePath, "CORRUPTED");
           corrupted = true;
           break;
         }
@@ -429,17 +445,17 @@ describe('Backup Validation Failure Paths', () => {
         expect(health.errors.length).toBeGreaterThan(0);
 
         // Check that errors are descriptive (should contain info about what's wrong)
-        expect(health.errors.every(e => typeof e === 'string' && e.length > 0)).toBe(true);
+        expect(health.errors.every((e) => typeof e === "string" && e.length > 0)).toBe(true);
       }
     });
 
-    it('should maintain backup health report structure on failure', async () => {
+    it("should maintain backup health report structure on failure", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Corrupt backup
-      const manifestPath = path.join(backupDir, '.backup-manifest.json');
-      const manifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
+      const manifestPath = path.join(backupDir, ".backup-manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
 
       if (manifest.files.length > 0) {
         const firstFile = manifest.files[0];
@@ -450,40 +466,48 @@ describe('Backup Validation Failure Paths', () => {
       const health = await manager.validateBackupIntegrity(backupDir);
 
       // Verify structure is consistent
-      expect(typeof health.isValid).toBe('boolean');
-      expect(typeof health.filesChecked).toBe('number');
+      expect(typeof health.isValid).toBe("boolean");
+      expect(typeof health.filesChecked).toBe("number");
       expect(Array.isArray(health.errors)).toBe(true);
       expect(health.filesChecked).toBeGreaterThan(0);
       expect(health.errors.length).toBeGreaterThan(0);
     });
   });
 
-  describe('validation edge cases', () => {
-    it('should handle backup with only manifest file', async () => {
+  describe("validation edge cases", () => {
+    it("should handle backup with only manifest file", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
-      const fakeBackupDir = path.join(TEST_DIR, 'documentation-robotics', '.backups', 'manifest-only');
+      const fakeBackupDir = path.join(
+        TEST_DIR,
+        "documentation-robotics",
+        ".backups",
+        "manifest-only"
+      );
       await ensureDir(fakeBackupDir);
 
       // Create only the manifest
-      const manifestPath = path.join(fakeBackupDir, '.backup-manifest.json');
-      await writeFile(manifestPath, JSON.stringify({
-        files: []
-      }));
+      const manifestPath = path.join(fakeBackupDir, ".backup-manifest.json");
+      await writeFile(
+        manifestPath,
+        JSON.stringify({
+          files: [],
+        })
+      );
 
       const health = await manager.validateBackupIntegrity(fakeBackupDir);
 
       // Should be able to validate manifest-only backup
-      expect(typeof health.isValid).toBe('boolean');
-      expect(typeof health.filesChecked).toBe('number');
+      expect(typeof health.isValid).toBe("boolean");
+      expect(typeof health.filesChecked).toBe("number");
     });
 
-    it('should detect manifest with self-referential checksums', async () => {
+    it("should detect manifest with self-referential checksums", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Get manifest and create circular reference scenario
-      const manifestPath = path.join(backupDir, '.backup-manifest.json');
-      const manifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
+      const manifestPath = path.join(backupDir, ".backup-manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
 
       if (manifest.files.length > 1) {
         // Swap checksums between two files
@@ -496,11 +520,11 @@ describe('Backup Validation Failure Paths', () => {
         const health = await manager.validateBackupIntegrity(backupDir);
 
         expect(health.isValid).toBe(false);
-        expect(health.errors.some(e => e.includes('Checksum mismatch'))).toBe(true);
+        expect(health.errors.some((e) => e.includes("Checksum mismatch"))).toBe(true);
       }
     });
 
-    it('should handle concurrent validation attempts', async () => {
+    it("should handle concurrent validation attempts", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
@@ -508,7 +532,7 @@ describe('Backup Validation Failure Paths', () => {
       const results = await Promise.all([
         manager.validateBackupIntegrity(backupDir),
         manager.validateBackupIntegrity(backupDir),
-        manager.validateBackupIntegrity(backupDir)
+        manager.validateBackupIntegrity(backupDir),
       ]);
 
       // All should have same result
@@ -518,12 +542,12 @@ describe('Backup Validation Failure Paths', () => {
       expect(results[1].filesChecked).toBe(results[2].filesChecked);
     });
 
-    it('should validate backup after partial file modifications', async () => {
+    it("should validate backup after partial file modifications", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
       const backupDir = await (manager as any).backupModel(model);
 
       // Modify a file by appending to it - find a layer with actual files
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       const layerSubDirs = await readdir(layersDir);
       let modified = false;
 
@@ -533,8 +557,8 @@ describe('Backup Validation Failure Paths', () => {
 
         if (layerFiles.length > 0) {
           const filePath = path.join(layerDir, layerFiles[0]);
-          const content = await readFile(filePath, 'utf-8');
-          await writeFile(filePath, content + '\nextra content'); // Append
+          const content = await readFile(filePath, "utf-8");
+          await writeFile(filePath, content + "\nextra content"); // Append
           modified = true;
           break;
         }

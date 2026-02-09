@@ -1,11 +1,17 @@
-import { mkdir, rename, readFile as fsReadFile, writeFile as fsWriteFile, stat } from "node:fs/promises";
+import {
+  mkdir,
+  rename,
+  readFile as fsReadFile,
+  writeFile as fsWriteFile,
+  stat,
+} from "node:fs/promises";
 import { existsSync as fsExistsSync } from "node:fs";
 import { dirname } from "node:path";
 import { startSpan, endSpan } from "../telemetry/index.js";
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
  * Ensure a directory exists, creating it if necessary
@@ -20,10 +26,10 @@ export async function ensureDir(path: string): Promise<void> {
 export async function atomicWrite(path: string, content: string): Promise<void> {
   const fileExists = fsExistsSync(path);
 
-  const span = startSpan('file.write', {
-    'file.path': path,
-    'file.size': content.length,
-    'file.created': !fileExists,
+  const span = startSpan("file.write", {
+    "file.path": path,
+    "file.size": content.length,
+    "file.created": !fileExists,
   });
 
   try {
@@ -32,7 +38,7 @@ export async function atomicWrite(path: string, content: string): Promise<void> 
     await mkdir(dir, { recursive: true });
 
     const tempPath = `${path}.tmp`;
-    await fsWriteFile(tempPath, content, 'utf-8');
+    await fsWriteFile(tempPath, content, "utf-8");
     // Rename temp file to target path (atomic operation)
     await rename(tempPath, path);
   } finally {
@@ -56,16 +62,16 @@ export async function fileExists(path: string): Promise<boolean> {
  * Read a file as text
  */
 export async function readFile(path: string): Promise<string> {
-  const span = startSpan('file.read', {
-    'file.path': path,
-    'file.exists': fsExistsSync(path),
+  const span = startSpan("file.read", {
+    "file.path": path,
+    "file.exists": fsExistsSync(path),
   });
 
   try {
-    const content = await fsReadFile(path, 'utf-8');
+    const content = await fsReadFile(path, "utf-8");
 
     if (isTelemetryEnabled && span) {
-      span.setAttribute('file.size', content.length);
+      span.setAttribute("file.size", content.length);
     }
 
     return content;
@@ -80,10 +86,10 @@ export async function readFile(path: string): Promise<string> {
 export async function writeFile(path: string, content: string): Promise<void> {
   const fileExists = fsExistsSync(path);
 
-  const span = startSpan('file.write', {
-    'file.path': path,
-    'file.size': content.length,
-    'file.created': !fileExists,
+  const span = startSpan("file.write", {
+    "file.path": path,
+    "file.size": content.length,
+    "file.created": !fileExists,
   });
 
   try {
@@ -91,7 +97,7 @@ export async function writeFile(path: string, content: string): Promise<void> {
     const dir = dirname(path);
     await mkdir(dir, { recursive: true });
 
-    await fsWriteFile(path, content, 'utf-8');
+    await fsWriteFile(path, content, "utf-8");
   } finally {
     endSpan(span);
   }

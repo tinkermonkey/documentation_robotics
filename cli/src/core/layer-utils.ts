@@ -14,8 +14,8 @@ const LAYER_NAMES_TO_NUMBERS: Record<string, number> = {
   application: 4,
   technology: 5,
   api: 6,
-  'data-model': 7,
-  'data-store': 8,
+  "data-model": 7,
+  "data-store": 8,
   ux: 9,
   navigation: 10,
   apm: 11,
@@ -23,18 +23,18 @@ const LAYER_NAMES_TO_NUMBERS: Record<string, number> = {
 };
 
 const LAYER_NUMBERS_TO_NAMES: Record<number, string> = {
-  1: 'motivation',
-  2: 'business',
-  3: 'security',
-  4: 'application',
-  5: 'technology',
-  6: 'api',
-  7: 'data-model',
-  8: 'data-store',
-  9: 'ux',
-  10: 'navigation',
-  11: 'apm',
-  12: 'testing',
+  1: "motivation",
+  2: "business",
+  3: "security",
+  4: "application",
+  5: "technology",
+  6: "api",
+  7: "data-model",
+  8: "data-store",
+  9: "ux",
+  10: "navigation",
+  11: "apm",
+  12: "testing",
 };
 
 /**
@@ -52,7 +52,7 @@ export function getLayerNumber(layerName: string): number {
  * @returns The canonical layer name, or empty string if not found
  */
 export function getLayerName(layerNumber: number): string {
-  return LAYER_NUMBERS_TO_NAMES[layerNumber] || '';
+  return LAYER_NUMBERS_TO_NAMES[layerNumber] || "";
 }
 
 /**

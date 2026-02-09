@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ApplicationProcess",
+  "description": "Sequence of application behaviors",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "application.applicationprocess"
+    },
+    "layer_id": {
+      "const": "application"
+    },
+    "type": {
+      "const": "applicationprocess"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

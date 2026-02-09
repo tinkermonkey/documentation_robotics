@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UXLibrary",
+  "description": "Collection of reusable UI components and sub-views that can be shared across applications",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.uxlibrary"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "uxlibrary"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "subViews": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "statePatterns": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "actionPatterns": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

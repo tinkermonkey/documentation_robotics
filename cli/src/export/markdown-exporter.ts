@@ -12,291 +12,236 @@ export class MarkdownExporter implements Exporter {
   supportedLayers = ALL_LAYERS;
 
   private readonly layerDescriptions: Record<string, string> = {
-    motivation:
-      "Goals, requirements, drivers, and strategic outcomes of the architecture.",
-    business:
-      "Business processes, functions, roles, and services.",
-    security:
-      "Authentication, authorization, security threats, and controls.",
-    application:
-      "Application components, services, and interactions.",
-    technology:
-      "Infrastructure, platforms, systems, and technology components.",
+    motivation: "Goals, requirements, drivers, and strategic outcomes of the architecture.",
+    business: "Business processes, functions, roles, and services.",
+    security: "Authentication, authorization, security threats, and controls.",
+    application: "Application components, services, and interactions.",
+    technology: "Infrastructure, platforms, systems, and technology components.",
     api: "REST APIs, operations, endpoints, and API integrations.",
-    "data-model":
-      "Data entities, relationships, and data structure definitions.",
-    "data-store":
-      "Databases, data stores, and persistence mechanisms.",
+    "data-model": "Data entities, relationships, and data structure definitions.",
+    "data-store": "Databases, data stores, and persistence mechanisms.",
     ux: "User interface components, screens, and user experience elements.",
-    navigation:
-      "Application routing, navigation flows, and page structures.",
+    navigation: "Application routing, navigation flows, and page structures.",
     apm: "Observability, monitoring, metrics, logging, and tracing.",
-    testing:
-      "Test strategies, test cases, test data, and test coverage.",
+    testing: "Test strategies, test cases, test data, and test coverage.",
   };
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
-    const span = isTelemetryEnabled ? startSpan('export.format.markdown', {
-      'export.layerCount': options.layers?.length || this.supportedLayers.length,
-    }) : null;
+    const span = isTelemetryEnabled
+      ? startSpan("export.format.markdown", {
+          "export.layerCount": options.layers?.length || this.supportedLayers.length,
+        })
+      : null;
 
     try {
       const lines: string[] = [];
 
       // Document header
-    lines.push(`# ${this.escapeMarkdown(model.manifest.name)}`);
-    lines.push("");
-
-    if (model.manifest.description) {
-      lines.push(`${model.manifest.description}`);
-      lines.push("");
-    }
-
-    // Model metadata
-    lines.push("## Model Information");
-    lines.push("");
-    lines.push(
-      `| Property | Value |`
-    );
-    lines.push(`| -------- | ----- |`);
-    lines.push(
-      `| Version | ${model.manifest.version || "1.0.0"} |`
-    );
-    if (model.manifest.author) {
-      lines.push(
-        `| Author | ${this.escapeMarkdown(model.manifest.author)} |`
-      );
-    }
-    if (model.manifest.created) {
-      lines.push(
-        `| Created | ${model.manifest.created} |`
-      );
-    }
-    if (model.manifest.modified) {
-      lines.push(
-        `| Modified | ${model.manifest.modified} |`
-      );
-    }
-    lines.push("");
-
-    const layersToExport = options.layers || this.supportedLayers;
-
-    // Generate documentation for each layer
-    for (const layerName of layersToExport) {
-      const layer = await model.getLayer(layerName);
-      if (!layer) continue;
-
-      const elements = Array.from(layer.listElements());
-      if (elements.length === 0) continue;
-
-      lines.push(`## Layer: ${this.formatLayerName(layerName)}`);
+      lines.push(`# ${this.escapeMarkdown(model.manifest.name)}`);
       lines.push("");
 
-      const description = this.layerDescriptions[layerName];
-      if (description) {
-        lines.push(`*${description}*`);
+      if (model.manifest.description) {
+        lines.push(`${model.manifest.description}`);
         lines.push("");
       }
 
-      lines.push(`### Elements (${elements.length})`);
+      // Model metadata
+      lines.push("## Model Information");
       lines.push("");
-
-      // Element table
-      lines.push(
-        `| ID | Name | Type | Description |`
-      );
-      lines.push(
-        `| -- | ---- | ---- | ----------- |`
-      );
-
-      for (const element of elements) {
-        const id = this.escapeMarkdown(element.id);
-        const name = this.escapeMarkdown(element.name);
-        const type = this.escapeMarkdown(element.type);
-        const desc = element.description
-          ? this.escapeMarkdown(element.description).substring(0, 100)
-          : "";
-
-        lines.push(`| \`${id}\` | ${name} | ${type} | ${desc} |`);
+      lines.push(`| Property | Value |`);
+      lines.push(`| -------- | ----- |`);
+      lines.push(`| Version | ${model.manifest.version || "1.0.0"} |`);
+      if (model.manifest.author) {
+        lines.push(`| Author | ${this.escapeMarkdown(model.manifest.author)} |`);
       }
-
+      if (model.manifest.created) {
+        lines.push(`| Created | ${model.manifest.created} |`);
+      }
+      if (model.manifest.modified) {
+        lines.push(`| Modified | ${model.manifest.modified} |`);
+      }
       lines.push("");
 
-      // Element details
-      lines.push(`### Element Details`);
-      lines.push("");
+      const layersToExport = options.layers || this.supportedLayers;
 
-      for (const element of elements) {
-        lines.push(
-          `#### ${this.escapeMarkdown(element.name)} (\`${element.id}\`)`
-        );
+      // Generate documentation for each layer
+      for (const layerName of layersToExport) {
+        const layer = await model.getLayer(layerName);
+        if (!layer) continue;
+
+        const elements = Array.from(layer.listElements());
+        if (elements.length === 0) continue;
+
+        lines.push(`## Layer: ${this.formatLayerName(layerName)}`);
         lines.push("");
 
-        if (element.description) {
-          lines.push(`${element.description}`);
+        const description = this.layerDescriptions[layerName];
+        if (description) {
+          lines.push(`*${description}*`);
           lines.push("");
         }
 
-        lines.push("**Type:** " + element.type);
+        lines.push(`### Elements (${elements.length})`);
         lines.push("");
 
-        // Source Reference
-        const sourceRef = element.getSourceReference();
-        if (sourceRef) {
-          lines.push("### Source Code Location");
-          lines.push("");
-          lines.push(`**Provenance**: ${sourceRef.provenance}`);
+        // Element table
+        lines.push(`| ID | Name | Type | Description |`);
+        lines.push(`| -- | ---- | ---- | ----------- |`);
+
+        for (const element of elements) {
+          const id = this.escapeMarkdown(element.id);
+          const name = this.escapeMarkdown(element.name);
+          const type = this.escapeMarkdown(element.type);
+          const desc = element.description
+            ? this.escapeMarkdown(element.description).substring(0, 100)
+            : "";
+
+          lines.push(`| \`${id}\` | ${name} | ${type} | ${desc} |`);
+        }
+
+        lines.push("");
+
+        // Element details
+        lines.push(`### Element Details`);
+        lines.push("");
+
+        for (const element of elements) {
+          lines.push(`#### ${this.escapeMarkdown(element.name)} (\`${element.id}\`)`);
           lines.push("");
 
-          lines.push("**Locations:**");
-          lines.push("");
-          sourceRef.locations.forEach((loc, idx) => {
-            lines.push(`${idx + 1}. \`${this.escapeMarkdown(loc.file)}\``);
-            if (loc.symbol) {
-              lines.push(`   - Symbol: \`${this.escapeMarkdown(loc.symbol)}\``);
-            }
-          });
-          lines.push("");
-
-          if (sourceRef.repository) {
-            lines.push("**Repository Context:**");
+          if (element.description) {
+            lines.push(`${element.description}`);
             lines.push("");
-            if (sourceRef.repository.url) {
-              lines.push(`- Remote: ${sourceRef.repository.url}`);
-            }
-            if (sourceRef.repository.commit) {
-              const shortCommit = sourceRef.repository.commit.substring(0, 7);
-              if (sourceRef.repository.url) {
-                lines.push(`- Commit: [\`${shortCommit}\`](${sourceRef.repository.url}/commit/${sourceRef.repository.commit})`);
-              } else {
-                lines.push(`- Commit: \`${shortCommit}\``);
+          }
+
+          lines.push("**Type:** " + element.type);
+          lines.push("");
+
+          // Source Reference
+          const sourceRef = element.getSourceReference();
+          if (sourceRef) {
+            lines.push("### Source Code Location");
+            lines.push("");
+            lines.push(`**Provenance**: ${sourceRef.provenance}`);
+            lines.push("");
+
+            lines.push("**Locations:**");
+            lines.push("");
+            sourceRef.locations.forEach((loc, idx) => {
+              lines.push(`${idx + 1}. \`${this.escapeMarkdown(loc.file)}\``);
+              if (loc.symbol) {
+                lines.push(`   - Symbol: \`${this.escapeMarkdown(loc.symbol)}\``);
               }
+            });
+            lines.push("");
+
+            if (sourceRef.repository) {
+              lines.push("**Repository Context:**");
+              lines.push("");
+              if (sourceRef.repository.url) {
+                lines.push(`- Remote: ${sourceRef.repository.url}`);
+              }
+              if (sourceRef.repository.commit) {
+                const shortCommit = sourceRef.repository.commit.substring(0, 7);
+                if (sourceRef.repository.url) {
+                  lines.push(
+                    `- Commit: [\`${shortCommit}\`](${sourceRef.repository.url}/commit/${sourceRef.repository.commit})`
+                  );
+                } else {
+                  lines.push(`- Commit: \`${shortCommit}\``);
+                }
+              }
+              lines.push("");
+            }
+          }
+
+          // Properties
+          if (Object.keys(element.properties).length > 0) {
+            lines.push("**Properties:**");
+            lines.push("");
+            lines.push(`| Property | Value |`);
+            lines.push(`| -------- | ----- |`);
+
+            for (const [key, value] of Object.entries(element.properties)) {
+              const displayValue = this.valueToMarkdown(value);
+              lines.push(`| \`${key}\` | ${displayValue} |`);
+            }
+            lines.push("");
+          }
+
+          // References
+          if (element.references.length > 0) {
+            lines.push("**Cross-Layer References:**");
+            lines.push("");
+
+            for (const ref of element.references) {
+              const refDesc = ref.description ? ` - ${this.escapeMarkdown(ref.description)}` : "";
+              lines.push(`- **${ref.type}**: \`${ref.target}\`${refDesc}`);
+            }
+            lines.push("");
+          }
+
+          // Relationships
+          if (element.relationships.length > 0) {
+            lines.push("**Relationships:**");
+            lines.push("");
+
+            for (const rel of element.relationships) {
+              lines.push(`- **${rel.predicate}**: \`${rel.target}\``);
             }
             lines.push("");
           }
         }
 
-        // Properties
-        if (Object.keys(element.properties).length > 0) {
-          lines.push("**Properties:**");
-          lines.push("");
-          lines.push(
-            `| Property | Value |`
-          );
-          lines.push(
-            `| -------- | ----- |`
-          );
+        // Layer summary
+        lines.push(`### Layer Summary`);
+        lines.push("");
+        lines.push(`- **Total Elements:** ${elements.length}`);
 
-          for (const [key, value] of Object.entries(element.properties)) {
-            const displayValue = this.valueToMarkdown(value);
-            lines.push(
-              `| \`${key}\` | ${displayValue} |`
-            );
-          }
-          lines.push("");
-        }
+        const refCount = elements.reduce((sum, e) => sum + e.references.length, 0);
+        const relCount = elements.reduce((sum, e) => sum + e.relationships.length, 0);
 
-        // References
-        if (element.references.length > 0) {
-          lines.push("**Cross-Layer References:**");
-          lines.push("");
+        lines.push(`- **Cross-Layer References:** ${refCount}`);
+        lines.push(`- **Relationships:** ${relCount}`);
 
-          for (const ref of element.references) {
-            const refDesc = ref.description
-              ? ` - ${this.escapeMarkdown(ref.description)}`
-              : "";
-            lines.push(
-              `- **${ref.type}**: \`${ref.target}\`${refDesc}`
-            );
-          }
-          lines.push("");
-        }
+        lines.push("");
+        lines.push("---");
+        lines.push("");
+      }
 
-        // Relationships
-        if (element.relationships.length > 0) {
-          lines.push("**Relationships:**");
-          lines.push("");
+      // Architecture Summary
+      lines.push("## Architecture Summary");
+      lines.push("");
 
-          for (const rel of element.relationships) {
-            lines.push(
-              `- **${rel.predicate}**: \`${rel.target}\``
-            );
-          }
-          lines.push("");
+      let totalElements = 0;
+      let totalReferences = 0;
+      let totalRelationships = 0;
+
+      for (const layerName of layersToExport) {
+        const layer = await model.getLayer(layerName);
+        if (!layer) continue;
+
+        for (const element of layer.listElements()) {
+          totalElements++;
+          totalReferences += element.references.length;
+          totalRelationships += element.relationships.length;
         }
       }
 
-      // Layer summary
-      lines.push(`### Layer Summary`);
+      lines.push(`| Metric | Count |`);
+      lines.push(`| ------ | ----- |`);
+      lines.push(`| Total Elements | ${totalElements} |`);
+      lines.push(`| Cross-Layer References | ${totalReferences} |`);
+      lines.push(`| Relationships | ${totalRelationships} |`);
       lines.push("");
-      lines.push(
-        `- **Total Elements:** ${elements.length}`
-      );
-
-      const refCount = elements.reduce(
-        (sum, e) => sum + e.references.length,
-        0
-      );
-      const relCount = elements.reduce(
-        (sum, e) => sum + e.relationships.length,
-        0
-      );
-
-      lines.push(
-        `- **Cross-Layer References:** ${refCount}`
-      );
-      lines.push(
-        `- **Relationships:** ${relCount}`
-      );
-
-      lines.push("");
-      lines.push("---");
-      lines.push("");
-    }
-
-    // Architecture Summary
-    lines.push("## Architecture Summary");
-    lines.push("");
-
-    let totalElements = 0;
-    let totalReferences = 0;
-    let totalRelationships = 0;
-
-    for (const layerName of layersToExport) {
-      const layer = await model.getLayer(layerName);
-      if (!layer) continue;
-
-      for (const element of layer.listElements()) {
-        totalElements++;
-        totalReferences += element.references.length;
-        totalRelationships += element.relationships.length;
-      }
-    }
-
-    lines.push(
-      `| Metric | Count |`
-    );
-    lines.push(
-      `| ------ | ----- |`
-    );
-    lines.push(
-      `| Total Elements | ${totalElements} |`
-    );
-    lines.push(
-      `| Cross-Layer References | ${totalReferences} |`
-    );
-    lines.push(
-      `| Relationships | ${totalRelationships} |`
-    );
-    lines.push("");
 
       const result = lines.join("\n");
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('export.elementCount', totalElements);
-        (span as any).setAttribute('export.referenceCount', totalReferences);
-        (span as any).setAttribute('export.relationshipCount', totalRelationships);
-        (span as any).setAttribute('export.size', result.length);
+        (span as any).setAttribute("export.elementCount", totalElements);
+        (span as any).setAttribute("export.referenceCount", totalReferences);
+        (span as any).setAttribute("export.relationshipCount", totalRelationships);
+        (span as any).setAttribute("export.size", result.length);
         (span as any).setStatus({ code: 0 });
       }
 
@@ -304,7 +249,10 @@ export class MarkdownExporter implements Exporter {
     } catch (error) {
       if (isTelemetryEnabled && span) {
         (span as any).recordException(error as Error);
-        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+        (span as any).setStatus({
+          code: 2,
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
       throw error;
     } finally {

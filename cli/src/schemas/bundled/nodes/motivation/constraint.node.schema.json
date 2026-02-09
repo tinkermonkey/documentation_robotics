@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Constraint",
+  "description": "Restriction on the way in which a system is realized",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "motivation.constraint"
+    },
+    "layer_id": {
+      "const": "motivation"
+    },
+    "type": {
+      "const": "constraint"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "constraintType": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "required": [
+        "constraintType"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

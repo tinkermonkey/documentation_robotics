@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LogRecord",
+  "description": "OpenTelemetry log entry",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.logrecord"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "logrecord"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "timeUnixNano": {
+          "type": "string"
+        },
+        "observedTimeUnixNano": {
+          "type": "string"
+        },
+        "severityNumber": {
+          "type": "string"
+        },
+        "severityText": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "string"
+        },
+        "droppedAttributesCount": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "timeUnixNano",
+        "observedTimeUnixNano",
+        "severityNumber",
+        "body",
+        "flags",
+        "droppedAttributesCount"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

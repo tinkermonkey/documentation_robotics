@@ -32,25 +32,34 @@ fi
 
 # --- Copy schemas ---
 
-mkdir -p "$BUNDLED_DIR/common"
+# Create base directory
+mkdir -p "$BUNDLED_DIR/base"
 
-spec_count=$(find "$SPEC_SCHEMAS" -name '*.json' -not -path '*/common/*' | wc -l)
+# Copy base schemas
+if [ -d "$SPEC_SCHEMAS/base" ]; then
+  base_count=$(find "$SPEC_SCHEMAS/base" -name '*.json' | wc -l)
+  cp "$SPEC_SCHEMAS/base/"*.json "$BUNDLED_DIR/base/"
+  echo "Copied $base_count base schema files"
+fi
 
-# Root-level JSON files
-cp "$SPEC_SCHEMAS"/*.json "$BUNDLED_DIR/"
-echo "Copied $spec_count root schema files"
+# Copy nodes and relationships directories if they exist
+if [ -d "$SPEC_SCHEMAS/nodes" ]; then
+  mkdir -p "$BUNDLED_DIR/nodes"
+  cp -r "$SPEC_SCHEMAS/nodes/"* "$BUNDLED_DIR/nodes/"
+  echo "Copied nodes directory"
+fi
 
-# Common subdirectory
-if [ -d "$SPEC_SCHEMAS/common" ]; then
-  common_count=$(find "$SPEC_SCHEMAS/common" -name '*.json' | wc -l)
-  cp "$SPEC_SCHEMAS/common/"*.json "$BUNDLED_DIR/common/"
-  echo "Copied $common_count common schema files"
+if [ -d "$SPEC_SCHEMAS/relationships" ]; then
+  mkdir -p "$BUNDLED_DIR/relationships"
+  cp -r "$SPEC_SCHEMAS/relationships/"* "$BUNDLED_DIR/relationships/"
+  echo "Copied relationships directory"
 fi
 
 # --- Validate file count ---
 
 bundled_count=$(find "$BUNDLED_DIR" -name '*.json' | wc -l)
-total_spec=$(find "$SPEC_SCHEMAS" -name '*.json' | wc -l)
+# Exclude relationship-catalog.json from spec count (not bundled anymore)
+total_spec=$(find "$SPEC_SCHEMAS" -name '*.json' ! -name 'relationship-catalog.json' | wc -l)
 
 if [ "$bundled_count" -lt "$total_spec" ]; then
   echo "ERROR: bundled has $bundled_count files but spec has $total_spec" >&2

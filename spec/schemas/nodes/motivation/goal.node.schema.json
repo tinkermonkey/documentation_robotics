@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Goal",
+  "description": "High-level statement of intent, direction, or desired end state",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "motivation.goal"
+    },
+    "layer_id": {
+      "const": "motivation"
+    },
+    "type": {
+      "const": "goal"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "required": [
+        "priority"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

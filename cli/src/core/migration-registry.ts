@@ -5,7 +5,7 @@
  * supporting the evolution of the architecture model specification.
  */
 
-import type { Model } from './model.js';
+import type { Model } from "./model.js";
 
 /**
  * Represents a single version migration
@@ -44,44 +44,45 @@ export class MigrationRegistry {
   private registerMigrations(): void {
     // Migration from v0.5.0 to v0.6.0: Relationship Taxonomy
     this.migrations.push({
-      fromVersion: '0.5.0',
-      toVersion: '0.6.0',
-      description: 'Relationship Taxonomy (Spec v0.6.0)',
+      fromVersion: "0.5.0",
+      toVersion: "0.6.0",
+      description: "Relationship Taxonomy (Spec v0.6.0)",
       apply: async () => {
         // This migration is opt-in - the new relationship taxonomy
         // is fully backward compatible with existing models
         return {
           migrationsApplied: 1,
           filesModified: 0,
-          description: 'Spec version updated to 0.6.0 (Relationship Taxonomy now available)',
+          description: "Spec version updated to 0.6.0 (Relationship Taxonomy now available)",
         };
       },
     });
 
     // Migration from v0.6.0 to v0.7.0: Layer Schema Relationship Metadata
     this.migrations.push({
-      fromVersion: '0.6.0',
-      toVersion: '0.7.0',
-      description: 'Layer Schema Relationship Metadata (Spec v0.7.0)',
+      fromVersion: "0.6.0",
+      toVersion: "0.7.0",
+      description: "Layer Schema Relationship Metadata (Spec v0.7.0)",
       apply: async () => {
         // This migration updates layer schemas with relationship metadata sections
         // - All 12 layer schemas now include layerMetadata, intraLayerRelationships, crossLayerRelationships
-        // - Deprecates link-registry.json (will be removed in v0.8.0)
+        // - Deprecated link-registry.json (removed in v0.8.0)
         // - Terminology change: "cross-layer links" → "cross-layer relationships"
         // Fully backward compatible - existing models continue to work
         return {
           migrationsApplied: 1,
           filesModified: 0,
-          description: 'Spec version updated to 0.7.0 (Layer schemas now include relationship metadata sections)',
+          description:
+            "Spec version updated to 0.7.0 (Layer schemas now include relationship metadata sections)",
         };
       },
     });
 
     // Migration from v0.7.0 to v0.7.1: Source Code Reference Infrastructure
     this.migrations.push({
-      fromVersion: '0.7.0',
-      toVersion: '0.7.1',
-      description: 'Source Code Reference Infrastructure (Spec v0.7.1)',
+      fromVersion: "0.7.0",
+      toVersion: "0.7.1",
+      description: "Source Code Reference Infrastructure (Spec v0.7.1)",
       apply: async () => {
         // This migration adds source code reference infrastructure
         // - Common schema definitions in spec/schemas/common/
@@ -90,7 +91,7 @@ export class MigrationRegistry {
         return {
           migrationsApplied: 1,
           filesModified: 0,
-          description: 'Spec version updated to 0.7.1 (Source Code Reference Infrastructure)',
+          description: "Spec version updated to 0.7.1 (Source Code Reference Infrastructure)",
         };
       },
     });
@@ -101,7 +102,7 @@ export class MigrationRegistry {
    */
   getLatestVersion(): string {
     if (this.migrations.length === 0) {
-      return '0.7.0';
+      return "0.7.0";
     }
 
     // Return the highest toVersion from all migrations
@@ -254,8 +255,8 @@ export class MigrationRegistry {
    * Returns: -1 if a < b, 0 if a == b, 1 if a > b
    */
   private compareVersions(a: string, b: string): number {
-    const aParts = a.split('.').map(Number);
-    const bParts = b.split('.').map(Number);
+    const aParts = a.split(".").map(Number);
+    const bParts = b.split(".").map(Number);
 
     const maxLength = Math.max(aParts.length, bParts.length);
 

@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TargetInputField",
+  "description": "Input field associated with a coverage target",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.targetinputfield"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "targetinputfield"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "fieldRef": {
+          "type": "string"
+        },
+        "partitionRef": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "relevance": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "fieldRef",
+        "partitionRef"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

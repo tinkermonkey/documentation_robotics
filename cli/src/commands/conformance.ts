@@ -2,74 +2,69 @@
  * Conformance Command - Validates model against layer specifications
  */
 
-import ansis from 'ansis';
-import { Model } from '../core/model.js';
+import ansis from "ansis";
+import { Model } from "../core/model.js";
 
 /**
  * Expected element types per layer
  */
 const LAYER_ELEMENT_TYPES: Record<string, string[]> = {
-  'motivation': ['stakeholder', 'goal', 'requirement', 'principle'],
-  'business': ['business-service', 'business-process', 'business-actor'],
-  'security': ['authentication-mechanism', 'authorization-policy', 'threat', 'security-control'],
-  'application': ['application-service', 'application-component', 'application-interface'],
-  'technology': ['technology-service', 'technology-component', 'infrastructure-service'],
-  'api': ['rest-resource', 'rest-operation', 'api-specification'],
-  'data-model': ['entity', 'value-object', 'relationship', 'attribute'],
-  'data-store': ['database', 'table', 'storage-service'],
-  'ux': ['ux-application', 'ux-library', 'ux-spec', 'screen', 'component'],
-  'navigation': ['navigation-path', 'navigation-transition', 'route'],
-  'apm': ['metric', 'trace', 'log-source', 'alert-rule'],
-  'testing': ['test-strategy', 'test-case', 'test-data', 'test-result'],
+  motivation: ["stakeholder", "goal", "requirement", "principle"],
+  business: ["business-service", "business-process", "business-actor"],
+  security: ["authentication-mechanism", "authorization-policy", "threat", "security-control"],
+  application: ["application-service", "application-component", "application-interface"],
+  technology: ["technology-service", "technology-component", "infrastructure-service"],
+  api: ["rest-resource", "rest-operation", "api-specification"],
+  "data-model": ["entity", "value-object", "relationship", "attribute"],
+  "data-store": ["database", "table", "storage-service"],
+  ux: ["ux-application", "ux-library", "ux-spec", "screen", "component"],
+  navigation: ["navigation-path", "navigation-transition", "route"],
+  apm: ["metric", "trace", "log-source", "alert-rule"],
+  testing: ["test-strategy", "test-case", "test-data", "test-result"],
 };
 
 /**
  * Expected cross-layer relationships per layer
  */
-const LAYER_RELATIONSHIPS: Record<string, Array<{
-  target: string;
-  relationship: string;
-}>> = {
-  'business': [
-    { target: 'motivation', relationship: 'realizes' },
+const LAYER_RELATIONSHIPS: Record<
+  string,
+  Array<{
+    target: string;
+    relationship: string;
+  }>
+> = {
+  business: [{ target: "motivation", relationship: "realizes" }],
+  application: [
+    { target: "business", relationship: "realizes" },
+    { target: "security", relationship: "uses" },
   ],
-  'application': [
-    { target: 'business', relationship: 'realizes' },
-    { target: 'security', relationship: 'uses' },
+  technology: [
+    { target: "application", relationship: "hosts" },
+    { target: "security", relationship: "implements" },
   ],
-  'technology': [
-    { target: 'application', relationship: 'hosts' },
-    { target: 'security', relationship: 'implements' },
+  api: [{ target: "application", relationship: "exposes" }],
+  "data-model": [{ target: "application", relationship: "used-by" }],
+  "data-store": [
+    { target: "technology", relationship: "runs-on" },
+    { target: "data-model", relationship: "implements" },
   ],
-  'api': [
-    { target: 'application', relationship: 'exposes' },
+  ux: [
+    { target: "application", relationship: "implements" },
+    { target: "navigation", relationship: "uses" },
   ],
-  'data-model': [
-    { target: 'application', relationship: 'used-by' },
+  navigation: [{ target: "ux", relationship: "defines" }],
+  apm: [
+    { target: "technology", relationship: "monitors" },
+    { target: "application", relationship: "monitors" },
   ],
-  'data-store': [
-    { target: 'technology', relationship: 'runs-on' },
-    { target: 'data-model', relationship: 'implements' },
-  ],
-  'ux': [
-    { target: 'application', relationship: 'implements' },
-    { target: 'navigation', relationship: 'uses' },
-  ],
-  'navigation': [
-    { target: 'ux', relationship: 'defines' },
-  ],
-  'apm': [
-    { target: 'technology', relationship: 'monitors' },
-    { target: 'application', relationship: 'monitors' },
-  ],
-  'testing': [
-    { target: 'application', relationship: 'tests' },
-    { target: 'api', relationship: 'tests' },
+  testing: [
+    { target: "application", relationship: "tests" },
+    { target: "api", relationship: "tests" },
   ],
 };
 
 interface ConformanceIssue {
-  severity: 'error' | 'warning';
+  severity: "error" | "warning";
   message: string;
 }
 
@@ -92,7 +87,7 @@ export async function conformanceCommand(options: {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
 
     if (!options.json) {
-      console.log(ansis.bold('\nChecking conformance to layer specifications...\n'));
+      console.log(ansis.bold("\nChecking conformance to layer specifications...\n"));
     }
 
     const results: Record<string, ConformanceResult> = {};
@@ -122,8 +117,8 @@ export async function conformanceCommand(options: {
 
       if (missingTypes.length > 0) {
         issues.push({
-          severity: 'warning',
-          message: `Missing element types: ${missingTypes.join(', ')}`,
+          severity: "warning",
+          message: `Missing element types: ${missingTypes.join(", ")}`,
         });
       }
 
@@ -132,14 +127,14 @@ export async function conformanceCommand(options: {
         // Require id and type
         if (!element.id) {
           issues.push({
-            severity: 'error',
+            severity: "error",
             message: `Element missing required property: id`,
           });
         }
 
         if (!element.type) {
           issues.push({
-            severity: 'error',
+            severity: "error",
             message: `Element missing required property: type`,
           });
         }
@@ -147,7 +142,7 @@ export async function conformanceCommand(options: {
         // Check for name field (recommended in v0.4.0+)
         if (!element.properties.name && !element.properties.description) {
           issues.push({
-            severity: 'warning',
+            severity: "warning",
             message: `Element ${element.id} should have a name or description`,
           });
         }
@@ -163,14 +158,14 @@ export async function conformanceCommand(options: {
         // In a full implementation, check model.relationshipRegistry for actual relationships
         // For now, just document that the layer has expected cross-layer relationships defined
         issues.push({
-          severity: 'warning',
+          severity: "warning",
           message: `Expected relationship to ${expectedRel.target}: ${expectedRel.relationship}`,
         });
       }
 
       // Populate results
       results[layerName] = {
-        compliant: issues.filter((i) => i.severity === 'error').length === 0,
+        compliant: issues.filter((i) => i.severity === "error").length === 0,
         issues,
         stats: {
           elementCount: elements.length,
@@ -202,7 +197,7 @@ export async function conformanceCommand(options: {
     }
 
     // Display results
-    console.log(ansis.dim('Layer conformance:'));
+    console.log(ansis.dim("Layer conformance:"));
     console.log();
 
     for (const [layerName, result] of Object.entries(results)) {
@@ -214,27 +209,21 @@ export async function conformanceCommand(options: {
         if (options.verbose) {
           for (const issue of result.issues) {
             const prefix =
-              issue.severity === 'error'
-                ? ansis.red('[ERROR]')
-                : ansis.yellow('[WARNING]');
+              issue.severity === "error" ? ansis.red("[ERROR]") : ansis.yellow("[WARNING]");
             console.log(ansis.dim(`  ${prefix} ${issue.message}`));
           }
         }
       }
 
       console.log(
-        ansis.dim(
-          `  Elements: ${result.stats.elementCount}, Types: ${result.stats.elementTypes}`
-        )
+        ansis.dim(`  Elements: ${result.stats.elementCount}, Types: ${result.stats.elementTypes}`)
       );
       console.log();
     }
 
     // Summary
-    console.log(ansis.dim('Summary:'));
-    console.log(
-      ansis.dim(`  Compliant layers: ${compliantLayers}/${Object.keys(results).length}`)
-    );
+    console.log(ansis.dim("Summary:"));
+    console.log(ansis.dim(`  Compliant layers: ${compliantLayers}/${Object.keys(results).length}`));
     console.log(ansis.dim(`  Total issues: ${totalIssues}`));
     console.log();
 
@@ -242,19 +231,13 @@ export async function conformanceCommand(options: {
       console.log(ansis.green(`✓ Model is fully conformant`));
     } else {
       console.log(
-        ansis.yellow(
-          `⚠ Model has conformance issues. Run 'dr validate' for more details.`
-        )
+        ansis.yellow(`⚠ Model has conformance issues. Run 'dr validate' for more details.`)
       );
     }
 
     console.log();
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
   }
 }

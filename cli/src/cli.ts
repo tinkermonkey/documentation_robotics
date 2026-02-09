@@ -8,58 +8,64 @@
  * Telemetry is controlled by the TELEMETRY_ENABLED build-time constant.
  */
 
-import { Command } from 'commander';
-import { setGlobalOptions } from './utils/globals.js';
-import { initCommand } from './commands/init.js';
-import { addCommand } from './commands/add.js';
-import { updateCommand } from './commands/update.js';
-import { deleteCommand } from './commands/delete.js';
-import { showCommand } from './commands/show.js';
-import { listCommand } from './commands/list.js';
-import { searchCommand } from './commands/search.js';
-import { validateCommand } from './commands/validate.js';
-import { infoCommand } from './commands/info.js';
-import { elementCommands } from './commands/element.js';
-import { relationshipCommands } from './commands/relationship.js';
-import { catalogCommands } from './commands/catalog.js';
-import { traceCommand } from './commands/trace.js';
-import { projectCommand, projectAllCommand } from './commands/project.js';
-import { exportCommand } from './commands/export.js';
-import { chatCommand } from './commands/chat.js';
-import { upgradeCommand } from './commands/upgrade.js';
-import { conformanceCommand } from './commands/conformance.js';
-import { changesetCommands } from './commands/changeset.js';
-import { claudeCommands } from './commands/claude.js';
-import { copilotCommands } from './commands/copilot.js';
-import { versionCommand } from './commands/version.js';
-import { statsCommand } from './commands/stats.js';
-import { initTelemetry, startActiveSpan, shutdownTelemetry } from './telemetry/index.js';
-import { installConsoleInterceptor } from './telemetry/console-interceptor.js';
-import { readJSON, fileExists } from './utils/file-io.js';
+import { Command } from "commander";
+import { setGlobalOptions } from "./utils/globals.js";
+import { initCommand } from "./commands/init.js";
+import { addCommand } from "./commands/add.js";
+import { updateCommand } from "./commands/update.js";
+import { deleteCommand } from "./commands/delete.js";
+import { showCommand } from "./commands/show.js";
+import { listCommand } from "./commands/list.js";
+import { searchCommand } from "./commands/search.js";
+import { validateCommand } from "./commands/validate.js";
+import { infoCommand } from "./commands/info.js";
+import { elementCommands } from "./commands/element.js";
+import { relationshipCommands } from "./commands/relationship.js";
+import { catalogCommands } from "./commands/catalog.js";
+import { docsCommands } from "./commands/docs.js";
+import { traceCommand } from "./commands/trace.js";
+import { projectCommand, projectAllCommand } from "./commands/project.js";
+import { exportCommand } from "./commands/export.js";
+import { importCommand } from "./commands/import.js";
+import { graphMigrateCommand } from "./commands/graph-migrate.js";
+import { modelMigrateCommand, migrateRollbackCommand } from "./commands/model-migrate.js";
+import { chatCommand } from "./commands/chat.js";
+import { upgradeCommand } from "./commands/upgrade.js";
+import { conformanceCommand } from "./commands/conformance.js";
+import { changesetCommands } from "./commands/changeset.js";
+import { claudeCommands } from "./commands/claude.js";
+import { copilotCommands } from "./commands/copilot.js";
+import { versionCommand } from "./commands/version.js";
+import { statsCommand } from "./commands/stats.js";
+import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
+import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
+import { readJSON, fileExists } from "./utils/file-io.js";
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
 declare const TELEMETRY_ENABLED: boolean;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
  * Extract exit code from an error object.
  * Handles CLIError instances and duck-typed objects with exitCode property.
  */
 async function extractExitCode(error: unknown): Promise<number> {
-  const { CLIError } = await import('./utils/errors.js');
+  const { CLIError } = await import("./utils/errors.js");
 
   if (error instanceof CLIError) {
     return error.exitCode;
   }
 
   // Fallback for duck-typing (handles bundling/module issues)
-  if (error && typeof error === 'object' && 'exitCode' in error) {
+  if (error && typeof error === "object" && "exitCode" in error) {
     const errorObj = error as any;
-    if (typeof errorObj.exitCode === 'number') {
+    if (typeof errorObj.exitCode === "number") {
       // Validate this looks like a CLIError before accepting
-      if (errorObj.name === 'CLIError' || errorObj.message) {
-        console.warn('[DEBUG] Using duck-typed error object as fallback - this may indicate a module loading issue');
+      if (errorObj.name === "CLIError" || errorObj.message) {
+        console.warn(
+          "[DEBUG] Using duck-typed error object as fallback - this may indicate a module loading issue"
+        );
         return errorObj.exitCode;
       }
     }
@@ -72,7 +78,7 @@ async function extractExitCode(error: unknown): Promise<number> {
 async function getCliVersion(): Promise<string> {
   const possiblePaths = [
     `${process.cwd()}/package.json`,
-    `${import.meta.url.replace('file://', '').split('/src/')[0]}/package.json`,
+    `${import.meta.url.replace("file://", "").split("/src/")[0]}/package.json`,
   ];
 
   for (const path of possiblePaths) {
@@ -86,9 +92,8 @@ async function getCliVersion(): Promise<string> {
     }
   }
 
-  return '0.1.0';
+  return "0.1.0";
 }
-
 
 const cliVersion = await getCliVersion();
 
@@ -96,20 +101,20 @@ const program = new Command();
 
 // Handle --version and -V flags by redirecting to version command
 // This ensures they go through the telemetry wrapper
-if (process.argv.includes('--version') || process.argv.includes('-V')) {
-  process.argv = ['node', 'dr', 'version'];
+if (process.argv.includes("--version") || process.argv.includes("-V")) {
+  process.argv = ["node", "dr", "version"];
 }
 
 // Store active command span for automatic instrumentation
 let commandSpan: any = null;
 
 program
-  .name('dr')
-  .description('Documentation Robotics CLI - Architecture Model Management')
-  .option('-v, --verbose', 'Enable verbose output')
-  .option('--debug', 'Enable debug mode')
-  .exitOverride()  // Prevent Commander from calling process.exit() - we handle exit ourselves
-  .hook('preAction', async (thisCommand, actionCommand) => {
+  .name("dr")
+  .description("Documentation Robotics CLI - Architecture Model Management")
+  .option("-v, --verbose", "Enable verbose output")
+  .option("--debug", "Enable debug mode")
+  .exitOverride() // Prevent Commander from calling process.exit() - we handle exit ourselves
+  .hook("preAction", async (thisCommand, actionCommand) => {
     // Set up global state (verbose/debug flags)
     const options = thisCommand.opts();
     setGlobalOptions({
@@ -119,21 +124,21 @@ program
 
     // Automatic telemetry: Create span for every command
     if (isTelemetryEnabled) {
-      const { startSpan } = await import('./telemetry/index.js');
+      const { startSpan } = await import("./telemetry/index.js");
       // Use actionCommand to get the actual command being executed
       const commandName = actionCommand.name();
       const commandArgs = actionCommand.args;
 
       commandSpan = startSpan(`${commandName}.execute`, {
-        'command.name': commandName,
-        'command.args': JSON.stringify(commandArgs),
+        "command.name": commandName,
+        "command.args": JSON.stringify(commandArgs),
       });
     }
   })
-  .hook('postAction', async () => {
+  .hook("postAction", async () => {
     // Automatic telemetry: End command span
     if (isTelemetryEnabled && commandSpan) {
-      const { endSpan } = await import('./telemetry/index.js');
+      const { endSpan } = await import("./telemetry/index.js");
       endSpan(commandSpan);
       commandSpan = null;
     }
@@ -141,13 +146,13 @@ program
 
 // Model commands
 program
-  .command('init [name]')
-  .description('Initialize a new architecture model')
-  .option('--name <name>', 'Model name (overrides positional argument)')
-  .option('--author <author>', 'Model author')
-  .option('--description <desc>', 'Model description')
+  .command("init [name]")
+  .description("Initialize a new architecture model")
+  .option("--name <name>", "Model name (overrides positional argument)")
+  .option("--author <author>", "Model author")
+  .option("--description <desc>", "Model description")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr init
@@ -158,18 +163,18 @@ Examples:
   .action((name, options) => initCommand({ ...options, name: options.name || name }));
 
 program
-  .command('add <layer> <type> <name>')
-  .description('Add an element to a layer')
-  .option('--name <name>', 'Element display name (defaults to the name argument)')
-  .option('--description <desc>', 'Element description')
-  .option('--properties <json>', 'Element properties as JSON object')
-  .option('--source-file <path>', 'Source file path (relative from repository root)')
-  .option('--source-symbol <name>', 'Symbol name (class, function, variable) in source file')
-  .option('--source-provenance <type>', 'Provenance type: extracted, manual, inferred, generated')
-  .option('--source-repo-remote <url>', 'Git remote URL for repository context')
-  .option('--source-repo-commit <sha>', 'Git commit SHA (40 hex characters) for repository context')
+  .command("add <layer> <type> <name>")
+  .description("Add an element to a layer")
+  .option("--name <name>", "Element display name (defaults to the name argument)")
+  .option("--description <desc>", "Element description")
+  .option("--properties <json>", "Element properties as JSON object")
+  .option("--source-file <path>", "Source file path (relative from repository root)")
+  .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file")
+  .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")
+  .option("--source-repo-remote <url>", "Git remote URL for repository context")
+  .option("--source-repo-commit <sha>", "Git commit SHA (40 hex characters) for repository context")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr add business service "Customer Management"
@@ -182,19 +187,19 @@ Note: Element IDs are generated automatically in format {layer}.{type}.{kebab-na
   .action(addCommand);
 
 program
-  .command('update <id>')
-  .description('Update an element')
-  .option('--name <name>', 'New element name')
-  .option('--description <desc>', 'New description')
-  .option('--properties <json>', 'Updated properties (JSON)')
-  .option('--source-file <path>', 'Source file path (relative from repository root)')
-  .option('--source-symbol <name>', 'Symbol name (class, function, variable) in source file')
-  .option('--source-provenance <type>', 'Provenance type: extracted, manual, inferred, generated')
-  .option('--source-repo-remote <url>', 'Git remote URL for repository context')
-  .option('--source-repo-commit <sha>', 'Git commit SHA (40 hex characters) for repository context')
-  .option('--clear-source-reference', 'Remove source reference from element')
+  .command("update <id>")
+  .description("Update an element")
+  .option("--name <name>", "New element name")
+  .option("--description <desc>", "New description")
+  .option("--properties <json>", "Updated properties (JSON)")
+  .option("--source-file <path>", "Source file path (relative from repository root)")
+  .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file")
+  .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")
+  .option("--source-repo-remote <url>", "Git remote URL for repository context")
+  .option("--source-repo-commit <sha>", "Git commit SHA (40 hex characters) for repository context")
+  .option("--clear-source-reference", "Remove source reference from element")
   .addHelpText(
-    'after',
+    "after",
     `
 Note: Changes are written immediately to model files.
 To track changes for review, activate a changeset first:
@@ -208,13 +213,13 @@ Examples:
   .action(updateCommand);
 
 program
-  .command('delete <id>')
-  .description('Delete an element')
-  .option('--force', 'Skip confirmation prompt and dependency checks')
-  .option('--cascade', 'Remove dependent elements automatically')
-  .option('--dry-run', 'Show what would be removed without actually removing')
+  .command("delete <id>")
+  .description("Delete an element")
+  .option("--force", "Skip confirmation prompt and dependency checks")
+  .option("--cascade", "Remove dependent elements automatically")
+  .option("--dry-run", "Show what would be removed without actually removing")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr delete api-endpoint-old-endpoint
@@ -226,11 +231,11 @@ Examples:
   .action(deleteCommand);
 
 program
-  .command('show <id>')
-  .description('Display element details')
-  .option('--model <path>', 'Path to model root (contains model/manifest.yaml)')
+  .command("show <id>")
+  .description("Display element details")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr show api-endpoint-create-customer
@@ -239,13 +244,13 @@ Examples:
   .action((id, options) => showCommand(id, options));
 
 program
-  .command('list <layer>')
-  .description('List elements in a layer')
-  .option('--type <type>', 'Filter by element type')
-  .option('--json', 'Output as JSON')
-  .option('--model <path>', 'Path to model root (contains model/manifest.yaml)')
+  .command("list <layer>")
+  .description("List elements in a layer")
+  .option("--type <type>", "Filter by element type")
+  .option("--json", "Output as JSON")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr list api
@@ -255,14 +260,17 @@ Examples:
   .action(listCommand);
 
 program
-  .command('search <query>')
-  .description('Search for elements by name or ID')
-  .option('--layer <layer>', 'Limit search to specific layer')
-  .option('--type <type>', 'Filter by element type')
-  .option('--source-file <path>', 'Find elements referencing a source file (takes precedence over pattern matching)')
-  .option('--json', 'Output as JSON')
+  .command("search <query>")
+  .description("Search for elements by name or ID")
+  .option("--layer <layer>", "Limit search to specific layer")
+  .option("--type <type>", "Filter by element type")
+  .option(
+    "--source-file <path>",
+    "Find elements referencing a source file (takes precedence over pattern matching)"
+  )
+  .option("--json", "Output as JSON")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr search customer
@@ -273,24 +281,24 @@ Examples:
   .action(searchCommand);
 
 program
-  .command('validate')
-  .description('Validate the architecture model')
-  .option('--layers <layers...>', 'Specific layers to validate')
-  .option('--strict', 'Treat warnings as errors')
-  .option('--verbose', 'Show detailed validation output with relationship breakdown')
-  .option('--quiet', 'Show minimal output')
-  .option('--output <path>', 'Export validation report to file (JSON or Markdown)')
-  .option('--model <path>', 'Path to model root (contains model/manifest.yaml)')
-  .option('--all', 'Run all validations (default behavior)')
-  .option('--markdown', 'Validate markdown structure')
-  .option('--schemas', 'Validate JSON schemas')
-  .option('--schema', 'Validate JSON schemas (alias for --schemas)')
-  .option('--relationships', 'Validate relationships')
-  .option('--structure', 'Validate documentation structure')
-  .option('--naming', 'Validate naming conventions')
-  .option('--references', 'Validate cross-layer references')
+  .command("validate")
+  .description("Validate the architecture model")
+  .option("--layers <layers...>", "Specific layers to validate")
+  .option("--strict", "Treat warnings as errors")
+  .option("--verbose", "Show detailed validation output with relationship breakdown")
+  .option("--quiet", "Show minimal output")
+  .option("--output <path>", "Export validation report to file (JSON or Markdown)")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+  .option("--all", "Run all validations (default behavior)")
+  .option("--markdown", "Validate markdown structure")
+  .option("--schemas", "Validate JSON schemas")
+  .option("--schema", "Validate JSON schemas (alias for --schemas)")
+  .option("--relationships", "Validate relationships")
+  .option("--structure", "Validate documentation structure")
+  .option("--naming", "Validate naming conventions")
+  .option("--references", "Validate cross-layer references")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr validate
@@ -306,14 +314,14 @@ Examples:
   .action(validateCommand);
 
 program
-  .command('export <format>')
-  .description('Export the architecture model to various formats')
-  .option('--output <path>', 'Output file path (default: print to stdout)')
-  .option('--layers <layers...>', 'Specific layers to export')
-  .option('--model <path>', 'Path to model root directory or manifest.yaml file')
-  .option('--include-sources', 'Include source file paths in PlantUML diagrams as notes')
+  .command("export <format>")
+  .description("Export the architecture model to various formats")
+  .option("--output <path>", "Output file path (default: print to stdout)")
+  .option("--layers <layers...>", "Specific layers to export")
+  .option("--model <path>", "Path to model root directory or manifest.yaml file")
+  .option("--include-sources", "Include source file paths in PlantUML diagrams as notes")
   .addHelpText(
-    'after',
+    "after",
     `
 Supported formats:
   archimate    Export to ArchiMate XML (layers 1, 2, 4, 5)
@@ -340,11 +348,93 @@ Examples:
   });
 
 program
-  .command('info')
-  .description('Show model information')
-  .option('--layer <layer>', 'Show specific layer details')
+  .command("import <format>")
+  .description("Import architecture model from various formats")
+  .option("--input <path>", "Input file path (required)", undefined)
+  .option("--model <path>", "Path to model root directory or manifest.yaml file")
+  .option(
+    "--merge-strategy <strategy>",
+    "How to handle existing elements: add, update, skip (default: add)"
+  )
   .addHelpText(
-    'after',
+    "after",
+    `
+Supported formats:
+  archimate    Import from ArchiMate XML (layers 1, 2, 4, 5)
+  openapi      Import from OpenAPI 3.0 specification (layer 6)
+
+Examples:
+  $ dr import archimate --input model.xml
+  $ dr import openapi --input api.json --merge-strategy add
+  $ dr import archimate --input model.xml --model ./myproject`
+  )
+  .action(async (format, options) => {
+    if (!options.input) {
+      console.error("Error: --input path is required");
+      process.exit(1);
+    }
+    await importCommand({
+      format,
+      input: options.input,
+      model: options.model,
+      mergeStrategy: options.mergeStrategy as "add" | "update" | "skip" | undefined,
+    });
+  });
+
+program
+  .command("graph-migrate <format>")
+  .description("Transform architecture model to graph database format")
+  .option("--output <path>", "Output file path")
+  .option("--model <path>", "Path to model root directory")
+  .option("--dry-run", "Preview migration without writing files")
+  .option("--validate", "Validate model before migration")
+  .option("--drop-existing", "Drop existing data in Neo4j before import")
+  .option("--batch-size <size>", "Batch size for database imports (default: 1000)")
+  .option("--include-properties", "Include element properties in migration")
+  .option("--include-metadata", "Include metadata in migration")
+  .option("--compress", "Compress output (LadybugDB only)")
+  .addHelpText(
+    "after",
+    `
+Supported formats:
+  neo4j      Neo4j Cypher script for graph database import
+  cypher     Alias for neo4j format
+  ladybug    LadybugDB JSON document format
+  gremlin    Apache Gremlin Groovy script
+  graphml    GraphML XML format (same as 'dr export graphml')
+
+Examples:
+  $ dr graph-migrate neo4j --output model.cypher
+  $ dr graph-migrate ladybug --output model.lbug.json
+  $ dr graph-migrate gremlin --output model.groovy
+  $ dr graph-migrate cypher --dry-run
+
+Graph Database Setup:
+  Neo4j:     neo4j-admin import --from-neo4j-uri=<path-to-cypher-file>
+  LadybugDB: ladybug import model.lbug.json
+  Gremlin:   bin/gremlin.sh < model.groovy`
+  )
+  .action(async (format, options) => {
+    await graphMigrateCommand({
+      format: format.toLowerCase(),
+      output: options.output,
+      model: options.model,
+      dryRun: options.dryRun,
+      validate: options.validate,
+      dropExisting: options.dropExisting,
+      batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+      includeProperties: options.includeProperties,
+      includeMetadata: options.includeMetadata,
+      compress: options.compress,
+    } as any);
+  });
+
+program
+  .command("info")
+  .description("Show model information")
+  .option("--layer <layer>", "Show specific layer details")
+  .addHelpText(
+    "after",
     `
 Examples:
   $ dr info
@@ -353,15 +443,15 @@ Examples:
   .action(infoCommand);
 
 program
-  .command('stats')
-  .description('Display model statistics and health metrics')
-  .option('--model <path>', 'Path to the model directory')
-  .option('--format <format>', 'Output format: text (default), json, markdown, compact')
-  .option('--output <path>', 'Output file path (auto-detects format from extension)')
-  .option('--compact', 'Show compact one-line summary')
-  .option('--verbose', 'Show detailed information')
+  .command("stats")
+  .description("Display model statistics and health metrics")
+  .option("--model <path>", "Path to the model directory")
+  .option("--format <format>", "Output format: text (default), json, markdown, compact")
+  .option("--output <path>", "Output file path (auto-detects format from extension)")
+  .option("--compact", "Show compact one-line summary")
+  .option("--verbose", "Show detailed information")
   .addHelpText(
-    'after',
+    "after",
     `
 Output formats:
   text       Full formatted statistics (default)
@@ -380,30 +470,32 @@ Examples:
   .action((options) => statsCommand(options));
 
 // Element subcommands
-const elementGroup = program
-  .command('element')
-  .description('Element operations');
+const elementGroup = program.command("element").description("Element operations");
 elementCommands(elementGroup);
 
 // Relationship subcommands
-const relationshipGroup = program
-  .command('relationship')
-  .description('Relationship operations');
+const relationshipGroup = program.command("relationship").description("Relationship operations");
 relationshipCommands(relationshipGroup);
 
 // Catalog subcommands (modern relationship catalog)
 catalogCommands(program);
 
+// Documentation subcommands (schema-driven generation)
+docsCommands(program);
+
 // Dependency analysis commands
 program
-  .command('trace <elementId>')
-  .description('Trace dependencies for an element')
-  .option('--direction <dir>', 'Trace direction: up (dependencies), down (dependents), both (default)')
-  .option('--depth <num>', 'Maximum traversal depth')
-  .option('--metrics', 'Show graph and element metrics')
-  .option('--model <path>', 'Path to model root (contains model/manifest.yaml)')
+  .command("trace <elementId>")
+  .description("Trace dependencies for an element")
+  .option(
+    "--direction <dir>",
+    "Trace direction: up (dependencies), down (dependents), both (default)"
+  )
+  .option("--depth <num>", "Maximum traversal depth")
+  .option("--metrics", "Show graph and element metrics")
+  .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr trace api-endpoint-create-customer
@@ -412,7 +504,7 @@ Examples:
   )
   .action(async (elementId, options) => {
     await traceCommand(elementId, {
-      direction: options.direction as 'up' | 'down' | 'both' | undefined,
+      direction: options.direction as "up" | "down" | "both" | undefined,
       depth: options.depth ? parseInt(options.depth) : undefined,
       showMetrics: options.metrics,
       model: options.model,
@@ -420,14 +512,14 @@ Examples:
   });
 
 program
-  .command('project <elementId> <targetLayers>')
-  .description('Project an element to other layers using projection rules')
-  .option('--rule <name>', 'Specific projection rule to use')
-  .option('--dry-run', 'Show what would be created without saving')
-  .option('--force', 'Overwrite existing elements')
-  .option('--model <path>', 'Path to model directory')
+  .command("project <elementId> <targetLayers>")
+  .description("Project an element to other layers using projection rules")
+  .option("--rule <name>", "Specific projection rule to use")
+  .option("--dry-run", "Show what would be created without saving")
+  .option("--force", "Overwrite existing elements")
+  .option("--model <path>", "Path to model directory")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr project application.service.api-service "api,data-model"
@@ -444,14 +536,14 @@ Examples:
   });
 
 program
-  .command('project-all')
-  .description('Project all applicable elements based on rules')
-  .option('--from <layer>', 'Source layer filter')
-  .option('--to <layer>', 'Target layer filter')
-  .option('--dry-run', 'Show what would be created without saving')
-  .option('--model <path>', 'Path to model directory')
+  .command("project-all")
+  .description("Project all applicable elements based on rules")
+  .option("--from <layer>", "Source layer filter")
+  .option("--to <layer>", "Target layer filter")
+  .option("--dry-run", "Show what would be created without saving")
+  .option("--model <path>", "Path to model directory")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr project-all --from application --to api
@@ -468,16 +560,19 @@ Examples:
   });
 
 program
-  .command('visualize')
-  .description('Launch visualization server with WebSocket support')
-  .option('--port <num>', 'Server port (default: 8080)')
-  .option('--no-browser', 'Do not auto-open browser')
-  .option('--no-auth', 'Disable authentication (enabled by default)')
-  .option('--token <token>', 'Custom auth token (auto-generated by default)')
-  .option('--with-danger', 'Enable dangerous mode for chat (skip permissions)')
-  .option('--viewer-path <path>', 'Path to custom viewer build (e.g., ./dist/embedded/dr-viewer-bundle)')
+  .command("visualize")
+  .description("Launch visualization server with WebSocket support")
+  .option("--port <num>", "Server port (default: 8080)")
+  .option("--no-browser", "Do not auto-open browser")
+  .option("--no-auth", "Disable authentication (enabled by default)")
+  .option("--token <token>", "Custom auth token (auto-generated by default)")
+  .option("--with-danger", "Enable dangerous mode for chat (skip permissions)")
+  .option(
+    "--viewer-path <path>",
+    "Path to custom viewer build (e.g., ./dist/embedded/dr-viewer-bundle)"
+  )
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr visualize
@@ -497,7 +592,7 @@ The --viewer-path option allows loading a local build of the web UI:
   - Useful for developing custom viewers or using bundled distributions`
   )
   .action(async (options) => {
-    const { visualizeCommand } = await import('./commands/visualize.js');
+    const { visualizeCommand } = await import("./commands/visualize.js");
     await visualizeCommand({
       port: options.port,
       noBrowser: options.browser === false, // Commander sets 'browser' to false when --no-browser is used
@@ -510,10 +605,10 @@ The --viewer-path option allows loading a local build of the web UI:
 
 // AI Integration command
 program
-  .command('chat [client] [withDanger]')
-  .description('Interactive chat with AI about the architecture model')
+  .command("chat [client] [withDanger]")
+  .description("Interactive chat with AI about the architecture model")
   .addHelpText(
-    'after',
+    "after",
     `
 Arguments:
   client      Optional AI client to use: "claude-code" or "github-copilot"
@@ -543,11 +638,11 @@ Install instructions:
     let selectedClient: string | undefined;
     let withDanger = false;
 
-    if (client === 'with-danger') {
+    if (client === "with-danger") {
       // Format: dr chat with-danger
       withDanger = true;
       selectedClient = undefined;
-    } else if (withDangerArg === 'with-danger') {
+    } else if (withDangerArg === "with-danger") {
       // Format: dr chat <client> with-danger
       withDanger = true;
       selectedClient = client;
@@ -562,10 +657,10 @@ Install instructions:
 // Advanced commands
 // Note: migrate command has been merged into upgrade command
 program
-  .command('version')
-  .description('Show CLI and embedded spec version information')
+  .command("version")
+  .description("Show CLI and embedded spec version information")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr version`
@@ -575,13 +670,13 @@ Examples:
   });
 
 program
-  .command('upgrade')
-  .description('Upgrade spec reference and migrate model to latest versions')
-  .option('-y, --yes', 'Automatically upgrade without prompting')
-  .option('--dry-run', 'Show what would be upgraded without making changes')
-  .option('--force', 'Skip validation during migration')
+  .command("upgrade")
+  .description("Upgrade spec reference and migrate model to latest versions")
+  .option("-y, --yes", "Automatically upgrade without prompting")
+  .option("--dry-run", "Show what would be upgraded without making changes")
+  .option("--force", "Skip validation during migration")
   .addHelpText(
-    'after',
+    "after",
     `
 Examples:
   $ dr upgrade              # Scan, show plan, and prompt for upgrades
@@ -598,13 +693,58 @@ Examples:
   });
 
 program
-  .command('conformance')
-  .description('Check model conformance to layer specifications')
-  .option('--layers <layers...>', 'Specific layers to check')
-  .option('--json', 'Output as JSON')
-  .option('--verbose', 'Verbose output')
+  .command("migrate-model [action]")
+  .description("Migrate model to graph format or manage model migrations")
+  .option("--source <path>", "Source model directory")
+  .option("--target <path>", "Target directory for migrated model")
+  .option("--backup <path>", "Backup directory for rollback")
+  .option("--no-backup", "Skip backup creation")
+  .option("--skip-validation", "Skip validation after migration")
+  .option("--verbose", "Verbose output")
+  .option("--dry-run", "Preview migration without making changes")
   .addHelpText(
-    'after',
+    "after",
+    `
+Actions:
+  (default)  Migrate model to graph format
+  rollback   Restore model from backup
+
+Examples:
+  $ dr migrate-model --source ./model --target ./model-v2
+  $ dr migrate-model --dry-run --verbose
+  $ dr migrate-model rollback --backup ./model.backup-1234567890`
+  )
+  .action(async (action, options) => {
+    if (action === "rollback") {
+      if (!options.backup) {
+        console.error("Error: --backup is required for rollback");
+        process.exit(1);
+      }
+      await migrateRollbackCommand({
+        backup: options.backup,
+        target: options.target,
+        verbose: options.verbose,
+      });
+    } else {
+      await modelMigrateCommand({
+        source: options.source,
+        target: options.target,
+        noBackup: options.noBackup,
+        skipValidation: options.skipValidation,
+        verbose: options.verbose,
+        dryRun: options.dryRun,
+      });
+    }
+  });
+
+program
+  .command("conformance")
+  .description("Check model conformance to layer specifications")
+  .option("--layers <layers...>", "Specific layers to check")
+  .option("--json", "Output as JSON")
+  .option("--verbose", "Verbose output")
+  .addHelpText(
+    "after",
     `
 Examples:
   $ dr conformance
@@ -639,18 +779,18 @@ copilotCommands(program);
       await initTelemetry();
       await installConsoleInterceptor();
 
-      const commandName = process.argv[2] || 'unknown';
-      const args = process.argv.slice(3).join(' ');
+      const commandName = process.argv[2] || "unknown";
+      const args = process.argv.slice(3).join(" ");
 
       // Wrap entire CLI execution in active span for proper context propagation
       await startActiveSpan(
-        'cli.execute',
+        "cli.execute",
         async (span) => {
           span.setAttributes({
-            'cli.command': commandName,
-            'cli.args': args,
-            'cli.cwd': process.cwd(),
-            'cli.version': cliVersion,
+            "cli.command": commandName,
+            "cli.args": args,
+            "cli.cwd": process.cwd(),
+            "cli.version": cliVersion,
           });
 
           try {
@@ -668,7 +808,7 @@ copilotCommands(program);
             });
 
             // Print error message for CLIError instances
-            const { CLIError } = await import('./utils/errors.js');
+            const { CLIError } = await import("./utils/errors.js");
             if (error instanceof CLIError) {
               console.error(error.message);
             } else if (error instanceof Error) {
@@ -683,10 +823,10 @@ copilotCommands(program);
           }
         },
         {
-          'cli.command': commandName,
-          'cli.args': args,
-          'cli.cwd': process.cwd(),
-          'cli.version': cliVersion,
+          "cli.command": commandName,
+          "cli.args": args,
+          "cli.cwd": process.cwd(),
+          "cli.version": cliVersion,
         }
       );
 
@@ -703,7 +843,7 @@ copilotCommands(program);
         await program.parseAsync(process.argv);
       } catch (error) {
         // Extract exit code from CLIError if available
-        const { CLIError } = await import('./utils/errors.js');
+        const { CLIError } = await import("./utils/errors.js");
         if (error instanceof CLIError) {
           // CLIError messages are already formatted, no need to print
         } else {

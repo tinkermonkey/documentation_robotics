@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PolicyAction",
+  "description": "Action to take when policy rule matches",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.policyaction"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "policyaction"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference"
+        }
+      },
+      "required": [
+        "type",
+        "parameters"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

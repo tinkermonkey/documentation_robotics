@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OutcomeCategory",
+  "description": "Category of expected outcomes (not specific assertions)",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.outcomecategory"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "outcomecategory"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "outcomeType": {
+          "type": "string"
+        },
+        "httpStatusRange": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcomeType",
+        "httpStatusRange"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TestCoverageModel",
+  "description": "Complete test coverage model for application",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.testcoveragemodel"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "testcoveragemodel"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "application": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "coverageTargets": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "inputSpacePartitions": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "contextVariations": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "coverageRequirements": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "testCaseSketches": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference"
+        }
+      },
+      "required": [
+        "version",
+        "application"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

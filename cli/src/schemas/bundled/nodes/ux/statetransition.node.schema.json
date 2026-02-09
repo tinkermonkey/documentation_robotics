@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StateTransition",
+  "description": "Transition from current state to another state",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.statetransition"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "statetransition"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "trigger"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

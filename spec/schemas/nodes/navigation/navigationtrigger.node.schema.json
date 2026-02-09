@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NavigationTrigger",
+  "description": "NavigationTrigger element in Navigation Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "navigation.navigationtrigger"
+    },
+    "layer_id": {
+      "const": "navigation"
+    },
+    "type": {
+      "const": "navigationtrigger"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

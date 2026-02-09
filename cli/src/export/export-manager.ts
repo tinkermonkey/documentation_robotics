@@ -14,7 +14,7 @@ export class ExportManager {
   register(
     format: string,
     exporter: Exporter,
-    info: Omit<ExportFormatInfo, 'format' | 'name' | 'supportedLayers'>
+    info: Omit<ExportFormatInfo, "format" | "name" | "supportedLayers">
   ): void {
     this.exporters.set(format, exporter);
     this.formatInfo.set(format, {
@@ -35,11 +35,7 @@ export class ExportManager {
   /**
    * Export model to specified format
    */
-  async export(
-    model: Model,
-    format: string,
-    options: ExportOptions = {}
-  ): Promise<string> {
+  async export(model: Model, format: string, options: ExportOptions = {}): Promise<string> {
     const exporter = this.exporters.get(format);
     if (!exporter) {
       throw new Error(`Unknown export format: ${format}`);
@@ -52,8 +48,8 @@ export class ExportManager {
       );
       if (unsupported.length > 0) {
         throw new Error(
-          `Format '${format}' does not support layers: ${unsupported.join(', ')}. ` +
-          `Supported layers: ${exporter.supportedLayers.join(', ')}`
+          `Format '${format}' does not support layers: ${unsupported.join(", ")}. ` +
+            `Supported layers: ${exporter.supportedLayers.join(", ")}`
         );
       }
     }
@@ -87,8 +83,6 @@ export class ExportManager {
    * Get all registered formats with metadata
    */
   getAllFormats(): ExportFormatInfo[] {
-    return Array.from(this.formatInfo.values()).sort((a, b) =>
-      a.format.localeCompare(b.format)
-    );
+    return Array.from(this.formatInfo.values()).sort((a, b) => a.format.localeCompare(b.format));
   }
 }

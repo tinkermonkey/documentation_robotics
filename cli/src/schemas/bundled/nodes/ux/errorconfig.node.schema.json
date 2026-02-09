@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ErrorConfig",
+  "description": "Configuration for error handling and display within UI components, specifying error message formats, retry behavior, fallback content, and user guidance. Ensures consistent error UX.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.errorconfig"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "errorconfig"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "showNotification": {
+          "type": "boolean"
+        },
+        "notificationType": {
+          "type": "string"
+        },
+        "errorMessage": {
+          "type": "string"
+        },
+        "defaultErrorMessage": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

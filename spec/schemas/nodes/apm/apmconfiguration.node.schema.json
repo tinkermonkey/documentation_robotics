@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "APMConfiguration",
+  "description": "Complete APM configuration for an application",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.apmconfiguration"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "apmconfiguration"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "application": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "application"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

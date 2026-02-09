@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Server",
+  "description": "Server where the API is available",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.server"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "server"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "variables": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "variables"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

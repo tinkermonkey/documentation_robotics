@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OpenAPIDocument",
+  "description": "Root of an OpenAPI specification file",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.openapidocument"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "openapidocument"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "openapi": {
+          "type": "string"
+        },
+        "info": {
+          "type": "string"
+        },
+        "servers": {
+          "type": "string"
+        },
+        "paths": {
+          "type": "string"
+        },
+        "components": {
+          "type": "string"
+        },
+        "security": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "string"
+        },
+        "externalDocs": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "openapi",
+        "info",
+        "servers",
+        "paths",
+        "security",
+        "tags"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

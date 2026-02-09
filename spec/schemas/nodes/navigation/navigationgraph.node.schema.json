@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NavigationGraph",
+  "description": "Complete navigation structure for application",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "navigation.navigationgraph"
+    },
+    "layer_id": {
+      "const": "navigation"
+    },
+    "type": {
+      "const": "navigationgraph"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "application": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "routes": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "transitions": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "guards": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "version",
+        "application"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

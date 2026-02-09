@@ -2,10 +2,10 @@
  * Semantic validation for business rules
  */
 
-import { ValidationResult } from './types.js';
-import type { Model } from '../core/model.js';
-import { fileURLToPath } from 'url';
-import path from 'path';
+import { ValidationResult } from "./types.js";
+import type { Model } from "../core/model.js";
+import { fileURLToPath } from "url";
+import path from "path";
 
 /**
  * Validator for semantic/business rule validation
@@ -36,8 +36,14 @@ export class SemanticValidator {
   private async loadRelationshipCatalog(): Promise<void> {
     try {
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
-      const catalogPath = path.join(__dirname, '..', 'schemas', 'bundled', 'relationship-catalog.json');
-      this.relationshipCatalog = await import(catalogPath, { assert: { type: 'json' } }).then(
+      const catalogPath = path.join(
+        __dirname,
+        "..",
+        "schemas",
+        "bundled",
+        "relationship-catalog.json"
+      );
+      this.relationshipCatalog = await import(catalogPath, { assert: { type: "json" } }).then(
         (m) => m.default
       );
     } catch {
@@ -54,32 +60,9 @@ export class SemanticValidator {
 
     await this.ensureCatalogLoaded();
 
-    this.validateUniqueIds(model, result);
     this.validateRelationshipPredicates(model, result);
 
     return result;
-  }
-
-  /**
-   * Validate that all element IDs are unique across layers
-   */
-  private validateUniqueIds(model: Model, result: ValidationResult): void {
-    const seenIds = new Map<string, string>(); // id -> layer name
-
-    for (const [layerName, layer] of model.layers) {
-      for (const element of layer.listElements()) {
-        if (seenIds.has(element.id)) {
-          result.addError({
-            layer: layerName,
-            elementId: element.id,
-            message: `Duplicate element ID: '${element.id}' already exists in layer '${seenIds.get(element.id)}'`,
-            fixSuggestion: 'Element IDs must be unique across all layers',
-          });
-        } else {
-          seenIds.set(element.id, layerName);
-        }
-      }
-    }
   }
 
   /**
@@ -103,8 +86,8 @@ export class SemanticValidator {
               message: `Unknown relationship predicate '${rel.predicate}' for layer ${layerName}`,
               fixSuggestion:
                 allowedPredicates.length > 0
-                  ? `Use one of: ${allowedPredicates.join(', ')}`
-                  : 'Check relationship catalog for valid predicates',
+                  ? `Use one of: ${allowedPredicates.join(", ")}`
+                  : "Check relationship catalog for valid predicates",
             });
           }
         }

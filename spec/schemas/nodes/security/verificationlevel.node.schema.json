@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VerificationLevel",
+  "description": "VerificationLevel element in Security Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.verificationlevel"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "verificationlevel"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

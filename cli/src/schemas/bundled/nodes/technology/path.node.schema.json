@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Path",
+  "description": "Link between nodes through which they exchange",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "technology.path"
+    },
+    "layer_id": {
+      "const": "technology"
+    },
+    "type": {
+      "const": "path"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "pathType": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "required": [
+        "pathType"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

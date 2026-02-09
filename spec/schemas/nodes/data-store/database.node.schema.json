@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Database",
+  "description": "Database instance containing schemas",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.database"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "database"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "charset": {
+          "type": "string"
+        },
+        "collation": {
+          "type": "string"
+        },
+        "schemas": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "type",
+        "version"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

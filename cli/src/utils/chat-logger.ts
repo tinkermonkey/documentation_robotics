@@ -12,11 +12,11 @@
  * - Each entry contains: timestamp, type (message/command/error), role, content
  */
 
-import { mkdir, writeFile, appendFile, readdir, readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile, appendFile, readdir, readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 
 /**
  * Helper to append content to file with automatic retry on ENOENT
@@ -36,10 +36,10 @@ async function appendWithRetry(
   onRetry?: () => Promise<void>
 ): Promise<void> {
   try {
-    await appendFile(filePath, content, 'utf-8');
+    await appendFile(filePath, content, "utf-8");
   } catch (appendError) {
     const errno = (appendError as NodeJS.ErrnoException).code;
-    if (errno === 'ENOENT') {
+    if (errno === "ENOENT") {
       // File doesn't exist - race condition where directory/file was deleted
       // Call retry callback (e.g., to recreate directory and file with header)
       if (onRetry) {
@@ -47,13 +47,15 @@ async function appendWithRetry(
       }
       // Retry the append
       try {
-        await appendFile(filePath, content, 'utf-8');
+        await appendFile(filePath, content, "utf-8");
       } catch (retryError) {
         // Retry failed - this is a real problem
-        console.warn('[ChatLogger] WARNING: Could not append entry to chat log (non-fatal)');
-        console.warn('[ChatLogger]   Log path:', filePath);
-        console.warn('[ChatLogger]   Error:', retryError);
-        console.warn('[ChatLogger]   The chat session will continue, but this entry was not logged.');
+        console.warn("[ChatLogger] WARNING: Could not append entry to chat log (non-fatal)");
+        console.warn("[ChatLogger]   Log path:", filePath);
+        console.warn("[ChatLogger]   Error:", retryError);
+        console.warn(
+          "[ChatLogger]   The chat session will continue, but this entry was not logged."
+        );
         // Intentional: Continue without logging rather than crash the entire session.
         // The chat log is best-effort; we don't want logging failures to break the user's work.
       }
@@ -67,7 +69,7 @@ async function appendWithRetry(
 /**
  * Chat log entry types
  */
-export type ChatLogEntryType = 'message' | 'command' | 'error' | 'event';
+export type ChatLogEntryType = "message" | "command" | "error" | "event";
 
 /**
  * A single chat log entry
@@ -75,7 +77,7 @@ export type ChatLogEntryType = 'message' | 'command' | 'error' | 'event';
 export interface ChatLogEntry {
   timestamp: string;
   type: ChatLogEntryType;
-  role?: 'user' | 'assistant' | 'system' | 'cli';
+  role?: "user" | "assistant" | "system" | "cli";
   content: string;
   metadata?: Record<string, unknown>;
 }
@@ -104,7 +106,7 @@ export class ChatLogger {
     this.projectRoot = projectRoot;
     this.logDir = this.getLogDirectory();
     // Timestamp first for natural sorting, replace colons with underscores for filesystem compatibility
-    const filenameSafeTimestamp = this.sessionStartTime.replace(/:/g, '_');
+    const filenameSafeTimestamp = this.sessionStartTime.replace(/:/g, "_");
     this.sessionLogPath = join(this.logDir, `${filenameSafeTimestamp}_${this.sessionId}.log`);
   }
 
@@ -114,12 +116,12 @@ export class ChatLogger {
    */
   getLogDirectory(): string {
     if (this.projectRoot && existsSync(this.projectRoot)) {
-      const projectLogDir = join(this.projectRoot, '.dr', 'chat', 'sessions');
+      const projectLogDir = join(this.projectRoot, ".dr", "chat", "sessions");
       return projectLogDir;
     }
 
     // Fall back to home directory
-    return join(homedir(), '.dr', 'chat', 'sessions');
+    return join(homedir(), ".dr", "chat", "sessions");
   }
 
   /**
@@ -150,7 +152,7 @@ export class ChatLogger {
     try {
       await mkdir(this.logDir, { recursive: true });
     } catch (error) {
-      if (error instanceof Error && !error.message.includes('EEXIST')) {
+      if (error instanceof Error && !error.message.includes("EEXIST")) {
         throw error;
       }
     }
@@ -160,7 +162,7 @@ export class ChatLogger {
    * Format a log entry as JSON
    */
   private formatEntry(entry: ChatLogEntry): string {
-    return JSON.stringify(entry) + '\n';
+    return JSON.stringify(entry) + "\n";
   }
 
   /**
@@ -171,8 +173,8 @@ export class ChatLogger {
   async logUserMessage(message: string, metadata?: Record<string, unknown>): Promise<void> {
     const entry: ChatLogEntry = {
       timestamp: this.getTimestamp(),
-      type: 'message',
-      role: 'user',
+      type: "message",
+      role: "user",
       content: message,
       metadata,
     };
@@ -188,8 +190,8 @@ export class ChatLogger {
   async logAssistantMessage(content: string, metadata?: Record<string, unknown>): Promise<void> {
     const entry: ChatLogEntry = {
       timestamp: this.getTimestamp(),
-      type: 'message',
-      role: 'assistant',
+      type: "message",
+      role: "assistant",
       content,
       metadata,
     };
@@ -208,12 +210,12 @@ export class ChatLogger {
     args: string[] = [],
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    const content = [command, ...args].join(' ');
+    const content = [command, ...args].join(" ");
 
     const entry: ChatLogEntry = {
       timestamp: this.getTimestamp(),
-      type: 'command',
-      role: 'cli',
+      type: "command",
+      role: "cli",
       content,
       metadata: {
         ...metadata,
@@ -233,8 +235,8 @@ export class ChatLogger {
   async logError(errorMessage: string, metadata?: Record<string, unknown>): Promise<void> {
     const entry: ChatLogEntry = {
       timestamp: this.getTimestamp(),
-      type: 'error',
-      role: 'system',
+      type: "error",
+      role: "system",
       content: errorMessage,
       metadata,
     };
@@ -250,8 +252,8 @@ export class ChatLogger {
   async logEvent(eventName: string, metadata?: Record<string, unknown>): Promise<void> {
     const entry: ChatLogEntry = {
       timestamp: this.getTimestamp(),
-      type: 'event',
-      role: 'system',
+      type: "event",
+      role: "system",
       content: eventName,
       metadata,
     };
@@ -286,25 +288,25 @@ export class ChatLogger {
   private async writeHeader(): Promise<void> {
     const header: ChatLogEntry = {
       timestamp: this.sessionStartTime,
-      type: 'event',
-      role: 'system',
-      content: 'Session started',
+      type: "event",
+      role: "system",
+      content: "Session started",
       metadata: {
         sessionId: this.sessionId,
-        logVersion: '1.0',
+        logVersion: "1.0",
       },
     };
 
     try {
-      await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+      await writeFile(this.sessionLogPath, this.formatEntry(header), "utf-8");
       this.headerWritten = true;
     } catch (error) {
       const errno = (error as NodeJS.ErrnoException).code;
-      if (errno === 'ENOENT') {
+      if (errno === "ENOENT") {
         // Directory doesn't exist - create it and retry
         await this.ensureLogDirectory();
         try {
-          await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+          await writeFile(this.sessionLogPath, this.formatEntry(header), "utf-8");
           this.headerWritten = true;
         } catch (retryError) {
           throw retryError;
@@ -335,19 +337,25 @@ export class ChatLogger {
       const errno = (error as NodeJS.ErrnoException).code;
 
       // Distinguish between expected issues (permissions, disk full) and unexpected bugs
-      if (errno === 'EACCES') {
+      if (errno === "EACCES") {
         // Permissions issue - warn but continue (can't fix at runtime)
-        console.error('[ChatLogger] ERROR: Permission denied writing to log file:', this.sessionLogPath);
-        console.error('[ChatLogger]   Session logging disabled for this session.');
-      } else if (errno === 'ENOSPC') {
+        console.error(
+          "[ChatLogger] ERROR: Permission denied writing to log file:",
+          this.sessionLogPath
+        );
+        console.error("[ChatLogger]   Session logging disabled for this session.");
+      } else if (errno === "ENOSPC") {
         // Disk full - warn but continue
-        console.error('[ChatLogger] ERROR: Disk full, cannot write to log file:', this.sessionLogPath);
+        console.error(
+          "[ChatLogger] ERROR: Disk full, cannot write to log file:",
+          this.sessionLogPath
+        );
       } else {
         // Unexpected error - this is a bug that should be reported
-        console.error('[ChatLogger] CRITICAL: Unexpected error writing to log file:', error);
-        console.error('[ChatLogger]   Session ID:', this.sessionId);
-        console.error('[ChatLogger]   Log path:', this.sessionLogPath);
-        console.error('[ChatLogger]   This is a bug - please report with error details above.');
+        console.error("[ChatLogger] CRITICAL: Unexpected error writing to log file:", error);
+        console.error("[ChatLogger]   Session ID:", this.sessionId);
+        console.error("[ChatLogger]   Log path:", this.sessionLogPath);
+        console.error("[ChatLogger]   This is a bug - please report with error details above.");
       }
     }
   }
@@ -358,10 +366,10 @@ export class ChatLogger {
    */
   async readEntries(): Promise<ChatLogEntry[]> {
     try {
-      const content = await readFile(this.sessionLogPath, 'utf-8');
+      const content = await readFile(this.sessionLogPath, "utf-8");
       const entries: ChatLogEntry[] = [];
 
-      for (const line of content.split('\n')) {
+      for (const line of content.split("\n")) {
         const trimmed = line.trim();
         if (!trimmed) continue;
 
@@ -370,7 +378,7 @@ export class ChatLogger {
         } catch (parseError) {
           // Skip corrupt lines but continue parsing remaining entries
           console.warn(
-            '[ChatLogger] Skipping corrupt JSON line in session log:',
+            "[ChatLogger] Skipping corrupt JSON line in session log:",
             parseError instanceof Error ? parseError.message : String(parseError)
           );
           // Continue to next line instead of failing entire read
@@ -380,8 +388,8 @@ export class ChatLogger {
       return entries;
     } catch (fileError) {
       // ENOENT is expected when session log hasn't been created yet - don't warn
-      if ((fileError as NodeJS.ErrnoException).code !== 'ENOENT') {
-        console.warn('[ChatLogger] Warning: Could not read log file:', fileError);
+      if ((fileError as NodeJS.ErrnoException).code !== "ENOENT") {
+        console.warn("[ChatLogger] Warning: Could not read log file:", fileError);
       }
       // Return empty array on file read errors but preserve any entries that were successfully parsed
       return [];
@@ -400,12 +408,12 @@ export class ChatLogger {
   }> {
     const entries = await this.readEntries();
 
-    const messageCount = entries.filter((e) => e.type === 'message' && e.role === 'user').length;
-    const commandCount = entries.filter((e) => e.type === 'command').length;
-    const errorCount = entries.filter((e) => e.type === 'error').length;
+    const messageCount = entries.filter((e) => e.type === "message" && e.role === "user").length;
+    const commandCount = entries.filter((e) => e.type === "command").length;
+    const errorCount = entries.filter((e) => e.type === "error").length;
 
     // Calculate duration from first to last entry
-    let duration = 'N/A';
+    let duration = "N/A";
     if (entries.length > 1) {
       const first = new Date(entries[0].timestamp);
       const last = new Date(entries[entries.length - 1].timestamp);
@@ -471,9 +479,12 @@ export async function listChatSessions(projectRoot?: string): Promise<string[]> 
 
   try {
     const files = await readdir(logDir);
-    return files.filter((f) => f.endsWith('.log')).sort().reverse();
+    return files
+      .filter((f) => f.endsWith(".log"))
+      .sort()
+      .reverse();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return [];
     }
     throw error;
@@ -485,19 +496,22 @@ export async function listChatSessions(projectRoot?: string): Promise<string[]> 
  * @param logFile The log filename
  * @param projectRoot Optional project root
  */
-export async function readChatSession(logFile: string, projectRoot?: string): Promise<ChatLogEntry[]> {
+export async function readChatSession(
+  logFile: string,
+  projectRoot?: string
+): Promise<ChatLogEntry[]> {
   const logger = new ChatLogger(projectRoot);
   const logDir = logger.getLogDirectory();
   const logPath = join(logDir, logFile);
 
   try {
-    const content = await readFile(logPath, 'utf-8');
+    const content = await readFile(logPath, "utf-8");
     return content
-      .split('\n')
+      .split("\n")
       .filter((line) => line.trim())
       .map((line) => JSON.parse(line) as ChatLogEntry);
   } catch (error) {
-    console.error('Error reading chat session:', error);
+    console.error("Error reading chat session:", error);
     throw error;
   }
 }

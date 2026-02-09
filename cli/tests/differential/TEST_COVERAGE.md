@@ -127,7 +127,7 @@ To make all tests pass, update test cases to either:
 typescript:
   command: "bun"
   args: ["run", "../../cli/src/cli.ts", "info"]
-  cwd: /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation
+  cwd: /path/to/your/project
 ```
 
 **Option B:** Use DR_MODEL_PATH environment variable
@@ -138,7 +138,7 @@ typescript:
   args: ["run", "src/cli.ts", "info"]
   cwd: *ts_root
   env:
-    DR_MODEL_PATH: /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation
+    DR_MODEL_PATH: /path/to/your/project
 ```
 
 ## Test Coverage Gaps

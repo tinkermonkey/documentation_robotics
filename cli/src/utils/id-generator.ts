@@ -13,19 +13,19 @@
  */
 export function toKebabCase(text: string): string {
   // Replace spaces and underscores with hyphens
-  let result = text.replace(/[\s_]+/g, '-');
+  let result = text.replace(/[\s_]+/g, "-");
 
   // Insert hyphen before capital letters (for camelCase/PascalCase)
-  result = result.replace(/([a-z])([A-Z])/g, '$1-$2');
+  result = result.replace(/([a-z])([A-Z])/g, "$1-$2");
 
   // Convert to lowercase
   result = result.toLowerCase();
 
   // Remove multiple consecutive hyphens
-  result = result.replace(/-+/g, '-');
+  result = result.replace(/-+/g, "-");
 
   // Remove leading/trailing hyphens
-  result = result.replace(/^-+|-+$/g, '');
+  result = result.replace(/^-+|-+$/g, "");
 
   return result;
 }

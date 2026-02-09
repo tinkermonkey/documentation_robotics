@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Securityscheme Referenced By Businessservice",
+  "description": "Defines relationship: api.securityscheme referenced-by business.businessservice",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.referenced-by.business"
+    },
+    "source_spec_node_id": {
+      "const": "api.securityscheme"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "business.businessservice"
+    },
+    "destination_layer": {
+      "const": "business"
+    },
+    "predicate": {
+      "const": "referenced-by"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

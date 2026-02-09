@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InputSpacePartition",
+  "description": "Partitioning of an input dimension into testable categories",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.inputspacepartition"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "inputspacepartition"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "fieldRef": {
+          "type": "string"
+        },
+        "presenceRule": {
+          "type": "string"
+        },
+        "partitions": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "fieldRef",
+        "presenceRule"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

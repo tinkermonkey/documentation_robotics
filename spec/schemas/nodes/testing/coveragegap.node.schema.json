@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoverageGap",
+  "description": "Identified gap in test coverage requiring attention",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.coveragegap"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "coveragegap"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "affectedRequirements": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "severity",
+        "affectedRequirements"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

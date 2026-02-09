@@ -5,10 +5,10 @@
  * Provides subcommands for install, upgrade, remove, status, and list operations.
  */
 
-import { Command } from 'commander';
-import { CopilotIntegrationManager } from '../integrations/copilot-manager.js';
-import ansis from 'ansis';
-import { CLIError } from '../utils/errors.js';
+import { Command } from "commander";
+import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
+import ansis from "ansis";
+import { CLIError } from "../utils/errors.js";
 
 /**
  * Register all Copilot integration subcommands
@@ -21,9 +21,7 @@ import { CLIError } from '../utils/errors.js';
  *   dr copilot list
  */
 export function copilotCommands(program: Command): void {
-  const copilot = program
-    .command('copilot')
-    .description('Manage GitHub Copilot integration files');
+  const copilot = program.command("copilot").description("Manage GitHub Copilot integration files");
 
   /**
    * Install subcommand
@@ -32,13 +30,13 @@ export function copilotCommands(program: Command): void {
    * Supports component-specific filtering via flags
    */
   copilot
-    .command('install')
-    .description('Install GitHub Copilot integration files')
-    .option('--agents-only', 'Install only agents')
-    .option('--skills-only', 'Install only skills')
-    .option('-f, --force', 'Skip confirmation prompts')
+    .command("install")
+    .description("Install GitHub Copilot integration files")
+    .option("--agents-only", "Install only agents")
+    .option("--skills-only", "Install only skills")
+    .option("-f, --force", "Skip confirmation prompts")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr copilot install                    # Install all components
@@ -51,8 +49,8 @@ Examples:
 
       // Build component filter from flags
       const components: string[] = [];
-      if (options.agentsOnly) components.push('agents');
-      if (options.skillsOnly) components.push('skills');
+      if (options.agentsOnly) components.push("agents");
+      if (options.skillsOnly) components.push("skills");
 
       try {
         await manager.install({
@@ -60,7 +58,7 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        console.error(ansis.red('Error:'), error instanceof Error ? error.message : String(error));
+        console.error(ansis.red("Error:"), error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -72,12 +70,12 @@ Examples:
    * Supports dry-run mode to preview changes without modifying files.
    */
   copilot
-    .command('upgrade')
-    .description('Upgrade installed GitHub Copilot integration')
-    .option('--dry-run', 'Preview changes without applying them')
-    .option('-f, --force', 'Skip confirmation prompts')
+    .command("upgrade")
+    .description("Upgrade installed GitHub Copilot integration")
+    .option("--dry-run", "Preview changes without applying them")
+    .option("-f, --force", "Skip confirmation prompts")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr copilot upgrade              # Check for upgrades and prompt to apply
@@ -93,10 +91,7 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        throw new CLIError(
-          error instanceof Error ? error.message : String(error),
-          1
-        );
+        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
       }
     });
 
@@ -107,13 +102,13 @@ Examples:
    * Supports component-specific removal via flags
    */
   copilot
-    .command('remove')
-    .description('Remove GitHub Copilot integration files')
-    .option('--agents', 'Remove only agents')
-    .option('--skills', 'Remove only skills')
-    .option('-f, --force', 'Skip confirmation prompts')
+    .command("remove")
+    .description("Remove GitHub Copilot integration files")
+    .option("--agents", "Remove only agents")
+    .option("--skills", "Remove only skills")
+    .option("-f, --force", "Skip confirmation prompts")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr copilot remove               # Remove all components
@@ -125,8 +120,8 @@ Examples:
 
       // Build component filter from flags
       const components: string[] = [];
-      if (options.agents) components.push('agents');
-      if (options.skills) components.push('skills');
+      if (options.agents) components.push("agents");
+      if (options.skills) components.push("skills");
 
       try {
         await manager.remove({
@@ -134,10 +129,7 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        throw new CLIError(
-          error instanceof Error ? error.message : String(error),
-          1
-        );
+        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
       }
     });
 
@@ -147,10 +139,10 @@ Examples:
    * Displays current installation status, version info, and component details
    */
   copilot
-    .command('status')
-    .description('Show GitHub Copilot integration status')
+    .command("status")
+    .description("Show GitHub Copilot integration status")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr copilot status    # Show installation status and component details`
@@ -161,10 +153,7 @@ Examples:
       try {
         await manager.status();
       } catch (error) {
-        throw new CLIError(
-          error instanceof Error ? error.message : String(error),
-          1
-        );
+        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
       }
     });
 
@@ -174,10 +163,10 @@ Examples:
    * Lists all available components that can be installed
    */
   copilot
-    .command('list')
-    .description('List available GitHub Copilot components')
+    .command("list")
+    .description("List available GitHub Copilot components")
     .addHelpText(
-      'after',
+      "after",
       `
 Examples:
   $ dr copilot list    # Show all available components and descriptions`
@@ -188,10 +177,7 @@ Examples:
       try {
         await manager.list();
       } catch (error) {
-        throw new CLIError(
-          error instanceof Error ? error.message : String(error),
-          1
-        );
+        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
       }
     });
 }

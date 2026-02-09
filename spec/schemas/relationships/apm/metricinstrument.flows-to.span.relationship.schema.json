@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Metricinstrument Flows To Span",
+  "description": "Defines relationship: apm.metricinstrument flows-to apm.span",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "apm.flows-to.apm"
+    },
+    "source_spec_node_id": {
+      "const": "apm.metricinstrument"
+    },
+    "source_layer": {
+      "const": "apm"
+    },
+    "destination_spec_node_id": {
+      "const": "apm.span"
+    },
+    "destination_layer": {
+      "const": "apm"
+    },
+    "predicate": {
+      "const": "flows-to"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

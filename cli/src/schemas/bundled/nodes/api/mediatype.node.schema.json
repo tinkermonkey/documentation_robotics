@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MediaType",
+  "description": "Media type and schema for request/response body",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.mediatype"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "mediatype"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "example": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "examples": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "encoding": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "contentType"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HttpMethod",
+  "description": "HttpMethod element in UX Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.httpmethod"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "httpmethod"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

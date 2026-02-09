@@ -14,8 +14,8 @@
  * Telemetry will be sent to http://localhost:4318/v1/traces by default.
  */
 
-import { describe, test, beforeAll, afterAll } from 'bun:test';
-import { expect } from 'bun:test';
+import { describe, test, beforeAll, afterAll } from "bun:test";
+import { expect } from "bun:test";
 
 // Note: In production builds, TELEMETRY_ENABLED is set to false by esbuild,
 // so all telemetry calls become no-ops with zero overhead.
@@ -26,11 +26,11 @@ import {
   startTestFileSpan,
   endTestFileSpan,
   instrumentTest,
-} from '../../src/telemetry/test-instrumentation.js';
+} from "../../src/telemetry/test-instrumentation.js";
 
 // Setup: Create file-level span at test suite start
 beforeAll(() => {
-  startTestFileSpan('tests/unit/test-instrumentation.example.test.ts');
+  startTestFileSpan("tests/unit/test-instrumentation.example.test.ts");
 });
 
 // Teardown: End file-level span at test suite end
@@ -38,90 +38,90 @@ afterAll(() => {
   endTestFileSpan();
 });
 
-describe('ValidationExample', () => {
+describe("ValidationExample", () => {
   // Example 1: Simple passing test using instrumentTest helper
   test(
-    'should validate positive numbers',
+    "should validate positive numbers",
     instrumentTest(
-      'should validate positive numbers',
+      "should validate positive numbers",
       async () => {
         const isValid = (n: number) => n > 0;
         expect(isValid(42)).toBe(true);
         expect(isValid(0)).toBe(false);
         expect(isValid(-1)).toBe(false);
       },
-      'ValidationExample'
+      "ValidationExample"
     )
   );
 
   // Example 2: Test demonstrating error handling
   test(
-    'should handle validation errors',
+    "should handle validation errors",
     instrumentTest(
-      'should handle validation errors',
+      "should handle validation errors",
       async () => {
         const validate = (value: unknown): string => {
-          if (typeof value !== 'string') {
-            throw new Error('Expected string, got ' + typeof value);
+          if (typeof value !== "string") {
+            throw new Error("Expected string, got " + typeof value);
           }
           if (value.length === 0) {
-            throw new Error('String cannot be empty');
+            throw new Error("String cannot be empty");
           }
           return value;
         };
 
         // Should pass
-        expect(validate('hello')).toBe('hello');
+        expect(validate("hello")).toBe("hello");
 
         // Should fail
-        expect(() => validate(123 as any)).toThrow('Expected string');
+        expect(() => validate(123 as any)).toThrow("Expected string");
       },
-      'ValidationExample'
+      "ValidationExample"
     )
   );
 });
 
-describe('CalculationExample', () => {
+describe("CalculationExample", () => {
   // Example 3: Test with different suite name
   test(
-    'should add numbers correctly',
+    "should add numbers correctly",
     instrumentTest(
-      'should add numbers correctly',
+      "should add numbers correctly",
       async () => {
         const add = (a: number, b: number) => a + b;
         expect(add(2, 3)).toBe(5);
         expect(add(-1, 1)).toBe(0);
         expect(add(0, 0)).toBe(0);
       },
-      'CalculationExample'
+      "CalculationExample"
     )
   );
 
   // Example 4: Async test
   test(
-    'should handle async operations',
+    "should handle async operations",
     instrumentTest(
-      'should handle async operations',
+      "should handle async operations",
       async () => {
         // Simulate an async operation
         const asyncTask = () =>
           new Promise<string>((resolve) => {
-            setTimeout(() => resolve('done'), 10);
+            setTimeout(() => resolve("done"), 10);
           });
 
         const result = await asyncTask();
-        expect(result).toBe('done');
+        expect(result).toBe("done");
       },
-      'CalculationExample'
+      "CalculationExample"
     )
   );
 });
 
-describe('EdgeCaseExample', () => {
+describe("EdgeCaseExample", () => {
   // Example 5: Test with empty suite name
   test(
-    'should handle edge cases',
-    instrumentTest('should handle edge cases', async () => {
+    "should handle edge cases",
+    instrumentTest("should handle edge cases", async () => {
       const clamp = (min: number, max: number, value: number) => {
         return Math.min(max, Math.max(min, value));
       };

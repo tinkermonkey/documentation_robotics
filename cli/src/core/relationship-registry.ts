@@ -14,6 +14,16 @@ export interface RelationshipTypeMetadata {
 
 /**
  * Relationship registry - manages intra-layer relationships and their catalog
+ *
+ * NOTE: Phase 3 Deferred - Registry Consolidation
+ * This registry will be consolidated into the GraphModel query API in a future phase.
+ * The graph model provides the foundation with intra-layer relationship tracking via edges.
+ * Current approach maintains backward compatibility while the transition occurs.
+ *
+ * Future: Use GraphModel.getEdgesFrom/To with predicate filtering
+ * where source_layer === destination_layer for intra-layer relationships.
+ *
+ * See: https://github.com/tinkermonkey/documentation_robotics/discussions/317
  */
 export class RelationshipRegistry {
   private relationships: Map<string, Relationship[]>;
@@ -91,7 +101,7 @@ export class RelationshipRegistry {
   getRelationshipsByPredicate(predicate: string): Relationship[] {
     const allRels: Relationship[] = [];
     for (const rels of this.relationships.values()) {
-      allRels.push(...rels.filter(rel => rel.predicate === predicate));
+      allRels.push(...rels.filter((rel) => rel.predicate === predicate));
     }
     return allRels;
   }
@@ -101,9 +111,7 @@ export class RelationshipRegistry {
    */
   hasRelationship(sourceId: string, targetId: string, predicate: string): boolean {
     const rels = this.relationships.get(sourceId) ?? [];
-    return rels.some(
-      rel => rel.target === targetId && rel.predicate === predicate
-    );
+    return rels.some((rel) => rel.target === targetId && rel.predicate === predicate);
   }
 
   /**
@@ -137,10 +145,8 @@ export class RelationshipRegistry {
   getValidPredicatesForLayer(layer: string): string[] {
     const layerPrefix = layer.split("-")[0];
     return this.getAllTypes()
-      .filter(type =>
-        !type.applicable_layers || type.applicable_layers.includes(layerPrefix)
-      )
-      .map(type => type.predicate);
+      .filter((type) => !type.applicable_layers || type.applicable_layers.includes(layerPrefix))
+      .map((type) => type.predicate);
   }
 
   /**

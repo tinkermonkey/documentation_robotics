@@ -1,0 +1,5 @@
+# Ignore generated Neo4j export files
+# Only README.md is checked into git
+
+import.cypher
+csv/

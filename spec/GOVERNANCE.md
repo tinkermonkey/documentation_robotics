@@ -50,7 +50,7 @@ This governance model ensures that:
 - Implement the specification in tools
 - Report issues and ambiguities
 - Provide feedback on proposed changes
-- Contribute conformance test cases
+- Contribute validation test cases
 
 ## Change Process
 

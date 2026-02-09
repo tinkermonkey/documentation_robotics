@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UXApplication",
+  "description": "Application-level UX configuration that groups UXSpecs and defines shared settings",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.uxapplication"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "uxapplication"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "experiences": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "channel"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

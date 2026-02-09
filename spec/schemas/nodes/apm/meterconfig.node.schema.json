@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MeterConfig",
+  "description": "Configuration for metric collection meters, specifying aggregation temporality, cardinality limits, and collection intervals. Controls how metrics are gathered and aggregated.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.meterconfig"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "meterconfig"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "schemaUrl": {
+          "type": "string"
+        },
+        "instruments": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

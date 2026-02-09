@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Targetcoveragesummary Validates Coveragerequirement",
+  "description": "Defines relationship: testing.targetcoveragesummary validates testing.coveragerequirement",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.validates.testing"
+    },
+    "source_spec_node_id": {
+      "const": "testing.targetcoveragesummary"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.coveragerequirement"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "validates"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

@@ -1,16 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { Model } from '../../src/core/model.js';
-import { Manifest } from '../../src/core/manifest.js';
-import { Layer } from '../../src/core/layer.js';
-import { Element } from '../../src/core/element.js';
-import { StagedChangesetStorage } from '../../src/core/staged-changeset-storage.js';
-import { VirtualProjectionEngine } from '../../src/core/virtual-projection.js';
-import { BaseSnapshotManager } from '../../src/core/base-snapshot-manager.js';
-import { tmpdir } from 'os';
-import { mkdtemp, rm } from 'fs/promises';
-import { join } from 'path';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { Model } from "../../src/core/model.js";
+import { Manifest } from "../../src/core/manifest.js";
+import { Layer } from "../../src/core/layer.js";
+import { Element } from "../../src/core/element.js";
+import { StagedChangesetStorage } from "../../src/core/staged-changeset-storage.js";
+import { VirtualProjectionEngine } from "../../src/core/virtual-projection.js";
+import { BaseSnapshotManager } from "../../src/core/base-snapshot-manager.js";
+import { tmpdir } from "os";
+import { mkdtemp, rm } from "fs/promises";
+import { join } from "path";
 
-describe('Cache Performance Benchmarks', () => {
+describe("Cache Performance Benchmarks", () => {
   let baseModel: Model;
   let storage: StagedChangesetStorage;
   let engine: VirtualProjectionEngine;
@@ -18,17 +18,17 @@ describe('Cache Performance Benchmarks', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'dr-cache-perf-test-'));
+    tempDir = await mkdtemp(join(tmpdir(), "dr-cache-perf-test-"));
     storage = new StagedChangesetStorage(tempDir);
     engine = new VirtualProjectionEngine(tempDir);
     snapshotManager = new BaseSnapshotManager();
 
     // Create test model with multiple layers
     const manifest = new Manifest({
-      name: 'Cache Performance Model',
-      description: 'Model for benchmarking cache performance',
-      version: '1.0.0',
-      specVersion: '0.7.1',
+      name: "Cache Performance Model",
+      description: "Model for benchmarking cache performance",
+      version: "1.0.0",
+      specVersion: "0.7.1",
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
     });
@@ -36,18 +36,29 @@ describe('Cache Performance Benchmarks', () => {
     baseModel = new Model(tempDir, manifest);
 
     // Create 8 layers to simulate larger model
-    const layerNames = ['api', 'data-model', 'application', 'technology', 'security', 'business', 'motivation', 'ux'];
+    const layerNames = [
+      "api",
+      "data-model",
+      "application",
+      "technology",
+      "security",
+      "business",
+      "motivation",
+      "ux",
+    ];
     for (const layerName of layerNames) {
       const layer = new Layer(layerName);
 
       // Add 5 elements per layer
       for (let i = 0; i < 5; i++) {
-        layer.addElement(new Element({
-          id: `${layerName}-element-${i}`,
-          type: 'component',
-          name: `${layerName} Component ${i}`,
-          description: `Component in ${layerName} layer`,
-        }));
+        layer.addElement(
+          new Element({
+            id: `${layerName}-element-${i}`,
+            type: "component",
+            name: `${layerName} Component ${i}`,
+            description: `Component in ${layerName} layer`,
+          })
+        );
       }
 
       baseModel.addLayer(layer);
@@ -61,42 +72,51 @@ describe('Cache Performance Benchmarks', () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
-  describe('Cache Hit Rate Improvement', () => {
-    it('should demonstrate cache hit improvement with layer-specific invalidation', async () => {
-      const changesetId = 'hit-rate-benchmark';
+  describe("Cache Hit Rate Improvement", () => {
+    it("should demonstrate cache hit improvement with layer-specific invalidation", async () => {
+      const changesetId = "hit-rate-benchmark";
       const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
 
       const changeset = await storage.create(
         changesetId,
-        'Hit Rate Benchmark',
-        'Benchmark cache hit rates',
+        "Hit Rate Benchmark",
+        "Benchmark cache hit rates",
         baseSnapshot
       );
 
       // Create changes affecting only 2 out of 8 layers
       changeset.changes = [
         {
-          type: 'update',
-          elementId: 'api-element-0',
-          layerName: 'api',
+          type: "update",
+          elementId: "api-element-0",
+          layerName: "api",
           sequenceNumber: 1,
-          before: { name: 'API Component 0' },
-          after: { name: 'API Component 0 Updated' },
+          before: { name: "API Component 0" },
+          after: { name: "API Component 0 Updated" },
         },
         {
-          type: 'update',
-          elementId: 'data-model-element-0',
-          layerName: 'data-model',
+          type: "update",
+          elementId: "data-model-element-0",
+          layerName: "data-model",
           sequenceNumber: 2,
-          before: { name: 'Data-Model Component 0' },
-          after: { name: 'Data-Model Component 0 Updated' },
+          before: { name: "Data-Model Component 0" },
+          after: { name: "Data-Model Component 0 Updated" },
         },
       ];
 
       await storage.save(changeset);
 
       // Warm cache for all layers
-      const layerNames = ['api', 'data-model', 'application', 'technology', 'security', 'business', 'motivation', 'ux'];
+      const layerNames = [
+        "api",
+        "data-model",
+        "application",
+        "technology",
+        "security",
+        "business",
+        "motivation",
+        "ux",
+      ];
       for (const layerName of layerNames) {
         await engine.projectLayer(baseModel, changesetId, layerName);
       }
@@ -106,7 +126,7 @@ describe('Cache Performance Benchmarks', () => {
       expect(metricsAfterWarmup?.hits).toBe(0);
 
       // Unstage only the API element (affecting 1 layer)
-      await engine.invalidateOnUnstage(changesetId, 'api-element-0');
+      await engine.invalidateOnUnstage(changesetId, "api-element-0");
 
       // Project all layers again
       for (const layerName of layerNames) {
@@ -123,7 +143,8 @@ describe('Cache Performance Benchmarks', () => {
       expect(metricsAfterInvalidation?.hits).toBeGreaterThanOrEqual(7); // At least 7 hits
 
       // Calculate hit rate
-      const totalRequests = (metricsAfterInvalidation?.hits || 0) + (metricsAfterInvalidation?.misses || 0);
+      const totalRequests =
+        (metricsAfterInvalidation?.hits || 0) + (metricsAfterInvalidation?.misses || 0);
       const hitRate = totalRequests > 0 ? (metricsAfterInvalidation?.hits || 0) / totalRequests : 0;
 
       // With 7 out of 8 layers cached, hit rate should be high
@@ -131,63 +152,63 @@ describe('Cache Performance Benchmarks', () => {
     });
   });
 
-  describe('Single-Layer Invalidation Performance', () => {
-    it('should perform faster invalidation with single-layer targeting', async () => {
-      const changesetId = 'single-layer-perf';
+  describe("Single-Layer Invalidation Performance", () => {
+    it("should perform faster invalidation with single-layer targeting", async () => {
+      const changesetId = "single-layer-perf";
       const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
 
       const changeset = await storage.create(
         changesetId,
-        'Single Layer Performance',
-        'Benchmark single layer invalidation',
+        "Single Layer Performance",
+        "Benchmark single layer invalidation",
         baseSnapshot
       );
 
       // Changes across 3 layers
       changeset.changes = [
         {
-          type: 'update',
-          elementId: 'api-element-1',
-          layerName: 'api',
+          type: "update",
+          elementId: "api-element-1",
+          layerName: "api",
           sequenceNumber: 1,
-          before: { name: 'API 1' },
-          after: { name: 'API 1 Updated' },
+          before: { name: "API 1" },
+          after: { name: "API 1 Updated" },
         },
         {
-          type: 'update',
-          elementId: 'data-model-element-1',
-          layerName: 'data-model',
+          type: "update",
+          elementId: "data-model-element-1",
+          layerName: "data-model",
           sequenceNumber: 2,
-          before: { name: 'DM 1' },
-          after: { name: 'DM 1 Updated' },
+          before: { name: "DM 1" },
+          after: { name: "DM 1 Updated" },
         },
         {
-          type: 'update',
-          elementId: 'application-element-1',
-          layerName: 'application',
+          type: "update",
+          elementId: "application-element-1",
+          layerName: "application",
           sequenceNumber: 3,
-          before: { name: 'App 1' },
-          after: { name: 'App 1 Updated' },
+          before: { name: "App 1" },
+          after: { name: "App 1 Updated" },
         },
       ];
 
       await storage.save(changeset);
 
       // Warm cache for all three affected layers
-      await engine.projectLayer(baseModel, changesetId, 'api');
-      await engine.projectLayer(baseModel, changesetId, 'data-model');
-      await engine.projectLayer(baseModel, changesetId, 'application');
+      await engine.projectLayer(baseModel, changesetId, "api");
+      await engine.projectLayer(baseModel, changesetId, "data-model");
+      await engine.projectLayer(baseModel, changesetId, "application");
 
       // Measure single-layer invalidation time
       const startSingle = performance.now();
-      await engine.invalidateOnUnstage(changesetId, 'api-element-1');
+      await engine.invalidateOnUnstage(changesetId, "api-element-1");
       const endSingle = performance.now();
       const singleLayerTime = endSingle - startSingle;
 
       // Re-warm cache for full invalidation test
-      await engine.projectLayer(baseModel, changesetId, 'api');
-      await engine.projectLayer(baseModel, changesetId, 'data-model');
-      await engine.projectLayer(baseModel, changesetId, 'application');
+      await engine.projectLayer(baseModel, changesetId, "api");
+      await engine.projectLayer(baseModel, changesetId, "data-model");
+      await engine.projectLayer(baseModel, changesetId, "application");
 
       // Measure full invalidation time
       const startFull = performance.now();
@@ -204,58 +225,67 @@ describe('Cache Performance Benchmarks', () => {
     });
   });
 
-  describe('Cache Efficiency with Multi-Layer Changesets', () => {
-    it('should improve cache efficiency for changesets with many layers', async () => {
-      const changesetId = 'multi-layer-efficiency';
+  describe("Cache Efficiency with Multi-Layer Changesets", () => {
+    it("should improve cache efficiency for changesets with many layers", async () => {
+      const changesetId = "multi-layer-efficiency";
       const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
 
       const changeset = await storage.create(
         changesetId,
-        'Multi-Layer Efficiency',
-        'Test cache efficiency with many layers',
+        "Multi-Layer Efficiency",
+        "Test cache efficiency with many layers",
         baseSnapshot
       );
 
       // Create changes affecting 4 out of 8 layers
       changeset.changes = [
         {
-          type: 'update',
-          elementId: 'api-element-2',
-          layerName: 'api',
+          type: "update",
+          elementId: "api-element-2",
+          layerName: "api",
           sequenceNumber: 1,
-          before: { name: 'API 2' },
-          after: { name: 'API 2 V2' },
+          before: { name: "API 2" },
+          after: { name: "API 2 V2" },
         },
         {
-          type: 'update',
-          elementId: 'data-model-element-2',
-          layerName: 'data-model',
+          type: "update",
+          elementId: "data-model-element-2",
+          layerName: "data-model",
           sequenceNumber: 2,
-          before: { name: 'DM 2' },
-          after: { name: 'DM 2 V2' },
+          before: { name: "DM 2" },
+          after: { name: "DM 2 V2" },
         },
         {
-          type: 'update',
-          elementId: 'application-element-2',
-          layerName: 'application',
+          type: "update",
+          elementId: "application-element-2",
+          layerName: "application",
           sequenceNumber: 3,
-          before: { name: 'App 2' },
-          after: { name: 'App 2 V2' },
+          before: { name: "App 2" },
+          after: { name: "App 2 V2" },
         },
         {
-          type: 'update',
-          elementId: 'technology-element-2',
-          layerName: 'technology',
+          type: "update",
+          elementId: "technology-element-2",
+          layerName: "technology",
           sequenceNumber: 4,
-          before: { name: 'Tech 2' },
-          after: { name: 'Tech 2 V2' },
+          before: { name: "Tech 2" },
+          after: { name: "Tech 2 V2" },
         },
       ];
 
       await storage.save(changeset);
 
       // Warm all 8 layers
-      const allLayers = ['api', 'data-model', 'application', 'technology', 'security', 'business', 'motivation', 'ux'];
+      const allLayers = [
+        "api",
+        "data-model",
+        "application",
+        "technology",
+        "security",
+        "business",
+        "motivation",
+        "ux",
+      ];
       for (const layer of allLayers) {
         await engine.projectLayer(baseModel, changesetId, layer);
       }
@@ -264,7 +294,7 @@ describe('Cache Performance Benchmarks', () => {
       const metricsAfterWarmup = { ...metrics };
 
       // Unstage only one element (affecting 1 layer out of 4)
-      await engine.invalidateOnUnstage(changesetId, 'api-element-2');
+      await engine.invalidateOnUnstage(changesetId, "api-element-2");
 
       // Project all layers again
       for (const layer of allLayers) {
@@ -287,30 +317,30 @@ describe('Cache Performance Benchmarks', () => {
 
       // Hit rate should be 7 out of 8 = 87.5%
       const cacheReuse = newHits / (newMisses + newHits);
-      expect(cacheReuse).toBeGreaterThan(0.80); // At least 80% cache reuse
+      expect(cacheReuse).toBeGreaterThan(0.8); // At least 80% cache reuse
     });
   });
 
-  describe('Metrics Overhead Assessment', () => {
-    it('should track metrics with minimal overhead', async () => {
-      const changesetId = 'metrics-overhead';
+  describe("Metrics Overhead Assessment", () => {
+    it("should track metrics with minimal overhead", async () => {
+      const changesetId = "metrics-overhead";
       const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
 
       const changeset = await storage.create(
         changesetId,
-        'Metrics Overhead Test',
-        'Test metrics tracking overhead',
+        "Metrics Overhead Test",
+        "Test metrics tracking overhead",
         baseSnapshot
       );
 
       changeset.changes = [
         {
-          type: 'update',
-          elementId: 'api-element-3',
-          layerName: 'api',
+          type: "update",
+          elementId: "api-element-3",
+          layerName: "api",
           sequenceNumber: 1,
-          before: { name: 'API 3' },
-          after: { name: 'API 3 V2' },
+          before: { name: "API 3" },
+          after: { name: "API 3 V2" },
         },
       ];
 
@@ -321,7 +351,7 @@ describe('Cache Performance Benchmarks', () => {
 
       const startWithMetrics = performance.now();
       for (let i = 0; i < iterations; i++) {
-        await engine.projectLayer(baseModel, changesetId, 'api');
+        await engine.projectLayer(baseModel, changesetId, "api");
       }
       const endWithMetrics = performance.now();
       const timeWithMetrics = endWithMetrics - startWithMetrics;

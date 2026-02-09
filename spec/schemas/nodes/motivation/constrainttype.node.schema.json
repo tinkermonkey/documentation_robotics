@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ConstraintType",
+  "description": "ConstraintType element in Motivation Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "motivation.constrainttype"
+    },
+    "layer_id": {
+      "const": "motivation"
+    },
+    "type": {
+      "const": "constrainttype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

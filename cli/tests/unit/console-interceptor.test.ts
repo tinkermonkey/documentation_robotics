@@ -9,7 +9,7 @@
  * is a no-op and these tests verify that console methods remain unwrapped.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 
 // Dynamically import after setting up test environment
 let installConsoleInterceptor: any;
@@ -17,16 +17,16 @@ let uninstallConsoleInterceptor: any;
 
 // Detect telemetry state from environment
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 beforeEach(async () => {
   // Import fresh for each test to avoid state issues
-  const module = await import('../../src/telemetry/console-interceptor.ts');
+  const module = await import("../../src/telemetry/console-interceptor.ts");
   installConsoleInterceptor = module.installConsoleInterceptor;
   uninstallConsoleInterceptor = module.uninstallConsoleInterceptor;
 });
 
-describe('Console Interceptor Module', () => {
+describe("Console Interceptor Module", () => {
   let originalLog: typeof console.log;
   let originalError: typeof console.error;
   let originalWarn: typeof console.warn;
@@ -52,8 +52,8 @@ describe('Console Interceptor Module', () => {
     console.debug = originalDebug;
   });
 
-  describe('installConsoleInterceptor()', () => {
-    it('should wrap console.log method when telemetry is enabled', async () => {
+  describe("installConsoleInterceptor()", () => {
+    it("should wrap console.log method when telemetry is enabled", async () => {
       const originalMethod = console.log;
       await installConsoleInterceptor();
       const newMethod = console.log;
@@ -67,7 +67,7 @@ describe('Console Interceptor Module', () => {
       }
     });
 
-    it('should wrap console.error method when telemetry is enabled', async () => {
+    it("should wrap console.error method when telemetry is enabled", async () => {
       const originalMethod = console.error;
       await installConsoleInterceptor();
       const newMethod = console.error;
@@ -79,7 +79,7 @@ describe('Console Interceptor Module', () => {
       }
     });
 
-    it('should wrap console.warn method when telemetry is enabled', async () => {
+    it("should wrap console.warn method when telemetry is enabled", async () => {
       const originalMethod = console.warn;
       await installConsoleInterceptor();
       const newMethod = console.warn;
@@ -91,7 +91,7 @@ describe('Console Interceptor Module', () => {
       }
     });
 
-    it('should wrap console.debug method when telemetry is enabled', async () => {
+    it("should wrap console.debug method when telemetry is enabled", async () => {
       const originalMethod = console.debug;
       await installConsoleInterceptor();
       const newMethod = console.debug;
@@ -103,28 +103,28 @@ describe('Console Interceptor Module', () => {
       }
     });
 
-    it('should not throw when installing interceptor', async () => {
+    it("should not throw when installing interceptor", async () => {
       await expect(async () => {
         await installConsoleInterceptor();
       }).not.toThrow();
     });
 
-    it('should preserve original console output behavior', async () => {
+    it("should preserve original console output behavior", async () => {
       const output: string[] = [];
       const mockLog = (...args: any[]) => {
-        output.push(args.join(' '));
+        output.push(args.join(" "));
       };
       console.log = mockLog;
 
       await installConsoleInterceptor();
-      console.log('test message');
+      console.log("test message");
 
       // Original method should still be called, so output should be captured
       expect(output).toHaveLength(1);
-      expect(output[0]).toBe('test message');
+      expect(output[0]).toBe("test message");
     });
 
-    it('should wrap multiple console methods together when telemetry is enabled', async () => {
+    it("should wrap multiple console methods together when telemetry is enabled", async () => {
       const originalLog = console.log;
       const originalError = console.error;
       const originalWarn = console.warn;
@@ -147,39 +147,39 @@ describe('Console Interceptor Module', () => {
       }
     });
 
-    it('should allow multiple calls to console methods', async () => {
+    it("should allow multiple calls to console methods", async () => {
       const output: string[] = [];
       console.log = (...args: any[]) => {
-        output.push(args.join(' '));
+        output.push(args.join(" "));
       };
 
       await installConsoleInterceptor();
 
-      console.log('message 1');
-      console.log('message 2');
-      console.log('message 3');
+      console.log("message 1");
+      console.log("message 2");
+      console.log("message 3");
 
       expect(output).toHaveLength(3);
     });
 
-    it('should handle console methods with multiple arguments', async () => {
+    it("should handle console methods with multiple arguments", async () => {
       const output: string[] = [];
       console.log = (...args: any[]) => {
         output.push(JSON.stringify(args));
       };
 
       await installConsoleInterceptor();
-      console.log('arg1', 'arg2', { key: 'value' });
+      console.log("arg1", "arg2", { key: "value" });
 
       expect(output).toHaveLength(1);
-      expect(output[0]).toContain('arg1');
-      expect(output[0]).toContain('arg2');
+      expect(output[0]).toContain("arg1");
+      expect(output[0]).toContain("arg2");
     });
 
-    it('should handle all four console methods independently', async () => {
+    it("should handle all four console methods independently", async () => {
       const output: string[] = [];
       const capture = (...args: any[]) => {
-        output.push(args.join(' '));
+        output.push(args.join(" "));
       };
 
       console.log = capture;
@@ -189,49 +189,49 @@ describe('Console Interceptor Module', () => {
 
       await installConsoleInterceptor();
 
-      console.log('log');
-      console.error('error');
-      console.warn('warn');
-      console.debug('debug');
+      console.log("log");
+      console.error("error");
+      console.warn("warn");
+      console.debug("debug");
 
       expect(output).toHaveLength(4);
-      expect(output[0]).toBe('log');
-      expect(output[1]).toBe('error');
-      expect(output[2]).toBe('warn');
-      expect(output[3]).toBe('debug');
+      expect(output[0]).toBe("log");
+      expect(output[1]).toBe("error");
+      expect(output[2]).toBe("warn");
+      expect(output[3]).toBe("debug");
     });
   });
 
-  describe('uninstallConsoleInterceptor()', () => {
-    it('should restore original console.log method', async () => {
+  describe("uninstallConsoleInterceptor()", () => {
+    it("should restore original console.log method", async () => {
       await installConsoleInterceptor();
       uninstallConsoleInterceptor();
 
       expect(console.log).toBe(originalLog);
     });
 
-    it('should restore original console.error method', async () => {
+    it("should restore original console.error method", async () => {
       await installConsoleInterceptor();
       uninstallConsoleInterceptor();
 
       expect(console.error).toBe(originalError);
     });
 
-    it('should restore original console.warn method', async () => {
+    it("should restore original console.warn method", async () => {
       await installConsoleInterceptor();
       uninstallConsoleInterceptor();
 
       expect(console.warn).toBe(originalWarn);
     });
 
-    it('should restore original console.debug method', async () => {
+    it("should restore original console.debug method", async () => {
       await installConsoleInterceptor();
       uninstallConsoleInterceptor();
 
       expect(console.debug).toBe(originalDebug);
     });
 
-    it('should restore all methods together', async () => {
+    it("should restore all methods together", async () => {
       await installConsoleInterceptor();
       uninstallConsoleInterceptor();
 
@@ -241,7 +241,7 @@ describe('Console Interceptor Module', () => {
       expect(console.debug).toBe(originalDebug);
     });
 
-    it('should not throw when uninstalling', async () => {
+    it("should not throw when uninstalling", async () => {
       await installConsoleInterceptor();
 
       expect(() => {
@@ -249,7 +249,7 @@ describe('Console Interceptor Module', () => {
       }).not.toThrow();
     });
 
-    it('should be safe to call multiple times', async () => {
+    it("should be safe to call multiple times", async () => {
       await installConsoleInterceptor();
       uninstallConsoleInterceptor();
 
@@ -258,7 +258,7 @@ describe('Console Interceptor Module', () => {
       }).not.toThrow();
     });
 
-    it('should restore wrapping behavior after uninstall', async () => {
+    it("should restore wrapping behavior after uninstall", async () => {
       await installConsoleInterceptor();
       const interceptedMethod = console.log;
 
@@ -278,11 +278,11 @@ describe('Console Interceptor Module', () => {
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle empty console.log call', async () => {
+  describe("Edge Cases", () => {
+    it("should handle empty console.log call", async () => {
       const output: string[] = [];
       console.log = (...args: any[]) => {
-        output.push(args.length === 0 ? '(empty)' : args.join(' '));
+        output.push(args.length === 0 ? "(empty)" : args.join(" "));
       };
 
       await installConsoleInterceptor();
@@ -291,7 +291,7 @@ describe('Console Interceptor Module', () => {
       expect(output).toHaveLength(1);
     });
 
-    it('should handle console.log with null and undefined', async () => {
+    it("should handle console.log with null and undefined", async () => {
       const output: string[] = [];
       console.log = (...args: any[]) => {
         output.push(args.length);
@@ -306,7 +306,7 @@ describe('Console Interceptor Module', () => {
       expect(output).toHaveLength(1);
     });
 
-    it('should handle console.log with objects', async () => {
+    it("should handle console.log with objects", async () => {
       const output: string[] = [];
       console.log = (...args: any[]) => {
         output.push(args.length);
@@ -319,23 +319,23 @@ describe('Console Interceptor Module', () => {
       expect(output).toHaveLength(1);
     });
 
-    it('should handle console.error with Error object', async () => {
+    it("should handle console.error with Error object", async () => {
       const output: string[] = [];
       console.error = (...args: any[]) => {
         output.push(args.length);
       };
 
       await installConsoleInterceptor();
-      const error = new Error('test error');
+      const error = new Error("test error");
       console.error(error);
 
       expect(output).toHaveLength(1);
     });
 
-    it('should handle rapid successive calls', async () => {
+    it("should handle rapid successive calls", async () => {
       const output: string[] = [];
       console.log = (...args: any[]) => {
-        output.push(args.join(' '));
+        output.push(args.join(" "));
       };
 
       await installConsoleInterceptor();
@@ -347,7 +347,7 @@ describe('Console Interceptor Module', () => {
       expect(output).toHaveLength(10);
     });
 
-    it('should handle installation when already installed', async () => {
+    it("should handle installation when already installed", async () => {
       await installConsoleInterceptor();
       const firstWrap = console.log;
 
@@ -364,8 +364,8 @@ describe('Console Interceptor Module', () => {
     });
   });
 
-  describe('Backwards Compatibility', () => {
-    it('should maintain console.log signature', async () => {
+  describe("Backwards Compatibility", () => {
+    it("should maintain console.log signature", async () => {
       const output: string[] = [];
       console.log = (...args: any[]) => {
         output.push(args.length);
@@ -375,12 +375,12 @@ describe('Console Interceptor Module', () => {
 
       // Should accept any arguments like the original
       expect(() => {
-        console.log('string', 123, true, { obj: 'ect' }, null, undefined);
+        console.log("string", 123, true, { obj: "ect" }, null, undefined);
       }).not.toThrow();
       expect(output).toHaveLength(1);
     });
 
-    it('should maintain console.error signature', async () => {
+    it("should maintain console.error signature", async () => {
       const output: string[] = [];
       console.error = (...args: any[]) => {
         output.push(args.length);
@@ -389,12 +389,12 @@ describe('Console Interceptor Module', () => {
       await installConsoleInterceptor();
 
       expect(() => {
-        console.error('error', new Error('test'));
+        console.error("error", new Error("test"));
       }).not.toThrow();
       expect(output).toHaveLength(1);
     });
 
-    it('should maintain console.warn signature', async () => {
+    it("should maintain console.warn signature", async () => {
       const output: string[] = [];
       console.warn = (...args: any[]) => {
         output.push(args.length);
@@ -403,12 +403,12 @@ describe('Console Interceptor Module', () => {
       await installConsoleInterceptor();
 
       expect(() => {
-        console.warn('warning', 'message');
+        console.warn("warning", "message");
       }).not.toThrow();
       expect(output).toHaveLength(1);
     });
 
-    it('should maintain console.debug signature', async () => {
+    it("should maintain console.debug signature", async () => {
       const output: string[] = [];
       console.debug = (...args: any[]) => {
         output.push(args.length);
@@ -417,7 +417,7 @@ describe('Console Interceptor Module', () => {
       await installConsoleInterceptor();
 
       expect(() => {
-        console.debug('debug', 'info');
+        console.debug("debug", "info");
       }).not.toThrow();
       expect(output).toHaveLength(1);
     });

@@ -7,37 +7,37 @@
  * Spec: cli-validation/projection-engine-spec.md
  */
 
-import { readFile } from 'fs/promises';
-import { parse as parseYAML } from 'yaml';
-import { Model } from './model.js';
-import { Element } from './element.js';
-import { ReferenceRegistry } from './reference-registry.js';
+import { readFile } from "fs/promises";
+import { parse as parseYAML } from "yaml";
+import { Model } from "./model.js";
+import { Element } from "./element.js";
+import { ReferenceRegistry } from "./reference-registry.js";
 
 /**
  * Transform types for property mapping
  */
 export type TransformType =
-  | 'uppercase'
-  | 'lowercase'
-  | 'kebab'
-  | 'snake'
-  | 'pascal'
-  | 'prefix'
-  | 'suffix'
-  | 'template';
+  | "uppercase"
+  | "lowercase"
+  | "kebab"
+  | "snake"
+  | "pascal"
+  | "prefix"
+  | "suffix"
+  | "template";
 
 /**
  * Condition operators for filtering
  */
 export type ConditionOperator =
-  | 'exists'
-  | 'equals'
-  | 'not_equals'
-  | 'contains'
-  | 'matches'
-  | 'gt'
-  | 'lt'
-  | 'in';
+  | "exists"
+  | "equals"
+  | "not_equals"
+  | "contains"
+  | "matches"
+  | "gt"
+  | "lt"
+  | "in";
 
 /**
  * Property transformation configuration
@@ -96,29 +96,29 @@ export class PropertyTransformer {
     const strValue = String(value);
 
     switch (this.config.type) {
-      case 'uppercase':
+      case "uppercase":
         return strValue.toUpperCase();
 
-      case 'lowercase':
+      case "lowercase":
         return strValue.toLowerCase();
 
-      case 'kebab':
+      case "kebab":
         return toKebabCase(strValue);
 
-      case 'snake':
+      case "snake":
         return toSnakeCase(strValue);
 
-      case 'pascal':
+      case "pascal":
         return toPascalCase(strValue);
 
-      case 'prefix':
+      case "prefix":
         return `${this.config.value}${strValue}`;
 
-      case 'suffix':
+      case "suffix":
         return `${strValue}${this.config.value}`;
 
-      case 'template':
-        return this.config.value?.replace('{value}', strValue) ?? strValue;
+      case "template":
+        return this.config.value?.replace("{value}", strValue) ?? strValue;
 
       default:
         return strValue;
@@ -136,35 +136,31 @@ export class ConditionEvaluator {
     const fieldValue = getNestedProperty(element as Record<string, unknown>, this.config.field);
 
     switch (this.config.operator) {
-      case 'exists':
+      case "exists":
         return fieldValue !== null && fieldValue !== undefined;
 
-      case 'equals':
+      case "equals":
         return fieldValue === this.config.value;
 
-      case 'not_equals':
+      case "not_equals":
         return fieldValue !== this.config.value;
 
-      case 'contains':
-        return fieldValue
-          ? String(fieldValue).includes(String(this.config.value))
-          : false;
+      case "contains":
+        return fieldValue ? String(fieldValue).includes(String(this.config.value)) : false;
 
-      case 'matches':
+      case "matches":
         return fieldValue && this.config.pattern
           ? new RegExp(this.config.pattern).test(String(fieldValue))
           : false;
 
-      case 'gt':
+      case "gt":
         return (fieldValue as number) > (this.config.value as number);
 
-      case 'lt':
+      case "lt":
         return (fieldValue as number) < (this.config.value as number);
 
-      case 'in':
-        return Array.isArray(this.config.value)
-          ? this.config.value.includes(fieldValue)
-          : false;
+      case "in":
+        return Array.isArray(this.config.value) ? this.config.value.includes(fieldValue) : false;
 
       default:
         return false;
@@ -179,7 +175,10 @@ export class ProjectionEngine {
   private rules: ProjectionRule[] = [];
   private registry?: ReferenceRegistry;
 
-  constructor(private model: Model, rulesPath?: string) {
+  constructor(
+    private model: Model,
+    rulesPath?: string
+  ) {
     if (rulesPath) {
       this.loadRulesSync(rulesPath);
     }
@@ -197,11 +196,11 @@ export class ProjectionEngine {
    */
   async loadRules(path: string): Promise<void> {
     try {
-      const content = await readFile(path, 'utf-8');
+      const content = await readFile(path, "utf-8");
       const data = parseYAML(content) as Record<string, unknown>;
 
       if (!data.projections || !Array.isArray(data.projections)) {
-        throw new Error('Invalid projection rules file: missing projections array');
+        throw new Error("Invalid projection rules file: missing projections array");
       }
 
       this.rules = (data.projections as Record<string, unknown>[]).map((proj) =>
@@ -248,31 +247,38 @@ export class ProjectionEngine {
    */
   private parseProjectionRule(data: Record<string, unknown>): ProjectionRule {
     // Split from/to into layer.type
-    const [from_layer, from_type] = (data.from as string).split('.');
-    const [to_layer, to_type] = (data.to as string).split('.');
+    const [from_layer, from_type] = (data.from as string).split(".");
+    const [to_layer, to_type] = (data.to as string).split(".");
 
     // Get first rule definition (simplified - Python CLI could support multiple)
-    const ruleData = Array.isArray(data.rules) ? (data.rules as Record<string, unknown>[])[0] : (data.rules as Record<string, unknown>);
+    const ruleData = Array.isArray(data.rules)
+      ? (data.rules as Record<string, unknown>[])[0]
+      : (data.rules as Record<string, unknown>);
 
     // Parse conditions
-    const conditions: ProjectionCondition[] = ((data.conditions as Record<string, unknown>[] | undefined) || []).map(
-      (c: Record<string, unknown>) => ({
-        field: c.field as string,
-        operator: c.operator as ConditionOperator,
-        value: c.value,
-        pattern: c.pattern as string | undefined,
-      })
-    );
+    const conditions: ProjectionCondition[] = (
+      (data.conditions as Record<string, unknown>[] | undefined) || []
+    ).map((c: Record<string, unknown>) => ({
+      field: c.field as string,
+      operator: c.operator as ConditionOperator,
+      value: c.value,
+      pattern: c.pattern as string | undefined,
+    }));
 
     // Parse property mappings
     const property_mappings: PropertyMapping[] = [];
-    if (ruleData && typeof ruleData === 'object' && 'properties' in ruleData && ruleData.properties) {
+    if (
+      ruleData &&
+      typeof ruleData === "object" &&
+      "properties" in ruleData &&
+      ruleData.properties
+    ) {
       const properties = ruleData.properties as Record<string, unknown>;
       for (const [target, mapping] of Object.entries(properties)) {
-        if (typeof mapping === 'string') {
+        if (typeof mapping === "string") {
           // Simple format: { target: source }
           property_mappings.push({ source: mapping, target });
-        } else if (typeof mapping === 'object' && mapping !== null) {
+        } else if (typeof mapping === "object" && mapping !== null) {
           // Advanced format with transform
           const m = mapping as Record<string, unknown>;
           property_mappings.push({
@@ -292,21 +298,30 @@ export class ProjectionEngine {
       from_type,
       to_layer,
       to_type,
-      name_template: (ruleData && typeof ruleData === 'object' && 'name_template' in ruleData) ? (ruleData.name_template as string) : '',
+      name_template:
+        ruleData && typeof ruleData === "object" && "name_template" in ruleData
+          ? (ruleData.name_template as string)
+          : "",
       property_mappings,
       conditions,
-      template_file: (ruleData && typeof ruleData === 'object' && 'template' in ruleData) ? (ruleData.template as string | undefined) : undefined,
-      create_bidirectional: (ruleData && typeof ruleData === 'object' && 'create_bidirectional' in ruleData && ruleData.create_bidirectional !== undefined) ? (ruleData.create_bidirectional as boolean) : true,
+      template_file:
+        ruleData && typeof ruleData === "object" && "template" in ruleData
+          ? (ruleData.template as string | undefined)
+          : undefined,
+      create_bidirectional:
+        ruleData &&
+        typeof ruleData === "object" &&
+        "create_bidirectional" in ruleData &&
+        ruleData.create_bidirectional !== undefined
+          ? (ruleData.create_bidirectional as boolean)
+          : true,
     };
   }
 
   /**
    * Find rules applicable to a source element
    */
-  findApplicableRules(
-    source: Element,
-    targetLayer?: string
-  ): ProjectionRule[] {
+  findApplicableRules(source: Element, targetLayer?: string): ProjectionRule[] {
     return this.rules.filter((rule) => {
       // Check layer match
       if (rule.from_layer !== source.layer) return false;
@@ -376,10 +391,7 @@ export class ProjectionEngine {
   /**
    * Build projected element from source and rule
    */
-  private buildProjectedElement(
-    source: Element,
-    rule: ProjectionRule
-  ): Element {
+  private buildProjectedElement(source: Element, rule: ProjectionRule): Element {
     // Render element name
     const name = this.renderTemplate(rule.name_template, source);
 
@@ -399,7 +411,7 @@ export class ProjectionEngine {
       let value: unknown;
 
       // Get source value
-      if (mapping.source.includes('{') || mapping.source.includes('{{')) {
+      if (mapping.source.includes("{") || mapping.source.includes("{{")) {
         // Template string
         value = this.renderTemplate(mapping.source, source);
       } else {
@@ -444,11 +456,11 @@ export class ProjectionEngine {
    */
   private getSourceValue(source: Element, path: string): unknown {
     // Check for direct element properties
-    if (path === 'id') return source.id;
-    if (path === 'name') return source.name;
-    if (path === 'type') return source.type;
-    if (path === 'layer') return source.layer;
-    if (path === 'description') return source.description;
+    if (path === "id") return source.id;
+    if (path === "name") return source.name;
+    if (path === "type") return source.type;
+    if (path === "layer") return source.layer;
+    if (path === "description") return source.description;
 
     // Check nested properties in the properties map
     return getNestedProperty(source.properties, path);
@@ -463,8 +475,8 @@ export class ProjectionEngine {
       id: source.id,
       name: source.name,
       type: source.type,
-      layer: source.layer ?? '',
-      description: source.description ?? '',
+      layer: source.layer ?? "",
+      description: source.description ?? "",
       properties: source.properties,
       name_pascal: toPascalCase(source.name),
       name_kebab: toKebabCase(source.name),
@@ -501,10 +513,7 @@ export class ProjectionEngine {
 
       for (const element of layer.listElements()) {
         // Find applicable rules
-        const applicableRules = this.findApplicableRules(
-          element,
-          toLayer
-        );
+        const applicableRules = this.findApplicableRules(element, toLayer);
 
         // Project with each applicable rule
         for (const rule of applicableRules) {
@@ -534,11 +543,11 @@ export class ProjectionEngine {
  * Helper: Get nested property from object
  */
 function getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
-  const parts = path.split('.');
+  const parts = path.split(".");
   let current: unknown = obj;
 
   for (const part of parts) {
-    if (current && typeof current === 'object') {
+    if (current && typeof current === "object") {
       current = (current as Record<string, unknown>)[part];
     } else {
       return undefined;
@@ -552,12 +561,12 @@ function getNestedProperty(obj: Record<string, unknown>, path: string): unknown 
  * Helper: Set nested property on object
  */
 function setNestedProperty(obj: Record<string, unknown>, path: string, value: unknown): void {
-  const parts = path.split('.');
+  const parts = path.split(".");
   let current = obj as Record<string, unknown>;
 
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
-    if (!current[part] || typeof current[part] !== 'object') {
+    if (!current[part] || typeof current[part] !== "object") {
       current[part] = {};
     }
     current = current[part] as Record<string, unknown>;
@@ -570,33 +579,22 @@ function setNestedProperty(obj: Record<string, unknown>, path: string, value: un
  * Helper: Convert to kebab-case
  */
 function toKebabCase(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/_/g, '-');
+  return text.toLowerCase().replace(/\s+/g, "-").replace(/_/g, "-");
 }
 
 /**
  * Helper: Convert to snake_case
  */
 function toSnakeCase(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/-/g, '_');
+  return text.toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
 }
 
 /**
  * Helper: Convert to PascalCase
  */
 function toPascalCase(text: string): string {
-  const words = text
-    .replace(/-/g, ' ')
-    .replace(/_/g, ' ')
-    .split(/\s+/);
-  return words
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join('');
+  const words = text.replace(/-/g, " ").replace(/_/g, " ").split(/\s+/);
+  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
 }
 
 /**

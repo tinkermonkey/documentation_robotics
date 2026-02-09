@@ -2,16 +2,16 @@
  * Update an element
  */
 
-import ansis from 'ansis';
-import { Model } from '../core/model.js';
-import { MutationHandler } from '../core/mutation-handler.js';
-import { findElementLayer } from '../utils/element-utils.js';
-import { CLIError, handleError } from '../utils/errors.js';
-import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
-import { startSpan, endSpan } from '../telemetry/index.js';
+import ansis from "ansis";
+import { Model } from "../core/model.js";
+import { MutationHandler } from "../core/mutation-handler.js";
+import { findElementLayer } from "../utils/element-utils.js";
+import { CLIError, handleError } from "../utils/errors.js";
+import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
+import { startSpan, endSpan } from "../telemetry/index.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 export interface UpdateOptions {
   name?: string;
@@ -31,15 +31,18 @@ export interface UpdateOptions {
  * Validate update-specific source reference options
  */
 function validateUpdateSourceReferenceOptions(options: UpdateOptions): void {
-  const hasSourceOptions = options.sourceFile || options.sourceSymbol ||
-                           options.sourceProvenance || options.sourceRepoRemote ||
-                           options.sourceRepoCommit;
+  const hasSourceOptions =
+    options.sourceFile ||
+    options.sourceSymbol ||
+    options.sourceProvenance ||
+    options.sourceRepoRemote ||
+    options.sourceRepoCommit;
 
   if (options.clearSourceReference && hasSourceOptions) {
     throw new CLIError(
-      'Cannot use --clear-source-reference with other source reference options',
+      "Cannot use --clear-source-reference with other source reference options",
       1,
-      ['Specify either --clear-source-reference or other source options, not both']
+      ["Specify either --clear-source-reference or other source options, not both"]
     );
   }
 
@@ -51,15 +54,17 @@ function validateUpdateSourceReferenceOptions(options: UpdateOptions): void {
 
 export async function updateCommand(id: string, options: UpdateOptions): Promise<void> {
   const changedFields: string[] = [];
-  if (options.name) changedFields.push('name');
-  if (options.description) changedFields.push('description');
-  if (options.properties) changedFields.push('properties');
-  if (options.sourceFile || options.clearSourceReference) changedFields.push('sourceReference');
+  if (options.name) changedFields.push("name");
+  if (options.description) changedFields.push("description");
+  if (options.properties) changedFields.push("properties");
+  if (options.sourceFile || options.clearSourceReference) changedFields.push("sourceReference");
 
-  const span = isTelemetryEnabled ? startSpan('element.update', {
-    'element.id': id,
-    'element.changed_fields': changedFields.join(','),
-  }) : null;
+  const span = isTelemetryEnabled
+    ? startSpan("element.update", {
+        "element.id": id,
+        "element.changed_fields": changedFields.join(","),
+      })
+    : null;
 
   try {
     // Validate source reference options
@@ -78,11 +83,15 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     const element = layer.getElement(id)!;
 
     // Validate that at least one field is specified
-    const hasUpdates = options.name || options.description !== undefined ||
-                       options.properties || options.sourceFile || options.clearSourceReference;
+    const hasUpdates =
+      options.name ||
+      options.description !== undefined ||
+      options.properties ||
+      options.sourceFile ||
+      options.clearSourceReference;
 
     if (!hasUpdates) {
-      console.log(ansis.yellow('No fields specified for update'));
+      console.log(ansis.yellow("No fields specified for update"));
       return;
     }
 
@@ -98,11 +107,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
         try {
           parsedProperties = JSON.parse(options.properties);
         } catch (e) {
-          throw new CLIError(
-            'Invalid JSON in --properties',
-            1,
-            ['Ensure your JSON is valid and properly formatted']
-          );
+          throw new CLIError("Invalid JSON in --properties", 1, [
+            "Ensure your JSON is valid and properly formatted",
+          ]);
         }
       }
 
@@ -119,7 +126,10 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
 
       if (parsedProperties) {
         elem.properties = { ...elem.properties, ...parsedProperties };
-        after.properties = { ...(after.properties as Record<string, unknown>), ...parsedProperties };
+        after.properties = {
+          ...(after.properties as Record<string, unknown>),
+          ...parsedProperties,
+        };
       }
 
       if (options.clearSourceReference) {
@@ -132,6 +142,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
           after.sourceReference = newRef;
         }
       }
+
+      // Update element in layer graph to persist mutations
+      layer.updateElement(elem);
     });
 
     console.log(ansis.green(`✓ Updated element ${ansis.bold(id)}`));

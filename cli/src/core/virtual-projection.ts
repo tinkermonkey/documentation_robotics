@@ -8,14 +8,15 @@
  * Staging changes are applied in sequence order to compute accurate merged views.
  */
 
-import type { Model } from './model.js';
-import type { Layer } from './layer.js';
-import type { Element } from './element.js';
-import type { Manifest } from './manifest.js';
-import { Layer as LayerClass } from './layer.js';
-import { Element as ElementClass } from './element.js';
-import type { StagedChange, Change } from './changeset.js';
-import { StagedChangesetStorage } from './staged-changeset-storage.js';
+import type { Model } from "./model.js";
+import type { Layer } from "./layer.js";
+import type { Element } from "./element.js";
+import type { Manifest } from "./manifest.js";
+import type { GraphNode } from "./graph-model.js";
+import { Layer as LayerClass } from "./layer.js";
+import { Element as ElementClass } from "./element.js";
+import type { StagedChange, Change } from "./changeset.js";
+import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 
 /**
  * Projected model with isProjection flag to prevent accidental saves.
@@ -43,7 +44,7 @@ export interface ModelDiff {
     elementId: string;
     layerName: string;
     before: Record<string, unknown>; // Previous state (from change.before)
-    after: Record<string, unknown>;  // New state (from change.after)
+    after: Record<string, unknown>; // New state (from change.after)
   }>;
   deletions: Array<{
     elementId: string;
@@ -147,7 +148,7 @@ export class VirtualProjectionEngine {
     // Get the last change to determine the element's final state
     const lastChange = elementChanges[elementChanges.length - 1];
 
-    if (lastChange.type === 'delete') {
+    if (lastChange.type === "delete") {
       return null;
     }
 
@@ -159,12 +160,15 @@ export class VirtualProjectionEngine {
       // Create a new element with projected data merged with base
       const mergedData = {
         id: baseElement.id,
-        name: (typeof projectedData.name === 'string' ? projectedData.name : baseElement.name),
-        type: (typeof projectedData.type === 'string' ? projectedData.type : baseElement.type),
-        description: (typeof projectedData.description === 'string' ? projectedData.description : baseElement.description),
+        name: typeof projectedData.name === "string" ? projectedData.name : baseElement.name,
+        type: typeof projectedData.type === "string" ? projectedData.type : baseElement.type,
+        description:
+          typeof projectedData.description === "string"
+            ? projectedData.description
+            : baseElement.description,
         properties: {
           ...baseElement.properties,
-          ...(typeof projectedData.properties === 'object' ? projectedData.properties : {}),
+          ...(typeof projectedData.properties === "object" ? projectedData.properties : {}),
         },
         references: Array.isArray(projectedData.references)
           ? projectedData.references
@@ -176,19 +180,17 @@ export class VirtualProjectionEngine {
       };
 
       return new ElementClass(mergedData);
-    } else if (lastChange.type === 'add') {
+    } else if (lastChange.type === "add") {
       // New element being added
       return new ElementClass({
         id: elementId,
         name: (projectedData.name as string) || elementId,
-        type: (projectedData.type as string) || 'unknown',
-        description: (projectedData.description as string) || '',
-        properties: (typeof projectedData.properties === 'object'
+        type: (projectedData.type as string) || "unknown",
+        description: (projectedData.description as string) || "",
+        properties: (typeof projectedData.properties === "object"
           ? projectedData.properties
           : {}) as Record<string, unknown>,
-        references: Array.isArray(projectedData.references)
-          ? projectedData.references
-          : [],
+        references: Array.isArray(projectedData.references) ? projectedData.references : [],
         relationships: Array.isArray(projectedData.relationships)
           ? projectedData.relationships
           : [],
@@ -218,11 +220,7 @@ export class VirtualProjectionEngine {
    * 5. Cache result with timestamp for TTL tracking
    * 6. Trigger periodic cache cleanup
    */
-  async projectLayer(
-    baseModel: Model,
-    changesetId: string,
-    layerName: string
-  ): Promise<Layer> {
+  async projectLayer(baseModel: Model, changesetId: string, layerName: string): Promise<Layer> {
     // Check cache first
     const cacheKey = `${changesetId}:${layerName}`;
     const cached = this.projectionCache.cache.get(cacheKey);
@@ -264,19 +262,17 @@ export class VirtualProjectionEngine {
     // Apply changes in sequence order
     for (const change of layerChanges) {
       switch (change.type) {
-        case 'add':
+        case "add":
           if (change.after) {
             const newElement = new ElementClass({
               id: change.elementId,
               name: (change.after.name as string) || change.elementId,
-              type: (change.after.type as string) || 'unknown',
-              description: (change.after.description as string) || '',
-              properties: (typeof change.after.properties === 'object'
+              type: (change.after.type as string) || "unknown",
+              description: (change.after.description as string) || "",
+              properties: (typeof change.after.properties === "object"
                 ? change.after.properties
                 : {}) as Record<string, unknown>,
-              references: Array.isArray(change.after.references)
-                ? change.after.references
-                : [],
+              references: Array.isArray(change.after.references) ? change.after.references : [],
               relationships: Array.isArray(change.after.relationships)
                 ? change.after.relationships
                 : [],
@@ -286,35 +282,56 @@ export class VirtualProjectionEngine {
           }
           break;
 
-        case 'update':
+        case "update":
           if (change.after) {
-            const existing = projectedLayer.getElement(change.elementId);
-            if (existing) {
-              // Merge projected data with existing
-              existing.name = (change.after.name as string) || existing.name;
-              existing.type = (change.after.type as string) || existing.type;
-              existing.description =
-                (change.after.description as string) || existing.description;
+            // Use updateNode on the graph to persist changes
+            const updates: Partial<GraphNode> = {};
 
-              if (typeof change.after.properties === 'object') {
-                existing.properties = {
-                  ...existing.properties,
-                  ...change.after.properties,
-                };
-              }
+            if (typeof change.after.name === "string") {
+              updates.name = change.after.name;
+            }
 
+            if (typeof change.after.type === "string") {
+              updates.type = change.after.type;
+            }
+
+            if (typeof change.after.description === "string") {
+              updates.description = change.after.description;
+            }
+
+            if (
+              typeof change.after.properties === "object" ||
+              Array.isArray(change.after.references) ||
+              Array.isArray(change.after.relationships)
+            ) {
+              const existing = projectedLayer.getElement(change.elementId);
+              const existingProps = existing?.properties || {};
+
+              const mergedProperties: Record<string, unknown> = {
+                ...existingProps,
+                ...(change.after.properties || {}),
+              };
+
+              // Wrap references and relationships in the correct property keys
+              // to match how layer.ts stores them
               if (Array.isArray(change.after.references)) {
-                existing.references = change.after.references;
+                mergedProperties["__references__"] = change.after.references;
               }
 
               if (Array.isArray(change.after.relationships)) {
-                existing.relationships = change.after.relationships;
+                mergedProperties["__relationships__"] = change.after.relationships;
               }
+
+              updates.properties = mergedProperties;
+            }
+
+            if (Object.keys(updates).length > 0) {
+              projectedLayer.graph.updateNode(change.elementId, updates);
             }
           }
           break;
 
-        case 'delete':
+        case "delete":
           projectedLayer.deleteElement(change.elementId);
           break;
       }
@@ -407,7 +424,7 @@ export class VirtualProjectionEngine {
 
     return {
       additions: changes
-        .filter((c: StagedChange) => c.type === 'add')
+        .filter((c: StagedChange) => c.type === "add")
         .map((c: StagedChange) => ({
           elementId: c.elementId,
           layerName: c.layerName,
@@ -415,7 +432,7 @@ export class VirtualProjectionEngine {
         })),
 
       modifications: changes
-        .filter((c: StagedChange) => c.type === 'update')
+        .filter((c: StagedChange) => c.type === "update")
         .map((c: StagedChange) => ({
           elementId: c.elementId,
           layerName: c.layerName,
@@ -424,7 +441,7 @@ export class VirtualProjectionEngine {
         })),
 
       deletions: changes
-        .filter((c: StagedChange) => c.type === 'delete')
+        .filter((c: StagedChange) => c.type === "delete")
         .map((c: StagedChange) => ({
           elementId: c.elementId,
           layerName: c.layerName,
@@ -629,8 +646,8 @@ export class VirtualProjectionEngine {
         name: element.name,
         type: element.type,
         description: element.description,
-        properties: { ...element.properties },        // Shallow copy (properties are read-only in projection)
-        references: [...(element.references || [])],  // Shallow copy of array
+        properties: { ...element.properties }, // Shallow copy (properties are read-only in projection)
+        references: [...(element.references || [])], // Shallow copy of array
         relationships: [...(element.relationships || [])], // Shallow copy of array
         layer: element.layer,
       });

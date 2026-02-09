@@ -2,9 +2,9 @@
  * Show information about a model or layer
  */
 
-import ansis from 'ansis';
-import { Model } from '../core/model.js';
-import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
+import ansis from "ansis";
+import { Model } from "../core/model.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 export interface InfoOptions {
   layer?: string;
@@ -13,11 +13,13 @@ export interface InfoOptions {
 }
 
 export async function infoCommand(options: InfoOptions): Promise<void> {
-  const span = isTelemetryEnabled ? startSpan('info.execute', {
-    'info.hasLayer': !!options.layer,
-    'info.layer': options.layer,
-    'info.verbose': options.verbose === true,
-  }) : null;
+  const span = isTelemetryEnabled
+    ? startSpan("info.execute", {
+        "info.hasLayer": !!options.layer,
+        "info.layer": options.layer,
+        "info.verbose": options.verbose === true,
+      })
+    : null;
 
   try {
     // Load model
@@ -25,41 +27,41 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
     const manifest = model.manifest;
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('model.name', manifest.name);
-      (span as any).setAttribute('model.version', manifest.version);
-      (span as any).setAttribute('model.specVersion', manifest.specVersion);
+      (span as any).setAttribute("model.name", manifest.name);
+      (span as any).setAttribute("model.version", manifest.version);
+      (span as any).setAttribute("model.specVersion", manifest.specVersion);
     }
 
-    console.log('');
-    console.log(ansis.bold(`${ansis.blue('Model:')} ${manifest.name}`));
-    console.log(ansis.dim('─'.repeat(80)));
+    console.log("");
+    console.log(ansis.bold(`${ansis.blue("Model:")} ${manifest.name}`));
+    console.log(ansis.dim("─".repeat(80)));
 
-    console.log(`${ansis.gray('Name:')}          ${manifest.name}`);
-    console.log(`${ansis.gray('Version:')}       ${manifest.version}`);
-    console.log(`${ansis.gray('Spec Version:')}  ${manifest.specVersion}`);
+    console.log(`${ansis.gray("Name:")}          ${manifest.name}`);
+    console.log(`${ansis.gray("Version:")}       ${manifest.version}`);
+    console.log(`${ansis.gray("Spec Version:")}  ${manifest.specVersion}`);
 
     if (manifest.description) {
-      console.log(`${ansis.gray('Description:')}   ${manifest.description}`);
+      console.log(`${ansis.gray("Description:")}   ${manifest.description}`);
     }
 
     if (manifest.author) {
-      console.log(`${ansis.gray('Author:')}        ${manifest.author}`);
+      console.log(`${ansis.gray("Author:")}        ${manifest.author}`);
     }
 
-    console.log(`${ansis.gray('Created:')}       ${manifest.created}`);
-    console.log(`${ansis.gray('Modified:')}      ${manifest.modified}`);
+    console.log(`${ansis.gray("Created:")}       ${manifest.created}`);
+    console.log(`${ansis.gray("Modified:")}      ${manifest.modified}`);
 
     // Show layer information
     const layerNames = model.getLayerNames();
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('info.layerCount', layerNames.length);
+      (span as any).setAttribute("info.layerCount", layerNames.length);
     }
 
     if (layerNames.length > 0) {
-      console.log('');
-      console.log(ansis.bold('Layers:'));
-      console.log(ansis.dim('─'.repeat(80)));
+      console.log("");
+      console.log(ansis.bold("Layers:"));
+      console.log(ansis.dim("─".repeat(80)));
 
       if (options.layer) {
         // Show specific layer info
@@ -71,14 +73,14 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
 
         const elements = layer.listElements();
         console.log(`${ansis.cyan(options.layer)}`);
-        console.log(`  ${ansis.gray('Elements:')} ${elements.length}`);
+        console.log(`  ${ansis.gray("Elements:")} ${elements.length}`);
 
         if (isTelemetryEnabled && span) {
-          (span as any).setAttribute('info.elementCount', elements.length);
+          (span as any).setAttribute("info.elementCount", elements.length);
         }
 
         if (options.verbose && elements.length > 0) {
-          console.log(`  ${ansis.gray('Details:')}`);
+          console.log(`  ${ansis.gray("Details:")}`);
           const types = new Set(elements.map((e) => e.type));
           for (const type of types) {
             const count = elements.filter((e) => e.type === type).length;
@@ -102,11 +104,11 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
         }
       }
     } else {
-      console.log('');
-      console.log(ansis.yellow('No layers found'));
+      console.log("");
+      console.log(ansis.yellow("No layers found"));
     }
 
-    console.log('');
+    console.log("");
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -114,7 +116,10 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (span as any).setStatus({
+        code: 2,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));

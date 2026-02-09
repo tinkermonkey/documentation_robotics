@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RateLimit",
+  "description": "Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair usage across consumers.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.ratelimit"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "ratelimit"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "requests": {
+          "type": "integer"
+        },
+        "window": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "keyBy": {
+          "type": "string"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference"
+        }
+      },
+      "required": [
+        "requests",
+        "window",
+        "keyBy"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

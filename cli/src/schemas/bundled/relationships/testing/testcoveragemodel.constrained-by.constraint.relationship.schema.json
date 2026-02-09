@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Testcoveragemodel Constrained By Constraint",
+  "description": "Defines relationship: testing.testcoveragemodel constrained-by motivation.constraint",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.constrained-by.motivation"
+    },
+    "source_spec_node_id": {
+      "const": "testing.testcoveragemodel"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.constraint"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "constrained-by"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

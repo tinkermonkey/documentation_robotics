@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ColumnDisplayType",
+  "description": "ColumnDisplayType element in UX Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.columndisplaytype"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "columndisplaytype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ParameterStyle",
+  "description": "ParameterStyle element in API Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.parameterstyle"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "parameterstyle"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

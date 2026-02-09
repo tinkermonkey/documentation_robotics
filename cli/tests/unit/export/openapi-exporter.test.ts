@@ -85,7 +85,9 @@ describe("OpenAPIExporter", () => {
 
     expect(spec.paths["/users"].post["x-source-reference"]).toBeDefined();
     expect(spec.paths["/users"].post["x-source-reference"].provenance).toBe("extracted");
-    expect(spec.paths["/users"].post["x-source-reference"].locations[0].file).toBe("src/api/users.ts");
+    expect(spec.paths["/users"].post["x-source-reference"].locations[0].file).toBe(
+      "src/api/users.ts"
+    );
     expect(spec.paths["/users"].post["x-source-reference"].locations[0].symbol).toBe("createUser");
   });
 

@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Example",
+  "description": "Provides sample values for request bodies, responses, or parameters. Improves documentation clarity and enables automated testing or mocking.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.example"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "example"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "externalValue": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "summary",
+        "value",
+        "externalValue"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

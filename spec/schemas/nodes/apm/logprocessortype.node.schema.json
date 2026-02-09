@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LogProcessorType",
+  "description": "LogProcessorType element in APM Observability Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.logprocessortype"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "logprocessortype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

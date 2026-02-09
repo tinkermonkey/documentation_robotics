@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Trigger",
+  "description": "A database trigger that automatically executes in response to data modification events (INSERT, UPDATE, DELETE). Enables reactive database behavior and data integrity enforcement.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.trigger"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "trigger"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "timing": {
+          "type": "string"
+        },
+        "events": {
+          "type": "string"
+        },
+        "forEach": {
+          "type": "string"
+        },
+        "functionName": {
+          "type": "string"
+        },
+        "condition": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "table",
+        "timing",
+        "events",
+        "forEach",
+        "functionName",
+        "condition"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

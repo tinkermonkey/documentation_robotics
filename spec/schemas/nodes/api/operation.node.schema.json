@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Operation",
+  "description": "Single API operation (HTTP method on a path)",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.operation"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "operation"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "operationId": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "string"
+        },
+        "deprecated": {
+          "type": "boolean"
+        },
+        "parameters": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "requestBody": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "responses": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "callbacks": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "security": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "x-source-reference": {
+          "type": "string",
+          "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
+        }
+      },
+      "required": [
+        "operationId",
+        "summary",
+        "tags"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

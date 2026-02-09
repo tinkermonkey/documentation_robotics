@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AssessmentType",
+  "description": "AssessmentType element in Motivation Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "motivation.assessmenttype"
+    },
+    "layer_id": {
+      "const": "motivation"
+    },
+    "type": {
+      "const": "assessmenttype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

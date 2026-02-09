@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "String",
+  "description": "String type definition for data model properties",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-model.string"
+    },
+    "layer_id": {
+      "const": "data-model"
+    },
+    "type": {
+      "const": "string"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string",
+          "description": "A string value"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "date-time",
+            "date",
+            "time",
+            "duration",
+            "email",
+            "idn-email",
+            "hostname",
+            "idn-hostname",
+            "ipv4",
+            "ipv6",
+            "uri",
+            "uri-reference",
+            "iri",
+            "iri-reference",
+            "uuid",
+            "json-pointer",
+            "relative-json-pointer",
+            "regex"
+          ],
+          "description": "StringFormat classification"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

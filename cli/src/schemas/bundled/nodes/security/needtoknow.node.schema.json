@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NeedToKnow",
+  "description": "Information access based on objective/purpose requirements",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.needtoknow"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "needtoknow"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "resource": {
+          "type": "string"
+        },
+        "objective": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "justificationRequired": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "resource",
+        "objective",
+        "message",
+        "justificationRequired"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

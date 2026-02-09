@@ -20,16 +20,21 @@ describe("PlantUMLExporter", () => {
 
     model = new Model("/test", manifest);
 
+    // Add layers to model first so they share the graph
     const motivationLayer = new Layer("motivation");
+    model.addLayer(motivationLayer);
+
+    const businessLayer = new Layer("business");
+    model.addLayer(businessLayer);
+
+    // Now add elements (layers use shared graph)
     const goal = new Element({
       id: "motivation-goal-increase-revenue",
       type: "goal",
       name: "Increase Revenue",
     });
     motivationLayer.addElement(goal);
-    model.addLayer(motivationLayer);
 
-    const businessLayer = new Layer("business");
     const process = new Element({
       id: "business-process-sales",
       type: "business-process",
@@ -43,7 +48,6 @@ describe("PlantUMLExporter", () => {
       ],
     });
     businessLayer.addElement(process);
-    model.addLayer(businessLayer);
   });
 
   it("should start with @startuml", async () => {
@@ -63,7 +67,7 @@ describe("PlantUMLExporter", () => {
 
   it("should include model description in note", async () => {
     const output = await exporter.export(model, {});
-    expect(output.includes('note top :')).toBe(true);
+    expect(output.includes("note top :")).toBe(true);
   });
 
   it("should create packages for each layer", async () => {
@@ -90,8 +94,9 @@ describe("PlantUMLExporter", () => {
   it("should add relationships with arrows", async () => {
     const output = await exporter.export(model, {});
 
-    // Should have references with --> (solid arrow)
-    expect(output.includes("-->")).toBe(true);
+    // Should have references with arrows (realizes uses ..|>)
+    expect(output.includes("..|>")).toBe(true);
+    expect(output.includes("realizes")).toBe(true);
   });
 
   it("should filter layers", async () => {
@@ -175,16 +180,17 @@ describe("PlantUMLExporter", () => {
       name: "Achieve Growth",
     });
 
-    layer.addElement(goal1);
     layer.addElement(goal2);
+    layer.addElement(goal1);
 
     const testModel = new Model("/test", model.manifest);
     testModel.addLayer(layer);
 
     const output = await exporter.export(testModel, {});
 
-    // Should have dotted arrow for relationships
-    expect(output.includes("..>")).toBe(true);
+    // Should have arrow for relationships (depends-on uses default -->)
+    expect(output.includes("-->")).toBe(true);
+    expect(output.includes("depends-on")).toBe(true);
   });
 
   it("should escape special characters in relationship names", async () => {
@@ -201,7 +207,13 @@ describe("PlantUMLExporter", () => {
         },
       ],
     });
+    const otherProcess = new Element({
+      id: "business-process-other",
+      type: "business-process",
+      name: "Other Process",
+    });
 
+    layer.addElement(otherProcess);
     layer.addElement(process);
 
     const testModel = new Model("/test", model.manifest);
@@ -209,7 +221,7 @@ describe("PlantUMLExporter", () => {
 
     const output = await exporter.export(testModel, {});
 
-    expect(output.includes('depends & requires')).toBe(true);
+    expect(output.includes("depends & requires")).toBe(true);
   });
 
   it("should include source reference notes when includeSources is true", async () => {

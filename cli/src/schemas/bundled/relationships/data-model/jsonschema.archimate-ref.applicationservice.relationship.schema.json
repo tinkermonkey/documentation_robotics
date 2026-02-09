@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Jsonschema Archimate Ref Applicationservice",
+  "description": "Defines relationship: data-model.jsonschema archimate-ref application.applicationservice",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-model.archimate-ref.application"
+    },
+    "source_spec_node_id": {
+      "const": "data-model.jsonschema"
+    },
+    "source_layer": {
+      "const": "data-model"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationservice"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "archimate-ref"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

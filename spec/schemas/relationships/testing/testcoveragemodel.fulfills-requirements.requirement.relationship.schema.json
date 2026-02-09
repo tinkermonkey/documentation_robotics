@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Testcoveragemodel Fulfills Requirements Requirement",
+  "description": "Defines relationship: testing.testcoveragemodel fulfills-requirements motivation.requirement",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.fulfills-requirements.motivation"
+    },
+    "source_spec_node_id": {
+      "const": "testing.testcoveragemodel"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.requirement"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "fulfills-requirements"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "high"
+    }
+  }
+}

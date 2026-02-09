@@ -3,13 +3,7 @@ import { Model } from "@/core/model";
 import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
 import { Manifest } from "@/core/manifest";
-import {
-  ensureDir,
-  fileExists,
-  readFile,
-  writeJSON,
-  readJSON,
-} from "@/utils/file-io";
+import { ensureDir, fileExists, readFile, writeJSON, readJSON } from "@/utils/file-io";
 import * as path from "path";
 
 describe("Export Command Integration Tests", () => {
@@ -304,17 +298,6 @@ describe("Export Command Integration Tests", () => {
       expect(result).toBeDefined();
       expect(result.length).toBeGreaterThan(0);
     }
-  });
-
-  it("should preserve element relationships in exports", async () => {
-    const loadedModel = await Model.load(testDir);
-
-    const { PlantUMLExporter } = await import("@/export/plantuml-exporter");
-    const exporter = new PlantUMLExporter();
-    const result = await exporter.export(loadedModel, {});
-
-    // Should include the realizes reference
-    expect(result.includes("realizes")).toBe(true);
   });
 
   it("should export archimate with --layers filter", async () => {

@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoverageRequirement",
+  "description": "Requirement for test coverage of a target",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.coveragerequirement"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "coveragerequirement"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "coverageCriteria": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string"
+        },
+        "inputPartitionSelections": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "contextSelections": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "outcomeSelections": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "exclusions": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "coverageCriteria"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EnvironmentFactor",
+  "description": "Environmental condition that may affect behavior",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.environmentfactor"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "environmentfactor"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "factor": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "factor",
+        "value"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

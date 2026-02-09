@@ -8,26 +8,32 @@
  * - Base snapshot tracking for drift detection
  */
 
-import path from 'path';
-import ansis from 'ansis';
-import { StagedChangesetStorage } from './staged-changeset-storage.js';
-import { BaseSnapshotManager } from './base-snapshot-manager.js';
-import { Changeset, StagedChange } from './changeset.js';
-import { ChangesetValidator } from './changeset-validator.js';
-import { fileExists } from '../utils/file-io.js';
-import type { Model } from './model.js';
-import type { VirtualProjectionEngine } from './virtual-projection.js';
-import { createSha256Hash } from '../types/index.js';
-import type { BackupManifest } from '../types/index.js';
-import { isTelemetryEnabled, startSpan, endSpan, emitLog, SeverityNumber } from '../telemetry/index.js';
+import path from "path";
+import ansis from "ansis";
+import { StagedChangesetStorage } from "./staged-changeset-storage.js";
+import { BaseSnapshotManager } from "./base-snapshot-manager.js";
+import { Changeset, StagedChange } from "./changeset.js";
+import { ChangesetValidator } from "./changeset-validator.js";
+import { fileExists } from "../utils/file-io.js";
+import type { Model } from "./model.js";
+import type { VirtualProjectionEngine } from "./virtual-projection.js";
+import { createSha256Hash } from "../types/index.js";
+import type { BackupManifest } from "../types/index.js";
+import {
+  isTelemetryEnabled,
+  startSpan,
+  endSpan,
+  emitLog,
+  SeverityNumber,
+} from "../telemetry/index.js";
 
 /**
  * Options for commit operation
  */
 export interface CommitOptions {
-  force?: boolean;        // Ignore drift warnings
-  validate?: boolean;     // Run validation (default: true)
-  dryRun?: boolean;       // Preview without applying
+  force?: boolean; // Ignore drift warnings
+  validate?: boolean; // Run validation (default: true)
+  dryRun?: boolean; // Preview without applying
 }
 
 /**
@@ -93,17 +99,17 @@ export class StagingAreaManager {
    * @throws Error if ID contains invalid characters or structure
    */
   private validateChangesetId(changesetId: string): void {
-    if (!changesetId || typeof changesetId !== 'string') {
-      throw new Error('Changeset ID must be a non-empty string');
+    if (!changesetId || typeof changesetId !== "string") {
+      throw new Error("Changeset ID must be a non-empty string");
     }
 
-    if (changesetId.trim() === '') {
-      throw new Error('Changeset ID cannot be empty or whitespace-only');
+    if (changesetId.trim() === "") {
+      throw new Error("Changeset ID cannot be empty or whitespace-only");
     }
 
     // Check for path traversal attempts
-    if (changesetId.includes('..') || changesetId.includes('/') || changesetId.includes('\\')) {
-      throw new Error('Changeset ID cannot contain path separators or traversal sequences (..)');
+    if (changesetId.includes("..") || changesetId.includes("/") || changesetId.includes("\\")) {
+      throw new Error("Changeset ID cannot contain path separators or traversal sequences (..)");
     }
 
     // Check for special characters that could cause issues
@@ -112,8 +118,8 @@ export class StagingAreaManager {
     if (/[<>:"|?*]/.test(changesetId)) {
       throw new Error(
         'Changeset ID contains invalid special characters (<>:"|?*). ' +
-        'Only alphanumeric characters and hyphens are preserved. ' +
-        'Spaces are converted to hyphens, and other characters are removed during storage.'
+          "Only alphanumeric characters and hyphens are preserved. " +
+          "Spaces are converted to hyphens, and other characters are removed during storage."
       );
     }
   }
@@ -125,7 +131,7 @@ export class StagingAreaManager {
    */
   private async getProjectionEngine(): Promise<VirtualProjectionEngine> {
     if (!this.projectionEngine) {
-      const { VirtualProjectionEngine } = await import('./virtual-projection.js');
+      const { VirtualProjectionEngine } = await import("./virtual-projection.js");
       this.projectionEngine = new VirtualProjectionEngine(this.rootPath);
     }
     return this.projectionEngine;
@@ -136,7 +142,7 @@ export class StagingAreaManager {
    */
   async create(name: string, description?: string): Promise<Changeset> {
     if (!this.model) {
-      throw new Error('Model required for creating changesets');
+      throw new Error("Model required for creating changesets");
     }
     const id = this.generateChangesetId();
     const baseSnapshotId = await this.snapshotManager.captureSnapshot(this.model);
@@ -206,7 +212,7 @@ export class StagingAreaManager {
    * @param change - The change to stage (type, elementId, layerName, before/after snapshots)
    * @throws Error if changeset ID is invalid, changeset not found, or not in 'staged' status
    */
-  async stage(changesetId: string, change: Omit<StagedChange, 'sequenceNumber'>): Promise<void> {
+  async stage(changesetId: string, change: Omit<StagedChange, "sequenceNumber">): Promise<void> {
     this.validateChangesetId(changesetId);
 
     const changeset = await this.load(changesetId);
@@ -215,14 +221,14 @@ export class StagingAreaManager {
     }
 
     // Only allow staging when status is 'staged' (not 'committed' or 'discarded')
-    if (changeset.status !== 'staged') {
+    if (changeset.status !== "staged") {
       throw new Error(
         `Cannot stage changes on changeset with status '${changeset.status}'. ` +
-        `Changeset must have status 'staged' to accept new changes.`
+          `Changeset must have status 'staged' to accept new changes.`
       );
     }
 
-    const stagedChange: Omit<StagedChange, 'sequenceNumber'> = {
+    const stagedChange: Omit<StagedChange, "sequenceNumber"> = {
       ...change,
       timestamp: change.timestamp || new Date().toISOString(),
     };
@@ -251,10 +257,10 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    if (changeset.status !== 'staged') {
+    if (changeset.status !== "staged") {
       throw new Error(
         `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
-        `Changeset must have status 'staged'.`
+          `Changeset must have status 'staged'.`
       );
     }
 
@@ -284,7 +290,7 @@ export class StagingAreaManager {
 
     // Clear all staged changes and update status
     changeset.changes = [];
-    changeset.status = 'discarded';
+    changeset.status = "discarded";
     // Note: stats are auto-computed from changes array (will be 0/0/0 after clearing)
     changeset.updateModified();
 
@@ -307,7 +313,7 @@ export class StagingAreaManager {
     this.validateChangesetId(changesetId);
 
     if (!this.model) {
-      throw new Error('Model required for capturing base snapshot');
+      throw new Error("Model required for capturing base snapshot");
     }
     const changeset = await this.load(changesetId);
     if (!changeset) {
@@ -341,7 +347,7 @@ export class StagingAreaManager {
     this.validateChangesetId(changesetId);
 
     if (!this.model) {
-      throw new Error('Model required for drift detection');
+      throw new Error("Model required for drift detection");
     }
     const changeset = await this.load(changesetId);
     if (!changeset) {
@@ -351,9 +357,9 @@ export class StagingAreaManager {
     if (!changeset.baseSnapshot) {
       return {
         isDrifted: false,
-        baseSnapshotId: 'unknown',
-        currentSnapshotId: 'unknown',
-        warnings: ['No base snapshot available for drift detection'],
+        baseSnapshotId: "unknown",
+        currentSnapshotId: "unknown",
+        warnings: ["No base snapshot available for drift detection"],
       };
     }
 
@@ -405,13 +411,19 @@ export class StagingAreaManager {
    * Dry-run mode performs all checks but does not persist changes.
    * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
-  async commit(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
-    const span = isTelemetryEnabled ? startSpan('staging.commit', {
-      'changeset.id': changesetId,
-      'commit.validate': options.validate !== false,
-      'commit.force': options.force === true,
-      'commit.dryRun': options.dryRun === true,
-    }) : null;
+  async commit(
+    model: Model,
+    changesetId: string,
+    options: CommitOptions = {}
+  ): Promise<CommitResult> {
+    const span = isTelemetryEnabled
+      ? startSpan("staging.commit", {
+          "changeset.id": changesetId,
+          "commit.validate": options.validate !== false,
+          "commit.force": options.force === true,
+          "commit.dryRun": options.dryRun === true,
+        })
+      : null;
 
     try {
       this.validateChangesetId(changesetId);
@@ -422,399 +434,403 @@ export class StagingAreaManager {
       }
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('changeset.name', changeset.name);
-        (span as any).setAttribute('changeset.changeCount', changeset.changes.length);
+        (span as any).setAttribute("changeset.name", changeset.name);
+        (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
       }
 
       const isDryRun = options.dryRun === true;
       const shouldValidate = options.validate !== false;
 
       // Step 1: Detect drift and throw if drifted without --force
-      const driftSpan = isTelemetryEnabled ? startSpan('staging.detectDrift') : null;
+      const driftSpan = isTelemetryEnabled ? startSpan("staging.detectDrift") : null;
       const drift = await this.detectDrift(changesetId);
       if (isTelemetryEnabled && driftSpan) {
-        (driftSpan as any).setAttribute('drift.detected', drift.isDrifted);
-        (driftSpan as any).setAttribute('drift.baseSnapshotId', drift.baseSnapshotId);
-        (driftSpan as any).setAttribute('drift.currentSnapshotId', drift.currentSnapshotId);
+        (driftSpan as any).setAttribute("drift.detected", drift.isDrifted);
+        (driftSpan as any).setAttribute("drift.baseSnapshotId", drift.baseSnapshotId);
+        (driftSpan as any).setAttribute("drift.currentSnapshotId", drift.currentSnapshotId);
         (driftSpan as any).setStatus({ code: 0 });
       }
       endSpan(driftSpan);
 
       if (drift.isDrifted) {
         if (isTelemetryEnabled && span) {
-          (span as any).setAttribute('commit.driftDetected', true);
+          (span as any).setAttribute("commit.driftDetected", true);
         }
         if (options.force) {
-          emitLog(SeverityNumber.WARN, 'Drift detected but overridden with --force', {
-            'drift.baseSnapshot': drift.baseSnapshotId,
-            'drift.currentSnapshot': drift.currentSnapshotId,
+          emitLog(SeverityNumber.WARN, "Drift detected but overridden with --force", {
+            "drift.baseSnapshot": drift.baseSnapshotId,
+            "drift.currentSnapshot": drift.currentSnapshotId,
           });
         } else {
-          emitLog(SeverityNumber.ERROR, 'Drift detected, commit blocked', {
-            'drift.baseSnapshot': drift.baseSnapshotId,
-            'drift.currentSnapshot': drift.currentSnapshotId,
+          emitLog(SeverityNumber.ERROR, "Drift detected, commit blocked", {
+            "drift.baseSnapshot": drift.baseSnapshotId,
+            "drift.currentSnapshot": drift.currentSnapshotId,
           });
           throw new Error(
-            `Base model has drifted since changeset creation. ` +
-            `Use --force to commit anyway.`
+            `Base model has drifted since changeset creation. ` + `Use --force to commit anyway.`
           );
         }
       }
 
-    const result: CommitResult = {
-      changeset: changeset.name,
-      committed: 0,
-      failed: 0,
-      validation: {
-        passed: true,
-        errors: [],
-      },
-    };
+      const result: CommitResult = {
+        changeset: changeset.name,
+        committed: 0,
+        failed: 0,
+        validation: {
+          passed: true,
+          errors: [],
+        },
+      };
 
-    // Step 2: Validate against projected model (force cannot override validation)
-    if (shouldValidate) {
-      const validationSpan = isTelemetryEnabled ? startSpan('staging.validate') : null;
-      const validation = await this.validator.validateChangeset(model, changesetId);
+      // Step 2: Validate against projected model (force cannot override validation)
+      if (shouldValidate) {
+        const validationSpan = isTelemetryEnabled ? startSpan("staging.validate") : null;
+        const validation = await this.validator.validateChangeset(model, changesetId);
 
-      if (isTelemetryEnabled && validationSpan) {
-        (validationSpan as any).setAttribute('validation.passed', validation.isValid());
-        (validationSpan as any).setAttribute('validation.errorCount', validation.errors.length);
-        (validationSpan as any).setStatus({ code: 0 });
-      }
-      endSpan(validationSpan);
+        if (isTelemetryEnabled && validationSpan) {
+          (validationSpan as any).setAttribute("validation.passed", validation.isValid());
+          (validationSpan as any).setAttribute("validation.errorCount", validation.errors.length);
+          (validationSpan as any).setStatus({ code: 0 });
+        }
+        endSpan(validationSpan);
 
-      if (!validation.isValid()) {
-        result.validation.passed = false;
-        result.validation.errors = validation.errors.map(e => e.message);
-
-        emitLog(SeverityNumber.ERROR, 'Validation failed', {
-          'validation.errorCount': result.validation.errors.length,
-          'validation.errors': result.validation.errors.slice(0, 10), // First 10 errors
-        });
-
-        throw new Error(
-          `Validation failed with ${result.validation.errors.length} error(s):\n` +
-          result.validation.errors.map(e => `  - ${e}`).join('\n') +
-          `\n\nFix these validation errors before committing.`
-        );
-      }
-    }
-
-    // Step 3: Dry run early exit (before making any changes)
-    if (isDryRun) {
-      result.committed = changeset.changes.length;
-      if (drift.isDrifted) {
-        result.driftWarning = drift;
-      }
-      return result;
-    }
-
-    // Step 4: Backup model state for atomic rollback
-    let backup: string;
-    try {
-      backup = await this.backupModel(model);
-    } catch (backupError) {
-      // Backup creation failed - cannot proceed safely
-      throw new Error(
-        `Failed to create backup before commit. No changes have been applied. ` +
-        `${backupError instanceof Error ? backupError.message : String(backupError)}`
-      );
-    }
-
-    // Step 5: Apply all changes sequentially by sequence number
-    const sortedChanges = [...(changeset.changes as StagedChange[])].sort(
-      (a, b) => a.sequenceNumber - b.sequenceNumber
-    );
-
-    try {
-      const applySpan = isTelemetryEnabled ? startSpan('staging.apply', {
-        'apply.changeCount': changeset.changes.length,
-      }) : null;
-
-      try {
-
-        for (const change of sortedChanges) {
-        try {
-          const layer = await model.getLayer(change.layerName);
-          if (!layer) {
-            throw new Error(`Layer '${change.layerName}' not found`);
-          }
-
-          if (change.type === 'add' && change.after) {
-            const elements = layer.listElements();
-            const elementExists = elements.some((e) => e.id === change.elementId);
-
-            if (!elementExists) {
-              const { Element } = await import('./element.js');
-              const elementData = change.after as Record<string, unknown>;
-              const element = new Element({
-                id: change.elementId,
-                type: (elementData.type as string) || 'unknown',
-                name: (elementData.name as string) || change.elementId,
-                description: elementData.description as string | undefined,
-                properties: elementData,
-              });
-              layer.addElement(element);
-              result.committed++;
-            }
-          } else if (change.type === 'update' && change.after) {
-            const element = layer.getElement(change.elementId);
-            if (element) {
-              const elementData = change.after as Record<string, unknown>;
-              Object.assign(element, elementData);
-              result.committed++;
-            }
-          } else if (change.type === 'delete') {
-            const element = layer.getElement(change.elementId);
-            if (element) {
-              layer.deleteElement(change.elementId);
-              result.committed++;
-            }
-          }
-        } catch (error) {
-          result.failed++;
+        if (!validation.isValid()) {
           result.validation.passed = false;
-          result.validation.errors.push(
-            `Failed to apply change to ${change.elementId}: ${error instanceof Error ? error.message : String(error)}`
-          );
+          result.validation.errors = validation.errors.map((e) => e.message);
 
-          emitLog(SeverityNumber.ERROR, 'Failed to apply change', {
-            'change.elementId': change.elementId,
-            'change.type': change.type,
-            'change.layer': change.layerName,
-            'error.message': error instanceof Error ? error.message : String(error),
+          emitLog(SeverityNumber.ERROR, "Validation failed", {
+            "validation.errorCount": result.validation.errors.length,
+            "validation.errors": result.validation.errors.slice(0, 10), // First 10 errors
           });
 
           throw new Error(
-            `Atomic commit failed at change ${sortedChanges.indexOf(change) + 1}/${sortedChanges.length}: ` +
-            `${error instanceof Error ? error.message : String(error)}`
-          );
-        }
-        }
-
-        if (isTelemetryEnabled && applySpan) {
-          (applySpan as any).setAttribute('apply.committed', result.committed);
-          (applySpan as any).setAttribute('apply.failed', result.failed);
-          (applySpan as any).setStatus({ code: 0 });
-        }
-      } finally {
-        endSpan(applySpan);
-      }
-
-      // Step 6: Save all modified layers atomically
-      const modifiedLayers = new Set<string>();
-      for (const change of sortedChanges) {
-        modifiedLayers.add(change.layerName);
-      }
-
-      for (const layerName of modifiedLayers) {
-        try {
-          await model.saveLayer(layerName);
-        } catch (error) {
-          throw new Error(
-            `Failed to save layer '${layerName}': ${error instanceof Error ? error.message : String(error)}`
+            `Validation failed with ${result.validation.errors.length} error(s):\n` +
+              result.validation.errors.map((e) => `  - ${e}`).join("\n") +
+              `\n\nFix these validation errors before committing.`
           );
         }
       }
 
-      // Step 7: Update changeset status to committed ONLY AFTER successful saves
-      changeset.status = 'committed';
-      changeset.updateModified();
-
-      try {
-        await this.storage.save(changeset);
-      } catch (error) {
-        // Changeset status is critical metadata - must be persisted with model changes
-        throw new Error(
-          `Failed to save changeset status after commit: ${error instanceof Error ? error.message : String(error)}. ` +
-          `This is a critical error that requires rollback to maintain consistency between model state and changeset metadata.`
-        );
-      }
-
-      // Step 8: Add changeset to manifest history
-      if (!model.manifest.changeset_history) {
-        model.manifest.changeset_history = [];
-      }
-      model.manifest.changeset_history.push({
-        name: changeset.name,
-        applied_at: new Date().toISOString(),
-        action: 'applied',
-      });
-
-      // Step 9: Save manifest with updated changeset history
-      try {
-        await model.saveManifest();
-      } catch (manifestError) {
-        // Manifest save failed - this is CRITICAL and will trigger rollback
-        // Don't log here - let the rollback handler provide comprehensive error output
-        throw new Error(
-          `Failed to save manifest with changeset history: ${manifestError instanceof Error ? manifestError.message : String(manifestError)}. ` +
-          `Model will be rolled back to maintain consistency.`
-        );
-      }
-
-      // Step 10: Clean up backup directory after successful commit
-      // Note: cleanupBackup handles its own errors and logs them with ERROR severity
-      await this.cleanupBackup(backup);
-
-      if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('commit.success', true);
-        (span as any).setAttribute('commit.committed', result.committed);
+      // Step 3: Dry run early exit (before making any changes)
+      if (isDryRun) {
+        result.committed = changeset.changes.length;
         if (drift.isDrifted) {
-          (span as any).setAttribute('commit.driftOverridden', true);
+          result.driftWarning = drift;
         }
-        (span as any).setStatus({ code: 0 });
+        return result;
       }
 
-      return result;
+      // Step 4: Backup model state for atomic rollback
+      let backup: string;
+      try {
+        backup = await this.backupModel(model);
+      } catch (backupError) {
+        // Backup creation failed - cannot proceed safely
+        throw new Error(
+          `Failed to create backup before commit. No changes have been applied. ` +
+            `${backupError instanceof Error ? backupError.message : String(backupError)}`
+        );
+      }
 
-    } catch (commitError) {
-      // Attempt rollback on any failure - restore from backup
-      let rollbackSucceeded = false;
-      let rollbackError: Error | null = null;
-
-      const rollbackSpan = isTelemetryEnabled ? startSpan('staging.rollback') : null;
+      // Step 5: Apply all changes sequentially by sequence number
+      const sortedChanges = [...(changeset.changes as StagedChange[])].sort(
+        (a, b) => a.sequenceNumber - b.sequenceNumber
+      );
 
       try {
-        emitLog(SeverityNumber.WARN, 'Commit failed, attempting rollback', {
-          'commit.error': commitError instanceof Error ? commitError.message : String(commitError),
-        });
+        const applySpan = isTelemetryEnabled
+          ? startSpan("staging.apply", {
+              "apply.changeCount": changeset.changes.length,
+            })
+          : null;
 
-        await this.restoreModel(model, backup);
-        rollbackSucceeded = true;
+        try {
+          for (const change of sortedChanges) {
+            try {
+              const layer = await model.getLayer(change.layerName);
+              if (!layer) {
+                throw new Error(`Layer '${change.layerName}' not found`);
+              }
 
-        if (isTelemetryEnabled && rollbackSpan) {
-          (rollbackSpan as any).setAttribute('rollback.success', true);
-          (rollbackSpan as any).setStatus({ code: 0 });
+              if (change.type === "add" && change.after) {
+                const elements = layer.listElements();
+                const elementExists = elements.some((e) => e.id === change.elementId);
+
+                if (!elementExists) {
+                  const { Element } = await import("./element.js");
+                  const elementData = change.after as Record<string, unknown>;
+                  const element = new Element({
+                    id: change.elementId,
+                    type: (elementData.type as string) || "unknown",
+                    name: (elementData.name as string) || change.elementId,
+                    description: elementData.description as string | undefined,
+                    properties: elementData,
+                  });
+                  layer.addElement(element);
+                  result.committed++;
+                }
+              } else if (change.type === "update" && change.after) {
+                const element = layer.getElement(change.elementId);
+                if (element) {
+                  const elementData = change.after as Record<string, unknown>;
+                  Object.assign(element, elementData);
+                  result.committed++;
+                }
+              } else if (change.type === "delete") {
+                const element = layer.getElement(change.elementId);
+                if (element) {
+                  layer.deleteElement(change.elementId);
+                  result.committed++;
+                }
+              }
+            } catch (error) {
+              result.failed++;
+              result.validation.passed = false;
+              result.validation.errors.push(
+                `Failed to apply change to ${change.elementId}: ${error instanceof Error ? error.message : String(error)}`
+              );
+
+              emitLog(SeverityNumber.ERROR, "Failed to apply change", {
+                "change.elementId": change.elementId,
+                "change.type": change.type,
+                "change.layer": change.layerName,
+                "error.message": error instanceof Error ? error.message : String(error),
+              });
+
+              throw new Error(
+                `Atomic commit failed at change ${sortedChanges.indexOf(change) + 1}/${sortedChanges.length}: ` +
+                  `${error instanceof Error ? error.message : String(error)}`
+              );
+            }
+          }
+
+          if (isTelemetryEnabled && applySpan) {
+            (applySpan as any).setAttribute("apply.committed", result.committed);
+            (applySpan as any).setAttribute("apply.failed", result.failed);
+            (applySpan as any).setStatus({ code: 0 });
+          }
+        } finally {
+          endSpan(applySpan);
         }
 
-        emitLog(SeverityNumber.INFO, 'Rollback succeeded, model restored', {
-          'backup.path': backup,
-        });
-      } catch (err) {
-        rollbackError = err instanceof Error ? err : new Error(String(err));
-
-        if (isTelemetryEnabled && rollbackSpan) {
-          (rollbackSpan as any).setAttribute('rollback.success', false);
-          (rollbackSpan as any).recordException(rollbackError);
-          (rollbackSpan as any).setStatus({ code: 2, message: rollbackError.message });
+        // Step 6: Save all modified layers atomically
+        const modifiedLayers = new Set<string>();
+        for (const change of sortedChanges) {
+          modifiedLayers.add(change.layerName);
         }
 
-        emitLog(SeverityNumber.ERROR, 'Rollback failed, model may be corrupted', {
-          'rollback.error': rollbackError.message,
-          'backup.path': backup,
+        for (const layerName of modifiedLayers) {
+          try {
+            await model.saveLayer(layerName);
+          } catch (error) {
+            throw new Error(
+              `Failed to save layer '${layerName}': ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+        }
+
+        // Step 7: Update changeset status to committed ONLY AFTER successful saves
+        changeset.status = "committed";
+        changeset.updateModified();
+
+        try {
+          await this.storage.save(changeset);
+        } catch (error) {
+          // Changeset status is critical metadata - must be persisted with model changes
+          throw new Error(
+            `Failed to save changeset status after commit: ${error instanceof Error ? error.message : String(error)}. ` +
+              `This is a critical error that requires rollback to maintain consistency between model state and changeset metadata.`
+          );
+        }
+
+        // Step 8: Add changeset to manifest history
+        if (!model.manifest.changeset_history) {
+          model.manifest.changeset_history = [];
+        }
+        model.manifest.changeset_history.push({
+          name: changeset.name,
+          applied_at: new Date().toISOString(),
+          action: "applied",
         });
-      } finally {
-        endSpan(rollbackSpan);
-      }
 
-      // CRITICAL: Validate backup integrity BEFORE suggesting manual restoration
-      let backupHealth: { isValid: boolean; filesChecked: number; errors: string[] };
-      let backupValidationError: string | null = null;
-      let validationProcessFailed = false;
+        // Step 9: Save manifest with updated changeset history
+        try {
+          await model.saveManifest();
+        } catch (manifestError) {
+          // Manifest save failed - this is CRITICAL and will trigger rollback
+          // Don't log here - let the rollback handler provide comprehensive error output
+          throw new Error(
+            `Failed to save manifest with changeset history: ${manifestError instanceof Error ? manifestError.message : String(manifestError)}. ` +
+              `Model will be rolled back to maintain consistency.`
+          );
+        }
 
-      try {
-        backupHealth = await this.validateBackupIntegrity(backup);
-      } catch (validationErr) {
-        validationProcessFailed = true;
-        backupValidationError = validationErr instanceof Error ? validationErr.message : String(validationErr);
-        backupHealth = {
-          isValid: false,
-          filesChecked: 0,
-          errors: [
-            `Validation process failed: ${backupValidationError}`,
-            `This indicates a critical issue with the backup infrastructure, not the backup content.`,
-            `Contact support before attempting manual restoration.`
-          ]
-        };
-      }
-
-      // Build comprehensive error message
-      let compositeMessage: string;
-      const suggestions: string[] = [];
-
-      if (rollbackSucceeded) {
-        // Rollback succeeded - throw original commit error
-        compositeMessage = `Commit failed but rollback succeeded. Model restored to pre-commit state.\n\n`;
-        compositeMessage += `Error during commit:\n`;
-        compositeMessage += `  ${commitError instanceof Error ? commitError.message : String(commitError)}\n\n`;
-        compositeMessage += `Backup location (for reference): ${backup}`;
-
-        // Clean up backup after successful rollback
+        // Step 10: Clean up backup directory after successful commit
         // Note: cleanupBackup handles its own errors and logs them with ERROR severity
         await this.cleanupBackup(backup);
 
         if (isTelemetryEnabled && span) {
-          (span as any).setAttribute('commit.success', false);
-          (span as any).setAttribute('commit.rollbackSuccess', true);
-          (span as any).recordException(commitError as Error);
-          (span as any).setStatus({ code: 2, message: commitError instanceof Error ? commitError.message : String(commitError) });
-        }
-
-        throw new Error(compositeMessage);
-      } else {
-        // Rollback failed - model may be corrupted
-        compositeMessage =
-          `Commit failed AND rollback failed. Model may be in corrupted state.\n` +
-          `\n` +
-          `Original commit error:\n` +
-          `  ${commitError instanceof Error ? commitError.message : String(commitError)}\n` +
-          `\n` +
-          `Rollback error:\n` +
-          `  ${rollbackError ? rollbackError.message : 'Unknown error'}\n` +
-          `\n` +
-          `Backup location: ${backup}\n`;
-
-        // Add backup health status (always show header for consistency with tests)
-        compositeMessage += `Backup integrity check:\n`;
-        if (validationProcessFailed) {
-          compositeMessage += `  ✗ Backup integrity issues found:\n`;
-          compositeMessage += `    - Validation process failed: ${backupValidationError}\n`;
-          compositeMessage += `\n⚠ CRITICAL: Backup validation process crashed.\n`;
-          compositeMessage += `This indicates a system-level issue (filesystem, memory, permissions).\n`;
-          compositeMessage += `DO NOT attempt manual restoration until this is resolved.\n`;
-        } else if (backupHealth.isValid) {
-          compositeMessage += `  ✓ Backup is valid (${backupHealth.filesChecked} files checked)\n`;
-        } else {
-          compositeMessage += `  ✗ Backup integrity issues found:\n`;
-          for (const error of backupHealth.errors) {
-            compositeMessage += `    - ${error}\n`;
+          (span as any).setAttribute("commit.success", true);
+          (span as any).setAttribute("commit.committed", result.committed);
+          if (drift.isDrifted) {
+            (span as any).setAttribute("commit.driftOverridden", true);
           }
+          (span as any).setStatus({ code: 0 });
         }
 
-        compositeMessage += `\n`;
+        return result;
+      } catch (commitError) {
+        // Attempt rollback on any failure - restore from backup
+        let rollbackSucceeded = false;
+        let rollbackError: Error | null = null;
 
-        if (backupHealth.isValid) {
-          suggestions.push(
-            `Backup is valid. Manually restore from backup: ${backup}`,
-            `Copy manifest.json/manifest.yaml from backup to ${path.join(model.rootPath, 'documentation-robotics')}`,
-            `Copy layer files from ${path.join(backup, 'layers')} to ${path.join(model.rootPath, 'documentation-robotics', 'layers')}`,
-            `Run 'dr validate' after manual restoration`,
-            `Contact support if issue persists`
-          );
+        const rollbackSpan = isTelemetryEnabled ? startSpan("staging.rollback") : null;
+
+        try {
+          emitLog(SeverityNumber.WARN, "Commit failed, attempting rollback", {
+            "commit.error":
+              commitError instanceof Error ? commitError.message : String(commitError),
+          });
+
+          await this.restoreModel(model, backup);
+          rollbackSucceeded = true;
+
+          if (isTelemetryEnabled && rollbackSpan) {
+            (rollbackSpan as any).setAttribute("rollback.success", true);
+            (rollbackSpan as any).setStatus({ code: 0 });
+          }
+
+          emitLog(SeverityNumber.INFO, "Rollback succeeded, model restored", {
+            "backup.path": backup,
+          });
+        } catch (err) {
+          rollbackError = err instanceof Error ? err : new Error(String(err));
+
+          if (isTelemetryEnabled && rollbackSpan) {
+            (rollbackSpan as any).setAttribute("rollback.success", false);
+            (rollbackSpan as any).recordException(rollbackError);
+            (rollbackSpan as any).setStatus({ code: 2, message: rollbackError.message });
+          }
+
+          emitLog(SeverityNumber.ERROR, "Rollback failed, model may be corrupted", {
+            "rollback.error": rollbackError.message,
+            "backup.path": backup,
+          });
+        } finally {
+          endSpan(rollbackSpan);
+        }
+
+        // CRITICAL: Validate backup integrity BEFORE suggesting manual restoration
+        let backupHealth: { isValid: boolean; filesChecked: number; errors: string[] };
+        let backupValidationError: string | null = null;
+        let validationProcessFailed = false;
+
+        try {
+          backupHealth = await this.validateBackupIntegrity(backup);
+        } catch (validationErr) {
+          validationProcessFailed = true;
+          backupValidationError =
+            validationErr instanceof Error ? validationErr.message : String(validationErr);
+          backupHealth = {
+            isValid: false,
+            filesChecked: 0,
+            errors: [
+              `Validation process failed: ${backupValidationError}`,
+              `This indicates a critical issue with the backup infrastructure, not the backup content.`,
+              `Contact support before attempting manual restoration.`,
+            ],
+          };
+        }
+
+        // Build comprehensive error message
+        let compositeMessage: string;
+        const suggestions: string[] = [];
+
+        if (rollbackSucceeded) {
+          // Rollback succeeded - throw original commit error
+          compositeMessage = `Commit failed but rollback succeeded. Model restored to pre-commit state.\n\n`;
+          compositeMessage += `Error during commit:\n`;
+          compositeMessage += `  ${commitError instanceof Error ? commitError.message : String(commitError)}\n\n`;
+          compositeMessage += `Backup location (for reference): ${backup}`;
+
+          // Clean up backup after successful rollback
+          // Note: cleanupBackup handles its own errors and logs them with ERROR severity
+          await this.cleanupBackup(backup);
+
+          if (isTelemetryEnabled && span) {
+            (span as any).setAttribute("commit.success", false);
+            (span as any).setAttribute("commit.rollbackSuccess", true);
+            (span as any).recordException(commitError as Error);
+            (span as any).setStatus({
+              code: 2,
+              message: commitError instanceof Error ? commitError.message : String(commitError),
+            });
+          }
+
+          throw new Error(compositeMessage);
         } else {
-          suggestions.push(
-            `⚠ Backup integrity is compromised. Do NOT use this backup for recovery.`,
-            `Check if backup files exist at: ${backup}`,
-            `Verify disk space and file permissions`,
-            `Contact support immediately - manual data recovery may be required`,
-            `Do not attempt manual restoration with a corrupted backup`
-          );
+          // Rollback failed - model may be corrupted
+          compositeMessage =
+            `Commit failed AND rollback failed. Model may be in corrupted state.\n` +
+            `\n` +
+            `Original commit error:\n` +
+            `  ${commitError instanceof Error ? commitError.message : String(commitError)}\n` +
+            `\n` +
+            `Rollback error:\n` +
+            `  ${rollbackError ? rollbackError.message : "Unknown error"}\n` +
+            `\n` +
+            `Backup location: ${backup}\n`;
+
+          // Add backup health status (always show header for consistency with tests)
+          compositeMessage += `Backup integrity check:\n`;
+          if (validationProcessFailed) {
+            compositeMessage += `  ✗ Backup integrity issues found:\n`;
+            compositeMessage += `    - Validation process failed: ${backupValidationError}\n`;
+            compositeMessage += `\n⚠ CRITICAL: Backup validation process crashed.\n`;
+            compositeMessage += `This indicates a system-level issue (filesystem, memory, permissions).\n`;
+            compositeMessage += `DO NOT attempt manual restoration until this is resolved.\n`;
+          } else if (backupHealth.isValid) {
+            compositeMessage += `  ✓ Backup is valid (${backupHealth.filesChecked} files checked)\n`;
+          } else {
+            compositeMessage += `  ✗ Backup integrity issues found:\n`;
+            for (const error of backupHealth.errors) {
+              compositeMessage += `    - ${error}\n`;
+            }
+          }
+
+          compositeMessage += `\n`;
+
+          if (backupHealth.isValid) {
+            suggestions.push(
+              `Backup is valid. Manually restore from backup: ${backup}`,
+              `Copy manifest.json/manifest.yaml from backup to ${path.join(model.rootPath, "documentation-robotics")}`,
+              `Copy layer files from ${path.join(backup, "layers")} to ${path.join(model.rootPath, "documentation-robotics", "layers")}`,
+              `Run 'dr validate' after manual restoration`,
+              `Contact support if issue persists`
+            );
+          } else {
+            suggestions.push(
+              `⚠ Backup integrity is compromised. Do NOT use this backup for recovery.`,
+              `Check if backup files exist at: ${backup}`,
+              `Verify disk space and file permissions`,
+              `Contact support immediately - manual data recovery may be required`,
+              `Do not attempt manual restoration with a corrupted backup`
+            );
+          }
+
+          compositeMessage += `Manual recovery may be required.`;
+
+          if (isTelemetryEnabled && span) {
+            (span as any).setAttribute("commit.success", false);
+            (span as any).setAttribute("commit.rollbackSuccess", false);
+            (span as any).recordException(commitError as Error);
+            (span as any).setStatus({ code: 2, message: "Commit and rollback both failed" });
+          }
+
+          const { CLIError } = await import("../utils/errors.js");
+          throw new CLIError(compositeMessage, 1, suggestions);
         }
-
-        compositeMessage += `Manual recovery may be required.`;
-
-        if (isTelemetryEnabled && span) {
-          (span as any).setAttribute('commit.success', false);
-          (span as any).setAttribute('commit.rollbackSuccess', false);
-          (span as any).recordException(commitError as Error);
-          (span as any).setStatus({ code: 2, message: 'Commit and rollback both failed' });
-        }
-
-        const { CLIError } = await import('../utils/errors.js');
-        throw new CLIError(compositeMessage, 1, suggestions);
       }
-    }
     } finally {
       endSpan(span);
     }
@@ -831,12 +847,12 @@ export class StagingAreaManager {
   async isActive(changesetId: string): Promise<boolean> {
     this.validateChangesetId(changesetId);
 
-    const activePath = path.join(this.rootPath, 'documentation-robotics', 'changesets', '.active');
+    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
     if (!(await fileExists(activePath))) {
       return false;
     }
 
-    const { readFile } = await import('../utils/file-io.js');
+    const { readFile } = await import("../utils/file-io.js");
     const activeId = await readFile(activePath);
     return activeId.trim() === changesetId;
   }
@@ -862,16 +878,16 @@ export class StagingAreaManager {
     }
 
     // Transition to 'staged' status to enable interception
-    if (changeset.status !== 'staged') {
+    if (changeset.status !== "staged") {
       changeset.markStaged();
       await this.storage.save(changeset);
     }
 
-    const { writeFile, ensureDir } = await import('../utils/file-io.js');
-    const changesetDir = path.join(this.rootPath, 'documentation-robotics', 'changesets');
+    const { writeFile, ensureDir } = await import("../utils/file-io.js");
+    const changesetDir = path.join(this.rootPath, "documentation-robotics", "changesets");
     await ensureDir(changesetDir);
 
-    const activePath = path.join(changesetDir, '.active');
+    const activePath = path.join(changesetDir, ".active");
     // Write the actual changeset ID (not the user-provided name)
     if (!changeset.id) {
       throw new Error(`Changeset has no ID, cannot activate`);
@@ -884,11 +900,11 @@ export class StagingAreaManager {
    * Allows a new changeset to be activated or model mutations to proceed normally.
    */
   async clearActive(): Promise<void> {
-    const { writeFile } = await import('../utils/file-io.js');
-    const activePath = path.join(this.rootPath, 'documentation-robotics', 'changesets', '.active');
+    const { writeFile } = await import("../utils/file-io.js");
+    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
 
     if (await fileExists(activePath)) {
-      await writeFile(activePath, '');
+      await writeFile(activePath, "");
     }
   }
 
@@ -899,13 +915,13 @@ export class StagingAreaManager {
    * @returns The active changeset or null if none is active
    */
   async getActive(): Promise<Changeset | null> {
-    const activePath = path.join(this.rootPath, 'documentation-robotics', 'changesets', '.active');
+    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
 
     if (!(await fileExists(activePath))) {
       return null;
     }
 
-    const { readFile } = await import('../utils/file-io.js');
+    const { readFile } = await import("../utils/file-io.js");
     const activeId = await readFile(activePath);
     const id = activeId.trim();
 
@@ -923,13 +939,13 @@ export class StagingAreaManager {
    * @returns The active changeset ID or null if no active changeset exists
    */
   async getActiveId(): Promise<string | null> {
-    const activePath = path.join(this.rootPath, 'documentation-robotics', 'changesets', '.active');
+    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
 
     if (!(await fileExists(activePath))) {
       return null;
     }
 
-    const { readFile } = await import('../utils/file-io.js');
+    const { readFile } = await import("../utils/file-io.js");
     const activeId = await readFile(activePath);
     const id = activeId.trim();
 
@@ -950,7 +966,11 @@ export class StagingAreaManager {
    * This method provides backward compatibility with changeset commands that use
    * "apply" instead of "commit" terminology. All logic is delegated to commit().
    */
-  async apply(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
+  async apply(
+    model: Model,
+    changesetId: string,
+    options: CommitOptions = {}
+  ): Promise<CommitResult> {
     return this.commit(model, changesetId, options);
   }
 
@@ -988,13 +1008,13 @@ export class StagingAreaManager {
   private async backupModel(model: Model): Promise<string> {
     const backupDir = path.join(
       this.rootPath,
-      'documentation-robotics',
-      '.backups',
+      "documentation-robotics",
+      ".backups",
       `backup-${Date.now()}`
     );
 
-    const { ensureDir, readFile, atomicWrite } = await import('../utils/file-io.js');
-    const { createHash } = await import('crypto');
+    const { ensureDir, readFile, atomicWrite } = await import("../utils/file-io.js");
+    const { createHash } = await import("crypto");
 
     await ensureDir(backupDir);
 
@@ -1009,17 +1029,22 @@ export class StagingAreaManager {
 
     try {
       // Backup manifest - try both .yaml and .json formats
-      let manifestPath = path.join(model.rootPath, 'documentation-robotics', 'model', 'manifest.yaml');
+      let manifestPath = path.join(
+        model.rootPath,
+        "documentation-robotics",
+        "model",
+        "manifest.yaml"
+      );
       if (!(await fileExists(manifestPath))) {
-        manifestPath = path.join(model.rootPath, 'documentation-robotics', 'manifest.json');
+        manifestPath = path.join(model.rootPath, "documentation-robotics", "manifest.json");
       }
       if (!(await fileExists(manifestPath))) {
-        throw new Error('Manifest file not found in expected locations');
+        throw new Error("Manifest file not found in expected locations");
       }
 
       const manifestContent = await readFile(manifestPath);
       const manifestChecksum = createSha256Hash(
-        createHash('sha256').update(manifestContent).digest('hex')
+        createHash("sha256").update(manifestContent).digest("hex")
       );
       const manifestFilename = path.basename(manifestPath);
 
@@ -1027,14 +1052,14 @@ export class StagingAreaManager {
       backupFiles.push({
         path: manifestFilename,
         checksum: manifestChecksum,
-        size: manifestContent.length
+        size: manifestContent.length,
       });
 
       // Backup all layers - handle multiple YAML files per layer
-      const layersDir = path.join(backupDir, 'layers');
+      const layersDir = path.join(backupDir, "layers");
       await ensureDir(layersDir);
 
-      const fs = await import('fs/promises');
+      const fs = await import("fs/promises");
 
       for (const layer of model.layers.values()) {
         const layerBackupDir = path.join(layersDir, layer.name);
@@ -1049,18 +1074,18 @@ export class StagingAreaManager {
         // Backup all YAML files in the layer directory
         const files = await fs.readdir(layerDirPath);
         for (const file of files) {
-          if (file.endsWith('.yaml') || file.endsWith('.yml')) {
+          if (file.endsWith(".yaml") || file.endsWith(".yml")) {
             const filePath = path.join(layerDirPath, file);
             const fileContent = await readFile(filePath);
             const fileChecksum = createSha256Hash(
-              createHash('sha256').update(fileContent).digest('hex')
+              createHash("sha256").update(fileContent).digest("hex")
             );
 
             await atomicWrite(path.join(layerBackupDir, file), fileContent);
             backupFiles.push({
               path: `layers/${layer.name}/${file}`,
               checksum: fileChecksum,
-              size: fileContent.length
+              size: fileContent.length,
             });
           }
         }
@@ -1068,13 +1093,13 @@ export class StagingAreaManager {
 
       // Create the final immutable BackupManifest
       const backupManifest: BackupManifest = {
-        files: backupFiles as ReadonlyArray<typeof backupFiles[0]>,
-        timestamp
+        files: backupFiles as ReadonlyArray<(typeof backupFiles)[0]>,
+        timestamp,
       };
 
       // Write backup manifest for validation
       await atomicWrite(
-        path.join(backupDir, '.backup-manifest.json'),
+        path.join(backupDir, ".backup-manifest.json"),
         JSON.stringify(backupManifest, null, 2)
       );
 
@@ -1082,7 +1107,6 @@ export class StagingAreaManager {
       await this.validateBackup(backupDir, backupManifest);
 
       return backupDir;
-
     } catch (error) {
       // Clean up incomplete backup with detailed error handling
       const cleanupError = await this.forceRemoveBackupDir(backupDir);
@@ -1091,15 +1115,15 @@ export class StagingAreaManager {
         // This is CRITICAL - orphaned backups accumulate
         throw new Error(
           `Backup creation failed AND cleanup failed.\n` +
-          `Original error: ${error instanceof Error ? error.message : String(error)}\n` +
-          `Cleanup error: ${cleanupError}\n\n` +
-          `Orphaned backup directory: ${backupDir}\n` +
-          `This directory will accumulate and consume disk space.\n\n` +
-          `REQUIRED ACTIONS:\n` +
-          `  1. Manually remove: rm -rf "${backupDir}"\n` +
-          `  2. Check disk space: df -h\n` +
-          `  3. Check permissions: ls -la "${path.dirname(backupDir)}"\n\n` +
-          `Cannot proceed with commit until this is resolved.`
+            `Original error: ${error instanceof Error ? error.message : String(error)}\n` +
+            `Cleanup error: ${cleanupError}\n\n` +
+            `Orphaned backup directory: ${backupDir}\n` +
+            `This directory will accumulate and consume disk space.\n\n` +
+            `REQUIRED ACTIONS:\n` +
+            `  1. Manually remove: rm -rf "${backupDir}"\n` +
+            `  2. Check disk space: df -h\n` +
+            `  3. Check permissions: ls -la "${path.dirname(backupDir)}"\n\n` +
+            `Cannot proceed with commit until this is resolved.`
         );
       }
 
@@ -1118,12 +1142,9 @@ export class StagingAreaManager {
    * @param manifest - Backup manifest with file list and checksums
    * @throws Error if any file is missing, checksum mismatches, or size differs
    */
-  private async validateBackup(
-    backupDir: string,
-    manifest: BackupManifest
-  ): Promise<void> {
-    const { readFile, fileExists } = await import('../utils/file-io.js');
-    const { createHash } = await import('crypto');
+  private async validateBackup(backupDir: string, manifest: BackupManifest): Promise<void> {
+    const { readFile, fileExists } = await import("../utils/file-io.js");
+    const { createHash } = await import("crypto");
 
     for (const file of manifest.files) {
       const backupFilePath = path.join(backupDir, file.path);
@@ -1135,7 +1156,7 @@ export class StagingAreaManager {
 
       // Verify checksum matches
       const content = await readFile(backupFilePath);
-      const checksum = createHash('sha256').update(content).digest('hex');
+      const checksum = createHash("sha256").update(content).digest("hex");
 
       if (checksum !== file.checksum) {
         throw new Error(
@@ -1164,8 +1185,8 @@ export class StagingAreaManager {
     filesChecked: number;
     errors: string[];
   }> {
-    const { readFile, fileExists } = await import('../utils/file-io.js');
-    const { createHash } = await import('crypto');
+    const { readFile, fileExists } = await import("../utils/file-io.js");
+    const { createHash } = await import("crypto");
 
     const errors: string[] = [];
     let filesChecked = 0;
@@ -1177,7 +1198,7 @@ export class StagingAreaManager {
       }
 
       // Load and validate backup manifest
-      const manifestPath = path.join(backupDir, '.backup-manifest.json');
+      const manifestPath = path.join(backupDir, ".backup-manifest.json");
       if (!(await fileExists(manifestPath))) {
         throw new Error(`Backup manifest not found at ${manifestPath}`);
       }
@@ -1187,7 +1208,7 @@ export class StagingAreaManager {
       try {
         const manifestContent = await readFile(manifestPath);
         if (!manifestContent || manifestContent.length === 0) {
-          throw new Error('Backup manifest is empty');
+          throw new Error("Backup manifest is empty");
         }
         rawManifest = JSON.parse(manifestContent.toString());
       } catch (err) {
@@ -1198,12 +1219,12 @@ export class StagingAreaManager {
       }
 
       // Validate manifest structure (can throw for missing required arrays)
-      if (!rawManifest || typeof rawManifest !== 'object') {
-        throw new Error('Backup manifest must be an object');
+      if (!rawManifest || typeof rawManifest !== "object") {
+        throw new Error("Backup manifest must be an object");
       }
 
       if (!rawManifest.files || !Array.isArray(rawManifest.files)) {
-        throw new Error('Backup manifest must have a files array');
+        throw new Error("Backup manifest must have a files array");
       }
 
       // Validate each file entry in the manifest and collect errors gracefully
@@ -1212,23 +1233,23 @@ export class StagingAreaManager {
         filesChecked++;
 
         // Validate file entry structure
-        if (!file || typeof file !== 'object') {
+        if (!file || typeof file !== "object") {
           errors.push(`Backup manifest file entry ${index} must be an object`);
           continue;
         }
 
-        if (typeof file.path !== 'string' || !file.path) {
+        if (typeof file.path !== "string" || !file.path) {
           errors.push(`Backup manifest file entry ${index} must have a non-empty path string`);
           continue;
         }
 
         // Validate required metadata fields - these are validation errors, not critical
-        if (typeof file.checksum !== 'string') {
+        if (typeof file.checksum !== "string") {
           errors.push(`Backup manifest file entry ${index} must have a checksum string`);
           continue;
         }
 
-        if (typeof file.size !== 'number' || file.size < 0) {
+        if (typeof file.size !== "number" || file.size < 0) {
           errors.push(`Backup manifest file entry ${index} must have a non-negative size number`);
           continue;
         }
@@ -1245,7 +1266,7 @@ export class StagingAreaManager {
         // Check checksum
         try {
           const content = await readFile(backupFilePath);
-          const checksum = createHash('sha256').update(content).digest('hex');
+          const checksum = createHash("sha256").update(content).digest("hex");
 
           if (checksum !== file.checksum) {
             errors.push(
@@ -1270,7 +1291,7 @@ export class StagingAreaManager {
       return {
         isValid: errors.length === 0,
         filesChecked,
-        errors
+        errors,
       };
     } catch (err) {
       throw new Error(
@@ -1293,49 +1314,49 @@ export class StagingAreaManager {
    */
   private async cleanupBackup(backupDir: string): Promise<void> {
     try {
-      const { rm } = await import('node:fs/promises');
+      const { rm } = await import("node:fs/promises");
       await rm(backupDir, { recursive: true, force: true });
     } catch (error) {
       // Log cleanup failures with ERROR severity - these mask real problems
       const errorMsg = error instanceof Error ? error.message : String(error);
       const errorCode = (error as NodeJS.ErrnoException)?.code;
 
-      let suggestions = '';
+      let suggestions = "";
 
       // Handle ENOENT specially - backup already deleted is not an error
-      if (errorCode === 'ENOENT') {
+      if (errorCode === "ENOENT") {
         // Backup was already deleted - directory removal goal is achieved
         return;
       }
 
       // ENOSPC is CRITICAL - orphaned backups will accumulate and fill disk
-      if (errorCode === 'ENOSPC') {
+      if (errorCode === "ENOSPC") {
         throw new Error(
           `Backup cleanup failed due to disk full.\n` +
-          `Original error: ${errorMsg}\n\n` +
-          `Orphaned backup directory: ${backupDir}\n` +
-          `This directory will accumulate and consume disk space.\n\n` +
-          `REQUIRED ACTIONS:\n` +
-          `  1. Manually remove: rm -rf "${backupDir}"\n` +
-          `  2. Free up disk space: df -h\n` +
-          `  3. Check disk usage: du -sh ${path.dirname(backupDir)}/*\n\n` +
-          `Cannot proceed with future commits until disk space is freed.`
+            `Original error: ${errorMsg}\n\n` +
+            `Orphaned backup directory: ${backupDir}\n` +
+            `This directory will accumulate and consume disk space.\n\n` +
+            `REQUIRED ACTIONS:\n` +
+            `  1. Manually remove: rm -rf "${backupDir}"\n` +
+            `  2. Free up disk space: df -h\n` +
+            `  3. Check disk usage: du -sh ${path.dirname(backupDir)}/*\n\n` +
+            `Cannot proceed with future commits until disk space is freed.`
         );
       }
 
       // Provide specific guidance based on error type
-      if (errorCode === 'EACCES') {
+      if (errorCode === "EACCES") {
         suggestions =
-          '\n\n[PERMISSION ERROR] Cannot delete backup directory.\n' +
+          "\n\n[PERMISSION ERROR] Cannot delete backup directory.\n" +
           `Directory: ${backupDir}\n` +
-          'Check file permissions or try manual cleanup:\n' +
+          "Check file permissions or try manual cleanup:\n" +
           `sudo rm -rf "${backupDir}"`;
       } else {
         suggestions =
-          '\n\n[ACTION REQUIRED] Backup cleanup failed due to file system error.\n' +
+          "\n\n[ACTION REQUIRED] Backup cleanup failed due to file system error.\n" +
           `Directory: ${backupDir}\n` +
           `Manual cleanup: rm -rf "${backupDir}"\n` +
-          'Note: Backup directories accumulate over time and can fill disk space.';
+          "Note: Backup directories accumulate over time and can fill disk space.";
       }
 
       console.error(
@@ -1356,7 +1377,7 @@ export class StagingAreaManager {
    * Returns error details instead of throwing so caller can log and continue.
    */
   private async forceRemoveBackupDir(backupDir: string): Promise<string | null> {
-    const fs = await import('fs/promises');
+    const fs = await import("fs/promises");
 
     try {
       // Try standard removal first
@@ -1381,7 +1402,7 @@ export class StagingAreaManager {
           } catch (itemError) {
             removalFailures.push({
               path: fullPath,
-              error: itemError instanceof Error ? itemError.message : String(itemError)
+              error: itemError instanceof Error ? itemError.message : String(itemError),
             });
           }
         }
@@ -1394,8 +1415,8 @@ export class StagingAreaManager {
           // Directory may not be empty due to removal failures
           if (removalFailures.length > 0) {
             const failureDetails = removalFailures
-              .map(f => `  - ${f.path}: ${f.error}`)
-              .join('\n');
+              .map((f) => `  - ${f.path}: ${f.error}`)
+              .join("\n");
 
             return (
               `Could not remove ${removalFailures.length} items from backup directory:\n` +
@@ -1430,7 +1451,7 @@ export class StagingAreaManager {
    * Both manifest and layer restoration failures are critical and will throw errors.
    */
   private async restoreModel(model: Model, backupDir: string): Promise<void> {
-    const { readFile, fileExists, atomicWrite } = await import('../utils/file-io.js');
+    const { readFile, fileExists, atomicWrite } = await import("../utils/file-io.js");
 
     const restoredFiles: string[] = [];
     const failedFiles: Array<{ path: string; error: string; isCritical: boolean }> = [];
@@ -1438,17 +1459,22 @@ export class StagingAreaManager {
 
     try {
       // Restore manifest first (most critical) - try both .yaml and .json
-      let backupManifestFile = path.join(backupDir, 'manifest.yaml');
-      let manifestDestPath = path.join(model.rootPath, 'documentation-robotics', 'model', 'manifest.yaml');
+      let backupManifestFile = path.join(backupDir, "manifest.yaml");
+      let manifestDestPath = path.join(
+        model.rootPath,
+        "documentation-robotics",
+        "model",
+        "manifest.yaml"
+      );
 
       if (!(await fileExists(backupManifestFile))) {
-        backupManifestFile = path.join(backupDir, 'manifest.json');
-        manifestDestPath = path.join(model.rootPath, 'documentation-robotics', 'manifest.json');
+        backupManifestFile = path.join(backupDir, "manifest.json");
+        manifestDestPath = path.join(model.rootPath, "documentation-robotics", "manifest.json");
       }
 
       try {
         if (!(await fileExists(backupManifestFile))) {
-          throw new Error('Backup manifest file not found (tried .yaml and .json)');
+          throw new Error("Backup manifest file not found (tried .yaml and .json)");
         }
 
         const manifestContent = await readFile(backupManifestFile);
@@ -1458,7 +1484,7 @@ export class StagingAreaManager {
         failedFiles.push({
           path: path.basename(backupManifestFile),
           error: error instanceof Error ? error.message : String(error),
-          isCritical: true
+          isCritical: true,
         });
         // Manifest is critical - throw immediately
         throw new Error(
@@ -1467,8 +1493,8 @@ export class StagingAreaManager {
       }
 
       // Restore all layer files with defensive error handling
-      const backupLayersDir = path.join(backupDir, 'layers');
-      const fs = await import('fs/promises');
+      const backupLayersDir = path.join(backupDir, "layers");
+      const fs = await import("fs/promises");
 
       for (const layer of model.layers.values()) {
         const backupLayerDir = path.join(backupLayersDir, layer.name);
@@ -1480,7 +1506,7 @@ export class StagingAreaManager {
             failedFiles.push({
               path: `layers/${layer.name}`,
               error: errorMsg,
-              isCritical: true
+              isCritical: true,
             });
             criticalLayers.add(layer.name);
             continue;
@@ -1495,7 +1521,7 @@ export class StagingAreaManager {
             failedFiles.push({
               path: `layers/${layer.name}`,
               error: errorMsg,
-              isCritical: true
+              isCritical: true,
             });
             criticalLayers.add(layer.name);
             continue;
@@ -1506,7 +1532,7 @@ export class StagingAreaManager {
           let filesRestoredInLayer = 0;
 
           for (const file of backupFiles) {
-            if (file.endsWith('.yaml') || file.endsWith('.yml')) {
+            if (file.endsWith(".yaml") || file.endsWith(".yml")) {
               const backupFilePath = path.join(backupLayerDir, file);
               const destFilePath = path.join(layerDirPath, file);
               try {
@@ -1519,14 +1545,12 @@ export class StagingAreaManager {
                 const errorMsg = fileError instanceof Error ? fileError.message : String(fileError);
 
                 // Log immediately with ERROR severity
-                console.error(
-                  ansis.red(`✗ Failed to restore ${layer.name}/${file}: ${errorMsg}`)
-                );
+                console.error(ansis.red(`✗ Failed to restore ${layer.name}/${file}: ${errorMsg}`));
 
                 failedFiles.push({
                   path: `layers/${layer.name}/${file}`,
                   error: errorMsg,
-                  isCritical: true
+                  isCritical: true,
                 });
                 criticalLayers.add(layer.name);
               }
@@ -1538,7 +1562,7 @@ export class StagingAreaManager {
           failedFiles.push({
             path: `layers/${layer.name}`,
             error: errorMessage,
-            isCritical: true
+            isCritical: true,
           });
           criticalLayers.add(layer.name);
         }
@@ -1549,10 +1573,8 @@ export class StagingAreaManager {
 
       // CRITICAL: If any critical layers failed to restore, throw error immediately
       if (criticalLayers.size > 0) {
-        const failedLayersList = Array.from(criticalLayers).join(', ');
-        const detailedErrors = failedFiles
-          .map(f => `  - ${f.path}: ${f.error}`)
-          .join('\n');
+        const failedLayersList = Array.from(criticalLayers).join(", ");
+        const detailedErrors = failedFiles.map((f) => `  - ${f.path}: ${f.error}`).join("\n");
 
         const errorSummary =
           `Model restoration FAILED - ${failedFiles.length} critical layer(s) could not be restored:\n` +
@@ -1575,7 +1597,6 @@ export class StagingAreaManager {
 
         throw new Error(errorSummary);
       }
-
     } catch (error) {
       // Critical failure during restore
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1586,9 +1607,9 @@ export class StagingAreaManager {
         `  Successfully restored: ${restoredFiles.length} files\n` +
         `  Failed to restore: ${failedFiles.length} files (all critical)\n` +
         `\n` +
-        `Restored files:\n${restoredFiles.map(f => `  ✓ ${f}`).join('\n')}\n` +
+        `Restored files:\n${restoredFiles.map((f) => `  ✓ ${f}`).join("\n")}\n` +
         `\n` +
-        `Failed files:\n${failedFiles.map(f => `  ${f.isCritical ? '✗ [CRITICAL]' : '⚠ [WARNING]'} ${f.path}: ${f.error}`).join('\n')}\n` +
+        `Failed files:\n${failedFiles.map((f) => `  ${f.isCritical ? "✗ [CRITICAL]" : "⚠ [WARNING]"} ${f.path}: ${f.error}`).join("\n")}\n` +
         `\n` +
         `Backup location: ${backupDir}`;
 
@@ -1606,14 +1627,14 @@ export class StagingAreaManager {
    * @returns Path to the layer directory or null if not found
    */
   private async findLayerDirectory(rootPath: string, layerName: string): Promise<string | null> {
-    const fs = await import('fs/promises');
-    const modelDir = path.join(rootPath, 'documentation-robotics', 'model');
+    const fs = await import("fs/promises");
+    const modelDir = path.join(rootPath, "documentation-robotics", "model");
 
     try {
       const entries = await fs.readdir(modelDir, { withFileTypes: true });
-      const layerDir = entries.find(e =>
-        e.isDirectory() && e.name.match(/^\d{2}_/) &&
-        e.name.replace(/^\d{2}_/, '') === layerName
+      const layerDir = entries.find(
+        (e) =>
+          e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === layerName
       );
 
       if (layerDir) {
@@ -1625,7 +1646,7 @@ export class StagingAreaManager {
     } catch (error) {
       const errorCode = (error as NodeJS.ErrnoException)?.code;
 
-      if (errorCode === 'ENOENT') {
+      if (errorCode === "ENOENT") {
         // Model directory doesn't exist - this might be OK during restore
         return null;
       }
@@ -1633,12 +1654,12 @@ export class StagingAreaManager {
       // All other errors are CRITICAL during restore operations
       throw new Error(
         `Cannot access model directory for layer '${layerName}': ${error instanceof Error ? error.message : String(error)}\n` +
-        `Location: ${modelDir}\n` +
-        `Error code: ${errorCode}\n` +
-        `This indicates a filesystem or permissions issue. Check:\n` +
-        `  1. Directory permissions: ls -la ${path.dirname(modelDir)}\n` +
-        `  2. Disk health: df -h\n` +
-        `  3. Filesystem errors: dmesg | tail`
+          `Location: ${modelDir}\n` +
+          `Error code: ${errorCode}\n` +
+          `This indicates a filesystem or permissions issue. Check:\n` +
+          `  1. Directory permissions: ls -la ${path.dirname(modelDir)}\n` +
+          `  2. Disk health: df -h\n` +
+          `  3. Filesystem errors: dmesg | tail`
       );
     }
   }

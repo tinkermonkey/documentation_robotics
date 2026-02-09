@@ -74,11 +74,7 @@ describe("MarkdownExporter", () => {
 
   it("should include layer description", async () => {
     const output = await exporter.export(model, {});
-    expect(
-      output.includes(
-        "Goals, requirements, drivers, and strategic outcomes"
-      )
-    ).toBe(true);
+    expect(output.includes("Goals, requirements, drivers, and strategic outcomes")).toBe(true);
   });
 
   it("should include element table", async () => {

@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TriggerForEach",
+  "description": "TriggerForEach element in Data Store Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.triggerforeach"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "triggerforeach"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

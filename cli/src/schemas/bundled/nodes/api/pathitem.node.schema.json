@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PathItem",
+  "description": "Operations available on a path",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.pathitem"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "pathitem"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "servers": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "string"
+        },
+        "x-source-reference": {
+          "type": "string",
+          "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
+        }
+      },
+      "required": [
+        "servers",
+        "parameters"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

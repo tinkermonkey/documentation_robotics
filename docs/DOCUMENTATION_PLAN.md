@@ -479,9 +479,9 @@ dr add data-model schema user_profile
 
 Reference the canonical layer naming table:
 
-| Layer # | Canonical Name | Common Mistake             |
-| ------- | -------------- | -------------------------- |
-| 7       | `data-model`   | `data_model` (underscore)  |
+| Layer # | Canonical Name | Common Mistake                            |
+| ------- | -------------- | ----------------------------------------- |
+| 7       | `data-model`   | `data_model` (underscore)                 |
 | 8       | `data-store`   | ~~`datastore`~~ (incorrect - use hyphens) |
 
 All others are single words: `motivation`, `business`, `application`, etc.

@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoverageSummary",
+  "description": "Summary of coverage status (can be computed or declared)",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.coveragesummary"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "coveragesummary"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "generatedAt": {
+          "type": "string"
+        },
+        "totalTargets": {
+          "type": "integer"
+        },
+        "totalRequirements": {
+          "type": "integer"
+        },
+        "totalSketches": {
+          "type": "integer"
+        },
+        "targetSummaries": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "gaps": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "totalTargets",
+        "totalRequirements",
+        "totalSketches"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -7,11 +7,11 @@
  * This module is maintained for backward compatibility with SDK-based chat integration.
  */
 
-import { Model } from '../core/model.js';
-import { DependencyTracker, TraceDirection } from '../core/dependency-tracker.js';
-import { ReferenceRegistry } from '../core/reference-registry.js';
-import type { ToolDefinition, ToolExecutionResult } from '../types/index.js';
-import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
+import { Model } from "../core/model.js";
+import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js";
+import { ReferenceRegistry } from "../core/reference-registry.js";
+import type { ToolDefinition, ToolExecutionResult } from "../types/index.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
  * Get tool definitions for Claude to use with the model
@@ -26,76 +26,76 @@ import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
 export function getModelTools(): ToolDefinition[] {
   return [
     {
-      name: 'dr_list',
-      description: 'List elements in a specific layer of the architecture model',
+      name: "dr_list",
+      description: "List elements in a specific layer of the architecture model",
       input_schema: {
-        type: 'object',
+        type: "object",
         properties: {
           layer: {
-            type: 'string',
+            type: "string",
             description:
-              'Layer name (motivation, business, security, application, technology, api, data-model, data-store, ux, navigation, apm, testing)',
+              "Layer name (motivation, business, security, application, technology, api, data-model, data-store, ux, navigation, apm, testing)",
           },
           type: {
-            type: 'string',
-            description: 'Optional: filter by element type',
+            type: "string",
+            description: "Optional: filter by element type",
           },
         },
-        required: ['layer'],
+        required: ["layer"],
       },
     },
     {
-      name: 'dr_find',
-      description: 'Find a specific element by its ID in the architecture model',
+      name: "dr_find",
+      description: "Find a specific element by its ID in the architecture model",
       input_schema: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'Element ID to find (format: {layer}-{type}-{kebab-case-name})',
+            type: "string",
+            description: "Element ID to find (format: {layer}-{type}-{kebab-case-name})",
           },
         },
-        required: ['id'],
+        required: ["id"],
       },
     },
     {
-      name: 'dr_search',
-      description: 'Search for elements by name, description, or ID in the architecture model',
+      name: "dr_search",
+      description: "Search for elements by name, description, or ID in the architecture model",
       input_schema: {
-        type: 'object',
+        type: "object",
         properties: {
           query: {
-            type: 'string',
-            description: 'Search query (searches names, descriptions, and IDs)',
+            type: "string",
+            description: "Search query (searches names, descriptions, and IDs)",
           },
           layers: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Optional: limit search to specific layers',
+            type: "array",
+            items: { type: "string" },
+            description: "Optional: limit search to specific layers",
           },
         },
-        required: ['query'],
+        required: ["query"],
       },
     },
     {
-      name: 'dr_trace',
+      name: "dr_trace",
       description:
-        'Trace dependencies for an element (what depends on it, what it depends on, or both)',
+        "Trace dependencies for an element (what depends on it, what it depends on, or both)",
       input_schema: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'Element ID to trace dependencies for',
+            type: "string",
+            description: "Element ID to trace dependencies for",
           },
           direction: {
-            type: 'string',
-            enum: ['up', 'down', 'both'],
+            type: "string",
+            enum: ["up", "down", "both"],
             description:
-              'Dependency direction: up=dependents, down=dependencies, both=both (default: both)',
+              "Dependency direction: up=dependents, down=dependencies, both=both (default: both)",
           },
         },
-        required: ['id'],
+        required: ["id"],
       },
     },
   ];
@@ -118,28 +118,30 @@ export async function executeModelTool(
   args: Record<string, unknown>,
   model: Model
 ): Promise<ToolExecutionResult> {
-  const span = isTelemetryEnabled ? startSpan('ai-tool.execute', {
-    'tool.name': toolName,
-    'tool.args': JSON.stringify(args),
-  }) : null;
+  const span = isTelemetryEnabled
+    ? startSpan("ai-tool.execute", {
+        "tool.name": toolName,
+        "tool.args": JSON.stringify(args),
+      })
+    : null;
 
   try {
     let result: ToolExecutionResult;
 
     switch (toolName) {
-      case 'dr_list':
+      case "dr_list":
         result = await executeDrList(args, model);
         break;
 
-      case 'dr_find':
+      case "dr_find":
         result = await executeDrFind(args, model);
         break;
 
-      case 'dr_search':
+      case "dr_search":
         result = await executeDrSearch(args, model);
         break;
 
-      case 'dr_trace':
+      case "dr_trace":
         result = await executeDrTrace(args, model);
         break;
 
@@ -148,9 +150,9 @@ export async function executeModelTool(
     }
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('tool.hasError', !!result.error);
+      (span as any).setAttribute("tool.hasError", !!result.error);
       if (result.error) {
-        (span as any).setAttribute('tool.error', result.error as string);
+        (span as any).setAttribute("tool.error", result.error as string);
       }
       (span as any).setStatus({ code: result.error ? 2 : 0 });
     }
@@ -159,7 +161,10 @@ export async function executeModelTool(
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (span as any).setStatus({
+        code: 2,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
     throw error;
   } finally {
@@ -176,11 +181,16 @@ export async function executeModelTool(
  * @param model The architecture model
  * @returns Result with element list or error message
  */
-async function executeDrList(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
-  const span = isTelemetryEnabled ? startSpan('ai-tool.dr-list', {
-    'tool.layer': args.layer as string,
-    'tool.type': args.type as string | undefined,
-  }) : null;
+async function executeDrList(
+  args: Record<string, unknown>,
+  model: Model
+): Promise<ToolExecutionResult> {
+  const span = isTelemetryEnabled
+    ? startSpan("ai-tool.dr-list", {
+        "tool.layer": args.layer as string,
+        "tool.type": args.type as string | undefined,
+      })
+    : null;
 
   try {
     const layerName = args.layer as string;
@@ -188,17 +198,17 @@ async function executeDrList(args: Record<string, unknown>, model: Model): Promi
 
     if (!layerName) {
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('tool.error', 'layer parameter is required');
+        (span as any).setAttribute("tool.error", "layer parameter is required");
         (span as any).setStatus({ code: 2 });
       }
-      return { error: 'layer parameter is required' };
+      return { error: "layer parameter is required" };
     }
 
     const layer = await model.getLayer(layerName);
 
     if (!layer) {
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('tool.layerFound', false);
+        (span as any).setAttribute("tool.layerFound", false);
         (span as any).setStatus({ code: 2 });
       }
       return {
@@ -214,9 +224,9 @@ async function executeDrList(args: Record<string, unknown>, model: Model): Promi
     }
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('tool.layerFound', true);
-      (span as any).setAttribute('tool.elementCount', elements.length);
-      (span as any).setAttribute('tool.filtered', !!filterType);
+      (span as any).setAttribute("tool.layerFound", true);
+      (span as any).setAttribute("tool.elementCount", elements.length);
+      (span as any).setAttribute("tool.filtered", !!filterType);
       (span as any).setStatus({ code: 0 });
     }
 
@@ -227,13 +237,16 @@ async function executeDrList(args: Record<string, unknown>, model: Model): Promi
         id: e.id,
         type: e.type,
         name: e.name,
-        description: e.description || '',
+        description: e.description || "",
       })),
     };
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (span as any).setStatus({
+        code: 2,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
     return {
       error: error instanceof Error ? error.message : String(error),
@@ -252,20 +265,25 @@ async function executeDrList(args: Record<string, unknown>, model: Model): Promi
  * @param model The architecture model
  * @returns Result with found element or error message
  */
-async function executeDrFind(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
-  const span = isTelemetryEnabled ? startSpan('ai-tool.dr-find', {
-    'tool.id': args.id as string,
-  }) : null;
+async function executeDrFind(
+  args: Record<string, unknown>,
+  model: Model
+): Promise<ToolExecutionResult> {
+  const span = isTelemetryEnabled
+    ? startSpan("ai-tool.dr-find", {
+        "tool.id": args.id as string,
+      })
+    : null;
 
   try {
     const id = args.id as string;
 
     if (!id) {
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('tool.error', 'id parameter is required');
+        (span as any).setAttribute("tool.error", "id parameter is required");
         (span as any).setStatus({ code: 2 });
       }
-      return { error: 'id parameter is required' };
+      return { error: "id parameter is required" };
     }
 
     // Search through all layers for the element
@@ -277,9 +295,9 @@ async function executeDrFind(args: Record<string, unknown>, model: Model): Promi
       const element = layer.getElement(id);
       if (element) {
         if (isTelemetryEnabled && span) {
-          (span as any).setAttribute('tool.found', true);
-          (span as any).setAttribute('tool.foundInLayer', layerName);
-          (span as any).setAttribute('tool.elementType', element.type);
+          (span as any).setAttribute("tool.found", true);
+          (span as any).setAttribute("tool.foundInLayer", layerName);
+          (span as any).setAttribute("tool.elementType", element.type);
           (span as any).setStatus({ code: 0 });
         }
         return {
@@ -288,7 +306,7 @@ async function executeDrFind(args: Record<string, unknown>, model: Model): Promi
             id: element.id,
             type: element.type,
             name: element.name,
-            description: element.description || '',
+            description: element.description || "",
             layer: layerName,
             properties: element.properties || {},
           },
@@ -297,8 +315,8 @@ async function executeDrFind(args: Record<string, unknown>, model: Model): Promi
     }
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('tool.found', false);
-      (span as any).setAttribute('tool.layersSearched', layerNames.length);
+      (span as any).setAttribute("tool.found", false);
+      (span as any).setAttribute("tool.layersSearched", layerNames.length);
       (span as any).setStatus({ code: 2 });
     }
 
@@ -309,7 +327,10 @@ async function executeDrFind(args: Record<string, unknown>, model: Model): Promi
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (span as any).setStatus({
+        code: 2,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
     return {
       error: error instanceof Error ? error.message : String(error),
@@ -329,11 +350,16 @@ async function executeDrFind(args: Record<string, unknown>, model: Model): Promi
  * @param model The architecture model
  * @returns Result with search results or error message
  */
-async function executeDrSearch(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
-  const span = isTelemetryEnabled ? startSpan('ai-tool.dr-search', {
-    'tool.query': args.query as string,
-    'tool.hasLayerFilter': !!args.layers,
-  }) : null;
+async function executeDrSearch(
+  args: Record<string, unknown>,
+  model: Model
+): Promise<ToolExecutionResult> {
+  const span = isTelemetryEnabled
+    ? startSpan("ai-tool.dr-search", {
+        "tool.query": args.query as string,
+        "tool.hasLayerFilter": !!args.layers,
+      })
+    : null;
 
   try {
     const query = (args.query as string)?.toLowerCase();
@@ -341,10 +367,10 @@ async function executeDrSearch(args: Record<string, unknown>, model: Model): Pro
 
     if (!query) {
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('tool.error', 'query parameter is required');
+        (span as any).setAttribute("tool.error", "query parameter is required");
         (span as any).setStatus({ code: 2 });
       }
-      return { error: 'query parameter is required' };
+      return { error: "query parameter is required" };
     }
 
     const results: ToolExecutionResult[] = [];
@@ -374,25 +400,25 @@ async function executeDrSearch(args: Record<string, unknown>, model: Model): Pro
             id: element.id,
             type: element.type,
             name: element.name,
-            description: element.description || '',
+            description: element.description || "",
             layer: layerName,
             matchReason:
               idMatches && nameMatches
-                ? 'id and name'
+                ? "id and name"
                 : idMatches
-                  ? 'id'
+                  ? "id"
                   : nameMatches
-                    ? 'name'
-                    : 'description',
+                    ? "name"
+                    : "description",
           });
         }
       }
     }
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('tool.resultCount', results.length);
-      (span as any).setAttribute('tool.layersSearched', layersSearched);
-      (span as any).setAttribute('tool.queryLength', query.length);
+      (span as any).setAttribute("tool.resultCount", results.length);
+      (span as any).setAttribute("tool.layersSearched", layersSearched);
+      (span as any).setAttribute("tool.queryLength", query.length);
       (span as any).setStatus({ code: 0 });
     }
 
@@ -404,7 +430,10 @@ async function executeDrSearch(args: Record<string, unknown>, model: Model): Pro
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (span as any).setStatus({
+        code: 2,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
     return {
       error: error instanceof Error ? error.message : String(error),
@@ -424,30 +453,35 @@ async function executeDrSearch(args: Record<string, unknown>, model: Model): Pro
  * @param model The architecture model
  * @returns Result with dependency trace or error message
  */
-async function executeDrTrace(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
-  const span = isTelemetryEnabled ? startSpan('ai-tool.dr-trace', {
-    'tool.id': args.id as string,
-    'tool.direction': (args.direction as string) || 'both',
-  }) : null;
+async function executeDrTrace(
+  args: Record<string, unknown>,
+  model: Model
+): Promise<ToolExecutionResult> {
+  const span = isTelemetryEnabled
+    ? startSpan("ai-tool.dr-trace", {
+        "tool.id": args.id as string,
+        "tool.direction": (args.direction as string) || "both",
+      })
+    : null;
 
   try {
     const id = args.id as string;
-    const direction = (args.direction as string) || 'both';
+    const direction = (args.direction as string) || "both";
 
     if (!id) {
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('tool.error', 'id parameter is required');
+        (span as any).setAttribute("tool.error", "id parameter is required");
         (span as any).setStatus({ code: 2 });
       }
-      return { error: 'id parameter is required' };
+      return { error: "id parameter is required" };
     }
 
-    if (!['up', 'down', 'both'].includes(direction)) {
+    if (!["up", "down", "both"].includes(direction)) {
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('tool.error', 'invalid direction');
+        (span as any).setAttribute("tool.error", "invalid direction");
         (span as any).setStatus({ code: 2 });
       }
-      return { error: 'direction must be one of: up, down, both' };
+      return { error: "direction must be one of: up, down, both" };
     }
 
     // Build registry by collecting all references from all loaded layers
@@ -473,7 +507,7 @@ async function executeDrTrace(args: Record<string, unknown>, model: Model): Prom
     };
 
     // Get dependencies (elements this one depends on)
-    if (direction === 'down' || direction === 'both') {
+    if (direction === "down" || direction === "both") {
       try {
         const dependencies = tracker.traceDependencies(id, TraceDirection.UP, null);
         result.dependencies = dependencies;
@@ -485,7 +519,7 @@ async function executeDrTrace(args: Record<string, unknown>, model: Model): Prom
     }
 
     // Get dependents (elements that depend on this one)
-    if (direction === 'up' || direction === 'both') {
+    if (direction === "up" || direction === "both") {
       try {
         const dependents = tracker.traceDependencies(id, TraceDirection.DOWN, null);
         result.dependents = dependents;
@@ -497,9 +531,9 @@ async function executeDrTrace(args: Record<string, unknown>, model: Model): Prom
     }
 
     if (isTelemetryEnabled && span) {
-      (span as any).setAttribute('tool.elementCount', elementCount);
-      (span as any).setAttribute('tool.dependencyCount', result.dependencyCount || 0);
-      (span as any).setAttribute('tool.dependentCount', result.dependentCount || 0);
+      (span as any).setAttribute("tool.elementCount", elementCount);
+      (span as any).setAttribute("tool.dependencyCount", result.dependencyCount || 0);
+      (span as any).setAttribute("tool.dependentCount", result.dependentCount || 0);
       (span as any).setStatus({ code: 0 });
     }
 
@@ -507,7 +541,10 @@ async function executeDrTrace(args: Record<string, unknown>, model: Model): Prom
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (span as any).setStatus({
+        code: 2,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
     return {
       error: error instanceof Error ? error.message : String(error),

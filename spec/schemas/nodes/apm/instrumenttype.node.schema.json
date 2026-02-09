@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InstrumentType",
+  "description": "InstrumentType element in APM Observability Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.instrumenttype"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "instrumenttype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ServerVariable",
+  "description": "A variable placeholder in server URL templates that can be substituted at runtime. Enables dynamic server addressing for different environments or tenants.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.servervariable"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "servervariable"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "default": {
+          "type": "string"
+        },
+        "enum": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "default",
+        "enum"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

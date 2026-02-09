@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PartitionDependency",
+  "description": "Constraint between partition values across fields",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.partitiondependency"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "partitiondependency"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "dependsOnPartition": {
+          "type": "string"
+        },
+        "dependsOnValue": {
+          "type": "string"
+        },
+        "effect": {
+          "type": "string"
+        },
+        "affectedValues": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dependsOnPartition",
+        "dependsOnValue",
+        "effect",
+        "affectedValues"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

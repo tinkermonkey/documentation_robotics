@@ -6,7 +6,7 @@ export interface Relationship {
   source: string;
   predicate: string;
   target: string;
-  category?: 'structural' | 'behavioral';
+  category?: "structural" | "behavioral";
   layer: string;
   targetLayer?: string;
   properties?: Record<string, unknown>;

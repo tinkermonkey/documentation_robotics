@@ -1,4 +1,9 @@
-import type { ManifestData, ModelStatistics, CrossReferenceStatistics, ChangesetHistoryEntry } from "../types/index.js";
+import type {
+  ManifestData,
+  ModelStatistics,
+  CrossReferenceStatistics,
+  ChangesetHistoryEntry,
+} from "../types/index.js";
 
 /**
  * Manifest representing model metadata and configuration
@@ -51,7 +56,13 @@ export class Manifest {
    */
   upgrade_history?: unknown[];
 
-  constructor(data: ManifestData & { layers?: Record<string, unknown>; conventions?: unknown; upgrade_history?: unknown[] }) {
+  constructor(
+    data: ManifestData & {
+      layers?: Record<string, unknown>;
+      conventions?: unknown;
+      upgrade_history?: unknown[];
+    }
+  ) {
     this.name = data.name;
     this.version = data.version;
     this.description = data.description;

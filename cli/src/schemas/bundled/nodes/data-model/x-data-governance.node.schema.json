@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "x-data-governance",
+  "description": "Data model governance metadata (root-level)",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-model.x-data-governance"
+    },
+    "layer_id": {
+      "const": "data-model"
+    },
+    "type": {
+      "const": "x-data-governance"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "governedBy": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

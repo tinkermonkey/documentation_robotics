@@ -19,7 +19,7 @@ export function mockAnthropicAPI(): { restore: () => void } {
   const originalKey = process.env.ANTHROPIC_API_KEY;
 
   // Set a mock API key for testing (legacy SDK integration only)
-  process.env.ANTHROPIC_API_KEY = 'mock-api-key-for-testing-' + Date.now();
+  process.env.ANTHROPIC_API_KEY = "mock-api-key-for-testing-" + Date.now();
 
   return {
     restore: () => {
@@ -37,18 +37,18 @@ export function mockAnthropicAPI(): { restore: () => void } {
  * This matches the structure of @anthropic-ai/sdk MessageStreamEvent
  */
 export const mockClaudeStreamingResponse = {
-  type: 'message_start',
+  type: "message_start",
   message: {
-    id: 'msg_test_123',
-    type: 'message',
-    role: 'assistant',
+    id: "msg_test_123",
+    type: "message",
+    role: "assistant",
     content: [
       {
-        type: 'text',
-        text: 'Mock Claude response for testing',
+        type: "text",
+        text: "Mock Claude response for testing",
       },
     ],
-    model: 'claude-3-5-sonnet-20241022',
+    model: "claude-3-5-sonnet-20241022",
     stop_reason: null,
     stop_sequence: null,
     usage: {
@@ -62,17 +62,17 @@ export const mockClaudeStreamingResponse = {
  * Mock response for Claude API text content
  */
 export const mockClaudeTextMessage = {
-  id: 'msg_test_123',
-  type: 'message' as const,
-  role: 'assistant' as const,
+  id: "msg_test_123",
+  type: "message" as const,
+  role: "assistant" as const,
   content: [
     {
-      type: 'text' as const,
-      text: 'Mock Claude response for testing',
+      type: "text" as const,
+      text: "Mock Claude response for testing",
     },
   ],
-  model: 'claude-3-5-sonnet-20241022',
-  stop_reason: 'end_turn' as const,
+  model: "claude-3-5-sonnet-20241022",
+  stop_reason: "end_turn" as const,
   stop_sequence: null,
   usage: {
     input_tokens: 10,
@@ -84,19 +84,19 @@ export const mockClaudeTextMessage = {
  * Mock response for Claude API with tool use
  */
 export const mockClaudeToolUseMessage = {
-  id: 'msg_test_123',
-  type: 'message' as const,
-  role: 'assistant' as const,
+  id: "msg_test_123",
+  type: "message" as const,
+  role: "assistant" as const,
   content: [
     {
-      type: 'tool_use' as const,
-      id: 'tool_use_123',
-      name: 'dr_list',
-      input: { layer: 'motivation' },
+      type: "tool_use" as const,
+      id: "tool_use_123",
+      name: "dr_list",
+      input: { layer: "motivation" },
     },
   ],
-  model: 'claude-3-5-sonnet-20241022',
-  stop_reason: 'tool_use' as const,
+  model: "claude-3-5-sonnet-20241022",
+  stop_reason: "tool_use" as const,
   stop_sequence: null,
   usage: {
     input_tokens: 10,
@@ -108,10 +108,10 @@ export const mockClaudeToolUseMessage = {
  * Mock error response from Claude API
  */
 export const mockClaudeErrorResponse = {
-  type: 'error',
+  type: "error",
   error: {
-    type: 'invalid_request_error',
-    message: 'Invalid API key',
+    type: "invalid_request_error",
+    message: "Invalid API key",
   },
 };
 
@@ -122,7 +122,7 @@ export interface AnthropicMessageParams {
   model: string;
   max_tokens: number;
   messages: Array<{
-    role: 'user' | 'assistant';
+    role: "user" | "assistant";
     content: string;
   }>;
   system?: string;
@@ -141,16 +141,16 @@ export function createMockAnthropicClient() {
       stream: async function* (params: AnthropicMessageParams) {
         yield mockClaudeStreamingResponse;
         yield {
-          type: 'content_block_delta',
+          type: "content_block_delta",
           delta: {
-            type: 'text_delta',
-            text: ' ',
+            type: "text_delta",
+            text: " ",
           },
         };
         yield {
-          type: 'message_delta',
+          type: "message_delta",
           delta: {
-            stop_reason: 'end_turn',
+            stop_reason: "end_turn",
             stop_sequence: null,
           },
         };

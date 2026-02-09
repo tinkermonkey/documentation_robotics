@@ -7,13 +7,13 @@
  * Use this class only for direct Anthropic SDK integration in other contexts.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic from "@anthropic-ai/sdk";
 
 /**
  * Chat message in conversation history
  */
 export interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -45,7 +45,7 @@ export class ClaudeClient {
   ): Promise<AsyncIterable<string>> {
     // Add user message to history
     this.conversationHistory.push({
-      role: 'user',
+      role: "user",
       content: userMessage,
     });
 
@@ -56,7 +56,7 @@ export class ClaudeClient {
     }));
 
     const params: any = {
-      model: options.model || 'claude-sonnet-4-5-20250929',
+      model: options.model || "claude-sonnet-4-5-20250929",
       max_tokens: options.maxTokens || 4096,
       messages,
     };
@@ -82,11 +82,11 @@ export class ClaudeClient {
    * @returns An async iterable of text chunks
    */
   private async *streamResponse(stream: any): AsyncIterable<string> {
-    let assistantMessage = '';
+    let assistantMessage = "";
 
     for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-        const text = chunk.delta.text || '';
+      if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+        const text = chunk.delta.text || "";
         assistantMessage += text;
         yield text;
       }
@@ -94,7 +94,7 @@ export class ClaudeClient {
 
     // Add complete assistant message to history
     this.conversationHistory.push({
-      role: 'assistant',
+      role: "assistant",
       content: assistantMessage,
     });
   }

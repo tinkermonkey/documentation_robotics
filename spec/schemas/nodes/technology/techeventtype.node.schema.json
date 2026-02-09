@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TechEventType",
+  "description": "TechEventType element in Technology Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "technology.techeventtype"
+    },
+    "layer_id": {
+      "const": "technology"
+    },
+    "type": {
+      "const": "techeventtype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

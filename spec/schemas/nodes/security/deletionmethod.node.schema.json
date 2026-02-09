@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DeletionMethod",
+  "description": "DeletionMethod element in Security Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.deletionmethod"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "deletionmethod"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

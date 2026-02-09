@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BusinessRole",
+  "description": "The responsibility for performing specific behavior",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "business.businessrole"
+    },
+    "layer_id": {
+      "const": "business"
+    },
+    "type": {
+      "const": "businessrole"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "documentation": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

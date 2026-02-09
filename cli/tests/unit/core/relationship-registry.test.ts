@@ -35,9 +35,7 @@ describe("RelationshipRegistry", () => {
 
       registry.addRelationship(rel);
 
-      expect(
-        registry.getRelationshipsFrom("01-goal-create-customer")
-      ).toHaveLength(1);
+      expect(registry.getRelationshipsFrom("01-goal-create-customer")).toHaveLength(1);
     });
 
     it("should add multiple relationships from same source", () => {
@@ -56,9 +54,7 @@ describe("RelationshipRegistry", () => {
       registry.addRelationship(rel1);
       registry.addRelationship(rel2);
 
-      expect(registry.getRelationshipsFrom("02-process-create-order")).toHaveLength(
-        2
-      );
+      expect(registry.getRelationshipsFrom("02-process-create-order")).toHaveLength(2);
     });
   });
 
@@ -146,19 +142,15 @@ describe("RelationshipRegistry", () => {
 
       const rels = registry.getRelationshipsByPredicate("depends-on");
       expect(rels).toHaveLength(2);
-      expect(rels.every(rel => rel.predicate === "depends-on")).toBe(true);
+      expect(rels.every((rel) => rel.predicate === "depends-on")).toBe(true);
     });
   });
 
   describe("hasRelationship", () => {
     it("should return false for non-existent relationship", () => {
-      expect(
-        registry.hasRelationship(
-          "02-process-test",
-          "02-process-test2",
-          "depends-on"
-        )
-      ).toBe(false);
+      expect(registry.hasRelationship("02-process-test", "02-process-test2", "depends-on")).toBe(
+        false
+      );
     });
 
     it("should return true for existing relationship", () => {
@@ -170,13 +162,9 @@ describe("RelationshipRegistry", () => {
 
       registry.addRelationship(rel);
 
-      expect(
-        registry.hasRelationship(
-          "02-process-test",
-          "02-process-test2",
-          "depends-on"
-        )
-      ).toBe(true);
+      expect(registry.hasRelationship("02-process-test", "02-process-test2", "depends-on")).toBe(
+        true
+      );
     });
 
     it("should return false for different predicate", () => {
@@ -188,13 +176,9 @@ describe("RelationshipRegistry", () => {
 
       registry.addRelationship(rel);
 
-      expect(
-        registry.hasRelationship(
-          "02-process-test",
-          "02-process-test2",
-          "precedes"
-        )
-      ).toBe(false);
+      expect(registry.hasRelationship("02-process-test", "02-process-test2", "precedes")).toBe(
+        false
+      );
     });
   });
 
@@ -207,10 +191,14 @@ describe("RelationshipRegistry", () => {
       const rels = [
         { source: "02-process-test", target: "02-process-test2", predicate: "depends-on" },
         { source: "02-process-test2", target: "02-process-test3", predicate: "precedes" },
-        { source: "04-application-service-test", target: "04-application-service-test2", predicate: "depends-on" },
+        {
+          source: "04-application-service-test",
+          target: "04-application-service-test2",
+          predicate: "depends-on",
+        },
       ];
 
-      rels.forEach(rel => registry.addRelationship(rel));
+      rels.forEach((rel) => registry.addRelationship(rel));
 
       expect(registry.getAllRelationships()).toHaveLength(3);
     });

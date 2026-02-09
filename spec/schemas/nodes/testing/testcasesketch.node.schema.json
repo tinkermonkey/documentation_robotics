@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TestCaseSketch",
+  "description": "Abstract test case selecting specific partition values",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "testing.testcasesketch"
+    },
+    "layer_id": {
+      "const": "testing"
+    },
+    "type": {
+      "const": "testcasesketch"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "inputSelections": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference to the test case implementation"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

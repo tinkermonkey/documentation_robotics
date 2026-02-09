@@ -3,7 +3,12 @@
  */
 
 // Export source reference types
-export type { ProvenanceType, SourceLocation, RepositoryContext, SourceReference } from './source-reference.js';
+export type {
+  ProvenanceType,
+  SourceLocation,
+  RepositoryContext,
+  SourceReference,
+} from "./source-reference.js";
 
 /**
  * Reference across layers
@@ -23,6 +28,7 @@ export interface Relationship {
   target: string;
   predicate: string; // e.g., "depends-on", "implements"
   properties?: Record<string, unknown>;
+  category?: "structural" | "behavioral"; // Relationship classification
 }
 
 /**
@@ -87,7 +93,7 @@ export interface ChangesetHistoryEntry {
   /** ISO 8601 timestamp when the action occurred */
   applied_at: string;
   /** Type of action performed */
-  action: 'applied' | 'reverted';
+  action: "applied" | "reverted";
 }
 
 /**
@@ -154,7 +160,7 @@ export interface ToolParameter {
  * Defines the structure of inputs for a Claude AI tool
  */
 export interface ToolInputSchema {
-  type: 'object';
+  type: "object";
   properties: Record<string, ToolParameter>;
   required: string[];
 }
@@ -226,7 +232,7 @@ export interface PythonCliCompat {
  * SHA256 hash branded type for compile-time safety
  * Prevents accidental misuse of arbitrary strings as cryptographic checksums
  */
-export type Sha256Hash = string & { readonly __brand: 'Sha256Hash' };
+export type Sha256Hash = string & { readonly __brand: "Sha256Hash" };
 
 /**
  * Create a Sha256Hash from a hex string
@@ -248,9 +254,9 @@ export function createSha256Hash(hash: string): Sha256Hash {
  * All properties are readonly to enforce immutability of backup records
  */
 export interface BackupManifestFile {
-  readonly path: string;        // Relative path to the file in the backup directory
+  readonly path: string; // Relative path to the file in the backup directory
   readonly checksum: Sha256Hash; // SHA256 hash of the file contents (branded type)
-  readonly size: number;        // File size in bytes
+  readonly size: number; // File size in bytes
 }
 
 /**
@@ -259,8 +265,8 @@ export interface BackupManifestFile {
  * All properties are readonly to enforce immutability of backup records
  */
 export interface BackupManifest {
-  readonly files: ReadonlyArray<BackupManifestFile>;  // Array of backed up files with metadata
-  readonly timestamp: string;                          // ISO 8601 timestamp when backup was created
+  readonly files: ReadonlyArray<BackupManifestFile>; // Array of backed up files with metadata
+  readonly timestamp: string; // ISO 8601 timestamp when backup was created
 }
 
 /**
@@ -272,18 +278,18 @@ export interface BackupManifest {
  * @throws Error if data doesn't match expected structure or contains invalid checksums
  */
 export function createBackupManifest(data: unknown): BackupManifest {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Backup manifest must be an object');
+  if (!data || typeof data !== "object") {
+    throw new Error("Backup manifest must be an object");
   }
 
   const obj = data as Record<string, unknown>;
 
   if (!obj.files || !Array.isArray(obj.files)) {
-    throw new Error('Backup manifest must have a files array');
+    throw new Error("Backup manifest must have a files array");
   }
 
-  if (obj.timestamp && typeof obj.timestamp !== 'string') {
-    throw new Error('Backup manifest timestamp must be a string if provided');
+  if (obj.timestamp && typeof obj.timestamp !== "string") {
+    throw new Error("Backup manifest timestamp must be a string if provided");
   }
 
   // Validate ISO 8601 timestamp if provided
@@ -300,34 +306,34 @@ export function createBackupManifest(data: unknown): BackupManifest {
 
   // Validate and transform each file entry
   const files: readonly BackupManifestFile[] = obj.files.map((file: unknown, index: number) => {
-    if (!file || typeof file !== 'object') {
+    if (!file || typeof file !== "object") {
       throw new Error(`Backup manifest file entry ${index} must be an object`);
     }
 
     const fileObj = file as Record<string, unknown>;
 
-    if (typeof fileObj.path !== 'string' || !fileObj.path) {
+    if (typeof fileObj.path !== "string" || !fileObj.path) {
       throw new Error(`Backup manifest file entry ${index} must have a non-empty path string`);
     }
 
-    if (typeof fileObj.checksum !== 'string') {
+    if (typeof fileObj.checksum !== "string") {
       throw new Error(`Backup manifest file entry ${index} must have a checksum string`);
     }
 
-    if (typeof fileObj.size !== 'number' || fileObj.size < 0) {
+    if (typeof fileObj.size !== "number" || fileObj.size < 0) {
       throw new Error(`Backup manifest file entry ${index} must have a non-negative size number`);
     }
 
     return {
       path: fileObj.path,
       checksum: createSha256Hash(fileObj.checksum),
-      size: fileObj.size
+      size: fileObj.size,
     };
   });
 
   return {
     files,
-    timestamp
+    timestamp,
   };
 }
 
@@ -351,8 +357,8 @@ export async function verifyBackupIntegrity(
   filesChecked: number;
   errors: string[];
 }> {
-  const { createHash } = await import('crypto');
-  const path = await import('path');
+  const { createHash } = await import("crypto");
+  const path = await import("path");
 
   const errors: string[] = [];
   let filesChecked = 0;
@@ -372,7 +378,7 @@ export async function verifyBackupIntegrity(
       try {
         // Read file and verify checksum
         const content = await readFile(backupFilePath);
-        const checksum = createHash('sha256').update(content).digest('hex') as Sha256Hash;
+        const checksum = createHash("sha256").update(content).digest("hex") as Sha256Hash;
 
         if (checksum !== file.checksum) {
           errors.push(
@@ -383,9 +389,7 @@ export async function verifyBackupIntegrity(
 
         // Verify size matches
         if (content.length !== file.size) {
-          errors.push(
-            `Size mismatch: ${file.path} (expected ${file.size}, got ${content.length})`
-          );
+          errors.push(`Size mismatch: ${file.path} (expected ${file.size}, got ${content.length})`);
         }
       } catch (err) {
         errors.push(
@@ -397,7 +401,7 @@ export async function verifyBackupIntegrity(
     return {
       isValid: errors.length === 0,
       filesChecked,
-      errors
+      errors,
     };
   } catch (err) {
     return {
@@ -405,8 +409,8 @@ export async function verifyBackupIntegrity(
       filesChecked,
       errors: [
         ...errors,
-        `Integrity verification failed: ${err instanceof Error ? err.message : String(err)}`
-      ]
+        `Integrity verification failed: ${err instanceof Error ? err.message : String(err)}`,
+      ],
     };
   }
 }

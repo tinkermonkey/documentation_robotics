@@ -9,14 +9,17 @@
  * - Error handling and fallbacks
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { GoldenCopyCacheManager, type GoldenCopyCacheConfig } from '../../src/core/golden-copy-cache.js';
-import { rm } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { randomUUID } from 'crypto';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import {
+  GoldenCopyCacheManager,
+  type GoldenCopyCacheConfig,
+} from "../../src/core/golden-copy-cache.js";
+import { rm } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
+import { randomUUID } from "crypto";
 
-describe('GoldenCopyCacheManager', () => {
+describe("GoldenCopyCacheManager", () => {
   let manager: GoldenCopyCacheManager;
   let testCacheDir: string;
 
@@ -45,21 +48,21 @@ describe('GoldenCopyCacheManager', () => {
     GoldenCopyCacheManager.resetInstance();
   });
 
-  describe('Singleton Pattern', () => {
-    it('should return the same instance', () => {
+  describe("Singleton Pattern", () => {
+    it("should return the same instance", () => {
       const manager1 = GoldenCopyCacheManager.getInstance();
       const manager2 = GoldenCopyCacheManager.getInstance();
       expect(manager1).toBe(manager2);
     });
 
-    it('should create a new instance after reset', () => {
+    it("should create a new instance after reset", () => {
       const manager1 = GoldenCopyCacheManager.getInstance();
       GoldenCopyCacheManager.resetInstance();
       const manager2 = GoldenCopyCacheManager.getInstance();
       expect(manager1).not.toBe(manager2);
     });
 
-    it('should respect custom configuration', () => {
+    it("should respect custom configuration", () => {
       const config: GoldenCopyCacheConfig = {
         cacheDir: testCacheDir,
         warmup: true,
@@ -71,8 +74,8 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Initialization', () => {
-    it('should initialize golden copy on first call', async () => {
+  describe("Initialization", () => {
+    it("should initialize golden copy on first call", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -84,7 +87,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(manager.isInitialized()).toBe(true);
     });
 
-    it('should not reinitialize on subsequent calls', async () => {
+    it("should not reinitialize on subsequent calls", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -102,7 +105,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(initCountAfterFirst).toBe(initCountAfterSecond);
     });
 
-    it('should have valid manifest after initialization', async () => {
+    it("should have valid manifest after initialization", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -116,7 +119,7 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Cloning', () => {
+  describe("Cloning", () => {
     beforeEach(async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
@@ -124,7 +127,7 @@ describe('GoldenCopyCacheManager', () => {
       await manager.init();
     });
 
-    it('should clone the golden model', async () => {
+    it("should clone the golden model", async () => {
       const cloned = await manager.clone();
 
       expect(cloned.model).toBeDefined();
@@ -132,7 +135,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(cloned.cleanup).toBeDefined();
     });
 
-    it('should create independent clones', async () => {
+    it("should create independent clones", async () => {
       const clone1 = await manager.clone();
       const clone2 = await manager.clone();
 
@@ -140,7 +143,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(clone1.rootPath).not.toBe(clone2.rootPath);
     });
 
-    it('should populate clone stats', async () => {
+    it("should populate clone stats", async () => {
       const cloned = await manager.clone();
 
       expect(cloned.stats).toBeDefined();
@@ -148,7 +151,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(cloned.stats.cloneTime).toBeLessThan(5000); // Reasonable upper bound
     });
 
-    it('should fail gracefully if not initialized', async () => {
+    it("should fail gracefully if not initialized", async () => {
       GoldenCopyCacheManager.resetInstance();
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
@@ -158,15 +161,15 @@ describe('GoldenCopyCacheManager', () => {
 
       try {
         await manager.clone();
-        expect.unreachable('Should have thrown');
+        expect.unreachable("Should have thrown");
       } catch (error) {
         expect(error instanceof Error).toBe(true);
-        expect((error as Error).message).toContain('not initialized');
+        expect((error as Error).message).toContain("not initialized");
       }
     });
   });
 
-  describe('Statistics Tracking', () => {
+  describe("Statistics Tracking", () => {
     beforeEach(async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
@@ -174,7 +177,7 @@ describe('GoldenCopyCacheManager', () => {
       await manager.init();
     });
 
-    it('should track initialization count', async () => {
+    it("should track initialization count", async () => {
       const stats1 = manager.getStats();
       expect(stats1.initCount).toBe(1);
 
@@ -184,7 +187,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(stats2.initCount).toBe(1);
     });
 
-    it('should track clone count', async () => {
+    it("should track clone count", async () => {
       const stats1 = manager.getStats();
       expect(stats1.cloneCount).toBe(0);
 
@@ -197,7 +200,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(stats3.cloneCount).toBe(2);
     });
 
-    it('should calculate average clone time', async () => {
+    it("should calculate average clone time", async () => {
       await manager.clone();
       await manager.clone();
       await manager.clone();
@@ -209,7 +212,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(stats.avgCloneTime).toBe(stats.totalCloneTime / stats.cloneCount);
     });
 
-    it('should track total and average initialization time', async () => {
+    it("should track total and average initialization time", async () => {
       const stats = manager.getStats();
 
       expect(stats.initCount).toBe(1);
@@ -218,7 +221,7 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Cleanup', () => {
+  describe("Cleanup", () => {
     beforeEach(async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
@@ -226,7 +229,7 @@ describe('GoldenCopyCacheManager', () => {
       await manager.init();
     });
 
-    it('should reset state after cleanup', async () => {
+    it("should reset state after cleanup", async () => {
       expect(manager.isInitialized()).toBe(true);
 
       await manager.cleanup();
@@ -235,7 +238,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(manager.getGoldenModel()).toBeNull();
     });
 
-    it('should reset singleton after cleanup', async () => {
+    it("should reset singleton after cleanup", async () => {
       await manager.cleanup();
 
       GoldenCopyCacheManager.resetInstance();
@@ -246,7 +249,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(newManager.isInitialized()).toBe(false);
     });
 
-    it('should handle cleanup errors gracefully', async () => {
+    it("should handle cleanup errors gracefully", async () => {
       // Create a clone to ensure there's something to clean
       await manager.clone();
 
@@ -257,8 +260,8 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Cache Directory Management', () => {
-    it('should use custom cache directory', async () => {
+  describe("Cache Directory Management", () => {
+    it("should use custom cache directory", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -269,8 +272,8 @@ describe('GoldenCopyCacheManager', () => {
       // Cache directory should exist
     });
 
-    it('should return correct cache directory path', async () => {
-      const customPath = join(tmpdir(), 'custom-golden-cache');
+    it("should return correct cache directory path", async () => {
+      const customPath = join(tmpdir(), "custom-golden-cache");
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: customPath,
       });
@@ -279,24 +282,24 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Error Handling', () => {
-    it('should provide meaningful error messages', async () => {
+  describe("Error Handling", () => {
+    it("should provide meaningful error messages", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
 
       try {
         await manager.clone();
-        expect.unreachable('Should have thrown');
+        expect.unreachable("Should have thrown");
       } catch (error) {
         expect(error instanceof Error).toBe(true);
-        expect((error as Error).message).toContain('not initialized');
+        expect((error as Error).message).toContain("not initialized");
       }
     });
   });
 
-  describe('Configuration Options', () => {
-    it('should respect eagerLoad option', async () => {
+  describe("Configuration Options", () => {
+    it("should respect eagerLoad option", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
         eagerLoad: false, // Load on demand
@@ -308,7 +311,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(model?.lazyLoad).toBe(true); // Opposite of eagerLoad
     });
 
-    it('should respect warmup option', async () => {
+    it("should respect warmup option", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
         warmup: true, // Populate with sample data
@@ -321,7 +324,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(model?.layers.size).toBeGreaterThan(0);
     });
 
-    it('should use default model options when not provided', async () => {
+    it("should use default model options when not provided", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -329,17 +332,17 @@ describe('GoldenCopyCacheManager', () => {
       await manager.init();
       const model = manager.getGoldenModel();
 
-      expect(model?.manifest.name).toContain('Golden');
+      expect(model?.manifest.name).toContain("Golden");
     });
 
-    it('should use custom model options when provided', async () => {
-      const customName = 'My Custom Model';
+    it("should use custom model options when provided", async () => {
+      const customName = "My Custom Model";
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
         modelOptions: {
           name: customName,
-          version: '1.0.0',
-          specVersion: '0.7.1',
+          version: "1.0.0",
+          specVersion: "0.7.1",
         },
       });
 
@@ -347,11 +350,11 @@ describe('GoldenCopyCacheManager', () => {
       const model = manager.getGoldenModel();
 
       expect(model?.manifest.name).toBe(customName);
-      expect(model?.manifest.version).toBe('1.0.0');
+      expect(model?.manifest.version).toBe("1.0.0");
     });
   });
 
-  describe('Performance Characteristics', () => {
+  describe("Performance Characteristics", () => {
     beforeEach(async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
@@ -359,7 +362,7 @@ describe('GoldenCopyCacheManager', () => {
       await manager.init();
     });
 
-    it('should track clone performance', async () => {
+    it("should track clone performance", async () => {
       // Create a clone
       const cloned = await manager.clone();
 
@@ -376,7 +379,7 @@ describe('GoldenCopyCacheManager', () => {
       await cloned.cleanup();
     });
 
-    it('should handle multiple rapid clones', async () => {
+    it("should handle multiple rapid clones", async () => {
       const clones = [];
 
       // Create multiple clones rapidly
@@ -397,8 +400,8 @@ describe('GoldenCopyCacheManager', () => {
 
   // ========== PR #291 Issue Tests ==========
 
-  describe('Issue #7 - Concurrent Init() Race Condition', () => {
-    it('should handle concurrent init() calls correctly', async () => {
+  describe("Issue #7 - Concurrent Init() Race Condition", () => {
+    it("should handle concurrent init() calls correctly", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -423,7 +426,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(stats.initCount).toBe(1);
     });
 
-    it('should not allow re-initialization after cleanup', async () => {
+    it("should not allow re-initialization after cleanup", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -450,8 +453,8 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Issue #8 - Disk Space (ENOSPC) Handling', () => {
-    it('should provide clear error message on disk full', async () => {
+  describe("Issue #8 - Disk Space (ENOSPC) Handling", () => {
+    it("should provide clear error message on disk full", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -467,8 +470,8 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Issue #9 - EEXIST Clone Collision Handling', () => {
-    it('should handle concurrent clone operations without EEXIST errors', async () => {
+  describe("Issue #9 - EEXIST Clone Collision Handling", () => {
+    it("should handle concurrent clone operations without EEXIST errors", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -485,7 +488,7 @@ describe('GoldenCopyCacheManager', () => {
       const clones = await Promise.all(clonePromises);
 
       // Verify all clones have unique paths
-      const paths = clones.map(c => c.rootPath);
+      const paths = clones.map((c) => c.rootPath);
       const uniquePaths = new Set(paths);
       expect(uniquePaths.size).toBe(paths.length);
 
@@ -495,7 +498,7 @@ describe('GoldenCopyCacheManager', () => {
       }
     });
 
-    it('should retry on path collision with unique suffix', async () => {
+    it("should retry on path collision with unique suffix", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -517,8 +520,8 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Issue #10 - Error Message Clarity', () => {
-    it('should differentiate between copy failure and load failure', async () => {
+  describe("Issue #10 - Error Message Clarity", () => {
+    it("should differentiate between copy failure and load failure", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -535,7 +538,7 @@ describe('GoldenCopyCacheManager', () => {
       await cloned.cleanup();
     });
 
-    it('should indicate when model load fails vs copy fails', async () => {
+    it("should indicate when model load fails vs copy fails", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -550,8 +553,8 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Issue #11a - Golden Model Immutability', () => {
-    it('should return immutable golden model reference', async () => {
+  describe("Issue #11a - Golden Model Immutability", () => {
+    it("should return immutable golden model reference", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -564,7 +567,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(Object.isFrozen(goldenModel)).toBe(true);
     });
 
-    it('should prevent mutations to golden model via returned reference', async () => {
+    it("should prevent mutations to golden model via returned reference", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -575,13 +578,13 @@ describe('GoldenCopyCacheManager', () => {
 
       // Attempting to modify properties should fail
       expect(() => {
-        (goldenModel as any).manifest = { name: 'hacked' };
+        (goldenModel as any).manifest = { name: "hacked" };
       }).toThrow();
     });
   });
 
-  describe('Issue #11b - Lifecycle State Tracking', () => {
-    it('should track lifecycle states correctly', async () => {
+  describe("Issue #11b - Lifecycle State Tracking", () => {
+    it("should track lifecycle states correctly", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -598,7 +601,7 @@ describe('GoldenCopyCacheManager', () => {
       expect(manager.isInitialized()).toBe(false);
     });
 
-    it('should prevent operations after cleanup', async () => {
+    it("should prevent operations after cleanup", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -609,16 +612,16 @@ describe('GoldenCopyCacheManager', () => {
       // After cleanup, trying to clone should fail
       try {
         await manager.clone();
-        expect.unreachable('Should have thrown');
+        expect.unreachable("Should have thrown");
       } catch (error) {
         expect(error instanceof Error).toBe(true);
-        expect((error as Error).message).toContain('not initialized');
+        expect((error as Error).message).toContain("not initialized");
       }
     });
   });
 
-  describe('Issue #11c - Cleanup Obligation Tracking', () => {
-    it('should be idempotent when cleanup is called multiple times', async () => {
+  describe("Issue #11c - Cleanup Obligation Tracking", () => {
+    it("should be idempotent when cleanup is called multiple times", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -635,7 +638,7 @@ describe('GoldenCopyCacheManager', () => {
       // Multiple cleanup calls should be safe (no error thrown above)
     });
 
-    it('should track that cleanup was called for cloned models', async () => {
+    it("should track that cleanup was called for cloned models", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -650,18 +653,18 @@ describe('GoldenCopyCacheManager', () => {
 
       // After cleanup, the path should not exist
       // (This verifies cleanup was actually executed)
-      const { access } = await import('fs/promises');
+      const { access } = await import("fs/promises");
       try {
         await access(clonePath);
-        expect.unreachable('Clone directory should have been cleaned up');
+        expect.unreachable("Clone directory should have been cleaned up");
       } catch {
         // Expected - directory should be gone, no assertion needed
       }
     });
   });
 
-  describe('Issue #13 - Filesystem Synchronization', () => {
-    it('should verify filesystem is ready after initialization', async () => {
+  describe("Issue #13 - Filesystem Synchronization", () => {
+    it("should verify filesystem is ready after initialization", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -675,15 +678,15 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Issue #14 - Singleton Configuration Validation', () => {
-    it('should warn when getInstance is called with different config', () => {
+  describe("Issue #14 - Singleton Configuration Validation", () => {
+    it("should warn when getInstance is called with different config", () => {
       // Enable strict mode for this test
       const originalEnv = process.env.GOLDEN_COPY_STRICT;
-      process.env.GOLDEN_COPY_STRICT = 'true';
+      process.env.GOLDEN_COPY_STRICT = "true";
 
       try {
-        const config1 = { cacheDir: join(tmpdir(), 'cache1') };
-        const config2 = { cacheDir: join(tmpdir(), 'cache2') };
+        const config1 = { cacheDir: join(tmpdir(), "cache1") };
+        const config2 = { cacheDir: join(tmpdir(), "cache2") };
 
         // First call with config1
         const manager1 = GoldenCopyCacheManager.getInstance(config1);
@@ -702,9 +705,9 @@ describe('GoldenCopyCacheManager', () => {
       }
     });
 
-    it('should silently ignore config differences in non-strict mode', () => {
-      const config1 = { cacheDir: join(tmpdir(), 'cache1') };
-      const config2 = { cacheDir: join(tmpdir(), 'cache2') };
+    it("should silently ignore config differences in non-strict mode", () => {
+      const config1 = { cacheDir: join(tmpdir(), "cache1") };
+      const config2 = { cacheDir: join(tmpdir(), "cache2") };
 
       // First call with config1
       const manager1 = GoldenCopyCacheManager.getInstance(config1);
@@ -719,8 +722,8 @@ describe('GoldenCopyCacheManager', () => {
     });
   });
 
-  describe('Issue #15 - Concurrent Operations Robustness', () => {
-    it('should handle concurrent clone and cleanup operations', async () => {
+  describe("Issue #15 - Concurrent Operations Robustness", () => {
+    it("should handle concurrent clone and cleanup operations", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
       });
@@ -736,11 +739,11 @@ describe('GoldenCopyCacheManager', () => {
       const clonedModels = await Promise.all(clones);
 
       // Clean up all concurrently
-      const cleanupPromises = clonedModels.map(c => c.cleanup());
+      const cleanupPromises = clonedModels.map((c) => c.cleanup());
       await Promise.all(cleanupPromises);
     });
 
-    it('should maintain clone isolation between concurrent operations', async () => {
+    it("should maintain clone isolation between concurrent operations", async () => {
       manager = GoldenCopyCacheManager.getInstance({
         cacheDir: testCacheDir,
         warmup: true, // Populate with sample data
@@ -749,11 +752,7 @@ describe('GoldenCopyCacheManager', () => {
       await manager.init();
 
       // Create multiple clones concurrently
-      const clones = await Promise.all([
-        manager.clone(),
-        manager.clone(),
-        manager.clone(),
-      ]);
+      const clones = await Promise.all([manager.clone(), manager.clone(), manager.clone()]);
 
       // Each clone should have independent models
       expect(clones[0].model).not.toBe(clones[1].model);

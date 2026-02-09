@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StakeholderType",
+  "description": "StakeholderType element in Motivation Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "motivation.stakeholdertype"
+    },
+    "layer_id": {
+      "const": "motivation"
+    },
+    "type": {
+      "const": "stakeholdertype"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

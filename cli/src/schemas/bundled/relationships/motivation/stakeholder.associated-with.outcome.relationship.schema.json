@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Stakeholder Associated With Outcome",
+  "description": "Defines relationship: motivation.stakeholder associated-with motivation.outcome",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "motivation.associated-with.motivation"
+    },
+    "source_spec_node_id": {
+      "const": "motivation.stakeholder"
+    },
+    "source_layer": {
+      "const": "motivation"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.outcome"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "associated-with"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

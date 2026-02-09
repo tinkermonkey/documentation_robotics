@@ -1,5 +1,5 @@
-import { spawn } from 'node:child_process';
-import { ComparisonConfig } from './comparator';
+import { spawn } from "node:child_process";
+import { ComparisonConfig } from "./comparator";
 
 /**
  * Command to execute in a CLI
@@ -67,15 +67,15 @@ export async function executeCommand(cmd: CliCommand): Promise<CommandResult> {
       const setupResult = await executeCommandInternal({
         command,
         args,
-        cwd: '/tmp',  // Use /tmp for setup commands since cmd.cwd may not exist yet
+        cwd: "/tmp", // Use /tmp for setup commands since cmd.cwd may not exist yet
         env: cmd.env,
-        timeout: cmd.timeout
+        timeout: cmd.timeout,
       });
       // If setup fails, return early with setup error
       if (!setupResult.success) {
         return {
           ...setupResult,
-          stderr: `Setup command failed: ${command} ${args.join(' ')}\n${setupResult.stderr}`
+          stderr: `Setup command failed: ${command} ${args.join(" ")}\n${setupResult.stderr}`,
         };
       }
     }
@@ -90,8 +90,8 @@ export async function executeCommand(cmd: CliCommand): Promise<CommandResult> {
 async function executeCommandInternal(cmd: CliCommand): Promise<CommandResult> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
     const timeout = cmd.timeout || 30000;
     const timeoutId = setTimeout(() => {
@@ -102,18 +102,18 @@ async function executeCommandInternal(cmd: CliCommand): Promise<CommandResult> {
     const proc = spawn(cmd.command, cmd.args, {
       cwd: cmd.cwd,
       env: { ...process.env, ...cmd.env },
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ["ignore", "pipe", "pipe"],
     });
 
-    proc.stdout.on('data', (data) => {
+    proc.stdout.on("data", (data) => {
       stdout += data.toString();
     });
 
-    proc.stderr.on('data', (data) => {
+    proc.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    proc.on('close', (code) => {
+    proc.on("close", (code) => {
       clearTimeout(timeoutId);
       const executionTime = Date.now() - startTime;
 
@@ -122,22 +122,22 @@ async function executeCommandInternal(cmd: CliCommand): Promise<CommandResult> {
         stdout,
         stderr,
         executionTime,
-        success: code === 0
+        success: code === 0,
       });
     });
 
-    proc.on('error', (err) => {
+    proc.on("error", (err) => {
       clearTimeout(timeoutId);
       const executionTime = Date.now() - startTime;
 
       // Handle command not found (e.g., Python CLI not installed)
-      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
         resolve({
           exitCode: 127, // Standard "command not found" exit code
-          stdout: '',
+          stdout: "",
           stderr: `Command not found: ${cmd.command}`,
           executionTime,
-          success: false
+          success: false,
         });
       } else {
         reject(err);
@@ -160,24 +160,24 @@ export async function executeTestCase(testCase: TestCase): Promise<{
     return {
       python: {
         exitCode: 0,
-        stdout: '',
-        stderr: '',
+        stdout: "",
+        stderr: "",
         executionTime: 0,
-        success: true
+        success: true,
       },
-      typescript: typescriptResult
+      typescript: typescriptResult,
     };
   }
 
   // Execute in parallel for speed
   const [pythonResult, typescriptResult] = await Promise.all([
     executeCommand(testCase.python),
-    executeCommand(testCase.typescript)
+    executeCommand(testCase.typescript),
   ]);
 
   return {
     python: pythonResult,
-    typescript: typescriptResult
+    typescript: typescriptResult,
   };
 }
 
@@ -185,9 +185,7 @@ export async function executeTestCase(testCase: TestCase): Promise<{
  * Format command for display
  */
 export function formatCommand(cmd: CliCommand): string {
-  const args = cmd.args.map(arg =>
-    arg.includes(' ') ? `"${arg}"` : arg
-  ).join(' ');
+  const args = cmd.args.map((arg) => (arg.includes(" ") ? `"${arg}"` : arg)).join(" ");
   return `${cmd.command} ${args}`;
 }
 
@@ -202,12 +200,18 @@ export function formatCommandResult(result: CommandResult, label: string): strin
 
   if (result.stdout) {
     output += `\n  STDOUT:\n`;
-    output += result.stdout.split('\n').map(line => `    ${line}`).join('\n');
+    output += result.stdout
+      .split("\n")
+      .map((line) => `    ${line}`)
+      .join("\n");
   }
 
   if (result.stderr) {
     output += `\n  STDERR:\n`;
-    output += result.stderr.split('\n').map(line => `    ${line}`).join('\n');
+    output += result.stderr
+      .split("\n")
+      .map((line) => `    ${line}`)
+      .join("\n");
   }
 
   return output;

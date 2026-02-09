@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Schema",
+  "description": "Data type definition (JSON Schema subset)",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "api.schema"
+    },
+    "layer_id": {
+      "const": "api"
+    },
+    "type": {
+      "const": "schema"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "default": {
+          "type": "string"
+        },
+        "enum": {
+          "type": "string"
+        },
+        "nullable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "format"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

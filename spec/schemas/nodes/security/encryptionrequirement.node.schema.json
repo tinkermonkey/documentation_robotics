@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EncryptionRequirement",
+  "description": "EncryptionRequirement element in Security Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.encryptionrequirement"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "encryptionrequirement"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

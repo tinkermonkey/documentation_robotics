@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Value Associated With Goal",
+  "description": "Defines relationship: motivation.value associated-with motivation.goal",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "motivation.associated-with.motivation"
+    },
+    "source_spec_node_id": {
+      "const": "motivation.value"
+    },
+    "source_layer": {
+      "const": "motivation"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.goal"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "associated-with"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

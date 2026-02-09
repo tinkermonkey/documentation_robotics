@@ -21,7 +21,7 @@ import {
   endTestFileSpan,
   createTestCaseSpan,
   recordTestResult,
-} from '../../src/telemetry/test-instrumentation.js';
+} from "../../src/telemetry/test-instrumentation.js";
 
 /**
  * Setup hooks for test file telemetry.

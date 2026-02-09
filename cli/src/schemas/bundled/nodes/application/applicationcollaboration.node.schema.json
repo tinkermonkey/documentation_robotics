@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ApplicationCollaboration",
+  "description": "Aggregate of application components working together",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "application.applicationcollaboration"
+    },
+    "layer_id": {
+      "const": "application"
+    },
+    "type": {
+      "const": "applicationcollaboration"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

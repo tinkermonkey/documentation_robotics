@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ResourceOperation",
+  "description": "Operation on a resource",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.resourceoperation"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "resourceoperation"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "conditions": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "rateLimit": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "audit": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "operation"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

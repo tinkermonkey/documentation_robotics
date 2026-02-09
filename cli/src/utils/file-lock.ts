@@ -5,16 +5,16 @@
  * Prevents race conditions in read-modify-write operations on changeset files.
  */
 
-import { mkdir, rm, stat } from 'fs/promises';
-import { existsSync } from 'fs';
+import { mkdir, rm, stat } from "fs/promises";
+import { existsSync } from "fs";
 
 const DEFAULT_STALE_LOCK_THRESHOLD = 30000; // 30 seconds
 
 export interface LockOptions {
-  timeout?: number;        // Max time to wait for lock (ms)
-  retryInterval?: number;  // Time between retry attempts (ms)
+  timeout?: number; // Max time to wait for lock (ms)
+  retryInterval?: number; // Time between retry attempts (ms)
   staleLockThreshold?: number; // Threshold in ms for detecting stale locks (default: 30000ms)
-  detectStaleLocks?: boolean;  // Whether to automatically detect and cleanup stale locks (default: true)
+  detectStaleLocks?: boolean; // Whether to automatically detect and cleanup stale locks (default: true)
 }
 
 /**
@@ -40,7 +40,7 @@ export class FileLock {
    * This prevents the CLI from becoming unusable after process crashes.
    */
   async acquire(options: LockOptions = {}): Promise<void> {
-    const timeout = options.timeout || 5000;      // 5 second default
+    const timeout = options.timeout || 5000; // 5 second default
     const retryInterval = options.retryInterval || 50; // 50ms default
     const staleLockThreshold = options.staleLockThreshold || DEFAULT_STALE_LOCK_THRESHOLD;
     const detectStaleLocks = options.detectStaleLocks !== false; // true by default
@@ -48,10 +48,7 @@ export class FileLock {
     // Attempt to clean up stale locks before acquiring
     if (detectStaleLocks) {
       try {
-        await FileLock.cleanupStaleLocks(
-          this.lockPath.replace(/\.lock$/, ''),
-          staleLockThreshold
-        );
+        await FileLock.cleanupStaleLocks(this.lockPath.replace(/\.lock$/, ""), staleLockThreshold);
       } catch {
         // Silently ignore cleanup errors - we'll still attempt to acquire the lock
       }
@@ -66,12 +63,12 @@ export class FileLock {
         this.acquired = true;
         return;
       } catch (error: any) {
-        if (error.code === 'EEXIST') {
+        if (error.code === "EEXIST") {
           // Lock is held by another process
           if (Date.now() - startTime >= timeout) {
             throw new Error(
               `Failed to acquire lock on ${this.lockPath} within ${timeout}ms. ` +
-              `Resource may be locked by another process or operation.`
+                `Resource may be locked by another process or operation.`
             );
           }
 
@@ -79,9 +76,7 @@ export class FileLock {
           await this.sleep(retryInterval);
         } else {
           // Unexpected error
-          throw new Error(
-            `Failed to acquire lock on ${this.lockPath}: ${error.message}`
-          );
+          throw new Error(`Failed to acquire lock on ${this.lockPath}: ${error.message}`);
         }
       }
     }
@@ -153,7 +148,7 @@ export class FileLock {
         if (fnError) {
           console.error(
             `Function error suppressed due to lock release failure. ` +
-            `Function error: ${fnError instanceof Error ? fnError.message : String(fnError)}`
+              `Function error: ${fnError instanceof Error ? fnError.message : String(fnError)}`
           );
         }
         throw releaseError;
@@ -244,6 +239,6 @@ export class FileLock {
    * Sleep utility for retry delays
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

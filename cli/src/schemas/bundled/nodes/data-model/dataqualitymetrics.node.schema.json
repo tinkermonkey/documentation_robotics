@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DataQualityMetrics",
+  "description": "Defines measurable quality attributes for data elements such as completeness, accuracy, consistency, and timeliness. Enables data quality monitoring and SLA enforcement.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-model.dataqualitymetrics"
+    },
+    "layer_id": {
+      "const": "data-model"
+    },
+    "type": {
+      "const": "dataqualitymetrics"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "schemaRef": {
+          "type": "string"
+        },
+        "monitoringEnabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schemaRef"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

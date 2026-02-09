@@ -1,6 +1,0 @@
-File System Storage:
-  name: File System Storage
-  description: File-based storage system using YAML files for model persistence
-  type: filesystem
-  charset: UTF8
-  id: data-store.database.file-system-storage

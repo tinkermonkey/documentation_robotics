@@ -3,11 +3,11 @@
  * Instruments HTTP requests with spans and semantic attributes
  */
 
-import type { Context, Next } from 'hono';
+import type { Context, Next } from "hono";
 
 // Conditional imports based on telemetry flag
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
  * Hono middleware that creates a span for each HTTP request
@@ -40,7 +40,7 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
   }
 
   // Dynamic import for tree-shaking
-  const { startActiveSpan } = await import('../telemetry/index.js');
+  const { startActiveSpan } = await import("../telemetry/index.js");
 
   const route = c.req.routePath || path; // Use route pattern if available
 
@@ -50,18 +50,18 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
 
   // Use startActiveSpan for proper context propagation and automatic span management
   return await startActiveSpan(
-    'http.server.request',
+    "http.server.request",
     async (span) => {
       const requestStartTime = Date.now();
 
       // Set initial attributes
       span.setAttributes({
-        'http.method': method,
-        'http.route': route,
-        'http.url': url,
-        'http.target': path,
-        'http.user_agent': c.req.header('user-agent') || '',
-        'http.scheme': new URL(url).protocol.replace(':', ''),
+        "http.method": method,
+        "http.route": route,
+        "http.url": url,
+        "http.target": path,
+        "http.user_agent": c.req.header("user-agent") || "",
+        "http.scheme": new URL(url).protocol.replace(":", ""),
       });
 
       if (isDebug) {
@@ -76,14 +76,14 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
         const statusCode = c.res.status;
         const durationMs = Date.now() - requestStartTime;
 
-        span.setAttribute('http.status_code', statusCode);
-        span.setAttribute('http.duration_ms', durationMs);
+        span.setAttribute("http.status_code", statusCode);
+        span.setAttribute("http.duration_ms", durationMs);
 
         // Set span status based on HTTP status code
         if (statusCode >= 500) {
-          span.setStatus({ code: 2, message: 'Server Error' }); // ERROR
+          span.setStatus({ code: 2, message: "Server Error" }); // ERROR
         } else if (statusCode >= 400) {
-          span.setStatus({ code: 2, message: 'Client Error' }); // ERROR
+          span.setStatus({ code: 2, message: "Client Error" }); // ERROR
         } else {
           span.setStatus({ code: 1 }); // OK
         }
@@ -96,8 +96,8 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
       // Span is automatically ended when this async function completes
     },
     {
-      'http.method': method,
-      'http.route': route,
+      "http.method": method,
+      "http.route": route,
     }
   );
 }

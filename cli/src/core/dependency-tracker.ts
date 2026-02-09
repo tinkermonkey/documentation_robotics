@@ -1,14 +1,14 @@
-import Graph from 'graphology';
-import { ReferenceRegistry } from './reference-registry.js';
-import { Model } from './model.js';
+import Graph from "graphology";
+import { ReferenceRegistry } from "./reference-registry.js";
+import { Model } from "./model.js";
 
 /**
  * Direction to trace dependencies (matches Python CLI TraceDirection enum)
  */
 export enum TraceDirection {
-  UP = 'up',     // Find what this depends on (successors/descendants)
-  DOWN = 'down', // Find what depends on this (predecessors/ancestors)
-  BOTH = 'both'  // Both directions
+  UP = "up", // Find what this depends on (successors/descendants)
+  DOWN = "down", // Find what depends on this (predecessors/ancestors)
+  BOTH = "both", // Both directions
 }
 
 /**
@@ -80,13 +80,13 @@ export class DependencyTracker {
     // Trace upward (what this element depends on - successors)
     if (direction === TraceDirection.UP || direction === TraceDirection.BOTH) {
       const upDeps = this._traceUp(graph, elementId, maxDepth);
-      upDeps.forEach(id => dependencies.add(id));
+      upDeps.forEach((id) => dependencies.add(id));
     }
 
     // Trace downward (what depends on this element - predecessors)
     if (direction === TraceDirection.DOWN || direction === TraceDirection.BOTH) {
       const downDeps = this._traceDown(graph, elementId, maxDepth);
-      downDeps.forEach(id => dependencies.add(id));
+      downDeps.forEach((id) => dependencies.add(id));
     }
 
     return Array.from(dependencies);
@@ -187,7 +187,7 @@ export class DependencyTracker {
         }
       }
 
-      nextLevel.forEach(id => descendants.add(id));
+      nextLevel.forEach((id) => descendants.add(id));
       currentLevel = nextLevel;
 
       if (currentLevel.size === 0) {
@@ -217,7 +217,7 @@ export class DependencyTracker {
         }
       }
 
-      nextLevel.forEach(id => ancestors.add(id));
+      nextLevel.forEach((id) => ancestors.add(id));
       currentLevel = nextLevel;
 
       if (currentLevel.size === 0) {
@@ -236,11 +236,7 @@ export class DependencyTracker {
    * @param maxPaths - Maximum number of paths to return
    * @returns Array of dependency paths
    */
-  findDependencyPaths(
-    sourceId: string,
-    targetId: string,
-    maxPaths: number = 10
-  ): DependencyPath[] {
+  findDependencyPaths(sourceId: string, targetId: string, maxPaths: number = 10): DependencyPath[] {
     const graph = this.getGraph();
 
     if (!graph.hasNode(sourceId) || !graph.hasNode(targetId)) {
@@ -251,12 +247,12 @@ export class DependencyTracker {
     const paths = this._findAllSimplePaths(graph, sourceId, targetId, maxPaths);
 
     // Convert to DependencyPath objects
-    return paths.map(path => {
+    return paths.map((path) => {
       // Get relationship types along path
       const relationshipTypes: string[] = [];
       for (let i = 0; i < path.length - 1; i++) {
         const edgeAttrs = graph.getEdgeAttributes(path[i], path[i + 1]);
-        relationshipTypes.push(edgeAttrs?.type || 'unknown');
+        relationshipTypes.push(edgeAttrs?.type || "unknown");
       }
 
       return {
@@ -264,7 +260,7 @@ export class DependencyTracker {
         target: targetId,
         path,
         depth: path.length - 1,
-        relationship_types: relationshipTypes
+        relationship_types: relationshipTypes,
       };
     });
   }
@@ -384,7 +380,7 @@ export class DependencyTracker {
       // Normalize cycle representation to avoid duplicates
       const unique = Array.from(new Set(cycle));
       unique.sort();
-      return unique.join('|');
+      return unique.join("|");
     };
 
     const dfs = (node: string) => {
@@ -424,7 +420,12 @@ export class DependencyTracker {
   /**
    * Calculate basic graph metrics
    */
-  getMetrics(): { nodeCount: number; edgeCount: number; cycleCount: number; connectedComponents: number } {
+  getMetrics(): {
+    nodeCount: number;
+    edgeCount: number;
+    cycleCount: number;
+    connectedComponents: number;
+  } {
     const graph = this.getGraph();
 
     const nodeCount = graph.order;
@@ -443,7 +444,7 @@ export class DependencyTracker {
         const node = queue.shift()!;
         const neighbors = new Set<string>([
           ...graph.outNeighbors(node),
-          ...graph.inNeighbors(node)
+          ...graph.inNeighbors(node),
         ]);
 
         for (const neighbor of neighbors) {

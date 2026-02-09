@@ -11,8 +11,11 @@
  * These are two separate optimization paths serving different test needs.
  */
 
-import { Model } from '../../src/core/model.js';
-import { GoldenCopyCacheManager, type GoldenCopyCacheConfig } from '../../src/core/golden-copy-cache.js';
+import { Model } from "../../src/core/model.js";
+import {
+  GoldenCopyCacheManager,
+  type GoldenCopyCacheConfig,
+} from "../../src/core/golden-copy-cache.js";
 
 /**
  * Options for creating a test model from the golden copy
@@ -78,7 +81,7 @@ export async function createTestModelWithGoldenCopy(
 
   if (!useGoldenCopy) {
     // Fall back to original behavior
-    const { createTestModel } = await import('./test-fixtures.js');
+    const { createTestModel } = await import("./test-fixtures.js");
     const result = await createTestModel(options.fallbackOptions);
     return {
       ...result,
@@ -104,20 +107,20 @@ export async function createTestModelWithGoldenCopy(
     };
   } catch (error) {
     // If golden copy fails, fall back gracefully
-    if (process.env.GOLDEN_COPY_STRICT === 'true') {
+    if (process.env.GOLDEN_COPY_STRICT === "true") {
       throw error;
     }
 
     // Always log the fallback - users need to know they're losing the performance optimization
     console.warn(
       `[GoldenCopy] WARNING: Failed to use golden copy optimization, ` +
-      `falling back to slower fresh model creation. ` +
-      `This reduces test performance by 1.3-4x. ` +
-      `Error: ${error instanceof Error ? error.message : String(error)}`
+        `falling back to slower fresh model creation. ` +
+        `This reduces test performance by 1.3-4x. ` +
+        `Error: ${error instanceof Error ? error.message : String(error)}`
     );
 
     // Fall back to original behavior
-    const { createTestModel } = await import('./test-fixtures.js');
+    const { createTestModel } = await import("./test-fixtures.js");
     const result = await createTestModel(options.fallbackOptions);
     return {
       ...result,

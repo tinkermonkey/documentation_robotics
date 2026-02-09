@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Coveragerequirement References Partitionvalue",
+  "description": "Defines relationship: testing.coveragerequirement references testing.partitionvalue",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.references.testing"
+    },
+    "source_spec_node_id": {
+      "const": "testing.coveragerequirement"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.partitionvalue"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "references"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InterfaceProtocol",
+  "description": "InterfaceProtocol element in Application Layer",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "application.interfaceprotocol"
+    },
+    "layer_id": {
+      "const": "application"
+    },
+    "type": {
+      "const": "interfaceprotocol"
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,14 +1,11 @@
-Title Input Partition:
-  name: Title Input Partition
-  description: Partition for todo title input validation
-  field: title
-  fieldRef: data-model-property-todo-title
-  presenceRule: required
-  id: testing-partition-title-input
-Done Input Partition:
-  name: Done Input Partition
-  description: Partition for todo done status values
-  field: done
-  fieldRef: data-model-property-todo-done
-  presenceRule: optional
-  id: testing-partition-done-input
+input-space-partitions:
+  - name: Title Input Partition
+    description: Partition for todo title input validation
+    fieldRef: data-model-property-todo-title
+    presenceRule: required
+    id: testing-partition-title-input
+  - name: Done Input Partition
+    description: Partition for todo done status values
+    fieldRef: data-model-property-todo-done
+    presenceRule: optional
+    id: testing-partition-done-input

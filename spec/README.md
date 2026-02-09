@@ -16,11 +16,7 @@ This directory contains the complete Documentation Robotics Specification, a sta
 
 ## Quick Links
 
-- **[Read the Spec](#how-to-read-this-specification)** - Start with [core/00-overview.md](core/00-overview.md)
-- **[Cross-Layer Relationships Guide](guides/CROSS_LAYER_RELATIONSHIPS.md)** - Clarifies confusing syntax patterns
-- **[Cross-Layer Reference Registry](core/06-cross-layer-reference-registry.md)** - Complete link catalog (NEW in v0.2.0)
-- **[Implement a Tool](conformance/conformance-levels.md)** - Conformance requirements
-- **[Browse Examples](examples/)** - Practical patterns
+- **[Browse Layer Specifications](layers/)** - 12 interconnected layers
 - **[Use the CLI](../cli/)** - Reference implementation
 - **[Contribute](CONTRIBUTING.md)** - How to contribute
 - **[Governance](GOVERNANCE.md)** - Change process
@@ -35,69 +31,53 @@ spec/
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── README.md                   # This file
 │
-├── core/                       # Core specification (normative)
-│   ├── 00-overview.md          # Specification overview
-│   ├── 01-federated-approach.md    # Federation pattern
-│   ├── 02-layering-philosophy.md   # Layer ordering rationale
-│   ├── 03-cross-layer-integration.md   # Integration patterns
-│   ├── 04-reference-directionality.md  # Traceability approach
-│   └── 05-validation-strategy.md   # Multi-layer validation
-│
 ├── layers/                     # Layer specifications (normative)
-│   ├── 01-motivation-layer.md      # WHY - Goals, requirements
-│   ├── 02-business-layer.md        # WHAT - Business processes
-│   ├── 03-security-layer.md        # WHO CAN - Access control
-│   ├── 04-application-layer.md     # HOW - Application services
-│   ├── 05-technology-layer.md      # WITH WHAT - Technology stack
-│   ├── 06-api-layer.md             # INTERFACE - Service contracts
-│   ├── 07-data-model-layer.md      # STRUCTURE - Data definitions
-│   ├── 08-data-store-layer.md      # STORAGE - Database schemas
-│   ├── 09-ux-layer.md              # PRESENTATION - User experience (3-tier architecture)
-│   ├── 10-navigation-layer.md      # FLOW - Navigation patterns
-│   ├── 11-apm-observability-layer.md   # OBSERVE - Monitoring
-│   └── 12-testing-layer.md         # VERIFY - Test coverage modeling
+│   ├── 01-motivation.layer.json    # Source of truth (JSON spec instance)
+│   ├── 01-motivation-layer.md      # Generated markdown (human-readable)
+│   ├── 02-business.layer.json
+│   ├── 02-business-layer.md
+│   ├── ...                         # One .layer.json + .md pair per layer
+│   ├── 12-testing.layer.json
+│   └── 12-testing-layer.md
+│
+├── nodes/                      # Node type schemas (v0.8.0+)
+│   ├── motivation/                 # Per-layer subdirectories
+│   │   ├── goal.node.schema.json   # Per-type JSON Schema extending spec-node base
+│   │   ├── requirement.node.schema.json
+│   │   └── ...
+│   ├── business/
+│   ├── security/
+│   ├── application/
+│   ├── technology/
+│   ├── api/
+│   ├── data-model/
+│   ├── data-store/
+│   ├── ux/
+│   ├── navigation/
+│   ├── apm/
+│   └── testing/
+│
+├── relationships/              # Relationship type schemas (v0.8.0+)
+│   ├── motivation/                 # Per-layer subdirectories
+│   ├── business/
+│   ├── ...                         # Relationship schemas per layer
+│   └── testing/
 │
 ├── schemas/                    # JSON Schemas (normative)
-│   ├── common/                      # Cross-layer shared schemas (NEW in v0.7.1)
-│   │   ├── source-references.schema.json    # Source code location tracking
-│   │   ├── layer-extensions.schema.json     # Layer metadata and relationships
-│   │   ├── relationships.schema.json        # Relationship type definitions
-│   │   └── predicates.schema.json           # Predicate definitions
-│   ├── link-registry.json           # Cross-layer link registry
+│   ├── base/                        # Spec-level base schemas (v0.8.0+)
+│   │   ├── spec-layer.schema.json           # Validates .layer.json files
+│   │   ├── spec-node.schema.json            # Base schema for model node instances
+│   │   ├── spec-node-relationship.schema.json  # Spec relationship schemas
+│   │   ├── model-node-relationship.schema.json # Model-level relationship validation
+│   │   ├── predicate-catalog.schema.json    # Predicate catalog schema
+│   │   ├── predicates.json                  # Semantic predicate definitions
+│   │   ├── attribute-spec.schema.json       # AttributeSpec for relationship attributes
+│   │   └── source-references.schema.json    # Source code location tracking
+│   ├── nodes/                       # Per-layer node schemas (links to ../nodes/)
+│   ├── relationships/               # Per-layer relationship schemas (links to ../relationships/)
 │   ├── 01-motivation-layer.schema.json
 │   ├── 02-business-layer.schema.json
-│   └── ...                     # One schema per layer
-│
-├── conformance/                # Conformance requirements (normative)
-│   ├── README.md
-│   ├── conformance-levels.md       # Basic/Standard/Full levels
-│   ├── test-suite.md               # Required validation tests
-│   └── certification-process.md    # How to claim conformance
-│
-├── guides/                     # Implementation guides (informative)
-│   ├── README.md
-│   ├── getting-started.md
-│   ├── LAYER_INTEGRATION_GUIDE.md
-│   ├── migration-guide.md
-│   ├── best-practices.md
-│   └── anti-patterns.md
-│
-├── examples/                   # Example models (informative)
-│   ├── README.md
-│   ├── minimal/                    # Minimal conformant model
-│   ├── e-commerce/                 # E-commerce example
-│   └── microservices/              # Microservices example
-│
-├── test-fixtures/              # Test data for validators (normative)
-│   ├── README.md
-│   ├── valid/                      # Must pass validation
-│   │   ├── motivation/
-│   │   ├── business/
-│   │   └── ...
-│   └── invalid/                    # Must fail validation
-│       ├── missing-required-fields/
-│       ├── invalid-references/
-│       └── ...
+│   └── ...                          # One schema per layer
 │
 ├── extensions/                 # Extension guidelines (informative)
 │   ├── README.md
@@ -111,6 +91,32 @@ spec/
     ├── standards-mapping.md
     └── bibliography.md
 ```
+
+## Schema-Driven Documentation Model
+
+As of v0.8.0, the specification uses a **schema-driven documentation model** where JSON spec instances are the source of truth and markdown is generated for human readability.
+
+### Schema Architecture
+
+- **Base schema** (`schemas/base/spec-node.schema.json`) - Validates model node instances with common fields (id, spec_node_id, type, name, attributes, metadata)
+- **Per-type schemas** (`nodes/**/*.node.schema.json`) - Extend the base schema via `allOf` to add type-specific attribute constraints
+- **Spec-level schemas** (`schemas/base/`) - Validate specification artifacts (`.layer.json` files, relationships)
+- **Model-level schemas** (`schemas/*.schema.json`) - Validate architecture model instances created by users
+
+### Source of Truth
+
+- **`.layer.json` files** (`spec/layers/`) - Define each layer's metadata, purpose, entity types, and relationships
+- **`.node.schema.json` files** (`spec/schemas/nodes/`) - Per-type JSON Schemas defining type-specific attribute constraints for model node instances
+- **Generated `.md` files** (`spec/layers/`) - Human-readable markdown generated from JSON specs
+
+### Workflow
+
+1. Edit the JSON source files (`.layer.json` or `.node.schema.json`)
+2. Run `dr docs generate` to regenerate markdown
+3. Run `dr docs validate` to verify JSON/markdown sync
+4. Commit both JSON schemas and generated markdown
+
+See [docs/SCHEMA_DRIVEN_DOCS.md](../docs/SCHEMA_DRIVEN_DOCS.md) for full details on the schema-driven documentation model.
 
 ## The Vision
 
@@ -133,14 +139,11 @@ For the broader motivation, see [The Need](../README.md#the-need) in the main RE
 
 ## How to Read This Specification
 
-1. Start with [core/00-overview.md](core/00-overview.md) - Get the big picture
-2. Read [core/01-federated-approach.md](core/01-federated-approach.md) - Understand why federation
-3. Read [core/02-layering-philosophy.md](core/02-layering-philosophy.md) - Understand layer ordering
-4. Browse layer specifications relevant to your work
-5. Check [examples/](examples/) for practical patterns
-6. Use [guides/getting-started.md](guides/getting-started.md) to start modeling
+1. Start with the [main README](../README.md) - Get the big picture and understand the 12-layer architecture
+2. Browse [layer specifications](layers/) relevant to your work
+3. Use the [CLI tool](../cli/) to validate and work with models
 
-**Time Investment:** 2-3 hours for overview, then explore as needed
+> **Note:** The `.md` files in `spec/layers/` are generated from JSON spec instances (`.layer.json` and `.node.schema.json`). To modify layer specifications, edit the JSON source files and run `dr docs generate` to regenerate markdown.
 
 ## Specification Highlights
 
@@ -227,6 +230,19 @@ See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationa
 ✅ **Pragmatic** - Layer ordering matches real-world workflows
 
 ## Recent Enhancements
+
+### Schema-Driven Documentation Model (v0.8.0)
+
+The v0.8.0 release introduces a schema-driven documentation model where JSON spec instances are the source of truth:
+
+- **Schema-Driven Architecture** - JSON spec instances (`.layer.json`, `.node.schema.json`) are the authoritative source; markdown is generated
+- **Base Schemas Directory** (`spec/schemas/base/`) - 6 schemas for validating spec-level and model-level artifacts
+- **Per-Type Node Schemas** (`spec/schemas/nodes/**/*.node.schema.json`) - JSON Schemas extending the base schema with type-specific attribute constraints
+- **Layer Metadata Files** (`spec/layers/*.layer.json`) - Layer-level metadata, purpose, entity types, and relationship declarations
+- **Documentation Generation** - `dr docs generate` produces markdown from JSON specs; `dr docs validate` ensures sync
+- **Link Registry Removal** - The deprecated `link-registry.json` (deprecated in v0.7.0) has been removed; use `relationship-catalog.json` instead
+
+See [CHANGELOG.md](CHANGELOG.md#080---2026-02-07) for complete details.
 
 ### Source Code Reference Infrastructure (v0.7.1)
 
@@ -327,18 +343,6 @@ The specification now includes a comprehensive Testing Layer for modeling test c
 
 See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
-## Conformance Levels
-
-Implementations can claim three conformance levels:
-
-| Level        | Layers | Use Case                                       |
-| ------------ | ------ | ---------------------------------------------- |
-| **Basic**    | 01-04  | Small projects, motivation through application |
-| **Standard** | 01-08  | Most projects, through database design         |
-| **Full**     | 01-12  | Enterprise projects, complete traceability     |
-
-See [conformance/conformance-levels.md](conformance/conformance-levels.md) for details.
-
 ## Getting Started
 
 ### Read the Specification
@@ -348,33 +352,22 @@ See [conformance/conformance-levels.md](conformance/conformance-levels.md) for d
 git clone https://github.com/tinkermonkey/documentation_robotics.git
 cd documentation_robotics/spec
 
-# Read in order
-1. core/00-overview.md
-2. core/01-federated-approach.md
-3. core/02-layering-philosophy.md
-4. layers/01-motivation-layer.md
-5. ... (continue with layers relevant to you)
+# Browse layer specifications
+ls layers/*.md
 ```
 
-### Validate an Example
+### Use the CLI Tool
 
 ```bash
 # Install the CLI tool
 npm install -g @documentation-robotics/cli
 
-# Initialize a model from an example
-cd examples/minimal
+# Create and validate a model
+dr init my-project
+cd my-project
+dr add motivation goal customer-satisfaction --name "Improve customer satisfaction"
 dr validate --all
-
-# See validation results
 ```
-
-### Implement a Tool
-
-1. Read [conformance/conformance-levels.md](conformance/conformance-levels.md)
-2. Choose a conformance level
-3. Implement layers according to [schemas/](schemas/)
-4. Validate against [test-fixtures/](test-fixtures/)
 
 ## Version Information
 
@@ -407,8 +400,7 @@ This specification follows a defined governance model. See [GOVERNANCE.md](GOVER
 
 - **Questions:** GitHub Discussions
 - **Issues:** GitHub Issues
-- **Implementation Help:** See [guides/](guides/)
-- **Conformance Questions:** See [conformance/](conformance/)
+- **Implementation Help:** See [CLI documentation](../cli/)
 
 ## License
 
@@ -439,4 +431,4 @@ If you use this specification in academic work, please cite:
 
 ---
 
-**Ready to get started?** Begin with [core/00-overview.md](core/00-overview.md)
+**Ready to get started?** See the [CLI documentation](../cli/) to begin working with models.

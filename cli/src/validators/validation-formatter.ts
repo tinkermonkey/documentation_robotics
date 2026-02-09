@@ -2,9 +2,9 @@
  * Validation formatter for detailed and actionable output
  */
 
-import ansis from 'ansis';
-import type { ValidationResult } from './types.js';
-import type { Model } from '../core/model.js';
+import ansis from "ansis";
+import type { ValidationResult } from "./types.js";
+import type { Model } from "../core/model.js";
 
 interface ValidationStats {
   totalElements: number;
@@ -21,10 +21,14 @@ export class ValidationFormatter {
   /**
    * Format validation result for display
    */
-  static format(result: ValidationResult, model: Model, options: {
-    verbose?: boolean;
-    quiet?: boolean;
-  } = {}): string {
+  static format(
+    result: ValidationResult,
+    model: Model,
+    options: {
+      verbose?: boolean;
+      quiet?: boolean;
+    } = {}
+  ): string {
     if (options.quiet) {
       return this.formatQuiet(result);
     }
@@ -41,7 +45,7 @@ export class ValidationFormatter {
    */
   private static formatQuiet(result: ValidationResult): string {
     if (result.isValid() && result.warnings.length === 0) {
-      return ansis.green('✓ Validation passed');
+      return ansis.green("✓ Validation passed");
     }
 
     const lines: string[] = [];
@@ -54,7 +58,7 @@ export class ValidationFormatter {
       lines.push(ansis.yellow(`⚠ ${result.warnings.length} warning(s)`));
     }
 
-    return lines.join(' ');
+    return lines.join(" ");
   }
 
   /**
@@ -63,43 +67,49 @@ export class ValidationFormatter {
   private static formatStandard(result: ValidationResult, model: Model): string {
     const lines: string[] = [];
 
-    lines.push('');
-    lines.push(ansis.bold('Validating Documentation Robotics Model'));
-    lines.push(ansis.bold('========================================'));
-    lines.push('');
+    lines.push("");
+    lines.push(ansis.bold("Validating Documentation Robotics Model"));
+    lines.push(ansis.bold("========================================"));
+    lines.push("");
 
     // Layer-by-layer validation summary
-    lines.push(ansis.bold('Schema Validation:'));
+    lines.push(ansis.bold("Schema Validation:"));
     const layerStats = this.getLayerStats(model);
     for (const [layerName, count] of Object.entries(layerStats)) {
-      const hasErrors = result.errors.some(e => e.layer === layerName);
+      const hasErrors = result.errors.some((e) => e.layer === layerName);
       if (hasErrors) {
-        const errorCount = result.errors.filter(e => e.layer === layerName).length;
-        lines.push(`${ansis.red('✗')} ${this.formatLayerName(layerName)} (${count} elements) - ${errorCount} error(s)`);
+        const errorCount = result.errors.filter((e) => e.layer === layerName).length;
+        lines.push(
+          `${ansis.red("✗")} ${this.formatLayerName(layerName)} (${count} elements) - ${errorCount} error(s)`
+        );
       } else {
-        lines.push(`${ansis.green('✓')} ${this.formatLayerName(layerName)} (${count} elements)`);
+        lines.push(`${ansis.green("✓")} ${this.formatLayerName(layerName)} (${count} elements)`);
       }
     }
 
-    lines.push('');
+    lines.push("");
 
     // Cross-layer validation
-    lines.push(ansis.bold('Cross-Layer Validation:'));
+    lines.push(ansis.bold("Cross-Layer Validation:"));
     const stats = this.calculateStats(model);
-    lines.push(`${ansis.green('✓')} ${stats.totalRelationships} cross-layer relationships validated`);
+    lines.push(
+      `${ansis.green("✓")} ${stats.totalRelationships} cross-layer relationships validated`
+    );
 
     if (stats.orphanedElements.length > 0) {
-      lines.push(`${ansis.yellow('⚠')} ${stats.orphanedElements.length} potentially orphaned element(s)`);
+      lines.push(
+        `${ansis.yellow("⚠")} ${stats.orphanedElements.length} potentially orphaned element(s)`
+      );
     } else {
-      lines.push(`${ansis.green('✓')} No orphaned elements detected`);
+      lines.push(`${ansis.green("✓")} No orphaned elements detected`);
     }
 
-    lines.push('');
+    lines.push("");
 
     // Error details
     if (result.errors.length > 0) {
-      lines.push(ansis.bold('Errors:'));
-      lines.push('');
+      lines.push(ansis.bold("Errors:"));
+      lines.push("");
       result.errors.forEach((error, index) => {
         lines.push(`${index + 1}. ${error.message}`);
         if (error.location) {
@@ -111,14 +121,14 @@ export class ValidationFormatter {
         if (error.fixSuggestion) {
           lines.push(`   ${ansis.dim(`→ Suggestion: ${error.fixSuggestion}`)}`);
         }
-        lines.push('');
+        lines.push("");
       });
     }
 
     // Warning details
     if (result.warnings.length > 0) {
-      lines.push(ansis.bold('Warnings:'));
-      lines.push('');
+      lines.push(ansis.bold("Warnings:"));
+      lines.push("");
       result.warnings.forEach((warning, index) => {
         lines.push(`${index + 1}. ${warning.message}`);
         if (warning.location) {
@@ -130,33 +140,35 @@ export class ValidationFormatter {
         if (warning.fixSuggestion) {
           lines.push(`   ${ansis.dim(`→ Suggestion: ${warning.fixSuggestion}`)}`);
         }
-        lines.push('');
+        lines.push("");
       });
     }
 
     // Summary
-    lines.push(ansis.bold('Summary:'));
-    lines.push(`${result.errors.length === 0 ? ansis.green('✓') : ansis.red('✗')} ${stats.totalElements} total elements validated`);
-    lines.push(`${ansis.green('✓')} ${stats.totalRelationships} relationships validated`);
-    lines.push(`${ansis.green('✓')} ${Object.keys(layerStats).length} layers validated`);
+    lines.push(ansis.bold("Summary:"));
     lines.push(
-      `${result.errors.length === 0 ? ansis.green('✓') : ansis.red('✗')} ${result.errors.length} error(s), ${result.warnings.length} warning(s)`
+      `${result.errors.length === 0 ? ansis.green("✓") : ansis.red("✗")} ${stats.totalElements} total elements validated`
     );
-    lines.push('');
+    lines.push(`${ansis.green("✓")} ${stats.totalRelationships} relationships validated`);
+    lines.push(`${ansis.green("✓")} ${Object.keys(layerStats).length} layers validated`);
+    lines.push(
+      `${result.errors.length === 0 ? ansis.green("✓") : ansis.red("✗")} ${result.errors.length} error(s), ${result.warnings.length} warning(s)`
+    );
+    lines.push("");
 
     if (result.isValid()) {
       if (result.warnings.length === 0) {
-        lines.push(ansis.green('Model is valid and ready for use.'));
+        lines.push(ansis.green("Model is valid and ready for use."));
       } else {
-        lines.push(ansis.yellow('Model is valid but consider addressing warnings.'));
+        lines.push(ansis.yellow("Model is valid but consider addressing warnings."));
       }
     } else {
-      lines.push(ansis.red('Model validation failed. Please fix errors before proceeding.'));
+      lines.push(ansis.red("Model validation failed. Please fix errors before proceeding."));
     }
 
-    lines.push('');
+    lines.push("");
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -164,18 +176,18 @@ export class ValidationFormatter {
    */
   private static formatVerbose(result: ValidationResult, model: Model): string {
     const standard = this.formatStandard(result, model);
-    const lines = standard.split('\n');
+    const lines = standard.split("\n");
 
     // Find the "Cross-Layer Validation:" section and expand it
-    const crossLayerIndex = lines.findIndex(l => l.includes('Cross-Layer Validation:'));
+    const crossLayerIndex = lines.findIndex((l) => l.includes("Cross-Layer Validation:"));
     if (crossLayerIndex >= 0) {
       const stats = this.calculateStats(model);
       const relationshipLines: string[] = [];
 
       // Add breakdown by relationship type
       if (Object.keys(stats.relationshipsByPredicate).length > 0) {
-        relationshipLines.push('');
-        relationshipLines.push(ansis.dim('Relationship breakdown:'));
+        relationshipLines.push("");
+        relationshipLines.push(ansis.dim("Relationship breakdown:"));
         for (const [predicate, count] of Object.entries(stats.relationshipsByPredicate).sort()) {
           relationshipLines.push(ansis.dim(`  • ${predicate}: ${count} relationship(s)`));
         }
@@ -185,7 +197,7 @@ export class ValidationFormatter {
       lines.splice(crossLayerIndex + 4, 0, ...relationshipLines);
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -234,7 +246,7 @@ export class ValidationFormatter {
 
         // Track relationship predicates
         for (const ref of element.references || []) {
-          const predicate = ref.type || 'references';
+          const predicate = ref.type || "references";
           stats.relationshipsByPredicate[predicate] =
             (stats.relationshipsByPredicate[predicate] || 0) + 1;
         }
@@ -274,18 +286,18 @@ export class ValidationFormatter {
    */
   private static formatLayerName(layerName: string): string {
     const names: Record<string, string> = {
-      motivation: 'Motivation layer',
-      business: 'Business layer',
-      security: 'Security layer',
-      application: 'Application layer',
-      technology: 'Technology layer',
-      api: 'API layer',
-      'data-model': 'Data Model layer',
-      'data-store': 'Data Store layer',
-      ux: 'UX layer',
-      navigation: 'Navigation layer',
-      apm: 'APM layer',
-      testing: 'Testing layer',
+      motivation: "Motivation layer",
+      business: "Business layer",
+      security: "Security layer",
+      application: "Application layer",
+      technology: "Technology layer",
+      api: "API layer",
+      "data-model": "Data Model layer",
+      "data-store": "Data Store layer",
+      ux: "UX layer",
+      navigation: "Navigation layer",
+      apm: "APM layer",
+      testing: "Testing layer",
     };
 
     return names[layerName] || layerName;
@@ -323,14 +335,14 @@ export class ValidationFormatter {
     const stats = this.calculateStats(model);
     const layerStats = this.getLayerStats(model);
 
-    lines.push('# Validation Report');
-    lines.push('');
-    lines.push(`**Status**: ${result.isValid() ? '✓ Valid' : '✗ Invalid'}`);
+    lines.push("# Validation Report");
+    lines.push("");
+    lines.push(`**Status**: ${result.isValid() ? "✓ Valid" : "✗ Invalid"}`);
     lines.push(`**Generated**: ${new Date().toISOString()}`);
-    lines.push('');
+    lines.push("");
 
-    lines.push('## Summary');
-    lines.push('');
+    lines.push("## Summary");
+    lines.push("");
     lines.push(`| Metric | Value |`);
     lines.push(`|--------|-------|`);
     lines.push(`| Total Elements | ${stats.totalElements} |`);
@@ -338,23 +350,23 @@ export class ValidationFormatter {
     lines.push(`| Layers Validated | ${Object.keys(layerStats).length} |`);
     lines.push(`| Errors | ${result.errors.length} |`);
     lines.push(`| Warnings | ${result.warnings.length} |`);
-    lines.push('');
+    lines.push("");
 
-    lines.push('## Layer Statistics');
-    lines.push('');
+    lines.push("## Layer Statistics");
+    lines.push("");
     for (const [layerName, count] of Object.entries(layerStats)) {
-      const hasErrors = result.errors.some(e => e.layer === layerName);
-      const status = hasErrors ? '✗' : '✓';
+      const hasErrors = result.errors.some((e) => e.layer === layerName);
+      const status = hasErrors ? "✗" : "✓";
       lines.push(`- ${status} ${layerName}: ${count} elements`);
     }
-    lines.push('');
+    lines.push("");
 
     if (result.errors.length > 0) {
-      lines.push('## Errors');
-      lines.push('');
+      lines.push("## Errors");
+      lines.push("");
       result.errors.forEach((error, index) => {
         lines.push(`### ${index + 1}. ${error.message}`);
-        lines.push('');
+        lines.push("");
         if (error.location) {
           lines.push(`**File**: \`${error.location}\``);
         }
@@ -364,16 +376,16 @@ export class ValidationFormatter {
         if (error.fixSuggestion) {
           lines.push(`**Suggestion**: ${error.fixSuggestion}`);
         }
-        lines.push('');
+        lines.push("");
       });
     }
 
     if (result.warnings.length > 0) {
-      lines.push('## Warnings');
-      lines.push('');
+      lines.push("## Warnings");
+      lines.push("");
       result.warnings.forEach((warning, index) => {
         lines.push(`### ${index + 1}. ${warning.message}`);
-        lines.push('');
+        lines.push("");
         if (warning.location) {
           lines.push(`**File**: \`${warning.location}\``);
         }
@@ -383,10 +395,10 @@ export class ValidationFormatter {
         if (warning.fixSuggestion) {
           lines.push(`**Suggestion**: ${warning.fixSuggestion}`);
         }
-        lines.push('');
+        lines.push("");
       });
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 }

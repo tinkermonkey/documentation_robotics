@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LayoutConfig",
+  "description": "Configuration for UI layout structure, defining grid systems, responsive breakpoints, spacing rules, and component arrangement patterns. Controls visual organization of the interface.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.layoutconfig"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "layoutconfig"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "integer"
+        },
+        "rows": {
+          "type": "integer"
+        },
+        "gap": {
+          "type": "string"
+        },
+        "rowGap": {
+          "type": "string"
+        },
+        "columnGap": {
+          "type": "string"
+        },
+        "padding": {
+          "type": "string"
+        },
+        "margin": {
+          "type": "string"
+        },
+        "maxWidth": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,8 +1,18 @@
-import Graph from 'graphology';
+import Graph from "graphology";
 import type { Reference, Element } from "../types/index.js";
 
 /**
  * Reference registry - tracks and validates cross-layer references
+ *
+ * NOTE: Phase 3 Deferred - Registry Consolidation
+ * This registry will be consolidated into the GraphModel query API in a future phase.
+ * The graph model provides the foundation with graph-based reference tracking.
+ * Current approach maintains backward compatibility while the transition occurs.
+ *
+ * Future: Use GraphModel.getEdgesFrom/To/Between with predicate filtering
+ * instead of maintaining separate reference registry.
+ *
+ * See: https://github.com/tinkermonkey/documentation_robotics/discussions/317
  */
 export class ReferenceRegistry {
   private references: Map<string, Reference[]>;
@@ -11,15 +21,26 @@ export class ReferenceRegistry {
 
   // Known reference property names from Python CLI
   private static readonly KNOWN_REF_PROPERTIES = new Set([
-    'realizes', 'realizedBy',
-    'serves', 'servedBy',
-    'accesses', 'accessedBy',
-    'uses', 'usedBy',
-    'composedOf', 'partOf',
-    'flows', 'triggers',
-    'archimateRef', 'businessActorRef', 'stakeholderRef',
-    'motivationGoalRef', 'dataObjectRef', 'apiOperationRef',
-    'applicationServiceRef', 'schemaRef'
+    "realizes",
+    "realizedBy",
+    "serves",
+    "servedBy",
+    "accesses",
+    "accessedBy",
+    "uses",
+    "usedBy",
+    "composedOf",
+    "partOf",
+    "flows",
+    "triggers",
+    "archimateRef",
+    "businessActorRef",
+    "stakeholderRef",
+    "motivationGoalRef",
+    "dataObjectRef",
+    "apiOperationRef",
+    "applicationServiceRef",
+    "schemaRef",
   ]);
 
   constructor() {
@@ -80,7 +101,7 @@ export class ReferenceRegistry {
    */
   hasReference(sourceId: string, targetId: string): boolean {
     const refs = this.references.get(sourceId) ?? [];
-    return refs.some(ref => ref.target === targetId);
+    return refs.some((ref) => ref.target === targetId);
   }
 
   /**
@@ -120,21 +141,21 @@ export class ReferenceRegistry {
       for (const [propName, propValue] of Object.entries(element.properties)) {
         if (ReferenceRegistry.KNOWN_REF_PROPERTIES.has(propName)) {
           // Handle string value
-          if (typeof propValue === 'string') {
+          if (typeof propValue === "string") {
             this.addReference({
               source: element.id,
               target: propValue,
-              type: propName
+              type: propName,
             });
           }
           // Handle array of strings
           else if (Array.isArray(propValue)) {
             for (const target of propValue) {
-              if (typeof target === 'string') {
+              if (typeof target === "string") {
                 this.addReference({
                   source: element.id,
                   target: target,
-                  type: propName
+                  type: propName,
                 });
               }
             }
@@ -154,14 +175,10 @@ export class ReferenceRegistry {
    * Recursively scan nested structures for reference properties
    * Matches Python CLI behavior: looks for properties ending in "Ref" or "Reference"
    */
-  private scanNestedReferences(
-    sourceId: string,
-    data: any,
-    path: string = ''
-  ): Reference[] {
+  private scanNestedReferences(sourceId: string, data: any, path: string = ""): Reference[] {
     const references: Reference[] = [];
 
-    if (!data || typeof data !== 'object') {
+    if (!data || typeof data !== "object") {
       return references;
     }
 
@@ -184,9 +201,9 @@ export class ReferenceRegistry {
       }
 
       // Check if property name ends with "Ref" or "Reference"
-      if (key.endsWith('Ref') || key.endsWith('Reference')) {
+      if (key.endsWith("Ref") || key.endsWith("Reference")) {
         // Handle string value
-        if (typeof value === 'string') {
+        if (typeof value === "string") {
           references.push({
             source: sourceId,
             target: value,
@@ -197,7 +214,7 @@ export class ReferenceRegistry {
         // Handle array of strings
         else if (Array.isArray(value)) {
           for (const target of value) {
-            if (typeof target === 'string') {
+            if (typeof target === "string") {
               references.push({
                 source: sourceId,
                 target: target,
@@ -209,7 +226,7 @@ export class ReferenceRegistry {
         }
       }
       // Recurse into nested objects
-      else if (value && typeof value === 'object' && !Array.isArray(value)) {
+      else if (value && typeof value === "object" && !Array.isArray(value)) {
         references.push(...this.scanNestedReferences(sourceId, value, currentPath));
       }
       // Recurse into arrays
@@ -225,7 +242,7 @@ export class ReferenceRegistry {
    * Find broken references (references to non-existent elements)
    */
   findBrokenReferences(validIds: Set<string>): Reference[] {
-    return this.getAllReferences().filter(ref => !validIds.has(ref.target));
+    return this.getAllReferences().filter((ref) => !validIds.has(ref.target));
   }
 
   /**
@@ -233,7 +250,7 @@ export class ReferenceRegistry {
    * Nodes are element IDs, edges represent references
    */
   getDependencyGraph(): Graph {
-    const graph = new Graph({ type: 'directed' });
+    const graph = new Graph({ type: "directed" });
 
     // Add all unique nodes
     const nodes = new Set<string>();

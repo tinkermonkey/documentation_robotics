@@ -1,0 +1,27 @@
+{
+  "id": "application",
+  "number": 4,
+  "name": "Application Layer",
+  "description": "Layer 4: Application Layer",
+  "inspired_by": {
+    "standard": "ArchiMate 3.2",
+    "version": "3.2",
+    "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
+  },
+  "node_types": [
+    "application.applicationcollaboration",
+    "application.applicationcomponent",
+    "application.applicationevent",
+    "application.applicationeventtype",
+    "application.applicationfunction",
+    "application.applicationinteraction",
+    "application.applicationinterface",
+    "application.applicationprocess",
+    "application.applicationservice",
+    "application.componenttype",
+    "application.dataobject",
+    "application.interactionpattern",
+    "application.interfaceprotocol",
+    "application.servicetype"
+  ]
+}

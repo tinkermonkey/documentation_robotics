@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SchemaDefinition",
+  "description": "A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-model.schemadefinition"
+    },
+    "layer_id": {
+      "const": "data-model"
+    },
+    "type": {
+      "const": "schemadefinition"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "index_type": {
+          "type": "string",
+          "enum": [
+            "btree",
+            "hash",
+            "gin",
+            "gist",
+            "brin",
+            "fulltext",
+            "spatial",
+            "composite",
+            "unique",
+            "partial"
+          ],
+          "description": "IndexType classification"
+        }
+      },
+      "required": [
+        "title",
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

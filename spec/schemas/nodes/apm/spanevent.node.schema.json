@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SpanEvent",
+  "description": "Timestamped event during span execution",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.spanevent"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "spanevent"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "timeUnixNano": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "droppedAttributesCount": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "timeUnixNano",
+        "droppedAttributesCount"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

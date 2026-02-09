@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SeparationOfDuty",
+  "description": "Different actors must perform related tasks",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "security.separationofduty"
+    },
+    "layer_id": {
+      "const": "security"
+    },
+    "type": {
+      "const": "separationofduty"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "tasks": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "roles": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "mutuallyExclusive": {
+          "type": "array",
+          "description": "Contains relationship"
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

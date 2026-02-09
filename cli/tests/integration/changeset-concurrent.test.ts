@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { Model } from '../../src/core/model.js';
-import { StagingAreaManager } from '../../src/core/staging-area.js';
-import { createTestWorkdir } from '../helpers/golden-copy.js';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { Model } from "../../src/core/model.js";
+import { StagingAreaManager } from "../../src/core/staging-area.js";
+import { createTestWorkdir } from "../helpers/golden-copy.js";
 
-describe('Changeset Concurrent Operations', () => {
+describe("Changeset Concurrent Operations", () => {
   let model: Model;
   let TEST_DIR: string;
   let cleanup: () => Promise<void>;
@@ -27,24 +27,24 @@ describe('Changeset Concurrent Operations', () => {
     }
   });
 
-  describe('simultaneous staging operations', () => {
-    it('should handle concurrent stage operations with correct sequence numbers', async () => {
+  describe("simultaneous staging operations", () => {
+    it("should handle concurrent stage operations with correct sequence numbers", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
-      const changeset = await manager.create('concurrent-staging', 'Test');
+      const changeset = await manager.create("concurrent-staging", "Test");
       await manager.setActive(changeset.id!);
 
       // Stage multiple changes concurrently
       const stagePromises = Array.from({ length: 10 }, (_, i) =>
         manager.stage(changeset.id!, {
-          type: 'add',
+          type: "add",
           elementId: `motivation-goal-concurrent-${i}`,
-          layerName: 'motivation',
+          layerName: "motivation",
           timestamp: new Date().toISOString(),
           after: {
-            type: 'goal',
+            type: "goal",
             name: `Concurrent Goal ${i}`,
-            description: `Goal added concurrently ${i}`
-          }
+            description: `Goal added concurrently ${i}`,
+          },
         })
       );
 
@@ -57,34 +57,39 @@ describe('Changeset Concurrent Operations', () => {
       expect(loaded!.changes.length).toBe(10);
 
       // Verify sequence numbers are unique and sequential
-      const sequenceNumbers = loaded!.changes.map(c => (c as any).sequenceNumber).sort((a, b) => a - b);
+      const sequenceNumbers = loaded!.changes
+        .map((c) => (c as any).sequenceNumber)
+        .sort((a, b) => a - b);
       const expectedSequence = Array.from({ length: 10 }, (_, i) => i);
       expect(sequenceNumbers).toEqual(expectedSequence);
 
       // Verify all element IDs are present
-      const elementIds = loaded!.changes.map(c => c.elementId).sort();
-      const expectedIds = Array.from({ length: 10 }, (_, i) => `motivation-goal-concurrent-${i}`).sort();
+      const elementIds = loaded!.changes.map((c) => c.elementId).sort();
+      const expectedIds = Array.from(
+        { length: 10 },
+        (_, i) => `motivation-goal-concurrent-${i}`
+      ).sort();
       expect(elementIds).toEqual(expectedIds);
     });
 
-    it('should handle concurrent unstage operations', async () => {
+    it("should handle concurrent unstage operations", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
-      const changeset = await manager.create('concurrent-unstaging', 'Test');
+      const changeset = await manager.create("concurrent-unstaging", "Test");
       await manager.setActive(changeset.id!);
 
       // Stage multiple changes
       for (let i = 0; i < 10; i++) {
         await manager.stage(changeset.id!, {
-          type: 'add',
+          type: "add",
           elementId: `test-elem-${i}`,
-          layerName: 'motivation',
+          layerName: "motivation",
           timestamp: new Date().toISOString(),
-          after: { type: 'goal', name: `Element ${i}` }
+          after: { type: "goal", name: `Element ${i}` },
         });
       }
 
       // Unstage multiple elements concurrently
-      const unstagePromises = [0, 2, 4, 6, 8].map(i =>
+      const unstagePromises = [0, 2, 4, 6, 8].map((i) =>
         manager.unstage(changeset.id!, `test-elem-${i}`)
       );
 
@@ -95,15 +100,23 @@ describe('Changeset Concurrent Operations', () => {
       expect(loaded!.changes.length).toBe(5);
 
       // Verify correct elements remain
-      const remainingIds = loaded!.changes.map(c => c.elementId).sort();
-      expect(remainingIds).toEqual(['test-elem-1', 'test-elem-3', 'test-elem-5', 'test-elem-7', 'test-elem-9']);
+      const remainingIds = loaded!.changes.map((c) => c.elementId).sort();
+      expect(remainingIds).toEqual([
+        "test-elem-1",
+        "test-elem-3",
+        "test-elem-5",
+        "test-elem-7",
+        "test-elem-9",
+      ]);
 
       // Verify sequence numbers are resequenced correctly
-      const sequenceNumbers = loaded!.changes.map(c => (c as any).sequenceNumber).sort((a, b) => a - b);
+      const sequenceNumbers = loaded!.changes
+        .map((c) => (c as any).sequenceNumber)
+        .sort((a, b) => a - b);
       expect(sequenceNumbers).toEqual([0, 1, 2, 3, 4]);
     });
 
-    it('should handle concurrent changeset creation', async () => {
+    it("should handle concurrent changeset creation", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
 
       // Create multiple changesets concurrently
@@ -117,7 +130,7 @@ describe('Changeset Concurrent Operations', () => {
       expect(changesets.length).toBe(5);
 
       // Verify all have unique IDs
-      const ids = changesets.map(c => c.id);
+      const ids = changesets.map((c) => c.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(5);
 
@@ -127,20 +140,20 @@ describe('Changeset Concurrent Operations', () => {
     });
   });
 
-  describe('concurrent file access', () => {
-    it('should handle concurrent save operations', async () => {
+  describe("concurrent file access", () => {
+    it("should handle concurrent save operations", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
-      const changeset = await manager.create('concurrent-save', 'Test');
+      const changeset = await manager.create("concurrent-save", "Test");
       await manager.setActive(changeset.id!);
 
       // Modify and save changeset multiple times concurrently
       const savePromises = Array.from({ length: 5 }, async (_, i) => {
         await manager.stage(changeset.id!, {
-          type: 'add',
+          type: "add",
           elementId: `test-${i}`,
-          layerName: 'motivation',
+          layerName: "motivation",
           timestamp: new Date().toISOString(),
-          after: { type: 'goal', name: `Test ${i}` }
+          after: { type: "goal", name: `Test ${i}` },
         });
       });
 
@@ -151,30 +164,28 @@ describe('Changeset Concurrent Operations', () => {
       expect(loaded!.changes.length).toBe(5);
     });
 
-    it('should handle concurrent load operations', async () => {
+    it("should handle concurrent load operations", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
-      const changeset = await manager.create('concurrent-load', 'Test');
+      const changeset = await manager.create("concurrent-load", "Test");
 
       // Load changeset multiple times concurrently
-      const loadPromises = Array.from({ length: 10 }, () =>
-        manager.load(changeset.id!)
-      );
+      const loadPromises = Array.from({ length: 10 }, () => manager.load(changeset.id!));
 
       const results = await Promise.all(loadPromises);
 
       // Verify all loads succeeded
-      expect(results.every(r => r !== null)).toBe(true);
-      expect(results.every(r => r!.id === changeset.id)).toBe(true);
+      expect(results.every((r) => r !== null)).toBe(true);
+      expect(results.every((r) => r!.id === changeset.id)).toBe(true);
     });
 
-    it('should handle concurrent delete operations gracefully', async () => {
+    it("should handle concurrent delete operations gracefully", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
 
       // Create multiple changesets
       const changesets = await Promise.all([
-        manager.create('delete-1', 'Test 1'),
-        manager.create('delete-2', 'Test 2'),
-        manager.create('delete-3', 'Test 3')
+        manager.create("delete-1", "Test 1"),
+        manager.create("delete-2", "Test 2"),
+        manager.create("delete-3", "Test 3"),
       ]);
 
       // Try to delete same changeset multiple times concurrently
@@ -185,7 +196,7 @@ describe('Changeset Concurrent Operations', () => {
       const results = await Promise.all(deletePromises);
 
       // At least one should succeed, others should fail gracefully
-      const successes = results.filter(r => r !== null).length;
+      const successes = results.filter((r) => r !== null).length;
       expect(successes).toBeGreaterThanOrEqual(1);
 
       // Verify changeset is deleted
@@ -194,23 +205,23 @@ describe('Changeset Concurrent Operations', () => {
     });
   });
 
-  describe('race conditions in sequence numbers', () => {
-    it('should maintain sequence number integrity under concurrent staging', async () => {
+  describe("race conditions in sequence numbers", () => {
+    it("should maintain sequence number integrity under concurrent staging", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
-      const changeset = await manager.create('sequence-race', 'Test');
+      const changeset = await manager.create("sequence-race", "Test");
       await manager.setActive(changeset.id!);
 
       // Stage changes with intentional timing to trigger race conditions
       const stagePromises = Array.from({ length: 20 }, async (_, i) => {
         // Random delay to increase chance of race condition
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 10));
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * 10));
 
         return manager.stage(changeset.id!, {
-          type: 'add',
+          type: "add",
           elementId: `race-elem-${i}`,
-          layerName: 'motivation',
+          layerName: "motivation",
           timestamp: new Date().toISOString(),
-          after: { type: 'goal', name: `Element ${i}` }
+          after: { type: "goal", name: `Element ${i}` },
         });
       });
 
@@ -220,7 +231,9 @@ describe('Changeset Concurrent Operations', () => {
       const loaded = await manager.load(changeset.id!);
       expect(loaded!.changes.length).toBe(20);
 
-      const sequenceNumbers = loaded!.changes.map(c => (c as any).sequenceNumber).sort((a, b) => a - b);
+      const sequenceNumbers = loaded!.changes
+        .map((c) => (c as any).sequenceNumber)
+        .sort((a, b) => a - b);
 
       // Should be sequential from 0 to 19
       for (let i = 0; i < 20; i++) {
@@ -232,19 +245,19 @@ describe('Changeset Concurrent Operations', () => {
       expect(uniqueSequences.size).toBe(20);
     });
 
-    it('should handle concurrent stage and unstage operations', async () => {
+    it("should handle concurrent stage and unstage operations", async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
-      const changeset = await manager.create('stage-unstage-race', 'Test');
+      const changeset = await manager.create("stage-unstage-race", "Test");
       await manager.setActive(changeset.id!);
 
       // Pre-populate with some changes
       for (let i = 0; i < 10; i++) {
         await manager.stage(changeset.id!, {
-          type: 'add',
+          type: "add",
           elementId: `initial-${i}`,
-          layerName: 'motivation',
+          layerName: "motivation",
           timestamp: new Date().toISOString(),
-          after: { type: 'goal', name: `Initial ${i}` }
+          after: { type: "goal", name: `Initial ${i}` },
         });
       }
 
@@ -253,17 +266,15 @@ describe('Changeset Concurrent Operations', () => {
         // Stage new changes
         ...Array.from({ length: 5 }, (_, i) =>
           manager.stage(changeset.id!, {
-            type: 'add',
+            type: "add",
             elementId: `new-${i}`,
-            layerName: 'motivation',
+            layerName: "motivation",
             timestamp: new Date().toISOString(),
-            after: { type: 'goal', name: `New ${i}` }
+            after: { type: "goal", name: `New ${i}` },
           })
         ),
         // Unstage existing changes
-        ...Array.from({ length: 5 }, (_, i) =>
-          manager.unstage(changeset.id!, `initial-${i}`)
-        )
+        ...Array.from({ length: 5 }, (_, i) => manager.unstage(changeset.id!, `initial-${i}`)),
       ];
 
       // Shuffle operations to increase race condition likelihood
@@ -276,39 +287,41 @@ describe('Changeset Concurrent Operations', () => {
       expect(loaded!.changes.length).toBe(10); // 10 initial - 5 unstaged + 5 new
 
       // Verify sequence numbers are still valid
-      const sequenceNumbers = loaded!.changes.map(c => (c as any).sequenceNumber).sort((a, b) => a - b);
+      const sequenceNumbers = loaded!.changes
+        .map((c) => (c as any).sequenceNumber)
+        .sort((a, b) => a - b);
       expect(sequenceNumbers).toEqual(Array.from({ length: 10 }, (_, i) => i));
     });
   });
 
-  describe('atomicity under concurrency', () => {
-    it('should maintain backup integrity during concurrent commits', async () => {
+  describe("atomicity under concurrency", () => {
+    it("should maintain backup integrity during concurrent commits", async () => {
       const manager1 = new StagingAreaManager(TEST_DIR, model);
       const manager2 = new StagingAreaManager(TEST_DIR, model);
 
       // Create two changesets
-      const cs1 = await manager1.create('atomic-1', 'Test 1');
-      const cs2 = await manager2.create('atomic-2', 'Test 2');
+      const cs1 = await manager1.create("atomic-1", "Test 1");
+      const cs2 = await manager2.create("atomic-2", "Test 2");
 
       // Stage changes sequentially first to avoid conflicts
       await manager1.setActive(cs1.id!);
       await manager1.stage(cs1.id!, {
-        type: 'add',
-        elementId: 'motivation-goal-atomic1',
-        layerName: 'motivation',
+        type: "add",
+        elementId: "motivation-goal-atomic1",
+        layerName: "motivation",
         timestamp: new Date().toISOString(),
-        after: { type: 'goal', name: 'Goal 1' }
+        after: { type: "goal", name: "Goal 1" },
       });
       await manager1.clearActive();
 
       // Stage changes for second changeset
       await manager2.setActive(cs2.id!);
       await manager2.stage(cs2.id!, {
-        type: 'add',
-        elementId: 'motivation-goal-atomic2',
-        layerName: 'motivation',
+        type: "add",
+        elementId: "motivation-goal-atomic2",
+        layerName: "motivation",
         timestamp: new Date().toISOString(),
-        after: { type: 'goal', name: 'Goal 2' }
+        after: { type: "goal", name: "Goal 2" },
       });
       await manager2.clearActive();
 
@@ -322,10 +335,10 @@ describe('Changeset Concurrent Operations', () => {
       expect(result2.committed).toBe(1);
 
       // Verify both changes were applied
-      await model.loadLayer('motivation');
-      const layer = await model.getLayer('motivation');
-      expect(layer?.getElement('motivation-goal-atomic1')).toBeDefined();
-      expect(layer?.getElement('motivation-goal-atomic2')).toBeDefined();
+      await model.loadLayer("motivation");
+      const layer = await model.getLayer("motivation");
+      expect(layer?.getElement("motivation-goal-atomic1")).toBeDefined();
+      expect(layer?.getElement("motivation-goal-atomic2")).toBeDefined();
     });
   });
 });

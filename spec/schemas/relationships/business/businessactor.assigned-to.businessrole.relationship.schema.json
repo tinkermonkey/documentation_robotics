@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Businessactor Assigned To Businessrole",
+  "description": "Defines relationship: business.businessactor assigned-to business.businessrole",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "business.assigned-to.business"
+    },
+    "source_spec_node_id": {
+      "const": "business.businessactor"
+    },
+    "source_layer": {
+      "const": "business"
+    },
+    "destination_spec_node_id": {
+      "const": "business.businessrole"
+    },
+    "destination_layer": {
+      "const": "business"
+    },
+    "predicate": {
+      "const": "assigned-to"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

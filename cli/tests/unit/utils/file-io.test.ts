@@ -13,9 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 // Helper to run a test with an isolated temporary directory
-async function withTestDir<T>(
-  testFn: (testDir: string) => Promise<T>
-): Promise<T> {
+async function withTestDir<T>(testFn: (testDir: string) => Promise<T>): Promise<T> {
   const testDir = await mkdtemp(join(tmpdir(), "dr-fileio-test-"));
   try {
     return await testFn(testDir);
