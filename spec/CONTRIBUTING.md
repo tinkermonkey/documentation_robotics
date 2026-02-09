@@ -256,58 +256,6 @@ Good examples:
 - **Valid** - Pass all validation rules
 - **Focused** - Demonstrate one concept clearly
 
-### Example Structure
-
-```
-spec/examples/[example-name]/
-├── README.md                 # Description and learning objectives
-├── model/                    # Architecture model files
-│   ├── manifest.yaml
-│   ├── 01_motivation/
-│   ├── 02_business/
-│   └── ...
-├── specs/                    # Generated specifications
-│   ├── api/
-│   ├── schemas/
-│   └── ...
-└── validation-report.txt     # Validation results
-```
-
-## Adding Test Fixtures
-
-### Valid Test Fixtures
-
-Add to `spec/test-fixtures/valid/[layer]/`:
-
-- Must pass all validation rules
-- Cover different scenarios
-- Include edge cases
-- Well-documented
-
-### Invalid Test Fixtures
-
-Add to `spec/test-fixtures/invalid/[error-type]/`:
-
-- Must fail validation appropriately
-- Include expected error message
-- Cover common mistakes
-- Help implementers test validators
-
-### Test Fixture Format
-
-```yaml
-# test-fixtures/valid/motivation/goal-basic.yaml
-metadata:
-  testId: "valid-goal-basic"
-  description: "Basic valid goal with required attributes only"
-  expectation: "pass"
-
-data:
-  id: "goal-customer-satisfaction"
-  name: "Improve Customer Satisfaction"
-  type: "Goal"
-```
-
 ## Contributing to Schemas
 
 ### JSON Schema Guidelines
@@ -326,15 +274,8 @@ Before submitting schema changes:
 # Validate schema syntax
 ajv compile -s spec/schemas/[layer].schema.json
 
-# Test against valid fixtures
-ajv test -s spec/schemas/[layer].schema.json \
-  -d "spec/test-fixtures/valid/[layer]/*.yaml" \
-  --valid
-
-# Test against invalid fixtures
-ajv test -s spec/schemas/[layer].schema.json \
-  -d "spec/test-fixtures/invalid/[layer]/*.yaml" \
-  --invalid
+# Test with the CLI
+dr validate --all
 ```
 
 ## Review Process

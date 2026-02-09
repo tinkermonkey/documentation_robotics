@@ -176,7 +176,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ### Added
 
-- **Relationship Taxonomy** ([spec/core/07-relationship-taxonomy.md](core/07-relationship-taxonomy.md))
+- **Relationship Taxonomy**
   - Comprehensive formalization of 6 relationship categories with 60+ distinct predicates
   - **Categories**: Structural, Behavioral, Dependency, Traceability, Governance, Domain-Specific
   - ArchiMate 3.2 alignment with software-specific extensions
@@ -184,7 +184,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   - Formal semantics for transitivity, symmetry, and cardinality
   - Traceability-first design for upward-flowing requirement chains
 
-- **Enhanced Cross-Layer Reference Registry** ([spec/core/06-cross-layer-reference-registry-enhanced.md](core/06-cross-layer-reference-registry-enhanced.md))
+- **Enhanced Cross-Layer Reference Registry**
   - Catalog of 60+ cross-layer reference patterns across all 12 layers
   - **4 Reference Pattern Types**:
     - Pattern A: X-Extensions (OpenAPI/JSON Schema compatibility)
@@ -201,8 +201,8 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   - `relationship-catalog.json` (855 lines) - Catalog of all available relationship types
   - `relationship-type.schema.json` (227 lines) - Schema for relationship type definitions
 
-- **Layer Template** ([spec/templates/layer-template.md](templates/layer-template.md))
-  - Standardized template for layer specification documents (341 lines)
+- **Layer Template**
+  - Standardized template for layer specification documents
   - Ensures consistency across all 12 layer specifications
   - Includes sections for: Overview, Entities, Relationships, Cross-Layer Integration, Examples
 
@@ -487,7 +487,7 @@ dr validate
 
 ### Added
 
-- **Cross-Layer Reference Registry** ([spec/core/06-cross-layer-reference-registry.md](core/06-cross-layer-reference-registry.md))
+- **Cross-Layer Reference Registry**
   - Complete catalog of 60+ cross-layer reference patterns
   - 4 reference pattern types: x-extensions, dot-notation, nested objects, direct fields
   - 9 categories: motivation, business, security, application, api, data, ux, navigation, apm
