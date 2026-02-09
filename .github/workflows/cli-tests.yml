@@ -232,7 +232,14 @@ jobs:
           echo "Validating base schemas..."
           for schema in spec/schemas/base/*.json; do
             echo "Validating $schema"
-            ajv compile -s "$schema" --strict=false
+            # Build list of reference schemas (all base schemas except the one being validated)
+            refs=""
+            for ref in spec/schemas/base/*.json; do
+              if [ "$ref" != "$schema" ]; then
+                refs="$refs -r $ref"
+              fi
+            done
+            ajv compile -s "$schema" $refs --strict=false
           done
 
           # Validate node type schemas
