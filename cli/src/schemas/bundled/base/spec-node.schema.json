@@ -42,7 +42,7 @@
       "description": "Attribute values for this node instance. Keys must correspond to attributes defined in the per-type schema, and values must conform to the type constraints."
     },
     "source_reference": {
-      "$ref": "./source-references.schema.json#/definitions/SourceReference",
+      "$ref": "source-references.schema.json#/definitions/SourceReference",
       "description": "Optional provenance tracking linking this node to source code locations"
     },
     "metadata": {
