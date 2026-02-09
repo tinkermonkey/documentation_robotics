@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/model-node-relationship.schema.json",
+  "$id": "model-node-relationship.schema.json",
   "title": "ModelNodeRelationship",
   "description": "Concrete relationship instance connecting two ModelNodes. Represents a specific relationship edge in the model graph that conforms to a SpecNodeRelationship type.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/spec-layer.schema.json",
+  "$id": "spec-layer.schema.json",
   "title": "SpecLayer",
   "description": "Base type for layer definitions in the specification. Defines the structure and metadata of a layer that contains nodes and relationships.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/source-references.schema.json",
+  "$id": "source-references.schema.json",
   "title": "Source Code Reference Definitions",
   "description": "Reusable JSON Schema definitions for linking architecture elements to source code locations",
   "version": "1.0.0",

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/spec-node.schema.json",
+  "$id": "spec-node.schema.json",
   "title": "SpecNode",
   "description": "Base schema for all spec node types. Each node type schema extends this with type-specific attribute constraints via allOf.",
   "type": "object",

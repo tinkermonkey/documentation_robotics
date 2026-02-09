@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/spec-node-relationship.schema.json",
+  "$id": "spec-node-relationship.schema.json",
   "title": "SpecNodeRelationship",
   "description": "Base type for relationship type definitions in the specification. Defines valid relationships between node types, including cardinality, strength, and semantic properties.",
   "type": "object",
