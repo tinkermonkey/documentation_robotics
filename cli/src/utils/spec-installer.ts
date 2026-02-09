@@ -87,9 +87,14 @@ export async function installSpecReference(
     );
   }
 
-  // Copy base schemas
+  // Copy base schemas (includes common schemas moved to base/)
   await ensureDir(join(drPath, "schemas", "base"));
-  const baseSchemas = ["spec-node.schema.json", "spec-layer.schema.json"];
+  const baseSchemas = [
+    "spec-node.schema.json",
+    "spec-layer.schema.json",
+    "source-references.schema.json",
+    "attribute-spec.schema.json",
+  ];
 
   for (const schema of baseSchemas) {
     try {
@@ -113,17 +118,8 @@ export async function installSpecReference(
     await fs.copyFile(sourcePath, targetPath);
   }
 
-  // Copy common schemas
-  const commonSchemas = [
-    "source-references.schema.json",
-    "attribute-spec.schema.json",
-  ];
-
-  for (const schema of commonSchemas) {
-    const sourcePath = join(schemaSourceDir, "common", schema);
-    const targetPath = join(drPath, "schemas", "common", schema);
-    await fs.copyFile(sourcePath, targetPath);
-  }
+  // Note: Common schemas (source-references, attribute-spec) are now in base/
+  // and are already copied above with the base schemas
 
   // Create README.md
   const readmePath = join(drPath, "README.md");

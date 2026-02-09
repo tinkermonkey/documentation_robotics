@@ -34,17 +34,10 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const schemasDir = path.join(__dirname, "../../../../spec/schemas/base");
-const commonSchemasDir = path.join(__dirname, "../../../../spec/schemas/common");
 
-// Load schema files
+// Load schema files (all schemas now in base/)
 function loadSchema(filename: string) {
   const filepath = path.join(schemasDir, filename);
-  const content = fs.readFileSync(filepath, "utf8");
-  return JSON.parse(content);
-}
-
-function loadCommonSchema(filename: string) {
-  const filepath = path.join(commonSchemasDir, filename);
   const content = fs.readFileSync(filepath, "utf8");
   return JSON.parse(content);
 }
@@ -75,8 +68,8 @@ describe("Base Schema Validation", () => {
     specNodeRelationshipSchema = loadSchema("spec-node-relationship.schema.json");
     modelNodeRelationshipSchema = loadSchema("model-node-relationship.schema.json");
     predicateCatalogSchema = loadSchema("predicate-catalog.schema.json");
-    sourceReferencesSchema = loadCommonSchema("source-references.schema.json");
-    attributeSpecSchema = loadCommonSchema("attribute-spec.schema.json");
+    sourceReferencesSchema = loadSchema("source-references.schema.json");
+    attributeSpecSchema = loadSchema("attribute-spec.schema.json");
 
     // Add schemas to AJV for reference resolution
     ajv.addSchema(sourceReferencesSchema, sourceReferencesSchema.$id);

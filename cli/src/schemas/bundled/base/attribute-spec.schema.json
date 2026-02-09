@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/common/attribute-spec.schema.json",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/attribute-spec.schema.json",
   "title": "AttributeSpec Definitions",
   "description": "Reusable definition for attribute specifications used in spec-level schemas (e.g., spec-node-relationship attributes)",
 

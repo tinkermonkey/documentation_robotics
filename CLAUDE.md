@@ -20,8 +20,8 @@ documentation_robotics/
 │   ├── layers/                  # 12 SpecLayer instance files (.layer.json)
 │   ├── predicates.json          # Consolidated predicate catalog
 │   └── schemas/                 # All JSON Schema definitions
-│       ├── base/                #   spec-node, spec-layer, spec-node-relationship
-│       ├── common/              #   attribute-spec, source-references
+│       ├── base/                #   Core schemas: spec-node, spec-layer, spec-node-relationship,
+│       │                        #   attribute-spec, source-references
 │       ├── nodes/               #   354 per-type node schemas (.node.schema.json)
 │       │   ├── motivation/      #     Organized by layer
 │       │   ├── business/        #     Defines valid model element types
@@ -39,8 +39,7 @@ documentation_robotics/
     │   ├── validators/         # Validation pipeline (uses spec node schemas)
     │   ├── export/             # Export handlers
     │   └── schemas/bundled/    # Bundled schemas (synced from spec/)
-    │       ├── base/           #   Base schemas
-    │       ├── common/         #   Common schemas
+    │       ├── base/           #   Base and common schemas
     │       └── nodes/          #   354 spec node schemas for validation
     └── tests/                  # Unit & integration tests (~114 test files)
 ```
@@ -65,7 +64,7 @@ See `cli/README.md` for complete setup and usage documentation.
 - **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli/package.json`)
 - **Schema synchronization**: Schema changes require updating BOTH locations:
   - Base schemas: `spec/schemas/base/` → `cli/src/schemas/bundled/base/`
-  - Common schemas: `spec/schemas/common/` → `cli/src/schemas/bundled/common/`
+  - Base schemas: `spec/schemas/base/` → `cli/src/schemas/bundled/base/`
   - Node schemas: `spec/schemas/nodes/` → `cli/src/schemas/bundled/nodes/`
   - Run `npm run build` in CLI (triggers `scripts/sync-spec-schemas.sh`)
 - **Sources of truth (hand-maintained)**:
