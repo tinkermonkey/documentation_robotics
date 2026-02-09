@@ -11,8 +11,7 @@
         "transitivity": true,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "realizes": {
       "predicate": "realizes",
@@ -25,8 +24,7 @@
         "transitivity": true,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "fulfills": {
       "predicate": "fulfills",
@@ -39,8 +37,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "delivers": {
       "predicate": "delivers",
@@ -53,8 +50,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "constrains": {
       "predicate": "constrains",
@@ -67,8 +63,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     },
     "governs": {
       "predicate": "governs",
@@ -81,8 +76,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "owns": {
       "predicate": "owns",
@@ -95,8 +89,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     },
     "performs": {
       "predicate": "performs",
@@ -109,8 +102,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     },
     "provides": {
       "predicate": "provides",
@@ -123,8 +115,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "consumes": {
       "predicate": "consumes",
@@ -137,8 +128,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     },
     "requires": {
       "predicate": "requires",
@@ -151,8 +141,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "critical"
+      }
     },
     "protects": {
       "predicate": "protects",
@@ -165,8 +154,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "mitigates": {
       "predicate": "mitigates",
@@ -179,8 +167,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "accesses": {
       "predicate": "accesses",
@@ -193,8 +180,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "critical"
+      }
     },
     "uses": {
       "predicate": "uses",
@@ -207,8 +193,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     },
     "implements": {
       "predicate": "implements",
@@ -221,8 +206,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "composes": {
       "predicate": "composes",
@@ -235,8 +219,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "high"
+      }
     },
     "aggregates": {
       "predicate": "aggregates",
@@ -249,8 +232,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     },
     "triggers": {
       "predicate": "triggers",
@@ -263,8 +245,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     },
     "flows-to": {
       "predicate": "flows-to",
@@ -277,8 +258,7 @@
         "transitivity": true,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     },
     "monitors": {
       "predicate": "monitors",
@@ -291,8 +271,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     },
     "tests": {
       "predicate": "tests",
@@ -305,549 +284,7 @@
         "transitivity": false,
         "symmetry": false,
         "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "specializes": {
-      "predicate": "specializes",
-      "inverse": "generalized-by",
-      "category": "structural",
-      "description": "Type-subtype relationship (inheritance)",
-      "archimate_alignment": "Specialization",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": true,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "assigned-to": {
-      "predicate": "assigned-to",
-      "inverse": "assigns",
-      "category": "structural",
-      "description": "Active element assigned to behavior or role",
-      "archimate_alignment": "Assignment",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "associated-with": {
-      "predicate": "associated-with",
-      "inverse": "associated-with",
-      "category": "structural",
-      "description": "Generic relationship indicating elements are related or connected",
-      "archimate_alignment": "Association",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": true,
-        "reflexivity": false
-      },
-      "default_strength": "low"
-    },
-    "influences": {
-      "predicate": "influences",
-      "inverse": "influenced-by",
-      "category": "behavioral",
-      "description": "Element affects or impacts another element",
-      "archimate_alignment": "Influence",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "serves": {
-      "predicate": "serves",
-      "inverse": "served-by",
-      "category": "behavioral",
-      "description": "Service available to consumer",
-      "archimate_alignment": "Serving",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "references": {
-      "predicate": "references",
-      "inverse": "referenced-by",
-      "category": "dependency",
-      "description": "Pointer reference without functional dependency",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "low"
-    },
-    "depends-on": {
-      "predicate": "depends-on",
-      "inverse": "dependency-of",
-      "category": "dependency",
-      "description": "Element requires another to function",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": true,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "high"
-    },
-    "supports-goals": {
-      "predicate": "supports-goals",
-      "inverse": "supported-by",
-      "category": "traceability",
-      "description": "Implementation contributes to achieving goal",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": true,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "high"
-    },
-    "fulfills-requirements": {
-      "predicate": "fulfills-requirements",
-      "inverse": "fulfilled-by",
-      "category": "traceability",
-      "description": "Implementation satisfies requirement",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "high"
-    },
-    "delivers-value": {
-      "predicate": "delivers-value",
-      "inverse": "delivered-by",
-      "category": "traceability",
-      "description": "Implementation provides business value",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "high"
-    },
-    "measures-outcome": {
-      "predicate": "measures-outcome",
-      "inverse": "measured-by",
-      "category": "traceability",
-      "description": "Metric validates outcome achievement",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "governed-by-principles": {
-      "predicate": "governed-by-principles",
-      "inverse": "governs",
-      "category": "governance",
-      "description": "Element follows architectural principle",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "constrained-by": {
-      "predicate": "constrained-by",
-      "inverse": "constrains",
-      "category": "governance",
-      "description": "Element limited by constraint",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "enforces-requirement": {
-      "predicate": "enforces-requirement",
-      "inverse": "enforced-by",
-      "category": "governance",
-      "description": "Element actively enforces requirement",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "high"
-    },
-    "traces": {
-      "predicate": "traces",
-      "inverse": "traced-by",
-      "category": "apm",
-      "description": "Distributed tracing relationships",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "measures": {
-      "predicate": "measures",
-      "inverse": "measured-by",
-      "category": "apm",
-      "description": "Metric collection relationships",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "authenticates": {
-      "predicate": "authenticates",
-      "inverse": "authenticated-by",
-      "category": "security",
-      "description": "Authentication flows",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "critical"
-    },
-    "authorizes": {
-      "predicate": "authorizes",
-      "inverse": "authorized-by",
-      "category": "security",
-      "description": "Permission grants",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "critical"
-    },
-    "renders": {
-      "predicate": "renders",
-      "inverse": "rendered-by",
-      "category": "ux",
-      "description": "UI rendering relationships",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "binds-to": {
-      "predicate": "binds-to",
-      "inverse": "bound-by",
-      "category": "ux",
-      "description": "Data binding relationships",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "navigates-to": {
-      "predicate": "navigates-to",
-      "inverse": "navigated-from",
-      "category": "ux",
-      "description": "Navigation flows",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "maps-to": {
-      "predicate": "maps-to",
-      "inverse": "mapped-from",
-      "category": "data",
-      "description": "Schema/table mapping",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "high"
-    },
-    "references-table": {
-      "predicate": "references-table",
-      "inverse": "table-referenced-by",
-      "category": "data",
-      "description": "Foreign key relationships",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "high"
-    },
-    "derives-from": {
-      "predicate": "derives-from",
-      "inverse": "derived-by",
-      "category": "data",
-      "description": "Calculated field relationships",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "validates": {
-      "predicate": "validates",
-      "inverse": "validated-by",
-      "category": "testing",
-      "description": "Test element validates that a requirement or target is satisfied",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "master-data-source": {
-      "predicate": "master-data-source",
-      "inverse": "master-data-for",
-      "category": "data",
-      "description": "Business object master data source from application data object",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "process-steps": {
-      "predicate": "process-steps",
-      "inverse": "step-of-process",
-      "category": "structural",
-      "description": "Application process steps that realize a business process",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "realized-by-process": {
-      "predicate": "realized-by-process",
-      "inverse": "realizes-process",
-      "category": "structural",
-      "description": "Business process automated by application process",
-      "archimate_alignment": "Realization",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "represented-by-dataobject": {
-      "predicate": "represented-by-dataobject",
-      "inverse": "represents",
-      "category": "structural",
-      "description": "Business object represented by application data object",
-      "archimate_alignment": "Realization",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "archimate-ref": {
-      "predicate": "archimate-ref",
-      "inverse": "archimate-source",
-      "category": "traceability",
-      "description": "Reference to ArchiMate application layer element",
-      "archimate_alignment": "Association",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "business-object-ref": {
-      "predicate": "business-object-ref",
-      "inverse": "data-model-source",
-      "category": "traceability",
-      "description": "Data model schema references a business object",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "apm-data-quality-metrics": {
-      "predicate": "apm-data-quality-metrics",
-      "inverse": "quality-measured-by",
-      "category": "apm",
-      "description": "Data quality metrics for schema element",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "data-governance": {
-      "predicate": "data-governance",
-      "inverse": "governs-data",
-      "category": "governance",
-      "description": "Data governance policy for schema element",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "database-mapping": {
-      "predicate": "database-mapping",
-      "inverse": "mapped-from-schema",
-      "category": "data",
-      "description": "Schema element maps to database structure",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "database-column": {
-      "predicate": "database-column",
-      "inverse": "column-source",
-      "category": "data",
-      "description": "API schema property maps to database column",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "database-table": {
-      "predicate": "database-table",
-      "inverse": "table-source",
-      "category": "data",
-      "description": "API schema maps to database table",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "encryption-required": {
-      "predicate": "encryption-required",
-      "inverse": "requires-encryption-for",
-      "category": "security",
-      "description": "Technology artifact requires encryption",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "security-controls": {
-      "predicate": "security-controls",
-      "inverse": "controls-process",
-      "category": "security",
-      "description": "Business process has security controls applied",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "high"
-    },
-    "apm-trace": {
-      "predicate": "apm-trace",
-      "inverse": "traced-from",
-      "category": "apm",
-      "description": "API operation is traced by APM tracing configuration",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "traced": {
-      "predicate": "traced",
-      "inverse": "traces-service",
-      "category": "apm",
-      "description": "Application service has distributed tracing enabled",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
-    },
-    "governance-owner": {
-      "predicate": "governance-owner",
-      "inverse": "owned-data-governance",
-      "category": "governance",
-      "description": "Business object ownership assignment for data governance",
-      "semantics": {
-        "directionality": "bidirectional",
-        "transitivity": false,
-        "symmetry": false,
-        "reflexivity": false
-      },
-      "default_strength": "medium"
+      }
     }
   }
 }

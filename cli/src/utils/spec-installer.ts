@@ -115,10 +115,8 @@ export async function installSpecReference(
 
   // Copy common schemas
   const commonSchemas = [
-    "layer-extensions.schema.json",
-    "predicates.schema.json",
-    "relationships.schema.json",
     "source-references.schema.json",
+    "attribute-spec.schema.json",
   ];
 
   for (const schema of commonSchemas) {
