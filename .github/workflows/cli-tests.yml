@@ -242,9 +242,9 @@ jobs:
           echo "Validating JSON syntax for node type schemas..."
           invalid_count=0
           for schema in spec/schemas/nodes/**/*.node.schema.json; do
-            if ! jq empty "$schema" 2>&1 | grep -q "^$"; then
+            if ! jq empty "$schema" 2>/dev/null; then
               echo "❌ Invalid JSON in $schema"
-              jq empty "$schema" 2>&1 | head -3
+              jq empty "$schema" 2>&1
               invalid_count=$((invalid_count + 1))
             fi
           done
