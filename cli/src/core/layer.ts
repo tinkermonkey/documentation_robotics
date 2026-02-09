@@ -119,7 +119,41 @@ export class Layer {
       node.properties["__relationships__"] = element.relationships;
     }
 
+    // Add node to graph first
     this.graph.addNode(node);
+
+    // Create graph edges from references for export compatibility
+    // Only create edges if both source and destination nodes exist
+    if (element.references && element.references.length > 0) {
+      for (const ref of element.references) {
+        if (this.graph.nodes.has(ref.source) && this.graph.nodes.has(ref.target)) {
+          this.graph.addEdge({
+            id: `${ref.source}-${ref.type}-${ref.target}`,
+            source: ref.source,
+            destination: ref.target,
+            predicate: ref.type,
+            properties: {},
+          });
+        }
+      }
+    }
+
+    // Create graph edges from relationships for export compatibility
+    // Only create edges if both source and destination nodes exist
+    if (element.relationships && element.relationships.length > 0) {
+      for (const rel of element.relationships) {
+        if (this.graph.nodes.has(rel.source) && this.graph.nodes.has(rel.target)) {
+          this.graph.addEdge({
+            id: `${rel.source}-${rel.predicate}-${rel.target}`,
+            source: rel.source,
+            destination: rel.target,
+            predicate: rel.predicate,
+            properties: {},
+          });
+        }
+      }
+    }
+
     this.dirty = true;
   }
 

@@ -21,9 +21,22 @@ describe("ArchiMateExporter", () => {
 
     model = new Model("/test", manifest);
 
-    motivationLayer = new Layer("motivation");
+    // Create business layer with the referenced process FIRST
+    const businessLayer = new Layer("business");
+    const process = new Element({
+      id: "business-process-test",
+      type: "process",
+      name: "Test Process",
+      description: "A test business process",
+    });
+    businessLayer.addElement(process);
+    model.addLayer(businessLayer);
 
-    // Add test elements
+    // Create motivation layer and add to model (so it shares the graph)
+    motivationLayer = new Layer("motivation");
+    model.addLayer(motivationLayer);
+
+    // Now add elements to motivation layer (it uses the shared graph)
     const goal = new Element({
       id: "motivation-goal-test-goal",
       type: "goal",
@@ -47,7 +60,6 @@ describe("ArchiMateExporter", () => {
 
     motivationLayer.addElement(goal);
     motivationLayer.addElement(requirement);
-    model.addLayer(motivationLayer);
   });
 
   it("should export ArchiMate XML with valid declaration", async () => {

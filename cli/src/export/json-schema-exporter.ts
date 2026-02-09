@@ -57,8 +57,9 @@ export class JsonSchemaExporter implements Exporter {
             Object.assign(entitySchema, constraints);
           }
 
-          // Add source reference if present
-          const sourceRef = node.properties["source-reference"];
+          // Add source reference if present (check both naming conventions)
+          const sourceRef =
+            node.properties["x-source-reference"] || node.properties["source-reference"];
           if (sourceRef) {
             entitySchema["x-source-reference"] = sourceRef;
           }

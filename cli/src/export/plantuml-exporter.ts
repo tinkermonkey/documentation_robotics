@@ -76,14 +76,18 @@ export class PlantUMLExporter implements Exporter {
         const color = LAYER_COLORS[layerName] || "FFFFFF";
         lines.push(`package "${layerName}" #${color} {`);
 
-        for (const { id, name, description } of elements) {
-          lines.push(`  component "${this.escapeQuotes(name)}" as ${id}`);
+        for (const element of elements) {
+          lines.push(`  component "${this.escapeQuotes(element.name)}" as ${element.id}`);
 
           // Add source reference as note if includeSources option is enabled
-          if (options.includeSources && description) {
-            lines.push(`  note right of ${id}`);
-            lines.push(`    ${this.escapeQuotes(description)}`);
-            lines.push(`  end note`);
+          if (options.includeSources) {
+            const node = nodesByLayer.get(layerName)?.find((n) => n.id === element.id);
+            const sourceRef = this.extractSourceReference(node);
+            if (sourceRef) {
+              lines.push(`  note right of ${element.id}`);
+              lines.push(`    ${this.escapeQuotes(sourceRef)}`);
+              lines.push(`  end note`);
+            }
           }
         }
 
@@ -164,6 +168,45 @@ export class PlantUMLExporter implements Exporter {
       "refers-to": "..>",
     };
     return arrowMap[predicate] || "-->";
+  }
+
+  /**
+   * Extract and format source reference from node properties
+   */
+  private extractSourceReference(node: any): string | null {
+    if (!node) return null;
+
+    // Try x-source-reference first (standardized format)
+    let sourceRef = node.properties?.["x-source-reference"];
+
+    // Fall back to nested source.reference format
+    if (!sourceRef && node.properties?.source?.reference) {
+      sourceRef = node.properties.source.reference;
+    }
+
+    if (!sourceRef) return null;
+
+    // Format source reference for display
+    const parts: string[] = [];
+
+    if (Array.isArray(sourceRef.locations) && sourceRef.locations.length > 0) {
+      const location = sourceRef.locations[0];
+      if (location.file) {
+        parts.push(`Source: ${location.file}`);
+      }
+      if (location.symbol) {
+        parts.push(`Symbol: ${location.symbol}`);
+      }
+    }
+
+    if (sourceRef.repository?.url) {
+      parts.push(`Repo: ${sourceRef.repository.url}`);
+      if (sourceRef.repository.commit) {
+        parts.push(`Commit: ${sourceRef.repository.commit.substring(0, 8)}`);
+      }
+    }
+
+    return parts.length > 0 ? parts.join("\\n") : null;
   }
 
   /**
