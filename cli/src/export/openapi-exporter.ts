@@ -144,7 +144,7 @@ export class OpenAPIExporter implements Exporter {
             id: node.id,
             description: node.description,
             getProperty: (key: string) => node.properties[key],
-            getSourceReference: () => node.properties["source-reference"],
+            getSourceReference: () => node.properties["x-source-reference"],
           };
 
           pathGroups.get(path)!.push({ method, element: endpointData as any });
