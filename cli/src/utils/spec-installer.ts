@@ -106,17 +106,10 @@ export async function installSpecReference(
     }
   }
 
-  // Copy catalog and registry files
-  const catalogFiles = [
-    "relationship-catalog.json",
-    "relationship-type.schema.json",
-  ];
-
-  for (const file of catalogFiles) {
-    const sourcePath = join(schemaSourceDir, file);
-    const targetPath = join(drPath, "schemas", file);
-    await fs.copyFile(sourcePath, targetPath);
-  }
+  // Copy relationship catalog
+  const catalogPath = join(schemaSourceDir, "relationship-catalog.json");
+  const catalogTarget = join(drPath, "schemas", "relationship-catalog.json");
+  await fs.copyFile(catalogPath, catalogTarget);
 
   // Note: Common schemas (source-references, attribute-spec) are now in base/
   // and are already copied above with the base schemas

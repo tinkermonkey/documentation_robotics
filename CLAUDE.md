@@ -29,8 +29,7 @@ documentation_robotics/
 │       ├── relationships/       #   252 per-type relationship schemas
 │       │   ├── motivation/      #     (.relationship.schema.json)
 │       │   └── ...              #     Hand-maintained
-│       ├── relationship-catalog.json
-│       └── relationship-type.schema.json
+│       └── relationship-catalog.json  # Semantic relationship type catalog
 │
 └── cli/                         # TYPESCRIPT CLI
     ├── src/
