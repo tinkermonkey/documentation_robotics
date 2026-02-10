@@ -883,11 +883,11 @@ export {
 } from "./layer-registry.js";
 
 // Layer types exports
-export type { LayerId as LayerIdType } from "./layer-types.js";
+export type { LayerId } from "./layer-types.js";
 export { isLayerId } from "./layer-types.js";
 
 // Node types exports (new detailed type information)
-export type { SpecNodeId, NodeType, LayerId, NodeTypeInfo } from "./node-types.js";
+export type { SpecNodeId, NodeType, NodeTypeInfo } from "./node-types.js";
 export {
   NODE_TYPES,
   getNodeType,
