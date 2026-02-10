@@ -4,14 +4,14 @@
 
 import ansis from "ansis";
 import { Model } from "../core/model.js";
-import { getNodeTypesForLayer } from "../generated/layer-registry.js";
+import { getNodeTypesForLayer, getAllLayerIds } from "../generated/layer-registry.js";
 
 /**
  * Expected element types per layer (derived from generated registry)
  */
 function getLayerElementTypes(): Record<string, string[]> {
   const layerTypes: Record<string, string[]> = {};
-  const layers = ["motivation", "business", "security", "application", "technology", "api", "data-model", "data-store", "ux", "navigation", "apm", "testing"];
+  const layers = getAllLayerIds();
   for (const layer of layers) {
     layerTypes[layer] = getNodeTypesForLayer(layer).map((t) => {
       // Extract element type from spec node ID (e.g., "motivation.goal" -> "goal")
