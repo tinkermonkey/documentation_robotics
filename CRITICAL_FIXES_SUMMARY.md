@@ -19,14 +19,17 @@ Three critical issues were identified in the codebase and have been successfully
 ## Issue #1: Missing Atomic Write Pattern in Validators Generator
 
 ### Problem
+
 **File**: `cli/scripts/generate-validators.ts:257`
 
 The validator generator wrote files directly using `fs.writeFileSync()` without atomic semantics. If the write operation failed partway through:
+
 - The target file could be left in a corrupt or incomplete state
 - The build process would not detect the corruption until runtime
 - No rollback mechanism existed to recover from partial writes
 
 ### Solution
+
 Implemented the **temp file + rename pattern** for atomic writes:
 
 ```typescript
@@ -65,12 +68,14 @@ function writeGeneratedFile(content: string): void {
 ```
 
 **Key Benefits**:
+
 - ✅ **Atomic guarantee**: Either the entire new file exists, or the old file is untouched
 - ✅ **No partial writes**: Readers never see an incomplete file
 - ✅ **Filesystem-level safety**: Works across all POSIX-compliant systems
 - ✅ **Cleanup on failure**: Temp files cleaned up if rename fails
 
 **Files Changed**:
+
 - `cli/scripts/generate-validators.ts:248-280`
 
 ---
@@ -78,14 +83,17 @@ function writeGeneratedFile(content: string): void {
 ## Issue #2: JSON Schema Serialization Risk
 
 ### Problem
+
 **File**: `cli/scripts/generate-validators.ts:205-206, 226`
 
 The validator generator embedded schemas via `JSON.stringify()` without checking for:
+
 - **Circular references**: Could cause the stringification to hang or throw
 - **Unbounded object serialization**: Large schemas could consume excessive memory
 - **Template literal injection**: Backticks or special characters could break generated code
 
 Example of the vulnerability:
+
 ```typescript
 // NO CHECKS - could crash on circular references
 const baseSchemasList = Object.entries(baseSchemas)
@@ -94,6 +102,7 @@ const baseSchemasList = Object.entries(baseSchemas)
 ```
 
 ### Solution
+
 Implemented **circular reference detection** and **safe serialization**:
 
 ```typescript
@@ -156,6 +165,7 @@ function safeStringifySchema(schema: any): string {
 ```
 
 **Applied to both JSON.stringify calls**:
+
 ```typescript
 // Base schemas (lines 277-288)
 const baseSchemasList = Object.entries(baseSchemas)
@@ -183,12 +193,14 @@ ${compiledSchemas
 ```
 
 **Key Benefits**:
+
 - ✅ **Circular reference detection**: Catches schema cycles before serialization
 - ✅ **Early validation**: Errors fail the build, not at runtime
 - ✅ **Clear error messages**: Developers know exactly what went wrong
 - ✅ **Template literal safety**: JSON escaping prevents injection
 
 **Files Changed**:
+
 - `cli/scripts/generate-validators.ts:167-235` (added functions)
 - `cli/scripts/generate-validators.ts:277-288` (base schemas)
 - `cli/scripts/generate-validators.ts:308-318` (compiled schemas)
@@ -198,6 +210,7 @@ ${compiledSchemas
 ## Issue #3: Incomplete Cross-Layer Relationship Validation
 
 ### Problem
+
 **File**: `cli/src/validators/relationship-schema-validator.ts:211-217, 381-409`
 
 The relationship validator had a **fundamental design flaw** that broke cross-layer relationships:
@@ -229,6 +242,7 @@ private async validateRelationship(
 **Why This Breaks Cross-Layer Relationships**:
 
 If you tried to create a relationship from **motivation.goal** to **business.service**:
+
 1. The elements are correctly found (one in motivation layer, one in business layer)
 2. But the validator passes `"motivation"` for BOTH source AND destination layer
 3. The schema matcher looks for a relationship spec with:
@@ -241,6 +255,7 @@ If you tried to create a relationship from **motivation.goal** to **business.ser
 6. But the actual relationship is: `motivation.goal --[is-realized-by]--> business.service`
 
 ### Solution
+
 Extract the **actual layer from each element** instead of using `relationship.layer`:
 
 ```typescript
@@ -313,10 +328,12 @@ private findRelationshipSchemaKey(
 ```
 
 **Error Messages Now Correct**:
+
 - Before: `No schema found for relationship: motivation.goal --[is-realized-by]--> motivation.service`
 - After: `No schema found for relationship: motivation.goal --[is-realized-by]--> business.service`
 
 **Files Changed**:
+
 - `cli/src/validators/relationship-schema-validator.ts:176-229` (validateRelationship method)
 - `cli/src/validators/relationship-schema-validator.ts:381-428` (findRelationshipSchemaKey method)
 
@@ -325,6 +342,7 @@ private findRelationshipSchemaKey(
 ## Test Coverage
 
 ### 1. Atomic Write Pattern Tests
+
 **File**: `tests/unit/scripts/generate-validators.test.ts`
 
 ```
@@ -334,6 +352,7 @@ private findRelationshipSchemaKey(
 ```
 
 ### 2. Circular Reference Detection Tests
+
 **File**: `tests/unit/scripts/generate-validators.test.ts`
 
 ```
@@ -346,6 +365,7 @@ private findRelationshipSchemaKey(
 ```
 
 ### 3. Schema Serialization Safety Tests
+
 **File**: `tests/unit/scripts/generate-validators.test.ts`
 
 ```
@@ -356,6 +376,7 @@ private findRelationshipSchemaKey(
 ```
 
 ### 4. Integration Tests (Atomic + Circular Reference)
+
 **File**: `tests/unit/scripts/generate-validators.test.ts`
 
 ```
@@ -364,6 +385,7 @@ private findRelationshipSchemaKey(
 ```
 
 ### 5. Cross-Layer Relationship Validation Tests
+
 **File**: `tests/unit/validators/relationship-schema-validator.test.ts`
 
 ```
@@ -374,6 +396,7 @@ private findRelationshipSchemaKey(
 ```
 
 **Test Results**:
+
 ```
 15 tests for atomic write + circular reference detection: ✅ ALL PASS
 20 tests for relationship validator (including 4 new cross-layer tests): ✅ ALL PASS
@@ -386,19 +409,23 @@ private findRelationshipSchemaKey(
 ## Impact Analysis
 
 ### Breaking Changes
+
 ✅ **None** - All changes are backward compatible
 
 ### Performance Impact
+
 - ✅ **No degradation** - Circular reference detection only runs at build time
 - ✅ **Atomic writes unchanged** - Still single `fs.renameSync` operation
 - ✅ **Runtime validation unchanged** - No runtime performance cost
 
 ### Reliability Improvements
+
 - ✅ **Build integrity**: Atomic writes prevent file corruption
 - ✅ **Circular reference safety**: Catches schema cycles at build time
 - ✅ **Cross-layer support**: Relationships now work across all layer pairs
 
 ### Code Quality
+
 - ✅ **Testability**: 100% test coverage for all fixes
 - ✅ **Error messages**: More accurate schema validation reporting
 - ✅ **Developer experience**: Clearer error messages for schema issues

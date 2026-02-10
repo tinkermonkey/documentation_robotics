@@ -30,6 +30,7 @@ The `SchemaValidator` class (`cli/src/validators/schema-validator.ts`) implement
 The validation pipeline consists of two layers:
 
 #### Layer 1: Pre-Compiled Base Validators
+
 **File**: `cli/src/generated/compiled-validators.ts`
 
 ```typescript
@@ -43,6 +44,7 @@ export const validateAttributeSpec: ValidateFunction = /* ... */
 **Design Rationale**: These base schemas are compiled at build time to eliminate runtime file I/O overhead during validation.
 
 #### Layer 2: Runtime Schema Compilation
+
 **File**: `cli/src/validators/schema-validator.ts:103-139`
 
 ```typescript
@@ -77,6 +79,7 @@ private async loadSpecNodeSchema(layer: string, type: string):
 ```
 
 **Fallback Paths**:
+
 - Missing schema files → Skip type-specific validation (line 120-121)
 - Schema compilation errors → Log warning, continue (line 135-138)
 - Schema caching → Avoid repeated compilation (line 128)
@@ -102,34 +105,41 @@ The following scenarios were untested:
 **Test Suites** (36 tests total):
 
 #### 1. Pre-Compiled Validator Fallback (3 tests)
+
 - ✅ Missing pre-compiled validator handled gracefully
 - ✅ Base pre-compiled validator succeeds
 - ✅ Errors from pre-compiled base validator reported
 
 #### 2. Runtime Schema Compilation Fallback (4 tests)
+
 - ✅ Type-specific schema compiled at runtime if not cached
 - ✅ Schema loading errors handled gracefully
 - ✅ Errors from type-specific schema compilation reported
 - ✅ Compiled schemas cached for reuse (performance)
 
 #### 3. Error Message Formatting During Fallback (2 tests)
+
 - ✅ Validation errors formatted clearly with element ID and location
 - ✅ Fix suggestions included when available
 
 #### 4. Fallback Path Edge Cases (3 tests)
+
 - ✅ Successful validation when all schemas load
 - ✅ New element types without pre-built schemas handled
 - ✅ Schema loading state properly tracked
 
 #### 5. Concurrent Validation with Fallback (1 test)
+
 - ✅ Safe concurrent schema compilations
 
 #### 6. Fallback Validator Exports (3 tests)
+
 - ✅ Pre-compiled validators properly exported
 - ✅ Pre-compiled validators callable
 - ✅ Pre-compiled validators have error properties
 
 #### 7. Fallback Error Recovery (1 test)
+
 - ✅ Validation continues after errors
 
 ### Test Output
@@ -167,6 +177,7 @@ tests/unit/validators/schema-validator-fallback.test.ts:
 The barrel file `cli/src/generated/index.ts` had conflicting exports for the `LayerId` type:
 
 **Before Fix**:
+
 ```typescript
 // Line 24: Exported from layer-types.ts with alias
 export type { LayerId as LayerIdType } from "./layer-types.js";
@@ -176,6 +187,7 @@ export type { ..., LayerId, ... } from "./node-types.js";
 ```
 
 **Problem**:
+
 - Two modules export the same type name `LayerId` with identical definitions
 - Consumer code importing `LayerId` doesn't know which definition is authoritative
 - Naming inconsistency creates confusion about the source of truth for layer type definitions
@@ -185,6 +197,7 @@ export type { ..., LayerId, ... } from "./node-types.js";
 Both files define `LayerId` identically because they're both generated from the same source:
 
 **`cli/src/generated/layer-types.ts`** (generated from `spec/layers/*.layer.json`):
+
 ```typescript
 export type LayerId = "motivation" | "business" | "security" | "application" |
                      "technology" | "api" | "data-model" | "data-store" | "ux" |
@@ -192,6 +205,7 @@ export type LayerId = "motivation" | "business" | "security" | "application" |
 ```
 
 **`cli/src/generated/node-types.ts`** (re-derived from node type schemas):
+
 ```typescript
 export type LayerId = "api" | "apm" | "application" | "business" | "data-model" |
                      "data-store" | "motivation" | "navigation" | "security" |
@@ -199,6 +213,7 @@ export type LayerId = "api" | "apm" | "application" | "business" | "data-model" 
 ```
 
 Both define the complete set of 12 layers, but:
+
 - `layer-types.ts` is the **authoritative source** (generated from spec layer definitions)
 - `node-types.ts` includes it as a **derived type** (used internally for node type constraints)
 
@@ -231,6 +246,7 @@ export type { SpecNodeId, NodeType, NodeTypeInfo } from "./node-types.js";
 ```
 
 **Changes**:
+
 - Removed alias `LayerIdType` (was redundant)
 - Import `LayerId` **only** from `layer-types.js` (authoritative)
 - Removed `LayerId` from node-types exports (still defined locally but not exported)
@@ -238,6 +254,7 @@ export type { SpecNodeId, NodeType, NodeTypeInfo } from "./node-types.js";
 2. **`cli/src/generated/index.ts`** (auto-regenerated)
 
 Now correctly exports:
+
 ```typescript
 export type { LayerId } from "./layer-types.js";    // Single source of truth
 export { isLayerId } from "./layer-types.js";
@@ -270,11 +287,13 @@ const layer: LayerId = "motivation";
 ### Verification
 
 **Build Output**:
+
 ```bash
 ✓ Build complete (production without telemetry)
 ```
 
 **Test Results**:
+
 ```
 190 pass
 0 fail
@@ -364,6 +383,7 @@ npm test tests/unit/validators/schema-validator-fallback.test.ts  # Just fallbac
 ```
 
 Expected output:
+
 ```
  190 pass
  0 fail
