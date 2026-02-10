@@ -206,13 +206,13 @@ The schema-driven architecture introduces new generated APIs and modifies existi
 
 ### 1.3 API Documentation Deliverables
 
-| Document | Format | Location | Audience |
-|----------|--------|----------|----------|
-| **Generated API Reference** | Markdown | `docs/api/generated-apis.md` | CLI developers, extension authors |
-| **Validation API Guide** | Markdown | `docs/api/validation-api.md` | CLI developers, integration developers |
-| **Code Generation Guide** | Markdown | `docs/api/code-generation.md` | Contributors, build system maintainers |
-| **API Migration Guide** | Markdown | `docs/api/migration-from-v0.1.md` | Existing CLI extension developers |
-| **JSDoc Comments** | Inline | All `.ts` files | IDE users, code reviewers |
+| Document                    | Format   | Location                          | Audience                               |
+| --------------------------- | -------- | --------------------------------- | -------------------------------------- |
+| **Generated API Reference** | Markdown | `docs/api/generated-apis.md`      | CLI developers, extension authors      |
+| **Validation API Guide**    | Markdown | `docs/api/validation-api.md`      | CLI developers, integration developers |
+| **Code Generation Guide**   | Markdown | `docs/api/code-generation.md`     | Contributors, build system maintainers |
+| **API Migration Guide**     | Markdown | `docs/api/migration-from-v0.1.md` | Existing CLI extension developers      |
+| **JSDoc Comments**          | Inline   | All `.ts` files                   | IDE users, code reviewers              |
 
 ---
 
@@ -228,14 +228,14 @@ User documentation focuses on CLI operators who use the `dr` command to manage a
 
 **Commands Requiring Documentation Updates:**
 
-| Command | Changes | Documentation Impact |
-|---------|---------|---------------------|
-| `dr add` | Validates element types against generated NodeTypeIndex | Document type validation, improved error messages |
-| `dr update` | Validates attributes against per-type schemas | Document attribute validation, schema-driven constraints |
-| `dr relationship add` | Validates against relationship schemas, enforces cardinality | Document relationship validation, cardinality errors |
-| `dr validate` | Uses schema validators, reports schema conformance | Document new validation output format |
-| `dr conformance` | Uses LayerRegistry for expected types | Document conformance checking against spec |
-| `dr schema` (new) | Introspection commands for layers/types/relationships | Full command documentation |
+| Command               | Changes                                                      | Documentation Impact                                     |
+| --------------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
+| `dr add`              | Validates element types against generated NodeTypeIndex      | Document type validation, improved error messages        |
+| `dr update`           | Validates attributes against per-type schemas                | Document attribute validation, schema-driven constraints |
+| `dr relationship add` | Validates against relationship schemas, enforces cardinality | Document relationship validation, cardinality errors     |
+| `dr validate`         | Uses schema validators, reports schema conformance           | Document new validation output format                    |
+| `dr conformance`      | Uses LayerRegistry for expected types                        | Document conformance checking against spec               |
+| `dr schema` (new)     | Introspection commands for layers/types/relationships        | Full command documentation                               |
 
 **Documentation Structure per Command:**
 
@@ -243,24 +243,31 @@ User documentation focuses on CLI operators who use the `dr` command to manage a
 ## dr <command>
 
 ### Synopsis
+
 Brief description of command purpose
 
 ### Usage
+
 dr <command> [options] <arguments>
 
 ### Options
+
 Detailed option descriptions
 
 ### Examples
+
 Practical examples with expected output
 
 ### Validation
+
 What validation occurs and how errors are reported
 
 ### Related Commands
+
 Cross-references to related commands
 
 ### See Also
+
 Links to concepts (schemas, layers, relationships)
 ```
 
@@ -275,6 +282,7 @@ Links to concepts (schemas, layers, relationships)
    - **Output:** Table of layers with metadata (number, name, node type count, standard)
    - **Use Cases:** Discovering layer structure, understanding model scope
    - **Examples:**
+
      ```bash
      dr schema layers
      # Output:
@@ -290,6 +298,7 @@ Links to concepts (schemas, layers, relationships)
    - **Output:** Table of node types with required/optional attributes
    - **Use Cases:** Discovering valid types before adding elements
    - **Examples:**
+
      ```bash
      dr schema types motivation
      # Output:
@@ -305,6 +314,7 @@ Links to concepts (schemas, layers, relationships)
    - **Output:** JSON schema excerpt + human-readable attribute list
    - **Use Cases:** Understanding attribute constraints before creating elements
    - **Examples:**
+
      ```bash
      dr schema node motivation.goal
      # Output:
@@ -327,6 +337,7 @@ Links to concepts (schemas, layers, relationships)
    - **Output:** Table of valid predicates and destination types with cardinality
    - **Use Cases:** Discovering valid relationships, understanding cardinality constraints
    - **Examples:**
+
      ```bash
      dr schema relationship motivation.goal
      # Output:
@@ -360,42 +371,49 @@ Links to concepts (schemas, layers, relationships)
   - Layer reference errors with layer hierarchy context
 
 - **Error Resolution Guide:**
-  ```markdown
+
+  ````markdown
   ## Common Validation Errors
 
   ### "Invalid element type"
+
   **Cause:** Element type does not match any spec node schema
   **Resolution:** Use `dr schema types <layer>` to see valid types
   **Example:**
-    ```bash
-    # Error: Invalid element type 'Goal' for layer 'motivation'
-    # Resolution:
-    dr schema types motivation  # See valid types (use lowercase 'goal')
-    dr add motivation goal my-goal --name "My Goal"
-    ```
 
-  ### "Relationship cardinality violation"
+  ```bash
+  # Error: Invalid element type 'Goal' for layer 'motivation'
+  # Resolution:
+  dr schema types motivation  # See valid types (use lowercase 'goal')
+  dr add motivation goal my-goal --name "My Goal"
+  ```
+  ````
+
+### "Relationship cardinality violation"
+
   **Cause:** Adding relationship would violate cardinality constraint
   **Resolution:** Review existing relationships and cardinality rules
   **Example:**
-    ```bash
-    # Error: Cannot add relationship - 'motivation.goal.g1' already has
-    #        one-to-one relationship with 'business.service.s1'
-    # Resolution:
-    dr relationship list motivation.goal.g1  # See existing relationships
-    dr schema relationship motivation.goal supports  # Check cardinality
-    ```
 
-  ### "Missing required attribute"
+  ```bash
+  # Error: Cannot add relationship - 'motivation.goal.g1' already has
+  #        one-to-one relationship with 'business.service.s1'
+  # Resolution:
+  dr relationship list motivation.goal.g1  # See existing relationships
+  dr schema relationship motivation.goal supports  # Check cardinality
+  ```
+
+### "Missing required attribute"
+
   **Cause:** Element missing attribute required by spec node schema
   **Resolution:** Use `dr schema node <spec_node_id>` to see required attributes
   **Example:**
-    ```bash
-    # Error: Missing required attribute 'description' for motivation.goal
-    # Resolution:
-    dr schema node motivation.goal  # See required attributes
-    dr add motivation goal my-goal --name "Name" --description "Description"
-    ```
+
+  ```bash
+  # Error: Missing required attribute 'description' for motivation.goal
+  # Resolution:
+  dr schema node motivation.goal  # See required attributes
+  dr add motivation goal my-goal --name "Name" --description "Description"
   ```
 
 ---
@@ -417,20 +435,24 @@ Links to concepts (schemas, layers, relationships)
    - Relationship cardinality enforcement
 
 3. **Migration Checklist:**
+
    ```markdown
    ## Pre-Migration Checklist
+
    - [ ] Backup your model: `cp -r documentation-robotics documentation-robotics.backup`
    - [ ] Review current model validity: `dr validate`
    - [ ] Note any existing validation warnings
    - [ ] Upgrade CLI: `npm install -g @documentation-robotics/cli@latest`
 
    ## Post-Migration Validation
+
    - [ ] Run conformance check: `dr conformance`
    - [ ] Fix any new validation errors
    - [ ] Test exports: `dr export archimate`, `dr export openapi`
    - [ ] Verify relationships: `dr relationship list <element-id>` for key elements
 
    ## Common Migration Issues
+
    - Schema validation now stricter - missing required attributes will fail
    - Relationship cardinality now enforced - duplicate one-to-one relationships will fail
    - Element IDs must use correct type casing (lowercase: 'goal', not 'Goal')
@@ -440,13 +462,13 @@ Links to concepts (schemas, layers, relationships)
 
 ### 2.3 User Documentation Deliverables
 
-| Document | Format | Location | Audience |
-|----------|--------|----------|----------|
-| **Command Reference (Updated)** | Markdown | `cli/README.md` (sections), `docs/commands/` | All CLI users |
-| **Schema Introspection Guide** | Markdown | `docs/user-guide/schema-introspection.md` | CLI users, architects |
-| **Validation Error Guide** | Markdown | `docs/troubleshooting/validation-errors.md` | CLI users troubleshooting errors |
-| **User Migration Guide** | Markdown | `docs/migration/v0.1-to-v0.2.md` | Existing CLI users upgrading |
-| **Quick Start (Updated)** | Markdown | `docs/quick-start/README.md` | New CLI users |
+| Document                        | Format   | Location                                     | Audience                         |
+| ------------------------------- | -------- | -------------------------------------------- | -------------------------------- |
+| **Command Reference (Updated)** | Markdown | `cli/README.md` (sections), `docs/commands/` | All CLI users                    |
+| **Schema Introspection Guide**  | Markdown | `docs/user-guide/schema-introspection.md`    | CLI users, architects            |
+| **Validation Error Guide**      | Markdown | `docs/troubleshooting/validation-errors.md`  | CLI users troubleshooting errors |
+| **User Migration Guide**        | Markdown | `docs/migration/v0.1-to-v0.2.md`             | Existing CLI users upgrading     |
+| **Quick Start (Updated)**       | Markdown | `docs/quick-start/README.md`                 | New CLI users                    |
 
 ---
 
@@ -465,6 +487,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
 **Content:**
 
 1. **Architecture Diagram:**
+
    ```
    ┌─────────────────────────────────────────────────────────────────┐
    │                        BUILD TIME                               │
@@ -523,6 +546,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
    - **Outputs:** `cli/src/generated/*.ts` files
 
 2. **Generation Process:**
+
    ```typescript
    // Pseudo-code for generation process
    1. Load all layer instance files from spec/layers/
@@ -548,6 +572,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
    - Handling schema parsing errors
 
 4. **Generated Code Structure:**
+
    ```typescript
    // Example of generated layer-registry.ts structure
    // AUTO-GENERATED - DO NOT EDIT
@@ -577,6 +602,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
 **Content:**
 
 1. **Validation Stages:**
+
    ```
    Stage 1: Schema Validation (SchemaValidator)
      └─► Validates element against spec-node.schema.json + per-type schema
@@ -595,6 +621,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
    ```
 
 2. **Validator Interface:**
+
    ```typescript
    interface Validator {
      validate(element: Element, context: ValidationContext): ValidationResult;
@@ -648,6 +675,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
    - Relationship validation tests: `cli/tests/integration/relationship-validation.test.ts`
 
 2. **Testing Generated Code:**
+
    ```typescript
    // Example test for LayerRegistry
    describe("LayerRegistry", () => {
@@ -668,6 +696,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
    ```
 
 3. **Testing Validation:**
+
    ```typescript
    // Example test for schema validation
    describe("SchemaValidator", () => {
@@ -678,7 +707,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
          type: "goal",
          layer_id: "motivation",
          name: "Test Goal",
-         attributes: { description: "Test description" }
+         attributes: { description: "Test description" },
        };
        const result = validator.validateElement(element, "motivation");
        expect(result.valid).toBe(true);
@@ -691,7 +720,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
          type: "goal",
          layer_id: "motivation",
          name: "Test Goal",
-         attributes: {} // Missing required 'description'
+         attributes: {}, // Missing required 'description'
        };
        const result = validator.validateElement(element, "motivation");
        expect(result.valid).toBe(false);
@@ -737,6 +766,7 @@ Developer documentation targets contributors to the CLI codebase who need to und
    - **No CLI code changes required** ✅
 
 4. **Development Workflow:**
+
    ```bash
    # 1. Make schema changes in spec/
    cd spec/schemas/nodes/motivation/
@@ -770,14 +800,14 @@ Developer documentation targets contributors to the CLI codebase who need to und
 
 ### 3.3 Developer Documentation Deliverables
 
-| Document | Format | Location | Audience |
-|----------|--------|----------|----------|
-| **Architecture Overview** | Markdown | `docs/architecture/schema-driven-architecture.md` | New contributors, architects |
-| **Code Generation Guide** | Markdown | `docs/development/code-generation.md` | Contributors modifying generators |
-| **Validation Pipeline Guide** | Markdown | `docs/development/validation-pipeline.md` | Contributors adding validation |
-| **Testing Guide** | Markdown | `docs/development/testing-guide.md` | Contributors writing tests |
-| **Schema Workflow Guide** | Markdown | `docs/development/schema-workflow.md` | Contributors modifying schemas |
-| **Contributing Guide (Updated)** | Markdown | `CONTRIBUTING.md` | All contributors |
+| Document                         | Format   | Location                                          | Audience                          |
+| -------------------------------- | -------- | ------------------------------------------------- | --------------------------------- |
+| **Architecture Overview**        | Markdown | `docs/architecture/schema-driven-architecture.md` | New contributors, architects      |
+| **Code Generation Guide**        | Markdown | `docs/development/code-generation.md`             | Contributors modifying generators |
+| **Validation Pipeline Guide**    | Markdown | `docs/development/validation-pipeline.md`         | Contributors adding validation    |
+| **Testing Guide**                | Markdown | `docs/development/testing-guide.md`               | Contributors writing tests        |
+| **Schema Workflow Guide**        | Markdown | `docs/development/schema-workflow.md`             | Contributors modifying schemas    |
+| **Contributing Guide (Updated)** | Markdown | `CONTRIBUTING.md`                                 | All contributors                  |
 
 ---
 
@@ -796,46 +826,50 @@ System documentation provides comprehensive technical reference for the schema-d
 **Content:**
 
 1. **SpecNode Data Model:**
+
    ```typescript
    interface SpecNode {
-     id: string;                  // UUIDv4 - globally unique instance ID
-     spec_node_id: string;        // Reference to spec node type (e.g., "motivation.goal")
-     type: string;                // Denormalized type (extracted from spec_node_id)
-     layer_id: string;            // Denormalized layer (extracted from spec_node_id)
-     name: string;                // Human-readable instance name
-     description?: string;        // Optional detailed description
-     attributes?: object;         // Type-specific attributes (validated by per-type schema)
-     source_reference?: SourceReference;  // Provenance tracking
-     metadata?: {                 // Lifecycle metadata
-       created_at?: string;       // ISO 8601 timestamp
-       updated_at?: string;       // ISO 8601 timestamp
-       created_by?: string;       // User or system
-       version?: number;          // Version number
+     id: string; // UUIDv4 - globally unique instance ID
+     spec_node_id: string; // Reference to spec node type (e.g., "motivation.goal")
+     type: string; // Denormalized type (extracted from spec_node_id)
+     layer_id: string; // Denormalized layer (extracted from spec_node_id)
+     name: string; // Human-readable instance name
+     description?: string; // Optional detailed description
+     attributes?: object; // Type-specific attributes (validated by per-type schema)
+     source_reference?: SourceReference; // Provenance tracking
+     metadata?: {
+       // Lifecycle metadata
+       created_at?: string; // ISO 8601 timestamp
+       updated_at?: string; // ISO 8601 timestamp
+       created_by?: string; // User or system
+       version?: number; // Version number
      };
    }
    ```
 
 2. **SourceReference Data Model:**
+
    ```typescript
    interface SourceReference {
-     file: string;                // Relative path from repo root
-     symbol?: string;             // Function/class/variable name
+     file: string; // Relative path from repo root
+     symbol?: string; // Function/class/variable name
      provenance: "extracted" | "manual" | "inferred" | "generated";
      repository?: {
-       remote: string;            // Git remote URL
-       commit: string;            // Full 40-char SHA
+       remote: string; // Git remote URL
+       commit: string; // Full 40-char SHA
      };
    }
    ```
 
 3. **ModelRelationship Data Model:**
+
    ```typescript
    interface ModelRelationship {
-     id: string;                  // UUIDv4
-     source_element_id: string;   // Element UUID
-     destination_element_id: string;  // Element UUID
-     predicate: string;           // Semantic relationship type
-     attributes?: object;         // Relationship-specific attributes
+     id: string; // UUIDv4
+     source_element_id: string; // Element UUID
+     destination_element_id: string; // Element UUID
+     predicate: string; // Semantic relationship type
+     attributes?: object; // Relationship-specific attributes
      metadata?: {
        created_at?: string;
        created_by?: string;
@@ -844,18 +878,19 @@ System documentation provides comprehensive technical reference for the schema-d
    ```
 
 4. **Migration from Legacy Element:**
+
    ```markdown
    ## Legacy Element → SpecNode Migration
 
-   | Legacy Field | SpecNode Field | Notes |
-   |--------------|----------------|-------|
-   | `id` (semantic) | `name` + auto-generated `id` (UUID) | Semantic ID becomes name, new UUID generated |
-   | `type` | `type` + `spec_node_id` | Type becomes part of spec_node_id |
-   | `layer` | `layer_id` + part of `spec_node_id` | Layer extracted to layer_id |
-   | `properties` | `attributes` | Renamed to align with spec |
-   | `description` | `description` | Preserved |
-   | `properties.source.reference` | `source_reference` | Lifted to top level |
-   | N/A | `metadata` | New field for lifecycle tracking |
+   | Legacy Field                  | SpecNode Field                      | Notes                                        |
+   | ----------------------------- | ----------------------------------- | -------------------------------------------- |
+   | `id` (semantic)               | `name` + auto-generated `id` (UUID) | Semantic ID becomes name, new UUID generated |
+   | `type`                        | `type` + `spec_node_id`             | Type becomes part of spec_node_id            |
+   | `layer`                       | `layer_id` + part of `spec_node_id` | Layer extracted to layer_id                  |
+   | `properties`                  | `attributes`                        | Renamed to align with spec                   |
+   | `description`                 | `description`                       | Preserved                                    |
+   | `properties.source.reference` | `source_reference`                  | Lifted to top level                          |
+   | N/A                           | `metadata`                          | New field for lifecycle tracking             |
    ```
 
 **Format:** Markdown in `docs/data-models/spec-node.md`
@@ -869,6 +904,7 @@ System documentation provides comprehensive technical reference for the schema-d
 **Content:**
 
 1. **Schema Hierarchy:**
+
    ```
    spec-node.schema.json (base)
      ├── Defines common fields: id, spec_node_id, type, layer_id, name
@@ -927,6 +963,7 @@ System documentation provides comprehensive technical reference for the schema-d
 **Content:**
 
 1. **Build Pipeline Stages:**
+
    ```
    npm run build
      ├── 1. Clean dist/
@@ -957,16 +994,20 @@ System documentation provides comprehensive technical reference for the schema-d
    - Validation: Generated code must compile without errors
 
 4. **Troubleshooting Build Issues:**
+
    ```markdown
    ## Build Error: Schema sync failed
+
    **Cause:** Schemas in spec/ are invalid JSON
    **Resolution:** Validate schemas with `check-jsonschema`
 
    ## Build Error: Code generation failed
+
    **Cause:** Schema structure doesn't match expected format
    **Resolution:** Check schema parsing errors in build output
 
    ## Build Error: Generated code doesn't compile
+
    **Cause:** Generated TypeScript has syntax errors
    **Resolution:** Review generate-registry.ts for template issues
    ```
@@ -1011,12 +1052,12 @@ System documentation provides comprehensive technical reference for the schema-d
 
 ### 4.3 System Documentation Deliverables
 
-| Document | Format | Location | Audience |
-|----------|--------|----------|----------|
-| **Data Model Reference** | Markdown | `docs/data-models/spec-node.md` | Developers, integrators |
-| **Schema System Guide** | Markdown | `docs/schemas/schema-system.md` | Schema authors, validators |
-| **Build System Reference** | Markdown | `docs/system/build-system.md` | Build system maintainers |
-| **Performance Characteristics** | Markdown | `docs/system/performance.md` | Architects, ops teams |
+| Document                        | Format   | Location                        | Audience                   |
+| ------------------------------- | -------- | ------------------------------- | -------------------------- |
+| **Data Model Reference**        | Markdown | `docs/data-models/spec-node.md` | Developers, integrators    |
+| **Schema System Guide**         | Markdown | `docs/schemas/schema-system.md` | Schema authors, validators |
+| **Build System Reference**      | Markdown | `docs/system/build-system.md`   | Build system maintainers   |
+| **Performance Characteristics** | Markdown | `docs/system/performance.md`    | Architects, ops teams      |
 
 ---
 
@@ -1041,6 +1082,7 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
    - CI/CD integration: Install as pipeline dependency
 
 2. **Verification:**
+
    ```bash
    # Verify installation
    dr --version
@@ -1059,6 +1101,7 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
    - No external configuration files required
 
 4. **Upgrade Process:**
+
    ```bash
    # 1. Backup model
    cp -r documentation-robotics documentation-robotics.backup
@@ -1089,6 +1132,7 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
 **Content:**
 
 1. **Health Checks:**
+
    ```bash
    # Check CLI is functional
    dr --version
@@ -1104,33 +1148,40 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
    ```
 
 2. **Common Issues:**
+
    ```markdown
    ## Issue: "Schema validation failed"
+
    **Symptoms:** Elements fail validation with schema errors
    **Diagnosis:**
-     - Run `dr validate` to see specific errors
-     - Check `dr schema node <spec_node_id>` for requirements
-   **Resolution:**
-     - Fix elements to match schema requirements
-     - Use `dr update <element-id>` to correct attributes
+
+   - Run `dr validate` to see specific errors
+   - Check `dr schema node <spec_node_id>` for requirements
+     **Resolution:**
+   - Fix elements to match schema requirements
+   - Use `dr update <element-id>` to correct attributes
 
    ## Issue: "Invalid layer"
+
    **Symptoms:** Commands reject layer names
    **Diagnosis:**
-     - Run `dr schema layers` to see valid layers
-     - Check for typos (use hyphenated form: "data-model", not "datamodel")
-   **Resolution:**
-     - Use canonical layer names from registry
-     - Update scripts/documentation with correct names
+
+   - Run `dr schema layers` to see valid layers
+   - Check for typos (use hyphenated form: "data-model", not "datamodel")
+     **Resolution:**
+   - Use canonical layer names from registry
+   - Update scripts/documentation with correct names
 
    ## Issue: "Generated code out of sync"
+
    **Symptoms:** CLI behaves unexpectedly after schema changes
    **Diagnosis:**
-     - Check if `cli/src/generated/` is stale
-     - Verify `npm run build` completed successfully
-   **Resolution:**
-     - Run `npm run build` to regenerate
-     - Clear node_modules and reinstall if persistent
+
+   - Check if `cli/src/generated/` is stale
+   - Verify `npm run build` completed successfully
+     **Resolution:**
+   - Run `npm run build` to regenerate
+   - Clear node_modules and reinstall if persistent
    ```
 
 3. **Logging & Diagnostics:**
@@ -1139,18 +1190,23 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
    - Schema error reporting: Show schema path + failed constraint
 
 4. **Performance Issues:**
+
    ```markdown
    ## Issue: Slow validation
+
    **Cause:** Large models with many elements
    **Resolution:**
-     - Validate specific layers: `dr conformance --layers api,data-model`
-     - Use parallel validation (future enhancement)
+
+   - Validate specific layers: `dr conformance --layers api,data-model`
+   - Use parallel validation (future enhancement)
 
    ## Issue: Slow startup
+
    **Cause:** Cold schema cache
    **Resolution:**
-     - Normal on first run (schemas lazy-loaded)
-     - Subsequent runs should be fast (~150ms)
+
+   - Normal on first run (schemas lazy-loaded)
+   - Subsequent runs should be fast (~150ms)
    ```
 
 **Format:** Markdown in `docs/operations/troubleshooting.md`
@@ -1164,6 +1220,7 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
 **Content:**
 
 1. **GitHub Actions Example:**
+
    ```yaml
    name: Validate Architecture Model
 
@@ -1178,7 +1235,7 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
          - name: Setup Node.js
            uses: actions/setup-node@v3
            with:
-             node-version: '18'
+             node-version: "18"
 
          - name: Install CLI
            run: npm install -g @documentation-robotics/cli
@@ -1194,6 +1251,7 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
    ```
 
 2. **GitLab CI Example:**
+
    ```yaml
    validate-model:
      image: node:18
@@ -1208,6 +1266,7 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
    ```
 
 3. **Pre-commit Hooks:**
+
    ```yaml
    # .pre-commit-config.yaml
    repos:
@@ -1238,10 +1297,10 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
 
 ### 5.3 Operations Documentation Deliverables
 
-| Document | Format | Location | Audience |
-|----------|--------|----------|----------|
-| **Deployment Guide** | Markdown | `docs/operations/deployment.md` | DevOps, system admins |
-| **Troubleshooting Guide** | Markdown | `docs/operations/troubleshooting.md` | Support engineers, ops |
+| Document                    | Format   | Location                               | Audience                |
+| --------------------------- | -------- | -------------------------------------- | ----------------------- |
+| **Deployment Guide**        | Markdown | `docs/operations/deployment.md`        | DevOps, system admins   |
+| **Troubleshooting Guide**   | Markdown | `docs/operations/troubleshooting.md`   | Support engineers, ops  |
 | **CI/CD Integration Guide** | Markdown | `docs/operations/ci-cd-integration.md` | DevOps, CI/CD engineers |
 
 ---
@@ -1252,14 +1311,14 @@ Operations documentation provides guidance for deploying, monitoring, and mainta
 
 The documentation delivery is phased to align with the 6-phase implementation plan from the software architect's design:
 
-| Implementation Phase | Documentation Deliverables | Timeline |
-|---------------------|---------------------------|----------|
-| **Phase 1: Foundation** | - LayerRegistry API docs<br>- Architecture overview<br>- Build system reference | Week 1 |
-| **Phase 2: Node Type Index** | - NodeTypeIndex API docs<br>- Schema introspection user guide<br>- Updated command reference | Week 2 |
-| **Phase 3: Relationship Index** | - RelationshipIndex API docs<br>- Relationship validation guide<br>- Error message catalog | Week 3 |
-| **Phase 4: Element Alignment** | - Data model reference<br>- Migration guide for users<br>- Schema system guide | Week 4 |
-| **Phase 5: Pre-compiled Validators** | - Validation pipeline guide<br>- Performance characteristics<br>- Testing guide | Week 5 |
-| **Phase 6: UX Enhancements** | - Complete command reference<br>- Quick start updates<br>- Operations guides | Week 6 |
+| Implementation Phase                 | Documentation Deliverables                                                                   | Timeline |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- | -------- |
+| **Phase 1: Foundation**              | - LayerRegistry API docs<br>- Architecture overview<br>- Build system reference              | Week 1   |
+| **Phase 2: Node Type Index**         | - NodeTypeIndex API docs<br>- Schema introspection user guide<br>- Updated command reference | Week 2   |
+| **Phase 3: Relationship Index**      | - RelationshipIndex API docs<br>- Relationship validation guide<br>- Error message catalog   | Week 3   |
+| **Phase 4: Element Alignment**       | - Data model reference<br>- Migration guide for users<br>- Schema system guide               | Week 4   |
+| **Phase 5: Pre-compiled Validators** | - Validation pipeline guide<br>- Performance characteristics<br>- Testing guide              | Week 5   |
+| **Phase 6: UX Enhancements**         | - Complete command reference<br>- Quick start updates<br>- Operations guides                 | Week 6   |
 
 ### 6.2 Documentation Quality Standards
 
