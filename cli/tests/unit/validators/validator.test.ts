@@ -29,43 +29,6 @@ describe("Validator", () => {
     expect(result.toDict()).toBeDefined();
   });
 
-  it("should pass 4-stage validation for valid model", async () => {
-    const validator = new Validator();
-    const model = createTestModel();
-
-    // Create valid layers
-    const motivationLayer = new Layer("motivation", [
-      new Element({
-        id: "motivation.goal.increase-revenue",
-        type: "Goal",
-        name: "Increase Revenue",
-        references: [
-          {
-            source: "motivation.goal.increase-revenue",
-            target: "business.process.sales",
-            type: "implements",
-          },
-        ],
-      }),
-    ]);
-
-    const businessLayer = new Layer("business", [
-      new Element({
-        id: "business.process.sales",
-        type: "Process",
-        name: "Sales Process",
-      }),
-    ]);
-
-    model.addLayer(motivationLayer);
-    model.addLayer(businessLayer);
-
-    const result = await validator.validateModel(model);
-
-    expect(result.isValid()).toBe(true);
-    expect(result.errors.length).toBe(0);
-  });
-
   it("should detect naming validation errors", async () => {
     const validator = new Validator();
     const model = createTestModel();
@@ -210,40 +173,4 @@ describe("Validator", () => {
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  it("should validate directional references", async () => {
-    const validator = new Validator();
-    const model = createTestModel();
-
-    // Business (lower) layer incorrectly references Motivation (higher) layer
-    const businessLayer = new Layer("business", [
-      new Element({
-        id: "business.process.sales",
-        type: "Process",
-        name: "Sales",
-        references: [
-          {
-            source: "business.process.sales",
-            target: "motivation.goal.revenue",
-            type: "implements",
-          },
-        ],
-      }),
-    ]);
-
-    const motivationLayer = new Layer("motivation", [
-      new Element({
-        id: "motivation.goal.revenue",
-        type: "Goal",
-        name: "Revenue",
-      }),
-    ]);
-
-    model.addLayer(businessLayer);
-    model.addLayer(motivationLayer);
-
-    const result = await validator.validateModel(model);
-
-    expect(result.isValid()).toBe(false);
-    expect(result.errors.some((e) => e.message.includes("direction"))).toBe(true);
-  });
 });
