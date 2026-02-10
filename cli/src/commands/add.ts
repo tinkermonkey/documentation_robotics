@@ -21,6 +21,7 @@ import { validateSourceReferenceOptions, buildSourceReference } from "../utils/s
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { generateElementId } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
+import { isValidNodeType, getNodeTypesForLayer } from "../generated/node-types.js";
 
 // Telemetry flag check
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -60,6 +61,26 @@ export async function addCommand(
         operation: "add",
         context: `Layer: ${layer}, Type: ${type}, Name: ${name}`,
       });
+    }
+
+    // Validate element type for this layer
+    if (!isValidNodeType(layer, type)) {
+      const validNodeTypes = getNodeTypesForLayer(layer);
+      const typeNames = validNodeTypes.map((t) => t.type).sort();
+      const similar = findSimilar(type, typeNames, 3);
+      const suggestions: string[] = [`Valid types for ${layer}: ${formatValidOptions(typeNames)}`];
+      if (similar.length > 0) {
+        suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+      }
+      throw new CLIError(
+        `Invalid element type "${type}" for layer "${layer}"`,
+        ErrorCategory.USER,
+        suggestions,
+        {
+          operation: "add",
+          context: `Layer: ${layer}, Type: ${type}, Name: ${name}`,
+        }
+      );
     }
 
     // Generate full element ID: {layer}.{type}.{kebab-name}

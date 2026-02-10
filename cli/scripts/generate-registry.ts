@@ -18,6 +18,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.join(__dirname, "..");
 const BUNDLED_LAYERS_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "layers");
+const BUNDLED_NODES_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "nodes");
 const GENERATED_DIR = path.join(CLI_DIR, "src", "generated");
 
 interface LayerInstance {
@@ -44,6 +45,91 @@ interface LayerMetadata {
     version: string;
     url?: string;
   };
+}
+
+interface NodeTypeInfo {
+  specNodeId: string;
+  layer: string;
+  type: string;
+  title: string;
+  requiredAttributes: string[];
+  optionalAttributes: string[];
+  attributeConstraints: Record<string, unknown>;
+}
+
+/**
+ * Recursively find all node schema files in a directory
+ */
+function findNodeSchemaFiles(dir: string): string[] {
+  const files: string[] = [];
+
+  function traverse(currentDir: string) {
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        traverse(fullPath);
+      } else if (entry.name.endsWith(".node.schema.json")) {
+        files.push(fullPath);
+      }
+    }
+  }
+
+  traverse(dir);
+  return files.sort();
+}
+
+/**
+ * Load all node schema files from bundled directory and extract metadata
+ */
+function loadNodeSchemas(): NodeTypeInfo[] {
+  if (!fs.existsSync(BUNDLED_NODES_DIR)) {
+    console.error(`ERROR: Node schemas directory not found at ${BUNDLED_NODES_DIR}`);
+    process.exit(1);
+  }
+
+  const schemaFiles = findNodeSchemaFiles(BUNDLED_NODES_DIR);
+
+  if (schemaFiles.length === 0) {
+    console.error(`ERROR: No .node.schema.json files found in ${BUNDLED_NODES_DIR}`);
+    process.exit(1);
+  }
+
+  const nodeTypes: NodeTypeInfo[] = schemaFiles.map((schemaFile) => {
+    const content = fs.readFileSync(schemaFile, "utf-8");
+    const schema = JSON.parse(content);
+
+    const specNodeId = schema.properties?.spec_node_id?.const;
+    const layer = schema.properties?.layer_id?.const;
+    const type = schema.properties?.type?.const;
+    const title = schema.title || type;
+
+    if (!specNodeId || !layer || !type) {
+      throw new Error(
+        `Invalid node schema at ${schemaFile}: missing spec_node_id, layer_id, or type`
+      );
+    }
+
+    // Extract attribute information
+    const attributesSchema = schema.properties?.attributes;
+    const requiredAttributes = attributesSchema?.required || [];
+    const allAttributes = Object.keys(attributesSchema?.properties || {});
+    const optionalAttributes = allAttributes.filter(
+      (a) => !requiredAttributes.includes(a)
+    );
+
+    return {
+      specNodeId,
+      layer,
+      type,
+      title,
+      requiredAttributes,
+      optionalAttributes,
+      attributeConstraints: attributesSchema?.properties || {},
+    };
+  });
+
+  return nodeTypes;
 }
 
 /**
@@ -233,6 +319,166 @@ export function getAllLayers(): LayerMetadata[] {
 }
 
 /**
+ * Format a union type with proper line wrapping
+ */
+function formatUnionType(members: string[], itemsPerLine: number = 5): string {
+  const lines: string[] = [];
+  for (let i = 0; i < members.length; i += itemsPerLine) {
+    lines.push(members.slice(i, i + itemsPerLine).join(" | "));
+  }
+  return lines.join(" |\n  ");
+}
+
+/**
+ * Generate node-types.ts with NodeTypeInfo interface and node type index
+ */
+function generateNodeTypes(nodeTypes: NodeTypeInfo[]): string {
+  // Create SpecNodeId union type with all 354 types
+  const specNodeIdMembers = nodeTypes.map((n) => `"${n.specNodeId}"`);
+  const specNodeIds = formatUnionType(specNodeIdMembers);
+
+  // Create NodeType union type with unique type names
+  const uniqueTypeMembers = Array.from(new Set(nodeTypes.map((n) => n.type)))
+    .map((t) => `"${t}"`)
+    .sort();
+  const uniqueTypes = formatUnionType(uniqueTypeMembers);
+
+  // Create LayerId union type from node types
+  const uniqueLayerMembers = Array.from(new Set(nodeTypes.map((n) => n.layer)))
+    .map((l) => `"${l}"`)
+    .sort();
+  const uniqueLayers = formatUnionType(uniqueLayerMembers);
+
+  // Generate NodeTypeInfo constants
+  const constants = nodeTypes
+    .map(
+      (n) => `
+const NODE_TYPE_${n.specNodeId
+        .replace(/\./g, "_")
+        .replace(/-/g, "_")
+        .toUpperCase()}: NodeTypeInfo = {
+  specNodeId: "${n.specNodeId}",
+  layer: "${n.layer}",
+  type: "${n.type}",
+  title: "${n.title.replace(/"/g, '\\"')}",
+  requiredAttributes: [${n.requiredAttributes.map((a) => `"${a}"`).join(", ")}],
+  optionalAttributes: [${n.optionalAttributes.map((a) => `"${a}"`).join(", ")}],
+  attributeConstraints: ${JSON.stringify(n.attributeConstraints)},
+};`
+    )
+    .join("\n");
+
+  // Generate Map entries
+  const mapEntries = nodeTypes
+    .map(
+      (n) =>
+        `    ["${n.specNodeId}", NODE_TYPE_${n.specNodeId
+          .replace(/\./g, "_")
+          .replace(/-/g, "_")
+          .toUpperCase()}]`
+    )
+    .join(",\n");
+
+  return `/**
+ * GENERATED FILE - DO NOT EDIT
+ * This file is automatically generated by scripts/generate-registry.ts
+ * during the build process. Changes will be overwritten.
+ *
+ * Source: cli/src/schemas/bundled/nodes (354 .node.schema.json files)
+ */
+
+/**
+ * Metadata for a specific node type extracted from its schema
+ */
+export interface NodeTypeInfo {
+  specNodeId: SpecNodeId;
+  layer: LayerId;
+  type: NodeType;
+  title: string;
+  requiredAttributes: string[];
+  optionalAttributes: string[];
+  attributeConstraints: Record<string, unknown>;
+}
+
+/**
+ * Union type of all 354 valid node type identifiers (spec_node_id values)
+ * Format: "{layer}.{type}" e.g., "motivation.goal", "api.endpoint", "data-model.entity"
+ */
+export type SpecNodeId =
+  | ${specNodeIds};
+
+/**
+ * Union type of all unique node type names across all layers
+ * E.g., "goal", "requirement", "endpoint", "table", etc.
+ */
+export type NodeType =
+  | ${uniqueTypes};
+
+/**
+ * Union type of layer IDs that have node types
+ */
+export type LayerId =
+  | ${uniqueLayers};
+${constants}
+
+/**
+ * All ${nodeTypes.length} node types with metadata, indexed by spec_node_id
+ * Provides O(1) lookup for node type information
+ */
+export const NODE_TYPES: Map<SpecNodeId, NodeTypeInfo> = new Map([
+${mapEntries}
+]);
+
+/**
+ * Get node type metadata by spec_node_id
+ */
+export function getNodeType(specNodeId: SpecNodeId): NodeTypeInfo | undefined {
+  return NODE_TYPES.get(specNodeId);
+}
+
+/**
+ * Get all valid node types for a given layer
+ */
+export function getNodeTypesForLayer(layer: string): NodeTypeInfo[] {
+  const result: NodeTypeInfo[] = [];
+  for (const nodeType of NODE_TYPES.values()) {
+    if (nodeType.layer === layer) {
+      result.push(nodeType);
+    }
+  }
+  return result;
+}
+
+/**
+ * Check if a type is valid for a given layer
+ */
+export function isValidNodeType(layer: string, type: string): boolean {
+  for (const nodeType of NODE_TYPES.values()) {
+    if (nodeType.layer === layer && nodeType.type === type) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Get required attributes for a node type
+ */
+export function getRequiredAttributes(specNodeId: SpecNodeId): string[] {
+  const nodeType = NODE_TYPES.get(specNodeId);
+  return nodeType ? nodeType.requiredAttributes : [];
+}
+
+/**
+ * Check if a spec_node_id is valid
+ */
+export function isValidSpecNodeId(value: unknown): value is SpecNodeId {
+  return typeof value === "string" && NODE_TYPES.has(value as SpecNodeId);
+}
+`;
+}
+
+/**
  * Generate layer-types.ts with LayerId union type
  */
 function generateLayerTypes(layers: LayerMetadata[]): string {
@@ -282,31 +528,61 @@ function generateIndexBarrel(): string {
  * Central exports for all generated code
  */
 
-export * from "./layer-registry.js";
-export * from "./layer-types.js";
+// Layer registry exports (legacy spec node IDs)
+export {
+  LayerMetadata,
+  LAYERS,
+  LAYERS_BY_NUMBER,
+  LAYER_HIERARCHY,
+  getLayerByNumber,
+  getLayerById,
+  isValidLayer,
+  getNodeTypesForLayer as getSpecNodeTypesForLayer,
+  getAllLayerIds,
+  getAllLayers,
+} from "./layer-registry.js";
+
+// Layer types exports
+export type { LayerId as LayerIdType } from "./layer-types.js";
+export { isLayerId } from "./layer-types.js";
+
+// Node types exports (new detailed type information)
+export type { SpecNodeId, NodeType, LayerId, NodeTypeInfo } from "./node-types.js";
+export {
+  NODE_TYPES,
+  getNodeType,
+  getNodeTypesForLayer,
+  isValidNodeType,
+  getRequiredAttributes,
+  isValidSpecNodeId,
+} from "./node-types.js";
 `;
 }
 
 /**
  * Write generated files
  */
-function writeGeneratedFiles(layers: LayerMetadata[]): void {
+function writeGeneratedFiles(layers: LayerMetadata[], nodeTypes: NodeTypeInfo[]): void {
   ensureGeneratedDir();
 
   const registryPath = path.join(GENERATED_DIR, "layer-registry.ts");
   const typesPath = path.join(GENERATED_DIR, "layer-types.ts");
+  const nodeTypesPath = path.join(GENERATED_DIR, "node-types.ts");
   const indexPath = path.join(GENERATED_DIR, "index.ts");
 
   const registryContent = generateLayerRegistry(layers);
   const typesContent = generateLayerTypes(layers);
+  const nodeTypesContent = generateNodeTypes(nodeTypes);
   const indexContent = generateIndexBarrel();
 
   fs.writeFileSync(registryPath, registryContent);
   fs.writeFileSync(typesPath, typesContent);
+  fs.writeFileSync(nodeTypesPath, nodeTypesContent);
   fs.writeFileSync(indexPath, indexContent);
 
   console.log(`✓ Generated ${registryPath}`);
   console.log(`✓ Generated ${typesPath}`);
+  console.log(`✓ Generated ${nodeTypesPath} (${nodeTypes.length} node types)`);
   console.log(`✓ Generated ${indexPath}`);
 }
 
@@ -315,13 +591,17 @@ function writeGeneratedFiles(layers: LayerMetadata[]): void {
  */
 async function main(): Promise<void> {
   try {
-    console.log("Generating layer registry from spec layer instances...");
+    console.log("Generating layer registry and node type index...");
     const layers = loadLayerInstances();
     console.log(`✓ Loaded ${layers.length} layer instances`);
-    writeGeneratedFiles(layers);
-    console.log("✓ Layer registry generation complete");
+
+    const nodeTypes = loadNodeSchemas();
+    console.log(`✓ Loaded ${nodeTypes.length} node type schemas`);
+
+    writeGeneratedFiles(layers, nodeTypes);
+    console.log("✓ Layer registry and node type index generation complete");
   } catch (error) {
-    console.error("ERROR: Layer registry generation failed:");
+    console.error("ERROR: Registry generation failed:");
     console.error(error);
     process.exit(1);
   }
