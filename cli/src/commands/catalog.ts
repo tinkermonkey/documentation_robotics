@@ -365,8 +365,8 @@ Examples:
         if (options.format === "markdown") {
           // Generate markdown documentation
           output += "# Relationship Catalog Documentation\n\n";
-          output += `**Version:** ${metadata.version}  \n`;
-          output += `**Generated:** ${new Date().toISOString()}  \n`;
+          output += `**Version:** ${metadata.version}\n`;
+          output += `**Generated:** ${new Date().toISOString()}\n`;
           output += `**Total Types:** ${types.length}\n\n`;
 
           // Group by category
@@ -383,14 +383,14 @@ Examples:
 
             for (const type of categoryTypes.sort((a, b) => a.id.localeCompare(b.id))) {
               output += `### ${type.id}\n\n`;
-              output += `**Predicate:** \`${type.predicate}\`  \n`;
+              output += `**Predicate:** \`${type.predicate}\`\n`;
               if (type.inversePredicate) {
-                output += `**Inverse Predicate:** \`${type.inversePredicate}\`  \n`;
+                output += `**Inverse Predicate:** \`${type.inversePredicate}\`\n`;
               }
               if (type.archimateAlignment) {
-                output += `**ArchiMate Alignment:** ${type.archimateAlignment}  \n`;
+                output += `**ArchiMate Alignment:** ${type.archimateAlignment}\n`;
               }
-              output += `**Applicable Layers:** ${type.applicableLayers.join(", ")}  \n\n`;
+              output += `**Applicable Layers:** ${type.applicableLayers.join(", ")}\n\n`;
               output += `**Description:** ${type.description}\n\n`;
 
               // Semantics
