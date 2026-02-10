@@ -14,6 +14,34 @@ import {
 } from "../generated/relationship-index.js";
 
 /**
+ * Validate element properties and construct a SpecNodeId
+ * @throws {CLIError} if element properties are invalid
+ */
+function constructSpecNodeId(
+  element: Record<string, unknown>,
+  elementId: string
+): string {
+  const layerId = element.layer_id;
+  const type = element.type;
+
+  if (typeof layerId !== "string" || !layerId) {
+    throw new CLIError(
+      `Invalid element ${elementId}: missing or invalid layer_id`,
+      ErrorCategory.INTERNAL
+    );
+  }
+
+  if (typeof type !== "string" || !type) {
+    throw new CLIError(
+      `Invalid element ${elementId}: missing or invalid type`,
+      ErrorCategory.INTERNAL
+    );
+  }
+
+  return `${layerId}.${type}`;
+}
+
+/**
  * Validate a relationship combination using schema-driven registry
  * @returns {valid, suggestions} where suggestions are provided if invalid
  */
@@ -147,8 +175,8 @@ Examples:
         }
 
         // Schema-driven validation
-        const sourceSpecNodeId = `${sourceElement.layer_id}.${sourceElement.type}`;
-        const targetSpecNodeId = `${targetElement.layer_id}.${targetElement.type}`;
+        const sourceSpecNodeId = constructSpecNodeId(sourceElement, source);
+        const targetSpecNodeId = constructSpecNodeId(targetElement, target);
 
         const validation = validateRelationshipCombination(
           sourceSpecNodeId,
@@ -246,6 +274,8 @@ Examples:
         // In non-interactive environments (CI, tests), skip confirmation
         const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
         if (!options.force && isInteractive) {
+          // Dynamic import of prompts is safe here: caught by outer try-catch
+          // This allows lazy loading of the prompt library only when needed
           const { confirm } = await import("@clack/prompts");
           const confirmed = await confirm({
             message: `Delete ${toDelete.length} relationship(s)? This cannot be undone.`,

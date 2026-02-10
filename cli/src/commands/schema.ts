@@ -13,6 +13,7 @@ import {
   getNodeType,
   getNodeTypesForLayer,
   type SpecNodeId,
+  isValidSpecNodeId,
 } from "../generated/node-types.js";
 import {
   getValidRelationships,
@@ -112,7 +113,15 @@ export async function schemaTypesCommand(layerId: string): Promise<void> {
  */
 export async function schemaNodeCommand(specNodeId: string): Promise<void> {
   try {
-    const nodeType = getNodeType(specNodeId as SpecNodeId);
+    if (!isValidSpecNodeId(specNodeId)) {
+      throw new CLIError(
+        `Invalid spec node ID format: ${specNodeId}`,
+        ErrorCategory.USER,
+        ["Expected format: {layer}.{type} (e.g., motivation.goal, api.endpoint)"]
+      );
+    }
+
+    const nodeType = getNodeType(specNodeId);
 
     if (!nodeType) {
       throw new CLIError(
@@ -164,9 +173,17 @@ export async function schemaRelationshipCommand(
   predicate?: string
 ): Promise<void> {
   try {
+    if (!isValidSpecNodeId(sourceType)) {
+      throw new CLIError(
+        `Invalid spec node ID format: ${sourceType}`,
+        ErrorCategory.USER,
+        ["Expected format: {layer}.{type} (e.g., motivation.goal, api.endpoint)"]
+      );
+    }
+
     const relationships = predicate
-      ? getValidRelationships(sourceType as SpecNodeId, predicate)
-      : getValidRelationships(sourceType as SpecNodeId);
+      ? getValidRelationships(sourceType, predicate)
+      : getValidRelationships(sourceType);
 
     if (relationships.length === 0) {
       const msg = predicate
@@ -186,7 +203,10 @@ export async function schemaRelationshipCommand(
       if (!byPredicate.has(rel.predicate)) {
         byPredicate.set(rel.predicate, []);
       }
-      byPredicate.get(rel.predicate)!.push(rel);
+      const predicateRels = byPredicate.get(rel.predicate);
+      if (predicateRels) {
+        predicateRels.push(rel);
+      }
     }
 
     for (const [pred, rels] of byPredicate) {
