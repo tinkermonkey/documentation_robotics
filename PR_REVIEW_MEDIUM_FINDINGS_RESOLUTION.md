@@ -88,15 +88,15 @@ private async loadSpecNodeSchema(layer: string, type: string):
 
 The following scenarios were untested:
 
-| Scenario | Coverage | Risk Level |
-|----------|----------|-----------|
-| Pre-compiled validator unavailable | ❌ None | Medium |
-| Type-specific schema missing | ❌ None | High |
-| Schema compilation error | ❌ None | High |
-| Error message formatting | ❌ None | Medium |
-| Schema caching behavior | ❌ None | Low |
-| Concurrent validations | ❌ None | Medium |
-| Fallback error recovery | ❌ None | High |
+| Scenario                           | Coverage | Risk Level |
+| ---------------------------------- | -------- | ---------- |
+| Pre-compiled validator unavailable | ❌ None  | Medium     |
+| Type-specific schema missing       | ❌ None  | High       |
+| Schema compilation error           | ❌ None  | High       |
+| Error message formatting           | ❌ None  | Medium     |
+| Schema caching behavior            | ❌ None  | Low        |
+| Concurrent validations             | ❌ None  | Medium     |
+| Fallback error recovery            | ❌ None  | High       |
 
 ### Solution Implemented
 
@@ -199,17 +199,37 @@ Both files define `LayerId` identically because they're both generated from the 
 **`cli/src/generated/layer-types.ts`** (generated from `spec/layers/*.layer.json`):
 
 ```typescript
-export type LayerId = "motivation" | "business" | "security" | "application" |
-                     "technology" | "api" | "data-model" | "data-store" | "ux" |
-                     "navigation" | "apm" | "testing";
+export type LayerId =
+  | "motivation"
+  | "business"
+  | "security"
+  | "application"
+  | "technology"
+  | "api"
+  | "data-model"
+  | "data-store"
+  | "ux"
+  | "navigation"
+  | "apm"
+  | "testing";
 ```
 
 **`cli/src/generated/node-types.ts`** (re-derived from node type schemas):
 
 ```typescript
-export type LayerId = "api" | "apm" | "application" | "business" | "data-model" |
-                     "data-store" | "motivation" | "navigation" | "security" |
-                     "technology" | "ux" | "testing";  // Same values, different order
+export type LayerId =
+  | "api"
+  | "apm"
+  | "application"
+  | "business"
+  | "data-model"
+  | "data-store"
+  | "motivation"
+  | "navigation"
+  | "security"
+  | "technology"
+  | "ux"
+  | "testing"; // Same values, different order
 ```
 
 Both define the complete set of 12 layers, but:
@@ -256,21 +276,21 @@ export type { SpecNodeId, NodeType, NodeTypeInfo } from "./node-types.js";
 Now correctly exports:
 
 ```typescript
-export type { LayerId } from "./layer-types.js";    // Single source of truth
+export type { LayerId } from "./layer-types.js"; // Single source of truth
 export { isLayerId } from "./layer-types.js";
 
-export type { SpecNodeId, NodeType, NodeTypeInfo } from "./node-types.js";  // No LayerId duplication
+export type { SpecNodeId, NodeType, NodeTypeInfo } from "./node-types.js"; // No LayerId duplication
 ```
 
 ### Impact Analysis
 
 **Consumer Code**: Minimal impact due to type alias removal
 
-| Code | Before | After | Status |
-|------|--------|-------|--------|
-| `import { LayerId } from "@documentation-robotics/cli"` | ✅ Works | ✅ Works | No change |
+| Code                                                        | Before   | After     | Status          |
+| ----------------------------------------------------------- | -------- | --------- | --------------- |
+| `import { LayerId } from "@documentation-robotics/cli"`     | ✅ Works | ✅ Works  | No change       |
 | `import { LayerIdType } from "@documentation-robotics/cli"` | ✅ Works | ❌ Breaks | **Deprecation** |
-| `isLayerId(value)` validation | ✅ Works | ✅ Works | No change |
+| `isLayerId(value)` validation                               | ✅ Works | ✅ Works  | No change       |
 
 **Deprecation Impact**: The alias `LayerIdType` should be considered deprecated. Any code using it should migrate to `LayerId`:
 
@@ -308,28 +328,28 @@ Ran 190 tests across 10 files
 
 ### Files Created
 
-| File | Purpose | Tests |
-|------|---------|-------|
-| `cli/tests/unit/validators/schema-validator-fallback.test.ts` | Comprehensive fallback path coverage | 36 |
+| File                                                          | Purpose                              | Tests |
+| ------------------------------------------------------------- | ------------------------------------ | ----- |
+| `cli/tests/unit/validators/schema-validator-fallback.test.ts` | Comprehensive fallback path coverage | 36    |
 
 ### Files Modified
 
-| File | Change | Reason |
-|------|--------|--------|
+| File                               | Change                                                 | Reason                           |
+| ---------------------------------- | ------------------------------------------------------ | -------------------------------- |
 | `cli/scripts/generate-registry.ts` | Remove duplicate `LayerId` export from `node-types.js` | Establish single source of truth |
-| `cli/src/generated/index.ts` | Regenerated by build | Result of script fix |
+| `cli/src/generated/index.ts`       | Regenerated by build                                   | Result of script fix             |
 
 ### Test Coverage Metrics
 
-| Category | Before | After | Change |
-|----------|--------|-------|--------|
-| Fallback paths tested | 0% | 100% | **+36 tests** |
-| Pre-compiled validator coverage | 0% | 100% | **+3 tests** |
-| Type-specific schema loading | 0% | 100% | **+4 tests** |
-| Error formatting | 0% | 100% | **+2 tests** |
-| Edge cases | 0% | 100% | **+3 tests** |
-| Concurrent validation | 0% | 100% | **+1 test** |
-| Error recovery | 0% | 100% | **+1 test** |
+| Category                        | Before | After | Change        |
+| ------------------------------- | ------ | ----- | ------------- |
+| Fallback paths tested           | 0%     | 100%  | **+36 tests** |
+| Pre-compiled validator coverage | 0%     | 100%  | **+3 tests**  |
+| Type-specific schema loading    | 0%     | 100%  | **+4 tests**  |
+| Error formatting                | 0%     | 100%  | **+2 tests**  |
+| Edge cases                      | 0%     | 100%  | **+3 tests**  |
+| Concurrent validation           | 0%     | 100%  | **+1 test**   |
+| Error recovery                  | 0%     | 100%  | **+1 test**   |
 
 ### Build Verification
 

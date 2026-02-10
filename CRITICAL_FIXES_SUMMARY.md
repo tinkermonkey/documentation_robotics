@@ -145,7 +145,7 @@ function safeStringifySchema(schema: any): string {
   if (hasCircularReference(schema)) {
     throw new Error(
       "Schema contains circular references and cannot be serialized. " +
-      "This typically indicates a schema $ref that creates a cycle."
+        "This typically indicates a schema $ref that creates a cycle."
     );
   }
 
@@ -155,7 +155,7 @@ function safeStringifySchema(schema: any): string {
   } catch (error: any) {
     throw new Error(
       `Schema is not JSON-serializable: ${error.message}. ` +
-      "This may indicate functions, symbols, or other non-serializable values in the schema."
+        "This may indicate functions, symbols, or other non-serializable values in the schema."
     );
   }
 
