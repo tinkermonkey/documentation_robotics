@@ -391,30 +391,30 @@ Links to concepts (schemas, layers, relationships)
 
 ### "Relationship cardinality violation"
 
-  **Cause:** Adding relationship would violate cardinality constraint
-  **Resolution:** Review existing relationships and cardinality rules
-  **Example:**
+**Cause:** Adding relationship would violate cardinality constraint
+**Resolution:** Review existing relationships and cardinality rules
+**Example:**
 
-  ```bash
-  # Error: Cannot add relationship - 'motivation.goal.g1' already has
-  #        one-to-one relationship with 'business.service.s1'
-  # Resolution:
-  dr relationship list motivation.goal.g1  # See existing relationships
-  dr schema relationship motivation.goal supports  # Check cardinality
-  ```
+```bash
+# Error: Cannot add relationship - 'motivation.goal.g1' already has
+#        one-to-one relationship with 'business.service.s1'
+# Resolution:
+dr relationship list motivation.goal.g1  # See existing relationships
+dr schema relationship motivation.goal supports  # Check cardinality
+```
 
 ### "Missing required attribute"
 
-  **Cause:** Element missing attribute required by spec node schema
-  **Resolution:** Use `dr schema node <spec_node_id>` to see required attributes
-  **Example:**
+**Cause:** Element missing attribute required by spec node schema
+**Resolution:** Use `dr schema node <spec_node_id>` to see required attributes
+**Example:**
 
-  ```bash
-  # Error: Missing required attribute 'description' for motivation.goal
-  # Resolution:
-  dr schema node motivation.goal  # See required attributes
-  dr add motivation goal my-goal --name "Name" --description "Description"
-  ```
+```bash
+# Error: Missing required attribute 'description' for motivation.goal
+# Resolution:
+dr schema node motivation.goal  # See required attributes
+dr add motivation goal my-goal --name "Name" --description "Description"
+```
 
 ---
 
