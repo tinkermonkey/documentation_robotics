@@ -217,22 +217,9 @@ export class SchemaValidator {
 
     result.validated = true;
 
-    // Prepare element data for validation
-    // Map Element structure to spec node structure
-    const elementData = {
-      spec_node_id: `${layerName}.${element.type}`,
-      layer_id: layerName,
-      type: element.type,
-      attributes: {
-        id: element.id,
-        name: element.name,
-        ...(element.description && { description: element.description }),
-        ...element.properties, // Spread all other properties
-      },
-    };
-
-    // Validate
-    const valid = validate(elementData);
+    // Validate element directly using spec node format
+    // Element.toSpecNode() returns an object that matches spec-node.schema.json structure
+    const valid = validate(element.toSpecNode());
 
     if (!valid && validate.errors) {
       result.hasErrors = true;
