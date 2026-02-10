@@ -22,6 +22,14 @@ const BUNDLED_NODES_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "nodes
 const BUNDLED_RELATIONSHIPS_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "relationships");
 const GENERATED_DIR = path.join(CLI_DIR, "src", "generated");
 
+/**
+ * Expected layer count for the architecture model
+ * The current 12-layer model is a specification invariant.
+ * Future expansion would require updating this constant, layer instance files, and layer schemas.
+ * See: spec/layers/ for all layer definitions
+ */
+const EXPECTED_LAYER_COUNT = 12;
+
 interface LayerInstance {
   id: string;
   number: number;
@@ -185,7 +193,8 @@ function loadRelationshipSchemas(strictMode: boolean = false): RelationshipSchem
   }
 
   // Use Map to deduplicate by relationship ID (keep first occurrence)
-  const relationshipMap = new Map<string, RelationshipSchemaFile>();
+  // Store both the relationship data and the file path it came from
+  const relationshipMap = new Map<string, { data: RelationshipSchemaFile; filePath: string }>();
   const duplicates: Array<{ id: string; files: string[] }> = [];
   const duplicateIds = new Set<string>();
 
@@ -210,20 +219,24 @@ function loadRelationshipSchemas(strictMode: boolean = false): RelationshipSchem
       if (relationshipMap.has(id)) {
         if (!duplicateIds.has(id)) {
           duplicateIds.add(id);
+          // Include the first occurrence's file path
+          const firstOccurrence = relationshipMap.get(id)!.filePath;
           duplicates.push({
             id,
-            files: [/* will be populated */],
+            files: [firstOccurrence, schemaFile],
           });
-        }
-        const dup = duplicates.find((d) => d.id === id);
-        if (dup && !dup.files.includes(schemaFile)) {
-          dup.files.push(schemaFile);
+        } else {
+          const dup = duplicates.find((d) => d.id === id);
+          if (dup && !dup.files.includes(schemaFile)) {
+            dup.files.push(schemaFile);
+          }
         }
 
         if (strictMode) {
+          const firstOccurrence = relationshipMap.get(id)!.filePath;
           console.error(
             `ERROR: Duplicate relationship ID '${id}' found in ${schemaFile}; ` +
-            `first occurrence was in ${/* we need to track this */schemaFile}`
+            `first occurrence was in ${firstOccurrence}`
           );
         } else {
           console.warn(
@@ -233,7 +246,7 @@ function loadRelationshipSchemas(strictMode: boolean = false): RelationshipSchem
         continue;
       }
 
-      relationshipMap.set(id, {
+      const relationshipData: RelationshipSchemaFile = {
         id,
         source_spec_node_id: sourceSpecNodeId,
         destination_spec_node_id: destinationSpecNodeId,
@@ -241,7 +254,9 @@ function loadRelationshipSchemas(strictMode: boolean = false): RelationshipSchem
         cardinality: schema.properties?.cardinality?.const || "many-to-many",
         strength: schema.properties?.strength?.const || "medium",
         required: schema.properties?.required?.const || false,
-      });
+      };
+
+      relationshipMap.set(id, { data: relationshipData, filePath: schemaFile });
     } catch (error: any) {
       console.warn(`WARNING: Failed to parse relationship schema ${schemaFile}: ${error.message}`);
     }
@@ -263,7 +278,7 @@ function loadRelationshipSchemas(strictMode: boolean = false): RelationshipSchem
     process.exit(1);
   }
 
-  return Array.from(relationshipMap.values());
+  return Array.from(relationshipMap.values()).map((entry) => entry.data);
 }
 
 /**
@@ -301,17 +316,19 @@ function loadLayerInstances(): LayerMetadata[] {
     };
   });
 
-  // Validate we have all 12 layers
-  if (layers.length !== 12) {
-    console.error(`ERROR: Expected 12 layers, but found ${layers.length}`);
+  // Validate we have the expected number of layers
+  if (layers.length !== EXPECTED_LAYER_COUNT) {
+    console.error(`ERROR: Expected ${EXPECTED_LAYER_COUNT} layers, but found ${layers.length}`);
     console.error(`Files found: ${files.join(", ")}`);
     process.exit(1);
   }
 
-  // Validate layers are numbered 1-12
+  // Validate layers are numbered sequentially from 1 to EXPECTED_LAYER_COUNT
   const numbers = layers.map((l) => l.number).sort((a, b) => a - b);
-  if (numbers.join(",") !== "1,2,3,4,5,6,7,8,9,10,11,12") {
+  const expectedSequence = Array.from({ length: EXPECTED_LAYER_COUNT }, (_, i) => i + 1).join(",");
+  if (numbers.join(",") !== expectedSequence) {
     console.error(`ERROR: Invalid layer numbers: ${numbers.join(", ")}`);
+    console.error(`Expected sequential numbering: ${expectedSequence}`);
     process.exit(1);
   }
 

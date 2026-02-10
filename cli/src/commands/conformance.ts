@@ -173,16 +173,26 @@ export async function conformanceCommand(options: {
       // Check 3: Cross-layer relationships are documented
       const expectedRelationships = LAYER_RELATIONSHIPS[layerName] || [];
 
+      // Get all relationships for this layer
+      const allRelationships = model.relationships.getAll();
+      const layerRelationships = allRelationships.filter((rel) => rel.layer === layerName);
+
       // Validate expected cross-layer relationships exist
-      // Note: The relationship registry would be accessed in production
-      // This check documents which relationships are expected per layer specification
       for (const expectedRel of expectedRelationships) {
-        // In a full implementation, check model.relationshipRegistry for actual relationships
-        // For now, just document that the layer has expected cross-layer relationships defined
-        issues.push({
-          severity: "warning",
-          message: `Expected relationship to ${expectedRel.target}: ${expectedRel.relationship}`,
-        });
+        // Check if any actual relationship matches this expected relationship
+        const hasRelationship = layerRelationships.some(
+          (rel) =>
+            rel.predicate === expectedRel.relationship &&
+            rel.targetLayer === expectedRel.target
+        );
+
+        // Only warn if the expected relationship is not found in actual data
+        if (!hasRelationship) {
+          issues.push({
+            severity: "warning",
+            message: `Expected relationship to ${expectedRel.target}: ${expectedRel.relationship} not found`,
+          });
+        }
       }
 
       // Populate results
@@ -192,7 +202,7 @@ export async function conformanceCommand(options: {
         stats: {
           elementCount: elements.length,
           elementTypes: presentTypes.size,
-          relationshipCount: 0, // Would be populated from relationship registry
+          relationshipCount: layerRelationships.length,
         },
       };
 
