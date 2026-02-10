@@ -113,7 +113,11 @@ Examples:
         }
 
         // Find source element for schema validation
-        const sourceElement = model.getElementById(source);
+        const sourceLayer = await model.getLayer(sourceLayerName);
+        if (!sourceLayer) {
+          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+        }
+        const sourceElement = sourceLayer.getElement(source);
         if (!sourceElement) {
           throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
@@ -125,7 +129,11 @@ Examples:
         }
 
         // Find target element for schema validation
-        const targetElement = model.getElementById(target);
+        const targetLayer = await model.getLayer(targetLayerName);
+        if (!targetLayer) {
+          throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+        }
+        const targetElement = targetLayer.getElement(target);
         if (!targetElement) {
           throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
         }

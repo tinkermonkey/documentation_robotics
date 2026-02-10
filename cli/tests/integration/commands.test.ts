@@ -750,7 +750,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "motivation.goal.goal-2",
         "--predicate",
-        "depends-on"
+        "aggregates"
       );
 
       expect(result.exitCode).toBe(0);
@@ -762,7 +762,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-2"
       );
       expect(relationships.length).toBe(1);
-      expect(relationships[0].predicate).toBe("depends-on");
+      expect(relationships[0].predicate).toBe("aggregates");
     });
 
     it("should fail to add cross-layer relationship", async () => {
@@ -774,7 +774,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "business.process.test-process",
         "--predicate",
-        "depends-on"
+        "aggregates"
       );
 
       expect(result.exitCode).toBe(1);
@@ -787,7 +787,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "motivation.goal.goal-2",
         "--predicate",
-        "depends-on"
+        "aggregates"
       );
 
       const result = await runDr("relationship", "list", "motivation.goal.goal-1");
@@ -803,7 +803,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "motivation.goal.goal-2",
         "--predicate",
-        "depends-on"
+        "aggregates"
       );
 
       const result = await runDr(
@@ -832,7 +832,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "motivation.goal.goal-2",
         "--predicate",
-        "depends-on"
+        "aggregates"
       );
       await runDr(
         "relationship",
@@ -840,7 +840,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "motivation.goal.goal-3",
         "--predicate",
-        "supports"
+        "realizes"
       );
 
       const result = await runDr("relationship", "list", "motivation.goal.goal-1", "--json");
@@ -852,21 +852,20 @@ describe("CLI Commands Integration Tests", () => {
     });
 
     it("should support different relationship types", async () => {
-      const predicates = ["depends-on", "supports", "triggers", "includes"];
+      // For motivation.goal, valid predicates are "aggregates" and "realizes"
+      const predicates = ["aggregates", "realizes"];
 
       for (let i = 0; i < predicates.length; i++) {
         const targetId = `motivation.goal.goal-${i + 2}`;
-        if (i === 0) {
-          const result = await runDr(
-            "relationship",
-            "add",
-            "motivation.goal.goal-1",
-            targetId,
-            "--predicate",
-            predicates[i]
-          );
-          expect(result.exitCode).toBe(0);
-        }
+        const result = await runDr(
+          "relationship",
+          "add",
+          "motivation.goal.goal-1",
+          targetId,
+          "--predicate",
+          predicates[i]
+        );
+        expect(result.exitCode).toBe(0);
       }
     });
 
@@ -877,7 +876,7 @@ describe("CLI Commands Integration Tests", () => {
         "non-existent-1",
         "non-existent-2",
         "--predicate",
-        "depends-on"
+        "aggregates"
       );
 
       expect(result.exitCode).toBe(1);
@@ -890,7 +889,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "motivation.goal.goal-2",
         "--predicate",
-        "depends-on"
+        "aggregates"
       );
       await runDr(
         "relationship",
@@ -898,7 +897,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation.goal.goal-1",
         "motivation.goal.goal-3",
         "--predicate",
-        "supports"
+        "realizes"
       );
 
       const result = await runDr("relationship", "list", "motivation.goal.goal-1");
