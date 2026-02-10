@@ -55,21 +55,45 @@ export class SchemaValidator {
 
   /**
    * Ensure base schemas are pre-compiled validators are initialized
-   * Pre-compiled validators are generated at build time, so no file I/O needed
+   * Loads base schema files from disk and registers them with AJV for reference resolution.
+   * This allows per-type schemas to resolve $ref to base schemas during compilation.
    */
   private async ensureBaseSchemaLoaded(): Promise<void> {
     if (this.baseSchemaLoaded) {
       return;
     }
 
-    // Register pre-compiled validators with AJV for reference resolution
-    // This allows per-type schemas to reference base schemas
+    // Register pre-compiled validators with AJV
     this.compiledSchemas.set("spec-node", validateSpecNode);
     this.compiledSchemas.set("spec-node-relationship", validateSpecNodeRelationship);
     this.compiledSchemas.set("source-references", validateSourceReference);
     this.compiledSchemas.set("attribute-spec", validateAttributeSpec);
 
-    // Mark base schemas as loaded - no disk I/O was performed
+    // Load and register base schema objects with AJV for $ref resolution
+    // This is required for type-specific schemas to resolve references to base schemas
+    const baseSchemaNames = [
+      "spec-node.schema.json",
+      "spec-node-relationship.schema.json",
+      "source-references.schema.json",
+      "attribute-spec.schema.json",
+      "model-node-relationship.schema.json",
+      "predicate-catalog.schema.json",
+    ];
+
+    for (const schemaName of baseSchemaNames) {
+      const schemaPath = path.join(this.schemasDir, "base", schemaName);
+      try {
+        const schemaContent = await readFile(schemaPath);
+        const schema = JSON.parse(schemaContent);
+        // Register schema with AJV using the file name as ID
+        // This allows $ref to "filename.schema.json#/definitions/..." to be resolved
+        this.ajv.addSchema(schema, schemaName);
+      } catch (error: any) {
+        console.warn(`Warning: Failed to load base schema ${schemaName}: ${error.message}`);
+      }
+    }
+
+    // Mark base schemas as loaded
     this.baseSchemaLoaded = true;
   }
 

@@ -199,26 +199,38 @@ ${compiledSchemas.map(({ exportName }) => `export { ${exportName} };`).join("\n"
 
   // Fallback: runtime validators compiled once at module load
   // This ensures the validators are pre-compiled at build time and only compiled once
-  const validatorCode = compiledSchemas
-    .map(({ exportName, schema }) => {
-      const schemaJson = JSON.stringify(schema);
-      return `
-/**
- * Pre-compiled validator for ${schema.title || exportName}
- * Compiled once at module load, pre-cached for use throughout runtime
- */
-export const ${exportName}: ValidateFunction = (() => {
+  // We must register all base schemas first to handle inter-schema $ref resolution
+  const baseSchemasList = Object.entries(baseSchemas)
+    .map(([id, schema]) => `  ajv.addSchema(${JSON.stringify(schema)}, "${id}");`)
+    .join("\n");
+
+  const validatorCode = `
+// Shared AJV instance for all validators to handle schema references
+const sharedAjv = (() => {
   const ajv = new Ajv({
     allErrors: true,
     strict: false,
     validateFormats: true,
   });
   addFormats(ajv);
-  return ajv.compile(${schemaJson});
+
+  // Register all base schemas for reference resolution
+${baseSchemasList}
+
+  return ajv;
 })();
+
+${compiledSchemas
+  .map(({ exportName, schema }) => {
+    const schemaJson = JSON.stringify(schema);
+    return `/**
+ * Pre-compiled validator for ${schema.title || exportName}
+ * Compiled once at module load, pre-cached for use throughout runtime
+ */
+export const ${exportName}: ValidateFunction = sharedAjv.compile(${schemaJson});`;
+  })
+  .join("\n")}
 `;
-    })
-    .join("\n");
 
   return `${moduleHeader}${validatorCode}`;
 }
