@@ -182,22 +182,42 @@ export class SchemaValidator {
       errors: [] as Array<{ message: string; location: string; fixSuggestion?: string }>,
     };
 
-    // Load the spec node schema for this element type
+    const specNode = element.toSpecNode();
+
+    // First: Validate against base spec-node schema using pre-compiled validator
+    // This ensures all elements conform to the base structure before type-specific validation
+    await this.ensureBaseSchemaLoaded();
+    const baseValid = validateSpecNode(specNode);
+
+    if (!baseValid && validateSpecNode.errors) {
+      result.hasErrors = true;
+      result.validated = true;
+      for (const error of validateSpecNode.errors) {
+        result.errors.push({
+          message: `Element '${element.id}': ${this.formatAjvError(error)}`,
+          location: error.instancePath || "/",
+          fixSuggestion: this.generateFixSuggestion(error),
+        });
+      }
+      return result; // Fail fast on base schema violation
+    }
+
+    // Second: Load and validate against type-specific schema (lazy-loaded)
     const validate = await this.loadSpecNodeSchema(layerName, element.type);
 
     if (!validate) {
-      // No schema found - skip validation
+      // No type-specific schema found - base schema validation passed
       // This is acceptable for custom types or types without schemas yet
+      result.validated = true;
       return result;
     }
 
     result.validated = true;
 
-    // Validate element directly using spec node format
-    // Element.toSpecNode() returns an object that matches spec-node.schema.json structure
-    const valid = validate(element.toSpecNode());
+    // Validate element against type-specific schema
+    const typeValid = validate(specNode);
 
-    if (!valid && validate.errors) {
+    if (!typeValid && validate.errors) {
       result.hasErrors = true;
       for (const error of validate.errors) {
         result.errors.push({

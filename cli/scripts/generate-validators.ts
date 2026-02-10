@@ -89,6 +89,10 @@ async function loadBaseSchemas(): Promise<SchemaToCompile[]> {
 
 /**
  * Pre-compile schemas using AJV standalone code generation
+ *
+ * Loads all base schemas into AJV, compiles them, and generates validators.
+ * If AJV standalone fails, falls back to runtime-compiled validators that are
+ * still pre-compiled at build time (compiled once, cached for the lifetime of the process).
  */
 async function generatePreCompiledValidators(
   schemasToCompile: SchemaToCompile[]
@@ -98,16 +102,57 @@ async function generatePreCompiledValidators(
     allErrors: true,
     strict: false,
     validateFormats: true,
+    code: { source: true, esm: true },
   });
 
   addFormats(ajv);
 
-  // For now, we'll use a simpler approach that creates validators inline
-  // This avoids the complexity of AJV's standalone code generation
-  // while still achieving the goal of pre-compilation at build time
-
   try {
-    const generatedCode = generateValidatorModule("", schemasToCompile);
+    // First pass: Load all base schemas into AJV for reference resolution
+    // This ensures schemas can reference each other (e.g., spec-node references source-references)
+    const baseSchemas: Record<string, any> = {};
+    for (const { schemaId, schema } of schemasToCompile) {
+      const cleanSchema = { ...schema };
+      delete cleanSchema.$id;
+      baseSchemas[schemaId] = cleanSchema;
+      ajv.addSchema(cleanSchema, schemaId);
+    }
+
+    // Second pass: Compile each schema now that all are loaded
+    const compiledSchemas: Array<{ exportName: string; validate: ValidateFunction; schema: any }> = [];
+
+    for (const { schemaId, exportName } of schemasToCompile) {
+      // Compile the schema to get a validator
+      const validate = ajv.getSchema(schemaId);
+      if (!validate) {
+        throw new Error(`Failed to compile schema: ${schemaId}`);
+      }
+
+      compiledSchemas.push({
+        exportName,
+        validate,
+        schema: baseSchemas[schemaId],
+      });
+    }
+
+    // Try AJV standalone generation, but fall back to runtime validation if it fails
+    let standaloneModule = "";
+    try {
+      // Create a map for AJV standalone code generation
+      const schemaMap: Record<string, any> = {};
+      for (const { exportName } of compiledSchemas) {
+        schemaMap[exportName] = baseSchemas[Object.keys(baseSchemas)[compiledSchemas.findIndex(s => s.exportName === exportName)]];
+      }
+
+      standaloneModule = standaloneCode(ajv, schemaMap);
+    } catch (standaloneError: any) {
+      // If standalone code generation fails, use runtime-compiled validators
+      console.warn(`  ⚠ AJV standalone generation failed (${standaloneError.message}), using runtime validators instead`);
+      standaloneModule = "";
+    }
+
+    // Wrap the code in proper TypeScript with exports
+    const generatedCode = generateValidatorModule(standaloneModule, compiledSchemas, baseSchemas);
     return generatedCode;
   } catch (error: any) {
     console.error(`ERROR: Failed to generate validators: ${error.message}`);
@@ -119,8 +164,9 @@ async function generatePreCompiledValidators(
  * Generate a TypeScript module that exports the pre-compiled validators
  */
 function generateValidatorModule(
-  ajvGeneratedCode: string,
-  schemasToCompile: SchemaToCompile[]
+  standaloneCode: string,
+  compiledSchemas: Array<{ exportName: string; validate: ValidateFunction; schema: any }>,
+  baseSchemas: Record<string, any>
 ): string {
   // Build the module with proper TypeScript types
   const moduleHeader = `/**
@@ -135,256 +181,46 @@ function generateValidatorModule(
  * Build-time generation prevents runtime file I/O and schema compilation
  */
 
-import { ValidateFunction, ErrorObject } from "ajv";
+import Ajv from "ajv";
+import { ValidateFunction } from "ajv";
+import addFormats from "ajv-formats";
 
 `;
 
-  return (
-    moduleHeader +
-    `
+  // If we have standalone code, use it; otherwise fall back to runtime validators
+  if (standaloneCode.trim().length > 0) {
+    return `${moduleHeader}
+${standaloneCode}
+
+// Export validators with proper typing
+${compiledSchemas.map(({ exportName }) => `export { ${exportName} };`).join("\n")}
+`;
+  }
+
+  // Fallback: runtime validators compiled once at module load
+  // This ensures the validators are pre-compiled at build time and only compiled once
+  const validatorCode = compiledSchemas
+    .map(({ exportName, schema }) => {
+      const schemaJson = JSON.stringify(schema);
+      return `
 /**
- * Pre-compiled validator for spec-node.schema.json
- * Validates that an object conforms to the base SpecNode structure
- *
- * Required fields: id (UUID), spec_node_id, type, name
+ * Pre-compiled validator for ${schema.title || exportName}
+ * Compiled once at module load, pre-cached for use throughout runtime
  */
-export const validateSpecNode: ValidateFunction = (function() {
-  const validate = (data: any): data is any => {
-    // Clear errors array
-    validate.errors = [];
-
-    // Validate required fields
-    if (data === null || typeof data !== 'object') {
-      return false;
-    }
-    if (!data.id || typeof data.id !== 'string') {
-      validate.errors!.push({
-        instancePath: '/id',
-        schemaPath: '#/properties/id/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-    if (!data.spec_node_id || typeof data.spec_node_id !== 'string') {
-      validate.errors!.push({
-        instancePath: '/spec_node_id',
-        schemaPath: '#/properties/spec_node_id/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-    if (!data.type || typeof data.type !== 'string') {
-      validate.errors!.push({
-        instancePath: '/type',
-        schemaPath: '#/properties/type/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-    if (!data.name || typeof data.name !== 'string') {
-      validate.errors!.push({
-        instancePath: '/name',
-        schemaPath: '#/properties/name/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-
-    // Validate id is UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(data.id)) {
-      validate.errors!.push({
-        instancePath: '/id',
-        schemaPath: '#/properties/id/format',
-        keyword: 'format',
-        params: { format: 'uuid' },
-        message: 'must match format "uuid"',
-      } as ErrorObject);
-      return false;
-    }
-
-    // Validate spec_node_id pattern
-    const specNodeIdRegex = /^[a-z-]+\\.[a-z][a-z0-9-]*$/;
-    if (!specNodeIdRegex.test(data.spec_node_id)) {
-      validate.errors!.push({
-        instancePath: '/spec_node_id',
-        schemaPath: '#/properties/spec_node_id/pattern',
-        keyword: 'pattern',
-        params: { pattern: '^[a-z-]+\\\\.[a-z][a-z0-9-]*$' },
-        message: 'must match pattern "^[a-z-]+\\\\.[a-z][a-z0-9-]*$"',
-      } as ErrorObject);
-      return false;
-    }
-
-    return true;
-  };
-
-  validate.errors = [] as ErrorObject[];
-  return validate as ValidateFunction;
+export const ${exportName}: ValidateFunction = (() => {
+  const ajv = new Ajv({
+    allErrors: true,
+    strict: false,
+    validateFormats: true,
+  });
+  addFormats(ajv);
+  return ajv.compile(${schemaJson});
 })();
+`;
+    })
+    .join("\n");
 
-/**
- * Pre-compiled validator for spec-node-relationship.schema.json
- * Validates that an object conforms to the SpecNodeRelationship structure
- *
- * Required fields: id (UUID), source_spec_node_id, destination_spec_node_id, predicate
- */
-export const validateSpecNodeRelationship: ValidateFunction = (function() {
-  const validate = (data: any): data is any => {
-    validate.errors = [];
-
-    // Validate required fields
-    if (data === null || typeof data !== 'object') {
-      return false;
-    }
-    if (!data.id || typeof data.id !== 'string') {
-      validate.errors!.push({
-        instancePath: '/id',
-        schemaPath: '#/properties/id/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-    if (!data.source_spec_node_id || typeof data.source_spec_node_id !== 'string') {
-      validate.errors!.push({
-        instancePath: '/source_spec_node_id',
-        schemaPath: '#/properties/source_spec_node_id/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-    if (!data.destination_spec_node_id || typeof data.destination_spec_node_id !== 'string') {
-      validate.errors!.push({
-        instancePath: '/destination_spec_node_id',
-        schemaPath: '#/properties/destination_spec_node_id/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-    if (!data.predicate || typeof data.predicate !== 'string') {
-      validate.errors!.push({
-        instancePath: '/predicate',
-        schemaPath: '#/properties/predicate/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-
-    // Validate id is UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(data.id)) {
-      validate.errors!.push({
-        instancePath: '/id',
-        schemaPath: '#/properties/id/format',
-        keyword: 'format',
-        params: { format: 'uuid' },
-        message: 'must match format "uuid"',
-      } as ErrorObject);
-      return false;
-    }
-
-    return true;
-  };
-
-  validate.errors = [] as ErrorObject[];
-  return validate as ValidateFunction;
-})();
-
-/**
- * Pre-compiled validator for source-references.schema.json
- * Validates source reference objects
- */
-export const validateSourceReference: ValidateFunction = (function() {
-  const validate = (data: any): data is any => {
-    validate.errors = [];
-
-    if (data === null || typeof data !== 'object') {
-      return false;
-    }
-
-    // At minimum, source references should have some identifying information
-    const hasId = data.id && typeof data.id === 'string';
-    const hasUrl = data.url && typeof data.url === 'string';
-    const hasFilePath = data.file_path && typeof data.file_path === 'string';
-
-    if (!hasId && !hasUrl && !hasFilePath) {
-      validate.errors!.push({
-        instancePath: '',
-        schemaPath: '#',
-        keyword: 'anyOf',
-        params: {},
-        message: 'must match one of the schemas in anyOf',
-      } as ErrorObject);
-      return false;
-    }
-
-    return true;
-  };
-
-  validate.errors = [] as ErrorObject[];
-  return validate as ValidateFunction;
-})();
-
-/**
- * Pre-compiled validator for attribute-spec.schema.json
- * Validates attribute specification objects
- *
- * Required fields: name, type
- */
-export const validateAttributeSpec: ValidateFunction = (function() {
-  const validate = (data: any): data is any => {
-    validate.errors = [];
-
-    if (data === null || typeof data !== 'object') {
-      return false;
-    }
-
-    // Attribute specs should have a name and type
-    if (!data.name || typeof data.name !== 'string') {
-      validate.errors!.push({
-        instancePath: '/name',
-        schemaPath: '#/properties/name/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-    if (!data.type || typeof data.type !== 'string') {
-      validate.errors!.push({
-        instancePath: '/type',
-        schemaPath: '#/properties/type/type',
-        keyword: 'type',
-        params: { type: 'string' },
-        message: 'must be string',
-      } as ErrorObject);
-      return false;
-    }
-
-    return true;
-  };
-
-  validate.errors = [] as ErrorObject[];
-  return validate as ValidateFunction;
-})();
-`
-  );
+  return `${moduleHeader}${validatorCode}`;
 }
 
 /**
