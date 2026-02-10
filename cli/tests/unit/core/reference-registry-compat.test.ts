@@ -20,81 +20,86 @@ describe("ReferenceRegistry - Python CLI Compatibility", () => {
   describe("registerElement() - Core Functionality", () => {
     it("should extract single string reference from known property", () => {
       const element = new Element({
-        id: "business.service.customer",
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        spec_node_id: "business.service",
         type: "service",
+        layer_id: "business",
         name: "Customer Service",
         properties: {
           realizes: "motivation.goal.crm",
         },
-        layer: "business",
       });
 
       registry.registerElement(element);
 
-      const refs = registry.getReferencesFrom("business.service.customer");
+      const refs = registry.getReferencesFrom("550e8400-e29b-41d4-a716-446655440000");
       expect(refs).toHaveLength(1);
-      expect(refs[0].source).toBe("business.service.customer");
+      expect(refs[0].source).toBe("550e8400-e29b-41d4-a716-446655440000");
       expect(refs[0].target).toBe("motivation.goal.crm");
       expect(refs[0].type).toBe("realizes");
     });
 
     it("should extract array of references from known property", () => {
       const element = new Element({
-        id: "app.service.user",
+        id: "550e8400-e29b-41d4-a716-446655440001",
+        spec_node_id: "application.service",
         type: "service",
+        layer_id: "application",
         name: "User Service",
         properties: {
           accesses: ["data.entity.user", "data.entity.role"],
         },
-        layer: "application",
       });
 
       registry.registerElement(element);
 
-      const refs = registry.getReferencesFrom("app.service.user");
+      const refs = registry.getReferencesFrom("550e8400-e29b-41d4-a716-446655440001");
       expect(refs).toHaveLength(2);
 
       const targets = refs.map((r) => r.target).sort();
       expect(targets).toEqual(["data.entity.role", "data.entity.user"]);
 
       refs.forEach((ref) => {
-        expect(ref.source).toBe("app.service.user");
+        expect(ref.source).toBe("550e8400-e29b-41d4-a716-446655440001");
         expect(ref.type).toBe("accesses");
       });
     });
 
     it("should handle element with no references", () => {
       const element = new Element({
-        id: "test.element",
-        type: "test",
+        id: "550e8400-e29b-41d4-a716-446655440002",
+        spec_node_id: "business.element",
+        type: "element",
+        layer_id: "business",
         name: "Test",
         properties: {
           someProperty: "value",
         },
-        layer: "test",
       });
 
       registry.registerElement(element);
 
-      const refs = registry.getReferencesFrom("test.element");
+      const refs = registry.getReferencesFrom("550e8400-e29b-41d4-a716-446655440002");
       expect(refs).toHaveLength(0);
     });
 
     it("should handle element with references property array", () => {
+      const elementId = "550e8400-e29b-41d4-a716-446655440003";
       const element = new Element({
-        id: "test.element",
-        type: "test",
+        id: elementId,
+        spec_node_id: "business.element",
+        type: "element",
+        layer_id: "business",
         name: "Test",
         references: [
-          { source: "test.element", target: "target1", type: "custom" },
-          { source: "test.element", target: "target2", type: "custom" },
+          { source: elementId, target: "target1", type: "custom" },
+          { source: elementId, target: "target2", type: "custom" },
         ],
-        layer: "test",
       });
 
       registry.registerElement(element);
 
-      const refs = registry.getReferencesFrom("test.element");
+      const refs = registry.getReferencesFrom(elementId);
       expect(refs).toHaveLength(2);
     });
   });
@@ -125,19 +130,21 @@ describe("ReferenceRegistry - Python CLI Compatibility", () => {
 
     KNOWN_REF_PROPERTIES.forEach((propName) => {
       it(`should recognize '${propName}' as reference property`, () => {
+        const elementId = `550e8400-e29b-41d4-a716-44665544000${Math.floor(Math.random() * 10)}`;
         const element = new Element({
-          id: "test.element",
-          type: "test",
+          id: elementId,
+          spec_node_id: "business.element",
+          type: "element",
+          layer_id: "business",
           name: "Test",
           properties: {
             [propName]: "target.element",
           },
-          layer: "test",
         });
 
         registry.registerElement(element);
 
-        const refs = registry.getReferencesFrom("test.element");
+        const refs = registry.getReferencesFrom(elementId);
         expect(refs.length).toBeGreaterThan(0);
         expect(refs[0].target).toBe("target.element");
       });
