@@ -139,9 +139,10 @@ async function generatePreCompiledValidators(
     let standaloneModule = "";
     try {
       // Create a map for AJV standalone code generation
+      // Build directly from compiledSchemas to avoid O(n²) lookups
       const schemaMap: Record<string, any> = {};
-      for (const { exportName } of compiledSchemas) {
-        schemaMap[exportName] = baseSchemas[Object.keys(baseSchemas)[compiledSchemas.findIndex(s => s.exportName === exportName)]];
+      for (const { exportName, schema } of compiledSchemas) {
+        schemaMap[exportName] = schema;
       }
 
       standaloneModule = standaloneCode(ajv, schemaMap);

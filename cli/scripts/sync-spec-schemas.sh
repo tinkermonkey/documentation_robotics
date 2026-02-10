@@ -80,7 +80,18 @@ SPEC_VERSION=$(tr -d '[:space:]' < "$SPEC_VERSION_FILE")
 if [ ! -f "$SPEC_VERSION_TS" ]; then
   echo "WARNING: spec-version.ts not found at $SPEC_VERSION_TS — skipping version update" >&2
 else
-  sed -i "s/const BUNDLED_SPEC_VERSION = '.*'/const BUNDLED_SPEC_VERSION = '$SPEC_VERSION'/" "$SPEC_VERSION_TS"
+  # Escape special regex characters in SPEC_VERSION for safe sed replacement
+  ESCAPED_VERSION=$(printf '%s\n' "$SPEC_VERSION" | sed -e 's/[\/&]/\\&/g')
+
+  sed -i "s/const BUNDLED_SPEC_VERSION = \"[^\"]*\"/const BUNDLED_SPEC_VERSION = \"$ESCAPED_VERSION\"/" "$SPEC_VERSION_TS"
+
+  # Verify the replacement actually occurred
+  if ! grep -q "const BUNDLED_SPEC_VERSION = \"$ESCAPED_VERSION\"" "$SPEC_VERSION_TS"; then
+    echo "ERROR: Failed to update BUNDLED_SPEC_VERSION in $SPEC_VERSION_TS" >&2
+    echo "Expected version: $SPEC_VERSION" >&2
+    exit 1
+  fi
+
   echo "Updated BUNDLED_SPEC_VERSION to '$SPEC_VERSION'"
 fi
 

@@ -53,6 +53,9 @@ function getLayerCrossLayerRelationships(): Record<
 
     relationships[sourceLayerId] = [];
 
+    // Use Set for O(1) duplicate detection instead of linear search
+    const seenRelationships = new Set<string>();
+
     // Get all node types for this layer
     const sourceNodeTypes = getSpecNodeTypesForLayer(sourceLayerId);
 
@@ -64,12 +67,10 @@ function getLayerCrossLayerRelationships(): Record<
         // Extract destination layer from spec node ID
         const destLayerId = rel.destinationSpecNodeId.split(".")[0];
         if (destLayerId && destLayerId !== sourceLayerId) {
-          // Avoid duplicates
-          if (
-            !relationships[sourceLayerId].find(
-              (r) => r.target === destLayerId && r.relationship === rel.predicate
-            )
-          ) {
+          // Create composite key for O(1) lookup
+          const key = `${destLayerId}:${rel.predicate}`;
+          if (!seenRelationships.has(key)) {
+            seenRelationships.add(key);
             relationships[sourceLayerId].push({
               target: destLayerId,
               relationship: rel.predicate,
