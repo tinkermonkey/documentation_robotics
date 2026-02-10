@@ -4,7 +4,8 @@
 
 import ansis from "ansis";
 import { Model } from "../core/model.js";
-import { getAllLayerIds, getSpecNodeTypesForLayer } from "../generated/index.js";
+import { getAllLayerIds, getSpecNodeTypesForLayer, getLayerById } from "../generated/index.js";
+import { RELATIONSHIPS_BY_SOURCE } from "../generated/relationship-index.js";
 
 /**
  * Expected element types per layer (derived from generated registry)
@@ -24,44 +25,65 @@ function getLayerElementTypes(): Record<string, string[]> {
 const LAYER_ELEMENT_TYPES = getLayerElementTypes();
 
 /**
- * Expected cross-layer relationships per layer
+ * Get expected cross-layer relationships per layer
+ * Derived from the relationship catalog for consistency
  */
-const LAYER_RELATIONSHIPS: Record<
+function getLayerCrossLayerRelationships(): Record<
   string,
   Array<{
     target: string;
     relationship: string;
   }>
-> = {
-  business: [{ target: "motivation", relationship: "realizes" }],
-  application: [
-    { target: "business", relationship: "realizes" },
-    { target: "security", relationship: "uses" },
-  ],
-  technology: [
-    { target: "application", relationship: "hosts" },
-    { target: "security", relationship: "implements" },
-  ],
-  api: [{ target: "application", relationship: "exposes" }],
-  "data-model": [{ target: "application", relationship: "used-by" }],
-  "data-store": [
-    { target: "technology", relationship: "runs-on" },
-    { target: "data-model", relationship: "implements" },
-  ],
-  ux: [
-    { target: "application", relationship: "implements" },
-    { target: "navigation", relationship: "uses" },
-  ],
-  navigation: [{ target: "ux", relationship: "defines" }],
-  apm: [
-    { target: "technology", relationship: "monitors" },
-    { target: "application", relationship: "monitors" },
-  ],
-  testing: [
-    { target: "application", relationship: "tests" },
-    { target: "api", relationship: "tests" },
-  ],
-};
+> {
+  const relationships: Record<
+    string,
+    Array<{
+      target: string;
+      relationship: string;
+    }>
+  > = {};
+
+  // Build cross-layer relationships from the relationship catalog
+  // by finding relationships where source and destination are in different layers
+  const layers = getAllLayerIds();
+
+  for (const sourceLayerId of layers) {
+    const sourceLayer = getLayerById(sourceLayerId);
+    if (!sourceLayer) continue;
+
+    relationships[sourceLayerId] = [];
+
+    // Get all node types for this layer
+    const sourceNodeTypes = getSpecNodeTypesForLayer(sourceLayerId);
+
+    // For each source node type, find relationships to other layers
+    for (const sourceNodeType of sourceNodeTypes) {
+      const rels = RELATIONSHIPS_BY_SOURCE.get(sourceNodeType) || [];
+
+      for (const rel of rels) {
+        // Extract destination layer from spec node ID
+        const destLayerId = rel.destinationSpecNodeId.split(".")[0];
+        if (destLayerId && destLayerId !== sourceLayerId) {
+          // Avoid duplicates
+          if (
+            !relationships[sourceLayerId].find(
+              (r) => r.target === destLayerId && r.relationship === rel.predicate
+            )
+          ) {
+            relationships[sourceLayerId].push({
+              target: destLayerId,
+              relationship: rel.predicate,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return relationships;
+}
+
+const LAYER_RELATIONSHIPS = getLayerCrossLayerRelationships();
 
 interface ConformanceIssue {
   severity: "error" | "warning";

@@ -264,6 +264,32 @@ This applies to:
 - `cli/scripts/generate-spec-instances.ts` - Generates spec layer/node/predicate instances
 - `scripts/generate-layer-docs.ts` - Generates markdown docs from spec instances
 
+### Schema and Validation Commands
+
+Introspect and validate architecture specifications:
+
+```bash
+dr schema layers                                  # List all layers with node type counts
+dr schema types <layer>                          # List valid node types for a layer
+dr schema node <spec_node_id>                    # Show node schema details
+dr schema relationship <source_type> [predicate] # Show valid relationships
+dr conformance [--layers layer1,layer2]          # Validate model against layer specs
+```
+
+Key files: `cli/src/commands/schema.ts`, `cli/src/commands/conformance.ts`
+
+### Element Migration
+
+Migrate elements to spec-node aligned format:
+
+```bash
+dr migrate elements [--source dir] [--target dir] [--dry-run] [--no-backup]
+```
+
+This transforms elements from legacy format to the spec-node aligned structure with proper metadata and source references.
+
+Key files: `cli/src/commands/model-migrate.ts`, `cli/src/export/model-migration.ts`
+
 ### Staging Workflow
 
 Changesets provide a safe way to prepare model changes before committing:

@@ -36,10 +36,14 @@ export interface Relationship {
 
 /**
  * Element metadata for lifecycle and version tracking
+ *
+ * Note: created_at and updated_at should be treated as immutable after element initialization.
+ * For safe external access with immutability guarantees, use Element.getMetadata() which
+ * returns a defensive copy protecting against external mutations.
  */
 export interface ElementMetadata {
-  created_at?: string; // ISO 8601 timestamp
-  updated_at?: string; // ISO 8601 timestamp
+  created_at?: string; // ISO 8601 timestamp (immutable after initialization)
+  updated_at?: string; // ISO 8601 timestamp (immutable after initialization)
   created_by?: string;
   version?: number;
 }

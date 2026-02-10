@@ -355,6 +355,29 @@ export class Element implements IElement {
   }
 
   /**
+   * Get metadata with defensive copy for audit integrity
+   *
+   * Returns a deep copy of metadata to prevent external code from mutating
+   * the internal metadata object. This ensures timestamp immutability
+   * for audit trail integrity.
+   *
+   * @returns A defensive copy of the metadata object, or undefined if not set
+   */
+  getMetadata(): ElementMetadata | undefined {
+    if (!this.metadata) {
+      return undefined;
+    }
+
+    // Return a defensive copy to prevent external mutations
+    return {
+      created_at: this.metadata.created_at,
+      updated_at: this.metadata.updated_at,
+      created_by: this.metadata.created_by,
+      version: this.metadata.version,
+    };
+  }
+
+  /**
    * Get source reference from element
    *
    * Handles layer-specific property paths:
