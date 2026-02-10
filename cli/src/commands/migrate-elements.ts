@@ -91,7 +91,17 @@ export async function migrateElementsCommand(options: {
           )
         );
         console.log(ansis.yellow(`  Rollback: Restoring from backup at ${backupPath}`));
-        await model.restoreFromBackup(backupPath);
+        try {
+          await model.restoreFromBackup(backupPath);
+          console.log(ansis.yellow(`  Rollback successful`));
+        } catch (rollbackError) {
+          console.error(
+            ansis.red(
+              `  CRITICAL: Rollback also failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`
+            )
+          );
+          console.error(ansis.red(`  Manual recovery needed from backup at: ${backupPath}`));
+        }
         process.exit(1);
       }
     } else if (options.dryRun) {

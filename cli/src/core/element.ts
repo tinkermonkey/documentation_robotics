@@ -9,6 +9,12 @@ import type {
 } from "../types/index.js";
 
 /**
+ * Module-level flag to track if legacy format deprecation warning has been shown
+ * This prevents log flooding when loading unmigrated models with hundreds of elements
+ */
+let legacyFormatWarningShown = false;
+
+/**
  * Type guard to check if a value is a SourceReference
  * Safely validates the structure of source reference data without unsafe assertions
  *
@@ -178,12 +184,15 @@ export class Element implements IElement {
     this.filePath = data.filePath;
     this.rawData = data.rawData;
 
-    // Log deprecation warning
-    console.warn(
-      `Element initialized from legacy format: ${this.elementId || this.id}. ` +
-        "Legacy format with flat properties will be removed in a future version. " +
-        "Consider migrating to spec-node aligned format using 'dr migrate elements'."
-    );
+    // Log deprecation warning once per session to avoid log flooding
+    if (!legacyFormatWarningShown) {
+      console.warn(
+        `Element initialized from legacy format: ${this.elementId || this.id}. ` +
+          "Legacy format with flat properties will be removed in a future version. " +
+          "Consider migrating to spec-node aligned format using 'dr migrate elements'."
+      );
+      legacyFormatWarningShown = true;
+    }
   }
 
   /**
