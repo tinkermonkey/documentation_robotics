@@ -24,7 +24,7 @@ const GENERATED_DIR = path.join(CLI_DIR, "src", "generated");
 
 /**
  * Expected layer count for the architecture model
- * The current 12-layer model is a specification invariant.
+ * The current 12-layer model is a specification invariant (expected value validated at build time).
  * Future expansion would require updating this constant, layer instance files, and layer schemas.
  * See: spec/layers/ for all layer definitions
  */
