@@ -21,6 +21,7 @@ import { validateCommand } from "./commands/validate.js";
 import { infoCommand } from "./commands/info.js";
 import { elementCommands } from "./commands/element.js";
 import { relationshipCommands } from "./commands/relationship.js";
+import { schemaCommands } from "./commands/schema.js";
 import { catalogCommands } from "./commands/catalog.js";
 import { docsCommands } from "./commands/docs.js";
 import { traceCommand } from "./commands/trace.js";
@@ -477,6 +478,9 @@ elementCommands(elementGroup);
 // Relationship subcommands
 const relationshipGroup = program.command("relationship").description("Relationship operations");
 relationshipCommands(relationshipGroup);
+
+// Schema introspection subcommands
+schemaCommands(program);
 
 // Catalog subcommands (modern relationship catalog)
 catalogCommands(program);
