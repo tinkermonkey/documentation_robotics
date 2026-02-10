@@ -1000,10 +1000,9 @@ export async function changesetPreviewCommand(options: { layer?: string }): Prom
       // Show all layers with staged changes
       const layerMap = new Map<string, any[]>();
       changeset.changes.forEach((c: any) => {
-        if (!layerMap.has(c.layerName)) {
-          layerMap.set(c.layerName, []);
-        }
-        layerMap.get(c.layerName)!.push(c);
+        const existing = layerMap.get(c.layerName) ?? [];
+        existing.push(c);
+        layerMap.set(c.layerName, existing);
       });
 
       if (isTelemetryEnabled && span) {
@@ -1082,10 +1081,9 @@ export async function changesetDiffCommand(options: { layer?: string }): Promise
     const layerMap = new Map<string, any[]>();
     changeset.changes.forEach((c: any) => {
       if (!options.layer || c.layerName === options.layer) {
-        if (!layerMap.has(c.layerName)) {
-          layerMap.set(c.layerName, []);
-        }
-        layerMap.get(c.layerName)!.push(c);
+        const existing = layerMap.get(c.layerName) ?? [];
+        existing.push(c);
+        layerMap.set(c.layerName, existing);
       }
     });
 

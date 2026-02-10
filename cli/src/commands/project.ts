@@ -189,10 +189,9 @@ export async function projectAllCommand(
       const byLayer = new Map<string, any[]>();
       for (const element of projected) {
         const layer = element.layer || "unknown";
-        if (!byLayer.has(layer)) {
-          byLayer.set(layer, []);
-        }
-        byLayer.get(layer)!.push(element);
+        const existing = byLayer.get(layer) ?? [];
+        existing.push(element);
+        byLayer.set(layer, existing);
       }
 
       // Display grouped results

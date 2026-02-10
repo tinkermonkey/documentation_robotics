@@ -31,8 +31,20 @@ export async function showCommand(id: string, options: { model?: string } = {}):
       ]);
     }
 
-    const layer = (await model.getLayer(layerName))!;
-    const element = layer.getElement(id)!;
+    const layer = await model.getLayer(layerName);
+    if (!layer) {
+      throw new CLIError(`Layer ${layerName} not found`, ErrorCategory.USER, [
+        'Use "dr schema layers" to list all available layers',
+      ]);
+    }
+
+    const element = layer.getElement(id);
+    if (!element) {
+      throw new CLIError(`Element ${id} not found`, ErrorCategory.USER, [
+        `Use "dr search ${id}" to find similar elements`,
+        'Use "dr list <layer>" to list all elements in a layer',
+      ]);
+    }
 
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute("show.found", true);

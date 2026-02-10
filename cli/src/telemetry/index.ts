@@ -401,6 +401,35 @@ export async function flushTelemetry(): Promise<void> {
 }
 
 /**
+ * Set a span attribute with type safety.
+ * Encapsulates the type cast and provides runtime safety checks.
+ * Safe to call with null span (no-op).
+ *
+ * @param span - The span object (can be null)
+ * @param key - The attribute key
+ * @param value - The attribute value (string, number, boolean, or array)
+ *
+ * ```typescript
+ * setSpanAttribute(span, "operation.status", "completed");
+ * setSpanAttribute(span, "element.count", 42);
+ * setSpanAttribute(span, "is.cached", true);
+ * ```
+ */
+export function setSpanAttribute(
+  span: Span | null,
+  key: string,
+  value: string | number | boolean | (string | number | boolean)[]
+): void {
+  if (span && typeof span.setAttribute === "function") {
+    try {
+      (span as any).setAttribute(key, value);
+    } catch {
+      // Silently ignore attribute setting errors - telemetry should never break the app
+    }
+  }
+}
+
+/**
  * Shutdown the OpenTelemetry SDK gracefully.
  * Should be called on process exit to ensure all pending spans and logs are exported.
  *

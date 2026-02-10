@@ -372,10 +372,9 @@ Examples:
           // Group by category
           const byCategory = new Map<string, typeof types>();
           for (const type of types) {
-            if (!byCategory.has(type.category)) {
-              byCategory.set(type.category, []);
-            }
-            byCategory.get(type.category)!.push(type);
+            const existing = byCategory.get(type.category) ?? [];
+            existing.push(type);
+            byCategory.set(type.category, existing);
           }
 
           for (const [category, categoryTypes] of byCategory) {
