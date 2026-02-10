@@ -57,18 +57,16 @@ describe("RelationshipValidator", () => {
 
       model.addLayer(layer);
 
-      // Add valid relationship
+      // Add valid relationship with valid predicate "aggregates"
       model.relationships.add({
         source: "motivation.goal.goal-1",
         target: "motivation.goal.goal-2",
-        predicate: "depends-on",
+        predicate: "aggregates",
         layer: "motivation",
       });
 
       const result = await validator.validateModel(model);
 
-      // Should return a valid result without critical errors
-      expect(result).toBeDefined();
       expect(result.errors).toHaveLength(0);
     });
 
@@ -364,21 +362,19 @@ describe("RelationshipValidator", () => {
       model.relationships.add({
         source: "motivation.goal.goal-1",
         target: "motivation.goal.goal-2",
-        predicate: "depends-on",
+        predicate: "aggregates",
         layer: "motivation",
       });
 
       model.relationships.add({
         source: "motivation.goal.goal-1",
         target: "motivation.goal.goal-3",
-        predicate: "depends-on",
+        predicate: "aggregates",
         layer: "motivation",
       });
 
       const result = await validator.validateModel(model);
 
-      // Should be valid - same source, different targets with same predicate
-      expect(result).toBeDefined();
       expect(result.errors).toHaveLength(0);
     });
 
@@ -411,21 +407,19 @@ describe("RelationshipValidator", () => {
       model.relationships.add({
         source: "motivation.goal.goal-1",
         target: "motivation.goal.goal-3",
-        predicate: "depends-on",
+        predicate: "aggregates",
         layer: "motivation",
       });
 
       model.relationships.add({
         source: "motivation.goal.goal-2",
         target: "motivation.goal.goal-3",
-        predicate: "depends-on",
+        predicate: "aggregates",
         layer: "motivation",
       });
 
       const result = await validator.validateModel(model);
 
-      // Should be valid - different sources, same target with same predicate
-      expect(result).toBeDefined();
       expect(result.errors).toHaveLength(0);
     });
 
@@ -469,7 +463,7 @@ describe("RelationshipValidator", () => {
       model.relationships.add({
         source: "motivation.goal.goal-1",
         target: "motivation.goal.goal-2",
-        predicate: "depends-on",
+        predicate: "aggregates",
         layer: "motivation",
         properties: {
           reason: "Business requirement",
@@ -479,8 +473,6 @@ describe("RelationshipValidator", () => {
 
       const result = await validator.validateModel(model);
 
-      // Should return a result with valid relationship (no errors)
-      expect(result).toBeDefined();
       expect(result.errors).toHaveLength(0);
     });
 
@@ -508,14 +500,12 @@ describe("RelationshipValidator", () => {
       model.relationships.add({
         source: "motivation.goal.goal-1",
         target: "motivation.goal.goal-2",
-        predicate: "depends-on",
+        predicate: "aggregates",
         layer: "motivation",
       });
 
       const result = await validator.validateModel(model);
 
-      // Should be valid even without properties
-      expect(result).toBeDefined();
       expect(result.errors).toHaveLength(0);
     });
   });
@@ -542,13 +532,13 @@ describe("RelationshipValidator", () => {
 
       const layer2 = new Layer("business", [
         new Element({
-          id: "business.process.process-1",
-          type: "process",
+          id: "business.businessprocess.process-1",
+          type: "businessprocess",
           name: "Process 1",
         }),
         new Element({
-          id: "business.process.process-2",
-          type: "process",
+          id: "business.businessprocess.process-2",
+          type: "businessprocess",
           name: "Process 2",
         }),
       ]);
@@ -556,25 +546,23 @@ describe("RelationshipValidator", () => {
       model.addLayer(layer1);
       model.addLayer(layer2);
 
-      // Add relationships in each layer
+      // Add relationships in each layer with valid predicates
       model.relationships.add({
         source: "motivation.goal.goal-1",
         target: "motivation.goal.goal-2",
-        predicate: "depends-on",
+        predicate: "aggregates",
         layer: "motivation",
       });
 
       model.relationships.add({
-        source: "business.process.process-1",
-        target: "business.process.process-2",
-        predicate: "depends-on",
+        source: "business.businessprocess.process-1",
+        target: "business.businessprocess.process-2",
+        predicate: "flows-to",
         layer: "business",
       });
 
       const result = await validator.validateModel(model);
 
-      // Should validate relationships in all layers
-      expect(result).toBeDefined();
       expect(result.errors).toHaveLength(0);
     });
   });
