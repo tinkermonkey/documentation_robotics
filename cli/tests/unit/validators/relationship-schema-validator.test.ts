@@ -699,4 +699,227 @@ describe("RelationshipValidator", () => {
       }
     });
   });
+
+  describe("cross-layer relationship validation (CRITICAL FIX)", () => {
+    it("should validate cross-layer relationships (motivation -> business)", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+
+      const motivationLayer = new Layer("motivation", [
+        new Element({
+          id: "motivation-goal-1",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Customer Satisfaction",
+        }),
+      ]);
+
+      const businessLayer = new Layer("business", [
+        new Element({
+          id: "business-service-1",
+          spec_node_id: "business.businessservice",
+          type: "businessservice",
+          layer_id: "business",
+          name: "Customer Service",
+        }),
+      ]);
+
+      model.addLayer(motivationLayer);
+      model.addLayer(businessLayer);
+
+      // Cross-layer relationship: motivation goal is realized by business service
+      model.relationships.add({
+        source: "motivation-goal-1",
+        target: "business-service-1",
+        predicate: "is-realized-by",
+        layer: "motivation", // Relationship stored in motivation layer
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should validate without errors related to layer mismatch
+      // (May have "no schema found" which is expected if the cross-layer schema doesn't exist)
+      const layerMismatchErrors = result.errors.filter((e) =>
+        e.message.includes("motivation.businessservice") ||
+        e.message.includes("Wrong layer assumption")
+      );
+      expect(layerMismatchErrors).toHaveLength(0);
+    });
+
+    it("should extract correct source layer from source element", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+
+      // Create elements with explicit layer_id that differs from relationship.layer
+      const layer1 = new Layer("motivation", [
+        new Element({
+          id: "elem-motivation-1",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation", // Element's own layer
+          name: "Goal",
+        }),
+      ]);
+
+      const layer2 = new Layer("business", [
+        new Element({
+          id: "elem-business-1",
+          spec_node_id: "business.businessprocess",
+          type: "businessprocess",
+          layer_id: "business", // Different from relationship.layer
+          name: "Process",
+        }),
+      ]);
+
+      model.addLayer(layer1);
+      model.addLayer(layer2);
+
+      // Add cross-layer relationship
+      // The relationship.layer is "motivation", but target is in "business"
+      model.relationships.add({
+        source: "elem-motivation-1",
+        target: "elem-business-1",
+        predicate: "is-realized-by",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Verify that the validator correctly extracted the layers
+      // Instead of assuming both are "motivation", it should use "business" for target
+      const errors = result.errors;
+
+      // If schema exists, no errors; if not, error should mention correct layers
+      const schemaNotFoundErrors = errors.filter((e) =>
+        e.message.includes("No schema found")
+      );
+
+      if (schemaNotFoundErrors.length > 0) {
+        // Error message should show "motivation.goal --[is-realized-by]--> business.businessprocess"
+        // NOT "motivation.goal --[is-realized-by]--> motivation.businessprocess"
+        const errorMsg = schemaNotFoundErrors[0].message;
+        expect(errorMsg).toContain("motivation.goal");
+        expect(errorMsg).toContain("business.businessprocess");
+        expect(errorMsg).not.toContain("motivation.businessprocess");
+      }
+    });
+
+    it("should properly match cross-layer relationship schemas", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+
+      // Multi-layer model: motivation -> business -> application
+      const motivationLayer = new Layer("motivation", [
+        new Element({
+          id: "goal-1",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Goal 1",
+        }),
+      ]);
+
+      const businessLayer = new Layer("business", [
+        new Element({
+          id: "service-1",
+          spec_node_id: "business.businessservice",
+          type: "businessservice",
+          layer_id: "business",
+          name: "Service 1",
+        }),
+      ]);
+
+      const applicationLayer = new Layer("application", [
+        new Element({
+          id: "component-1",
+          spec_node_id: "application.applicationcomponent",
+          type: "applicationcomponent",
+          layer_id: "application",
+          name: "Component 1",
+        }),
+      ]);
+
+      model.addLayer(motivationLayer);
+      model.addLayer(businessLayer);
+      model.addLayer(applicationLayer);
+
+      // Create relationships spanning multiple layers
+      model.relationships.add({
+        source: "goal-1",
+        target: "service-1",
+        predicate: "is-realized-by",
+        layer: "motivation",
+      });
+
+      model.relationships.add({
+        source: "service-1",
+        target: "component-1",
+        predicate: "is-realized-by",
+        layer: "business",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Validation should work without layer confusion errors
+      const confusionErrors = result.errors.filter((e) =>
+        e.message.includes("motivation.businessservice") ||
+        e.message.includes("business.applicationcomponent")
+      );
+      expect(confusionErrors).toHaveLength(0);
+    });
+
+    it("should handle relationships with layer_id vs legacy layer field", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+
+      const layer1 = new Layer("motivation", [
+        new Element({
+          id: "elem-with-layer-id",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation", // New spec-aligned field
+          name: "Goal 1",
+        }),
+      ]);
+
+      const layer2 = new Layer("business", [
+        new Element({
+          id: "elem-with-legacy-layer",
+          spec_node_id: "business.businessservice",
+          type: "businessservice",
+          layer: "business", // Legacy field (no layer_id)
+          name: "Service 1",
+        }),
+      ]);
+
+      model.addLayer(layer1);
+      model.addLayer(layer2);
+
+      // Relationship between elements with different layer field formats
+      model.relationships.add({
+        source: "elem-with-layer-id",
+        target: "elem-with-legacy-layer",
+        predicate: "is-realized-by",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Validator should handle both layer_id and legacy layer field
+      const fieldErrors = result.errors.filter((e) =>
+        e.message.includes("undefined") ||
+        e.message.includes("Cannot read property")
+      );
+      expect(fieldErrors).toHaveLength(0);
+    });
+  });
 });

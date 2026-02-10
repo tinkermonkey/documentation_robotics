@@ -203,15 +203,19 @@ export class RelationshipValidator {
       return errors;
     }
 
-    // Extract element types
+    // Extract element types AND layers (CRITICAL FIX for cross-layer relationships)
+    // The source and target elements may be in different layers
     const sourceType = sourceElement.type;
     const targetType = targetElement.type;
+    const sourceLayer = sourceElement.layer_id || sourceElement.layer || relationship.layer;
+    const targetLayer = targetElement.layer_id || targetElement.layer || relationship.layer;
 
-    // Find applicable relationship schema
+    // Find applicable relationship schema using actual source/target layers
+    // (not relationship.layer for both, which assumes intra-layer relationships)
     const schemaKey = this.findRelationshipSchemaKey(
-      relationship.layer,
+      sourceLayer,
       sourceType,
-      relationship.layer,
+      targetLayer,
       targetType,
       relationship.predicate
     );
@@ -220,7 +224,7 @@ export class RelationshipValidator {
       errors.push({
         layer: relationship.layer,
         elementId: relationship.source,
-        message: `No schema found for relationship: ${relationship.layer}.${sourceType} --[${relationship.predicate}]--> ${relationship.layer}.${targetType}`,
+        message: `No schema found for relationship: ${sourceLayer}.${sourceType} --[${relationship.predicate}]--> ${targetLayer}.${targetType}`,
       });
       return errors;
     }
@@ -377,6 +381,14 @@ export class RelationshipValidator {
 
   /**
    * Find relationship schema ID by source/dest specs and predicate
+   *
+   * Matches relationship schemas by:
+   * 1. Predicate (must match exactly)
+   * 2. Layer pair (source and destination layers must match)
+   * 3. Element type pair (source and destination types must match spec node IDs)
+   *
+   * Supports both intra-layer (motivation -> motivation) and cross-layer
+   * (motivation -> business) relationships.
    */
   private findRelationshipSchemaKey(
     sourceLayer: string,
@@ -385,23 +397,36 @@ export class RelationshipValidator {
     destType: string,
     predicate: string
   ): string | null {
+    // Normalize type to lowercase for comparison (spec_node_ids use lowercase types)
+    const normalizedSourceType = sourceType.toLowerCase();
+    const normalizedDestType = destType.toLowerCase();
+
     // Search for matching schema
     for (const [schemaId, schema] of this.relationshipSchemas.entries()) {
-      if (
-        schema.source_layer === sourceLayer &&
-        schema.destination_layer === destLayer &&
-        schema.predicate === predicate
-      ) {
-        // Check if source/dest types match the spec node IDs
-        const sourceSpecId = `${sourceLayer}.${sourceType.toLowerCase()}`;
-        const destSpecId = `${destLayer}.${destType.toLowerCase()}`;
+      // First filter: predicate must match exactly
+      if (schema.predicate !== predicate) {
+        continue;
+      }
 
-        if (
-          schema.source_spec_node_id === sourceSpecId &&
-          schema.destination_spec_node_id === destSpecId
-        ) {
-          return schemaId;
-        }
+      // Second filter: layer pair must match
+      // (supports both intra-layer and cross-layer relationships)
+      if (
+        schema.source_layer !== sourceLayer ||
+        schema.destination_layer !== destLayer
+      ) {
+        continue;
+      }
+
+      // Third filter: element type pair must match spec node IDs
+      // Construct spec node IDs and compare against schema constraints
+      const sourceSpecId = `${sourceLayer}.${normalizedSourceType}`;
+      const destSpecId = `${destLayer}.${normalizedDestType}`;
+
+      if (
+        schema.source_spec_node_id === sourceSpecId &&
+        schema.destination_spec_node_id === destSpecId
+      ) {
+        return schemaId;
       }
     }
 

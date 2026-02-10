@@ -162,6 +162,79 @@ async function generatePreCompiledValidators(
 }
 
 /**
+ * Detect circular references in an object
+ *
+ * Uses WeakSet to track visited objects and detect cycles during traversal.
+ * Returns true if a circular reference is detected.
+ */
+function hasCircularReference(obj: any): boolean {
+  const visited = new WeakSet<object>();
+
+  function traverse(current: any): boolean {
+    // Primitives and null cannot be circular
+    if (current === null || typeof current !== "object") {
+      return false;
+    }
+
+    // Already visited this object - circular reference detected
+    if (visited.has(current)) {
+      return true;
+    }
+
+    visited.add(current);
+
+    // Check arrays and objects recursively
+    if (Array.isArray(current)) {
+      for (const item of current) {
+        if (traverse(item)) {
+          return true;
+        }
+      }
+    } else {
+      for (const value of Object.values(current)) {
+        if (traverse(value)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  return traverse(obj);
+}
+
+/**
+ * Safely stringify a schema with circular reference detection
+ *
+ * Validates that the schema can be serialized before attempting JSON.stringify.
+ * Throws a descriptive error if circular references are detected.
+ */
+function safeStringifySchema(schema: any): string {
+  // Check for circular references before serialization
+  if (hasCircularReference(schema)) {
+    throw new Error(
+      "Schema contains circular references and cannot be serialized. " +
+      "This typically indicates a schema $ref that creates a cycle."
+    );
+  }
+
+  // Additional check: ensure the schema is JSON-serializable
+  // by doing a test serialization first
+  try {
+    JSON.stringify(schema);
+  } catch (error: any) {
+    throw new Error(
+      `Schema is not JSON-serializable: ${error.message}. ` +
+      "This may indicate functions, symbols, or other non-serializable values in the schema."
+    );
+  }
+
+  // Safe to stringify - we've validated the schema
+  return JSON.stringify(schema);
+}
+
+/**
  * Generate a TypeScript module that exports the pre-compiled validators
  */
 function generateValidatorModule(
@@ -202,7 +275,16 @@ ${compiledSchemas.map(({ exportName }) => `export { ${exportName} };`).join("\n"
   // This ensures the validators are pre-compiled at build time and only compiled once
   // We must register all base schemas first to handle inter-schema $ref resolution
   const baseSchemasList = Object.entries(baseSchemas)
-    .map(([id, schema]) => `  ajv.addSchema(${JSON.stringify(schema)}, "${id}");`)
+    .map(([id, schema]) => {
+      try {
+        const schemaStr = safeStringifySchema(schema);
+        return `  ajv.addSchema(${schemaStr}, "${id}");`;
+      } catch (error: any) {
+        throw new Error(
+          `Failed to serialize base schema "${id}": ${error.message}`
+        );
+      }
+    })
     .join("\n");
 
   const validatorCode = `
@@ -223,12 +305,18 @@ ${baseSchemasList}
 
 ${compiledSchemas
   .map(({ exportName, schema }) => {
-    const schemaJson = JSON.stringify(schema);
-    return `/**
+    try {
+      const schemaJson = safeStringifySchema(schema);
+      return `/**
  * Pre-compiled validator for ${schema.title || exportName}
  * Compiled once at module load, pre-cached for use throughout runtime
  */
 export const ${exportName}: ValidateFunction = sharedAjv.compile(${schemaJson});`;
+    } catch (error: any) {
+      throw new Error(
+        `Failed to serialize schema for validator ${exportName}: ${error.message}`
+      );
+    }
   })
   .join("\n")}
 `;
@@ -246,18 +334,45 @@ function ensureGeneratedDir(): void {
 }
 
 /**
- * Write generated validators file
+ * Write generated validators file with atomic semantics
+ *
+ * Uses temp file + rename pattern to ensure safe writes:
+ * 1. Write to temporary file in the target directory
+ * 2. Atomically rename temp file to target (all-or-nothing on most filesystems)
+ * 3. On failure, temp file is left behind for debugging; target file unchanged
+ *
+ * This prevents corruption if the write process fails partway through.
  */
 function writeGeneratedFile(content: string): void {
   ensureGeneratedDir();
 
   const validatorsPath = path.join(GENERATED_DIR, "compiled-validators.ts");
+  const tempPath = path.join(GENERATED_DIR, `.compiled-validators.tmp.${Date.now()}`);
 
   try {
-    fs.writeFileSync(validatorsPath, content);
+    // Step 1: Write to temporary file
+    fs.writeFileSync(tempPath, content, { encoding: "utf-8", flag: "w" });
+
+    // Step 2: Atomically rename temp file to target
+    // On POSIX systems, fs.renameSync is atomic at the filesystem level.
+    // On Windows, this is atomic as long as source and target are on same drive.
+    try {
+      fs.renameSync(tempPath, validatorsPath);
+    } catch (renameError: any) {
+      // If rename fails, clean up temp file and re-throw
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // Ignore cleanup errors
+      }
+      throw renameError;
+    }
+
     console.log(`[OK] Generated ${validatorsPath}`);
   } catch (error: any) {
     console.error(`ERROR: Failed to write validators file: ${error.message}`);
+    console.error(`  Temp file may exist at: ${tempPath}`);
+    console.error(`  Target file: ${validatorsPath}`);
     process.exit(1);
   }
 }
