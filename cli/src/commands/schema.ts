@@ -12,7 +12,6 @@ import {
 import {
   getNodeType,
   getNodeTypesForLayer,
-  type SpecNodeId,
   isValidSpecNodeId,
 } from "../generated/node-types.js";
 import {

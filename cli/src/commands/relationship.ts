@@ -18,7 +18,7 @@ import {
  * @throws {CLIError} if element properties are invalid
  */
 function constructSpecNodeId(
-  element: Record<string, unknown>,
+  element: { layer_id?: unknown; type?: unknown },
   elementId: string
 ): string {
   const layerId = element.layer_id;
@@ -27,14 +27,14 @@ function constructSpecNodeId(
   if (typeof layerId !== "string" || !layerId) {
     throw new CLIError(
       `Invalid element ${elementId}: missing or invalid layer_id`,
-      ErrorCategory.INTERNAL
+      ErrorCategory.SYSTEM
     );
   }
 
   if (typeof type !== "string" || !type) {
     throw new CLIError(
       `Invalid element ${elementId}: missing or invalid type`,
-      ErrorCategory.INTERNAL
+      ErrorCategory.SYSTEM
     );
   }
 
