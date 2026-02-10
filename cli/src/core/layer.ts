@@ -62,6 +62,11 @@ export class Layer {
         node.properties["__relationships__"] = element.relationships;
       }
 
+      // Preserve elementId (semantic ID) if present
+      if (element.elementId) {
+        node.properties["__elementId__"] = element.elementId;
+      }
+
       this.graph.addNode(node);
       // Don't mark as dirty during construction - elements added in constructor are initial state
     }
@@ -94,6 +99,7 @@ export class Layer {
         layer: node.layer,
         references: (node.properties["__references__"] ?? []) as Reference[],
         relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
+        elementId: (node.properties["__elementId__"] as string | undefined),
       });
       result.set(node.id, element);
     }
@@ -117,6 +123,11 @@ export class Layer {
     }
     if (element.relationships && element.relationships.length > 0) {
       node.properties["__relationships__"] = element.relationships;
+    }
+
+    // Preserve elementId (semantic ID) if present
+    if (element.elementId) {
+      node.properties["__elementId__"] = element.elementId;
     }
 
     // Add node to graph first
@@ -175,6 +186,7 @@ export class Layer {
       layer: node.layer,
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
+      elementId: (node.properties["__elementId__"] as string | undefined),
     });
   }
 
@@ -248,6 +260,7 @@ export class Layer {
           layer: node.layer,
           references: (node.properties["__references__"] ?? []) as Reference[],
           relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
+          elementId: (node.properties["__elementId__"] as string | undefined),
         })
     );
   }
@@ -296,6 +309,7 @@ export class Layer {
           references: e.references,
           relationships: e.relationships,
           layer: name,
+          elementId: e.elementId,
         })
     );
     const layer = new Layer(name, graph, elements);
