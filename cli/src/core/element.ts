@@ -140,7 +140,7 @@ export class Element implements IElement {
         throw new Error(
           `Invalid semantic ID format '${semanticId}': ` +
           `expected format '{layer}.{type}.{name}' with exactly 3 dot-separated parts, ` +
-          `but got ${parts.length} parts [${parts.map((p) => `'${p}'`).join(", ")}]`
+          `but got ${parts.length} parts [${parts.map((p: string) => `'${p}'`).join(", ")}]`
         );
       }
 
