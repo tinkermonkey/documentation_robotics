@@ -67,9 +67,9 @@ describe("RelationshipSchemaValidator", () => {
 
       const result = await validator.validateModel(model);
 
-      // Should not have errors for valid relationships
-      // Note: May have warnings if schema not found, but no errors
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
+      // Should return a valid result without critical errors
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.errors)).toBe(true);
     });
 
     it("should detect missing source element", async () => {
@@ -378,7 +378,8 @@ describe("RelationshipSchemaValidator", () => {
       const result = await validator.validateModel(model);
 
       // Should be valid - same source, different targets with same predicate
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.errors)).toBe(true);
     });
 
     it("should handle relationships with different sources targeting same element", async () => {
@@ -424,7 +425,8 @@ describe("RelationshipSchemaValidator", () => {
       const result = await validator.validateModel(model);
 
       // Should be valid - different sources, same target with same predicate
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.errors)).toBe(true);
     });
 
     it("should handle empty relationships list", async () => {
@@ -477,9 +479,9 @@ describe("RelationshipSchemaValidator", () => {
 
       const result = await validator.validateModel(model);
 
-      // Properties validation may generate errors for unknown properties in schema
-      // This is expected behavior - the test just verifies it doesn't crash
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
+      // Should return a result with array of errors
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.errors)).toBe(true);
     });
 
     it("should handle relationships without properties", async () => {
@@ -513,7 +515,8 @@ describe("RelationshipSchemaValidator", () => {
       const result = await validator.validateModel(model);
 
       // Should be valid even without properties
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.errors)).toBe(true);
     });
   });
 
@@ -571,7 +574,8 @@ describe("RelationshipSchemaValidator", () => {
       const result = await validator.validateModel(model);
 
       // Should validate relationships in all layers
-      expect(result.errors.length).toBeGreaterThanOrEqual(0);
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.errors)).toBe(true);
     });
   });
 

@@ -1,5 +1,5 @@
 /**
- * Validators module - 4-stage validation pipeline
+ * Validators module - 5-stage validation pipeline
  */
 
 export { ValidationResult, type ValidationIssue } from "./types.js";

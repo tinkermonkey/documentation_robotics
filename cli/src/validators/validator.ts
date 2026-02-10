@@ -39,7 +39,7 @@ export class Validator {
   }
 
   /**
-   * Validate a complete model through all 4 stages
+   * Validate a complete model through all 5 stages
    */
   async validateModel(model: Model): Promise<ValidationResult> {
     const rootSpan = isTelemetryEnabled

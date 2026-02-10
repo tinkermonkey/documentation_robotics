@@ -8,12 +8,9 @@
  * - Relationship attributes against schema
  */
 
-import Ajv from "ajv";
-import addFormats from "ajv-formats";
 import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
 import type { Relationship } from "../core/relationships.js";
-import { RelationshipCatalog } from "../core/relationship-catalog.js";
 import { fileURLToPath } from "url";
 import path from "path";
 import { readFile } from "../utils/file-io.js";
@@ -23,13 +20,6 @@ import { startSpan, endSpan } from "../telemetry/index.js";
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
-export interface CardinalityConstraint {
-  cardinality: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
-  sourceSpec: string;
-  destSpec: string;
-  predicate: string;
-}
-
 export interface RelationshipSchema {
   id: string;
   source_spec_node_id: string;
@@ -37,7 +27,7 @@ export interface RelationshipSchema {
   destination_spec_node_id: string;
   destination_layer: string;
   predicate: string;
-  cardinality: CardinalityConstraint["cardinality"];
+  cardinality: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
   strength: string;
   required?: boolean;
   attributes?: Record<string, unknown>;
@@ -53,87 +43,18 @@ export interface RelationshipSchema {
  * 4. Have valid source/destination element types
  */
 export class RelationshipSchemaValidator {
-  private ajv: Ajv;
-  private baseSchemaLoaded: boolean = false;
-  private loadedSchemaIds: Set<string> = new Set();
   private schemasDir: string;
-  private relationshipCatalog: RelationshipCatalog | null = null;
   private relationshipSchemas: Map<string, RelationshipSchema> = new Map();
 
   constructor() {
-    this.ajv = new Ajv({
-      allErrors: true,
-      strict: false,
-      validateFormats: true,
-    });
-    addFormats(this.ajv);
-
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     this.schemasDir = path.join(__dirname, "..", "schemas", "bundled");
   }
 
   /**
-   * Ensure base schemas are loaded
-   */
-  private async ensureBaseSchemaLoaded(): Promise<void> {
-    if (this.baseSchemaLoaded) {
-      return;
-    }
-
-    try {
-      const baseSchemaPath = path.join(
-        this.schemasDir,
-        "base",
-        "spec-node-relationship.schema.json"
-      );
-      const schemaContent = await readFile(baseSchemaPath);
-      const schema = JSON.parse(schemaContent);
-
-      if (schema.$id) {
-        this.loadedSchemaIds.add(schema.$id);
-        this.ajv.addSchema(schema);
-      }
-    } catch (error: any) {
-      console.warn(
-        `Warning: Failed to load base spec-node-relationship schema: ${error.message}`
-      );
-    }
-
-    // Load common schemas
-    const commonSchemas = [
-      "common/source-references.schema.json",
-      "common/attribute-spec.schema.json",
-    ];
-
-    for (const commonSchemaFile of commonSchemas) {
-      try {
-        const schemaPath = path.join(this.schemasDir, commonSchemaFile);
-        if (!existsSync(schemaPath)) {
-          continue;
-        }
-        const schemaContent = await readFile(schemaPath);
-        const schema = JSON.parse(schemaContent);
-
-        if (schema.$id && !this.loadedSchemaIds.has(schema.$id)) {
-          this.loadedSchemaIds.add(schema.$id);
-          this.ajv.addSchema(schema);
-        }
-      } catch (error: any) {
-        console.warn(
-          `Warning: Failed to load common schema ${commonSchemaFile}: ${error.message}`
-        );
-      }
-    }
-
-    this.baseSchemaLoaded = true;
-  }
-
-  /**
-   * Initialize relationship catalog and schemas
+   * Initialize and load relationship schemas
    */
   async initialize(): Promise<void> {
-    this.relationshipCatalog = new RelationshipCatalog();
-    await this.relationshipCatalog.load();
     await this.loadRelationshipSchemas();
   }
 
@@ -199,8 +120,8 @@ export class RelationshipSchemaValidator {
       : null;
 
     try {
-      await this.ensureBaseSchemaLoaded();
-      if (!this.relationshipCatalog) {
+      // Ensure schemas are loaded
+      if (this.relationshipSchemas.size === 0) {
         await this.initialize();
       }
 
@@ -338,6 +259,12 @@ export class RelationshipSchemaValidator {
 
   /**
    * Validate cardinality constraints for a relationship
+   *
+   * Cardinality constraint semantics:
+   * - "one-to-one": Each source can have at most 1 such relationship, and each target can be involved in at most 1
+   * - "one-to-many": Source can have at most 1 such relationship, but target can have many
+   * - "many-to-one": Source can have many such relationships, but each target can have at most 1
+   * - "many-to-many": No cardinality constraints
    */
   private validateCardinality(
     relationship: Relationship,
@@ -348,14 +275,15 @@ export class RelationshipSchemaValidator {
     const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
     const cardinality = schema.cardinality;
 
-    // Count existing relationships for this predicate from source and to target
+    // Count OTHER relationships for this predicate from source and to target
+    // (excluding the current relationship to get accurate violation detection)
     const sourceRelCount =
       relationshipsBySource
         .get(relationship.source)
         ?.filter(
           (r) =>
             r.predicate === relationship.predicate &&
-            r.target !== relationship.target
+            r.target !== relationship.target  // Exclude current relationship
         ).length || 0;
 
     const targetRelCount =
@@ -364,7 +292,7 @@ export class RelationshipSchemaValidator {
         ?.filter(
           (r) =>
             r.predicate === relationship.predicate &&
-            r.source !== relationship.source
+            r.source !== relationship.source  // Exclude current relationship
         ).length || 0;
 
     // Validate based on cardinality type
