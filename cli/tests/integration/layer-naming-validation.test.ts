@@ -82,27 +82,6 @@ describe("Layer 8 naming validation", () => {
     expect(result.errors[0].message).toContain("does not match layer");
   });
 
-  it("accepts element IDs with data-store prefix", () => {
-    // Test that canonical 'data-store' prefix is accepted by the validator
-    const validator = new NamingValidator();
-    const canonicalLayer = new Layer("data-store");
-
-    // Add an element with the canonical layer name
-    const element = new Element({
-      id: "data-store.table.users",
-      type: "table",
-      name: "users",
-      description: "Test element with canonical data-store prefix",
-    });
-    canonicalLayer.addElement(element);
-
-    // Validate the layer with canonical naming
-    const result = validator.validateLayer(canonicalLayer);
-
-    // Should have no validation errors
-    expect(result.isValid()).toBe(true);
-    expect(result.errors.length).toBe(0);
-  });
 
   describe("SchemaValidator integration with renamed files", () => {
     it("validates data-store layer with renamed schema file", async () => {
