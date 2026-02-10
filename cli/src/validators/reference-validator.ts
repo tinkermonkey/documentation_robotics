@@ -4,42 +4,28 @@
 
 import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
+import { getLayerByNumber, LAYER_HIERARCHY, getAllLayerIds } from "../generated/layer-registry.js";
 
 /**
  * Validator for cross-layer references
  */
 export class ReferenceValidator {
-  // Layer hierarchy (lower numbers are "higher" in the architecture)
-  private readonly LAYER_HIERARCHY: Record<string, number> = {
-    motivation: 1,
-    business: 2,
-    security: 3,
-    application: 4,
-    technology: 5,
-    api: 6,
-    "data-model": 7,
-    "data-store": 8,
-    ux: 9,
-    navigation: 10,
-    apm: 11,
-    testing: 12,
-  };
+  // Known layer names from generated registry (including hyphenated ones)
+  private readonly KNOWN_LAYERS = getAllLayerIds();
 
-  // Known layer names (including hyphenated ones)
-  private readonly KNOWN_LAYERS = [
-    "motivation",
-    "business",
-    "security",
-    "application",
-    "technology",
-    "api",
-    "data-model",
-    "data-store",
-    "ux",
-    "navigation",
-    "apm",
-    "testing",
-  ];
+  // Build layer hierarchy map at instantiation from generated registry
+  private readonly LAYER_HIERARCHY: Record<string, number> = this.buildLayerHierarchy();
+
+  private buildLayerHierarchy(): Record<string, number> {
+    const hierarchy: Record<string, number> = {};
+    for (const layerNumber of LAYER_HIERARCHY) {
+      const layer = getLayerByNumber(layerNumber);
+      if (layer) {
+        hierarchy[layer.id] = layer.number;
+      }
+    }
+    return hierarchy;
+  }
 
   /**
    * Validate all references in a model

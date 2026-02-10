@@ -4,6 +4,7 @@
 
 import { ValidationResult } from "./types.js";
 import type { Layer } from "../core/layer.js";
+import { getAllLayerIds } from "../generated/layer-registry.js";
 
 /**
  * Validator for element ID naming conventions
@@ -15,21 +16,8 @@ export class NamingValidator {
   private readonly DOT_SEPARATED_PATTERN = /^[a-z_][a-z0-9_-]*(\.[a-z_][a-z0-9_-]*)+$/;
   private readonly KEBAB_CASE_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*(-[a-z0-9]+)+$/;
 
-  // Known layer names (including hyphenated and underscored ones)
-  private readonly KNOWN_LAYERS = [
-    "motivation",
-    "business",
-    "security",
-    "application",
-    "technology",
-    "api",
-    "data-model",
-    "data-store",
-    "ux",
-    "navigation",
-    "apm",
-    "testing",
-  ];
+  // Known layer names from generated registry (including hyphenated and underscored ones)
+  private readonly KNOWN_LAYERS = getAllLayerIds();
 
   /**
    * Validate all elements in a layer

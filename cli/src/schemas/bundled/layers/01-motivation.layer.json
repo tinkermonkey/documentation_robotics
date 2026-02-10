@@ -1,0 +1,32 @@
+{
+  "id": "motivation",
+  "number": 1,
+  "name": "Motivation Layer",
+  "description": "Layer 1: Motivation Layer",
+  "inspired_by": {
+    "standard": "ArchiMate 3.2",
+    "version": "3.2",
+    "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
+  },
+  "node_types": [
+    "motivation.assessment",
+    "motivation.assessmenttype",
+    "motivation.constraint",
+    "motivation.constrainttype",
+    "motivation.driver",
+    "motivation.drivercategory",
+    "motivation.goal",
+    "motivation.meaning",
+    "motivation.outcome",
+    "motivation.outcomestatus",
+    "motivation.principle",
+    "motivation.principlecategory",
+    "motivation.priority",
+    "motivation.requirement",
+    "motivation.requirementtype",
+    "motivation.stakeholder",
+    "motivation.stakeholdertype",
+    "motivation.value",
+    "motivation.valuetype"
+  ]
+}

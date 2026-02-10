@@ -5,7 +5,7 @@
 
 import ansis from "ansis";
 import { ModelStats } from "../core/stats-collector.js";
-import { getLayerNumber } from "../core/layer-utils.js";
+import { getLayerById } from "../generated/layer-registry.js";
 
 export type StatsFormat = "text" | "json" | "markdown" | "compact";
 
@@ -65,7 +65,8 @@ function formatText(stats: ModelStats, verbose?: boolean): string {
   lines.push("");
   lines.push(ansis.bold("Elements by Layer:"));
   for (const layer of stats.layers) {
-    const layerNum = getLayerNumber(layer.name);
+    const layerMetadata = getLayerById(layer.name);
+    const layerNum = layerMetadata?.number ?? 0;
     const typeDetails = Object.entries(layer.elementsByType)
       .map(([type, count]) => `${count} ${type}${count > 1 ? "s" : ""}`)
       .join(", ");

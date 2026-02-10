@@ -20,26 +20,11 @@ import {
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { generateElementId } from "../utils/id-generator.js";
+import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
 
 // Telemetry flag check
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
-
-// Valid canonical layer names (from CLAUDE.md section 4.1)
-const VALID_LAYERS = [
-  "motivation",
-  "business",
-  "security",
-  "application",
-  "technology",
-  "api",
-  "data-model",
-  "data-store",
-  "ux",
-  "navigation",
-  "apm",
-  "testing",
-];
 
 export interface AddOptions {
   name?: string;
@@ -64,9 +49,10 @@ export async function addCommand(
 
   try {
     // Validate layer name
-    if (!VALID_LAYERS.includes(layer)) {
-      const similar = findSimilar(layer, VALID_LAYERS, 3);
-      const suggestions: string[] = [`Use a valid layer name: ${formatValidOptions(VALID_LAYERS)}`];
+    if (!isValidLayer(layer)) {
+      const validLayers = getAllLayerIds();
+      const similar = findSimilar(layer, validLayers, 3);
+      const suggestions: string[] = [`Use a valid layer name: ${formatValidOptions(validLayers)}`];
       if (similar.length > 0) {
         suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
       }

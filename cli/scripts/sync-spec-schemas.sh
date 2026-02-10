@@ -55,6 +55,13 @@ if [ -d "$SPEC_SCHEMAS/relationships" ]; then
   echo "Copied relationships directory"
 fi
 
+# Copy layer instances
+if [ -d "$REPO_ROOT/spec/layers" ]; then
+  mkdir -p "$BUNDLED_DIR/layers"
+  cp "$REPO_ROOT/spec/layers/"*.layer.json "$BUNDLED_DIR/layers/"
+  echo "Copied layer instances"
+fi
+
 # --- Validate file count ---
 
 bundled_count=$(find "$BUNDLED_DIR" -name '*.json' | wc -l)

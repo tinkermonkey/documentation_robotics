@@ -4,24 +4,24 @@
 
 import ansis from "ansis";
 import { Model } from "../core/model.js";
+import { getNodeTypesForLayer } from "../generated/layer-registry.js";
 
 /**
- * Expected element types per layer
+ * Expected element types per layer (derived from generated registry)
  */
-const LAYER_ELEMENT_TYPES: Record<string, string[]> = {
-  motivation: ["stakeholder", "goal", "requirement", "principle"],
-  business: ["business-service", "business-process", "business-actor"],
-  security: ["authentication-mechanism", "authorization-policy", "threat", "security-control"],
-  application: ["application-service", "application-component", "application-interface"],
-  technology: ["technology-service", "technology-component", "infrastructure-service"],
-  api: ["rest-resource", "rest-operation", "api-specification"],
-  "data-model": ["entity", "value-object", "relationship", "attribute"],
-  "data-store": ["database", "table", "storage-service"],
-  ux: ["ux-application", "ux-library", "ux-spec", "screen", "component"],
-  navigation: ["navigation-path", "navigation-transition", "route"],
-  apm: ["metric", "trace", "log-source", "alert-rule"],
-  testing: ["test-strategy", "test-case", "test-data", "test-result"],
-};
+function getLayerElementTypes(): Record<string, string[]> {
+  const layerTypes: Record<string, string[]> = {};
+  const layers = ["motivation", "business", "security", "application", "technology", "api", "data-model", "data-store", "ux", "navigation", "apm", "testing"];
+  for (const layer of layers) {
+    layerTypes[layer] = getNodeTypesForLayer(layer).map((t) => {
+      // Extract element type from spec node ID (e.g., "motivation.goal" -> "goal")
+      return t.split(".")[1] || "";
+    }).filter(Boolean);
+  }
+  return layerTypes;
+}
+
+const LAYER_ELEMENT_TYPES = getLayerElementTypes();
 
 /**
  * Expected cross-layer relationships per layer

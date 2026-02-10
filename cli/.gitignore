@@ -9,6 +9,9 @@ dist/
 *.js.map
 tests/**/*.test.js
 
+# Generated artifacts (built from spec at build time)
+src/generated/
+
 # Test coverage
 coverage/
 .nyc_output/

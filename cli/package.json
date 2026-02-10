@@ -13,8 +13,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bash scripts/sync-spec-schemas.sh && tsc && node esbuild.config.js && npm run copy-schemas",
-    "build:debug": "bash scripts/sync-spec-schemas.sh && tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",
+    "build": "bash scripts/sync-spec-schemas.sh && bun scripts/generate-registry.ts && tsc && node esbuild.config.js && npm run copy-schemas",
+    "build:debug": "bash scripts/sync-spec-schemas.sh && bun scripts/generate-registry.ts && tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",
     "sync-schemas": "bash scripts/sync-spec-schemas.sh",
     "copy-schemas": "cp -r src/schemas dist/",
     "dev": "node dist/cli.js",

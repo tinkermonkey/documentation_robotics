@@ -11,7 +11,7 @@ import * as path from "path";
 import { execFileSync } from "child_process";
 import { fileExists, ensureDir } from "../utils/file-io.js";
 import { existsSync } from "fs";
-import { isValidLayerName } from "../core/layer-utils.js";
+import { isValidLayer } from "../generated/layer-registry.js";
 
 interface GenerateOptions {
   output?: string;
@@ -37,7 +37,7 @@ export async function docsGenerateCommand(options: GenerateOptions): Promise<voi
   }
 
   // Validate layer name if provided
-  if (options.layer && !isValidLayerName(options.layer)) {
+  if (options.layer && !isValidLayer(options.layer)) {
     throw new Error(
       `Invalid layer name: ${options.layer}. ` +
       `Must be one of: motivation, business, security, application, technology, api, data-model, data-store, ux, navigation, apm, testing`
