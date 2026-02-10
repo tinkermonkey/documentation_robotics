@@ -42,7 +42,7 @@ export interface RelationshipSchema {
  * 3. Reference valid predicates
  * 4. Have valid source/destination element types
  */
-export class RelationshipSchemaValidator {
+export class RelationshipValidator {
   private schemasDir: string;
   private relationshipSchemas: Map<string, RelationshipSchema> = new Map();
 

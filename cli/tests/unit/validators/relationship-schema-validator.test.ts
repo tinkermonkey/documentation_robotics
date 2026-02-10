@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { RelationshipSchemaValidator } from "@/validators/relationship-schema-validator";
+import { RelationshipValidator } from "@/validators/relationship-schema-validator";
 import { Model } from "@/core/model";
 import { Manifest } from "@/core/manifest";
 import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
 import { Relationships } from "@/core/relationships";
 
-describe("RelationshipSchemaValidator", () => {
+describe("RelationshipValidator", () => {
   function createTestModel(): Model {
     const manifest = new Manifest({
       name: "Test Model",
@@ -17,7 +17,7 @@ describe("RelationshipSchemaValidator", () => {
 
   describe("basic validation", () => {
     it("should validate model with no relationships", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       const model = createTestModel();
 
       const layer = new Layer("motivation", [
@@ -37,7 +37,7 @@ describe("RelationshipSchemaValidator", () => {
     });
 
     it("should validate model with valid relationships", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -69,11 +69,11 @@ describe("RelationshipSchemaValidator", () => {
 
       // Should return a valid result without critical errors
       expect(result).toBeDefined();
-      expect(Array.isArray(result.errors)).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
 
     it("should detect missing source element", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -103,7 +103,7 @@ describe("RelationshipSchemaValidator", () => {
     });
 
     it("should detect missing target element", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -135,7 +135,7 @@ describe("RelationshipSchemaValidator", () => {
 
   describe("cardinality validation", () => {
     it("should handle many-to-many cardinality (no constraints)", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -185,7 +185,7 @@ describe("RelationshipSchemaValidator", () => {
     });
 
     it("should enforce one-to-many cardinality constraints", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
 
       // Mock one-to-many relationship schema
       // In real usage, this would come from the bundled schemas
@@ -239,7 +239,7 @@ describe("RelationshipSchemaValidator", () => {
     });
 
     it("should enforce many-to-one cardinality constraints", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -290,7 +290,7 @@ describe("RelationshipSchemaValidator", () => {
     });
 
     it("should enforce one-to-one cardinality constraints", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -336,7 +336,7 @@ describe("RelationshipSchemaValidator", () => {
 
   describe("relationship grouping", () => {
     it("should handle relationships with same source but different targets", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -379,11 +379,11 @@ describe("RelationshipSchemaValidator", () => {
 
       // Should be valid - same source, different targets with same predicate
       expect(result).toBeDefined();
-      expect(Array.isArray(result.errors)).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
 
     it("should handle relationships with different sources targeting same element", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -426,11 +426,11 @@ describe("RelationshipSchemaValidator", () => {
 
       // Should be valid - different sources, same target with same predicate
       expect(result).toBeDefined();
-      expect(Array.isArray(result.errors)).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
 
     it("should handle empty relationships list", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -446,7 +446,7 @@ describe("RelationshipSchemaValidator", () => {
 
   describe("relationship with properties", () => {
     it("should validate relationship properties against schema", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -479,13 +479,13 @@ describe("RelationshipSchemaValidator", () => {
 
       const result = await validator.validateModel(model);
 
-      // Should return a result with array of errors
+      // Should return a result with valid relationship (no errors)
       expect(result).toBeDefined();
-      expect(Array.isArray(result.errors)).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
 
     it("should handle relationships without properties", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -516,13 +516,13 @@ describe("RelationshipSchemaValidator", () => {
 
       // Should be valid even without properties
       expect(result).toBeDefined();
-      expect(Array.isArray(result.errors)).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
   });
 
   describe("multi-layer models", () => {
     it("should validate relationships in multiple layers", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -575,13 +575,13 @@ describe("RelationshipSchemaValidator", () => {
 
       // Should validate relationships in all layers
       expect(result).toBeDefined();
-      expect(Array.isArray(result.errors)).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
   });
 
   describe("error reporting", () => {
     it("should include element IDs in error messages", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();
@@ -614,7 +614,7 @@ describe("RelationshipSchemaValidator", () => {
     });
 
     it("should include layer information in error messages", async () => {
-      const validator = new RelationshipSchemaValidator();
+      const validator = new RelationshipValidator();
       await validator.initialize();
 
       const model = createTestModel();

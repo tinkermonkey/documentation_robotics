@@ -19,6 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.join(__dirname, "..");
 const BUNDLED_LAYERS_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "layers");
 const BUNDLED_NODES_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "nodes");
+const BUNDLED_RELATIONSHIPS_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "relationships");
 const GENERATED_DIR = path.join(CLI_DIR, "src", "generated");
 
 interface LayerInstance {
@@ -57,6 +58,16 @@ interface NodeTypeInfo {
   attributeConstraints: Record<string, unknown>;
 }
 
+interface RelationshipSchemaFile {
+  id: string;
+  source_spec_node_id: string;
+  destination_spec_node_id: string;
+  predicate: string;
+  cardinality: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
+  strength: "critical" | "high" | "medium" | "low";
+  required?: boolean;
+}
+
 /**
  * Recursively find all node schema files in a directory
  */
@@ -70,6 +81,28 @@ function findNodeSchemaFiles(dir: string): string[] {
       if (entry.isDirectory()) {
         traverse(fullPath);
       } else if (entry.name.endsWith(".node.schema.json")) {
+        files.push(fullPath);
+      }
+    }
+  }
+
+  traverse(dir);
+  return files.sort();
+}
+
+/**
+ * Recursively find all relationship schema files in a directory
+ */
+function findRelationshipSchemaFiles(dir: string): string[] {
+  const files: string[] = [];
+
+  function traverse(currentDir: string) {
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        traverse(fullPath);
+      } else if (entry.name.endsWith(".relationship.schema.json")) {
         files.push(fullPath);
       }
     }
@@ -133,6 +166,67 @@ function loadNodeSchemas(): NodeTypeInfo[] {
 }
 
 /**
+ * Load all relationship schema files from bundled directory
+ */
+function loadRelationshipSchemas(): RelationshipSchemaFile[] {
+  if (!fs.existsSync(BUNDLED_RELATIONSHIPS_DIR)) {
+    console.warn(`WARNING: Relationship schemas directory not found at ${BUNDLED_RELATIONSHIPS_DIR}`);
+    return [];
+  }
+
+  const schemaFiles = findRelationshipSchemaFiles(BUNDLED_RELATIONSHIPS_DIR);
+
+  if (schemaFiles.length === 0) {
+    console.warn(`WARNING: No .relationship.schema.json files found in ${BUNDLED_RELATIONSHIPS_DIR}`);
+    return [];
+  }
+
+  // Use Map to deduplicate by relationship ID (keep first occurrence)
+  const relationshipMap = new Map<string, RelationshipSchemaFile>();
+
+  for (const schemaFile of schemaFiles) {
+    try {
+      const content = fs.readFileSync(schemaFile, "utf-8");
+      const schema = JSON.parse(content);
+
+      const id = schema.properties?.id?.const;
+      const sourceSpecNodeId = schema.properties?.source_spec_node_id?.const;
+      const destinationSpecNodeId = schema.properties?.destination_spec_node_id?.const;
+      const predicate = schema.properties?.predicate?.const;
+
+      if (!id || !sourceSpecNodeId || !destinationSpecNodeId || !predicate) {
+        console.warn(
+          `WARNING: Incomplete relationship schema at ${schemaFile}: missing required fields`
+        );
+        continue;
+      }
+
+      // Skip if we already have this relationship ID
+      if (relationshipMap.has(id)) {
+        console.warn(
+          `WARNING: Duplicate relationship ID '${id}' found in ${schemaFile}; using first occurrence`
+        );
+        continue;
+      }
+
+      relationshipMap.set(id, {
+        id,
+        source_spec_node_id: sourceSpecNodeId,
+        destination_spec_node_id: destinationSpecNodeId,
+        predicate,
+        cardinality: schema.properties?.cardinality?.const || "many-to-many",
+        strength: schema.properties?.strength?.const || "medium",
+        required: schema.properties?.required?.const || false,
+      });
+    } catch (error: any) {
+      console.warn(`WARNING: Failed to parse relationship schema ${schemaFile}: ${error.message}`);
+    }
+  }
+
+  return Array.from(relationshipMap.values());
+}
+
+/**
  * Load all layer instance files from bundled directory
  */
 function loadLayerInstances(): LayerMetadata[] {
@@ -182,6 +276,195 @@ function loadLayerInstances(): LayerMetadata[] {
   }
 
   return layers.sort((a, b) => a.number - b.number);
+}
+
+/**
+ * Generate relationship-index.ts with all 252+ relationship specifications
+ */
+function generateRelationshipIndex(relationships: RelationshipSchemaFile[]): string {
+  // Generate constants for each relationship
+  const constants = relationships
+    .map(
+      (r) => `
+const RELATIONSHIP_${r.id
+        .replace(/\./g, "_")
+        .replace(/-/g, "_")
+        .toUpperCase()}: RelationshipSpec = {
+  id: "${r.id}",
+  sourceSpecNodeId: "${r.source_spec_node_id}",
+  destinationSpecNodeId: "${r.destination_spec_node_id}",
+  predicate: "${r.predicate}",
+  cardinality: "${r.cardinality}",
+  strength: "${r.strength}",
+  required: ${r.required || false},
+};`
+    )
+    .join("\n");
+
+  // Generate RELATIONSHIPS array
+  const relationshipsArray = relationships
+    .map((r) => `    RELATIONSHIP_${r.id.replace(/\./g, "_").replace(/-/g, "_").toUpperCase()}`)
+    .join(",\n");
+
+  // Generate indexed maps for O(1) lookups
+  const bySourceEntries = relationships
+    .reduce<Map<string, RelationshipSchemaFile[]>>((acc, r) => {
+      if (!acc.has(r.source_spec_node_id)) {
+        acc.set(r.source_spec_node_id, []);
+      }
+      acc.get(r.source_spec_node_id)!.push(r);
+      return acc;
+    }, new Map())
+    .entries();
+
+  const bySourceMap = Array.from(bySourceEntries)
+    .map(
+      ([source, rels]) =>
+        `    ["${source}", [${rels.map((r) => `RELATIONSHIP_${r.id.replace(/\./g, "_").replace(/-/g, "_").toUpperCase()}`).join(", ")}]]`
+    )
+    .join(",\n");
+
+  const byPredicateEntries = relationships
+    .reduce<Map<string, RelationshipSchemaFile[]>>((acc, r) => {
+      if (!acc.has(r.predicate)) {
+        acc.set(r.predicate, []);
+      }
+      acc.get(r.predicate)!.push(r);
+      return acc;
+    }, new Map())
+    .entries();
+
+  const byPredicateMap = Array.from(byPredicateEntries)
+    .map(
+      ([predicate, rels]) =>
+        `    ["${predicate}", [${rels.map((r) => `RELATIONSHIP_${r.id.replace(/\./g, "_").replace(/-/g, "_").toUpperCase()}`).join(", ")}]]`
+    )
+    .join(",\n");
+
+  const byDestinationEntries = relationships
+    .reduce<Map<string, RelationshipSchemaFile[]>>((acc, r) => {
+      if (!acc.has(r.destination_spec_node_id)) {
+        acc.set(r.destination_spec_node_id, []);
+      }
+      acc.get(r.destination_spec_node_id)!.push(r);
+      return acc;
+    }, new Map())
+    .entries();
+
+  const byDestinationMap = Array.from(byDestinationEntries)
+    .map(
+      ([destination, rels]) =>
+        `    ["${destination}", [${rels.map((r) => `RELATIONSHIP_${r.id.replace(/\./g, "_").replace(/-/g, "_").toUpperCase()}`).join(", ")}]]`
+    )
+    .join(",\n");
+
+  return `/**
+ * GENERATED FILE - DO NOT EDIT
+ * This file is automatically generated by scripts/generate-registry.ts
+ * during the build process. Changes will be overwritten.
+ *
+ * Source: cli/src/schemas/bundled/relationships (252+ .relationship.schema.json files)
+ */
+
+/**
+ * Relationship specification extracted from relationship schema files
+ * Defines source/destination node types, predicates, and cardinality constraints
+ */
+export interface RelationshipSpec {
+  id: string;                    // "motivation.supports.motivation"
+  sourceSpecNodeId: string;      // "motivation.goal"
+  destinationSpecNodeId: string; // "motivation.requirement"
+  predicate: string;             // "supports"
+  cardinality: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
+  strength: "critical" | "high" | "medium" | "low";
+  required: boolean;
+}
+
+${constants}
+
+/**
+ * All ${relationships.length} relationship specifications from schema files
+ */
+export const RELATIONSHIPS: RelationshipSpec[] = [
+${relationshipsArray}
+];
+
+/**
+ * Relationships indexed by source node type ID for O(1) lookup
+ * Key: "motivation.goal", Value: [RelationshipSpec, ...]
+ */
+export const RELATIONSHIPS_BY_SOURCE: Map<string, RelationshipSpec[]> = new Map([
+${bySourceMap}
+]);
+
+/**
+ * Relationships indexed by predicate for O(1) lookup
+ * Key: "supports", Value: [RelationshipSpec, ...]
+ */
+export const RELATIONSHIPS_BY_PREDICATE: Map<string, RelationshipSpec[]> = new Map([
+${byPredicateMap}
+]);
+
+/**
+ * Relationships indexed by destination node type ID for O(1) lookup
+ * Key: "motivation.requirement", Value: [RelationshipSpec, ...]
+ */
+export const RELATIONSHIPS_BY_DESTINATION: Map<string, RelationshipSpec[]> = new Map([
+${byDestinationMap}
+]);
+
+/**
+ * Find all valid relationships for a source type, optionally filtered by predicate and destination
+ */
+export function getValidRelationships(
+  sourceType: string,
+  predicate?: string,
+  destinationType?: string
+): RelationshipSpec[] {
+  let results = RELATIONSHIPS_BY_SOURCE.get(sourceType) || [];
+
+  if (predicate) {
+    results = results.filter((r) => r.predicate === predicate);
+  }
+
+  if (destinationType) {
+    results = results.filter((r) => r.destinationSpecNodeId === destinationType);
+  }
+
+  return results;
+}
+
+/**
+ * Check if a relationship is valid according to schemas
+ */
+export function isValidRelationship(
+  sourceType: string,
+  predicate: string,
+  destinationType: string
+): boolean {
+  const rels = getValidRelationships(sourceType, predicate, destinationType);
+  return rels.length > 0;
+}
+
+/**
+ * Get all valid predicates for a source type
+ */
+export function getValidPredicatesForSource(sourceType: string): string[] {
+  const rels = RELATIONSHIPS_BY_SOURCE.get(sourceType) || [];
+  return Array.from(new Set(rels.map((r) => r.predicate)));
+}
+
+/**
+ * Get all valid destination types for a source type and predicate
+ */
+export function getValidDestinationsForSourceAndPredicate(
+  sourceType: string,
+  predicate: string
+): string[] {
+  const rels = getValidRelationships(sourceType, predicate);
+  return Array.from(new Set(rels.map((r) => r.destinationSpecNodeId)));
+}
+`;
 }
 
 /**
@@ -556,33 +839,54 @@ export {
   getRequiredAttributes,
   isValidSpecNodeId,
 } from "./node-types.js";
+
+// Relationship index exports (schema-based relationship validation)
+export type { RelationshipSpec } from "./relationship-index.js";
+export {
+  RELATIONSHIPS,
+  RELATIONSHIPS_BY_SOURCE,
+  RELATIONSHIPS_BY_PREDICATE,
+  RELATIONSHIPS_BY_DESTINATION,
+  getValidRelationships,
+  isValidRelationship,
+  getValidPredicatesForSource,
+  getValidDestinationsForSourceAndPredicate,
+} from "./relationship-index.js";
 `;
 }
 
 /**
  * Write generated files
  */
-function writeGeneratedFiles(layers: LayerMetadata[], nodeTypes: NodeTypeInfo[]): void {
+function writeGeneratedFiles(
+  layers: LayerMetadata[],
+  nodeTypes: NodeTypeInfo[],
+  relationships: RelationshipSchemaFile[]
+): void {
   ensureGeneratedDir();
 
   const registryPath = path.join(GENERATED_DIR, "layer-registry.ts");
   const typesPath = path.join(GENERATED_DIR, "layer-types.ts");
   const nodeTypesPath = path.join(GENERATED_DIR, "node-types.ts");
+  const relationshipIndexPath = path.join(GENERATED_DIR, "relationship-index.ts");
   const indexPath = path.join(GENERATED_DIR, "index.ts");
 
   const registryContent = generateLayerRegistry(layers);
   const typesContent = generateLayerTypes(layers);
   const nodeTypesContent = generateNodeTypes(nodeTypes);
+  const relationshipIndexContent = generateRelationshipIndex(relationships);
   const indexContent = generateIndexBarrel();
 
   fs.writeFileSync(registryPath, registryContent);
   fs.writeFileSync(typesPath, typesContent);
   fs.writeFileSync(nodeTypesPath, nodeTypesContent);
+  fs.writeFileSync(relationshipIndexPath, relationshipIndexContent);
   fs.writeFileSync(indexPath, indexContent);
 
   console.log(`✓ Generated ${registryPath}`);
   console.log(`✓ Generated ${typesPath}`);
   console.log(`✓ Generated ${nodeTypesPath} (${nodeTypes.length} node types)`);
+  console.log(`✓ Generated ${relationshipIndexPath} (${relationships.length} relationship specs)`);
   console.log(`✓ Generated ${indexPath}`);
 }
 
@@ -591,15 +895,18 @@ function writeGeneratedFiles(layers: LayerMetadata[], nodeTypes: NodeTypeInfo[])
  */
 async function main(): Promise<void> {
   try {
-    console.log("Generating layer registry and node type index...");
+    console.log("Generating layer registry, node type index, and relationship index...");
     const layers = loadLayerInstances();
     console.log(`✓ Loaded ${layers.length} layer instances`);
 
     const nodeTypes = loadNodeSchemas();
     console.log(`✓ Loaded ${nodeTypes.length} node type schemas`);
 
-    writeGeneratedFiles(layers, nodeTypes);
-    console.log("✓ Layer registry and node type index generation complete");
+    const relationships = loadRelationshipSchemas();
+    console.log(`✓ Loaded ${relationships.length} relationship specs`);
+
+    writeGeneratedFiles(layers, nodeTypes, relationships);
+    console.log("✓ Registry and index generation complete");
   } catch (error) {
     console.error("ERROR: Registry generation failed:");
     console.error(error);

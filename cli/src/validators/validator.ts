@@ -7,7 +7,7 @@ import { SchemaValidator } from "./schema-validator.js";
 import { NamingValidator } from "./naming-validator.js";
 import { ReferenceValidator } from "./reference-validator.js";
 import { SemanticValidator } from "./semantic-validator.js";
-import { RelationshipSchemaValidator } from "./relationship-schema-validator.js";
+import { RelationshipValidator } from "./relationship-schema-validator.js";
 import type { Model } from "../core/model.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 
@@ -28,14 +28,14 @@ export class Validator {
   private namingValidator: NamingValidator;
   private referenceValidator: ReferenceValidator;
   private semanticValidator: SemanticValidator;
-  private relationshipSchemaValidator: RelationshipSchemaValidator;
+  private relationshipValidator: RelationshipValidator;
 
   constructor() {
     this.schemaValidator = new SchemaValidator();
     this.namingValidator = new NamingValidator();
     this.referenceValidator = new ReferenceValidator();
     this.semanticValidator = new SemanticValidator();
-    this.relationshipSchemaValidator = new RelationshipSchemaValidator();
+    this.relationshipValidator = new RelationshipValidator();
   }
 
   /**
@@ -112,8 +112,8 @@ export class Validator {
         ? startSpan("validation.stage.relationship-schema")
         : null;
       try {
-        await this.relationshipSchemaValidator.initialize();
-        const relationshipResult = await this.relationshipSchemaValidator.validateModel(model);
+        await this.relationshipValidator.initialize();
+        const relationshipResult = await this.relationshipValidator.validateModel(model);
         result.merge(relationshipResult, "[Relationship Schema]");
 
         if (isTelemetryEnabled && relationshipStageSpan) {
