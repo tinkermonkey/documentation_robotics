@@ -171,9 +171,9 @@ describe("Add Command - Type Validation", () => {
   describe("Type validation with different layers", () => {
     it("should validate types for all layers", async () => {
       const testCases = [
-        { layer: "motivation", validType: "goal", invalidType: "endpoint" },
-        { layer: "business", validType: "service", invalidType: "goal" },
-        { layer: "api", validType: "endpoint", invalidType: "goal" },
+        { layer: "motivation", validType: "goal", invalidType: "operation" },
+        { layer: "business", validType: "businessservice", invalidType: "goal" },
+        { layer: "api", validType: "operation", invalidType: "goal" },
         { layer: "data-store", validType: "table", invalidType: "goal" },
       ];
 

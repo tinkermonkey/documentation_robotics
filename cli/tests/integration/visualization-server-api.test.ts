@@ -93,19 +93,19 @@ async function addTestElements(dir: string): Promise<void> {
   const elements = [
     [
       "business",
-      "business-service",
+      "businessservice",
       "customer-service",
       "Customer Service",
       "Handles customer interactions",
     ],
     [
       "application",
-      "application-service",
+      "applicationservice",
       "customer-app",
       "Customer App",
       "Customer-facing application",
     ],
-    ["api", "endpoint", "get-customers", "Get Customers", "Retrieve customer list"],
+    ["api", "operation", "get-customers", "Get Customers", "Retrieve customer list"],
   ];
 
   for (const [layer, type, id, name, description] of elements) {
