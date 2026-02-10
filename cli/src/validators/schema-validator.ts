@@ -15,6 +15,12 @@ import path from "path";
 import { readFile } from "../utils/file-io.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { existsSync } from "fs";
+import {
+  validateSpecNode,
+  validateSpecNodeRelationship,
+  validateSourceReference,
+  validateAttributeSpec,
+} from "../generated/compiled-validators.js";
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -48,52 +54,22 @@ export class SchemaValidator {
   }
 
   /**
-   * Ensure base schemas are loaded before validation
+   * Ensure base schemas are pre-compiled validators are initialized
+   * Pre-compiled validators are generated at build time, so no file I/O needed
    */
   private async ensureBaseSchemaLoaded(): Promise<void> {
     if (this.baseSchemaLoaded) {
       return;
     }
 
-    // Load base spec-node schema
-    try {
-      const baseSchemaPath = path.join(this.schemasDir, "base", "spec-node.schema.json");
-      const schemaContent = await readFile(baseSchemaPath);
-      const schema = JSON.parse(schemaContent);
+    // Register pre-compiled validators with AJV for reference resolution
+    // This allows per-type schemas to reference base schemas
+    this.compiledSchemas.set("spec-node", validateSpecNode);
+    this.compiledSchemas.set("spec-node-relationship", validateSpecNodeRelationship);
+    this.compiledSchemas.set("source-references", validateSourceReference);
+    this.compiledSchemas.set("attribute-spec", validateAttributeSpec);
 
-      if (schema.$id) {
-        this.loadedSchemaIds.add(schema.$id);
-        this.ajv.addSchema(schema);
-      }
-    } catch (error: any) {
-      console.warn(`Warning: Failed to load base spec-node schema: ${error.message}`);
-      // Non-fatal - individual schemas may still work with embedded definitions
-    }
-
-    // Load common schemas
-    const commonSchemas = [
-      "common/source-references.schema.json",
-      "common/attribute-spec.schema.json",
-    ];
-
-    for (const commonSchemaFile of commonSchemas) {
-      try {
-        const schemaPath = path.join(this.schemasDir, commonSchemaFile);
-        if (!existsSync(schemaPath)) {
-          continue;
-        }
-        const schemaContent = await readFile(schemaPath);
-        const schema = JSON.parse(schemaContent);
-
-        if (schema.$id && !this.loadedSchemaIds.has(schema.$id)) {
-          this.loadedSchemaIds.add(schema.$id);
-          this.ajv.addSchema(schema);
-        }
-      } catch (error: any) {
-        console.warn(`Warning: Failed to load common schema ${commonSchemaFile}: ${error.message}`);
-      }
-    }
-
+    // Mark base schemas as loaded - no disk I/O was performed
     this.baseSchemaLoaded = true;
   }
 
