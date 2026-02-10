@@ -255,7 +255,7 @@ function writeGeneratedFile(content: string): void {
 
   try {
     fs.writeFileSync(validatorsPath, content);
-    console.log(`✓ Generated ${validatorsPath}`);
+    console.log(`[OK] Generated ${validatorsPath}`);
   } catch (error: any) {
     console.error(`ERROR: Failed to write validators file: ${error.message}`);
     process.exit(1);
@@ -270,13 +270,13 @@ async function main(): Promise<void> {
     console.log("Generating pre-compiled AJV validators for base schemas...");
 
     const schemasToCompile = await loadBaseSchemas();
-    console.log(`✓ Loaded ${schemasToCompile.length} base schemas`);
+    console.log(`[OK] Loaded ${schemasToCompile.length} base schemas`);
 
     const validatorCode = await generatePreCompiledValidators(schemasToCompile);
 
     writeGeneratedFile(validatorCode);
 
-    console.log("✓ Pre-compiled validator generation complete");
+    console.log("[OK] Pre-compiled validator generation complete");
     console.log(`  ${schemasToCompile.length} validators pre-compiled:`);
     schemasToCompile.forEach(({ exportName }) => {
       console.log(`    - ${exportName}`);
