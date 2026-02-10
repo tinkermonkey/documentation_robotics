@@ -200,9 +200,9 @@ describe("CLI Commands Integration Tests", () => {
     it("should add element with properties", async () => {
       const result = await runDr(
         "add",
-        "data-model",
-        "entity",
-        "User",
+        "motivation",
+        "goal",
+        "Test Goal",
         "--properties",
         JSON.stringify({ required: true })
       );
@@ -210,8 +210,8 @@ describe("CLI Commands Integration Tests", () => {
       expect(result.exitCode).toBe(0);
 
       const model = await Model.load(tempDir.path);
-      const layer = await model.getLayer("data-model");
-      const element = layer!.getElement("data-model.entity.user");
+      const layer = await model.getLayer("motivation");
+      const element = layer!.getElement("motivation.goal.test-goal");
       expect(element!.properties.required).toBe(true);
     });
 
@@ -242,18 +242,18 @@ describe("CLI Commands Integration Tests", () => {
       const result = await runDr(
         "add",
         "api",
-        "endpoint",
-        "Test Endpoint",
+        "operation",
+        "Test Operation",
         "--description",
-        "A test endpoint"
+        "A test operation"
       );
 
       expect(result.exitCode).toBe(0);
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("api");
-      const element = layer!.getElement("api.endpoint.test-endpoint");
-      expect(element!.description).toBe("A test endpoint");
+      const element = layer!.getElement("api.operation.test-operation");
+      expect(element!.description).toBe("A test operation");
     });
 
     it("should support complex JSON properties", async () => {
@@ -267,7 +267,7 @@ describe("CLI Commands Integration Tests", () => {
       const result = await runDr(
         "add",
         "api",
-        "endpoint",
+        "operation",
         "Create User",
         "--properties",
         JSON.stringify(complexProps)
@@ -277,7 +277,7 @@ describe("CLI Commands Integration Tests", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("api");
-      const element = layer!.getElement("api.endpoint.create-user");
+      const element = layer!.getElement("api.operation.create-user");
       expect(element!.properties.method).toBe("POST");
       expect(element!.properties.path).toBe("/api/users");
       expect((element!.properties.parameters as any[]).length).toBe(1);
@@ -289,7 +289,7 @@ describe("CLI Commands Integration Tests", () => {
       const result = await runDr(
         "add",
         "business",
-        "service",
+        "businessservice",
         "Test Service",
         "--description",
         "A comprehensive service test",
@@ -301,7 +301,7 @@ describe("CLI Commands Integration Tests", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("business");
-      const element = layer!.getElement("business.service.test-service");
+      const element = layer!.getElement("business.businessservice.test-service");
       expect(element!.name).toBe("Test Service");
       expect(element!.description).toBe("A comprehensive service test");
       expect(element!.properties.version).toBe("1.0");
@@ -535,7 +535,7 @@ describe("CLI Commands Integration Tests", () => {
     });
 
     it("should handle multiple layers", async () => {
-      await runDr("add", "api", "endpoint", "Test Endpoint");
+      await runDr("add", "api", "operation", "Test Operation");
 
       const result1 = await runDr("list", "motivation");
       const result2 = await runDr("list", "api");
@@ -543,7 +543,7 @@ describe("CLI Commands Integration Tests", () => {
       expect(result1.exitCode).toBe(0);
       expect(result2.exitCode).toBe(0);
       expect(result1.stdout).toContain("Goal 1");
-      expect(result2.stdout).toContain("Test Endpoint");
+      expect(result2.stdout).toContain("Test Operation");
     });
   });
 
@@ -552,7 +552,7 @@ describe("CLI Commands Integration Tests", () => {
       await runDr("init", "--name", "Test Model");
       await runDr("add", "motivation", "goal", "Improve System");
       await runDr("add", "motivation", "goal", "Enhance Security");
-      await runDr("add", "business", "process", "User Authentication");
+      await runDr("add", "business", "businessprocess", "User Authentication");
     });
 
     it("should search by id pattern", async () => {
@@ -598,7 +598,7 @@ describe("CLI Commands Integration Tests", () => {
     });
 
     it("should support --type filter option", async () => {
-      const result = await runDr("search", "User", "--type", "process");
+      const result = await runDr("search", "User", "--type", "businessprocess");
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("User Authentication");

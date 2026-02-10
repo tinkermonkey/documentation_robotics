@@ -33,7 +33,7 @@ describe("Source Reference CLI Integration Tests", () => {
       const result = await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "auth-validate",
         "--name",
         "Auth Validation",
@@ -51,10 +51,10 @@ describe("Source Reference CLI Integration Tests", () => {
       const result = await runDr(
         "add",
         "api",
-        "endpoint",
+        "operation",
         "create-customer",
         "--name",
-        "Create Customer Endpoint",
+        "Create Customer Operation",
         "--source-file",
         "src/api/endpoints/customer.ts",
         "--source-symbol",
@@ -75,7 +75,7 @@ describe("Source Reference CLI Integration Tests", () => {
       const result = await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "auth-policy",
         "--source-symbol",
         "validateAuth",
@@ -91,7 +91,7 @@ describe("Source Reference CLI Integration Tests", () => {
       const result = await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "auth-policy",
         "--source-file",
         "src/auth/policy.ts"
@@ -105,7 +105,7 @@ describe("Source Reference CLI Integration Tests", () => {
       const result = await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "auth-policy",
         "--source-file",
         "src/auth/policy.ts",
@@ -121,7 +121,7 @@ describe("Source Reference CLI Integration Tests", () => {
       const result = await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "auth-policy",
         "--source-file",
         "src/auth/policy.ts",
@@ -141,7 +141,7 @@ describe("Source Reference CLI Integration Tests", () => {
       const result = await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "auth-policy",
         "--source-file",
         "src/auth/policy.ts",
@@ -159,7 +159,7 @@ describe("Source Reference CLI Integration Tests", () => {
       const result = await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "auth-policy",
         "--source-file",
         "src/auth/policy.ts",
@@ -180,7 +180,7 @@ describe("Source Reference CLI Integration Tests", () => {
         const result = await runDr(
           "add",
           "security",
-          "policy",
+          "securitypolicy",
           `policy-${provenanceTypes[i]}`,
           "--name",
           `Policy ${provenanceTypes[i]}`,
@@ -198,13 +198,13 @@ describe("Source Reference CLI Integration Tests", () => {
   describe("update command with source references", () => {
     beforeEach(async () => {
       // Create an element to update
-      await runDr("add", "security", "policy", "auth-policy", "--name", "Auth Policy");
+      await runDr("add", "security", "securitypolicy", "auth-policy", "--name", "Auth Policy");
     });
 
     it("should update element to add source reference", async () => {
       const result = await runDr(
         "update",
-        "security.policy.auth-policy",
+        "security.securitypolicy.auth-policy",
         "--source-file",
         "src/auth/policy.ts",
         "--source-provenance",
@@ -218,7 +218,7 @@ describe("Source Reference CLI Integration Tests", () => {
     it("should update element with all source reference options", async () => {
       const result = await runDr(
         "update",
-        "security.policy.auth-policy",
+        "security.securitypolicy.auth-policy",
         "--source-file",
         "src/auth/updated-policy.ts",
         "--source-symbol",
@@ -239,7 +239,7 @@ describe("Source Reference CLI Integration Tests", () => {
       // First add source reference
       await runDr(
         "update",
-        "security.policy.auth-policy",
+        "security.securitypolicy.auth-policy",
         "--source-file",
         "src/auth/policy.ts",
         "--source-provenance",
@@ -249,7 +249,7 @@ describe("Source Reference CLI Integration Tests", () => {
       // Then clear it
       const result = await runDr(
         "update",
-        "security.policy.auth-policy",
+        "security.securitypolicy.auth-policy",
         "--clear-source-reference"
       );
 
@@ -260,7 +260,7 @@ describe("Source Reference CLI Integration Tests", () => {
     it("should fail when using --clear-source-reference with other source options", async () => {
       const result = await runDr(
         "update",
-        "security.policy.auth-policy",
+        "security.securitypolicy.auth-policy",
         "--clear-source-reference",
         "--source-file",
         "src/auth/policy.ts",
@@ -275,7 +275,7 @@ describe("Source Reference CLI Integration Tests", () => {
     it("should fail with invalid commit SHA during update", async () => {
       const result = await runDr(
         "update",
-        "security.policy.auth-policy",
+        "security.securitypolicy.auth-policy",
         "--source-file",
         "src/auth/policy.ts",
         "--source-provenance",
@@ -294,7 +294,7 @@ describe("Source Reference CLI Integration Tests", () => {
       // Add initial source reference
       await runDr(
         "update",
-        "security.policy.auth-policy",
+        "security.securitypolicy.auth-policy",
         "--source-file",
         "src/auth/policy.ts",
         "--source-provenance",
@@ -306,7 +306,7 @@ describe("Source Reference CLI Integration Tests", () => {
       // Update to different file and provenance
       const result = await runDr(
         "update",
-        "security.policy.auth-policy",
+        "security.securitypolicy.auth-policy",
         "--source-file",
         "src/auth/new-policy.ts",
         "--source-provenance",
@@ -323,7 +323,7 @@ describe("Source Reference CLI Integration Tests", () => {
       await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "auth-policy",
         "--name",
         "Auth Policy",
@@ -341,7 +341,7 @@ describe("Source Reference CLI Integration Tests", () => {
     });
 
     it("should display source reference information in show command", async () => {
-      const result = await runDr("show", "security.policy.auth-policy");
+      const result = await runDr("show", "security.securitypolicy.auth-policy");
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Source Code Location");
@@ -352,7 +352,7 @@ describe("Source Reference CLI Integration Tests", () => {
     });
 
     it("should display repository context in show command", async () => {
-      const result = await runDr("show", "security.policy.auth-policy");
+      const result = await runDr("show", "security.securitypolicy.auth-policy");
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Repository Context");
@@ -365,13 +365,13 @@ describe("Source Reference CLI Integration Tests", () => {
       await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "no-source-policy",
         "--name",
         "Policy Without Source"
       );
 
-      const result = await runDr("show", "security.policy.no-source-policy");
+      const result = await runDr("show", "security.securitypolicy.no-source-policy");
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).not.toContain("Source Code Location");
@@ -382,7 +382,7 @@ describe("Source Reference CLI Integration Tests", () => {
       await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "simple-policy",
         "--name",
         "Simple Policy",
@@ -392,7 +392,7 @@ describe("Source Reference CLI Integration Tests", () => {
         "manual"
       );
 
-      const result = await runDr("show", "security.policy.simple-policy");
+      const result = await runDr("show", "security.securitypolicy.simple-policy");
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Source Code Location");
@@ -406,7 +406,7 @@ describe("Source Reference CLI Integration Tests", () => {
       await runDr(
         "add",
         "security",
-        "policy",
+        "securitypolicy",
         "no-repo-policy",
         "--name",
         "Policy Without Repo",
@@ -416,7 +416,7 @@ describe("Source Reference CLI Integration Tests", () => {
         "manual"
       );
 
-      const result = await runDr("show", "security.policy.no-repo-policy");
+      const result = await runDr("show", "security.securitypolicy.no-repo-policy");
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Source Code Location");
@@ -430,7 +430,7 @@ describe("Source Reference CLI Integration Tests", () => {
       const addResult = await runDr(
         "add",
         "application",
-        "component",
+        "applicationcomponent",
         "auth-service",
         "--name",
         "Authentication Service",
@@ -446,7 +446,7 @@ describe("Source Reference CLI Integration Tests", () => {
       // Step 2: Update to add symbol and repository context
       const updateResult = await runDr(
         "update",
-        "application.component.auth-service",
+        "application.applicationcomponent.auth-service",
         "--source-file",
         "src/services/auth.ts",
         "--source-symbol",
@@ -461,7 +461,7 @@ describe("Source Reference CLI Integration Tests", () => {
       expect(updateResult.exitCode).toBe(0);
 
       // Step 3: Display and verify all information
-      const showResult = await runDr("show", "application.component.auth-service");
+      const showResult = await runDr("show", "application.applicationcomponent.auth-service");
       expect(showResult.exitCode).toBe(0);
       expect(showResult.stdout).toContain("Authentication Service");
       expect(showResult.stdout).toContain("Core authentication component");
