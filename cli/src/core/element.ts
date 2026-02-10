@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import type {
   Element as IElement,
   ElementMetadata,
@@ -5,6 +7,9 @@ import type {
   Relationship,
   SourceReference,
 } from "../types/index.js";
+
+// Use crypto.randomUUID for secure random identifier generation
+const crypto = { randomUUID };
 
 /**
  * Type guard to check if a value is a SourceReference
@@ -216,14 +221,14 @@ export class Element implements IElement {
   }
 
   /**
-   * Generate a UUIDv4
+   * Generate a cryptographically secure UUIDv4
+   * Uses Node.js crypto.randomUUID() (available since Node.js 15.7.0)
    */
   private generateUUID(): string {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
+    // crypto.randomUUID() is available in Node.js 15.7.0+
+    // It provides cryptographically secure random UUID generation
+    // for production-grade unique identifiers
+    return crypto.randomUUID();
   }
 
   /**

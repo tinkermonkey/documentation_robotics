@@ -317,6 +317,40 @@ const workdir = await createTestWorkdir(); // Cloned from golden copy
 - **Golden copy helper**: `cli/tests/helpers/golden-copy.ts`
 - **Auto-initialized**: Via `cli/tests/setup.ts` (preloaded by Bun)
 
+### Specification Validation Strategy
+
+**Validation Layers** (Pre-commit + CI):
+
+1. **Pre-commit Hooks** (Local Developer Workflow)
+   - **JSON Schema Syntax**: Pre-commit validates all `spec/schemas/**/*.schema.json` files use valid JSON schema syntax via `check-jsonschema`
+   - **Markdown Linting**: Pre-commit lints all layer documentation and schema-related markdown files
+   - **TypeScript Type Checking**: Pre-commit validates CLI TypeScript code for type safety
+   - **File Integrity**: Pre-commit checks for trailing whitespace, CRLF line endings, and other basic file hygiene
+   - **Purpose**: Catch structural issues early before committing broken specs
+
+2. **CI Pipeline Validation** (`.github/workflows/cli-tests.yml` - `spec-validation` job)
+   - **Schema Syntax Validation**: All 354 node schemas + 252 relationship schemas validated for valid JSON
+   - **Markdown Validation**: Layer specifications markdown linting
+   - **Cross-validation**: CLI schema bundling checked against spec schema source via `dr validate --schemas`
+   - **Purpose**: Ensure specs remain valid throughout development, prevent broken commits from reaching main
+
+3. **CLI Validation Commands** (Runtime)
+   - `dr validate --schemas`: Cross-validates spec schemas with CLI bundled schemas
+   - Provides immediate feedback when working with models
+
+**Key Points**:
+
+- **Pre-commit prevents broken local commits** — catches file format/syntax errors
+- **CI validates spec correctness** — runs comprehensive schema validation on all PRs/merges
+- **Removed hooks**: `validate-markdown-specs` and `validate-relationship-catalog` were custom pre-commit hooks; their validation is now performed by the CI pipeline's `spec-validation` job for more comprehensive and maintainable validation
+- **Why moved to CI**:
+  - Custom validation logic is fragile when maintained in pre-commit hooks
+  - Schema validation needs to check 606 files; better suited for CI where it runs on all PRs
+  - Single source of truth (CI) is easier to debug and maintain
+  - Developers get better feedback with CI logs than pre-commit errors
+- **If you modify specs**: Changes are validated automatically when you push to PR; no need for manual validation
+- **If validation fails**: Check the CI logs in the `spec-validation` job for detailed error messages
+
 ## Standards
 
 - **ArchiMate 3.2** - Layers 1, 2, 4, 5
