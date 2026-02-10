@@ -37,10 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "source",
-        "target"
-      ],
+      "required": ["source", "target"],
       "additionalProperties": false
     }
   }

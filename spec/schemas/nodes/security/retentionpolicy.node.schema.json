@@ -34,9 +34,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "period"
-      ],
+      "required": ["period"],
       "additionalProperties": false
     }
   }

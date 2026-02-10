@@ -41,9 +41,7 @@
           "description": "Source code reference for trace configuration"
         }
       },
-      "required": [
-        "serviceName"
-      ],
+      "required": ["serviceName"],
       "additionalProperties": false
     }
   }

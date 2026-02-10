@@ -37,10 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "to",
-        "trigger"
-      ],
+      "required": ["to", "trigger"],
       "additionalProperties": false
     }
   }

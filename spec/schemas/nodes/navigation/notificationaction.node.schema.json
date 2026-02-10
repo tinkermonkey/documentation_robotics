@@ -37,11 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "type",
-        "template",
-        "recipients"
-      ],
+      "required": ["type", "template", "recipients"],
       "additionalProperties": false
     }
   }

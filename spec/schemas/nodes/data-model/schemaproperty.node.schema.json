@@ -64,15 +64,7 @@
           "description": "ConstraintType classification"
         }
       },
-      "required": [
-        "type",
-        "title",
-        "format",
-        "default",
-        "enum",
-        "const",
-        "examples"
-      ],
+      "required": ["type", "title", "format", "default", "enum", "const", "examples"],
       "additionalProperties": false
     }
   }

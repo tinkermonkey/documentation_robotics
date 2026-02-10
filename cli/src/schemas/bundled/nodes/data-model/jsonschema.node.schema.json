@@ -33,11 +33,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "$schema",
-        "$id",
-        "type"
-      ],
+      "required": ["$schema", "$id", "type"],
       "additionalProperties": false
     }
   }

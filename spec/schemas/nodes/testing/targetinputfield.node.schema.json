@@ -40,10 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "fieldRef",
-        "partitionRef"
-      ],
+      "required": ["fieldRef", "partitionRef"],
       "additionalProperties": false
     }
   }

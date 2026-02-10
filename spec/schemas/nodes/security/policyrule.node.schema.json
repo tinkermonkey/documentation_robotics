@@ -45,10 +45,7 @@
           "description": "Source code reference"
         }
       },
-      "required": [
-        "condition",
-        "effect"
-      ],
+      "required": ["condition", "effect"],
       "additionalProperties": false
     }
   }

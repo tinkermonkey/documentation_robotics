@@ -31,9 +31,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "schemaRef"
-      ],
+      "required": ["schemaRef"],
       "additionalProperties": false
     }
   }

@@ -40,11 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "reason",
-        "riskAccepted",
-        "approvedBy"
-      ],
+      "required": ["reason", "riskAccepted", "approvedBy"],
       "additionalProperties": false
     }
   }

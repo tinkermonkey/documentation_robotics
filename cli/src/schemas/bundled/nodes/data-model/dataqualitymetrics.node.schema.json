@@ -27,9 +27,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "schemaRef"
-      ],
+      "required": ["schemaRef"],
       "additionalProperties": false
     }
   }

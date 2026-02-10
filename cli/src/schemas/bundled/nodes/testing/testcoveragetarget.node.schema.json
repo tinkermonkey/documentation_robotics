@@ -53,9 +53,7 @@
           "description": "Source code reference for the artifact requiring test coverage"
         }
       },
-      "required": [
-        "targetType"
-      ],
+      "required": ["targetType"],
       "additionalProperties": false
     }
   }

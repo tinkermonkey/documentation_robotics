@@ -42,9 +42,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "message"
-      ],
+      "required": ["message"],
       "additionalProperties": false
     }
   }

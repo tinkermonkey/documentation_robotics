@@ -42,9 +42,7 @@
           "description": "Source code reference to the test case implementation"
         }
       },
-      "required": [
-        "status"
-      ],
+      "required": ["status"],
       "additionalProperties": false
     }
   }

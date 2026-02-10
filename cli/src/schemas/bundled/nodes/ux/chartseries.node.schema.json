@@ -40,10 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "label",
-        "dataField"
-      ],
+      "required": ["label", "dataField"],
       "additionalProperties": false
     }
   }

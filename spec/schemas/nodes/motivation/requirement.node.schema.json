@@ -41,10 +41,7 @@
           "description": "Cross-layer properties"
         }
       },
-      "required": [
-        "requirementType",
-        "priority"
-      ],
+      "required": ["requirementType", "priority"],
       "additionalProperties": false
     }
   }

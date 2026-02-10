@@ -40,11 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "summary",
-        "value",
-        "externalValue"
-      ],
+      "required": ["summary", "value", "externalValue"],
       "additionalProperties": false
     }
   }

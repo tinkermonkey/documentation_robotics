@@ -44,11 +44,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "from",
-        "to",
-        "trigger"
-      ],
+      "required": ["from", "to", "trigger"],
       "additionalProperties": false
     }
   }

@@ -106,20 +106,20 @@ See `cli/README.md` for complete setup and usage documentation.
 
 **Internal Layer Names** - The CLI uses canonical **hyphenated, lowercase layer names** for all internal references:
 
-| Layer | Canonical Name | Layer Instance                   | Notes                                                |
-| ----- | -------------- | -------------------------------- | ---------------------------------------------------- |
-| 1     | `motivation`   | `01-motivation.layer.json`       | Single word, no hyphen                               |
-| 2     | `business`     | `02-business.layer.json`         | Single word, no hyphen                               |
-| 3     | `security`     | `03-security.layer.json`         | Single word, no hyphen                               |
-| 4     | `application`  | `04-application.layer.json`      | Single word, no hyphen                               |
-| 5     | `technology`   | `05-technology.layer.json`       | Single word, no hyphen                               |
-| 6     | `api`          | `06-api.layer.json`              | Single word, no hyphen                               |
-| 7     | `data-model`   | `07-data-model.layer.json`       | **Hyphenated** - use `data-model`, not `data_model`  |
-| 8     | `data-store`   | `08-data-store.layer.json`       | **Hyphenated** - use `data-store`, not `datastore`   |
-| 9     | `ux`           | `09-ux.layer.json`               | Single word, no hyphen                               |
-| 10    | `navigation`   | `10-navigation.layer.json`       | Single word, no hyphen                               |
-| 11    | `apm`          | `11-apm.layer.json`              | **Short form internally** - schema uses full name    |
-| 12    | `testing`      | `12-testing.layer.json`          | Single word, no hyphen                               |
+| Layer | Canonical Name | Layer Instance              | Notes                                               |
+| ----- | -------------- | --------------------------- | --------------------------------------------------- |
+| 1     | `motivation`   | `01-motivation.layer.json`  | Single word, no hyphen                              |
+| 2     | `business`     | `02-business.layer.json`    | Single word, no hyphen                              |
+| 3     | `security`     | `03-security.layer.json`    | Single word, no hyphen                              |
+| 4     | `application`  | `04-application.layer.json` | Single word, no hyphen                              |
+| 5     | `technology`   | `05-technology.layer.json`  | Single word, no hyphen                              |
+| 6     | `api`          | `06-api.layer.json`         | Single word, no hyphen                              |
+| 7     | `data-model`   | `07-data-model.layer.json`  | **Hyphenated** - use `data-model`, not `data_model` |
+| 8     | `data-store`   | `08-data-store.layer.json`  | **Hyphenated** - use `data-store`, not `datastore`  |
+| 9     | `ux`           | `09-ux.layer.json`          | Single word, no hyphen                              |
+| 10    | `navigation`   | `10-navigation.layer.json`  | Single word, no hyphen                              |
+| 11    | `apm`          | `11-apm.layer.json`         | **Short form internally** - schema uses full name   |
+| 12    | `testing`      | `12-testing.layer.json`     | Single word, no hyphen                              |
 
 **Key Rules**:
 
@@ -194,6 +194,7 @@ Federated architecture model spanning 12 interconnected layers:
 **CRITICAL**: Schema changes require updating BOTH `spec/schemas/` and `cli/src/schemas/bundled/`.
 
 This applies to:
+
 - **Base schemas** in `base/` (e.g., `spec-node.schema.json`)
 - **Common schemas** in `common/` (e.g., `attribute-spec.schema.json`, `source-references.schema.json`)
 - **Layer schemas** (e.g., `01-motivation-layer.schema.json`)
@@ -308,7 +309,7 @@ Tests use a shared golden copy pattern for fast, isolated test directories:
 ```typescript
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 
-const workdir = await createTestWorkdir();  // Cloned from golden copy
+const workdir = await createTestWorkdir(); // Cloned from golden copy
 // ... use workdir.path, call workdir.cleanup in afterEach
 ```
 

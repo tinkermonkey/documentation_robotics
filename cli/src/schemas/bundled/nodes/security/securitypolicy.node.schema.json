@@ -48,10 +48,7 @@
           "description": "Source code reference"
         }
       },
-      "required": [
-        "priority",
-        "target"
-      ],
+      "required": ["priority", "target"],
       "additionalProperties": false
     }
   }

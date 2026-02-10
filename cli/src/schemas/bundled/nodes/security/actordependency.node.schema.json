@@ -40,12 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "dependee",
-        "resource",
-        "objective",
-        "criticality"
-      ],
+      "required": ["dependee", "resource", "objective", "criticality"],
       "additionalProperties": false
     }
   }

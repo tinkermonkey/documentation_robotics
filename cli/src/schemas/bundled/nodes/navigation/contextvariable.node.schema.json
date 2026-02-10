@@ -40,11 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "schemaRef",
-        "scope",
-        "persistedIn"
-      ],
+      "required": ["schemaRef", "scope", "persistedIn"],
       "additionalProperties": false
     }
   }

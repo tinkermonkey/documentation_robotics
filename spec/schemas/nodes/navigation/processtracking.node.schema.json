@@ -40,11 +40,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "processInstanceId",
-        "timeoutMinutes",
-        "stateCheckpoint"
-      ],
+      "required": ["processInstanceId", "timeoutMinutes", "stateCheckpoint"],
       "additionalProperties": false
     }
   }

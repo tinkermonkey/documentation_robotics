@@ -34,10 +34,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "version",
-        "application"
-      ],
+      "required": ["version", "application"],
       "additionalProperties": false
     }
   }

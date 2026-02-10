@@ -36,12 +36,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "resource",
-        "objective",
-        "message",
-        "justificationRequired"
-      ],
+      "required": ["resource", "objective", "message", "justificationRequired"],
       "additionalProperties": false
     }
   }

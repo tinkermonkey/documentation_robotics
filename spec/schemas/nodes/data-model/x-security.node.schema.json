@@ -39,14 +39,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "pii",
-        "encrypted",
-        "classification",
-        "retention",
-        "masking",
-        "redaction"
-      ],
+      "required": ["pii", "encrypted", "classification", "retention", "masking", "redaction"],
       "additionalProperties": false
     }
   }

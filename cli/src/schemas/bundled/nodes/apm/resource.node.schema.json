@@ -38,9 +38,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "droppedAttributesCount"
-      ],
+      "required": ["droppedAttributesCount"],
       "additionalProperties": false
     }
   }

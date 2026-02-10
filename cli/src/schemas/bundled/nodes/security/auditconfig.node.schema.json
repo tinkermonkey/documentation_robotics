@@ -47,10 +47,7 @@
           "description": "Source code reference"
         }
       },
-      "required": [
-        "level",
-        "sanitizeFields"
-      ],
+      "required": ["level", "sanitizeFields"],
       "additionalProperties": false
     }
   }

@@ -40,10 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "type",
-        "endpoint"
-      ],
+      "required": ["type", "endpoint"],
       "additionalProperties": false
     }
   }

@@ -34,10 +34,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "serviceName",
-        "logLevel"
-      ],
+      "required": ["serviceName", "logLevel"],
       "additionalProperties": false
     }
   }

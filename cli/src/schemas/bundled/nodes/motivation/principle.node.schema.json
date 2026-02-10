@@ -38,9 +38,7 @@
           "description": "Cross-layer properties"
         }
       },
-      "required": [
-        "category"
-      ],
+      "required": ["category"],
       "additionalProperties": false
     }
   }

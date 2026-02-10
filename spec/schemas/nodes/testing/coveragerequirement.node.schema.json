@@ -53,9 +53,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "coverageCriteria"
-      ],
+      "required": ["coverageCriteria"],
       "additionalProperties": false
     }
   }

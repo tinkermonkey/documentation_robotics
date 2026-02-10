@@ -40,12 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "operationId",
-        "method",
-        "endpoint",
-        "baseUrl"
-      ],
+      "required": ["operationId", "method", "endpoint", "baseUrl"],
       "additionalProperties": false
     }
   }

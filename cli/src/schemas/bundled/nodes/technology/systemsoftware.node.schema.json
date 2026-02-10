@@ -42,9 +42,7 @@
           "description": "Source code reference"
         }
       },
-      "required": [
-        "softwareType"
-      ],
+      "required": ["softwareType"],
       "additionalProperties": false
     }
   }

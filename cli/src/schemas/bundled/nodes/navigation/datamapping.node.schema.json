@@ -40,11 +40,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "source",
-        "target",
-        "transform"
-      ],
+      "required": ["source", "target", "transform"],
       "additionalProperties": false
     }
   }

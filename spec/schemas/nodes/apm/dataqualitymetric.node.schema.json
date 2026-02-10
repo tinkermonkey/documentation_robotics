@@ -39,11 +39,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "type",
-        "measurement",
-        "threshold"
-      ],
+      "required": ["type", "measurement", "threshold"],
       "additionalProperties": false
     }
   }

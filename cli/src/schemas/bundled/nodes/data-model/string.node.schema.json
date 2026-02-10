@@ -49,9 +49,7 @@
           "description": "StringFormat classification"
         }
       },
-      "required": [
-        "value"
-      ],
+      "required": ["value"],
       "additionalProperties": false
     }
   }

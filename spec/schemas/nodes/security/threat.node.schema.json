@@ -48,11 +48,7 @@
           "description": "Source code reference"
         }
       },
-      "required": [
-        "threatens",
-        "likelihood",
-        "impact"
-      ],
+      "required": ["threatens", "likelihood", "impact"],
       "additionalProperties": false
     }
   }

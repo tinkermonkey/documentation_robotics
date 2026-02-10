@@ -41,11 +41,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "totalTargets",
-        "totalRequirements",
-        "totalSketches"
-      ],
+      "required": ["totalTargets", "totalRequirements", "totalSketches"],
       "additionalProperties": false
     }
   }

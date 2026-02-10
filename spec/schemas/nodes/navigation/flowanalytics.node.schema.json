@@ -37,10 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "funnelMetrics",
-        "conversionGoal"
-      ],
+      "required": ["funnelMetrics", "conversionGoal"],
       "additionalProperties": false
     }
   }
