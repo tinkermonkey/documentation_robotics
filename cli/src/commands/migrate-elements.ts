@@ -11,6 +11,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { ElementMigration } from "../utils/element-migration.js";
+import { CLIError, ErrorCategory } from "../utils/errors.js";
 
 export async function migrateElementsCommand(options: {
   dryRun?: boolean;
@@ -102,20 +103,24 @@ export async function migrateElementsCommand(options: {
           );
           console.error(ansis.red(`  Manual recovery needed from backup at: ${backupPath}`));
         }
-        process.exit(1);
+        throw new CLIError(
+          `Migration failed to save changes: ${error instanceof Error ? error.message : String(error)}`,
+          ErrorCategory.SYSTEM,
+          [`Check backup at: ${backupPath}`]
+        );
       }
     } else if (options.dryRun) {
       console.log(ansis.yellow(`✓ Dry run complete (no changes saved)`));
     } else {
-      console.log(
-        ansis.red(`✗ Migration failed with ${result.errors.length} errors. No changes saved.`)
+      throw new CLIError(
+        `Migration failed with ${result.errors.length} errors. No changes saved.`,
+        ErrorCategory.SYSTEM,
+        result.errors.slice(0, 5)
       );
-      process.exit(1);
     }
 
     console.log();
   } catch (error) {
-    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
-    process.exit(1);
+    throw error;
   }
 }
