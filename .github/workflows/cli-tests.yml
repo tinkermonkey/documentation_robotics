@@ -42,7 +42,7 @@ jobs:
 
       - name: Build CLI
         working-directory: ./cli
-        run: npm run build
+        run: npm run build:ci
 
       - name: Run linting
         working-directory: ./cli
@@ -90,7 +90,7 @@ jobs:
 
       - name: Build CLI
         working-directory: ./cli
-        run: npm run build
+        run: npm run build:ci
 
       - name: Run linting
         working-directory: ./cli
@@ -302,5 +302,5 @@ jobs:
         working-directory: ./cli
         run: |
           npm install
-          npm run build
+          npm run build:ci
           node dist/cli.js validate --schemas

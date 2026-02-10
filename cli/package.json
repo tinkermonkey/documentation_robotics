@@ -15,6 +15,7 @@
   "scripts": {
     "build": "bash scripts/sync-spec-schemas.sh && bun scripts/generate-registry.ts && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
     "build:debug": "bash scripts/sync-spec-schemas.sh && bun scripts/generate-registry.ts && bun scripts/generate-validators.ts && tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",
+    "build:ci": "bash scripts/sync-spec-schemas.sh && bun scripts/generate-registry.ts --strict && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
     "sync-schemas": "bash scripts/sync-spec-schemas.sh",
     "copy-schemas": "cp -r src/schemas dist/",
     "dev": "node dist/cli.js",

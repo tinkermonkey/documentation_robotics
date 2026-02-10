@@ -83,42 +83,33 @@ export class Element implements IElement {
   /**
    * Detect if data is in legacy format
    *
-   * Legacy format detection validates presence of ALL required spec-aligned fields rather than
-   * just checking for the absence of one field. This prevents false positives where a valid
-   * new-format element with a dotted ID would be incorrectly classified as legacy.
+   * An element is considered LEGACY FORMAT if it has:
+   * - elementId field (legacy semantic identifier) — checked FIRST to catch mixed-format elements
+   * - OR id as dotted format (e.g., "motivation.goal.example")
    *
-   * An element is considered NEW FORMAT if it has:
-   * - spec_node_id (required for spec alignment)
-   * - id (UUID identifier)
-   * - layer_id and type (spec-required fields)
-   * - name (spec-required field)
+   * This check is performed FIRST (before checking spec alignment) because during migration,
+   * an element might have BOTH elementId (legacy) AND spec_node_id (newly added). Without
+   * checking elementId first, such mixed-format elements would incorrectly be classified as
+   * new format, causing the semantic elementId information to be lost.
    *
-   * Otherwise it's LEGACY FORMAT (has old elementId field or dotted ID as fallback)
+   * Migration ensures elements transition from:
+   * - Legacy: { elementId: "...", id: "dotted.id", properties: {...} }
+   * - To New: { spec_node_id: "...", id: "uuid", layer_id: "...", type: "...", ... }
    */
   private isLegacyFormat(data: any): boolean {
-    // Check if this looks like new format: has spec_node_id and spec-aligned structure
-    const hasSpecNodeId = data.spec_node_id && typeof data.spec_node_id === "string";
-    const hasSpecAlignedStructure =
-      hasSpecNodeId &&
-      data.id &&
-      typeof data.id === "string" &&
-      data.layer_id &&
-      typeof data.layer_id === "string" &&
-      data.type &&
-      typeof data.type === "string" &&
-      data.name &&
-      typeof data.name === "string";
-
-    // If it has all required spec-aligned fields, it's new format
-    if (hasSpecAlignedStructure) {
-      return false;
+    // CRITICAL: Check for elementId FIRST, even if spec-aligned fields are present
+    // This catches mixed-format elements during migration where both might be present
+    if (data.elementId) {
+      return true;
     }
 
-    // Otherwise, it's legacy format (has elementId or dotted ID as semantic ID)
-    return (
-      data.elementId ||
-      (data.id && typeof data.id === "string" && data.id.includes("."))
-    );
+    // Check for legacy dotted ID format
+    if (data.id && typeof data.id === "string" && data.id.includes(".")) {
+      return true;
+    }
+
+    // Otherwise it's new format
+    return false;
   }
 
   /**
