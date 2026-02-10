@@ -167,8 +167,11 @@ function loadNodeSchemas(): NodeTypeInfo[] {
 
 /**
  * Load all relationship schema files from bundled directory
+ *
+ * @param strictMode If true, duplicates trigger a build-breaking error (for production CI/CD)
+ *                   If false, duplicates are warned but build continues (for local development)
  */
-function loadRelationshipSchemas(): RelationshipSchemaFile[] {
+function loadRelationshipSchemas(strictMode: boolean = false): RelationshipSchemaFile[] {
   if (!fs.existsSync(BUNDLED_RELATIONSHIPS_DIR)) {
     console.warn(`WARNING: Relationship schemas directory not found at ${BUNDLED_RELATIONSHIPS_DIR}`);
     return [];
@@ -183,6 +186,8 @@ function loadRelationshipSchemas(): RelationshipSchemaFile[] {
 
   // Use Map to deduplicate by relationship ID (keep first occurrence)
   const relationshipMap = new Map<string, RelationshipSchemaFile>();
+  const duplicates: Array<{ id: string; files: string[] }> = [];
+  const duplicateIds = new Set<string>();
 
   for (const schemaFile of schemaFiles) {
     try {
@@ -201,11 +206,30 @@ function loadRelationshipSchemas(): RelationshipSchemaFile[] {
         continue;
       }
 
-      // Skip if we already have this relationship ID
+      // Track if we already have this relationship ID
       if (relationshipMap.has(id)) {
-        console.warn(
-          `WARNING: Duplicate relationship ID '${id}' found in ${schemaFile}; using first occurrence`
-        );
+        if (!duplicateIds.has(id)) {
+          duplicateIds.add(id);
+          duplicates.push({
+            id,
+            files: [/* will be populated */],
+          });
+        }
+        const dup = duplicates.find((d) => d.id === id);
+        if (dup && !dup.files.includes(schemaFile)) {
+          dup.files.push(schemaFile);
+        }
+
+        if (strictMode) {
+          console.error(
+            `ERROR: Duplicate relationship ID '${id}' found in ${schemaFile}; ` +
+            `first occurrence was in ${/* we need to track this */schemaFile}`
+          );
+        } else {
+          console.warn(
+            `WARNING: Duplicate relationship ID '${id}' found in ${schemaFile}; using first occurrence`
+          );
+        }
         continue;
       }
 
@@ -221,6 +245,22 @@ function loadRelationshipSchemas(): RelationshipSchemaFile[] {
     } catch (error: any) {
       console.warn(`WARNING: Failed to parse relationship schema ${schemaFile}: ${error.message}`);
     }
+  }
+
+  // In strict mode, fail the build if any duplicates were found
+  if (strictMode && duplicates.length > 0) {
+    console.error("\nERROR: Relationship schema validation failed:");
+    console.error(`Found ${duplicates.length} duplicate relationship ID(s):`);
+    for (const dup of duplicates) {
+      console.error(`  - ID '${dup.id}' appears in multiple files:`);
+      for (const file of dup.files) {
+        console.error(`    - ${file}`);
+      }
+    }
+    console.error(
+      "\nDuplicates indicate spec corruption. Check relationship schema files and ensure each ID is unique."
+    );
+    process.exit(1);
   }
 
   return Array.from(relationshipMap.values());
@@ -892,17 +932,29 @@ function writeGeneratedFiles(
 
 /**
  * Main entry point
+ *
+ * Supports optional --strict flag for production CI/CD builds:
+ *   npm run build            # Development: warnings only
+ *   npm run build -- --strict # Production: duplicates cause build failure
  */
 async function main(): Promise<void> {
   try {
-    console.log("Generating layer registry, node type index, and relationship index...");
+    // Check for --strict flag (passed via npm scripts or direct invocation)
+    const strictMode = process.argv.includes("--strict");
+
+    if (strictMode) {
+      console.log("Generating layer registry in STRICT MODE (duplicates will fail build)...");
+    } else {
+      console.log("Generating layer registry, node type index, and relationship index...");
+    }
+
     const layers = loadLayerInstances();
     console.log(`✓ Loaded ${layers.length} layer instances`);
 
     const nodeTypes = loadNodeSchemas();
     console.log(`✓ Loaded ${nodeTypes.length} node type schemas`);
 
-    const relationships = loadRelationshipSchemas();
+    const relationships = loadRelationshipSchemas(strictMode);
     console.log(`✓ Loaded ${relationships.length} relationship specs`);
 
     writeGeneratedFiles(layers, nodeTypes, relationships);

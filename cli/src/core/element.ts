@@ -82,16 +82,42 @@ export class Element implements IElement {
 
   /**
    * Detect if data is in legacy format
-   * Legacy format has either:
-   * - elementId field (old semantic ID)
-   * - id that looks like a semantic ID (contains dots)
-   * - No spec_node_id field
-   * - properties instead of attributes as the main property container
+   *
+   * Legacy format detection validates presence of ALL required spec-aligned fields rather than
+   * just checking for the absence of one field. This prevents false positives where a valid
+   * new-format element with a dotted ID would be incorrectly classified as legacy.
+   *
+   * An element is considered NEW FORMAT if it has:
+   * - spec_node_id (required for spec alignment)
+   * - id (UUID identifier)
+   * - layer_id and type (spec-required fields)
+   * - name (spec-required field)
+   *
+   * Otherwise it's LEGACY FORMAT (has old elementId field or dotted ID as fallback)
    */
   private isLegacyFormat(data: any): boolean {
+    // Check if this looks like new format: has spec_node_id and spec-aligned structure
+    const hasSpecNodeId = data.spec_node_id && typeof data.spec_node_id === "string";
+    const hasSpecAlignedStructure =
+      hasSpecNodeId &&
+      data.id &&
+      typeof data.id === "string" &&
+      data.layer_id &&
+      typeof data.layer_id === "string" &&
+      data.type &&
+      typeof data.type === "string" &&
+      data.name &&
+      typeof data.name === "string";
+
+    // If it has all required spec-aligned fields, it's new format
+    if (hasSpecAlignedStructure) {
+      return false;
+    }
+
+    // Otherwise, it's legacy format (has elementId or dotted ID as semantic ID)
     return (
-      !data.spec_node_id &&
-      (data.elementId || (data.id && typeof data.id === "string" && data.id.includes(".")))
+      data.elementId ||
+      (data.id && typeof data.id === "string" && data.id.includes("."))
     );
   }
 
@@ -108,6 +134,16 @@ export class Element implements IElement {
     const semanticId = data.elementId || (isSemanticId ? data.id : null);
     if (semanticId) {
       const parts = semanticId.split(".");
+
+      // Validate semantic ID format: must be exactly 3 dot-separated parts (layer.type.name)
+      if (parts.length !== 3) {
+        throw new Error(
+          `Invalid semantic ID format '${semanticId}': ` +
+          `expected format '{layer}.{type}.{name}' with exactly 3 dot-separated parts, ` +
+          `but got ${parts.length} parts [${parts.map((p) => `'${p}'`).join(", ")}]`
+        );
+      }
+
       this.layer_id = parts[0];
       this.type = parts[1];
       this.elementId = semanticId;
