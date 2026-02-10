@@ -8,9 +8,6 @@ import type {
   SourceReference,
 } from "../types/index.js";
 
-// Use crypto.randomUUID for secure random identifier generation
-const crypto = { randomUUID };
-
 /**
  * Type guard to check if a value is a SourceReference
  * Safely validates the structure of source reference data without unsafe assertions
@@ -225,10 +222,10 @@ export class Element implements IElement {
    * Uses Node.js crypto.randomUUID() (available since Node.js 15.7.0)
    */
   private generateUUID(): string {
-    // crypto.randomUUID() is available in Node.js 15.7.0+
+    // randomUUID() is available in Node.js 15.7.0+
     // It provides cryptographically secure random UUID generation
     // for production-grade unique identifiers
-    return crypto.randomUUID();
+    return randomUUID();
   }
 
   /**
