@@ -56,7 +56,14 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     }
 
     const layer = (await model.getLayer(layerName))!;
-    const element = layer.getElement(id)!;
+    const element = layer.getElement(id);
+
+    if (!element) {
+      throw new CLIError(`Element ${id} not found`, ErrorCategory.USER, [
+        `Use "dr search ${id}" to find similar elements`,
+        'Use "dr list <layer>" to list all elements in a layer',
+      ]);
+    }
 
     // Build reference registry to track dependencies
     const registry = new ReferenceRegistry();

@@ -170,9 +170,23 @@ export class Layer {
 
   /**
    * Get an element by ID from the graph
+   * Supports both UUID and semantic ID (for backward compatibility)
    */
   getElement(id: string): Element | undefined {
-    const node = this.graph.nodes.get(id);
+    // First try direct UUID lookup
+    let node = this.graph.nodes.get(id);
+
+    // If not found by UUID and ID looks like a semantic ID (contains dots),
+    // search by elementId property for backward compatibility
+    if (!node && id.includes(".")) {
+      for (const candidate of this.graph.nodes.values()) {
+        if (candidate.layer === this.name && candidate.properties["__elementId__"] === id) {
+          node = candidate;
+          break;
+        }
+      }
+    }
+
     if (!node || node.layer !== this.name) {
       return undefined;
     }
