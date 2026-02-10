@@ -15,6 +15,7 @@ This document provides comprehensive documentation requirements for refactoring 
 **Documentation Scope:** Five documentation categories covering API references, user guides, developer documentation, system architecture, and operations procedures for the refactored CLI.
 
 **Key Documentation Deliverables:**
+
 - API reference documentation for generated registries and validators
 - User guides for new validation commands and workflows
 - Developer guides for schema-driven development patterns
@@ -73,9 +74,9 @@ interface LayerMetadata {
 
   /** Source standard metadata (if applicable) */
   inspiredBy?: {
-    standard: string;    // "ArchiMate", "OpenAPI", "JSON Schema", etc.
-    version: string;     // "3.2", "3.0", "draft-07", etc.
-    url?: string;        // URL to standard specification
+    standard: string; // "ArchiMate", "OpenAPI", "JSON Schema", etc.
+    version: string; // "3.2", "3.0", "draft-07", etc.
+    url?: string; // URL to standard specification
   };
 }
 ```
@@ -161,7 +162,7 @@ import {
   getLayerById,
   getAllLayerIds,
   isValidLayer,
-  getNodeTypesForLayer
+  getNodeTypesForLayer,
 } from "../generated/layer-registry.js";
 
 // Example 1: Validate user input
@@ -175,7 +176,9 @@ function validateLayerInput(userInput: string): void {
 // Example 2: Get layer metadata
 const dataStoreLayer = getLayerById("data-store");
 console.log(`Layer ${dataStoreLayer.number}: ${dataStoreLayer.name}`);
-console.log(`Standard: ${dataStoreLayer.inspiredBy?.standard} ${dataStoreLayer.inspiredBy?.version}`);
+console.log(
+  `Standard: ${dataStoreLayer.inspiredBy?.standard} ${dataStoreLayer.inspiredBy?.version}`
+);
 
 // Example 3: Discover valid node types
 const nodeTypes = getNodeTypesForLayer("motivation");
@@ -200,6 +203,7 @@ console.log(`Valid node types for motivation layer: ${nodeTypes.join(", ")}`);
   - Compile-time validation of layer references in CLI code
 
 **Maintenance Notes:**
+
 - Adding a new layer requires only spec changes, no CLI code changes
 - Layer metadata changes propagate automatically on next build
 - Breaking changes to layer structure require CLI rebuild and testing
@@ -236,15 +240,8 @@ export type LayerId =
  * Union type of all unique node type identifiers.
  * Generated from spec/schemas/nodes/**\/*.node.schema.json
  */
-export type NodeType =
-  | "goal"
-  | "requirement"
-  | "stakeholder"
-  | "service"
-  | "endpoint"
-  | "entity"
-  // ... all 354 unique type identifiers
-  ;
+export type NodeType = "goal" | "requirement" | "stakeholder" | "service" | "endpoint" | "entity";
+// ... all 354 unique type identifiers
 
 /**
  * Union type of all 354 valid spec_node_id values.
@@ -255,9 +252,8 @@ export type SpecNodeId =
   | "motivation.requirement"
   | "business.service"
   | "api.endpoint"
-  | "data-model.entity"
-  // ... all 354 combinations
-  ;
+  | "data-model.entity";
+// ... all 354 combinations
 
 /**
  * Metadata for a specific node type extracted from its JSON schema.
@@ -350,11 +346,15 @@ import {
   getNodeType,
   getNodeTypesForLayer,
   isValidNodeType,
-  SpecNodeId
+  SpecNodeId,
 } from "../generated/node-types.js";
 
 // Example 1: Type-safe element creation
-function createElement(specNodeId: SpecNodeId, name: string, attributes: Record<string, unknown>): void {
+function createElement(
+  specNodeId: SpecNodeId,
+  name: string,
+  attributes: Record<string, unknown>
+): void {
   const nodeType = getNodeType(specNodeId);
 
   // Validate required attributes
@@ -374,9 +374,9 @@ function buildElementForm(specNodeId: SpecNodeId): FormConfig {
   return {
     title: `Create ${nodeType.type}`,
     fields: [
-      ...nodeType.requiredAttributes.map(attr => ({ name: attr, required: true })),
-      ...nodeType.optionalAttributes.map(attr => ({ name: attr, required: false }))
-    ]
+      ...nodeType.requiredAttributes.map((attr) => ({ name: attr, required: true })),
+      ...nodeType.optionalAttributes.map((attr) => ({ name: attr, required: false })),
+    ],
   };
 }
 
@@ -386,7 +386,7 @@ function validateElementType(layer: string, type: string): void {
 
   if (!isValidNodeType(specNodeId)) {
     const validTypes = getNodeTypesForLayer(layer as LayerId)
-      .map(info => info.type)
+      .map((info) => info.type)
       .join(", ");
     throw new Error(`Invalid type "${type}" for layer "${layer}". Valid types: ${validTypes}`);
   }
@@ -533,10 +533,7 @@ export function getValidPredicates(sourceType: SpecNodeId): string[];
  * @param predicate - Relationship predicate
  * @returns Array of valid destination spec_node_ids
  */
-export function getValidDestinations(
-  sourceType: SpecNodeId,
-  predicate: string
-): SpecNodeId[];
+export function getValidDestinations(sourceType: SpecNodeId, predicate: string): SpecNodeId[];
 ```
 
 **Documentation Requirements:**
@@ -548,7 +545,7 @@ import {
   getValidRelationships,
   isValidRelationship,
   getValidPredicates,
-  getValidDestinations
+  getValidDestinations,
 } from "../generated/relationship-index.js";
 
 // Example 1: Validate relationship before creation
@@ -560,9 +557,7 @@ function createRelationship(
   destType: SpecNodeId
 ): void {
   if (!isValidRelationship(sourceType, predicate, destType)) {
-    throw new Error(
-      `Invalid relationship: ${sourceType} --[${predicate}]--> ${destType}`
-    );
+    throw new Error(`Invalid relationship: ${sourceType} --[${predicate}]--> ${destType}`);
   }
   // Create relationship...
 }
@@ -577,7 +572,9 @@ function suggestPredicates(sourceType: SpecNodeId): string[] {
 // Example 3: Filter destination types
 function getDestinationOptions(sourceType: SpecNodeId, predicate: string): SpecNodeId[] {
   const destinations = getValidDestinations(sourceType, predicate);
-  console.log(`Valid destinations for ${sourceType} --[${predicate}]--> : ${destinations.join(", ")}`);
+  console.log(
+    `Valid destinations for ${sourceType} --[${predicate}]--> : ${destinations.join(", ")}`
+  );
   return destinations;
 }
 
@@ -591,9 +588,11 @@ function validateCardinality(
   const spec = relationships[0]; // Assuming single match
 
   if (spec.cardinality === "one-to-one" || spec.cardinality === "many-to-one") {
-    const existing = existingRelationships.filter(r => r.predicate === predicate);
+    const existing = existingRelationships.filter((r) => r.predicate === predicate);
     if (existing.length > 0) {
-      throw new Error(`Cardinality violation: ${sourceType} can have only one "${predicate}" relationship`);
+      throw new Error(
+        `Cardinality violation: ${sourceType} can have only one "${predicate}" relationship`
+      );
     }
   }
 }
@@ -704,10 +703,7 @@ class RelationshipValidator {
    * @param model - Model for looking up source/destination elements
    * @returns ValidationResult
    */
-  async validateRelationship(
-    relationship: Relationship,
-    model: Model
-  ): Promise<ValidationResult>;
+  async validateRelationship(relationship: Relationship, model: Model): Promise<ValidationResult>;
 
   /**
    * Validate all relationships in the model.
@@ -1244,6 +1240,7 @@ npm run build
   - `relationship-index.ts`: Relationship registry with indexed lookups
 
 **Maintenance:**
+
 - Generated files are deterministic (same input → same output)
 - No manual edits (will be overwritten on next build)
 - Schema changes automatically propagate to generated code
@@ -1305,7 +1302,11 @@ cd cli && npm run build
 ```typescript
 // cli/tests/unit/generated/layer-registry.test.ts
 import { describe, it, expect } from "bun:test";
-import { getLayerById, getAllLayerIds, isValidLayer } from "../../../src/generated/layer-registry.js";
+import {
+  getLayerById,
+  getAllLayerIds,
+  isValidLayer,
+} from "../../../src/generated/layer-registry.js";
 
 describe("LayerRegistry", () => {
   it("should return all layer IDs", () => {
@@ -1451,30 +1452,35 @@ The schema-driven architecture operates in two phases:
 #### 4.2.2 Component Responsibilities
 
 **LayerRegistry (Generated):**
+
 - Provides layer metadata (ID, number, name, node types)
 - Validates layer IDs
 - Supports layer hierarchy navigation
 - Replaces hardcoded `VALID_LAYERS` arrays throughout codebase
 
 **NodeTypeIndex (Generated):**
+
 - Provides TypeScript union types for all 354 spec_node_ids
 - Metadata for each node type (required/optional attributes)
 - Type-safe element creation
 - Replaces hardcoded element type expectations
 
 **RelationshipIndex (Generated):**
+
 - Registry of all 252 valid relationship types
 - Indexed by source, predicate, destination for fast lookup
 - Supports relationship validation and suggestion
 - Enables cardinality constraint enforcement
 
 **SchemaValidator (Modified):**
+
 - Validates elements against spec node schemas
 - Uses pre-compiled AJV validators for base schemas
 - Lazy-loads per-type schemas for 354 node types
 - Reports validation errors with JSON paths
 
 **RelationshipValidator (New):**
+
 - Validates relationships against relationship schemas
 - Checks source/destination element existence
 - Validates source/destination types match schema
@@ -1492,13 +1498,14 @@ The schema-driven architecture operates in two phases:
 
 **Rationale:**
 
-| Approach | Pros | Cons | Selected |
-|----------|------|------|----------|
-| **Full runtime loading** | Simple, always fresh | Slow startup, disk I/O overhead | ❌ |
-| **Full build-time generation** | Zero runtime overhead | Large bundle size (606 schemas) | ❌ |
-| **Hybrid (registries + lazy loading)** | Fast startup, type safety, manageable bundle | Moderate complexity | ✅ |
+| Approach                               | Pros                                         | Cons                            | Selected |
+| -------------------------------------- | -------------------------------------------- | ------------------------------- | -------- |
+| **Full runtime loading**               | Simple, always fresh                         | Slow startup, disk I/O overhead | ❌       |
+| **Full build-time generation**         | Zero runtime overhead                        | Large bundle size (606 schemas) | ❌       |
+| **Hybrid (registries + lazy loading)** | Fast startup, type safety, manageable bundle | Moderate complexity             | ✅       |
 
 **Implementation:**
+
 - Generate registries at build time (layer metadata, node type index, relationship index)
 - Pre-compile base schemas (`spec-node.schema.json`, `spec-node-relationship.schema.json`)
 - Lazy-load per-type schemas (354 node + 252 relationship = 606 total)
@@ -1515,6 +1522,7 @@ The schema-driven architecture operates in two phases:
 - **Selected:** Copy to `cli/src/schemas/bundled/` → Simple, reliable, works offline
 
 **Implementation:**
+
 - `scripts/sync-spec-schemas.sh` copies schemas during build
 - Bundled schemas packaged with CLI distribution
 - CLI version controls which spec version it uses
@@ -1536,6 +1544,7 @@ The schema-driven architecture operates in two phases:
   - Preserve backward-compatible `id` field (semantic element ID)
 
 **Migration Path:**
+
 - Provide migration utility: `dr migrate elements`
 - Detect legacy format automatically
 - Generate UUIDs for elements lacking them
@@ -1685,18 +1694,22 @@ dr --version
 **Build Steps (Automated via `npm run build`):**
 
 1. **Schema Synchronization:**
+
    ```bash
    ./scripts/sync-spec-schemas.sh
    ```
+
    - Copies schemas from `spec/schemas/` to `cli/src/schemas/bundled/`
    - Copies layer instances from `spec/layers/` to `cli/src/schemas/bundled/layers/`
    - Creates directories if missing
    - Reports files synchronized
 
 2. **Code Generation:**
+
    ```bash
    bun run scripts/generate-registry.ts
    ```
+
    - Reads layer instances, node schemas, relationship schemas
    - Generates `cli/src/generated/layer-registry.ts`
    - Generates `cli/src/generated/node-types.ts`
@@ -1704,9 +1717,11 @@ dr --version
    - Reports schemas processed
 
 3. **TypeScript Compilation:**
+
    ```bash
    tsc
    ```
+
    - Compiles TypeScript including generated files
    - Outputs to `cli/dist/`
    - Reports compilation errors (if any)
@@ -1737,15 +1752,19 @@ node cli/dist/cli.js schema layers
 1. Edit schema file: `spec/schemas/nodes/{layer}/{type}.node.schema.json`
 2. Commit schema changes to spec repository
 3. Rebuild CLI:
+
    ```bash
    cd cli
    npm run build
    ```
+
 4. Test validation with updated schema:
+
    ```bash
    dr conformance
    npm test
    ```
+
 5. Commit updated CLI (if in same repository)
 
 **Updating Relationship Schemas:**
@@ -1753,6 +1772,7 @@ node cli/dist/cli.js schema layers
 1. Edit schema file: `spec/schemas/relationships/{layer}/{source}-{predicate}-{dest}.relationship.schema.json`
 2. Rebuild CLI: `npm run build`
 3. Test relationship validation:
+
    ```bash
    dr schema relationship <source_type>
    dr conformance
@@ -1765,6 +1785,7 @@ node cli/dist/cli.js schema layers
 3. Create node schemas: `spec/schemas/nodes/{layer}/*.node.schema.json`
 4. Rebuild CLI: `npm run build`
 5. Verify layer available:
+
    ```bash
    dr schema layers
    dr schema types {layer}
@@ -1781,10 +1802,10 @@ node cli/dist/cli.js schema layers
 
 **Version Compatibility Matrix:**
 
-| CLI Version | Spec Version | Status |
-|-------------|--------------|--------|
-| 0.1.x       | 0.8.0        | ✅ Current |
-| 0.2.x       | 0.8.0        | ✅ Forward compatible |
+| CLI Version | Spec Version | Status                     |
+| ----------- | ------------ | -------------------------- |
+| 0.1.x       | 0.8.0        | ✅ Current                 |
+| 0.2.x       | 0.8.0        | ✅ Forward compatible      |
 | 0.1.x       | 0.9.0        | ⚠️ May require CLI upgrade |
 
 **Checking Compatibility:**
@@ -1832,17 +1853,20 @@ dr stats --format json | jq '.validation'
 **Issue: Build Fails During Code Generation**
 
 **Symptoms:**
+
 ```
 Error: Failed to generate registry from schemas
 Schema validation error in spec/schemas/nodes/motivation/goal.node.schema.json
 ```
 
 **Diagnosis:**
+
 1. Check schema syntax: `cat spec/schemas/nodes/motivation/goal.node.schema.json | jq .`
 2. Validate schema structure (required fields: `spec_node_id`, `layer_id`, `type`)
 3. Check for circular dependencies in schema references
 
 **Resolution:**
+
 1. Fix schema JSON syntax
 2. Add missing required constraints
 3. Rebuild: `npm run build`
@@ -1852,6 +1876,7 @@ Schema validation error in spec/schemas/nodes/motivation/goal.node.schema.json
 **Issue: Element Fails Validation After CLI Upgrade**
 
 **Symptoms:**
+
 ```
 $ dr conformance
 ✗ Layer 06 (api): 1 element validated, 1 error
@@ -1862,15 +1887,20 @@ Errors:
 ```
 
 **Diagnosis:**
+
 1. Schema changed to require new attribute
 2. Existing elements lack new required field
 
 **Resolution:**
+
 1. Update element to include required attribute:
+
    ```bash
    dr update api.endpoint.create-user --properties '{"method":"POST"}'
    ```
+
 2. Or migrate elements automatically:
+
    ```bash
    dr migrate elements --dry-run
    dr migrate elements
@@ -1881,21 +1911,27 @@ Errors:
 **Issue: Relationship Creation Fails with "Invalid Relationship"**
 
 **Symptoms:**
+
 ```
 $ dr relationship add motivation.goal.x business.service.y --predicate triggers
 ✗ Error: Invalid relationship: motivation.goal does not support predicate "triggers"
 ```
 
 **Diagnosis:**
+
 1. Relationship combination not defined in schemas
 2. Predicate not valid for source type
 
 **Resolution:**
+
 1. Check valid predicates:
+
    ```bash
    dr schema relationship motivation.goal
    ```
+
 2. Use a valid predicate:
+
    ```bash
    dr relationship add motivation.goal.x business.service.y --predicate realizes
    ```
@@ -1950,10 +1986,12 @@ mv documentation-robotics.pre-migration documentation-robotics
 
 1. Verify schema syntax: `find spec/schemas -name "*.json" -exec jq . {} \;`
 2. Reset generated files:
+
    ```bash
    rm -rf cli/src/generated/*
    npm run build
    ```
+
 3. Check build logs for specific schema errors
 4. Fix schemas and rebuild
 
@@ -1970,6 +2008,7 @@ The documentation will be delivered in phases aligned with the implementation ph
 #### Phase 1: Foundation (Schema Synchronization & Layer Registry)
 
 **Deliverables:**
+
 - API Documentation:
   - LayerRegistry API Reference
   - Build system documentation for schema sync
@@ -1988,6 +2027,7 @@ The documentation will be delivered in phases aligned with the implementation ph
 #### Phase 2: Node Type Index
 
 **Deliverables:**
+
 - API Documentation:
   - NodeTypeIndex API Reference
   - Updated build system documentation
@@ -2007,6 +2047,7 @@ The documentation will be delivered in phases aligned with the implementation ph
 #### Phase 3: Relationship Index & Validation
 
 **Deliverables:**
+
 - API Documentation:
   - RelationshipIndex API Reference
   - RelationshipValidator API Reference
@@ -2026,6 +2067,7 @@ The documentation will be delivered in phases aligned with the implementation ph
 #### Phase 4: Element Structure Alignment
 
 **Deliverables:**
+
 - User Documentation:
   - Migration guide for schema-driven CLI
   - Element structure changes documentation
@@ -2044,6 +2086,7 @@ The documentation will be delivered in phases aligned with the implementation ph
 #### Phase 5: Pre-Compiled Validators
 
 **Deliverables:**
+
 - API Documentation:
   - Updated SchemaValidator API (pre-compiled validators)
 - Developer Documentation:
@@ -2060,6 +2103,7 @@ The documentation will be delivered in phases aligned with the implementation ph
 #### Phase 6: Developer Experience Enhancements
 
 **Deliverables:**
+
 - User Documentation:
   - Complete `dr schema` command suite reference
   - Enhanced validation workflow guides
@@ -2132,9 +2176,9 @@ The documentation will be delivered in phases aligned with the implementation ph
 
 ### Appendix A: Document Change Log
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2026-02-10 | Technical Writer | Initial comprehensive documentation analysis |
+| Version | Date       | Author           | Changes                                      |
+| ------- | ---------- | ---------------- | -------------------------------------------- |
+| 1.0     | 2026-02-10 | Technical Writer | Initial comprehensive documentation analysis |
 
 ### Appendix B: Related Documents
 
