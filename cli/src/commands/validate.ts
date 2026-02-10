@@ -35,6 +35,7 @@ export interface ValidateOptions {
  */
 /**
  * Recursively find all JSON schema files in a directory
+ * Excludes 'layers' subdirectory since layer instances are not schemas
  */
 async function findJsonFiles(dir: string, baseDir: string = dir): Promise<string[]> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -42,10 +43,11 @@ async function findJsonFiles(dir: string, baseDir: string = dir): Promise<string
 
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
+    // Skip 'layers' directory - layer instances are synced but are not schemas
+    if (entry.isDirectory() && entry.name !== "layers") {
       const subFiles = await findJsonFiles(fullPath, baseDir);
       files.push(...subFiles);
-    } else if (entry.name.endsWith(".json")) {
+    } else if (entry.name.endsWith(".json") && entry.isFile()) {
       // Store relative path from base directory
       files.push(path.relative(baseDir, fullPath));
     }

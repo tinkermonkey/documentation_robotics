@@ -55,7 +55,7 @@ if [ -d "$SPEC_SCHEMAS/relationships" ]; then
   echo "Copied relationships directory"
 fi
 
-# Copy layer instances
+# Copy layer instances (from spec/layers, not spec/schemas/layers)
 if [ -d "$REPO_ROOT/spec/layers" ]; then
   mkdir -p "$BUNDLED_DIR/layers"
   cp "$REPO_ROOT/spec/layers/"*.layer.json "$BUNDLED_DIR/layers/"
