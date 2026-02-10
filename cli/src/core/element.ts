@@ -226,6 +226,9 @@ export class Element implements IElement {
   /**
    * Extract source reference from legacy format properties
    * Handles both ArchiMate and OpenAPI patterns
+   *
+   * Logs warnings when properties exist but recognized patterns aren't found,
+   * to help identify data that may be silently lost during migration.
    */
   private extractSourceReferenceFromLegacy(data: any): SourceReference | undefined {
     // Check for x-source-reference (OpenAPI pattern, layers 6-8)
@@ -240,6 +243,24 @@ export class Element implements IElement {
       const ref = sourceObj.reference;
       if (isSourceReference(ref)) {
         return ref;
+      }
+    }
+
+    // Warn if element has properties but no recognized source reference pattern
+    // This indicates potential data loss during migration
+    if (data.properties && isRecord(data.properties) && Object.keys(data.properties).length > 0) {
+      const elementId = data.elementId || data.id || "unknown";
+      const hasPropertiesSource = "source" in data.properties;
+      const hasXSourceRef = "x-source-reference" in data.properties;
+
+      if (hasPropertiesSource || hasXSourceRef) {
+        // Properties exist but don't match expected structure
+        console.warn(
+          `WARNING: Element '${elementId}' has source reference data in unexpected format. ` +
+            `Expected either 'x-source-reference' (OpenAPI) or 'properties.source.reference' (ArchiMate), ` +
+            `but found: ${Object.keys(data.properties).join(", ")}. ` +
+            `Source reference data may have been lost during migration.`
+        );
       }
     }
 

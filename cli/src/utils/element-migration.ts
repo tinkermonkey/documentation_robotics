@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import { Element } from "../core/element.js";
 import type { Model } from "../core/model.js";
 
@@ -149,13 +151,14 @@ export class ElementMigration {
 
 
   /**
-   * Generate a UUIDv4
+   * Generate a cryptographically secure UUIDv4
+   * Uses Node.js crypto.randomUUID() for production-grade unique identifiers
+   * Consistent with Element class UUID generation in element.ts
    */
   private generateUUID(): string {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
+    // randomUUID() is available in Node.js 15.7.0+
+    // It provides cryptographically secure random UUID generation
+    // This matches the implementation in Element.generateUUID()
+    return randomUUID();
   }
 }

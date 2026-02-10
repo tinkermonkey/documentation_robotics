@@ -205,8 +205,14 @@ describe("stats command", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Completeness");
     expect(result.stdout).toContain("%");
-    // Should show completion bar (might be filled or empty blocks)
-    expect(result.stdout.match(/[█░]/)).toBeTruthy();
+
+    // Validate that output contains progress bar elements
+    // Progress bar should have filled (█) and/or empty (░) blocks
+    const completenessSection = stripAnsi(result.stdout);
+    const hasProgressBar =
+      /[█░]/.test(completenessSection) &&
+      /\d+(\.\d+)?%/.test(completenessSection);
+    expect(hasProgressBar).toBe(true);
   });
 
   it("should handle models without relationships gracefully", async () => {
@@ -231,8 +237,20 @@ describe("stats command", () => {
     const result = await runDr(["stats"], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
-    // Should contain month name or date in recognizable format
-    expect(result.stdout).toMatch(/[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}/);
+
+    // Validate date format with structured assertion
+    // Expected format: "Jan 15, 2024" (Month DD, YYYY)
+    const cleanOutput = stripAnsi(result.stdout);
+    const dateRegex = /([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4})/;
+    const dateMatch = cleanOutput.match(dateRegex);
+
+    expect(dateMatch).toBeTruthy();
+    if (dateMatch) {
+      // Verify the extracted date is valid by attempting to parse it
+      const dateStr = dateMatch[1];
+      const parsedDate = new Date(dateStr);
+      expect(isNaN(parsedDate.getTime())).toBe(false);
+    }
   });
 
   it("should provide JSON with nested structure", async () => {

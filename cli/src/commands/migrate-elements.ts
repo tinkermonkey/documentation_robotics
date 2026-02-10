@@ -71,13 +71,29 @@ export async function migrateElementsCommand(options: {
     console.log();
 
     if (!options.dryRun && result.errors.length === 0) {
-      // Save the updated model
-      await model.saveDirtyLayers();
+      // Create atomic backup before migration
+      const backupPath = await model.createBackup("pre-migration");
+      console.log(ansis.dim(`  Backup created: ${backupPath}`));
 
-      console.log(ansis.green(`✓ Element migration complete`));
-      console.log(
-        ansis.dim(`${result.migrated} elements migrated to spec-node aligned format`)
-      );
+      try {
+        // Save the updated model with atomic write semantics
+        // Write to temporary file first, then rename on success to ensure atomicity
+        await model.saveDirtyLayersAtomic();
+
+        console.log(ansis.green(`✓ Element migration complete`));
+        console.log(
+          ansis.dim(`${result.migrated} elements migrated to spec-node aligned format`)
+        );
+      } catch (error) {
+        console.error(
+          ansis.red(
+            `✗ Migration failed to save changes: ${error instanceof Error ? error.message : String(error)}`
+          )
+        );
+        console.log(ansis.yellow(`  Rollback: Restoring from backup at ${backupPath}`));
+        await model.restoreFromBackup(backupPath);
+        process.exit(1);
+      }
     } else if (options.dryRun) {
       console.log(ansis.yellow(`✓ Dry run complete (no changes saved)`));
     } else {
