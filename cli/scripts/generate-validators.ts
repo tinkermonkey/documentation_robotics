@@ -72,7 +72,7 @@ async function loadBaseSchemas(): Promise<SchemaToCompile[]> {
         exportName,
       });
 
-      console.log(`✓ Loaded ${file} (id: ${schemaId})`);
+      console.log(`[OK] Loaded ${file} (id: ${schemaId})`);
     } catch (error: any) {
       console.error(`ERROR: Failed to load ${file}: ${error.message}`);
       process.exit(1);
@@ -148,7 +148,7 @@ async function generatePreCompiledValidators(
       standaloneModule = standaloneCode(ajv, schemaMap);
     } catch (standaloneError: any) {
       // If standalone code generation fails, use runtime-compiled validators
-      console.warn(`  ⚠ AJV standalone generation failed (${standaloneError.message}), using runtime validators instead`);
+      console.warn(`  [WARN] AJV standalone generation failed (${standaloneError.message}), using runtime validators instead`);
       standaloneModule = "";
     }
 

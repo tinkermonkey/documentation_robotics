@@ -227,6 +227,16 @@ export async function schemaRelationshipCommand(
 }
 
 /**
+ * Represents a constraint on an attribute
+ */
+interface AttributeConstraint {
+  type?: string;
+  enum?: unknown[];
+  pattern?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Format attribute constraint for display
  */
 function formatAttributeConstraint(constraint: unknown): string {
@@ -236,7 +246,7 @@ function formatAttributeConstraint(constraint: unknown): string {
     return constraint;
   }
 
-  const c = constraint as Record<string, unknown>;
+  const c = constraint as AttributeConstraint;
 
   if (c.type) {
     let result = String(c.type);

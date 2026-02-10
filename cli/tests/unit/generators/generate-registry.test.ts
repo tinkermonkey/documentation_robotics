@@ -298,4 +298,156 @@ describe("Generator: generate-registry", () => {
       }
     });
   });
+
+  describe("runtime validation of generated registries", () => {
+    it("should validate that all layer nodeTypes match NODE_TYPES entries", async () => {
+      const layerRegistry = await import("../../../src/generated/layer-registry.js");
+      const nodeTypes = await import("../../../src/generated/node-types.js");
+
+      for (const layer of layerRegistry.getAllLayers()) {
+        for (const nodeTypeId of layer.nodeTypes) {
+          // Each nodeType in a layer should be findable in NODE_TYPES
+          const nodeTypeInfo = nodeTypes.getNodeType(nodeTypeId);
+          expect(nodeTypeInfo).toBeDefined();
+          expect(nodeTypeInfo.specNodeId).toBe(nodeTypeId);
+          // The node type should belong to this layer
+          expect(nodeTypeInfo.layer).toBe(layer.id);
+        }
+      }
+    });
+
+    it("should validate relationship cross-references exist in NODE_TYPES", async () => {
+      const relationships = await import("../../../src/generated/relationship-index.js");
+      const nodeTypes = await import("../../../src/generated/node-types.js");
+
+      for (const rel of relationships.RELATIONSHIPS) {
+        // Source should be valid
+        const sourceNode = nodeTypes.getNodeType(rel.sourceSpecNodeId);
+        expect(sourceNode).toBeDefined();
+
+        // Destination should be valid
+        const destNode = nodeTypes.getNodeType(rel.destinationSpecNodeId);
+        expect(destNode).toBeDefined();
+      }
+    });
+
+    it("should benchmark NODE_TYPES lookup performance with 354+ entries", async () => {
+      const nodeTypes = await import("../../../src/generated/node-types.js");
+      const allNodeTypeIds = Array.from(nodeTypes.NODE_TYPES.keys());
+
+      const start = performance.now();
+
+      // Perform 1000 random lookups
+      for (let i = 0; i < 1000; i++) {
+        const randomId = allNodeTypeIds[Math.floor(Math.random() * allNodeTypeIds.length)];
+        nodeTypes.getNodeType(randomId);
+      }
+
+      const duration = performance.now() - start;
+
+      // 1000 lookups should be very fast (expect < 100ms for O(1) Map lookups)
+      expect(duration).toBeLessThan(100);
+    });
+
+    it("should benchmark relationship lookup performance", async () => {
+      const relationships = await import("../../../src/generated/relationship-index.js");
+      const allSourceTypes = Array.from(relationships.RELATIONSHIPS_BY_SOURCE.keys());
+
+      if (allSourceTypes.length === 0) {
+        // Skip if no relationships loaded
+        expect(true).toBe(true);
+        return;
+      }
+
+      const start = performance.now();
+
+      // Perform 1000 random lookups
+      for (let i = 0; i < 1000; i++) {
+        const randomSource = allSourceTypes[Math.floor(Math.random() * allSourceTypes.length)];
+        relationships.getValidRelationships(randomSource);
+      }
+
+      const duration = performance.now() - start;
+
+      // 1000 lookups should be fast (expect < 100ms)
+      expect(duration).toBeLessThan(100);
+    });
+
+    it("should validate getNodeTypesForLayer returns consistent results", async () => {
+      const layerRegistry = await import("../../../src/generated/layer-registry.js");
+      const nodeTypes = await import("../../../src/generated/node-types.js");
+
+      for (const layer of layerRegistry.getAllLayers()) {
+        const typesByLayer = nodeTypes.getNodeTypesForLayer(layer.id);
+
+        // All returned types should belong to this layer
+        for (const nodeType of typesByLayer) {
+          expect(nodeType.layer).toBe(layer.id);
+        }
+
+        // If layer has nodeTypes metadata, all should be present in results
+        if (layer.nodeTypes.length > 0) {
+          for (const specNodeId of layer.nodeTypes) {
+            const nodeType = nodeTypes.getNodeType(specNodeId);
+            expect(nodeType).toBeDefined();
+            expect(nodeType.layer).toBe(layer.id);
+          }
+        }
+      }
+    });
+
+    it("should validate isValidNodeType consistency with NODE_TYPES map", async () => {
+      const nodeTypes = await import("../../../src/generated/node-types.js");
+
+      const allNodeTypeIds = Array.from(nodeTypes.NODE_TYPES.keys());
+
+      for (const specNodeId of allNodeTypeIds.slice(0, 50)) { // Test sample of 50
+        const nodeInfo = nodeTypes.getNodeType(specNodeId);
+        expect(nodeTypes.isValidNodeType(nodeInfo.layer, nodeInfo.type)).toBe(true);
+      }
+    });
+
+    it("should validate RELATIONSHIPS_BY_SOURCE index matches RELATIONSHIPS array", async () => {
+      const relationships = await import("../../../src/generated/relationship-index.js");
+
+      // Every relationship in RELATIONSHIPS should appear in RELATIONSHIPS_BY_SOURCE
+      for (const rel of relationships.RELATIONSHIPS) {
+        const bySourceRels = relationships.RELATIONSHIPS_BY_SOURCE.get(rel.sourceSpecNodeId) || [];
+        const found = bySourceRels.some((r: any) => r.id === rel.id);
+        expect(found).toBe(true);
+      }
+    });
+
+    it("should validate RELATIONSHIPS_BY_PREDICATE index matches RELATIONSHIPS array", async () => {
+      const relationships = await import("../../../src/generated/relationship-index.js");
+
+      // Every relationship in RELATIONSHIPS should appear in RELATIONSHIPS_BY_PREDICATE
+      for (const rel of relationships.RELATIONSHIPS) {
+        const byPredicateRels = relationships.RELATIONSHIPS_BY_PREDICATE.get(rel.predicate) || [];
+        const found = byPredicateRels.some((r: any) => r.id === rel.id);
+        expect(found).toBe(true);
+      }
+    });
+
+    it("should validate tree-shaking hints are present in generated files", () => {
+      const filesToCheck = [
+        "layer-registry.ts",
+        "node-types.ts",
+        "relationship-index.ts",
+      ];
+
+      const generatedDir = path.join(import.meta.dir, "../../../src/generated");
+
+      for (const filename of filesToCheck) {
+        const filePath = path.join(generatedDir, filename);
+
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, "utf-8");
+
+          // Should contain at least one PURE annotation for tree-shaking
+          expect(content).toContain("/*#__PURE__*/");
+        }
+      }
+    });
+  });
 });

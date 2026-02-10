@@ -346,7 +346,7 @@ function generateRelationshipIndex(relationships: RelationshipSchemaFile[]): str
 const RELATIONSHIP_${r.id
         .replace(/\./g, "_")
         .replace(/-/g, "_")
-        .toUpperCase()}: RelationshipSpec = {
+        .toUpperCase()}: RelationshipSpec = /*#__PURE__*/ {
   id: "${r.id}",
   sourceSpecNodeId: "${r.source_spec_node_id}",
   destinationSpecNodeId: "${r.destination_spec_node_id}",
@@ -442,7 +442,7 @@ ${constants}
 /**
  * All ${relationships.length} relationship specifications from schema files
  */
-export const RELATIONSHIPS: RelationshipSpec[] = [
+export const RELATIONSHIPS: RelationshipSpec[] = /*#__PURE__*/ [
 ${relationshipsArray}
 ];
 
@@ -450,7 +450,7 @@ ${relationshipsArray}
  * Relationships indexed by source node type ID for O(1) lookup
  * Key: "motivation.goal", Value: [RelationshipSpec, ...]
  */
-export const RELATIONSHIPS_BY_SOURCE: Map<string, RelationshipSpec[]> = new Map([
+export const RELATIONSHIPS_BY_SOURCE: Map<string, RelationshipSpec[]> = /*#__PURE__*/ new Map([
 ${bySourceMap}
 ]);
 
@@ -458,7 +458,7 @@ ${bySourceMap}
  * Relationships indexed by predicate for O(1) lookup
  * Key: "supports", Value: [RelationshipSpec, ...]
  */
-export const RELATIONSHIPS_BY_PREDICATE: Map<string, RelationshipSpec[]> = new Map([
+export const RELATIONSHIPS_BY_PREDICATE: Map<string, RelationshipSpec[]> = /*#__PURE__*/ new Map([
 ${byPredicateMap}
 ]);
 
@@ -466,7 +466,7 @@ ${byPredicateMap}
  * Relationships indexed by destination node type ID for O(1) lookup
  * Key: "motivation.requirement", Value: [RelationshipSpec, ...]
  */
-export const RELATIONSHIPS_BY_DESTINATION: Map<string, RelationshipSpec[]> = new Map([
+export const RELATIONSHIPS_BY_DESTINATION: Map<string, RelationshipSpec[]> = /*#__PURE__*/ new Map([
 ${byDestinationMap}
 ]);
 
@@ -537,7 +537,7 @@ function generateLayerRegistry(layers: LayerMetadata[]): string {
   const constants = layers
     .map(
       (l) => `
-const LAYER_METADATA_${toIdentifier(l.id)}: LayerMetadata = {
+const LAYER_METADATA_${toIdentifier(l.id)}: LayerMetadata = /*#__PURE__*/ {
   id: "${l.id}",
   number: ${l.number},
   name: "${l.name}",
@@ -595,21 +595,21 @@ ${constants}
 /**
  * All 12 layers with metadata, indexed by layer ID
  */
-export const LAYERS: Map<string, LayerMetadata> = new Map([
+export const LAYERS: Map<string, LayerMetadata> = /*#__PURE__*/ new Map([
 ${mapEntries}
 ]);
 
 /**
  * All 12 layers with metadata, indexed by layer number for O(1) lookup
  */
-export const LAYERS_BY_NUMBER: Map<number, LayerMetadata> = new Map([
+export const LAYERS_BY_NUMBER: Map<number, LayerMetadata> = /*#__PURE__*/ new Map([
 ${mapEntriesByNumber}
 ]);
 
 /**
  * Layer hierarchy - ordered array of layer numbers for reference validation
  */
-export const LAYER_HIERARCHY: readonly number[] = [${layerHierarchy}] as const;
+export const LAYER_HIERARCHY: readonly number[] = /*#__PURE__*/ [${layerHierarchy}] as const;
 
 /**
  * Get layer metadata by layer number (1-12)
@@ -696,7 +696,7 @@ function generateNodeTypes(nodeTypes: NodeTypeInfo[]): string {
 const NODE_TYPE_${n.specNodeId
         .replace(/\./g, "_")
         .replace(/-/g, "_")
-        .toUpperCase()}: NodeTypeInfo = {
+        .toUpperCase()}: NodeTypeInfo = /*#__PURE__*/ {
   specNodeId: "${n.specNodeId}",
   layer: "${n.layer}",
   type: "${n.type}",
@@ -765,7 +765,7 @@ ${constants}
  * All ${nodeTypes.length} node types with metadata, indexed by spec_node_id
  * Provides O(1) lookup for node type information
  */
-export const NODE_TYPES: Map<SpecNodeId, NodeTypeInfo> = new Map([
+export const NODE_TYPES: Map<SpecNodeId, NodeTypeInfo> = /*#__PURE__*/ new Map([
 ${mapEntries}
 ]);
 
@@ -940,11 +940,11 @@ function writeGeneratedFiles(
   fs.writeFileSync(relationshipIndexPath, relationshipIndexContent);
   fs.writeFileSync(indexPath, indexContent);
 
-  console.log(`✓ Generated ${registryPath}`);
-  console.log(`✓ Generated ${typesPath}`);
-  console.log(`✓ Generated ${nodeTypesPath} (${nodeTypes.length} node types)`);
-  console.log(`✓ Generated ${relationshipIndexPath} (${relationships.length} relationship specs)`);
-  console.log(`✓ Generated ${indexPath}`);
+  console.log(`[OK] Generated ${registryPath}`);
+  console.log(`[OK] Generated ${typesPath}`);
+  console.log(`[OK] Generated ${nodeTypesPath} (${nodeTypes.length} node types)`);
+  console.log(`[OK] Generated ${relationshipIndexPath} (${relationships.length} relationship specs)`);
+  console.log(`[OK] Generated ${indexPath}`);
 }
 
 /**
@@ -966,16 +966,16 @@ async function main(): Promise<void> {
     }
 
     const layers = loadLayerInstances();
-    console.log(`✓ Loaded ${layers.length} layer instances`);
+    console.log(`[OK] Loaded ${layers.length} layer instances`);
 
     const nodeTypes = loadNodeSchemas();
-    console.log(`✓ Loaded ${nodeTypes.length} node type schemas`);
+    console.log(`[OK] Loaded ${nodeTypes.length} node type schemas`);
 
     const relationships = loadRelationshipSchemas(strictMode);
-    console.log(`✓ Loaded ${relationships.length} relationship specs`);
+    console.log(`[OK] Loaded ${relationships.length} relationship specs`);
 
     writeGeneratedFiles(layers, nodeTypes, relationships);
-    console.log("✓ Registry and index generation complete");
+    console.log("[OK] Registry and index generation complete");
   } catch (error) {
     console.error("ERROR: Registry generation failed:");
     console.error(error);
