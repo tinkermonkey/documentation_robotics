@@ -32,13 +32,13 @@ This document provides comprehensive technical documentation for refactoring the
 
 ```typescript
 interface LayerMetadata {
-  id: string;                // Canonical layer ID: "motivation", "data-model", etc.
-  number: number;            // Layer number 1-12
-  name: string;              // Human-readable name: "Motivation Layer"
-  description: string;       // Layer description
-  nodeTypes: string[];       // Valid spec node IDs: ["motivation.goal", ...]
+  id: string; // Canonical layer ID: "motivation", "data-model", etc.
+  number: number; // Layer number 1-12
+  name: string; // Human-readable name: "Motivation Layer"
+  description: string; // Layer description
+  nodeTypes: string[]; // Valid spec node IDs: ["motivation.goal", ...]
   inspiredBy?: {
-    standard: string;        // "ArchiMate 3.2", "OpenAPI 3.0", etc.
+    standard: string; // "ArchiMate 3.2", "OpenAPI 3.0", etc.
     version: string;
     url?: string;
   };
@@ -73,17 +73,19 @@ export const LAYER_HIERARCHY: number[];
 **Usage Example:**
 
 ```typescript
-import { getLayerById, isValidLayer } from '../generated/layer-registry.js';
+import { getLayerById, isValidLayer } from "../generated/layer-registry.js";
 
 // Validate user input
 if (!isValidLayer(userLayerInput)) {
-  throw new Error(`Invalid layer "${userLayerInput}". Valid layers: ${getAllLayerIds().join(', ')}`);
+  throw new Error(
+    `Invalid layer "${userLayerInput}". Valid layers: ${getAllLayerIds().join(", ")}`
+  );
 }
 
 // Get layer metadata
-const motivationLayer = getLayerById('motivation');
+const motivationLayer = getLayerById("motivation");
 console.log(`Layer ${motivationLayer.number}: ${motivationLayer.name}`);
-console.log(`Node types: ${motivationLayer.nodeTypes.join(', ')}`);
+console.log(`Node types: ${motivationLayer.nodeTypes.join(", ")}`);
 ```
 
 **Code Generation:**
@@ -135,26 +137,26 @@ interface ValidationResult {
 }
 
 interface ValidationError {
-  message: string;          // Human-readable error message
-  path?: string;            // JSON path to invalid field (e.g., "attributes.priority")
-  keyword?: string;         // AJV keyword that failed ("required", "enum", "type")
-  params?: object;          // Additional error context
-  schemaPath?: string;      // Path in schema that failed
+  message: string; // Human-readable error message
+  path?: string; // JSON path to invalid field (e.g., "attributes.priority")
+  keyword?: string; // AJV keyword that failed ("required", "enum", "type")
+  params?: object; // Additional error context
+  schemaPath?: string; // Path in schema that failed
 }
 ```
 
 **Usage Example:**
 
 ```typescript
-import { SchemaValidator } from '../validators/schema-validator.js';
+import { SchemaValidator } from "../validators/schema-validator.js";
 
 const validator = new SchemaValidator();
 
 // Validate entire layer
 const layerResult = await validator.validateLayer(motivationLayer);
 if (!layerResult.valid) {
-  console.error('Schema validation errors:');
-  layerResult.errors.forEach(err => {
+  console.error("Schema validation errors:");
+  layerResult.errors.forEach((err) => {
     console.error(`  ${err.path}: ${err.message}`);
   });
 }
@@ -162,7 +164,7 @@ if (!layerResult.valid) {
 // Validate single element
 const elementResult = await validator.validateElement(goalElement, motivationLayer);
 if (elementResult.valid) {
-  console.log('✓ Element conforms to spec node schema');
+  console.log("✓ Element conforms to spec node schema");
 }
 ```
 
@@ -210,10 +212,7 @@ class RelationshipSchemaValidator {
    * @param predicate - Relationship predicate
    * @returns Array of valid destination spec node IDs
    */
-  getValidDestinationTypes(
-    sourceSpecNodeId: string,
-    predicate: string
-  ): string[];
+  getValidDestinationTypes(sourceSpecNodeId: string, predicate: string): string[];
 
   /**
    * Check if relationship type combination is valid
@@ -233,33 +232,29 @@ class RelationshipSchemaValidator {
 **Usage Example:**
 
 ```typescript
-import { RelationshipSchemaValidator } from '../validators/relationship-schema-validator.js';
+import { RelationshipSchemaValidator } from "../validators/relationship-schema-validator.js";
 
 const validator = new RelationshipSchemaValidator();
 
 // Check if relationship type is valid
 const isValid = validator.isValidRelationshipType(
-  'motivation.goal',
-  'refines',
-  'motivation.outcome'
+  "motivation.goal",
+  "refines",
+  "motivation.outcome"
 );
 
 // Get valid predicates for element type
-const predicates = validator.getValidPredicatesForSource('motivation.goal');
-console.log('Valid predicates:', predicates); // ['refines', 'realizes', 'influences', ...]
+const predicates = validator.getValidPredicatesForSource("motivation.goal");
+console.log("Valid predicates:", predicates); // ['refines', 'realizes', 'influences', ...]
 
 // Get valid destination types
-const destinations = validator.getValidDestinationTypes('motivation.goal', 'refines');
-console.log('Can refine:', destinations); // ['motivation.outcome', ...]
+const destinations = validator.getValidDestinationTypes("motivation.goal", "refines");
+console.log("Can refine:", destinations); // ['motivation.outcome', ...]
 
 // Validate actual relationship
-const result = await validator.validateRelationship(
-  goalElement,
-  outcomeElement,
-  'refines'
-);
+const result = await validator.validateRelationship(goalElement, outcomeElement, "refines");
 if (!result.valid) {
-  console.error('Invalid relationship:', result.errors);
+  console.error("Invalid relationship:", result.errors);
 }
 ```
 
@@ -290,7 +285,7 @@ export function validateAttributeSpec(data: unknown): boolean;
 **Usage Example:**
 
 ```typescript
-import { validateSpecNode } from '../generated/compiled-validators.js';
+import { validateSpecNode } from "../generated/compiled-validators.js";
 
 const modelNode = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -299,14 +294,14 @@ const modelNode = {
   layer_id: "motivation",
   name: "Customer Satisfaction",
   attributes: {
-    priority: "high"
-  }
+    priority: "high",
+  },
 };
 
 if (validateSpecNode(modelNode)) {
-  console.log('✓ Valid spec node structure');
+  console.log("✓ Valid spec node structure");
 } else {
-  console.error('✗ Invalid spec node:', validateSpecNode.errors);
+  console.error("✗ Invalid spec node:", validateSpecNode.errors);
 }
 ```
 
@@ -330,11 +325,11 @@ if (validateSpecNode(modelNode)) {
 
 ```json
 {
-  "id": "string (uuid)",              // Globally unique UUID
+  "id": "string (uuid)", // Globally unique UUID
   "spec_node_id": "string (pattern)", // e.g., "motivation.goal"
-  "type": "string",                   // Denormalized type, e.g., "goal"
-  "layer_id": "string (pattern)",     // Denormalized layer, e.g., "motivation"
-  "name": "string"                    // Human-readable name
+  "type": "string", // Denormalized type, e.g., "goal"
+  "layer_id": "string (pattern)", // Denormalized layer, e.g., "motivation"
+  "name": "string" // Human-readable name
 }
 ```
 
@@ -342,16 +337,19 @@ if (validateSpecNode(modelNode)) {
 
 ```json
 {
-  "description": "string",            // Detailed description
-  "attributes": {                     // Type-specific attributes
+  "description": "string", // Detailed description
+  "attributes": {
+    // Type-specific attributes
     "type": "object"
   },
-  "source_reference": {               // Provenance tracking
+  "source_reference": {
+    // Provenance tracking
     "file": "string",
     "symbol": "string",
     "provenance": "enum"
   },
-  "metadata": {                       // Lifecycle tracking
+  "metadata": {
+    // Lifecycle tracking
     "created_at": "date-time",
     "updated_at": "date-time",
     "created_by": "string",
@@ -371,6 +369,7 @@ if (validateSpecNode(modelNode)) {
 **Count:** 354 node schemas across 12 layers
 
 **Pattern:** All extend `spec-node.schema.json` using `allOf` and constrain:
+
 1. `spec_node_id` to specific value (e.g., `"motivation.goal"`)
 2. `layer_id` to layer ID (e.g., `"motivation"`)
 3. `type` to type string (e.g., `"goal"`)
@@ -383,9 +382,7 @@ if (validateSpecNode(modelNode)) {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Goal",
   "description": "High-level statement of intent, direction, or desired end state",
-  "allOf": [
-    { "$ref": "../../base/spec-node.schema.json" }
-  ],
+  "allOf": [{ "$ref": "../../base/spec-node.schema.json" }],
   "properties": {
     "spec_node_id": { "const": "motivation.goal" },
     "layer_id": { "const": "motivation" },
@@ -427,9 +424,7 @@ if (validateSpecNode(modelNode)) {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Goal refines Outcome",
   "description": "A Goal can be refined into one or more specific Outcomes",
-  "allOf": [
-    { "$ref": "../../base/spec-node-relationship.schema.json" }
-  ],
+  "allOf": [{ "$ref": "../../base/spec-node-relationship.schema.json" }],
   "properties": {
     "source_spec_node_id": { "const": "motivation.goal" },
     "destination_spec_node_id": { "const": "motivation.outcome" },
@@ -450,11 +445,13 @@ if (validateSpecNode(modelNode)) {
 ### What Changed in the Refactoring?
 
 **Before (Pre-Issue #330):**
+
 - CLI maintained hardcoded lists of layers, types, and relationships
 - Type validation was manual and incomplete
 - Adding new types required CLI code changes in multiple files
 
 **After (Post-Issue #330):**
+
 - All layer metadata derived from `spec/layers/*.layer.json` files
 - All type definitions derived from `spec/schemas/nodes/**/*.node.schema.json` (354 schemas)
 - All relationship rules derived from `spec/schemas/relationships/**/*.relationship.schema.json` (252 schemas)
@@ -506,6 +503,7 @@ Summary: 18 valid, 1 error
 ### Understanding Schema Errors
 
 Schema errors include:
+
 - **Path:** JSON path to invalid field (e.g., `attributes.priority`)
 - **Message:** Human-readable explanation
 - **Keyword:** AJV keyword that failed (`required`, `enum`, `pattern`, etc.)
@@ -513,13 +511,13 @@ Schema errors include:
 
 **Common Error Types:**
 
-| Error Type | Meaning | Fix |
-|------------|---------|-----|
-| `required` | Missing required field | Add the missing attribute |
-| `enum` | Value not in allowed list | Use one of the allowed values |
-| `type` | Wrong data type | Change to correct type (string, number, etc.) |
-| `pattern` | String doesn't match regex | Fix format (e.g., kebab-case) |
-| `additionalProperties` | Unknown field present | Remove the extra field |
+| Error Type             | Meaning                    | Fix                                           |
+| ---------------------- | -------------------------- | --------------------------------------------- |
+| `required`             | Missing required field     | Add the missing attribute                     |
+| `enum`                 | Value not in allowed list  | Use one of the allowed values                 |
+| `type`                 | Wrong data type            | Change to correct type (string, number, etc.) |
+| `pattern`              | String doesn't match regex | Fix format (e.g., kebab-case)                 |
+| `additionalProperties` | Unknown field present      | Remove the extra field                        |
 
 ---
 
@@ -600,16 +598,19 @@ Valid predicates for motivation.goal:
 ### Element ID Format
 
 All elements follow this pattern:
+
 ```
 {layer}.{type}.{kebab-case-name}
 ```
 
 **Components:**
+
 - **layer:** Canonical layer name (e.g., `motivation`, `data-model`, `data-store`)
 - **type:** Lowercase type name (e.g., `goal`, `endpoint`, `table`)
 - **name:** Unique kebab-case identifier (e.g., `customer-satisfaction`)
 
 **Examples:**
+
 - `motivation.goal.customer-satisfaction`
 - `business.service.order-management`
 - `api.endpoint.create-order`
@@ -617,22 +618,23 @@ All elements follow this pattern:
 
 ### Canonical Layer Names
 
-| Layer | Canonical Name | Format | Example Element ID |
-|-------|----------------|--------|--------------------|
-| 1 | `motivation` | Single word | `motivation.goal.improve-sales` |
-| 2 | `business` | Single word | `business.process.order-fulfillment` |
-| 3 | `security` | Single word | `security.policy.mfa-required` |
-| 4 | `application` | Single word | `application.component.order-service` |
-| 5 | `technology` | Single word | `technology.node.web-server` |
-| 6 | `api` | Single word | `api.endpoint.create-customer` |
-| 7 | `data-model` | **Hyphenated** | `data-model.entity.customer` |
-| 8 | `data-store` | **Hyphenated** | `data-store.table.customers` |
-| 9 | `ux` | Single word | `ux.screen.dashboard` |
-| 10 | `navigation` | Single word | `navigation.route.orders-list` |
-| 11 | `apm` | Single word | `apm.metric.response-time` |
-| 12 | `testing` | Single word | `testing.testcase.login-success` |
+| Layer | Canonical Name | Format         | Example Element ID                    |
+| ----- | -------------- | -------------- | ------------------------------------- |
+| 1     | `motivation`   | Single word    | `motivation.goal.improve-sales`       |
+| 2     | `business`     | Single word    | `business.process.order-fulfillment`  |
+| 3     | `security`     | Single word    | `security.policy.mfa-required`        |
+| 4     | `application`  | Single word    | `application.component.order-service` |
+| 5     | `technology`   | Single word    | `technology.node.web-server`          |
+| 6     | `api`          | Single word    | `api.endpoint.create-customer`        |
+| 7     | `data-model`   | **Hyphenated** | `data-model.entity.customer`          |
+| 8     | `data-store`   | **Hyphenated** | `data-store.table.customers`          |
+| 9     | `ux`           | Single word    | `ux.screen.dashboard`                 |
+| 10    | `navigation`   | Single word    | `navigation.route.orders-list`        |
+| 11    | `apm`          | Single word    | `apm.metric.response-time`            |
+| 12    | `testing`      | Single word    | `testing.testcase.login-success`      |
 
 **Important:** Always use canonical hyphenated form for layers 7 and 8:
+
 - ✅ `data-model` (correct)
 - ❌ `data_model` (wrong)
 - ✅ `data-store` (correct)
@@ -778,24 +780,28 @@ cd cli
 The CLI uses a 4-stage validation pipeline for comprehensive model validation:
 
 **Stage 1: Schema Validation**
+
 - Validates structural conformance using AJV and spec node schemas
 - Checks required fields, data types, enums, patterns
 - Uses pre-compiled validators for base schemas
 - Lazy loads per-type schemas on demand
 
 **Stage 2: Naming Validation**
+
 - Validates element IDs follow `{layer}.{type}.{name}` format
 - Checks layer names are canonical (e.g., `data-model` not `data_model`)
 - Ensures type segment is lowercase
 - Validates name is kebab-case
 
 **Stage 3: Reference Validation**
+
 - Validates cross-layer references exist
 - Checks reference direction (higher → lower layers only)
 - Uses LayerRegistry for layer hierarchy
 - Prevents circular dependencies
 
 **Stage 4: Relationship Validation**
+
 - Validates relationships against relationship schemas
 - Checks source/destination type combinations are valid
 - Enforces cardinality constraints
@@ -810,19 +816,19 @@ The CLI uses a 4-stage validation pipeline for comprehensive model validation:
 To add a new node type to the specification:
 
 1. **Create Per-Type Schema**
+
    ```bash
    touch spec/schemas/nodes/motivation/newtype.node.schema.json
    ```
 
 2. **Define Schema Structure**
+
    ```json
    {
      "$schema": "http://json-schema.org/draft-07/schema#",
      "title": "NewType",
      "description": "Description of new type",
-     "allOf": [
-       { "$ref": "../../base/spec-node.schema.json" }
-     ],
+     "allOf": [{ "$ref": "../../base/spec-node.schema.json" }],
      "properties": {
        "spec_node_id": { "const": "motivation.newtype" },
        "layer_id": { "const": "motivation" },
@@ -840,23 +846,26 @@ To add a new node type to the specification:
    ```
 
 3. **Update Layer Instance**
+
    ```json
    // spec/layers/01-motivation.layer.json
    {
      "node_types": [
        "motivation.goal",
-       "motivation.newtype"  // Add here
+       "motivation.newtype" // Add here
      ]
    }
    ```
 
 4. **Rebuild CLI**
+
    ```bash
    cd cli
    npm run build
    ```
 
 5. **New Type Available**
+
    ```bash
    dr add motivation newtype my-instance \
      --name "My New Type Instance" \
@@ -897,6 +906,7 @@ export class LayerRegistry {
 ```
 
 **Benefits:**
+
 - Single source of truth
 - O(1) lookups
 - No runtime file I/O
@@ -923,7 +933,7 @@ class Validator {
     // Collect errors
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }
@@ -932,11 +942,11 @@ class Validator {
 const results = await Promise.all([
   schemaValidator.validate(element),
   namingValidator.validate(element),
-  referenceValidator.validate(element)
+  referenceValidator.validate(element),
 ]);
 
-const allValid = results.every(r => r.valid);
-const allErrors = results.flatMap(r => r.errors);
+const allValid = results.every((r) => r.valid);
+const allErrors = results.flatMap((r) => r.errors);
 ```
 
 ---
@@ -969,16 +979,19 @@ const allErrors = results.flatMap(r => r.errors);
 ### Validation Performance
 
 **Base Schema Validation:**
+
 - Pre-compiled validators
 - ~0.01ms per element (100,000 validations/second)
 - No runtime schema loading
 
 **Per-Type Schema Validation:**
+
 - First validation: ~50ms (load + compile)
 - Subsequent validations: ~0.1ms (cached)
 - Amortized cost: ~0.1ms per element
 
 **Full Model Validation (1000 elements):**
+
 - Cold start: ~200ms (initial schema loading)
 - Warm: ~100ms (all schemas cached)
 - Parallel validation: ~50ms (4 layers in parallel)
@@ -986,12 +999,14 @@ const allErrors = results.flatMap(r => r.errors);
 ### Memory Usage
 
 **Generated Code:**
+
 - `layer-registry.ts`: ~50KB
 - `compiled-validators.ts`: ~200KB
 - `node-types.ts`: ~20KB
 - Total: ~270KB generated code
 
 **Runtime Cache:**
+
 - Layer metadata: ~10KB
 - Compiled per-type schemas: ~2KB per schema
 - Peak usage (all 354 schemas loaded): ~10MB
@@ -1005,6 +1020,7 @@ const allErrors = results.flatMap(r => r.errors);
 ### Updating Schemas
 
 **When to Update:**
+
 - Adding new node types
 - Modifying attribute constraints
 - Changing required fields
@@ -1013,32 +1029,38 @@ const allErrors = results.flatMap(r => r.errors);
 **Update Process:**
 
 1. **Modify Specification Schema**
+
    ```bash
    vim spec/schemas/nodes/motivation/goal.node.schema.json
    ```
 
 2. **Update Layer Instance** (if new type)
+
    ```bash
    vim spec/layers/01-motivation.layer.json
    ```
 
 3. **Sync to CLI**
+
    ```bash
    cd cli
    ./scripts/sync-spec-schemas.sh
    ```
 
 4. **Rebuild**
+
    ```bash
    npm run build
    ```
 
 5. **Test**
+
    ```bash
    npm test
    ```
 
 6. **Commit Both**
+
    ```bash
    git add spec/schemas/ cli/src/schemas/bundled/ cli/src/generated/
    git commit -m "feat: add new node type motivation.newtype"
@@ -1065,7 +1087,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install dependencies
         run: cd cli && npm install
@@ -1102,6 +1124,7 @@ jobs:
 **Cause:** Missing per-type schema or layer instance not updated
 
 **Fix:**
+
 ```bash
 # Check if schema exists
 ls spec/schemas/nodes/motivation/X.node.schema.json
@@ -1120,6 +1143,7 @@ cd cli && npm run build
 **Cause:** Schema changes committed without regenerating code
 
 **Fix:**
+
 ```bash
 cd cli
 ./scripts/sync-spec-schemas.sh
@@ -1135,14 +1159,16 @@ git commit --amend
 **Cause:** Cold start loading all 354 schemas
 
 **Fix:**
+
 - Schema loading is lazy - only first validation of each type is slow
 - Implement schema preloading in long-running processes:
+
   ```typescript
   // Preload common schemas at startup
   await Promise.all([
-    validator.loadSchema('motivation.goal'),
-    validator.loadSchema('motivation.requirement'),
-    validator.loadSchema('business.service'),
+    validator.loadSchema("motivation.goal"),
+    validator.loadSchema("motivation.requirement"),
+    validator.loadSchema("business.service"),
     // ... other frequently used types
   ]);
   ```
@@ -1180,11 +1206,13 @@ git commit --amend
 **Steps:**
 
 1. **Backup Your Model**
+
    ```bash
    cp -r documentation-robotics documentation-robotics.backup
    ```
 
 2. **Run Validation**
+
    ```bash
    dr validate --all --verbose
    ```
@@ -1195,6 +1223,7 @@ git commit --amend
    - Add missing required fields
 
 4. **Re-Validate**
+
    ```bash
    dr validate --all
    ```
@@ -1206,6 +1235,7 @@ git commit --amend
 **If you've added custom element types:**
 
 1. **Create Schema Files**
+
    ```bash
    # For each custom type
    touch spec/schemas/nodes/{layer}/{type}.node.schema.json
@@ -1220,6 +1250,7 @@ git commit --amend
    - Add custom type to `node_types` array in layer instance
 
 4. **Rebuild CLI**
+
    ```bash
    cd cli && npm run build
    ```
