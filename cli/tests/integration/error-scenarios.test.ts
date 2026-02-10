@@ -87,11 +87,11 @@ describe("Error Message Scenarios", () => {
 
     it("should error when adding duplicate element", async () => {
       // Add first time
-      const result1 = await runDr("add", "api", "endpoint", "test-endpoint");
+      const result1 = await runDr("add", "motivation", "goal", "test-goal");
       expect(result1.exitCode).toBe(0);
 
       // Add same element again
-      const result2 = await runDr("add", "api", "endpoint", "test-endpoint");
+      const result2 = await runDr("add", "motivation", "goal", "test-goal");
       expect(result2.exitCode).toBe(1);
       expect(result2.stderr).toContain("already exists");
       // Should include helpful suggestions
@@ -99,14 +99,14 @@ describe("Error Message Scenarios", () => {
     });
 
     it("should error on invalid JSON properties", async () => {
-      const result = await runDr("add", "api", "endpoint", "test", "--properties", "{invalid}");
+      const result = await runDr("add", "motivation", "goal", "test", "--properties", "{invalid}");
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("Invalid JSON");
       expect(result.stderr).toContain("Suggestions");
     });
 
     it("should error on invalid JSON properties with helpful guidance", async () => {
-      const result = await runDr("add", "api", "endpoint", "test", "--properties", "not-json");
+      const result = await runDr("add", "motivation", "goal", "test", "--properties", "not-json");
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("Invalid JSON");
       // Should explain proper quoting/escaping
@@ -178,7 +178,7 @@ describe("Error Message Scenarios", () => {
     });
 
     it("should suggest running init when model is missing", async () => {
-      const result = await runDr("add", "api", "endpoint", "test");
+      const result = await runDr("add", "motivation", "goal", "test");
       expect(result.exitCode).toBeGreaterThan(0);
       const output = result.stdout + result.stderr;
       expect(output.includes("init") || output.includes("Could not find")).toBe(true);
