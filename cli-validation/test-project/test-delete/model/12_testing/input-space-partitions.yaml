@@ -4,11 +4,11 @@ Title Input Partition:
   field: title
   fieldRef: todo-title-field
   presenceRule: required
-  id: title-input-partition
+  id: testing.inputspacepartition.title-input
 Done Input Partition:
   name: Done Input Partition
   description: Partition for todo done status values
   field: done
   fieldRef: todo-done-field
   presenceRule: optional
-  id: done-input-partition
+  id: testing.inputspacepartition.done-input

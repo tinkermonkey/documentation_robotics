@@ -13,6 +13,7 @@ dr report
 ```
 
 Prints a full formatted report to the console showing:
+
 - Quality metrics
 - Statistics overview
 - Relationships by category
@@ -25,6 +26,7 @@ dr report --output report.md
 ```
 
 Format is auto-detected from the file extension:
+
 - `.txt` → Text format
 - `.md` → Markdown format
 - `.json` → JSON format
@@ -50,6 +52,7 @@ dr report --type comprehensive --format markdown --output full-report.md
 ```
 
 Includes:
+
 - Quality metrics (coverage, compliance, structural quality)
 - Statistics (elements, relationships, layers)
 - Relationship analysis (by category, by predicate)
@@ -66,6 +69,7 @@ dr report --type statistics --output stats.json
 ```
 
 Includes:
+
 - Element statistics by layer
 - Relationship statistics
 - Quality metrics
@@ -81,6 +85,7 @@ dr report --type relationships
 ```
 
 Includes:
+
 - Relationship breakdown by category and predicate
 - Relationship patterns
 - Cross-layer vs intra-layer counts
@@ -95,6 +100,7 @@ dr report --type data-model --format text
 ```
 
 Includes:
+
 - Entity count and attributes
 - Referenced vs orphaned entities
 - Complexity metrics
@@ -111,6 +117,7 @@ dr report --type quality --format json
 ```
 
 Includes:
+
 - Coverage metrics (elements, relationships, documentation, layers)
 - Compliance metrics (ArchiMate, Spec, semantic consistency)
 - Structural quality (orphaned elements, circular dependencies)
@@ -127,6 +134,7 @@ dr report --format text
 ```
 
 Features:
+
 - Color-coded output (✓ for valid, ✗ for issues)
 - Progress bars for metrics
 - Structured sections
@@ -141,6 +149,7 @@ dr report --format json --output report.json
 ```
 
 Includes:
+
 - Full report data structure
 - All metrics and analysis
 - Timestamps
@@ -155,6 +164,7 @@ dr report --format markdown --output ARCHITECTURE.md
 ```
 
 Features:
+
 - Proper markdown structure
 - Tables for metrics
 - Links and sections
@@ -170,6 +180,7 @@ dr report --format compact
 ```
 
 Output example:
+
 ```
 Test Project v1.0.0: 100 elements, 50 relationships, 0 circular deps, 80% coverage
 ```
@@ -308,42 +319,51 @@ Complete analysis with all available information.
 ### Coverage Metrics
 
 **Element Coverage** - Percentage of elements defined (0-100%)
+
 - 0% = No elements
 - 100% = Model fully populated
 
 **Relationship Coverage** - Relationship density (0-100%)
+
 - Ratio of relationships to elements
 - Higher = Well-connected model
 
 **Documentation Coverage** - Elements with descriptions (0-100%)
+
 - Higher = Better documented
 - Aim for 80%+
 
 **Layer Coverage** - Populated layers / Total layers (0-100%)
+
 - 100% = All 12 layers used
 - Lower = Incomplete model
 
 ### Compliance Metrics
 
 **ArchiMate Compliance** - Relationships aligned with ArchiMate 3.2 (0-100%)
+
 - Higher = Better alignment with standard
 - Useful for ArchiMate exports
 
 **Spec Compliance** - Relationships matching spec schemas (0-100%)
+
 - Higher = Better alignment with specification
 - Should be 95%+
 
 **Semantic Consistency** - Average compliance score (0-100%)
+
 - Higher = Consistent relationship usage
 - Overall quality indicator
 
 ### Structural Quality
 
 **Orphaned Elements** - Elements with no relationships
+
 - Should be 0 or minimal
 - Review and remove or connect
 
 **Circular Dependencies** - Cyclic relationships detected
+
 - Should be 0 for clean architecture
 - May indicate design issues
 
@@ -365,6 +385,7 @@ Reports show relationships organized by 13 semantic categories:
 - **Testing** - Tests, test suites, fixtures
 
 Each category shows:
+
 - Total count
 - Percentage of all relationships
 - Top predicates in category
@@ -374,21 +395,25 @@ Each category shows:
 For Layer 7 (Data Model) reports:
 
 **Entity Metrics**
+
 - Total entities/schemas
 - Referenced entities (from other layers)
 - Orphaned entities (unreferenced)
 
 **Complexity**
+
 - Average attributes per entity
 - Maximum attributes on any entity
 - Average relationships per entity
 
 **Coverage**
+
 - Entity coverage (referenced %)
 - Attribute coverage (documented %)
 - Constraint coverage (constrained %)
 
 **Quality Issues**
+
 - Incomplete entities (no attributes)
 - Orphaned entities
 - Missing constraints
@@ -399,6 +424,7 @@ For Layer 7 (Data Model) reports:
 ### Report is Empty or Shows 0 Elements
 
 Check that your model is initialized:
+
 ```bash
 dr list motivation  # Should show elements
 ```
@@ -406,6 +432,7 @@ dr list motivation  # Should show elements
 ### Output File Has Wrong Format
 
 File extension determines format. Use explicit `--format`:
+
 ```bash
 dr report --format json --output report.txt  # Forces JSON despite .txt
 ```
@@ -413,6 +440,7 @@ dr report --format json --output report.txt  # Forces JSON despite .txt
 ### Data Model Section Shows No Entities
 
 Layer 7 may be empty. Check:
+
 ```bash
 dr list data-model
 ```
@@ -420,6 +448,7 @@ dr list data-model
 ### Circular Dependencies Detected
 
 Review and refactor relationships:
+
 ```bash
 dr report --type relationships --format json > rels.json
 ```
