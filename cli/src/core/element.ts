@@ -142,12 +142,14 @@ export class Element implements IElement {
       }
 
       this.layer_id = parts[0];
+      this.layer = parts[0]; // Set legacy layer property for graph compatibility
       this.type = parts[1];
       this.elementId = semanticId;
     } else {
       // Fallback: use provided type and layer
       this.type = data.type || "";
       this.layer_id = data.layer || "";
+      this.layer = data.layer || ""; // Set legacy layer property for graph compatibility
       this.elementId = undefined;
     }
 

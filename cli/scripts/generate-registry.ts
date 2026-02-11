@@ -795,11 +795,41 @@ export function getNodeTypesForLayer(layer: string): NodeTypeInfo[] {
 }
 
 /**
- * Check if a type is valid for a given layer
+ * Normalize a user-provided type name to match the schema type name for a layer.
+ * Supports abbreviated type names (e.g., "service" → "businessservice" for business layer).
+ *
+ * @param layer - The layer name
+ * @param type - The user-provided type name (can be abbreviated or full)
+ * @returns The normalized type name that matches the schema, or the original if no match found
  */
-export function isValidNodeType(layer: string, type: string): boolean {
+export function normalizeNodeType(layer: string, type: string): string {
+  // First, check if the type exists as-is
   for (const nodeType of NODE_TYPES.values()) {
     if (nodeType.layer === layer && nodeType.type === type) {
+      return type; // Already correct
+    }
+  }
+
+  // Try prepending the layer name for common patterns
+  // e.g., "service" → "businessservice" for business layer
+  const layerPrefixedType = \`\${layer}\${type}\`;
+  for (const nodeType of NODE_TYPES.values()) {
+    if (nodeType.layer === layer && nodeType.type === layerPrefixedType) {
+      return layerPrefixedType;
+    }
+  }
+
+  // Return original if no normalization worked
+  return type;
+}
+
+/**
+ * Check if a type is valid for a given layer (supports abbreviated type names)
+ */
+export function isValidNodeType(layer: string, type: string): boolean {
+  const normalizedType = normalizeNodeType(layer, type);
+  for (const nodeType of NODE_TYPES.values()) {
+    if (nodeType.layer === layer && nodeType.type === normalizedType) {
       return true;
     }
   }

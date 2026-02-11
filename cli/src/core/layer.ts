@@ -275,14 +275,31 @@ export class Layer {
 
   /**
    * Delete an element by ID from the graph
+   * Supports both UUID and semantic ID (for backward compatibility)
    */
   deleteElement(id: string): boolean {
-    const node = this.graph.nodes.get(id);
+    // First try direct UUID lookup
+    let node = this.graph.nodes.get(id);
+    let actualId = id;
+
+    // If not found by UUID and ID looks like a semantic ID (contains dots),
+    // search by elementId property for backward compatibility
+    if (!node && id.includes(".")) {
+      for (const graphNode of this.graph.nodes.values()) {
+        const elementIdProp = graphNode.properties?.__elementId__;
+        if (elementIdProp === id && graphNode.layer === this.name) {
+          node = graphNode;
+          actualId = graphNode.id;
+          break;
+        }
+      }
+    }
+
     if (!node || node.layer !== this.name) {
       return false;
     }
 
-    const result = this.graph.removeNode(id);
+    const result = this.graph.removeNode(actualId);
     if (result) {
       this.dirty = true;
     }

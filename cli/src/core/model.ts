@@ -367,6 +367,7 @@ export class Model {
           id: element.id,
           name: element.name,
           type: element.type,
+          layer: element.layer || name, // Add layer for graph compatibility
           ...(element.description && { documentation: element.description }),
           ...(Object.keys(element.properties || {}).length > 0 && {
             properties: element.properties,
