@@ -4,7 +4,7 @@ import { ALL_LAYERS } from "./types.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { formatLayerName } from "../utils/layer-name-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { escapeMarkdown, valueToMarkdown } from "./markdown-utils.js";
+import { escapeMarkdown, valueToMarkdown, getLayerDescription } from "./markdown-utils.js";
 
 /**
  * Markdown Exporter - generates comprehensive markdown documentation
@@ -266,21 +266,7 @@ export class MarkdownExporter implements Exporter {
    * Get layer description (delegates to shared utility)
    */
   private getLayerDescription(layer: string): string {
-    const descriptions: Record<string, string> = {
-      motivation: "Goals, requirements, drivers, and strategic outcomes of the architecture.",
-      business: "Business processes, functions, roles, and services.",
-      security: "Authentication, authorization, security threats, and controls.",
-      application: "Application components, services, and interactions.",
-      technology: "Infrastructure, platforms, systems, and technology components.",
-      api: "REST APIs, operations, endpoints, and API integrations.",
-      "data-model": "Data entities, relationships, and data structure definitions.",
-      "data-store": "Databases, data stores, and persistence mechanisms.",
-      ux: "User interface components, screens, and user experience elements.",
-      navigation: "Application routing, navigation flows, and page structures.",
-      apm: "Observability, monitoring, metrics, logging, and tracing.",
-      testing: "Test strategies, test cases, test data, and test coverage.",
-    };
-    return descriptions[layer] || "Architecture layer";
+    return getLayerDescription(layer);
   }
 
   /**
