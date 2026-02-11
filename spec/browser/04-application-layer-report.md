@@ -8,19 +8,19 @@
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Applicationcollaboration](#applicationcollaboration)
+  - [Interfaceprotocol](#interfaceprotocol)
   - [Applicationcomponent](#applicationcomponent)
-  - [Applicationevent](#applicationevent)
-  - [Applicationeventtype](#applicationeventtype)
-  - [Applicationfunction](#applicationfunction)
-  - [Applicationinteraction](#applicationinteraction)
-  - [Applicationinterface](#applicationinterface)
-  - [Applicationprocess](#applicationprocess)
   - [Applicationservice](#applicationservice)
-  - [Componenttype](#componenttype)
   - [Dataobject](#dataobject)
   - [Interactionpattern](#interactionpattern)
-  - [Interfaceprotocol](#interfaceprotocol)
+  - [Applicationprocess](#applicationprocess)
   - [Servicetype](#servicetype)
+  - [Applicationinteraction](#applicationinteraction)
+  - [Componenttype](#componenttype)
+  - [Applicationfunction](#applicationfunction)
+  - [Applicationevent](#applicationevent)
+  - [Applicationeventtype](#applicationeventtype)
+  - [Applicationinterface](#applicationinterface)
 
 ## Layer Introduction
 
@@ -50,19 +50,19 @@ Layer 4: Application Layer
 flowchart LR
   subgraph application
     applicationcollaboration["applicationcollaboration"]
+    interfaceprotocol["interfaceprotocol"]
     applicationcomponent["applicationcomponent"]
-    applicationevent["applicationevent"]
-    applicationeventtype["applicationeventtype"]
-    applicationfunction["applicationfunction"]
-    applicationinteraction["applicationinteraction"]
-    applicationinterface["applicationinterface"]
-    applicationprocess["applicationprocess"]
     applicationservice["applicationservice"]
-    componenttype["componenttype"]
     dataobject["dataobject"]
     interactionpattern["interactionpattern"]
-    interfaceprotocol["interfaceprotocol"]
+    applicationprocess["applicationprocess"]
     servicetype["servicetype"]
+    applicationinteraction["applicationinteraction"]
+    componenttype["componenttype"]
+    applicationfunction["applicationfunction"]
+    applicationevent["applicationevent"]
+    applicationeventtype["applicationeventtype"]
+    applicationinterface["applicationinterface"]
     applicationservice -->|depends-on| dataobject
   end
 ```
@@ -84,21 +84,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  testing --> motivation
-  technology --> security
+  api --> business
+  api --> application
+  api --> data_store
+  api --> security
+  api --> apm
   data_model --> application
   data_model --> business
-  business --> data_model
-  business --> application
-  business --> security
-  business --> motivation
-  application --> motivation
   application --> apm
-  api --> apm
-  api --> application
-  api --> business
-  api --> security
-  api --> data_store
+  application --> motivation
+  technology --> security
+  testing --> motivation
+  business --> security
+  business --> application
+  business --> motivation
+  business --> data_model
   class application current
 ```
 
@@ -107,9 +107,9 @@ flowchart TB
 | Relationship ID                                                             | Source Node                                                               | Dest Node                                                                 | Dest Layer                                      | Predicate                 | Cardinality  | Strength |
 | --------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------- | ------------ | -------- |
 | application.applicationservice.traced.apm.traceconfiguration                | [applicationservice](./04-application-layer-report.md#applicationservice) | [traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [Apm](./11-apm-layer-report.md)                 | traced                    | many-to-one  | medium   |
-| data-model.jsonschema.archimate-ref.application.applicationservice          | [jsonschema](./07-data-model-layer-report.md#jsonschema)                  | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
-| api.operation.archimate-ref.application.applicationservice                  | [operation](./06-api-layer-report.md#operation)                           | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
 | api.securityscheme.archimate-ref.application.applicationservice             | [securityscheme](./06-api-layer-report.md#securityscheme)                 | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
+| api.operation.archimate-ref.application.applicationservice                  | [operation](./06-api-layer-report.md#operation)                           | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
+| data-model.jsonschema.archimate-ref.application.applicationservice          | [jsonschema](./07-data-model-layer-report.md#jsonschema)                  | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
 | business.businessobject.master-data-source.application.dataobject           | [businessobject](./02-business-layer-report.md#businessobject)            | [dataobject](./04-application-layer-report.md#dataobject)                 | [Application](./04-application-layer-report.md) | master-data-source        | many-to-one  | medium   |
 | business.businessprocess.process-steps.application.applicationprocess       | [businessprocess](./02-business-layer-report.md#businessprocess)          | [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | process-steps             | many-to-many | medium   |
 | business.businessprocess.realized-by-process.application.applicationprocess | [businessprocess](./02-business-layer-report.md#businessprocess)          | [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | realized-by-process       | many-to-one  | medium   |
@@ -126,66 +126,19 @@ Aggregate of application components working together
 
 [Back to Index](#report-index)
 
+### Interfaceprotocol
+
+**Spec Node ID**: `application.interfaceprotocol`
+
+InterfaceProtocol element in Application Layer
+
+[Back to Index](#report-index)
+
 ### Applicationcomponent
 
 **Spec Node ID**: `application.applicationcomponent`
 
 Modular, deployable, and replaceable part of a system
-
-[Back to Index](#report-index)
-
-### Applicationevent
-
-**Spec Node ID**: `application.applicationevent`
-
-Application state change notification
-
-[Back to Index](#report-index)
-
-### Applicationeventtype
-
-**Spec Node ID**: `application.applicationeventtype`
-
-ApplicationEventType element in Application Layer
-
-[Back to Index](#report-index)
-
-### Applicationfunction
-
-**Spec Node ID**: `application.applicationfunction`
-
-Automated behavior performed by application component
-
-[Back to Index](#report-index)
-
-### Applicationinteraction
-
-**Spec Node ID**: `application.applicationinteraction`
-
-Unit of collective application behavior
-
-[Back to Index](#report-index)
-
-### Applicationinterface
-
-**Spec Node ID**: `application.applicationinterface`
-
-Point of access where application service is available
-
-[Back to Index](#report-index)
-
-### Applicationprocess
-
-**Spec Node ID**: `application.applicationprocess`
-
-Sequence of application behaviors
-
-#### Inter-Layer Relationships
-
-| Related Node                                                     | Layer                                     | Predicate           | Direction | Cardinality  |
-| ---------------------------------------------------------------- | ----------------------------------------- | ------------------- | --------- | ------------ |
-| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | process-steps       | inbound   | many-to-many |
-| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | realized-by-process | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -205,19 +158,11 @@ Service that exposes application functionality
 
 | Related Node                                                      | Layer                                         | Predicate      | Direction | Cardinality  |
 | ----------------------------------------------------------------- | --------------------------------------------- | -------------- | --------- | ------------ |
-| [jsonschema](./07-data-model-layer-report.md#jsonschema)          | [Data Model](./07-data-model-layer-report.md) | archimate-ref  | inbound   | many-to-one  |
-| [value](./01-motivation-layer-report.md#value)                    | [Motivation](./01-motivation-layer-report.md) | delivers-value | outbound  | many-to-many |
-| [traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [Apm](./11-apm-layer-report.md)               | traced         | outbound  | many-to-one  |
-| [operation](./06-api-layer-report.md#operation)                   | [Api](./06-api-layer-report.md)               | archimate-ref  | inbound   | many-to-one  |
 | [securityscheme](./06-api-layer-report.md#securityscheme)         | [Api](./06-api-layer-report.md)               | archimate-ref  | inbound   | many-to-one  |
-
-[Back to Index](#report-index)
-
-### Componenttype
-
-**Spec Node ID**: `application.componenttype`
-
-ComponentType element in Application Layer
+| [operation](./06-api-layer-report.md#operation)                   | [Api](./06-api-layer-report.md)               | archimate-ref  | inbound   | many-to-one  |
+| [jsonschema](./07-data-model-layer-report.md#jsonschema)          | [Data Model](./07-data-model-layer-report.md) | archimate-ref  | inbound   | many-to-one  |
+| [traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [Apm](./11-apm-layer-report.md)               | traced         | outbound  | many-to-one  |
+| [value](./01-motivation-layer-report.md#value)                    | [Motivation](./01-motivation-layer-report.md) | delivers-value | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -250,11 +195,18 @@ InteractionPattern element in Application Layer
 
 [Back to Index](#report-index)
 
-### Interfaceprotocol
+### Applicationprocess
 
-**Spec Node ID**: `application.interfaceprotocol`
+**Spec Node ID**: `application.applicationprocess`
 
-InterfaceProtocol element in Application Layer
+Sequence of application behaviors
+
+#### Inter-Layer Relationships
+
+| Related Node                                                     | Layer                                     | Predicate           | Direction | Cardinality  |
+| ---------------------------------------------------------------- | ----------------------------------------- | ------------------- | --------- | ------------ |
+| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | realized-by-process | inbound   | many-to-one  |
+| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | process-steps       | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -266,6 +218,54 @@ ServiceType element in Application Layer
 
 [Back to Index](#report-index)
 
+### Applicationinteraction
+
+**Spec Node ID**: `application.applicationinteraction`
+
+Unit of collective application behavior
+
+[Back to Index](#report-index)
+
+### Componenttype
+
+**Spec Node ID**: `application.componenttype`
+
+ComponentType element in Application Layer
+
+[Back to Index](#report-index)
+
+### Applicationfunction
+
+**Spec Node ID**: `application.applicationfunction`
+
+Automated behavior performed by application component
+
+[Back to Index](#report-index)
+
+### Applicationevent
+
+**Spec Node ID**: `application.applicationevent`
+
+Application state change notification
+
+[Back to Index](#report-index)
+
+### Applicationeventtype
+
+**Spec Node ID**: `application.applicationeventtype`
+
+ApplicationEventType element in Application Layer
+
+[Back to Index](#report-index)
+
+### Applicationinterface
+
+**Spec Node ID**: `application.applicationinterface`
+
+Point of access where application service is available
+
+[Back to Index](#report-index)
+
 ---
 
-_Generated: 2026-02-11T21:39:52.913Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:42:21.338Z | Generator: generate-layer-reports.ts_

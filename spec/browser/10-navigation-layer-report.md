@@ -7,32 +7,32 @@
 - [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
-  - [Breadcrumbconfig](#breadcrumbconfig)
-  - [Breadcrumbmode](#breadcrumbmode)
-  - [Contextscope](#contextscope)
+  - [Routetype](#routetype)
   - [Contextvariable](#contextvariable)
-  - [Datamapping](#datamapping)
-  - [Flowanalytics](#flowanalytics)
+  - [Notificationaction](#notificationaction)
+  - [Truncationtype](#truncationtype)
   - [Flowstep](#flowstep)
+  - [Datamapping](#datamapping)
+  - [Storagetype](#storagetype)
   - [Guardaction](#guardaction)
-  - [Guardactiontype](#guardactiontype)
-  - [Guardcondition](#guardcondition)
-  - [Guardtype](#guardtype)
-  - [Httpmethod](#httpmethod)
-  - [Navigationflow](#navigationflow)
-  - [Navigationgraph](#navigationgraph)
+  - [Contextscope](#contextscope)
+  - [Notificationtype](#notificationtype)
   - [Navigationguard](#navigationguard)
+  - [Guardactiontype](#guardactiontype)
+  - [Routemeta](#routemeta)
+  - [Breadcrumbmode](#breadcrumbmode)
+  - [Httpmethod](#httpmethod)
   - [Navigationtransition](#navigationtransition)
   - [Navigationtrigger](#navigationtrigger)
-  - [Notificationaction](#notificationaction)
-  - [Notificationtype](#notificationtype)
-  - [Processtracking](#processtracking)
   - [Route](#route)
-  - [Routemeta](#routemeta)
-  - [Routetype](#routetype)
-  - [Storagetype](#storagetype)
-  - [Truncationtype](#truncationtype)
+  - [Navigationflow](#navigationflow)
+  - [Flowanalytics](#flowanalytics)
+  - [Guardtype](#guardtype)
+  - [Navigationgraph](#navigationgraph)
   - [Waittype](#waittype)
+  - [Processtracking](#processtracking)
+  - [Guardcondition](#guardcondition)
+  - [Breadcrumbconfig](#breadcrumbconfig)
 
 ## Layer Introduction
 
@@ -77,21 +77,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  testing --> motivation
-  technology --> security
+  api --> business
+  api --> application
+  api --> data_store
+  api --> security
+  api --> apm
   data_model --> application
   data_model --> business
-  business --> data_model
-  business --> application
-  business --> security
-  business --> motivation
-  application --> motivation
   application --> apm
-  api --> apm
-  api --> application
-  api --> business
-  api --> security
-  api --> data_store
+  application --> motivation
+  technology --> security
+  testing --> motivation
+  business --> security
+  business --> application
+  business --> motivation
+  business --> data_model
   class navigation current
 ```
 
@@ -101,27 +101,11 @@ No inter-layer relationships defined.
 
 ## Node Reference
 
-### Breadcrumbconfig
+### Routetype
 
-**Spec Node ID**: `navigation.breadcrumbconfig`
+**Spec Node ID**: `navigation.routetype`
 
-Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Provides users with location context and navigation history.
-
-[Back to Index](#report-index)
-
-### Breadcrumbmode
-
-**Spec Node ID**: `navigation.breadcrumbmode`
-
-BreadcrumbMode element in Navigation Layer
-
-[Back to Index](#report-index)
-
-### Contextscope
-
-**Spec Node ID**: `navigation.contextscope`
-
-ContextScope element in Navigation Layer
+RouteType element in Navigation Layer
 
 [Back to Index](#report-index)
 
@@ -133,19 +117,19 @@ Shared variable across flow steps (Gap #1: Cross-experience state)
 
 [Back to Index](#report-index)
 
-### Datamapping
+### Notificationaction
 
-**Spec Node ID**: `navigation.datamapping`
+**Spec Node ID**: `navigation.notificationaction`
 
-Maps data between flow context and experience (Gap #2: Data handoff)
+Notification to send during flow step
 
 [Back to Index](#report-index)
 
-### Flowanalytics
+### Truncationtype
 
-**Spec Node ID**: `navigation.flowanalytics`
+**Spec Node ID**: `navigation.truncationtype`
 
-Analytics for funnel tracking (Gap #9: Funnel analytics)
+TruncationType element in Navigation Layer
 
 [Back to Index](#report-index)
 
@@ -157,11 +141,51 @@ One step in a navigation flow
 
 [Back to Index](#report-index)
 
+### Datamapping
+
+**Spec Node ID**: `navigation.datamapping`
+
+Maps data between flow context and experience (Gap #2: Data handoff)
+
+[Back to Index](#report-index)
+
+### Storagetype
+
+**Spec Node ID**: `navigation.storagetype`
+
+StorageType element in Navigation Layer
+
+[Back to Index](#report-index)
+
 ### Guardaction
 
 **Spec Node ID**: `navigation.guardaction`
 
 Action when guard denies access
+
+[Back to Index](#report-index)
+
+### Contextscope
+
+**Spec Node ID**: `navigation.contextscope`
+
+ContextScope element in Navigation Layer
+
+[Back to Index](#report-index)
+
+### Notificationtype
+
+**Spec Node ID**: `navigation.notificationtype`
+
+NotificationType element in Navigation Layer
+
+[Back to Index](#report-index)
+
+### Navigationguard
+
+**Spec Node ID**: `navigation.navigationguard`
+
+Guard condition for route access
 
 [Back to Index](#report-index)
 
@@ -173,19 +197,19 @@ GuardActionType element in Navigation Layer
 
 [Back to Index](#report-index)
 
-### Guardcondition
+### Routemeta
 
-**Spec Node ID**: `navigation.guardcondition`
+**Spec Node ID**: `navigation.routemeta`
 
-Condition expression for guard
+Route metadata
 
 [Back to Index](#report-index)
 
-### Guardtype
+### Breadcrumbmode
 
-**Spec Node ID**: `navigation.guardtype`
+**Spec Node ID**: `navigation.breadcrumbmode`
 
-GuardType element in Navigation Layer
+BreadcrumbMode element in Navigation Layer
 
 [Back to Index](#report-index)
 
@@ -194,30 +218,6 @@ GuardType element in Navigation Layer
 **Spec Node ID**: `navigation.httpmethod`
 
 HttpMethod element in Navigation Layer
-
-[Back to Index](#report-index)
-
-### Navigationflow
-
-**Spec Node ID**: `navigation.navigationflow`
-
-Sequence of routes that realizes a business process
-
-[Back to Index](#report-index)
-
-### Navigationgraph
-
-**Spec Node ID**: `navigation.navigationgraph`
-
-Complete navigation structure for application
-
-[Back to Index](#report-index)
-
-### Navigationguard
-
-**Spec Node ID**: `navigation.navigationguard`
-
-Guard condition for route access
 
 [Back to Index](#report-index)
 
@@ -237,30 +237,6 @@ NavigationTrigger element in Navigation Layer
 
 [Back to Index](#report-index)
 
-### Notificationaction
-
-**Spec Node ID**: `navigation.notificationaction`
-
-Notification to send during flow step
-
-[Back to Index](#report-index)
-
-### Notificationtype
-
-**Spec Node ID**: `navigation.notificationtype`
-
-NotificationType element in Navigation Layer
-
-[Back to Index](#report-index)
-
-### Processtracking
-
-**Spec Node ID**: `navigation.processtracking`
-
-Tracks business process instance across flow (Gap #3: Process correlation)
-
-[Back to Index](#report-index)
-
 ### Route
 
 **Spec Node ID**: `navigation.route`
@@ -269,35 +245,35 @@ Single route/destination in the application (channel-agnostic)
 
 [Back to Index](#report-index)
 
-### Routemeta
+### Navigationflow
 
-**Spec Node ID**: `navigation.routemeta`
+**Spec Node ID**: `navigation.navigationflow`
 
-Route metadata
-
-[Back to Index](#report-index)
-
-### Routetype
-
-**Spec Node ID**: `navigation.routetype`
-
-RouteType element in Navigation Layer
+Sequence of routes that realizes a business process
 
 [Back to Index](#report-index)
 
-### Storagetype
+### Flowanalytics
 
-**Spec Node ID**: `navigation.storagetype`
+**Spec Node ID**: `navigation.flowanalytics`
 
-StorageType element in Navigation Layer
+Analytics for funnel tracking (Gap #9: Funnel analytics)
 
 [Back to Index](#report-index)
 
-### Truncationtype
+### Guardtype
 
-**Spec Node ID**: `navigation.truncationtype`
+**Spec Node ID**: `navigation.guardtype`
 
-TruncationType element in Navigation Layer
+GuardType element in Navigation Layer
+
+[Back to Index](#report-index)
+
+### Navigationgraph
+
+**Spec Node ID**: `navigation.navigationgraph`
+
+Complete navigation structure for application
 
 [Back to Index](#report-index)
 
@@ -309,6 +285,30 @@ WaitType element in Navigation Layer
 
 [Back to Index](#report-index)
 
+### Processtracking
+
+**Spec Node ID**: `navigation.processtracking`
+
+Tracks business process instance across flow (Gap #3: Process correlation)
+
+[Back to Index](#report-index)
+
+### Guardcondition
+
+**Spec Node ID**: `navigation.guardcondition`
+
+Condition expression for guard
+
+[Back to Index](#report-index)
+
+### Breadcrumbconfig
+
+**Spec Node ID**: `navigation.breadcrumbconfig`
+
+Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Provides users with location context and navigation history.
+
+[Back to Index](#report-index)
+
 ---
 
-_Generated: 2026-02-11T21:39:52.918Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:42:21.340Z | Generator: generate-layer-reports.ts_
