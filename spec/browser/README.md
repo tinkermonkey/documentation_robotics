@@ -1,8 +1,11 @@
 # Documentation Robotics - 12-Layer Architecture
+
 ## Overview
+
 The Documentation Robotics specification defines a federated 12-layer architecture model spanning from business motivation through testing strategies. Each layer represents a distinct concern and provides specific abstractions and relationships.
 
 ## Layer Reports
+
 - **[Motivation](./01-motivation-layer-report.md)** (Layer 1)
   Layer 1: Motivation Layer
 - **[Business](./02-business-layer-report.md)** (Layer 2)
@@ -29,23 +32,26 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Layer 12: Testing Layer
 
 ## Layer Dependency Matrix
-| From \ To | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **1** | ✓ |  |  |  |  |  |  |  |  |  |  |  |
-| **2** | ✓ | ✓ | ✓ | ✓ |  |  | ✓ |  |  |  |  |  |
-| **3** |  |  |  |  |  |  |  |  |  |  |  |  |
-| **4** | ✓ |  |  | ✓ |  |  |  |  |  |  | ✓ |  |
-| **5** |  |  | ✓ |  |  |  |  |  |  |  |  |  |
-| **6** |  | ✓ | ✓ | ✓ |  | ✓ |  | ✓ |  |  | ✓ |  |
-| **7** |  | ✓ |  | ✓ |  |  | ✓ |  |  |  |  |  |
-| **8** |  |  |  |  |  |  |  | ✓ |  |  |  |  |
-| **9** |  |  |  |  |  |  |  |  |  |  |  |  |
-| **10** |  |  |  |  |  |  |  |  |  |  |  |  |
-| **11** |  |  |  |  |  |  |  |  |  |  | ✓ |  |
-| **12** | ✓ |  |  |  |  |  |  |  |  |  |  | ✓ |
+
+| From \ To | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  |
+| --------- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **1**     | ✓   |     |     |     |     |     |     |     |     |     |     |     |
+| **2**     | ✓   | ✓   | ✓   | ✓   |     |     | ✓   |     |     |     |     |     |
+| **3**     |     |     |     |     |     |     |     |     |     |     |     |     |
+| **4**     | ✓   |     |     | ✓   |     |     |     |     |     |     | ✓   |     |
+| **5**     |     |     | ✓   |     |     |     |     |     |     |     |     |     |
+| **6**     |     | ✓   | ✓   | ✓   |     | ✓   |     | ✓   |     |     | ✓   |     |
+| **7**     |     | ✓   |     | ✓   |     |     | ✓   |     |     |     |     |     |
+| **8**     |     |     |     |     |     |     |     | ✓   |     |     |     |     |
+| **9**     |     |     |     |     |     |     |     |     |     |     |     |     |
+| **10**    |     |     |     |     |     |     |     |     |     |     |     |     |
+| **11**    |     |     |     |     |     |     |     |     |     |     | ✓   |     |
+| **12**    | ✓   |     |     |     |     |     |     |     |     |     |     | ✓   |
 
 ## Predicate Glossary
+
 ### Apm
+
 - **measures** (inverse: measured-by)
   Metric collection relationships
 - **monitors** (inverse: monitored-by)
@@ -54,6 +60,7 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Distributed tracing relationships
 
 ### Behavioral
+
 - **flows-to** (inverse: flows-from)
   Data or control flows from one element to another
 - **influence** (inverse: influenced-by)
@@ -64,12 +71,14 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Element causes or initiates another element
 
 ### Business
+
 - **owns** (inverse: owned-by)
   Element has responsibility or authority over another element
 - **performs** (inverse: performed-by)
   Element executes or carries out another element
 
 ### Data
+
 - **derives-from** (inverse: derived-by)
   Calculated field relationships
 - **maps-to** (inverse: mapped-from)
@@ -78,6 +87,7 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Foreign key relationships
 
 ### Dependency
+
 - **consumes** (inverse: consumed-by)
   Element uses or depends on another element's functionality
 - **depends-on** (inverse: dependency-of)
@@ -88,6 +98,7 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Element depends on or utilizes another element
 
 ### Governance
+
 - **constrained-by** (inverse: constrains)
   Element limited by constraint
 - **enforces-requirement** (inverse: enforced-by)
@@ -96,6 +107,7 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Element follows architectural principle
 
 ### Motivation
+
 - **constrains** (inverse: constrained-by)
   Element limits or restricts another element
 - **delivers** (inverse: delivered-by)
@@ -108,6 +120,7 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Element contributes to achieving or enabling another element
 
 ### Security
+
 - **accesses** (inverse: accessed-by)
   Element can read or modify another element
 - **authenticates** (inverse: authenticated-by)
@@ -122,6 +135,7 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Element needs another element to function correctly
 
 ### Structural
+
 - **aggregates** (inverse: aggregated-by)
   Whole-part relationship where part can exist independently
 - **assigned-to** (inverse: assigns)
@@ -140,12 +154,14 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Type-subtype relationship (inheritance)
 
 ### Testing
+
 - **tests** (inverse: tested-by)
   Element validates or verifies another element
 - **validates** (inverse: validated-by)
   Test element validates that a requirement or target is satisfied
 
 ### Traceability
+
 - **delivers-value** (inverse: delivered-by)
   Implementation provides business value
 - **fulfills-requirements** (inverse: fulfilled-by)
@@ -156,6 +172,7 @@ The Documentation Robotics specification defines a federated 12-layer architectu
   Implementation contributes to achieving goal
 
 ### Ux
+
 - **binds-to** (inverse: bound-by)
   Data binding relationships
 - **navigates-to** (inverse: navigated-from)
@@ -163,6 +180,6 @@ The Documentation Robotics specification defines a federated 12-layer architectu
 - **renders** (inverse: rendered-by)
   UI rendering relationships
 
-
 ---
-*Generated: 2026-02-11T21:30:52.780Z | Generator: generate-layer-reports.ts*
+
+_Generated: 2026-02-11T21:30:52.780Z | Generator: generate-layer-reports.ts_
