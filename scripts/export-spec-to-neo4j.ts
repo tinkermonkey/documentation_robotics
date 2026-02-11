@@ -243,7 +243,7 @@ class SpecGraphBuilder {
     for (const schema of this.data.nodeSchemas) {
       nodes.push({
         id: schema.spec_node_id,
-        labels: ["SpecNode", `SpecNode_${schema.layer_id}`],
+        labels: ["SpecNode", `SpecNode_${schema.layer_id.replace(/-/g, '_')}`],
         properties: {
           spec_node_id: schema.spec_node_id,
           layer_id: schema.layer_id,
