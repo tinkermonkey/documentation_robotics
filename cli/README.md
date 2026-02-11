@@ -354,6 +354,75 @@ my-viewer/
 └── ...                 # Other static files
 ```
 
+## Building from Source
+
+The CLI uses a sophisticated multi-stage code generation system at build time to convert JSON specifications into type-safe TypeScript code.
+
+### Quick Build
+
+```bash
+# Install dependencies
+npm install
+
+# Build the CLI
+npm run build
+
+# Verify build
+npm run lint       # Type-check
+npm run test       # Run tests
+```
+
+### Build Variants
+
+| Command | Purpose | When to Use |
+|---------|---------|------------|
+| `npm run build` | Standard build | Development, testing |
+| `npm run build:debug` | Debug build with telemetry | Debugging bundle configuration |
+| `npm run build:ci` | Strict build with validation | CI/CD, releases |
+| `npm run sync-schemas` | Schema sync only | Updating schemas without rebuild |
+
+### Build Pipeline
+
+The build runs these stages in order:
+
+1. **Schema Sync** - Copies specification schemas from `spec/` to `cli/src/schemas/bundled/`
+2. **Registry Generation** - Generates TypeScript code for 12 layers, 354 node types, 252 relationships
+3. **Validator Generation** - Pre-compiles AJV validators for runtime validation
+4. **TypeScript Compilation** - Compiles all TypeScript to JavaScript
+5. **Bundling** - Bundles and optimizes for distribution
+6. **Copy Schemas** - Packages schemas in distribution
+
+**Build time:** ~4-5 seconds (typical full build)
+
+### Development Workflow
+
+When modifying specification or schema files:
+
+```bash
+# 1. Make changes to spec files
+vi spec/layers/01-motivation.layer.json
+vi spec/schemas/nodes/motivation/goal.node.schema.json
+
+# 2. Rebuild (generators pick up changes)
+npm run build
+
+# 3. Type-check for compatibility
+npm run lint
+
+# 4. Run tests
+npm run test
+
+# 5. Commit generated files
+git add spec/ cli/src/generated/
+git commit -m "Update schemas and generated code"
+```
+
+### Documentation
+
+- 📘 [Build System Documentation](../docs/BUILD_SYSTEM.md) - Complete build workflow guide
+- 📗 [Generator Scripts Guide](../docs/GENERATOR_SCRIPTS_GUIDE.md) - How to use and maintain generators
+- 📕 [Phase 5 Integration](../docs/PHASE_5_INTEGRATION.md) - Integration overview
+
 ## Example Workflows
 
 ### Analyzing Dependencies
