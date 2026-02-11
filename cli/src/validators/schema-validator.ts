@@ -34,19 +34,31 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
  * spec/schemas/nodes/motivation/goal.node.schema.json).
  */
 export class SchemaValidator {
+  // Static shared AJV instance to avoid schema registry conflicts
+  // When multiple SchemaValidator instances are created, they all use the same
+  // AJV instance which maintains a single schema registry. This prevents
+  // "schema with key or id already exists" errors when loading the same schemas.
+  private static sharedAjv: Ajv | null = null;
+  private static baseSchemaLoadedInSharedInstance: boolean = false;
+  // Track schema IDs already registered in the shared AJV instance to avoid re-registering
+  private static registeredSchemaIds: Set<string> = new Set();
+
   private ajv: Ajv;
   private compiledSchemas: Map<string, ValidateFunction> = new Map(); // Key: layer.type
-  private baseSchemaLoaded: boolean = false;
   private loadedSchemaIds: Set<string> = new Set();
   private schemasDir: string;
 
   constructor() {
-    this.ajv = new Ajv({
-      allErrors: true,
-      strict: false,
-      validateFormats: true,
-    });
-    addFormats(this.ajv);
+    // Initialize shared AJV instance once
+    if (!SchemaValidator.sharedAjv) {
+      SchemaValidator.sharedAjv = new Ajv({
+        allErrors: true,
+        strict: false,
+        validateFormats: true,
+      });
+      addFormats(SchemaValidator.sharedAjv);
+    }
+    this.ajv = SchemaValidator.sharedAjv;
 
     // Determine schemas directory (spec node schemas bundled with CLI)
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -59,7 +71,8 @@ export class SchemaValidator {
    * This allows per-type schemas to resolve $ref to base schemas during compilation.
    */
   private async ensureBaseSchemaLoaded(): Promise<void> {
-    if (this.baseSchemaLoaded) {
+    // Check if already loaded in the shared AJV instance (applies to all instances)
+    if (SchemaValidator.baseSchemaLoadedInSharedInstance) {
       return;
     }
 
@@ -81,34 +94,34 @@ export class SchemaValidator {
     ];
 
     for (const schemaName of baseSchemaNames) {
+      // Check if already registered in the shared AJV instance
+      if (SchemaValidator.registeredSchemaIds.has(schemaName)) {
+        continue;
+      }
+
       const schemaPath = path.join(this.schemasDir, "base", schemaName);
       try {
         const schemaContent = await readFile(schemaPath);
         const schema = JSON.parse(schemaContent);
 
-        // Check if schema with this ID already exists to avoid duplicate registration warnings
-        // Multiple SchemaValidator instances may be created during tests
-        if (this.loadedSchemaIds.has(schemaName)) {
-          continue;
-        }
-
         // Register schema with AJV using the file name as ID
         // This allows $ref to "filename.schema.json#/definitions/..." to be resolved
         this.ajv.addSchema(schema, schemaName);
-        this.loadedSchemaIds.add(schemaName);
+        SchemaValidator.registeredSchemaIds.add(schemaName);
       } catch (error: any) {
         // Ignore "already exists" errors - they're expected when multiple validators
         // are created in the same process. Only warn about other errors.
         if (error.message && error.message.includes("already exists")) {
           // Skip warning for duplicate registration - this is expected
+          SchemaValidator.registeredSchemaIds.add(schemaName);
           continue;
         }
         console.warn(`Warning: Failed to load base schema ${schemaName}: ${error.message}`);
       }
     }
 
-    // Mark base schemas as loaded
-    this.baseSchemaLoaded = true;
+    // Mark base schemas as loaded in shared instance (applies to all instances)
+    SchemaValidator.baseSchemaLoadedInSharedInstance = true;
   }
 
   /**
@@ -144,15 +157,29 @@ export class SchemaValidator {
         schema.$id = `file://${schemaPath}`;
       }
 
-      // Compile and cache the schema
-      const validate = this.ajv.compile(schema);
-      this.compiledSchemas.set(cacheKey, validate);
-
-      if (schema.$id) {
-        this.loadedSchemaIds.add(schema.$id);
+      // Check if schema with this $id is already registered to avoid duplicate compilation
+      const schemaId = schema.$id;
+      if (SchemaValidator.registeredSchemaIds.has(schemaId)) {
+        // Schema already registered - try to retrieve from cache instead of recompiling
+        // If not in cache, return null to fall back to base validation
+        return this.compiledSchemas.get(cacheKey) || null;
       }
 
-      return validate;
+      try {
+        // Compile and cache the schema
+        const validate = this.ajv.compile(schema);
+        this.compiledSchemas.set(cacheKey, validate);
+        SchemaValidator.registeredSchemaIds.add(schemaId);
+        return validate;
+      } catch (registrationError: any) {
+        // If compilation fails due to duplicate registration, mark as registered
+        // and return null to fall back to base validation
+        if (registrationError.message && registrationError.message.includes("already exists")) {
+          SchemaValidator.registeredSchemaIds.add(schemaId);
+          return null;
+        }
+        throw registrationError;
+      }
     } catch (error: any) {
       // Skip reference resolution errors - they're expected for schema discovery
       // Base schema validation still passes via pre-compiled validators
