@@ -8,7 +8,6 @@ import { ImportManager } from "../import/index.js";
 import { readFile } from "../utils/file-io.js";
 import * as path from "path";
 import { startSpan, endSpan } from "../telemetry/index.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
@@ -103,7 +102,7 @@ export async function importCommand(options: ImportOptions): Promise<void> {
       (span as any).setStatus({ code: 0 });
     }
   } catch (error) {
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
 
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);

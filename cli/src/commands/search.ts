@@ -6,9 +6,6 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import type { Element } from "../core/element.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
-import { TABLE_COLUMN_WIDTHS, TABLE_SEPARATOR } from "../utils/table-formatting.js";
-import { truncateToWidth } from "../utils/string-utils.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 export interface SearchOptions {
   layer?: string;
@@ -159,24 +156,24 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     } else {
       console.log(ansis.bold(`Found ${results.length} element(s) matching "${query}":`));
     }
-    console.log(ansis.dim(TABLE_SEPARATOR));
+    console.log(ansis.dim("─".repeat(80)));
 
     // Print header
-    const layerWidth = TABLE_COLUMN_WIDTHS.SEARCH_LAYER_WIDTH;
-    const idWidth = TABLE_COLUMN_WIDTHS.SEARCH_ID_WIDTH;
-    const typeWidth = TABLE_COLUMN_WIDTHS.SEARCH_TYPE_WIDTH;
-    const nameWidth = TABLE_COLUMN_WIDTHS.SEARCH_NAME_WIDTH;
+    const layerWidth = 12;
+    const idWidth = 28;
+    const typeWidth = 12;
+    const nameWidth = 28;
 
     console.log(
       `${ansis.cyan("LAYER".padEnd(layerWidth))} ${ansis.cyan("ID".padEnd(idWidth))} ${ansis.cyan("TYPE".padEnd(typeWidth))} ${ansis.cyan("NAME")}`
     );
-    console.log(ansis.dim(TABLE_SEPARATOR));
+    console.log(ansis.dim("─".repeat(80)));
 
     // Print rows
     for (const result of results) {
-      const layer = truncateToWidth(result.layer, layerWidth);
-      const id = truncateToWidth(result.id, idWidth);
-      const type = truncateToWidth(result.type, typeWidth);
+      const layer = result.layer.substring(0, layerWidth - 1).padEnd(layerWidth);
+      const id = result.id.substring(0, idWidth - 1).padEnd(idWidth);
+      const type = result.type.substring(0, typeWidth - 1).padEnd(typeWidth);
       const name = result.name.substring(0, nameWidth);
 
       console.log(`${ansis.blue(layer)} ${id} ${type} ${name}`);
@@ -193,17 +190,17 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       }
     }
 
-    console.log(ansis.dim(TABLE_SEPARATOR));
+    console.log(ansis.dim("─".repeat(80)));
     console.log("");
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    const message = extractErrorMessage(error);
+    const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
     endSpan(span);
     process.exit(1);

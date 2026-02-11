@@ -7,7 +7,6 @@ import { Model } from "../core/model.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, ErrorCategory, handleError } from "../utils/errors.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 export async function showCommand(id: string, options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled
@@ -146,7 +145,7 @@ export async function showCommand(id: string, options: { model?: string } = {}):
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
     handleError(error);

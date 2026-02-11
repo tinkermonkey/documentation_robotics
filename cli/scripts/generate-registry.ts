@@ -123,7 +123,7 @@ function findRelationshipSchemaFiles(dir: string): string[] {
 /**
  * Load all node schema files from bundled directory and extract metadata
  */
-function loadNodeSchemas(): NodeTypeInfo[] {
+function loadNodeSchemas(quiet: boolean = false): NodeTypeInfo[] {
   if (!fs.existsSync(BUNDLED_NODES_DIR)) {
     console.error(`ERROR: Node schemas directory not found at ${BUNDLED_NODES_DIR}`);
     process.exit(1);
@@ -178,17 +178,22 @@ function loadNodeSchemas(): NodeTypeInfo[] {
  *
  * @param strictMode If true, duplicates trigger a build-breaking error (for production CI/CD)
  *                   If false, duplicates are warned but build continues (for local development)
+ * @param quiet If true, suppress all progress output
  */
-function loadRelationshipSchemas(strictMode: boolean = false): RelationshipSchemaFile[] {
+function loadRelationshipSchemas(strictMode: boolean = false, quiet: boolean = false): RelationshipSchemaFile[] {
   if (!fs.existsSync(BUNDLED_RELATIONSHIPS_DIR)) {
-    console.warn(`WARNING: Relationship schemas directory not found at ${BUNDLED_RELATIONSHIPS_DIR}`);
+    if (!quiet) {
+      console.warn(`WARNING: Relationship schemas directory not found at ${BUNDLED_RELATIONSHIPS_DIR}`);
+    }
     return [];
   }
 
   const schemaFiles = findRelationshipSchemaFiles(BUNDLED_RELATIONSHIPS_DIR);
 
   if (schemaFiles.length === 0) {
-    console.warn(`WARNING: No .relationship.schema.json files found in ${BUNDLED_RELATIONSHIPS_DIR}`);
+    if (!quiet) {
+      console.warn(`WARNING: No .relationship.schema.json files found in ${BUNDLED_RELATIONSHIPS_DIR}`);
+    }
     return [];
   }
 
@@ -284,7 +289,7 @@ function loadRelationshipSchemas(strictMode: boolean = false): RelationshipSchem
 /**
  * Load all layer instance files from bundled directory
  */
-function loadLayerInstances(): LayerMetadata[] {
+function loadLayerInstances(quiet: boolean = false): LayerMetadata[] {
   if (!fs.existsSync(BUNDLED_LAYERS_DIR)) {
     console.error(`ERROR: Layer instances directory not found at ${BUNDLED_LAYERS_DIR}`);
     console.error("Run 'npm run sync-schemas' first to copy layer instances from spec/");
@@ -918,7 +923,8 @@ export {
 function writeGeneratedFiles(
   layers: LayerMetadata[],
   nodeTypes: NodeTypeInfo[],
-  relationships: RelationshipSchemaFile[]
+  relationships: RelationshipSchemaFile[],
+  quiet: boolean = false
 ): void {
   ensureGeneratedDir();
 
@@ -940,42 +946,56 @@ function writeGeneratedFiles(
   fs.writeFileSync(relationshipIndexPath, relationshipIndexContent);
   fs.writeFileSync(indexPath, indexContent);
 
-  console.log(`[OK] Generated ${registryPath}`);
-  console.log(`[OK] Generated ${typesPath}`);
-  console.log(`[OK] Generated ${nodeTypesPath} (${nodeTypes.length} node types)`);
-  console.log(`[OK] Generated ${relationshipIndexPath} (${relationships.length} relationship specs)`);
-  console.log(`[OK] Generated ${indexPath}`);
+  if (!quiet) {
+    console.log(`[OK] Generated ${registryPath}`);
+    console.log(`[OK] Generated ${typesPath}`);
+    console.log(`[OK] Generated ${nodeTypesPath} (${nodeTypes.length} node types)`);
+    console.log(`[OK] Generated ${relationshipIndexPath} (${relationships.length} relationship specs)`);
+    console.log(`[OK] Generated ${indexPath}`);
+  }
 }
 
 /**
  * Main entry point
  *
- * Supports optional --strict flag for production CI/CD builds:
- *   npm run build            # Development: warnings only
- *   npm run build -- --strict # Production: duplicates cause build failure
+ * Supports optional flags for build customization:
+ *   npm run build                 # Development: all output, warnings only
+ *   npm run build -- --strict     # Production: duplicates cause build failure
+ *   npm run build -- --quiet      # Silent mode: errors only, no progress output
  */
 async function main(): Promise<void> {
   try {
-    // Check for --strict flag (passed via npm scripts or direct invocation)
+    // Check for --strict and --quiet flags (passed via npm scripts or direct invocation)
     const strictMode = process.argv.includes("--strict");
+    const quiet = process.argv.includes("--quiet");
 
-    if (strictMode) {
-      console.log("Generating layer registry in STRICT MODE (duplicates will fail build)...");
-    } else {
-      console.log("Generating layer registry, node type index, and relationship index...");
+    if (!quiet) {
+      if (strictMode) {
+        console.log("Generating layer registry in STRICT MODE (duplicates will fail build)...");
+      } else {
+        console.log("Generating layer registry, node type index, and relationship index...");
+      }
     }
 
-    const layers = loadLayerInstances();
-    console.log(`[OK] Loaded ${layers.length} layer instances`);
+    const layers = loadLayerInstances(quiet);
+    if (!quiet) {
+      console.log(`[OK] Loaded ${layers.length} layer instances`);
+    }
 
-    const nodeTypes = loadNodeSchemas();
-    console.log(`[OK] Loaded ${nodeTypes.length} node type schemas`);
+    const nodeTypes = loadNodeSchemas(quiet);
+    if (!quiet) {
+      console.log(`[OK] Loaded ${nodeTypes.length} node type schemas`);
+    }
 
-    const relationships = loadRelationshipSchemas(strictMode);
-    console.log(`[OK] Loaded ${relationships.length} relationship specs`);
+    const relationships = loadRelationshipSchemas(strictMode, quiet);
+    if (!quiet) {
+      console.log(`[OK] Loaded ${relationships.length} relationship specs`);
+    }
 
-    writeGeneratedFiles(layers, nodeTypes, relationships);
-    console.log("[OK] Registry and index generation complete");
+    writeGeneratedFiles(layers, nodeTypes, relationships, quiet);
+    if (!quiet) {
+      console.log("[OK] Registry and index generation complete");
+    }
   } catch (error) {
     console.error("ERROR: Registry generation failed:");
     console.error(error);

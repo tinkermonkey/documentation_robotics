@@ -16,7 +16,6 @@ import {
 import { writeFile } from "../utils/file-io.js";
 import * as path from "path";
 import { startSpan, endSpan } from "../telemetry/index.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
@@ -125,7 +124,7 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({ code: 2, message: (error as Error).message });
     }
-    const message = extractErrorMessage(error);
+    const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
   } finally {

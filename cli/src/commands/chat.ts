@@ -17,7 +17,6 @@ import {
   SeverityNumber,
 } from "../telemetry/index.js";
 import { CLIError } from "../utils/errors.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 /**
  * Get the preferred chat client from manifest metadata
@@ -274,7 +273,7 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
           }
         }
       } catch (error) {
-        const message = extractErrorMessage(error);
+        const message = error instanceof Error ? error.message : String(error);
         if (isTelemetryEnabled && span) {
           emitLog(SeverityNumber.ERROR, "Message send failed", {
             "error.message": message,
@@ -296,10 +295,10 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    const message = extractErrorMessage(error);
+    const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
 
     // Log fatal error if logger is available

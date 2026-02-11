@@ -9,7 +9,6 @@ import ansis from "ansis";
 import * as path from "path";
 import { Model } from "../core/model.js";
 import { ModelMigrationService, type ModelMigrationResult } from "../export/model-migration.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 /**
  * Model migration command options
@@ -112,7 +111,7 @@ export async function modelMigrateCommand(options: ModelMigrateOptions): Promise
     }
   } catch (error) {
     console.error(ansis.red("✗ Migration error:"));
-    console.error(extractErrorMessage(error));
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
@@ -139,7 +138,7 @@ export async function migrateRollbackCommand(options: MigrateRollbackOptions): P
     console.log(ansis.dim(`  Model restored from: ${backupDir}`));
   } catch (error) {
     console.error(ansis.red("✗ Rollback failed:"));
-    console.error(extractErrorMessage(error));
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }

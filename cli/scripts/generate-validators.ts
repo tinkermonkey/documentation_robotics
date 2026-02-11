@@ -49,14 +49,16 @@ interface SchemaToCompile {
 /**
  * Load base schemas from bundled directory
  */
-async function loadBaseSchemas(): Promise<SchemaToCompile[]> {
+async function loadBaseSchemas(quiet: boolean = false): Promise<SchemaToCompile[]> {
   const schemasToCompile: SchemaToCompile[] = [];
 
   for (const { file, exportName } of BASE_SCHEMAS) {
     const schemaPath = path.join(BUNDLED_SCHEMAS_DIR, file);
 
     if (!fs.existsSync(schemaPath)) {
-      console.warn(`WARNING: Base schema not found at ${schemaPath}, skipping...`);
+      if (!quiet) {
+        console.warn(`WARNING: Base schema not found at ${schemaPath}, skipping...`);
+      }
       continue;
     }
 
@@ -72,7 +74,9 @@ async function loadBaseSchemas(): Promise<SchemaToCompile[]> {
         exportName,
       });
 
-      console.log(`[OK] Loaded ${file} (id: ${schemaId})`);
+      if (!quiet) {
+        console.log(`[OK] Loaded ${file} (id: ${schemaId})`);
+      }
     } catch (error: any) {
       console.error(`ERROR: Failed to load ${file}: ${error.message}`);
       process.exit(1);
@@ -343,7 +347,7 @@ function ensureGeneratedDir(): void {
  *
  * This prevents corruption if the write process fails partway through.
  */
-function writeGeneratedFile(content: string): void {
+function writeGeneratedFile(content: string, quiet: boolean = false): void {
   ensureGeneratedDir();
 
   const validatorsPath = path.join(GENERATED_DIR, "compiled-validators.ts");
@@ -368,7 +372,9 @@ function writeGeneratedFile(content: string): void {
       throw renameError;
     }
 
-    console.log(`[OK] Generated ${validatorsPath}`);
+    if (!quiet) {
+      console.log(`[OK] Generated ${validatorsPath}`);
+    }
   } catch (error: any) {
     console.error(`ERROR: Failed to write validators file: ${error.message}`);
     console.error(`  Temp file may exist at: ${tempPath}`);
@@ -379,23 +385,35 @@ function writeGeneratedFile(content: string): void {
 
 /**
  * Main entry point
+ *
+ * Supports optional --quiet flag for CI environments:
+ *   npm run build         # Development: all output
+ *   npm run build --quiet # CI: errors only, no progress output
  */
 async function main(): Promise<void> {
   try {
-    console.log("Generating pre-compiled AJV validators for base schemas...");
+    const quiet = process.argv.includes("--quiet");
 
-    const schemasToCompile = await loadBaseSchemas();
-    console.log(`[OK] Loaded ${schemasToCompile.length} base schemas`);
+    if (!quiet) {
+      console.log("Generating pre-compiled AJV validators for base schemas...");
+    }
+
+    const schemasToCompile = await loadBaseSchemas(quiet);
+    if (!quiet) {
+      console.log(`[OK] Loaded ${schemasToCompile.length} base schemas`);
+    }
 
     const validatorCode = await generatePreCompiledValidators(schemasToCompile);
 
-    writeGeneratedFile(validatorCode);
+    writeGeneratedFile(validatorCode, quiet);
 
-    console.log("[OK] Pre-compiled validator generation complete");
-    console.log(`  ${schemasToCompile.length} validators pre-compiled:`);
-    schemasToCompile.forEach(({ exportName }) => {
-      console.log(`    - ${exportName}`);
-    });
+    if (!quiet) {
+      console.log("[OK] Pre-compiled validator generation complete");
+      console.log(`  ${schemasToCompile.length} validators pre-compiled:`);
+      schemasToCompile.forEach(({ exportName }) => {
+        console.log(`    - ${exportName}`);
+      });
+    }
   } catch (error) {
     console.error("ERROR: Validator generation failed:");
     console.error(error);

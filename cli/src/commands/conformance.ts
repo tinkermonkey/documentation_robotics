@@ -6,7 +6,6 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { getAllLayerIds, getSpecNodeTypesForLayer, getLayerById } from "../generated/index.js";
 import { RELATIONSHIPS_BY_SOURCE } from "../generated/relationship-index.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 /**
  * Expected element types per layer (derived from generated registry)
@@ -271,7 +270,7 @@ export async function conformanceCommand(options: {
 
     console.log();
   } catch (error) {
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
   }
 }

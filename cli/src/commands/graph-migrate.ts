@@ -15,7 +15,6 @@ import {
   type GraphMigrationResult,
 } from "../export/graph-migration.js";
 import { LadybugMigrationService, type LadybugDocument } from "../export/ladybug-migration.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 /**
  * Graph migration command options
@@ -99,7 +98,7 @@ export async function graphMigrateCommand(options: GraphMigrateOptions): Promise
   } catch (error) {
     console.error(
       ansis.red("✗ Migration failed:"),
-      extractErrorMessage(error)
+      error instanceof Error ? error.message : String(error)
     );
     process.exit(1);
   }

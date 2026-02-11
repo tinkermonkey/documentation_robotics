@@ -22,7 +22,6 @@ import { startSpan, endSpan } from "../telemetry/index.js";
 import { generateElementId } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType, getNodeTypesForLayer } from "../generated/node-types.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 // Telemetry flag check
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -104,7 +103,7 @@ export async function addCommand(
     try {
       model = await Model.load();
     } catch (error) {
-      const message = extractErrorMessage(error);
+      const message = error instanceof Error ? error.message : String(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {
         throw new ModelNotFoundError();
       }

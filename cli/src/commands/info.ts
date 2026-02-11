@@ -5,8 +5,6 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
-import { TABLE_COLUMN_WIDTHS } from "../utils/table-formatting.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 export interface InfoOptions {
   layer?: string;
@@ -91,8 +89,8 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
         }
       } else {
         // Show all layers summary
-        const idWidth = TABLE_COLUMN_WIDTHS.INFO_ID_WIDTH;
-        const countWidth = TABLE_COLUMN_WIDTHS.INFO_COUNT_WIDTH;
+        const idWidth = 20;
+        const countWidth = 10;
 
         for (const layerName of layerNames) {
           const layer = await model.getLayer(layerName);
@@ -120,10 +118,10 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    const message = extractErrorMessage(error);
+    const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
   } finally {

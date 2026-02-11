@@ -16,7 +16,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { Model } from "../core/model.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 /**
  * Format a chat log entry for display
@@ -108,7 +107,7 @@ Examples:
         console.log(ansis.dim(`Total sessions: ${sessions.length}`));
         console.log("");
       } catch (error) {
-        console.error(ansis.red("Error:"), extractErrorMessage(error));
+        console.error(ansis.red("Error:"), error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -204,7 +203,7 @@ Examples:
           }
         }
       } catch (error) {
-        console.error(ansis.red("Error:"), extractErrorMessage(error));
+        console.error(ansis.red("Error:"), error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -245,7 +244,7 @@ Examples:
         console.log(`  Duration: ${summary.duration}`);
         console.log("");
       } catch (error) {
-        console.error(ansis.red("Error:"), extractErrorMessage(error));
+        console.error(ansis.red("Error:"), error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -299,7 +298,7 @@ Examples:
         console.log(ansis.dim("Session ID is used in the filename for easy identification."));
         console.log("");
       } catch (error) {
-        console.error(ansis.red("Error:"), extractErrorMessage(error));
+        console.error(ansis.red("Error:"), error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

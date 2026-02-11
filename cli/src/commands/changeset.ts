@@ -11,7 +11,6 @@ import { Command } from "commander";
 import * as prompts from "@clack/prompts";
 import path from "path";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 /**
  * Generate a unique ID for imported changesets
@@ -89,10 +88,10 @@ export async function changesetCreateCommand(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -175,10 +174,10 @@ export async function changesetListCommand(): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -291,10 +290,10 @@ export async function changesetApplyCommand(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -361,10 +360,10 @@ export async function changesetRevertCommand(name: string): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -398,10 +397,10 @@ export async function changesetActivateCommand(name: string): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -446,10 +445,10 @@ export async function changesetDeactivateCommand(): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -543,10 +542,10 @@ export async function changesetDeleteCommand(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -617,10 +616,10 @@ export async function changesetStatusCommand(): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -702,10 +701,10 @@ export async function changesetStagedCommand(options: { layer?: string }): Promi
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -779,10 +778,10 @@ export async function changesetUnstageCommand(elementId: string): Promise<void> 
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -907,10 +906,10 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -1030,10 +1029,10 @@ export async function changesetPreviewCommand(options: { layer?: string }): Prom
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -1133,10 +1132,10 @@ export async function changesetDiffCommand(options: { layer?: string }): Promise
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -1252,7 +1251,7 @@ export async function changesetCommitCommand(options?: {
       // Model has been automatically rolled back
       console.log(
         ansis.red(
-          `✗ Commit failed and rolled back: ${extractErrorMessage(error)}`
+          `✗ Commit failed and rolled back: ${error instanceof Error ? error.message : String(error)}`
         )
       );
       if (isTelemetryEnabled && span) {
@@ -1265,10 +1264,10 @@ export async function changesetCommitCommand(options?: {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -1324,10 +1323,10 @@ export async function changesetExportCommand(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {
@@ -1449,10 +1448,10 @@ export async function changesetImportCommand(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: extractErrorMessage(error),
+        message: error instanceof Error ? error.message : String(error),
       });
     }
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     endSpan(span);
     process.exit(1);
   } finally {

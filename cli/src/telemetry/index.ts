@@ -14,7 +14,6 @@ import type { NodeSDK } from "@opentelemetry/sdk-node";
 import type { Tracer } from "@opentelemetry/api";
 import type { Logger as OTelLogger } from "@opentelemetry/api-logs";
 
-
 // Re-export SeverityNumber for convenience
 export { SeverityNumber } from "@opentelemetry/api-logs";
 
@@ -423,8 +422,7 @@ export function setSpanAttribute(
 ): void {
   if (span && typeof span.setAttribute === "function") {
     try {
-      // AttributeValue in OpenTelemetry is more restrictive, so we cast safely
-      span.setAttribute(key, value as any);
+      (span as any).setAttribute(key, value);
     } catch {
       // Silently ignore attribute setting errors - telemetry should never break the app
     }

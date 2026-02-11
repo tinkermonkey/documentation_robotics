@@ -22,7 +22,6 @@ import { installSpecReference } from "../utils/spec-installer.js";
 import { Model } from "../core/model.js";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
 import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
-import { extractErrorMessage } from "../utils/error-utils.js";
 
 export interface UpgradeOptions {
   yes?: boolean;
@@ -231,7 +230,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
     await handleUpgrade(projectRoot, actions, options, integrationStatus);
   } catch (error) {
-    console.error(ansis.red(`Error: ${extractErrorMessage(error)}`));
+    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
   }
 }
@@ -347,7 +346,7 @@ async function executeSpecUpgrade(projectRoot: string, action: UpgradeAction): P
   } catch (error) {
     console.error(
       ansis.red(
-        `Error upgrading spec reference: ${extractErrorMessage(error)}`
+        `Error upgrading spec reference: ${error instanceof Error ? error.message : String(error)}`
       )
     );
     throw error;
@@ -393,7 +392,7 @@ async function executeModelMigration(
     console.log(ansis.green(`✓ Model migrated to v${action.toVersion}`));
   } catch (error) {
     console.error(
-      ansis.red(`Error migrating model: ${extractErrorMessage(error)}`)
+      ansis.red(`Error migrating model: ${error instanceof Error ? error.message : String(error)}`)
     );
     throw error;
   }
@@ -413,7 +412,7 @@ async function executeIntegrationUpdate(
   } catch (error) {
     console.error(
       ansis.red(
-        `Error updating ${integrationName} integration: ${extractErrorMessage(error)}`
+        `Error updating ${integrationName} integration: ${error instanceof Error ? error.message : String(error)}`
       )
     );
     throw error;

@@ -509,6 +509,55 @@ bun run src/utils/export-python-annotations.ts
 
 This utility exports Python CLI annotations to a processable format, used during migrations between CLI versions.
 
+## Validation
+
+### Local Validation
+
+Since pre-commit hooks for validation were removed in favor of CI-based validation, developers who want local feedback before committing can use the following commands to validate their changes:
+
+#### Validate Model Conformance
+
+Validate your architecture model against the layer specifications:
+
+```bash
+# Validate entire model
+dr conformance
+
+# Validate specific layers
+dr conformance --layers motivation,business,api
+
+# Check model statistics and summary
+dr info
+```
+
+#### Validate Specifications (During Development)
+
+If you're developing locally and modifying the specification files:
+
+```bash
+# Validate spec schemas are correct
+dr validate --schemas
+
+# List schema information for debugging
+dr schema layers           # List all layers
+dr schema types <layer>    # List valid types for a layer
+dr schema node <id>        # Show node schema details
+```
+
+#### Schema Synchronization
+
+After modifying specification files in `spec/`, ensure the CLI has the latest schemas:
+
+```bash
+# Sync spec schemas to CLI bundled schemas
+npm run sync-schemas
+
+# Build CLI with updated schemas
+npm run build
+```
+
+These commands provide immediate feedback during development, allowing you to catch validation errors locally before pushing to CI.
+
 ## Troubleshooting
 
 ### "dr: command not found"
