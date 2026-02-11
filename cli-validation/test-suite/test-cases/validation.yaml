@@ -122,18 +122,18 @@ pipelines:
   - name: "Missing required properties"
     description: "Verify that name property defaults to element ID when not provided"
     steps:
-      - command: 'add api endpoint missing-name-endpoint --description ''Missing required name'' --properties ''{"method":"GET","path":"/test"}'''
+      - command: 'add api operation missing-name-operation --description ''Missing required name'' --properties ''{"method":"GET","path":"/test"}'''
         files_to_compare:
           - manifest.yaml
-          - 06_api/endpoints.yaml
+          - 06_api/operations.yaml
         expect_exit_code: 0
         expect_stdout_contains:
-          - "missing-name-endpoint"
+          - "missing-name-operation"
 
-      - command: "delete api.endpoint.missing-name-endpoint --force"
+      - command: "delete api.operation.missing-name-operation --force"
         files_to_compare:
           - manifest.yaml
-          - 06_api/endpoints.yaml
+          - 06_api/operations.yaml
         expect_exit_code: 0
 
   - name: "Reference to non-existent element"

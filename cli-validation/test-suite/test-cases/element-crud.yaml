@@ -85,28 +85,28 @@ pipelines:
           - 04_application/components.yaml
         expect_exit_code: 0
 
-  - name: "Add technology platform with update"
+  - name: "Add technology node with update"
     steps:
-      - command: "add technology platform test-platform --name 'Test Platform' --description 'Test infrastructure platform'"
+      - command: "add technology node test-node --name 'Test Node' --description 'Test infrastructure node'"
         files_to_compare:
           - manifest.yaml
-          - 05_technology/platforms.yaml
+          - 05_technology/nodes.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
-          - "test-platform"
+          - "test-node"
 
-      - command: "update technology.platform.test-platform --name 'Updated Platform'"
+      - command: "update technology.node.test-node --name 'Updated Node'"
         files_to_compare:
-          - 05_technology/platforms.yaml
+          - 05_technology/nodes.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
 
-      - command: "delete technology.platform.test-platform --force"
+      - command: "delete technology.node.test-node --force"
         files_to_compare:
           - manifest.yaml
-          - 05_technology/platforms.yaml
+          - 05_technology/nodes.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
@@ -134,51 +134,54 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add API endpoint with update"
+  - name: "Add API operation with update"
     steps:
-      - command: 'add api endpoint test-endpoint --name ''Test Endpoint'' --description ''GET /api/test'' --properties ''{"method":"GET","path":"/api/test"}'''
+      - command: 'add api operation test-operation --name ''Test Operation'' --description ''GET /api/test'' --properties ''{"method":"GET","path":"/api/test"}'''
         files_to_compare:
           - manifest.yaml
-          - 06_api/endpoints.yaml
+          - 06_api/operations.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
-          - "test-endpoint"
+          - "test-operation"
 
-      - command: "update api.endpoint.test-endpoint --name 'Updated Endpoint'"
+      - command: "update api.operation.test-operation --name 'Updated Operation'"
         files_to_compare:
-          - 06_api/endpoints.yaml
+          - 06_api/operations.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
 
-      - command: "delete api.endpoint.test-endpoint --force"
+      - command: "delete api.operation.test-operation --force"
         files_to_compare:
           - manifest.yaml
-          - 06_api/endpoints.yaml
+          - 06_api/operations.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add data model entity with update"
+  - name: "Add data model schema with update"
     steps:
-      - command: "add data-model entity test-entity --name 'TestEntity' --description 'Test entity'"
+      - command: "add data-model objectschema test-schema --name 'TestSchema' --description 'Test object schema'"
         files_to_compare:
           - manifest.yaml
+          - 07_data-model/objectschemas.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
-          - "test-entity"
+          - "test-schema"
 
-      - command: "update data-model.entity.test-entity --name 'UpdatedEntity'"
-        files_to_compare: []
+      - command: "update data-model.objectschema.test-schema --name 'UpdatedSchema'"
+        files_to_compare:
+          - 07_data-model/objectschemas.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
 
-      - command: "delete data-model.entity.test-entity --force"
+      - command: "delete data-model.objectschema.test-schema --force"
         files_to_compare:
           - manifest.yaml
+          - 07_data-model/objectschemas.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
@@ -261,51 +264,54 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add APM metric with update"
+  - name: "Add APM metric instrument with update"
     steps:
-      - command: "add apm metric test-metric --name 'Test Metric' --description 'Test observability metric'"
+      - command: "add apm metricinstrument test-metric --name 'Test Metric' --description 'Test observability metric instrument'"
         files_to_compare:
           - manifest.yaml
-          - 11_apm/metrics.yaml
+          - 11_apm/metricinstruments.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
           - "test-metric"
 
-      - command: "update apm.metric.test-metric --name 'Updated Metric'"
+      - command: "update apm.metricinstrument.test-metric --name 'Updated Metric'"
         files_to_compare:
-          - 11_apm/metrics.yaml
+          - 11_apm/metricinstruments.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
 
-      - command: "delete apm.metric.test-metric --force"
+      - command: "delete apm.metricinstrument.test-metric --force"
         files_to_compare:
           - manifest.yaml
-          - 11_apm/metrics.yaml
+          - 11_apm/metricinstruments.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add testing test case with update"
+  - name: "Add testing test case sketch with update"
     steps:
-      - command: "add testing test_case test-case --name 'Test Case' --description 'Test case for verification'"
+      - command: "add testing testcasesketch test-case --name 'Test Case' --description 'Test case sketch for verification'"
         files_to_compare:
           - manifest.yaml
+          - 12_testing/testcasesketchs.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
           - "test-case"
 
-      - command: "update testing.test_case.test-case --name 'Updated Test Case'"
-        files_to_compare: []
+      - command: "update testing.testcasesketch.test-case --name 'Updated Test Case'"
+        files_to_compare:
+          - 12_testing/testcasesketchs.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
 
-      - command: "delete testing.test_case.test-case --force"
+      - command: "delete testing.testcasesketch.test-case --force"
         files_to_compare:
           - manifest.yaml
+          - 12_testing/testcasesketchs.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
