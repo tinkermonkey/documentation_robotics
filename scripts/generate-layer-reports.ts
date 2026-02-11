@@ -371,6 +371,38 @@ function createAnchor(text: string): string {
     .replace(/^-|-$/g, "");
 }
 
+/**
+ * Format a markdown table with proper column alignment
+ * @param headers Array of header strings
+ * @param rows Array of row arrays (each row is an array of cell strings)
+ * @returns Formatted markdown table string
+ */
+function formatMarkdownTable(headers: string[], rows: string[][]): string {
+  // Calculate column widths based on content
+  const colWidths = headers.map((h, i) => {
+    let width = h.length;
+    for (const row of rows) {
+      width = Math.max(width, (row[i] || "").length);
+    }
+    return width;
+  });
+
+  // Build header row
+  const headerRow = headers
+    .map((h, i) => h.padEnd(colWidths[i]))
+    .join(" | ");
+
+  // Build separator row
+  const sepRow = colWidths.map((w) => "-".repeat(w)).join(" | ");
+
+  // Build data rows
+  const dataRows = rows.map((row) =>
+    row.map((cell, i) => cell.padEnd(colWidths[i])).join(" | ")
+  );
+
+  return `| ${headerRow} |\n| ${sepRow} |\n${dataRows.map((r) => `| ${r} |`).join("\n")}\n`;
+}
+
 // ============================================================================
 // Layer Report Generator
 // ============================================================================
@@ -417,7 +449,6 @@ class LayerReportGenerator {
       }
     }
 
-    lines.push("\n");
     return lines.join("");
   }
 
@@ -436,15 +467,18 @@ class LayerReportGenerator {
     lines.push(`\n${reportData.layer.description}\n`);
 
     lines.push("\n### Statistics\n");
-    lines.push("| Metric | Count |\n");
-    lines.push("|--------|-------|\n");
-    lines.push(`| Node Types | ${reportData.statistics.nodeCount} |\n`);
-    lines.push(`| Intra-Layer Relationships | ${reportData.statistics.intraRelationshipCount} |\n`);
-    lines.push(`| Inter-Layer Relationships | ${reportData.statistics.interRelationshipCount} |\n`);
-    lines.push(`| Inbound Relationships | ${reportData.statistics.inboundRelationshipCount} |\n`);
-    lines.push(`| Outbound Relationships | ${reportData.statistics.outboundRelationshipCount} |\n`);
+    lines.push("\n");
+    const statsTable = formatMarkdownTable(["Metric", "Count"], [
+      ["Node Types", String(reportData.statistics.nodeCount)],
+      ["Intra-Layer Relationships", String(reportData.statistics.intraRelationshipCount)],
+      ["Inter-Layer Relationships", String(reportData.statistics.interRelationshipCount)],
+      ["Inbound Relationships", String(reportData.statistics.inboundRelationshipCount)],
+      ["Outbound Relationships", String(reportData.statistics.outboundRelationshipCount)],
+    ]);
+    lines.push(statsTable);
 
     lines.push("\n### Layer Dependencies\n");
+    lines.push("\n");
 
     if (reportData.upstreamLayers.length > 0) {
       const deps = reportData.upstreamLayers
@@ -454,6 +488,8 @@ class LayerReportGenerator {
     } else {
       lines.push("**Depends On**: None\n");
     }
+
+    lines.push("\n");
 
     if (reportData.downstreamLayers.length > 0) {
       const deps = reportData.downstreamLayers
@@ -470,6 +506,7 @@ class LayerReportGenerator {
   private generateIntraLayerDiagram(reportData: LayerReportData): string {
     const lines: string[] = [];
     lines.push("## Intra-Layer Relationships\n");
+    lines.push("\n");
 
     if (reportData.nodeSchemas.length === 0) {
       lines.push("No node types defined for this layer.\n");
@@ -507,6 +544,7 @@ class LayerReportGenerator {
   private generateInterLayerDiagram(reportData: LayerReportData): string {
     const lines: string[] = [];
     lines.push("## Inter-Layer Dependencies\n");
+    lines.push("\n");
 
     lines.push("```mermaid\n");
     lines.push("flowchart TB\n");
@@ -543,6 +581,7 @@ class LayerReportGenerator {
   private generateInterLayerTable(reportData: LayerReportData): string {
     const lines: string[] = [];
     lines.push("## Inter-Layer Relationships Table\n");
+    lines.push("\n");
 
     const interLayerRels = reportData.interRelationships
       .filter((r) => r.source_layer === reportData.layer.id || r.destination_layer === reportData.layer.id)
@@ -557,9 +596,7 @@ class LayerReportGenerator {
       return lines.join("");
     }
 
-    lines.push("| Relationship ID | Source Node | Dest Node | Dest Layer | Predicate | Cardinality | Strength |\n");
-    lines.push("|-----------------|-------------|-----------|------------|-----------|-------------|----------|\n");
-
+    const rows: string[][] = [];
     for (const rel of interLayerRels) {
       const sourceType = rel.source_spec_node_id.split(".")[1] || "unknown";
       const destType = rel.destination_spec_node_id.split(".")[1] || "unknown";
@@ -591,10 +628,14 @@ class LayerReportGenerator {
         ? `[${destType}](${destLayerFilename}#${destAnchor})`
         : destType;
 
-      lines.push(
-        `| ${rel.id} | ${sourceLink} | ${destLink} | ${destLayerLink} | ${rel.predicate} | ${rel.cardinality} | ${rel.strength} |\n`
-      );
+      rows.push([rel.id, sourceLink, destLink, destLayerLink, rel.predicate, rel.cardinality, rel.strength]);
     }
+
+    const table = formatMarkdownTable(
+      ["Relationship ID", "Source Node", "Dest Node", "Dest Layer", "Predicate", "Cardinality", "Strength"],
+      rows
+    );
+    lines.push(table);
 
     return lines.join("");
   }
@@ -607,12 +648,15 @@ class LayerReportGenerator {
     }
 
     lines.push("## Node Reference\n");
+    lines.push("\n");
 
-    for (const schema of reportData.nodeSchemas) {
+    for (let i = 0; i < reportData.nodeSchemas.length; i++) {
+      const schema = reportData.nodeSchemas[i]!;
       const anchor = createAnchor(schema.type);
       // Use formatted name for readability, but markdown will anchor to lowercase anchor
       const heading = formatNodeTypeName(schema.type);
       lines.push(`### ${heading}\n`);
+      lines.push("\n");
       lines.push(`**Spec Node ID**: \`${schema.spec_node_id}\`\n\n`);
       lines.push(`${schema.description}\n\n`);
 
@@ -625,9 +669,9 @@ class LayerReportGenerator {
 
       if (intraRels.length > 0) {
         lines.push("#### Intra-Layer Relationships\n");
-        lines.push("| Related Node | Predicate | Direction | Cardinality |\n");
-        lines.push("|--------------|-----------|-----------|-------------|\n");
+        lines.push("\n");
 
+        const intraRows: string[][] = [];
         for (const rel of intraRels) {
           const direction =
             rel.source_spec_node_id === schema.spec_node_id ? "outbound" : "inbound";
@@ -636,11 +680,11 @@ class LayerReportGenerator {
               ? rel.destination_spec_node_id.split(".")[1]
               : rel.source_spec_node_id.split(".")[1];
           const relatedAnchor = createAnchor(relatedType || "unknown");
-          lines.push(
-            `| [${relatedType}](#${relatedAnchor}) | ${rel.predicate} | ${direction} | ${rel.cardinality} |\n`
-          );
+          intraRows.push([`[${relatedType}](#${relatedAnchor})`, rel.predicate, direction, rel.cardinality]);
         }
 
+        const intraTable = formatMarkdownTable(["Related Node", "Predicate", "Direction", "Cardinality"], intraRows);
+        lines.push(intraTable);
         lines.push("\n");
       }
 
@@ -653,9 +697,9 @@ class LayerReportGenerator {
 
       if (interRels.length > 0) {
         lines.push("#### Inter-Layer Relationships\n");
-        lines.push("| Related Node | Layer | Predicate | Direction | Cardinality |\n");
-        lines.push("|--------------|-------|-----------|-----------|-------------|\n");
+        lines.push("\n");
 
+        const interRows: string[][] = [];
         for (const rel of interRels) {
           const direction =
             rel.source_spec_node_id === schema.spec_node_id ? "outbound" : "inbound";
@@ -674,15 +718,20 @@ class LayerReportGenerator {
             : relatedLayer;
           const relatedAnchor = createAnchor(relatedType || "unknown");
 
-          lines.push(
-            `| [${relatedType}](${layerFilename}#${relatedAnchor}) | ${layerLink} | ${rel.predicate} | ${direction} | ${rel.cardinality} |\n`
-          );
+          interRows.push([`[${relatedType}](${layerFilename}#${relatedAnchor})`, layerLink, rel.predicate, direction, rel.cardinality]);
         }
 
+        const interTable = formatMarkdownTable(["Related Node", "Layer", "Predicate", "Direction", "Cardinality"], interRows);
+        lines.push(interTable);
         lines.push("\n");
       }
 
-      lines.push(`[Back to Index](#report-index)\n\n`);
+      lines.push(`[Back to Index](#report-index)\n`);
+
+      // Add blank line between nodes, but not after the last one
+      if (i < reportData.nodeSchemas.length - 1) {
+        lines.push("\n");
+      }
     }
 
     return lines.join("");
@@ -690,7 +739,7 @@ class LayerReportGenerator {
 
   private generateFooter(reportData: LayerReportData): string {
     const timestamp = new Date().toISOString();
-    return `---\n*Generated: ${timestamp} | Generator: generate-layer-reports.ts*\n`;
+    return `---\n\n_Generated: ${timestamp} | Generator: generate-layer-reports.ts_\n`;
   }
 }
 
@@ -705,12 +754,15 @@ class ReadmeGenerator {
     const lines: string[] = [];
 
     lines.push("# Documentation Robotics - 12-Layer Architecture\n");
+    lines.push("\n");
     lines.push("## Overview\n");
+    lines.push("\n");
     lines.push(
       "The Documentation Robotics specification defines a federated 12-layer architecture model spanning from business motivation through testing strategies. Each layer represents a distinct concern and provides specific abstractions and relationships.\n"
     );
 
     lines.push("\n## Layer Reports\n");
+    lines.push("\n");
     for (const layer of this.data.getAllLayers()) {
       const filename = `${String(layer.number).padStart(2, "0")}-${layer.id}-layer-report.md`;
       lines.push(`- **[${formatLayerName(layer.id)}](./${filename})** (Layer ${layer.number})\n`);
@@ -718,15 +770,18 @@ class ReadmeGenerator {
     }
 
     lines.push("\n## Layer Dependency Matrix\n");
+    lines.push("\n");
     lines.push(this.generateDependencyMatrix());
 
     lines.push("\n## Predicate Glossary\n");
+    lines.push("\n");
     lines.push(this.generatePredicateGlossary());
 
-    lines.push("\n---\n");
+    lines.push("---\n");
+    lines.push("\n");
     const timestamp = new Date().toISOString();
     lines.push(
-      `*Generated: ${timestamp} | Generator: generate-layer-reports.ts*\n`
+      `_Generated: ${timestamp} | Generator: generate-layer-reports.ts_\n`
     );
 
     return lines.join("");
@@ -736,29 +791,28 @@ class ReadmeGenerator {
     const layers = this.data.getAllLayers();
     const rels = this.data.getAllRelationships();
 
-    const lines: string[] = [];
-    lines.push("| From \\ To |");
-    for (const layer of layers) {
-      lines.push(` ${layer.number} |`);
-    }
-    lines.push("\n|");
-    for (let i = 0; i <= layers.length; i++) {
-      lines.push("---|");
-    }
-    lines.push("\n");
+    // Build header row
+    const header = `| From \\ To | ${layers.map((l) => String(l.number).padStart(2, "0")).join("  | ")}  |`;
 
-    for (const sourceLayer of layers) {
-      lines.push(`| **${sourceLayer.number}** |`);
-      for (const destLayer of layers) {
-        const hasRel = rels.some(
-          (r) => r.source_layer === sourceLayer.id && r.destination_layer === destLayer.id
-        );
-        lines.push(` ${hasRel ? "✓" : ""} |`);
-      }
-      lines.push("\n");
-    }
+    // Build separator row
+    const sep = `| --------- | ${layers.map(() => "---").join(" | ")} |`;
 
-    return lines.join("");
+    // Build data rows - right-align row numbers, left-align values
+    const dataRows = layers.map((sourceLayer) => {
+      const rowLabel = `| **${sourceLayer.number}**`.padEnd(11);
+      const cells = layers
+        .map((destLayer) => {
+          const hasRel = rels.some(
+            (r) => r.source_layer === sourceLayer.id && r.destination_layer === destLayer.id
+          );
+          return hasRel ? "✓" : " ";
+        })
+        .map((v) => v.padEnd(3))
+        .join(" | ");
+      return `${rowLabel} | ${cells} |`;
+    });
+
+    return `${header}\n${sep}\n${dataRows.join("\n")}\n`;
   }
 
   private generatePredicateGlossary(): string {
@@ -776,6 +830,7 @@ class ReadmeGenerator {
 
     for (const category of Array.from(byCategory.keys()).sort()) {
       lines.push(`### ${formatLayerName(category)}\n`);
+      lines.push("\n");
 
       const preds = byCategory.get(category) || [];
       for (const pred of preds.sort((a, b) => a.predicate.localeCompare(b.predicate))) {

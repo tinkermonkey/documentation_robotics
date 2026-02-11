@@ -33,7 +33,7 @@ The Documentation Robotics specification defines a federated 12-layer architectu
 
 ## Layer Dependency Matrix
 
-| From \ To | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  |
+| From \ To | 01  | 02  | 03  | 04  | 05  | 06  | 07  | 08  | 09  | 10  | 11  | 12  |
 | --------- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **1**     | ✓   |     |     |     |     |     |     |     |     |     |     |     |
 | **2**     | ✓   | ✓   | ✓   | ✓   |     |     | ✓   |     |     |     |     |     |
@@ -182,4 +182,4 @@ The Documentation Robotics specification defines a federated 12-layer architectu
 
 ---
 
-_Generated: 2026-02-11T21:48:41.951Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:54:18.041Z | Generator: generate-layer-reports.ts_

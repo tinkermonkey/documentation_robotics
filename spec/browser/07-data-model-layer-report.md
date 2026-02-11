@@ -48,6 +48,7 @@ Layer 7: Data Model Layer
 ### Layer Dependencies
 
 **Depends On**: [Business](./02-business-layer-report.md)
+
 **Depended On By**: [Business](./02-business-layer-report.md), [Application](./04-application-layer-report.md)
 
 ## Intra-Layer Relationships
@@ -337,4 +338,4 @@ UI rendering hints
 
 ---
 
-_Generated: 2026-02-11T21:48:41.956Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:54:18.048Z | Generator: generate-layer-reports.ts_
