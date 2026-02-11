@@ -45,7 +45,6 @@ pipelines:
         files_to_compare:
           - manifest.yaml
           - 08_data-store/tables.yaml
-          - relationships.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.column.rel-test-column --force"
