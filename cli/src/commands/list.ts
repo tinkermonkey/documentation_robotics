@@ -6,6 +6,7 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { CLIError, ErrorCategory, ModelNotFoundError, handleError } from "../utils/errors.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export interface ListOptions {
   type?: string;
@@ -30,7 +31,7 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
     try {
       model = await Model.load(options.model);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       // Check for any model-not-found error pattern
       if (
         message.includes("No DR project") ||
@@ -118,7 +119,7 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
     handleError(error);

@@ -11,6 +11,7 @@ import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, handleError, ErrorCategory, ModelNotFoundError } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
@@ -39,7 +40,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     try {
       model = await Model.load();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {
         throw new ModelNotFoundError();
       }

@@ -9,6 +9,7 @@ import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js
 import { findElementLayer } from "../utils/element-utils.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { CLIError } from "../utils/errors.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export async function traceCommand(
   elementId: string,
@@ -161,13 +162,13 @@ export async function traceCommand(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
     if (error instanceof CLIError) {
       throw error;
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     throw new CLIError(message, 1);
   } finally {
     endSpan(span);

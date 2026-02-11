@@ -81,10 +81,10 @@ export class ValidationFormatter {
       if (hasErrors) {
         const errorCount = result.errors.filter((e) => e.layer === layerName).length;
         lines.push(
-          `${ansis.red("✗")} ${this.formatLayerName(layerName)} (${count} elements) - ${errorCount} error(s)`
+          `${ansis.red("✗")} ${formatLayerNameWithSuffix(layerName)} (${count} elements) - ${errorCount} error(s)`
         );
       } else {
-        lines.push(`${ansis.green("✓")} ${this.formatLayerName(layerName)} (${count} elements)`);
+        lines.push(`${ansis.green("✓")} ${formatLayerNameWithSuffix(layerName)} (${count} elements)`);
       }
     }
 
@@ -280,13 +280,6 @@ export class ValidationFormatter {
     }
 
     return stats;
-  }
-
-  /**
-   * Format layer name for display (delegates to centralized formatter)
-   */
-  private static formatLayerName(layerName: string): string {
-    return formatLayerNameWithSuffix(layerName);
   }
 
   /**
