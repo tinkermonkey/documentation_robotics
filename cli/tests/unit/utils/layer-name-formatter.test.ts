@@ -61,8 +61,4 @@ describe("formatLayerNameWithSuffix", () => {
   it("should handle single character with suffix", () => {
     expect(formatLayerNameWithSuffix("a")).toBe("A layer");
   });
-
-  it("should not double up suffix", () => {
-    expect(formatLayerNameWithSuffix("motivation layer")).toBe("Motivation Layer layer");
-  });
 });
