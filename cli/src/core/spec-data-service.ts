@@ -5,7 +5,7 @@
  * Manages the lifecycle of SpecDataLoader and provides caching and performance optimizations.
  */
 
-import { SpecDataLoader, SpecLoaderOptions } from "./spec-loader.js";
+import { SpecDataLoader } from "./spec-loader.js";
 import {
   LayerSpec,
   NodeTypeSpec,
@@ -13,6 +13,7 @@ import {
   PredicateSpec,
   SpecData,
   SpecStatistics,
+  SpecLoaderOptions,
   NodeTypeQueryFilter,
   RelationshipTypeQueryFilter,
 } from "./spec-loader-types.js";
