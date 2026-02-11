@@ -560,13 +560,8 @@ export class StagingAreaManager {
                 if (!elementExists) {
                   const { Element } = await import("./element.js");
                   const elementData = change.after as Record<string, unknown>;
-                  const element = new Element({
-                    id: change.elementId,
-                    type: (elementData.type as string) || "unknown",
-                    name: (elementData.name as string) || change.elementId,
-                    description: elementData.description as string | undefined,
-                    properties: elementData,
-                  });
+                  // Pass the entire elementData to Element constructor - it already has all fields from toJSON()
+                  const element = new Element(elementData);
                   layer.addElement(element);
                   result.committed++;
                 }
