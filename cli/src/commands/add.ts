@@ -7,21 +7,22 @@ import { Model } from "../core/model.js";
 import { Layer } from "../core/layer.js";
 import { Element } from "../core/element.js";
 import { MutationHandler } from "../core/mutation-handler.js";
-import {
-  InvalidJSONError,
-  CLIError,
-  handleError,
-  handleSuccess,
-  ErrorCategory,
-  findSimilar,
-  formatValidOptions,
-  ModelNotFoundError,
-} from "../utils/errors.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { generateElementId } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType, getNodeTypesForLayer } from "../generated/node-types.js";
+import {
+  CLIError,
+  ErrorCategory,
+  InvalidJSONError,
+  ModelNotFoundError,
+  findSimilar,
+  formatValidOptions,
+  getErrorMessage,
+  handleError,
+  handleSuccess,
+} from "../utils/errors.js";
 
 // Telemetry flag check
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -103,7 +104,7 @@ export async function addCommand(
     try {
       model = await Model.load();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {
         throw new ModelNotFoundError();
       }

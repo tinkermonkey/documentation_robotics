@@ -9,6 +9,7 @@ import { Model } from "../core/model.js";
 import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { detectAvailableClients } from "../coding-agents/chat-utils.js";
 import { initializeChatLogger, getChatLogger } from "../utils/chat-logger.js";
+import { CLIError } from "../utils/errors.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -16,7 +17,6 @@ import {
   emitLog,
   SeverityNumber,
 } from "../telemetry/index.js";
-import { CLIError } from "../utils/errors.js";
 
 /**
  * Get the preferred chat client from manifest metadata

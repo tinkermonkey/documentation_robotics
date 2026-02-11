@@ -18,6 +18,7 @@ import { Element } from "./element.js";
 import { mkdir, cp, rm, access } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Configuration for the golden copy cache
@@ -263,7 +264,7 @@ export class GoldenCopyCacheManager {
       }
     } catch (error) {
       throw new Error(
-        `Failed to initialize golden copy cache: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to initialize golden copy cache: ${getErrorMessage(error)}`
       );
     }
   }
@@ -374,7 +375,7 @@ export class GoldenCopyCacheManager {
           console.error(
             `[GoldenCopy] ERROR: Model load failed AND cleanup failed. ` +
               `Orphaned directory may exist at ${clonePath}. ` +
-              `Load error: ${error instanceof Error ? error.message : String(error)}. ` +
+              `Load error: ${getErrorMessage(error)}. ` +
               `Cleanup error: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
           );
         }
@@ -570,7 +571,7 @@ export class GoldenCopyCacheManager {
       console.error(
         `[GoldenCopy] ERROR: Failed to clean up golden copy cache at ${this.goldenRootPath}. ` +
           `This may cause disk space issues. ` +
-          `Error: ${error instanceof Error ? error.message : String(error)}`
+          `Error: ${getErrorMessage(error)}`
       );
     }
   }

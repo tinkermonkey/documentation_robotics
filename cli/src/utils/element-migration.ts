@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 
 import { Element } from "../core/element.js";
 import type { Model } from "../core/model.js";
+import { getErrorMessage } from "./errors.js";
 
 /**
  * Result of element format migration
@@ -75,7 +76,7 @@ export class ElementMigration {
             });
           }
         } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
+          const errorMsg = getErrorMessage(error);
           result.errors.push(`Failed to migrate element: ${errorMsg}`);
           result.details.push({
             layerName: layer.name || "unknown",

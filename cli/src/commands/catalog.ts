@@ -9,6 +9,7 @@ import { Command } from "commander";
 import ansis from "ansis";
 import { RelationshipCatalog } from "../core/relationship-catalog.js";
 import { Model } from "../core/model.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export function catalogCommands(program: Command): void {
   const catalog = program
@@ -122,7 +123,7 @@ Examples:
           console.log(ansis.dim(`Total: ${types.length} relationship types`));
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }
@@ -169,7 +170,7 @@ Examples:
           }
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }
@@ -228,7 +229,7 @@ Examples:
           console.log(ansis.dim(`Found ${results.length} matching types`));
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }
@@ -328,7 +329,7 @@ Examples:
           }
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }
@@ -448,7 +449,7 @@ Examples:
           console.log(output);
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }

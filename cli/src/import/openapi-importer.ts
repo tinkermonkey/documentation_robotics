@@ -2,6 +2,7 @@ import type { Model } from "../core/model.js";
 import type { Importer, ImportOptions, ImportResult } from "./types.js";
 import type { Span } from "@opentelemetry/api";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * OpenAPI 3.0 Importer for layer 6 (API)
@@ -211,7 +212,7 @@ export class OpenAPIImporter implements Importer {
       return result;
     } catch (error) {
       result.errors.push({
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
       result.errorsCount++;
 

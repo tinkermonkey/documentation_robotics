@@ -11,6 +11,7 @@ import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Provides context about the model for AI interactions
@@ -124,7 +125,7 @@ export class ModelContextProvider {
         (span as any).recordException(error as Error);
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       throw error;
@@ -170,7 +171,7 @@ export class ModelContextProvider {
         (span as any).setAttribute("context.found", false);
         (span as any).setAttribute(
           "context.error",
-          error instanceof Error ? error.message : String(error)
+          getErrorMessage(error)
         );
         (span as any).setStatus({ code: 0 }); // Not an error, just spec not found
       }
@@ -259,7 +260,7 @@ export class ModelContextProvider {
         (span as any).recordException(error as Error);
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       throw error;

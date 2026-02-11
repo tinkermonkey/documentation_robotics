@@ -247,6 +247,17 @@ export function formatValidOptions(options: string[], heading: string = "Valid o
 }
 
 /**
+ * Extract error message from any error type
+ * Handles Error instances, strings, and unknown types consistently
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
+/**
  * Simple fuzzy match to find similar strings (for typo suggestions)
  */
 export function findSimilar(input: string, options: string[], maxDistance: number = 2): string[] {

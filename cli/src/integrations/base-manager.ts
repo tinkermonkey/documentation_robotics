@@ -32,6 +32,7 @@ import {
 } from "./types.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getCliVersion as getCliVersionFromUtils } from "../utils/spec-version.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Abstract base class for integration managers
@@ -233,7 +234,7 @@ export abstract class BaseIntegrationManager {
             } catch (error) {
               // If we can't compute hash, assume modified to prevent data loss
               console.warn(
-                `⚠ Warning: Could not compute hash for ${targetFilePath}: ${error instanceof Error ? error.message : String(error)}`
+                `⚠ Warning: Could not compute hash for ${targetFilePath}: ${getErrorMessage(error)}`
               );
               modified = true;
             }

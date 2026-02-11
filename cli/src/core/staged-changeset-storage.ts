@@ -15,6 +15,7 @@ import yaml from "yaml";
 import ansis from "ansis";
 import type { StagedChangesetData, StagedChange } from "./changeset.js";
 import { Changeset } from "./changeset.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Storage manager for staged changesets using YAML format
@@ -133,7 +134,7 @@ export class StagedChangesetStorage {
       // YAML parsing or file read error - provide detailed guidance
       throw new Error(
         `Failed to load changeset '${id}': YAML parsing failed.\n` +
-          `Error: ${error instanceof Error ? error.message : String(error)}\n` +
+          `Error: ${getErrorMessage(error)}\n` +
           `Location: ${metadataPath}\n` +
           `This indicates file corruption. Try:\n` +
           `  1. Validate YAML syntax with: yamllint ${metadataPath}\n` +
@@ -229,7 +230,7 @@ export class StagedChangesetStorage {
       return changesets;
     } catch (error) {
       throw new Error(
-        `Failed to list changesets: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to list changesets: ${getErrorMessage(error)}`
       );
     }
   }
@@ -257,7 +258,7 @@ export class StagedChangesetStorage {
       await rm(changesetPath, { recursive: true, force: true });
     } catch (error) {
       throw new Error(
-        `Failed to delete changeset '${id}': ${error instanceof Error ? error.message : String(error)}`
+        `Failed to delete changeset '${id}': ${getErrorMessage(error)}`
       );
     }
   }
@@ -299,7 +300,7 @@ export class StagedChangesetStorage {
         return sequenceNumber;
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
 
       // Detect lock-specific errors
       if (errorMessage.includes("lock") || errorMessage.includes("timeout")) {
@@ -358,7 +359,7 @@ export class StagedChangesetStorage {
         await this.save(changeset);
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
 
       // Detect lock-specific errors
       if (errorMessage.includes("lock") || errorMessage.includes("timeout")) {

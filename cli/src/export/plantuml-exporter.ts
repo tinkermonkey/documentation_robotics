@@ -2,6 +2,7 @@ import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import { ALL_LAYERS, LAYER_COLORS } from "./types.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * PlantUML element entry for diagram generation
@@ -146,7 +147,7 @@ export class PlantUMLExporter implements Exporter {
         (span as any).recordException(error as Error);
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       throw error;

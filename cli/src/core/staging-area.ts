@@ -19,6 +19,7 @@ import type { Model } from "./model.js";
 import type { VirtualProjectionEngine } from "./virtual-projection.js";
 import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest } from "../types/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -587,19 +588,19 @@ export class StagingAreaManager {
               result.failed++;
               result.validation.passed = false;
               result.validation.errors.push(
-                `Failed to apply change to ${change.elementId}: ${error instanceof Error ? error.message : String(error)}`
+                `Failed to apply change to ${change.elementId}: ${getErrorMessage(error)}`
               );
 
               emitLog(SeverityNumber.ERROR, "Failed to apply change", {
                 "change.elementId": change.elementId,
                 "change.type": change.type,
                 "change.layer": change.layerName,
-                "error.message": error instanceof Error ? error.message : String(error),
+                "error.message": getErrorMessage(error),
               });
 
               throw new Error(
                 `Atomic commit failed at change ${sortedChanges.indexOf(change) + 1}/${sortedChanges.length}: ` +
-                  `${error instanceof Error ? error.message : String(error)}`
+                  `${getErrorMessage(error)}`
               );
             }
           }
@@ -624,7 +625,7 @@ export class StagingAreaManager {
             await model.saveLayer(layerName);
           } catch (error) {
             throw new Error(
-              `Failed to save layer '${layerName}': ${error instanceof Error ? error.message : String(error)}`
+              `Failed to save layer '${layerName}': ${getErrorMessage(error)}`
             );
           }
         }
@@ -638,7 +639,7 @@ export class StagingAreaManager {
         } catch (error) {
           // Changeset status is critical metadata - must be persisted with model changes
           throw new Error(
-            `Failed to save changeset status after commit: ${error instanceof Error ? error.message : String(error)}. ` +
+            `Failed to save changeset status after commit: ${getErrorMessage(error)}. ` +
               `This is a critical error that requires rollback to maintain consistency between model state and changeset metadata.`
           );
         }
@@ -1115,7 +1116,7 @@ export class StagingAreaManager {
         // This is CRITICAL - orphaned backups accumulate
         throw new Error(
           `Backup creation failed AND cleanup failed.\n` +
-            `Original error: ${error instanceof Error ? error.message : String(error)}\n` +
+            `Original error: ${getErrorMessage(error)}\n` +
             `Cleanup error: ${cleanupError}\n\n` +
             `Orphaned backup directory: ${backupDir}\n` +
             `This directory will accumulate and consume disk space.\n\n` +
@@ -1128,7 +1129,7 @@ export class StagingAreaManager {
       }
 
       throw new Error(
-        `Failed to create backup: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to create backup: ${getErrorMessage(error)}`
       );
     }
   }
@@ -1318,7 +1319,7 @@ export class StagingAreaManager {
       await rm(backupDir, { recursive: true, force: true });
     } catch (error) {
       // Log cleanup failures with ERROR severity - these mask real problems
-      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorMsg = getErrorMessage(error);
       const errorCode = (error as NodeJS.ErrnoException)?.code;
 
       let suggestions = "";
@@ -1483,12 +1484,12 @@ export class StagingAreaManager {
       } catch (error) {
         failedFiles.push({
           path: path.basename(backupManifestFile),
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
           isCritical: true,
         });
         // Manifest is critical - throw immediately
         throw new Error(
-          `Failed to restore ${path.basename(backupManifestFile)}: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to restore ${path.basename(backupManifestFile)}: ${getErrorMessage(error)}`
         );
       }
 
@@ -1558,7 +1559,7 @@ export class StagingAreaManager {
           }
         } catch (error) {
           // Unexpected error during layer restoration - treat as critical
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage = getErrorMessage(error);
           failedFiles.push({
             path: `layers/${layer.name}`,
             error: errorMessage,
@@ -1599,7 +1600,7 @@ export class StagingAreaManager {
       }
     } catch (error) {
       // Critical failure during restore
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       const summary =
         `Model restoration failed: ${errorMessage}\n` +
         `\n` +
@@ -1653,7 +1654,7 @@ export class StagingAreaManager {
 
       // All other errors are CRITICAL during restore operations
       throw new Error(
-        `Cannot access model directory for layer '${layerName}': ${error instanceof Error ? error.message : String(error)}\n` +
+        `Cannot access model directory for layer '${layerName}': ${getErrorMessage(error)}\n` +
           `Location: ${modelDir}\n` +
           `Error code: ${errorCode}\n` +
           `This indicates a filesystem or permissions issue. Check:\n` +

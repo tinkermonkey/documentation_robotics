@@ -42,6 +42,7 @@ import { statsCommand } from "./commands/stats.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { readJSON, fileExists } from "./utils/file-io.js";
+import { getErrorMessage } from "./utils/errors.js";
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
@@ -835,7 +836,7 @@ copilotCommands(program);
             span.recordException(error as Error);
             span.setStatus({
               code: 2, // SpanStatusCode.ERROR
-              message: error instanceof Error ? error.message : String(error),
+              message: getErrorMessage(error),
             });
 
             // Print error message for CLIError instances

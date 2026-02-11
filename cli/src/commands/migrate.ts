@@ -5,6 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { MigrationRegistry } from "../core/migration-registry.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export async function migrateCommand(options: {
   to?: string;
@@ -94,7 +95,7 @@ export async function migrateCommand(options: {
 
     console.log();
   } catch (error) {
-    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
     process.exit(1);
   }
 }

@@ -14,6 +14,7 @@ import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 interface WSMessage {
   type: "subscribe" | "annotate" | "ping";
@@ -262,7 +263,7 @@ export class VisualizationServer {
         );
         return c.json(modelData);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(`[ROUTE] /api/model error: ${message}`);
         return c.json({ error: message }, 500);
       }
@@ -286,7 +287,7 @@ export class VisualizationServer {
           elementCount: elements.length,
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
     });
@@ -306,7 +307,7 @@ export class VisualizationServer {
           annotations: this.annotations.get(elementId) || [],
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
     });
@@ -324,7 +325,7 @@ export class VisualizationServer {
           schemaCount: Object.keys(schemas).length,
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
     });
@@ -399,7 +400,7 @@ export class VisualizationServer {
 
         return c.json(annotation, 201);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
     });
@@ -437,7 +438,7 @@ export class VisualizationServer {
 
         return c.json(annotation);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
     });
@@ -475,7 +476,7 @@ export class VisualizationServer {
 
         return c.json(annotation);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
     });
@@ -507,7 +508,7 @@ export class VisualizationServer {
 
         return c.body(null, 204);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
     });
@@ -570,7 +571,7 @@ export class VisualizationServer {
 
         return c.json(reply, 201);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
     });
@@ -742,7 +743,7 @@ export class VisualizationServer {
               "ws.message.status": "success",
             });
           } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
+            const errorMsg = getErrorMessage(error);
             const durationMs = Date.now() - messageStartTime;
 
             // Telemetry: Track message processing error
@@ -766,7 +767,7 @@ export class VisualizationServer {
         },
 
         onError: async (error) => {
-          const message = error instanceof Error ? error.message : String(error);
+          const message = getErrorMessage(error);
 
           // Telemetry: Track WebSocket error
           await this.recordWebSocketEvent("ws.error", {
@@ -857,7 +858,7 @@ export class VisualizationServer {
         client.send(messageStr);
       } catch (error) {
         failureCount++;
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = getErrorMessage(error);
         if (process.env.VERBOSE) {
           console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
         }
@@ -1070,7 +1071,7 @@ export class VisualizationServer {
           sendError(-32601, `Method not found: ${method}`);
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorMsg = getErrorMessage(error);
       sendError(-32603, "Internal error", errorMsg);
     }
   }
@@ -1283,7 +1284,7 @@ export class VisualizationServer {
             })
           );
         } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
+          const errorMsg = getErrorMessage(error);
 
           ws.send(
             JSON.stringify({
@@ -1309,7 +1310,7 @@ export class VisualizationServer {
       // Start streaming in background
       streamOutput();
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorMsg = getErrorMessage(error);
 
       ws.send(
         JSON.stringify({
@@ -1428,7 +1429,7 @@ export class VisualizationServer {
             })
           );
         } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
+          const errorMsg = getErrorMessage(error);
 
           ws.send(
             JSON.stringify({
@@ -1454,7 +1455,7 @@ export class VisualizationServer {
       // Start streaming in background
       streamOutput();
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorMsg = getErrorMessage(error);
 
       ws.send(
         JSON.stringify({
@@ -1506,13 +1507,13 @@ export class VisualizationServer {
               client.send(message);
             } catch (error) {
               if (process.env.DEBUG) {
-                const msg = error instanceof Error ? error.message : String(error);
+                const msg = getErrorMessage(error);
                 console.debug(`[Watcher] Failed to send update: ${msg}`);
               }
             }
           }
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message = getErrorMessage(error);
           console.error(`[Watcher] Failed to reload model: ${message}`);
         }
       },

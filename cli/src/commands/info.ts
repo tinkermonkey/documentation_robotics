@@ -5,6 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export interface InfoOptions {
   layer?: string;
@@ -118,10 +119,10 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
   } finally {

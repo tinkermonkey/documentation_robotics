@@ -10,6 +10,7 @@ import { logVerbose, logDebug } from "../utils/globals.js";
 import { installSpecReference } from "../utils/spec-installer.js";
 import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export interface InitOptions {
   name?: string;
@@ -135,10 +136,10 @@ export async function initCommand(options: InitOptions): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
     endSpan(span);
     process.exit(1);

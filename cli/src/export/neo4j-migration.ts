@@ -6,6 +6,7 @@
  */
 
 import type { MigrationGraphNode, MigrationGraphEdge } from "./graph-migration.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 // Aliases for convenience
 export type GraphNode = MigrationGraphNode;
@@ -234,7 +235,7 @@ export class Neo4jMigrationService {
 
       return result;
     } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
+      result.errors.push(getErrorMessage(error));
       return result;
     }
   }

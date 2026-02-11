@@ -6,6 +6,7 @@
 import type { SpanExporter, ReadableSpan } from "@opentelemetry/sdk-trace-base";
 import type { ExportResult } from "@opentelemetry/core";
 import { ExportResultCode } from "@opentelemetry/core";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * OTLP exporter using fetch API for Bun compatibility.
@@ -74,7 +75,7 @@ export class FetchOTLPExporter implements SpanExporter {
       .catch((error) => {
         clearTimeout(timeoutId);
         if (this.debug) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
+          const errorMsg = getErrorMessage(error);
           process.stderr.write(`[TELEMETRY] Export FAILED - ${errorMsg}\n`);
         }
         resultCallback({

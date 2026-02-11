@@ -9,6 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "url";
 import fs from "node:fs/promises";
 import { glob } from "glob";
+import { getErrorMessage } from "../utils/errors.js";
 
 export interface RelationshipSemantics {
   directionality: "unidirectional" | "bidirectional";
@@ -111,7 +112,7 @@ export class RelationshipCatalog {
         this.predicatesPath = fallbackPath;
       } catch {
         throw new Error(
-          `Failed to load predicates from ${this.predicatesPath}: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to load predicates from ${this.predicatesPath}: ${getErrorMessage(error)}`
         );
       }
     }
