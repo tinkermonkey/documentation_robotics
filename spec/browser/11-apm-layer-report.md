@@ -7,41 +7,41 @@
 - [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
-  - [Instrumenttype](#instrumenttype)
-  - [Metricconfiguration](#metricconfiguration)
-  - [Attribute](#attribute)
-  - [Logrecord](#logrecord)
-  - [Transformoperation](#transformoperation)
-  - [Dataqualitytype](#dataqualitytype)
+  - [Aggregationtemporality](#aggregationtemporality)
   - [Apmconfiguration](#apmconfiguration)
-  - [Spanlink](#spanlink)
-  - [Samplertype](#samplertype)
+  - [Attribute](#attribute)
   - [Authtype](#authtype)
-  - [Logconfiguration](#logconfiguration)
+  - [Compressiontype](#compressiontype)
   - [Dataqualitymetric](#dataqualitymetric)
-  - [Instrumentationtype](#instrumentationtype)
-  - [Spanevent](#spanevent)
+  - [Dataqualitymetrics](#dataqualitymetrics)
+  - [Dataqualitytype](#dataqualitytype)
+  - [Exporterconfig](#exporterconfig)
+  - [Exporterprotocol](#exporterprotocol)
+  - [Exportertype](#exportertype)
   - [Instrumentationconfig](#instrumentationconfig)
   - [Instrumentationscope](#instrumentationscope)
-  - [Aggregationtemporality](#aggregationtemporality)
-  - [Metricinstrument](#metricinstrument)
-  - [Exporterprotocol](#exporterprotocol)
-  - [Meterconfig](#meterconfig)
+  - [Instrumentationtype](#instrumentationtype)
+  - [Instrumenttype](#instrumenttype)
+  - [Logconfiguration](#logconfiguration)
+  - [Loglevel](#loglevel)
+  - [Logprocessor](#logprocessor)
   - [Logprocessortype](#logprocessortype)
-  - [Dataqualitymetrics](#dataqualitymetrics)
-  - [Exportertype](#exportertype)
-  - [Spanstatus](#spanstatus)
+  - [Logrecord](#logrecord)
+  - [Meterconfig](#meterconfig)
+  - [Metricconfiguration](#metricconfiguration)
+  - [Metricinstrument](#metricinstrument)
   - [Propagatortype](#propagatortype)
-  - [Span](#span)
   - [Resource](#resource)
+  - [Samplertype](#samplertype)
+  - [Severitynumber](#severitynumber)
+  - [Span](#span)
+  - [Spanevent](#spanevent)
+  - [Spankind](#spankind)
+  - [Spanlink](#spanlink)
+  - [Spanstatus](#spanstatus)
   - [Statuscode](#statuscode)
   - [Traceconfiguration](#traceconfiguration)
-  - [Severitynumber](#severitynumber)
-  - [Compressiontype](#compressiontype)
-  - [Logprocessor](#logprocessor)
-  - [Spankind](#spankind)
-  - [Loglevel](#loglevel)
-  - [Exporterconfig](#exporterconfig)
+  - [Transformoperation](#transformoperation)
 
 ## Layer Introduction
 
@@ -70,84 +70,84 @@ Layer 11: APM Observability Layer
 ```mermaid
 flowchart LR
   subgraph apm
-    instrumenttype["instrumenttype"]
-    metricconfiguration["metricconfiguration"]
-    attribute["attribute"]
-    logrecord["logrecord"]
-    transformoperation["transformoperation"]
-    dataqualitytype["dataqualitytype"]
+    aggregationtemporality["aggregationtemporality"]
     apmconfiguration["apmconfiguration"]
-    spanlink["spanlink"]
-    samplertype["samplertype"]
+    attribute["attribute"]
     authtype["authtype"]
-    logconfiguration["logconfiguration"]
+    compressiontype["compressiontype"]
     dataqualitymetric["dataqualitymetric"]
-    instrumentationtype["instrumentationtype"]
-    spanevent["spanevent"]
+    dataqualitymetrics["dataqualitymetrics"]
+    dataqualitytype["dataqualitytype"]
+    exporterconfig["exporterconfig"]
+    exporterprotocol["exporterprotocol"]
+    exportertype["exportertype"]
     instrumentationconfig["instrumentationconfig"]
     instrumentationscope["instrumentationscope"]
-    aggregationtemporality["aggregationtemporality"]
-    metricinstrument["metricinstrument"]
-    exporterprotocol["exporterprotocol"]
-    meterconfig["meterconfig"]
+    instrumentationtype["instrumentationtype"]
+    instrumenttype["instrumenttype"]
+    logconfiguration["logconfiguration"]
+    loglevel["loglevel"]
+    logprocessor["logprocessor"]
     logprocessortype["logprocessortype"]
-    dataqualitymetrics["dataqualitymetrics"]
-    exportertype["exportertype"]
-    spanstatus["spanstatus"]
+    logrecord["logrecord"]
+    meterconfig["meterconfig"]
+    metricconfiguration["metricconfiguration"]
+    metricinstrument["metricinstrument"]
     propagatortype["propagatortype"]
-    span["span"]
     resource["resource"]
+    samplertype["samplertype"]
+    severitynumber["severitynumber"]
+    span["span"]
+    spanevent["spanevent"]
+    spankind["spankind"]
+    spanlink["spanlink"]
+    spanstatus["spanstatus"]
     statuscode["statuscode"]
     traceconfiguration["traceconfiguration"]
-    severitynumber["severitynumber"]
-    compressiontype["compressiontype"]
-    logprocessor["logprocessor"]
-    spankind["spankind"]
-    loglevel["loglevel"]
-    exporterconfig["exporterconfig"]
+    transformoperation["transformoperation"]
+    apmconfiguration -->|composes| metricinstrument
+    apmconfiguration -->|composes| spanevent
+    apmconfiguration -->|composes| traceconfiguration
+    dataqualitymetric -->|triggers| logrecord
+    exporterconfig -->|serves| apmconfiguration
+    exporterconfig -->|serves| resource
+    instrumentationconfig -->|serves| apmconfiguration
+    instrumentationconfig -->|serves| resource
+    instrumentationscope -->|aggregates| exporterconfig
+    instrumentationscope -->|aggregates| metricinstrument
+    instrumentationscope -->|aggregates| span
+    logprocessor -->|accesses| attribute
+    logprocessor -->|flows-to| exporterconfig
+    logprocessor -->|flows-to| logprocessor
+    logprocessor -->|flows-to| span
+    logrecord -->|depends-on| instrumentationscope
+    logrecord -->|depends-on| resource
+    logrecord -->|references| span
+    meterconfig -->|composes| metricinstrument
+    meterconfig -->|composes| spanevent
+    meterconfig -->|composes| traceconfiguration
+    metricinstrument -->|accesses| attribute
+    metricinstrument -->|depends-on| instrumentationscope
+    metricinstrument -->|depends-on| resource
+    metricinstrument -->|flows-to| exporterconfig
+    metricinstrument -->|flows-to| logprocessor
+    metricinstrument -->|flows-to| span
+    resource -->|aggregates| exporterconfig
+    resource -->|aggregates| metricinstrument
+    resource -->|aggregates| span
+    span -->|composes| metricinstrument
+    span -->|composes| spanevent
+    span -->|composes| traceconfiguration
+    span -->|depends-on| instrumentationscope
+    span -->|depends-on| resource
+    span -->|flows-to| exporterconfig
+    span -->|flows-to| logprocessor
+    span -->|flows-to| span
+    span -->|references| span
     spanlink -->|references| span
     traceconfiguration -->|aggregates| exporterconfig
-    instrumentationscope -->|aggregates| exporterconfig
-    apmconfiguration -->|composes| metricinstrument
-    span -->|flows-to| span
-    exporterconfig -->|serves| resource
-    resource -->|aggregates| span
-    span -->|composes| spanevent
-    resource -->|aggregates| exporterconfig
-    metricinstrument -->|flows-to| logprocessor
-    resource -->|aggregates| metricinstrument
-    span -->|flows-to| exporterconfig
-    instrumentationscope -->|aggregates| metricinstrument
-    span -->|composes| traceconfiguration
-    meterconfig -->|composes| metricinstrument
-    span -->|composes| metricinstrument
-    metricinstrument -->|depends-on| resource
-    logprocessor -->|accesses| attribute
-    instrumentationscope -->|aggregates| span
-    logprocessor -->|flows-to| logprocessor
-    metricinstrument -->|flows-to| span
-    logprocessor -->|flows-to| exporterconfig
-    instrumentationconfig -->|serves| apmconfiguration
-    span -->|depends-on| instrumentationscope
-    exporterconfig -->|serves| apmconfiguration
     traceconfiguration -->|aggregates| metricinstrument
-    span -->|references| span
-    dataqualitymetric -->|triggers| logrecord
-    logrecord -->|references| span
-    logrecord -->|depends-on| instrumentationscope
-    span -->|flows-to| logprocessor
-    metricinstrument -->|accesses| attribute
-    meterconfig -->|composes| spanevent
-    instrumentationconfig -->|serves| resource
-    span -->|depends-on| resource
-    metricinstrument -->|flows-to| exporterconfig
-    meterconfig -->|composes| traceconfiguration
-    logrecord -->|depends-on| resource
-    logprocessor -->|flows-to| span
-    metricinstrument -->|depends-on| instrumentationscope
     traceconfiguration -->|aggregates| span
-    apmconfiguration -->|composes| traceconfiguration
-    apmconfiguration -->|composes| spanevent
   end
 ```
 
@@ -168,21 +168,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  api --> business
-  api --> application
-  api --> data_store
-  api --> security
-  api --> apm
+  testing --> motivation
+  technology --> security
   data_model --> application
   data_model --> business
-  application --> apm
-  application --> motivation
-  technology --> security
-  testing --> motivation
-  business --> security
-  business --> application
-  business --> motivation
   business --> data_model
+  business --> application
+  business --> security
+  business --> motivation
+  application --> motivation
+  application --> apm
+  api --> apm
+  api --> application
+  api --> business
+  api --> security
+  api --> data_store
   class apm current
 ```
 
@@ -195,19 +195,29 @@ flowchart TB
 
 ## Node Reference
 
-### Instrumenttype
+### Aggregationtemporality
 
-**Spec Node ID**: `apm.instrumenttype`
+**Spec Node ID**: `apm.aggregationtemporality`
 
-InstrumentType element in APM Observability Layer
+AggregationTemporality element in APM Observability Layer
 
 [Back to Index](#report-index)
 
-### Metricconfiguration
+### Apmconfiguration
 
-**Spec Node ID**: `apm.metricconfiguration`
+**Spec Node ID**: `apm.apmconfiguration`
 
-Metrics configuration
+Complete APM configuration for an application
+
+#### Intra-Layer Relationships
+
+| Related Node                                    | Predicate | Direction | Cardinality  |
+| ----------------------------------------------- | --------- | --------- | ------------ |
+| [metricinstrument](#metricinstrument)           | composes  | outbound  | many-to-many |
+| [spanevent](#spanevent)                         | composes  | outbound  | many-to-many |
+| [traceconfiguration](#traceconfiguration)       | composes  | outbound  | many-to-many |
+| [exporterconfig](#exporterconfig)               | serves    | inbound   | many-to-many |
+| [instrumentationconfig](#instrumentationconfig) | serves    | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -226,79 +236,6 @@ Key-value pair metadata
 
 [Back to Index](#report-index)
 
-### Logrecord
-
-**Spec Node ID**: `apm.logrecord`
-
-OpenTelemetry log entry
-
-#### Intra-Layer Relationships
-
-| Related Node                                  | Predicate  | Direction | Cardinality  |
-| --------------------------------------------- | ---------- | --------- | ------------ |
-| [dataqualitymetric](#dataqualitymetric)       | triggers   | inbound   | many-to-many |
-| [span](#span)                                 | references | outbound  | many-to-many |
-| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
-| [resource](#resource)                         | depends-on | outbound  | many-to-many |
-
-[Back to Index](#report-index)
-
-### Transformoperation
-
-**Spec Node ID**: `apm.transformoperation`
-
-TransformOperation element in APM Observability Layer
-
-[Back to Index](#report-index)
-
-### Dataqualitytype
-
-**Spec Node ID**: `apm.dataqualitytype`
-
-DataQualityType element in APM Observability Layer
-
-[Back to Index](#report-index)
-
-### Apmconfiguration
-
-**Spec Node ID**: `apm.apmconfiguration`
-
-Complete APM configuration for an application
-
-#### Intra-Layer Relationships
-
-| Related Node                                    | Predicate | Direction | Cardinality  |
-| ----------------------------------------------- | --------- | --------- | ------------ |
-| [metricinstrument](#metricinstrument)           | composes  | outbound  | many-to-many |
-| [instrumentationconfig](#instrumentationconfig) | serves    | inbound   | many-to-many |
-| [exporterconfig](#exporterconfig)               | serves    | inbound   | many-to-many |
-| [traceconfiguration](#traceconfiguration)       | composes  | outbound  | many-to-many |
-| [spanevent](#spanevent)                         | composes  | outbound  | many-to-many |
-
-[Back to Index](#report-index)
-
-### Spanlink
-
-**Spec Node ID**: `apm.spanlink`
-
-Link to related span (different trace or parent)
-
-#### Intra-Layer Relationships
-
-| Related Node  | Predicate  | Direction | Cardinality  |
-| ------------- | ---------- | --------- | ------------ |
-| [span](#span) | references | outbound  | many-to-many |
-
-[Back to Index](#report-index)
-
-### Samplertype
-
-**Spec Node ID**: `apm.samplertype`
-
-SamplerType element in APM Observability Layer
-
-[Back to Index](#report-index)
-
 ### Authtype
 
 **Spec Node ID**: `apm.authtype`
@@ -307,11 +244,11 @@ AuthType element in APM Observability Layer
 
 [Back to Index](#report-index)
 
-### Logconfiguration
+### Compressiontype
 
-**Spec Node ID**: `apm.logconfiguration`
+**Spec Node ID**: `apm.compressiontype`
 
-Logging configuration
+CompressionType element in APM Observability Layer
 
 [Back to Index](#report-index)
 
@@ -329,27 +266,56 @@ Individual data quality metric
 
 [Back to Index](#report-index)
 
-### Instrumentationtype
+### Dataqualitymetrics
 
-**Spec Node ID**: `apm.instrumentationtype`
+**Spec Node ID**: `apm.dataqualitymetrics`
 
-InstrumentationType element in APM Observability Layer
+Data quality monitoring metrics (referenced by Data Model Layer x-apm-data-quality-metrics)
 
 [Back to Index](#report-index)
 
-### Spanevent
+### Dataqualitytype
 
-**Spec Node ID**: `apm.spanevent`
+**Spec Node ID**: `apm.dataqualitytype`
 
-Timestamped event during span execution
+DataQualityType element in APM Observability Layer
+
+[Back to Index](#report-index)
+
+### Exporterconfig
+
+**Spec Node ID**: `apm.exporterconfig`
+
+Configuration for telemetry data export destinations, specifying protocol (OTLP, Jaeger, Prometheus), endpoints, authentication, batching, and retry policies. Controls where observability data is sent.
 
 #### Intra-Layer Relationships
 
-| Related Node                          | Predicate | Direction | Cardinality  |
-| ------------------------------------- | --------- | --------- | ------------ |
-| [span](#span)                         | composes  | inbound   | many-to-many |
-| [meterconfig](#meterconfig)           | composes  | inbound   | many-to-many |
-| [apmconfiguration](#apmconfiguration) | composes  | inbound   | many-to-many |
+| Related Node                                  | Predicate  | Direction | Cardinality  |
+| --------------------------------------------- | ---------- | --------- | ------------ |
+| [apmconfiguration](#apmconfiguration)         | serves     | outbound  | many-to-many |
+| [resource](#resource)                         | serves     | outbound  | many-to-many |
+| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
+| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
+| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
+| [resource](#resource)                         | aggregates | inbound   | many-to-many |
+| [span](#span)                                 | flows-to   | inbound   | many-to-many |
+| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
+
+[Back to Index](#report-index)
+
+### Exporterprotocol
+
+**Spec Node ID**: `apm.exporterprotocol`
+
+ExporterProtocol element in APM Observability Layer
+
+[Back to Index](#report-index)
+
+### Exportertype
+
+**Spec Node ID**: `apm.exportertype`
+
+ExporterType element in APM Observability Layer
 
 [Back to Index](#report-index)
 
@@ -381,50 +347,85 @@ Logical unit of code that generates telemetry
 | [exporterconfig](#exporterconfig)     | aggregates | outbound  | many-to-many |
 | [metricinstrument](#metricinstrument) | aggregates | outbound  | many-to-many |
 | [span](#span)                         | aggregates | outbound  | many-to-many |
-| [span](#span)                         | depends-on | inbound   | many-to-many |
 | [logrecord](#logrecord)               | depends-on | inbound   | many-to-many |
 | [metricinstrument](#metricinstrument) | depends-on | inbound   | many-to-many |
+| [span](#span)                         | depends-on | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
-### Aggregationtemporality
+### Instrumentationtype
 
-**Spec Node ID**: `apm.aggregationtemporality`
+**Spec Node ID**: `apm.instrumentationtype`
 
-AggregationTemporality element in APM Observability Layer
+InstrumentationType element in APM Observability Layer
 
 [Back to Index](#report-index)
 
-### Metricinstrument
+### Instrumenttype
 
-**Spec Node ID**: `apm.metricinstrument`
+**Spec Node ID**: `apm.instrumenttype`
 
-Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc.) with its name, unit, description, and attributes. The fundamental unit of metric collection.
+InstrumentType element in APM Observability Layer
+
+[Back to Index](#report-index)
+
+### Logconfiguration
+
+**Spec Node ID**: `apm.logconfiguration`
+
+Logging configuration
+
+[Back to Index](#report-index)
+
+### Loglevel
+
+**Spec Node ID**: `apm.loglevel`
+
+LogLevel element in APM Observability Layer
+
+[Back to Index](#report-index)
+
+### Logprocessor
+
+**Spec Node ID**: `apm.logprocessor`
+
+A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.
+
+#### Intra-Layer Relationships
+
+| Related Node                          | Predicate | Direction | Cardinality  |
+| ------------------------------------- | --------- | --------- | ------------ |
+| [attribute](#attribute)               | accesses  | outbound  | many-to-many |
+| [exporterconfig](#exporterconfig)     | flows-to  | outbound  | many-to-many |
+| [logprocessor](#logprocessor)         | flows-to  | outbound  | many-to-many |
+| [span](#span)                         | flows-to  | outbound  | many-to-many |
+| [metricinstrument](#metricinstrument) | flows-to  | inbound   | many-to-many |
+| [span](#span)                         | flows-to  | inbound   | many-to-many |
+
+[Back to Index](#report-index)
+
+### Logprocessortype
+
+**Spec Node ID**: `apm.logprocessortype`
+
+LogProcessorType element in APM Observability Layer
+
+[Back to Index](#report-index)
+
+### Logrecord
+
+**Spec Node ID**: `apm.logrecord`
+
+OpenTelemetry log entry
 
 #### Intra-Layer Relationships
 
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
-| [apmconfiguration](#apmconfiguration)         | composes   | inbound   | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
-| [resource](#resource)                         | aggregates | inbound   | many-to-many |
-| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
-| [meterconfig](#meterconfig)                   | composes   | inbound   | many-to-many |
-| [span](#span)                                 | composes   | inbound   | many-to-many |
-| [resource](#resource)                         | depends-on | outbound  | many-to-many |
-| [span](#span)                                 | flows-to   | outbound  | many-to-many |
-| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
-| [attribute](#attribute)                       | accesses   | outbound  | many-to-many |
-| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
+| [dataqualitymetric](#dataqualitymetric)       | triggers   | inbound   | many-to-many |
 | [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
-
-[Back to Index](#report-index)
-
-### Exporterprotocol
-
-**Spec Node ID**: `apm.exporterprotocol`
-
-ExporterProtocol element in APM Observability Layer
+| [resource](#resource)                         | depends-on | outbound  | many-to-many |
+| [span](#span)                                 | references | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -444,35 +445,36 @@ Configuration for metric collection meters, specifying aggregation temporality, 
 
 [Back to Index](#report-index)
 
-### Logprocessortype
+### Metricconfiguration
 
-**Spec Node ID**: `apm.logprocessortype`
+**Spec Node ID**: `apm.metricconfiguration`
 
-LogProcessorType element in APM Observability Layer
-
-[Back to Index](#report-index)
-
-### Dataqualitymetrics
-
-**Spec Node ID**: `apm.dataqualitymetrics`
-
-Data quality monitoring metrics (referenced by Data Model Layer x-apm-data-quality-metrics)
+Metrics configuration
 
 [Back to Index](#report-index)
 
-### Exportertype
+### Metricinstrument
 
-**Spec Node ID**: `apm.exportertype`
+**Spec Node ID**: `apm.metricinstrument`
 
-ExporterType element in APM Observability Layer
+Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc.) with its name, unit, description, and attributes. The fundamental unit of metric collection.
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Spanstatus
-
-**Spec Node ID**: `apm.spanstatus`
-
-Outcome of span execution
+| Related Node                                  | Predicate  | Direction | Cardinality  |
+| --------------------------------------------- | ---------- | --------- | ------------ |
+| [apmconfiguration](#apmconfiguration)         | composes   | inbound   | many-to-many |
+| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
+| [meterconfig](#meterconfig)                   | composes   | inbound   | many-to-many |
+| [attribute](#attribute)                       | accesses   | outbound  | many-to-many |
+| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
+| [resource](#resource)                         | depends-on | outbound  | many-to-many |
+| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
+| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
+| [span](#span)                                 | flows-to   | outbound  | many-to-many |
+| [resource](#resource)                         | aggregates | inbound   | many-to-many |
+| [span](#span)                                 | composes   | inbound   | many-to-many |
+| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -481,35 +483,6 @@ Outcome of span execution
 **Spec Node ID**: `apm.propagatortype`
 
 PropagatorType element in APM Observability Layer
-
-[Back to Index](#report-index)
-
-### Span
-
-**Spec Node ID**: `apm.span`
-
-Unit of work in distributed tracing
-
-#### Intra-Layer Relationships
-
-| Related Node                                  | Predicate  | Direction | Cardinality  |
-| --------------------------------------------- | ---------- | --------- | ------------ |
-| [spanlink](#spanlink)                         | references | inbound   | many-to-many |
-| [span](#span)                                 | flows-to   | outbound  | many-to-many |
-| [resource](#resource)                         | aggregates | inbound   | many-to-many |
-| [spanevent](#spanevent)                       | composes   | outbound  | many-to-many |
-| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
-| [traceconfiguration](#traceconfiguration)     | composes   | outbound  | many-to-many |
-| [metricinstrument](#metricinstrument)         | composes   | outbound  | many-to-many |
-| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
-| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
-| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
-| [span](#span)                                 | references | outbound  | many-to-many |
-| [logrecord](#logrecord)                       | references | inbound   | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
-| [resource](#resource)                         | depends-on | outbound  | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
-| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -524,13 +497,104 @@ Immutable representation of entity producing telemetry
 | Related Node                                    | Predicate  | Direction | Cardinality  |
 | ----------------------------------------------- | ---------- | --------- | ------------ |
 | [exporterconfig](#exporterconfig)               | serves     | inbound   | many-to-many |
-| [span](#span)                                   | aggregates | outbound  | many-to-many |
+| [instrumentationconfig](#instrumentationconfig) | serves     | inbound   | many-to-many |
+| [logrecord](#logrecord)                         | depends-on | inbound   | many-to-many |
+| [metricinstrument](#metricinstrument)           | depends-on | inbound   | many-to-many |
 | [exporterconfig](#exporterconfig)               | aggregates | outbound  | many-to-many |
 | [metricinstrument](#metricinstrument)           | aggregates | outbound  | many-to-many |
-| [metricinstrument](#metricinstrument)           | depends-on | inbound   | many-to-many |
-| [instrumentationconfig](#instrumentationconfig) | serves     | inbound   | many-to-many |
+| [span](#span)                                   | aggregates | outbound  | many-to-many |
 | [span](#span)                                   | depends-on | inbound   | many-to-many |
-| [logrecord](#logrecord)                         | depends-on | inbound   | many-to-many |
+
+[Back to Index](#report-index)
+
+### Samplertype
+
+**Spec Node ID**: `apm.samplertype`
+
+SamplerType element in APM Observability Layer
+
+[Back to Index](#report-index)
+
+### Severitynumber
+
+**Spec Node ID**: `apm.severitynumber`
+
+SeverityNumber element in APM Observability Layer
+
+[Back to Index](#report-index)
+
+### Span
+
+**Spec Node ID**: `apm.span`
+
+Unit of work in distributed tracing
+
+#### Intra-Layer Relationships
+
+| Related Node                                  | Predicate  | Direction | Cardinality  |
+| --------------------------------------------- | ---------- | --------- | ------------ |
+| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
+| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
+| [logrecord](#logrecord)                       | references | inbound   | many-to-many |
+| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
+| [resource](#resource)                         | aggregates | inbound   | many-to-many |
+| [metricinstrument](#metricinstrument)         | composes   | outbound  | many-to-many |
+| [spanevent](#spanevent)                       | composes   | outbound  | many-to-many |
+| [traceconfiguration](#traceconfiguration)     | composes   | outbound  | many-to-many |
+| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
+| [resource](#resource)                         | depends-on | outbound  | many-to-many |
+| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
+| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
+| [span](#span)                                 | flows-to   | outbound  | many-to-many |
+| [span](#span)                                 | references | outbound  | many-to-many |
+| [spanlink](#spanlink)                         | references | inbound   | many-to-many |
+| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
+
+[Back to Index](#report-index)
+
+### Spanevent
+
+**Spec Node ID**: `apm.spanevent`
+
+Timestamped event during span execution
+
+#### Intra-Layer Relationships
+
+| Related Node                          | Predicate | Direction | Cardinality  |
+| ------------------------------------- | --------- | --------- | ------------ |
+| [apmconfiguration](#apmconfiguration) | composes  | inbound   | many-to-many |
+| [meterconfig](#meterconfig)           | composes  | inbound   | many-to-many |
+| [span](#span)                         | composes  | inbound   | many-to-many |
+
+[Back to Index](#report-index)
+
+### Spankind
+
+**Spec Node ID**: `apm.spankind`
+
+SpanKind element in APM Observability Layer
+
+[Back to Index](#report-index)
+
+### Spanlink
+
+**Spec Node ID**: `apm.spanlink`
+
+Link to related span (different trace or parent)
+
+#### Intra-Layer Relationships
+
+| Related Node  | Predicate  | Direction | Cardinality  |
+| ------------- | ---------- | --------- | ------------ |
+| [span](#span) | references | outbound  | many-to-many |
+
+[Back to Index](#report-index)
+
+### Spanstatus
+
+**Spec Node ID**: `apm.spanstatus`
+
+Outcome of span execution
 
 [Back to Index](#report-index)
 
@@ -552,94 +616,30 @@ Distributed tracing configuration
 
 | Related Node                          | Predicate  | Direction | Cardinality  |
 | ------------------------------------- | ---------- | --------- | ------------ |
-| [exporterconfig](#exporterconfig)     | aggregates | outbound  | many-to-many |
-| [span](#span)                         | composes   | inbound   | many-to-many |
-| [metricinstrument](#metricinstrument) | aggregates | outbound  | many-to-many |
-| [meterconfig](#meterconfig)           | composes   | inbound   | many-to-many |
-| [span](#span)                         | aggregates | outbound  | many-to-many |
 | [apmconfiguration](#apmconfiguration) | composes   | inbound   | many-to-many |
+| [meterconfig](#meterconfig)           | composes   | inbound   | many-to-many |
+| [span](#span)                         | composes   | inbound   | many-to-many |
+| [exporterconfig](#exporterconfig)     | aggregates | outbound  | many-to-many |
+| [metricinstrument](#metricinstrument) | aggregates | outbound  | many-to-many |
+| [span](#span)                         | aggregates | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                              | Layer                                           | Predicate | Direction | Cardinality |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | --------- | --------- | ----------- |
-| [operation](./06-api-layer-report.md#operation)                           | [Api](./06-api-layer-report.md)                 | apm-trace | inbound   | many-to-one |
 | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | traced    | inbound   | many-to-one |
+| [operation](./06-api-layer-report.md#operation)                           | [Api](./06-api-layer-report.md)                 | apm-trace | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
-### Severitynumber
+### Transformoperation
 
-**Spec Node ID**: `apm.severitynumber`
+**Spec Node ID**: `apm.transformoperation`
 
-SeverityNumber element in APM Observability Layer
-
-[Back to Index](#report-index)
-
-### Compressiontype
-
-**Spec Node ID**: `apm.compressiontype`
-
-CompressionType element in APM Observability Layer
-
-[Back to Index](#report-index)
-
-### Logprocessor
-
-**Spec Node ID**: `apm.logprocessor`
-
-A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.
-
-#### Intra-Layer Relationships
-
-| Related Node                          | Predicate | Direction | Cardinality  |
-| ------------------------------------- | --------- | --------- | ------------ |
-| [metricinstrument](#metricinstrument) | flows-to  | inbound   | many-to-many |
-| [attribute](#attribute)               | accesses  | outbound  | many-to-many |
-| [logprocessor](#logprocessor)         | flows-to  | outbound  | many-to-many |
-| [exporterconfig](#exporterconfig)     | flows-to  | outbound  | many-to-many |
-| [span](#span)                         | flows-to  | inbound   | many-to-many |
-| [span](#span)                         | flows-to  | outbound  | many-to-many |
-
-[Back to Index](#report-index)
-
-### Spankind
-
-**Spec Node ID**: `apm.spankind`
-
-SpanKind element in APM Observability Layer
-
-[Back to Index](#report-index)
-
-### Loglevel
-
-**Spec Node ID**: `apm.loglevel`
-
-LogLevel element in APM Observability Layer
-
-[Back to Index](#report-index)
-
-### Exporterconfig
-
-**Spec Node ID**: `apm.exporterconfig`
-
-Configuration for telemetry data export destinations, specifying protocol (OTLP, Jaeger, Prometheus), endpoints, authentication, batching, and retry policies. Controls where observability data is sent.
-
-#### Intra-Layer Relationships
-
-| Related Node                                  | Predicate  | Direction | Cardinality  |
-| --------------------------------------------- | ---------- | --------- | ------------ |
-| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
-| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
-| [resource](#resource)                         | serves     | outbound  | many-to-many |
-| [resource](#resource)                         | aggregates | inbound   | many-to-many |
-| [span](#span)                                 | flows-to   | inbound   | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
-| [apmconfiguration](#apmconfiguration)         | serves     | outbound  | many-to-many |
-| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
+TransformOperation element in APM Observability Layer
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-11T21:45:57.106Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:48:41.958Z | Generator: generate-layer-reports.ts_

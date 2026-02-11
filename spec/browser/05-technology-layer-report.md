@@ -7,28 +7,28 @@
 - [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
-  - [Technologyinterface](#technologyinterface)
-  - [Techeventtype](#techeventtype)
-  - [Technologyservice](#technologyservice)
-  - [Path](#path)
-  - [Technologyfunction](#technologyfunction)
-  - [Systemsoftwaretype](#systemsoftwaretype)
-  - [Technologycollaboration](#technologycollaboration)
-  - [Networktype](#networktype)
-  - [Pathtype](#pathtype)
-  - [Artifacttype](#artifacttype)
-  - [Technologyinteraction](#technologyinteraction)
-  - [Nodetype](#nodetype)
   - [Artifact](#artifact)
-  - [Techservicetype](#techservicetype)
+  - [Artifacttype](#artifacttype)
   - [Communicationnetwork](#communicationnetwork)
-  - [Technologyprocess](#technologyprocess)
-  - [Systemsoftware](#systemsoftware)
-  - [Devicetype](#devicetype)
-  - [Technologyevent](#technologyevent)
-  - [Techprotocol](#techprotocol)
-  - [Node](#node)
   - [Device](#device)
+  - [Devicetype](#devicetype)
+  - [Networktype](#networktype)
+  - [Node](#node)
+  - [Nodetype](#nodetype)
+  - [Path](#path)
+  - [Pathtype](#pathtype)
+  - [Systemsoftware](#systemsoftware)
+  - [Systemsoftwaretype](#systemsoftwaretype)
+  - [Techeventtype](#techeventtype)
+  - [Technologycollaboration](#technologycollaboration)
+  - [Technologyevent](#technologyevent)
+  - [Technologyfunction](#technologyfunction)
+  - [Technologyinteraction](#technologyinteraction)
+  - [Technologyinterface](#technologyinterface)
+  - [Technologyprocess](#technologyprocess)
+  - [Technologyservice](#technologyservice)
+  - [Techprotocol](#techprotocol)
+  - [Techservicetype](#techservicetype)
 
 ## Layer Introduction
 
@@ -73,21 +73,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  api --> business
-  api --> application
-  api --> data_store
-  api --> security
-  api --> apm
+  testing --> motivation
+  technology --> security
   data_model --> application
   data_model --> business
-  application --> apm
-  application --> motivation
-  technology --> security
-  testing --> motivation
-  business --> security
-  business --> application
-  business --> motivation
   business --> data_model
+  business --> application
+  business --> security
+  business --> motivation
+  application --> motivation
+  application --> apm
+  api --> apm
+  api --> application
+  api --> business
+  api --> security
+  api --> data_store
   class technology current
 ```
 
@@ -100,75 +100,18 @@ flowchart TB
 
 ## Node Reference
 
-### Technologyinterface
+### Artifact
 
-**Spec Node ID**: `technology.technologyinterface`
+**Spec Node ID**: `technology.artifact`
 
-Point of access where technology services are available
+Physical piece of data used or produced
 
-[Back to Index](#report-index)
+#### Inter-Layer Relationships
 
-### Techeventtype
-
-**Spec Node ID**: `technology.techeventtype`
-
-TechEventType element in Technology Layer
-
-[Back to Index](#report-index)
-
-### Technologyservice
-
-**Spec Node ID**: `technology.technologyservice`
-
-Externally visible unit of technology functionality
-
-[Back to Index](#report-index)
-
-### Path
-
-**Spec Node ID**: `technology.path`
-
-Link between nodes through which they exchange
-
-[Back to Index](#report-index)
-
-### Technologyfunction
-
-**Spec Node ID**: `technology.technologyfunction`
-
-Collection of technology behavior
-
-[Back to Index](#report-index)
-
-### Systemsoftwaretype
-
-**Spec Node ID**: `technology.systemsoftwaretype`
-
-SystemSoftwareType element in Technology Layer
-
-[Back to Index](#report-index)
-
-### Technologycollaboration
-
-**Spec Node ID**: `technology.technologycollaboration`
-
-Aggregate of nodes working together
-
-[Back to Index](#report-index)
-
-### Networktype
-
-**Spec Node ID**: `technology.networktype`
-
-NetworkType element in Technology Layer
-
-[Back to Index](#report-index)
-
-### Pathtype
-
-**Spec Node ID**: `technology.pathtype`
-
-PathType element in Technology Layer
+| Related Node                                                   | Layer                                     | Predicate      | Direction | Cardinality |
+| -------------------------------------------------------------- | ----------------------------------------- | -------------- | --------- | ----------- |
+| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | classification | outbound  | many-to-one |
+| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | referenced-by  | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -180,98 +123,11 @@ ArtifactType element in Technology Layer
 
 [Back to Index](#report-index)
 
-### Technologyinteraction
-
-**Spec Node ID**: `technology.technologyinteraction`
-
-Unit of collective technology behavior
-
-[Back to Index](#report-index)
-
-### Nodetype
-
-**Spec Node ID**: `technology.nodetype`
-
-NodeType element in Technology Layer
-
-[Back to Index](#report-index)
-
-### Artifact
-
-**Spec Node ID**: `technology.artifact`
-
-Physical piece of data used or produced
-
-#### Inter-Layer Relationships
-
-| Related Node                                                   | Layer                                     | Predicate      | Direction | Cardinality |
-| -------------------------------------------------------------- | ----------------------------------------- | -------------- | --------- | ----------- |
-| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | referenced-by  | outbound  | many-to-one |
-| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | classification | outbound  | many-to-one |
-
-[Back to Index](#report-index)
-
-### Techservicetype
-
-**Spec Node ID**: `technology.techservicetype`
-
-TechServiceType element in Technology Layer
-
-[Back to Index](#report-index)
-
 ### Communicationnetwork
 
 **Spec Node ID**: `technology.communicationnetwork`
 
 Set of structures that connects nodes
-
-[Back to Index](#report-index)
-
-### Technologyprocess
-
-**Spec Node ID**: `technology.technologyprocess`
-
-Sequence of technology behaviors
-
-[Back to Index](#report-index)
-
-### Systemsoftware
-
-**Spec Node ID**: `technology.systemsoftware`
-
-Software that provides platform for applications
-
-[Back to Index](#report-index)
-
-### Devicetype
-
-**Spec Node ID**: `technology.devicetype`
-
-DeviceType element in Technology Layer
-
-[Back to Index](#report-index)
-
-### Technologyevent
-
-**Spec Node ID**: `technology.technologyevent`
-
-Technology state change
-
-[Back to Index](#report-index)
-
-### Techprotocol
-
-**Spec Node ID**: `technology.techprotocol`
-
-TechProtocol element in Technology Layer
-
-[Back to Index](#report-index)
-
-### Node
-
-**Spec Node ID**: `technology.node`
-
-Computational or physical resource that hosts artifacts
 
 [Back to Index](#report-index)
 
@@ -283,6 +139,150 @@ Physical IT resource with processing capability
 
 [Back to Index](#report-index)
 
+### Devicetype
+
+**Spec Node ID**: `technology.devicetype`
+
+DeviceType element in Technology Layer
+
+[Back to Index](#report-index)
+
+### Networktype
+
+**Spec Node ID**: `technology.networktype`
+
+NetworkType element in Technology Layer
+
+[Back to Index](#report-index)
+
+### Node
+
+**Spec Node ID**: `technology.node`
+
+Computational or physical resource that hosts artifacts
+
+[Back to Index](#report-index)
+
+### Nodetype
+
+**Spec Node ID**: `technology.nodetype`
+
+NodeType element in Technology Layer
+
+[Back to Index](#report-index)
+
+### Path
+
+**Spec Node ID**: `technology.path`
+
+Link between nodes through which they exchange
+
+[Back to Index](#report-index)
+
+### Pathtype
+
+**Spec Node ID**: `technology.pathtype`
+
+PathType element in Technology Layer
+
+[Back to Index](#report-index)
+
+### Systemsoftware
+
+**Spec Node ID**: `technology.systemsoftware`
+
+Software that provides platform for applications
+
+[Back to Index](#report-index)
+
+### Systemsoftwaretype
+
+**Spec Node ID**: `technology.systemsoftwaretype`
+
+SystemSoftwareType element in Technology Layer
+
+[Back to Index](#report-index)
+
+### Techeventtype
+
+**Spec Node ID**: `technology.techeventtype`
+
+TechEventType element in Technology Layer
+
+[Back to Index](#report-index)
+
+### Technologycollaboration
+
+**Spec Node ID**: `technology.technologycollaboration`
+
+Aggregate of nodes working together
+
+[Back to Index](#report-index)
+
+### Technologyevent
+
+**Spec Node ID**: `technology.technologyevent`
+
+Technology state change
+
+[Back to Index](#report-index)
+
+### Technologyfunction
+
+**Spec Node ID**: `technology.technologyfunction`
+
+Collection of technology behavior
+
+[Back to Index](#report-index)
+
+### Technologyinteraction
+
+**Spec Node ID**: `technology.technologyinteraction`
+
+Unit of collective technology behavior
+
+[Back to Index](#report-index)
+
+### Technologyinterface
+
+**Spec Node ID**: `technology.technologyinterface`
+
+Point of access where technology services are available
+
+[Back to Index](#report-index)
+
+### Technologyprocess
+
+**Spec Node ID**: `technology.technologyprocess`
+
+Sequence of technology behaviors
+
+[Back to Index](#report-index)
+
+### Technologyservice
+
+**Spec Node ID**: `technology.technologyservice`
+
+Externally visible unit of technology functionality
+
+[Back to Index](#report-index)
+
+### Techprotocol
+
+**Spec Node ID**: `technology.techprotocol`
+
+TechProtocol element in Technology Layer
+
+[Back to Index](#report-index)
+
+### Techservicetype
+
+**Spec Node ID**: `technology.techservicetype`
+
+TechServiceType element in Technology Layer
+
+[Back to Index](#report-index)
+
 ---
 
-_Generated: 2026-02-11T21:45:57.103Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:48:41.955Z | Generator: generate-layer-reports.ts_

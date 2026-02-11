@@ -233,7 +233,9 @@ class ReportDataModel {
   private buildNodeSchemasByLayer(): Map<string, NodeSchema[]> {
     const map = new Map<string, NodeSchema[]>();
     for (const layer of this.data.layers) {
-      const schemas = this.data.nodeSchemas.filter((s) => s.layer_id === layer.id);
+      const schemas = this.data.nodeSchemas
+        .filter((s) => s.layer_id === layer.id)
+        .sort((a, b) => a.type.localeCompare(b.type));
       map.set(layer.id, schemas);
     }
     return map;

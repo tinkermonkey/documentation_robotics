@@ -7,26 +7,26 @@
 - [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
-  - [Jsonschema](#jsonschema)
-  - [Schemacomposition](#schemacomposition)
-  - [Datagovernance](#datagovernance)
-  - [X-database](#x-database)
-  - [X-data-governance](#x-data-governance)
-  - [Databasemapping](#databasemapping)
-  - [Numericschema](#numericschema)
-  - [Schemaproperty](#schemaproperty)
-  - [X-apm-data-quality-metrics](#x-apm-data-quality-metrics)
-  - [Schemadefinition](#schemadefinition)
-  - [X-ui](#x-ui)
-  - [Reference](#reference)
-  - [Objectschema](#objectschema)
-  - [X-business-object-ref](#x-business-object-ref)
-  - [Dataqualitymetrics](#dataqualitymetrics)
-  - [X-security](#x-security)
-  - [Stringschema](#stringschema)
-  - [Jsontype](#jsontype)
   - [Arrayschema](#arrayschema)
+  - [Databasemapping](#databasemapping)
+  - [Datagovernance](#datagovernance)
+  - [Dataqualitymetrics](#dataqualitymetrics)
+  - [Jsonschema](#jsonschema)
+  - [Jsontype](#jsontype)
+  - [Numericschema](#numericschema)
+  - [Objectschema](#objectschema)
+  - [Reference](#reference)
+  - [Schemacomposition](#schemacomposition)
+  - [Schemadefinition](#schemadefinition)
+  - [Schemaproperty](#schemaproperty)
   - [String](#string)
+  - [Stringschema](#stringschema)
+  - [X-apm-data-quality-metrics](#x-apm-data-quality-metrics)
+  - [X-business-object-ref](#x-business-object-ref)
+  - [X-data-governance](#x-data-governance)
+  - [X-database](#x-database)
+  - [X-security](#x-security)
+  - [X-ui](#x-ui)
 
 ## Layer Introduction
 
@@ -55,30 +55,30 @@ Layer 7: Data Model Layer
 ```mermaid
 flowchart LR
   subgraph data-model
-    jsonschema["jsonschema"]
-    schemacomposition["schemacomposition"]
-    datagovernance["datagovernance"]
-    x_database["x-database"]
-    x_data_governance["x-data-governance"]
-    databasemapping["databasemapping"]
-    numericschema["numericschema"]
-    schemaproperty["schemaproperty"]
-    x_apm_data_quality_metrics["x-apm-data-quality-metrics"]
-    schemadefinition["schemadefinition"]
-    x_ui["x-ui"]
-    reference["reference"]
-    objectschema["objectschema"]
-    x_business_object_ref["x-business-object-ref"]
-    dataqualitymetrics["dataqualitymetrics"]
-    x_security["x-security"]
-    stringschema["stringschema"]
-    jsontype["jsontype"]
     arrayschema["arrayschema"]
+    databasemapping["databasemapping"]
+    datagovernance["datagovernance"]
+    dataqualitymetrics["dataqualitymetrics"]
+    jsonschema["jsonschema"]
+    jsontype["jsontype"]
+    numericschema["numericschema"]
+    objectschema["objectschema"]
+    reference["reference"]
+    schemacomposition["schemacomposition"]
+    schemadefinition["schemadefinition"]
+    schemaproperty["schemaproperty"]
     string["string"]
-    jsonschema -->|data-governance| datagovernance
-    schemaproperty -->|database-mapping| databasemapping
-    jsonschema -->|database-mapping| databasemapping
+    stringschema["stringschema"]
+    x_apm_data_quality_metrics["x-apm-data-quality-metrics"]
+    x_business_object_ref["x-business-object-ref"]
+    x_data_governance["x-data-governance"]
+    x_database["x-database"]
+    x_security["x-security"]
+    x_ui["x-ui"]
     jsonschema -->|apm-data-quality-metrics| dataqualitymetrics
+    jsonschema -->|data-governance| datagovernance
+    jsonschema -->|database-mapping| databasemapping
+    schemaproperty -->|database-mapping| databasemapping
   end
 ```
 
@@ -99,21 +99,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  api --> business
-  api --> application
-  api --> data_store
-  api --> security
-  api --> apm
+  testing --> motivation
+  technology --> security
   data_model --> application
   data_model --> business
-  application --> apm
-  application --> motivation
-  technology --> security
-  testing --> motivation
-  business --> security
-  business --> application
-  business --> motivation
   business --> data_model
+  business --> application
+  business --> security
+  business --> motivation
+  application --> motivation
+  application --> apm
+  api --> apm
+  api --> application
+  api --> business
+  api --> security
+  api --> data_store
   class data_model current
 ```
 
@@ -128,35 +128,26 @@ flowchart TB
 
 ## Node Reference
 
-### Jsonschema
+### Arrayschema
 
-**Spec Node ID**: `data-model.jsonschema`
+**Spec Node ID**: `data-model.arrayschema`
 
-Root schema document
-
-#### Intra-Layer Relationships
-
-| Related Node                              | Predicate                | Direction | Cardinality |
-| ----------------------------------------- | ------------------------ | --------- | ----------- |
-| [datagovernance](#datagovernance)         | data-governance          | outbound  | many-to-one |
-| [databasemapping](#databasemapping)       | database-mapping         | outbound  | many-to-one |
-| [dataqualitymetrics](#dataqualitymetrics) | apm-data-quality-metrics | outbound  | many-to-one |
-
-#### Inter-Layer Relationships
-
-| Related Node                                                              | Layer                                           | Predicate           | Direction | Cardinality |
-| ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | --------- | ----------- |
-| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref       | outbound  | many-to-one |
-| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref | outbound  | many-to-one |
-| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by       | outbound  | many-to-one |
+ArraySchema validation rules
 
 [Back to Index](#report-index)
 
-### Schemacomposition
+### Databasemapping
 
-**Spec Node ID**: `data-model.schemacomposition`
+**Spec Node ID**: `data-model.databasemapping`
 
-Combining multiple schemas
+Specifies how a logical data model entity maps to physical database storage, including table names, column mappings, and storage optimizations. Bridges logical and physical data layers.
+
+#### Intra-Layer Relationships
+
+| Related Node                      | Predicate        | Direction | Cardinality |
+| --------------------------------- | ---------------- | --------- | ----------- |
+| [jsonschema](#jsonschema)         | database-mapping | inbound   | many-to-one |
+| [schemaproperty](#schemaproperty) | database-mapping | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -180,34 +171,49 @@ Metadata about data ownership, classification, sensitivity level, and handling r
 
 [Back to Index](#report-index)
 
-### X-database
+### Dataqualitymetrics
 
-**Spec Node ID**: `data-model.x-database`
+**Spec Node ID**: `data-model.dataqualitymetrics`
 
-Database mapping information
-
-[Back to Index](#report-index)
-
-### X-data-governance
-
-**Spec Node ID**: `data-model.x-data-governance`
-
-Data model governance metadata (root-level)
-
-[Back to Index](#report-index)
-
-### Databasemapping
-
-**Spec Node ID**: `data-model.databasemapping`
-
-Specifies how a logical data model entity maps to physical database storage, including table names, column mappings, and storage optimizations. Bridges logical and physical data layers.
+Defines measurable quality attributes for data elements such as completeness, accuracy, consistency, and timeliness. Enables data quality monitoring and SLA enforcement.
 
 #### Intra-Layer Relationships
 
-| Related Node                      | Predicate        | Direction | Cardinality |
-| --------------------------------- | ---------------- | --------- | ----------- |
-| [schemaproperty](#schemaproperty) | database-mapping | inbound   | many-to-one |
-| [jsonschema](#jsonschema)         | database-mapping | inbound   | many-to-one |
+| Related Node              | Predicate                | Direction | Cardinality |
+| ------------------------- | ------------------------ | --------- | ----------- |
+| [jsonschema](#jsonschema) | apm-data-quality-metrics | inbound   | many-to-one |
+
+[Back to Index](#report-index)
+
+### Jsonschema
+
+**Spec Node ID**: `data-model.jsonschema`
+
+Root schema document
+
+#### Intra-Layer Relationships
+
+| Related Node                              | Predicate                | Direction | Cardinality |
+| ----------------------------------------- | ------------------------ | --------- | ----------- |
+| [dataqualitymetrics](#dataqualitymetrics) | apm-data-quality-metrics | outbound  | many-to-one |
+| [datagovernance](#datagovernance)         | data-governance          | outbound  | many-to-one |
+| [databasemapping](#databasemapping)       | database-mapping         | outbound  | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                              | Layer                                           | Predicate           | Direction | Cardinality |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | --------- | ----------- |
+| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref       | outbound  | many-to-one |
+| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref | outbound  | many-to-one |
+| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by       | outbound  | many-to-one |
+
+[Back to Index](#report-index)
+
+### Jsontype
+
+**Spec Node ID**: `data-model.jsontype`
+
+Core JSON data types
 
 [Back to Index](#report-index)
 
@@ -216,6 +222,38 @@ Specifies how a logical data model entity maps to physical database storage, inc
 **Spec Node ID**: `data-model.numericschema`
 
 NumericSchema validation rules
+
+[Back to Index](#report-index)
+
+### Objectschema
+
+**Spec Node ID**: `data-model.objectschema`
+
+ObjectSchema validation rules
+
+[Back to Index](#report-index)
+
+### Reference
+
+**Spec Node ID**: `data-model.reference`
+
+Reference to another schema
+
+[Back to Index](#report-index)
+
+### Schemacomposition
+
+**Spec Node ID**: `data-model.schemacomposition`
+
+Combining multiple schemas
+
+[Back to Index](#report-index)
+
+### Schemadefinition
+
+**Spec Node ID**: `data-model.schemadefinition`
+
+A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.
 
 [Back to Index](#report-index)
 
@@ -233,73 +271,11 @@ Defines a single property within a schema, including its type, constraints, vali
 
 [Back to Index](#report-index)
 
-### X-apm-data-quality-metrics
+### String
 
-**Spec Node ID**: `data-model.x-apm-data-quality-metrics`
+**Spec Node ID**: `data-model.string`
 
-Links schema to data quality metrics in APM/Observability Layer
-
-[Back to Index](#report-index)
-
-### Schemadefinition
-
-**Spec Node ID**: `data-model.schemadefinition`
-
-A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.
-
-[Back to Index](#report-index)
-
-### X-ui
-
-**Spec Node ID**: `data-model.x-ui`
-
-UI rendering hints
-
-[Back to Index](#report-index)
-
-### Reference
-
-**Spec Node ID**: `data-model.reference`
-
-Reference to another schema
-
-[Back to Index](#report-index)
-
-### Objectschema
-
-**Spec Node ID**: `data-model.objectschema`
-
-ObjectSchema validation rules
-
-[Back to Index](#report-index)
-
-### X-business-object-ref
-
-**Spec Node ID**: `data-model.x-business-object-ref`
-
-Reference to BusinessObject this schema implements
-
-[Back to Index](#report-index)
-
-### Dataqualitymetrics
-
-**Spec Node ID**: `data-model.dataqualitymetrics`
-
-Defines measurable quality attributes for data elements such as completeness, accuracy, consistency, and timeliness. Enables data quality monitoring and SLA enforcement.
-
-#### Intra-Layer Relationships
-
-| Related Node              | Predicate                | Direction | Cardinality |
-| ------------------------- | ------------------------ | --------- | ----------- |
-| [jsonschema](#jsonschema) | apm-data-quality-metrics | inbound   | many-to-one |
-
-[Back to Index](#report-index)
-
-### X-security
-
-**Spec Node ID**: `data-model.x-security`
-
-Security and privacy metadata
+String type definition for data model properties
 
 [Back to Index](#report-index)
 
@@ -311,30 +287,54 @@ StringSchema validation rules
 
 [Back to Index](#report-index)
 
-### Jsontype
+### X-apm-data-quality-metrics
 
-**Spec Node ID**: `data-model.jsontype`
+**Spec Node ID**: `data-model.x-apm-data-quality-metrics`
 
-Core JSON data types
-
-[Back to Index](#report-index)
-
-### Arrayschema
-
-**Spec Node ID**: `data-model.arrayschema`
-
-ArraySchema validation rules
+Links schema to data quality metrics in APM/Observability Layer
 
 [Back to Index](#report-index)
 
-### String
+### X-business-object-ref
 
-**Spec Node ID**: `data-model.string`
+**Spec Node ID**: `data-model.x-business-object-ref`
 
-String type definition for data model properties
+Reference to BusinessObject this schema implements
+
+[Back to Index](#report-index)
+
+### X-data-governance
+
+**Spec Node ID**: `data-model.x-data-governance`
+
+Data model governance metadata (root-level)
+
+[Back to Index](#report-index)
+
+### X-database
+
+**Spec Node ID**: `data-model.x-database`
+
+Database mapping information
+
+[Back to Index](#report-index)
+
+### X-security
+
+**Spec Node ID**: `data-model.x-security`
+
+Security and privacy metadata
+
+[Back to Index](#report-index)
+
+### X-ui
+
+**Spec Node ID**: `data-model.x-ui`
+
+UI rendering hints
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-11T21:45:57.105Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:48:41.956Z | Generator: generate-layer-reports.ts_
