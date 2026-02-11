@@ -43,7 +43,7 @@ export interface NodeTypeSpec {
   description: string;
   attributes: AttributeSpec[];
   // Full JSON Schema kept for advanced use cases
-  schema?: any;
+  schema?: Record<string, unknown>;
 }
 
 /**
@@ -134,7 +134,7 @@ export interface NodeTypeQueryFilter {
  * Query filters for finding relationship types
  */
 export interface RelationshipTypeQueryFilter {
-  sourceLay?: string;
+  sourceLayer?: string;
   sourceSpecNodeId?: string;
   destinationLayer?: string;
   destinationSpecNodeId?: string;

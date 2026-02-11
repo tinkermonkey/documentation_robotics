@@ -258,9 +258,7 @@ describe("SpecDataLoader", () => {
 
     it("should throw with invalid spec directory", async () => {
       const badLoader = new SpecDataLoader({ specDir: "/nonexistent/path" });
-      expect(async () => {
-        await badLoader.load();
-      }).toThrow();
+      await expect(badLoader.load()).rejects.toThrow();
     });
   });
 
@@ -370,13 +368,6 @@ describe("SpecDataService", () => {
       // Note: Some spec definitions may reference missing destinations in relationships
       // This is OK as destination_spec_node_id may be optional for certain relationship types
       // The validator should complete without throwing even if there are reference issues
-      if (issues.length > 0) {
-        // Log first few issues for debugging
-        console.log(
-          `Integrity issues (${issues.length} total):`,
-          issues.slice(0, 3).map((i) => i.substring(0, 80))
-        );
-      }
     });
   });
 

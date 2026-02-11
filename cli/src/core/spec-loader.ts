@@ -1,7 +1,6 @@
 /**
  * SpecDataLoader - Loads specification metadata from spec directory
  *
- * Phase 2 implementation of specification metadata ingestion.
  * Loads layer definitions, node type schemas, relationship schemas, and predicates
  * from the spec/ directory for use by CLI commands and analysis tools.
  */
@@ -158,20 +157,20 @@ export class SpecDataLoader {
   /**
    * Extract attribute specifications from node schema
    */
-  private extractAttributes(attributesSchema: any): AttributeSpec[] {
+  private extractAttributes(attributesSchema: Record<string, unknown>): AttributeSpec[] {
     if (!attributesSchema || !attributesSchema.properties) {
       return [];
     }
 
-    const props = attributesSchema.properties;
-    const required = new Set(attributesSchema.required || []);
+    const props = attributesSchema.properties as Record<string, Record<string, unknown>>;
+    const required = new Set(attributesSchema.required as string[] || []);
 
-    return Object.entries(props).map(([name, schema]: [string, any]) => ({
+    return Object.entries(props).map(([name, schema]: [string, Record<string, unknown>]) => ({
       name,
-      type: schema.type || "unknown",
-      format: schema.format,
+      type: (schema.type as string) || "unknown",
+      format: schema.format as string | undefined,
       required: required.has(name),
-      description: schema.description,
+      description: schema.description as string | undefined,
     }));
   }
 
@@ -235,17 +234,18 @@ export class SpecDataLoader {
 
     try {
       const content = await fs.readFile(predicatesPath, "utf-8");
-      const data = JSON.parse(content);
+      const data = JSON.parse(content) as { predicates: Record<string, Record<string, unknown>> };
 
       const predicates = new Map<string, PredicateSpec>();
-      for (const [, pred] of Object.entries(data.predicates) as [string, any][]) {
-        predicates.set(pred.predicate, {
-          predicate: pred.predicate,
-          inverse: pred.inverse,
-          category: pred.category,
-          description: pred.description,
-          archimate_alignment: pred.archimate_alignment,
-          semantics: pred.semantics,
+      for (const [, pred] of Object.entries(data.predicates)) {
+        const predSpec = pred as unknown as PredicateSpec;
+        predicates.set(predSpec.predicate, {
+          predicate: predSpec.predicate,
+          inverse: predSpec.inverse,
+          category: predSpec.category,
+          description: predSpec.description,
+          archimate_alignment: predSpec.archimate_alignment,
+          semantics: predSpec.semantics,
         });
       }
 
@@ -321,7 +321,7 @@ export class SpecDataLoader {
     const data = this.getSpecData();
 
     return data.relationshipTypes.filter((rt) => {
-      if (filter.sourceLay && rt.source_layer !== filter.sourceLay) return false;
+      if (filter.sourceLayer && rt.source_layer !== filter.sourceLayer) return false;
       if (filter.sourceSpecNodeId && rt.source_spec_node_id !== filter.sourceSpecNodeId)
         return false;
       if (filter.destinationLayer && rt.destination_layer !== filter.destinationLayer)
@@ -344,7 +344,7 @@ export class SpecDataLoader {
    * Get relationship types for a specific layer pair
    */
   getRelationshipTypesForLayerPair(sourceLayer: string, destLayer?: string): RelationshipTypeSpec[] {
-    const filter: RelationshipTypeQueryFilter = { sourceLay: sourceLayer };
+    const filter: RelationshipTypeQueryFilter = { sourceLayer };
     if (destLayer) {
       filter.destinationLayer = destLayer;
     }

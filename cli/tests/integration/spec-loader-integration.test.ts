@@ -111,12 +111,7 @@ describe("SpecDataLoader Integration", () => {
           const layer = service.getLayer(refNodeType.layer_id);
           if (layer) {
             // Most references should follow the hierarchy (some specs may not be perfect)
-            if (layer.number > apiLayerNum) {
-              // This is OK - some specs may have cross-references that don't follow strict hierarchy
-              console.log(
-                `Note: Reference from API (${apiLayerNum}) to ${layer.id} (${layer.number})`
-              );
-            } else {
+            if (layer.number <= apiLayerNum) {
               validReferencesChecked++;
             }
           }
