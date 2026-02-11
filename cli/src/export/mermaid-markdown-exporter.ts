@@ -6,7 +6,7 @@ import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 
 /**
- * Enhanced Markdown Exporter - generates comprehensive markdown documentation
+ * Mermaid Markdown Exporter - generates comprehensive markdown documentation
  * with Mermaid diagrams and formatted tables
  *
  * Supports all 12 layers and includes:
@@ -16,13 +16,13 @@ import { getErrorMessage } from "../utils/errors.js";
  * - Cross-layer relationship diagrams
  * - Element properties and relationship details
  */
-export class EnhancedMarkdownExporter implements Exporter {
-  name = "Enhanced Markdown";
+export class MermaidMarkdownExporter implements Exporter {
+  name = "Mermaid Markdown";
   supportedLayers = ALL_LAYERS;
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
     const span = isTelemetryEnabled
-      ? startSpan("export.format.enhanced-markdown", {
+      ? startSpan("export.format.mermaid-markdown", {
           "export.layerCount": options.layers?.length || this.supportedLayers.length,
         })
       : null;
@@ -42,15 +42,8 @@ export class EnhancedMarkdownExporter implements Exporter {
       const markdown = await generator.generate();
 
       if (isTelemetryEnabled && span) {
-        let totalElements = 0;
-        let totalRelationships = 0;
-
-        // Count statistics
-        for (const _node of model.graph.nodes.values()) {
-          totalElements++;
-        }
-
-        totalRelationships = model.graph.getAllEdges().length;
+        const totalElements = model.graph.nodes.size;
+        const totalRelationships = model.graph.getAllEdges().length;
 
         (span as any).setAttribute("export.elementCount", totalElements);
         (span as any).setAttribute("export.relationshipCount", totalRelationships);

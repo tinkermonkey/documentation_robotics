@@ -1,5 +1,11 @@
 import type { Model } from "../core/model.js";
 import type { GraphNode } from "../core/graph-model.js";
+import { formatLayerName } from "../utils/layer-name-formatter.js";
+import {
+  escapeMarkdown,
+  valueToMarkdown,
+  getLayerDescription,
+} from "./markdown-utils.js";
 
 /**
  * Options for markdown generation
@@ -46,7 +52,7 @@ export class MarkdownGenerator {
     const lines: string[] = [];
 
     // Header
-    lines.push(`# ${this.escapeMarkdown(this.model.manifest.name)}`);
+    lines.push(`# ${this.escapeMarkdownLocal(this.model.manifest.name)}`);
     lines.push("");
 
     if (this.model.manifest.description) {
@@ -103,7 +109,7 @@ export class MarkdownGenerator {
       lines.push(`### ${this.formatLayerName(layerName)}`);
       lines.push("");
 
-      lines.push(this.getLayerDescription(layerName));
+      lines.push(this.getLayerDescriptionText(layerName));
       lines.push("");
 
       // Layer diagram
@@ -233,7 +239,7 @@ export class MarkdownGenerator {
     for (const node of nodes) {
       const nodeId = this.sanitizeId(node.id);
       const label = `${node.name}<br/>(${node.type})`;
-      lines.push(`  ${nodeId}["${this.escapeMarkdown(label)}"]`);
+      lines.push(`  ${nodeId}["${this.escapeMarkdownLocal(label)}"]`);
     }
 
     // Add edges between nodes in the same layer
@@ -263,7 +269,7 @@ export class MarkdownGenerator {
     for (const node of nodes) {
       const nodeId = this.sanitizeId(node.id);
       const label = `${node.name}`;
-      lines.push(`  ${nodeId}["${this.escapeMarkdown(label)}"]`);
+      lines.push(`  ${nodeId}["${this.escapeMarkdownLocal(label)}"]`);
     }
 
     // Add edges
@@ -289,11 +295,11 @@ export class MarkdownGenerator {
     rows.push("| Property | Value |");
     rows.push("|----------|-------|");
 
-    rows.push(`| Name | ${this.escapeMarkdown(this.model.manifest.name)} |`);
+    rows.push(`| Name | ${this.escapeMarkdownLocal(this.model.manifest.name)} |`);
     rows.push(`| Version | ${this.model.manifest.version || "1.0.0"} |`);
 
     if (this.model.manifest.author) {
-      rows.push(`| Author | ${this.escapeMarkdown(this.model.manifest.author)} |`);
+      rows.push(`| Author | ${this.escapeMarkdownLocal(this.model.manifest.author)} |`);
     }
 
     if (this.model.manifest.created) {
@@ -340,7 +346,7 @@ export class MarkdownGenerator {
         (e) => nodeIds.has(e.source) && nodeIds.has(e.destination)
       ).length;
 
-      const description = this.getLayerDescription(layer).split("\n")[0];
+      const description = this.getLayerDescriptionText(layer).split("\n")[0];
 
       rows.push(
         `| ${this.formatLayerName(layer)} | ${nodes.length} | ${layerRelationships} | ${description} |`
@@ -362,11 +368,11 @@ export class MarkdownGenerator {
     rows.push("|-----------|------|------|-------------|");
 
     for (const node of nodes.slice(0, this.options.maxTableRows)) {
-      const id = this.escapeMarkdown(node.id);
-      const name = this.escapeMarkdown(node.name);
-      const type = this.escapeMarkdown(node.type);
+      const id = this.escapeMarkdownLocal(node.id);
+      const name = this.escapeMarkdownLocal(node.name);
+      const type = this.escapeMarkdownLocal(node.type);
       const desc = node.description
-        ? this.escapeMarkdown(node.description.substring(0, 100))
+        ? this.escapeMarkdownLocal(node.description.substring(0, 100))
         : "";
 
       rows.push(`| \`${id}\` | ${name} | ${type} | ${desc} |`);
@@ -392,7 +398,7 @@ export class MarkdownGenerator {
 
     for (const node of nodes.slice(0, 10)) {
       // Limit to first 10 for readability
-      details.push(`##### ${this.escapeMarkdown(node.name)} (\`${node.id}\`)`);
+      details.push(`##### ${this.escapeMarkdownLocal(node.name)} (\`${node.id}\`)`);
       details.push("");
 
       if (node.description) {
@@ -523,48 +529,17 @@ export class MarkdownGenerator {
   }
 
   /**
-   * Get description for a layer
+   * Get description for a layer (delegates to shared utility)
    */
-  private getLayerDescription(layer: string): string {
-    const descriptions: Record<string, string> = {
-      motivation:
-        "Goals, requirements, drivers, and strategic outcomes of the architecture.",
-      business: "Business processes, functions, roles, and services.",
-      security: "Authentication, authorization, security threats, and controls.",
-      application: "Application components, services, and interactions.",
-      technology: "Infrastructure, platforms, systems, and technology components.",
-      api: "REST APIs, operations, endpoints, and API integrations.",
-      "data-model": "Data entities, relationships, and data structure definitions.",
-      "data-store": "Databases, data stores, and persistence mechanisms.",
-      ux: "User interface components, screens, and user experience elements.",
-      navigation: "Application routing, navigation flows, and page structures.",
-      apm: "Observability, monitoring, metrics, logging, and tracing.",
-      testing: "Test strategies, test cases, test data, and test coverage.",
-    };
-
-    return descriptions[layer] || "Architecture layer";
+  private getLayerDescriptionText(layer: string): string {
+    return getLayerDescription(layer);
   }
 
   /**
-   * Format layer name for display
+   * Format layer name for display (delegates to centralized formatter)
    */
   private formatLayerName(layer: string): string {
-    const names: Record<string, string> = {
-      motivation: "Motivation",
-      business: "Business",
-      security: "Security",
-      application: "Application",
-      technology: "Technology",
-      api: "API",
-      "data-model": "Data Model",
-      "data-store": "Data Store",
-      ux: "UX",
-      navigation: "Navigation",
-      apm: "APM",
-      testing: "Testing",
-    };
-
-    return names[layer] || layer;
+    return formatLayerName(layer);
   }
 
   /**
@@ -578,34 +553,16 @@ export class MarkdownGenerator {
   }
 
   /**
-   * Escape markdown special characters
+   * Escape markdown special characters (delegates to shared utility)
    */
-  private escapeMarkdown(str: string): string {
-    return str
-      .replace(/\\/g, "\\\\")
-      .replace(/\|/g, "\\|")
-      .replace(/\*/g, "\\*")
-      .replace(/\[/g, "\\[")
-      .replace(/\]/g, "\\]")
-      .replace(/\{/g, "\\{")
-      .replace(/\}/g, "\\}")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+  private escapeMarkdownLocal(str: string): string {
+    return escapeMarkdown(str);
   }
 
   /**
-   * Convert value to string for display
+   * Convert value to string for display (delegates to shared utility)
    */
   private valueToString(value: unknown): string {
-    if (typeof value === "string") return this.escapeMarkdown(value);
-    if (typeof value === "number") return String(value);
-    if (typeof value === "boolean") return String(value);
-    if (Array.isArray(value)) {
-      return `[${value.map((v) => this.valueToString(v)).join(", ")}]`;
-    }
-    if (value && typeof value === "object") {
-      return `\`${this.escapeMarkdown(JSON.stringify(value))}\``;
-    }
-    return String(value);
+    return valueToMarkdown(value);
   }
 }

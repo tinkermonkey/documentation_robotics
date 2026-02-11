@@ -8,12 +8,12 @@ import { exportCommand } from "@/commands/export";
 import * as path from "path";
 import * as fs from "fs/promises";
 
-describe("Enhanced Markdown Export Integration", () => {
+describe("Mermaid Markdown Export Integration", () => {
   let testDir: string;
 
   beforeEach(async () => {
     // Create temporary test directory
-    testDir = `/tmp/test-enhanced-markdown-${Date.now()}`;
+    testDir = `/tmp/test-mermaid-markdown-${Date.now()}`;
     await ensureDir(testDir);
     await ensureDir(`${testDir}/.dr/layers`);
 
@@ -131,12 +131,12 @@ describe("Enhanced Markdown Export Integration", () => {
     }
   });
 
-  describe("export command with enhanced-markdown format", () => {
-    it("should export model to enhanced markdown format", async () => {
+  describe("export command with mermaid-markdown format", () => {
+    it("should export model to mermaid markdown format", async () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -150,7 +150,7 @@ describe("Enhanced Markdown Export Integration", () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -168,7 +168,7 @@ describe("Enhanced Markdown Export Integration", () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -184,7 +184,7 @@ describe("Enhanced Markdown Export Integration", () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -201,7 +201,7 @@ describe("Enhanced Markdown Export Integration", () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -219,7 +219,7 @@ describe("Enhanced Markdown Export Integration", () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -236,7 +236,7 @@ describe("Enhanced Markdown Export Integration", () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -252,7 +252,7 @@ describe("Enhanced Markdown Export Integration", () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -274,7 +274,7 @@ describe("Enhanced Markdown Export Integration", () => {
 
       try {
         await exportCommand({
-          format: "enhanced-markdown",
+          format: "mermaid-markdown",
           model: testDir,
         });
 
@@ -289,7 +289,7 @@ describe("Enhanced Markdown Export Integration", () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -305,7 +305,7 @@ describe("Enhanced Markdown Export Integration", () => {
       const outputFile = `${testDir}/export.md`;
 
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });
@@ -332,7 +332,7 @@ describe("Enhanced Markdown Export Integration", () => {
 
       // Should not throw
       await exportCommand({
-        format: "enhanced-markdown",
+        format: "mermaid-markdown",
         output: outputFile,
         model: testDir,
       });

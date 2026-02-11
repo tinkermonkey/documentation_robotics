@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Model } from "@/core/model";
 import { Manifest } from "@/core/manifest";
-import { EnhancedMarkdownExporter } from "@/export/enhanced-markdown-exporter";
+import { MermaidMarkdownExporter } from "@/export/mermaid-markdown-exporter";
 
-describe("EnhancedMarkdownExporter", () => {
+describe("MermaidMarkdownExporter", () => {
   let model: Model;
-  let exporter: EnhancedMarkdownExporter;
+  let exporter: MermaidMarkdownExporter;
 
   beforeEach(() => {
     const manifest = new Manifest({
@@ -60,12 +60,12 @@ describe("EnhancedMarkdownExporter", () => {
       predicate: "realized-by",
     });
 
-    exporter = new EnhancedMarkdownExporter();
+    exporter = new MermaidMarkdownExporter();
   });
 
   describe("Exporter interface", () => {
     it("should have correct name", () => {
-      expect(exporter.name).toBe("Enhanced Markdown");
+      expect(exporter.name).toBe("Mermaid Markdown");
     });
 
     it("should support all 12 layers", () => {
