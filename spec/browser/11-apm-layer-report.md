@@ -3,8 +3,8 @@
 ## Report Index
 
 - [Layer Introduction](#layer-introduction)
-- [Intra-Layer Relationships Diagram](#intra-layer-relationships)
-- [Inter-Layer Dependencies Diagram](#inter-layer-dependencies)
+- [Intra-Layer Relationships](#intra-layer-relationships)
+- [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Aggregationtemporality](#aggregationtemporality)
@@ -188,10 +188,10 @@ flowchart TB
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                              | Source Node                               | Dest Node                                                                  | Dest Layer                      | Predicate | Cardinality | Strength |
-| ------------------------------------------------------------ | ----------------------------------------- | -------------------------------------------------------------------------- | ------------------------------- | --------- | ----------- | -------- |
-| api.operation.apm-trace.apm.traceconfiguration               | [operation](#operation)                   | [traceconfiguration](<[Apm](./11-apm-layer-report.md)#traceconfiguration>) | [Apm](./11-apm-layer-report.md) | apm-trace | many-to-one | medium   |
-| application.applicationservice.traced.apm.traceconfiguration | [applicationservice](#applicationservice) | [traceconfiguration](<[Apm](./11-apm-layer-report.md)#traceconfiguration>) | [Apm](./11-apm-layer-report.md) | traced    | many-to-one | medium   |
+| Relationship ID                                              | Source Node                                                               | Dest Node                                                         | Dest Layer                      | Predicate | Cardinality | Strength |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------- | --------- | ----------- | -------- |
+| api.operation.apm-trace.apm.traceconfiguration               | [operation](./06-api-layer-report.md#operation)                           | [traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [Apm](./11-apm-layer-report.md) | apm-trace | many-to-one | medium   |
+| application.applicationservice.traced.apm.traceconfiguration | [applicationservice](./04-application-layer-report.md#applicationservice) | [traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [Apm](./11-apm-layer-report.md) | traced    | many-to-one | medium   |
 
 ## Node Reference
 
@@ -625,10 +625,10 @@ Distributed tracing configuration
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                               | Layer                                           | Predicate | Direction | Cardinality |
-| ------------------------------------------------------------------------------------------ | ----------------------------------------------- | --------- | --------- | ----------- |
-| [applicationservice](<[Application](./04-application-layer-report.md)#applicationservice>) | [Application](./04-application-layer-report.md) | traced    | inbound   | many-to-one |
-| [operation](<[Api](./06-api-layer-report.md)#operation>)                                   | [Api](./06-api-layer-report.md)                 | apm-trace | inbound   | many-to-one |
+| Related Node                                                              | Layer                                           | Predicate | Direction | Cardinality |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | --------- | --------- | ----------- |
+| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | traced    | inbound   | many-to-one |
+| [operation](./06-api-layer-report.md#operation)                           | [Api](./06-api-layer-report.md)                 | apm-trace | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -642,4 +642,4 @@ TransformOperation element in APM Observability Layer
 
 ---
 
-_Generated: 2026-02-11T21:36:57.800Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:39:52.919Z | Generator: generate-layer-reports.ts_

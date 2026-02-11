@@ -3,8 +3,8 @@
 ## Report Index
 
 - [Layer Introduction](#layer-introduction)
-- [Intra-Layer Relationships Diagram](#intra-layer-relationships)
-- [Inter-Layer Dependencies Diagram](#inter-layer-dependencies)
+- [Intra-Layer Relationships](#intra-layer-relationships)
+- [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Arrayschema](#arrayschema)
@@ -119,12 +119,12 @@ flowchart TB
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                                    | Source Node                       | Dest Node                                                                                  | Dest Layer                                      | Predicate           | Cardinality | Strength |
-| ------------------------------------------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------- | ------------------- | ----------- | -------- |
-| data-model.jsonschema.archimate-ref.application.applicationservice | [jsonschema](#jsonschema)         | [applicationservice](<[Application](./04-application-layer-report.md)#applicationservice>) | [Application](./04-application-layer-report.md) | archimate-ref       | many-to-one | medium   |
-| data-model.jsonschema.business-object-ref.business.businessobject  | [jsonschema](#jsonschema)         | [businessobject](<[Business](./02-business-layer-report.md)#businessobject>)               | [Business](./02-business-layer-report.md)       | business-object-ref | many-to-one | medium   |
-| data-model.jsonschema.referenced-by.business.businessobject        | [jsonschema](#jsonschema)         | [businessobject](<[Business](./02-business-layer-report.md)#businessobject>)               | [Business](./02-business-layer-report.md)       | referenced-by       | many-to-one | medium   |
-| business.businessobject.governance-owner.data-model.datagovernance | [businessobject](#businessobject) | [datagovernance]([Data Model](./07-data-model-layer-report.md)#datagovernance)             | [Data Model](./07-data-model-layer-report.md)   | governance-owner    | many-to-one | medium   |
+| Relationship ID                                                    | Source Node                                                    | Dest Node                                                                 | Dest Layer                                      | Predicate           | Cardinality | Strength |
+| ------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | ----------- | -------- |
+| data-model.jsonschema.archimate-ref.application.applicationservice | [jsonschema](./07-data-model-layer-report.md#jsonschema)       | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref       | many-to-one | medium   |
+| data-model.jsonschema.business-object-ref.business.businessobject  | [jsonschema](./07-data-model-layer-report.md#jsonschema)       | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref | many-to-one | medium   |
+| data-model.jsonschema.referenced-by.business.businessobject        | [jsonschema](./07-data-model-layer-report.md#jsonschema)       | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by       | many-to-one | medium   |
+| business.businessobject.governance-owner.data-model.datagovernance | [businessobject](./02-business-layer-report.md#businessobject) | [datagovernance](./07-data-model-layer-report.md#datagovernance)          | [Data Model](./07-data-model-layer-report.md)   | governance-owner    | many-to-one | medium   |
 
 ## Node Reference
 
@@ -165,9 +165,9 @@ Metadata about data ownership, classification, sensitivity level, and handling r
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                 | Layer                                     | Predicate        | Direction | Cardinality |
-| ---------------------------------------------------------------------------- | ----------------------------------------- | ---------------- | --------- | ----------- |
-| [businessobject](<[Business](./02-business-layer-report.md)#businessobject>) | [Business](./02-business-layer-report.md) | governance-owner | inbound   | many-to-one |
+| Related Node                                                   | Layer                                     | Predicate        | Direction | Cardinality |
+| -------------------------------------------------------------- | ----------------------------------------- | ---------------- | --------- | ----------- |
+| [businessobject](./02-business-layer-report.md#businessobject) | [Business](./02-business-layer-report.md) | governance-owner | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -201,11 +201,11 @@ Root schema document
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                               | Layer                                           | Predicate           | Direction | Cardinality |
-| ------------------------------------------------------------------------------------------ | ----------------------------------------------- | ------------------- | --------- | ----------- |
-| [applicationservice](<[Application](./04-application-layer-report.md)#applicationservice>) | [Application](./04-application-layer-report.md) | archimate-ref       | outbound  | many-to-one |
-| [businessobject](<[Business](./02-business-layer-report.md)#businessobject>)               | [Business](./02-business-layer-report.md)       | business-object-ref | outbound  | many-to-one |
-| [businessobject](<[Business](./02-business-layer-report.md)#businessobject>)               | [Business](./02-business-layer-report.md)       | referenced-by       | outbound  | many-to-one |
+| Related Node                                                              | Layer                                           | Predicate           | Direction | Cardinality |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | --------- | ----------- |
+| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref       | outbound  | many-to-one |
+| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref | outbound  | many-to-one |
+| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by       | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -337,4 +337,4 @@ UI rendering hints
 
 ---
 
-_Generated: 2026-02-11T21:36:57.797Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:39:52.916Z | Generator: generate-layer-reports.ts_

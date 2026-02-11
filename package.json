@@ -13,5 +13,8 @@
     "test:fs-compatibility:high": "cd cli-validation/test-suite && npm run test:compatibility:high",
     "test:fs-compatibility:medium": "cd cli-validation/test-suite && npm run test:compatibility:medium",
     "test:fs-compatibility:low": "cd cli-validation/test-suite && npm run test:compatibility:low"
+  },
+  "dependencies": {
+    "markdownlint-cli": "^0.47.0"
   }
 }

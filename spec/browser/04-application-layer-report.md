@@ -3,8 +3,8 @@
 ## Report Index
 
 - [Layer Introduction](#layer-introduction)
-- [Intra-Layer Relationships Diagram](#intra-layer-relationships)
-- [Inter-Layer Dependencies Diagram](#inter-layer-dependencies)
+- [Intra-Layer Relationships](#intra-layer-relationships)
+- [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Applicationcollaboration](#applicationcollaboration)
@@ -104,17 +104,17 @@ flowchart TB
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                                             | Source Node                               | Dest Node                                                                                  | Dest Layer                                      | Predicate                 | Cardinality  | Strength |
-| --------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------- | ------------------------- | ------------ | -------- |
-| application.applicationservice.traced.apm.traceconfiguration                | [applicationservice](#applicationservice) | [traceconfiguration](<[Apm](./11-apm-layer-report.md)#traceconfiguration>)                 | [Apm](./11-apm-layer-report.md)                 | traced                    | many-to-one  | medium   |
-| data-model.jsonschema.archimate-ref.application.applicationservice          | [jsonschema](#jsonschema)                 | [applicationservice](<[Application](./04-application-layer-report.md)#applicationservice>) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
-| api.operation.archimate-ref.application.applicationservice                  | [operation](#operation)                   | [applicationservice](<[Application](./04-application-layer-report.md)#applicationservice>) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
-| api.securityscheme.archimate-ref.application.applicationservice             | [securityscheme](#securityscheme)         | [applicationservice](<[Application](./04-application-layer-report.md)#applicationservice>) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
-| business.businessobject.master-data-source.application.dataobject           | [businessobject](#businessobject)         | [dataobject](<[Application](./04-application-layer-report.md)#dataobject>)                 | [Application](./04-application-layer-report.md) | master-data-source        | many-to-one  | medium   |
-| business.businessprocess.process-steps.application.applicationprocess       | [businessprocess](#businessprocess)       | [applicationprocess](<[Application](./04-application-layer-report.md)#applicationprocess>) | [Application](./04-application-layer-report.md) | process-steps             | many-to-many | medium   |
-| business.businessprocess.realized-by-process.application.applicationprocess | [businessprocess](#businessprocess)       | [applicationprocess](<[Application](./04-application-layer-report.md)#applicationprocess>) | [Application](./04-application-layer-report.md) | realized-by-process       | many-to-one  | medium   |
-| business.businessobject.represented-by-dataobject.application.dataobject    | [businessobject](#businessobject)         | [dataobject](<[Application](./04-application-layer-report.md)#dataobject>)                 | [Application](./04-application-layer-report.md) | represented-by-dataobject | many-to-one  | medium   |
-| application.applicationservice.delivers-value.motivation.value              | [applicationservice](#applicationservice) | [value](<[Motivation](./01-motivation-layer-report.md)#value>)                             | [Motivation](./01-motivation-layer-report.md)   | delivers-value            | many-to-many | medium   |
+| Relationship ID                                                             | Source Node                                                               | Dest Node                                                                 | Dest Layer                                      | Predicate                 | Cardinality  | Strength |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------- | ------------ | -------- |
+| application.applicationservice.traced.apm.traceconfiguration                | [applicationservice](./04-application-layer-report.md#applicationservice) | [traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [Apm](./11-apm-layer-report.md)                 | traced                    | many-to-one  | medium   |
+| data-model.jsonschema.archimate-ref.application.applicationservice          | [jsonschema](./07-data-model-layer-report.md#jsonschema)                  | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
+| api.operation.archimate-ref.application.applicationservice                  | [operation](./06-api-layer-report.md#operation)                           | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
+| api.securityscheme.archimate-ref.application.applicationservice             | [securityscheme](./06-api-layer-report.md#securityscheme)                 | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref             | many-to-one  | medium   |
+| business.businessobject.master-data-source.application.dataobject           | [businessobject](./02-business-layer-report.md#businessobject)            | [dataobject](./04-application-layer-report.md#dataobject)                 | [Application](./04-application-layer-report.md) | master-data-source        | many-to-one  | medium   |
+| business.businessprocess.process-steps.application.applicationprocess       | [businessprocess](./02-business-layer-report.md#businessprocess)          | [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | process-steps             | many-to-many | medium   |
+| business.businessprocess.realized-by-process.application.applicationprocess | [businessprocess](./02-business-layer-report.md#businessprocess)          | [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | realized-by-process       | many-to-one  | medium   |
+| business.businessobject.represented-by-dataobject.application.dataobject    | [businessobject](./02-business-layer-report.md#businessobject)            | [dataobject](./04-application-layer-report.md#dataobject)                 | [Application](./04-application-layer-report.md) | represented-by-dataobject | many-to-one  | medium   |
+| application.applicationservice.delivers-value.motivation.value              | [applicationservice](./04-application-layer-report.md#applicationservice) | [value](./01-motivation-layer-report.md#value)                            | [Motivation](./01-motivation-layer-report.md)   | delivers-value            | many-to-many | medium   |
 
 ## Node Reference
 
@@ -182,10 +182,10 @@ Sequence of application behaviors
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                   | Layer                                     | Predicate           | Direction | Cardinality  |
-| ------------------------------------------------------------------------------ | ----------------------------------------- | ------------------- | --------- | ------------ |
-| [businessprocess](<[Business](./02-business-layer-report.md)#businessprocess>) | [Business](./02-business-layer-report.md) | process-steps       | inbound   | many-to-many |
-| [businessprocess](<[Business](./02-business-layer-report.md)#businessprocess>) | [Business](./02-business-layer-report.md) | realized-by-process | inbound   | many-to-one  |
+| Related Node                                                     | Layer                                     | Predicate           | Direction | Cardinality  |
+| ---------------------------------------------------------------- | ----------------------------------------- | ------------------- | --------- | ------------ |
+| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | process-steps       | inbound   | many-to-many |
+| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | realized-by-process | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -203,13 +203,13 @@ Service that exposes application functionality
 
 #### Inter-Layer Relationships
 
-| Related Node                                                               | Layer                                         | Predicate      | Direction | Cardinality  |
-| -------------------------------------------------------------------------- | --------------------------------------------- | -------------- | --------- | ------------ |
-| [jsonschema]([Data Model](./07-data-model-layer-report.md)#jsonschema)     | [Data Model](./07-data-model-layer-report.md) | archimate-ref  | inbound   | many-to-one  |
-| [value](<[Motivation](./01-motivation-layer-report.md)#value>)             | [Motivation](./01-motivation-layer-report.md) | delivers-value | outbound  | many-to-many |
-| [traceconfiguration](<[Apm](./11-apm-layer-report.md)#traceconfiguration>) | [Apm](./11-apm-layer-report.md)               | traced         | outbound  | many-to-one  |
-| [operation](<[Api](./06-api-layer-report.md)#operation>)                   | [Api](./06-api-layer-report.md)               | archimate-ref  | inbound   | many-to-one  |
-| [securityscheme](<[Api](./06-api-layer-report.md)#securityscheme>)         | [Api](./06-api-layer-report.md)               | archimate-ref  | inbound   | many-to-one  |
+| Related Node                                                      | Layer                                         | Predicate      | Direction | Cardinality  |
+| ----------------------------------------------------------------- | --------------------------------------------- | -------------- | --------- | ------------ |
+| [jsonschema](./07-data-model-layer-report.md#jsonschema)          | [Data Model](./07-data-model-layer-report.md) | archimate-ref  | inbound   | many-to-one  |
+| [value](./01-motivation-layer-report.md#value)                    | [Motivation](./01-motivation-layer-report.md) | delivers-value | outbound  | many-to-many |
+| [traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [Apm](./11-apm-layer-report.md)               | traced         | outbound  | many-to-one  |
+| [operation](./06-api-layer-report.md#operation)                   | [Api](./06-api-layer-report.md)               | archimate-ref  | inbound   | many-to-one  |
+| [securityscheme](./06-api-layer-report.md#securityscheme)         | [Api](./06-api-layer-report.md)               | archimate-ref  | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -235,10 +235,10 @@ Data structured for automated processing
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                 | Layer                                     | Predicate                 | Direction | Cardinality |
-| ---------------------------------------------------------------------------- | ----------------------------------------- | ------------------------- | --------- | ----------- |
-| [businessobject](<[Business](./02-business-layer-report.md)#businessobject>) | [Business](./02-business-layer-report.md) | master-data-source        | inbound   | many-to-one |
-| [businessobject](<[Business](./02-business-layer-report.md)#businessobject>) | [Business](./02-business-layer-report.md) | represented-by-dataobject | inbound   | many-to-one |
+| Related Node                                                   | Layer                                     | Predicate                 | Direction | Cardinality |
+| -------------------------------------------------------------- | ----------------------------------------- | ------------------------- | --------- | ----------- |
+| [businessobject](./02-business-layer-report.md#businessobject) | [Business](./02-business-layer-report.md) | master-data-source        | inbound   | many-to-one |
+| [businessobject](./02-business-layer-report.md#businessobject) | [Business](./02-business-layer-report.md) | represented-by-dataobject | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -268,4 +268,4 @@ ServiceType element in Application Layer
 
 ---
 
-_Generated: 2026-02-11T21:36:57.794Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:39:52.913Z | Generator: generate-layer-reports.ts_

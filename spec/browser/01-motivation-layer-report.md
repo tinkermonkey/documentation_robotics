@@ -3,8 +3,8 @@
 ## Report Index
 
 - [Layer Introduction](#layer-introduction)
-- [Intra-Layer Relationships Diagram](#intra-layer-relationships)
-- [Inter-Layer Dependencies Diagram](#inter-layer-dependencies)
+- [Intra-Layer Relationships](#intra-layer-relationships)
+- [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Assessment](#assessment)
@@ -171,18 +171,18 @@ flowchart TB
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                                          | Source Node                                 | Dest Node                                                                  | Dest Layer                                    | Predicate              | Cardinality  | Strength |
-| ------------------------------------------------------------------------ | ------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------- | ---------------------- | ------------ | -------- |
-| testing.coveragerequirement.constrained-by.motivation.constraint         | [coveragerequirement](#coveragerequirement) | [constraint](<[Motivation](./01-motivation-layer-report.md)#constraint>)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
-| testing.testcoveragemodel.constrained-by.motivation.constraint           | [testcoveragemodel](#testcoveragemodel)     | [constraint](<[Motivation](./01-motivation-layer-report.md)#constraint>)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
-| business.businessservice.delivers-value.motivation.value                 | [businessservice](#businessservice)         | [value](<[Motivation](./01-motivation-layer-report.md)#value>)             | [Motivation](./01-motivation-layer-report.md) | delivers-value         | many-to-many | medium   |
-| application.applicationservice.delivers-value.motivation.value           | [applicationservice](#applicationservice)   | [value](<[Motivation](./01-motivation-layer-report.md)#value>)             | [Motivation](./01-motivation-layer-report.md) | delivers-value         | many-to-many | medium   |
-| testing.coveragerequirement.fulfills-requirements.motivation.requirement | [coveragerequirement](#coveragerequirement) | [requirement](<[Motivation](./01-motivation-layer-report.md)#requirement>) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [testcasesketch](#testcasesketch)           | [requirement](<[Motivation](./01-motivation-layer-report.md)#requirement>) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [testcoveragemodel](#testcoveragemodel)     | [requirement](<[Motivation](./01-motivation-layer-report.md)#requirement>) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcoveragemodel.governed-by-principles.motivation.principle    | [testcoveragemodel](#testcoveragemodel)     | [principle](<[Motivation](./01-motivation-layer-report.md)#principle>)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | many-to-many | high     |
-| testing.testcasesketch.supports-goals.motivation.goal                    | [testcasesketch](#testcasesketch)           | [goal](<[Motivation](./01-motivation-layer-report.md)#goal>)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
-| testing.testcoveragemodel.supports-goals.motivation.goal                 | [testcoveragemodel](#testcoveragemodel)     | [goal](<[Motivation](./01-motivation-layer-report.md)#goal>)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
+| Relationship ID                                                          | Source Node                                                               | Dest Node                                                  | Dest Layer                                    | Predicate              | Cardinality  | Strength |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------- | ---------------------- | ------------ | -------- |
+| testing.coveragerequirement.constrained-by.motivation.constraint         | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement)   | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
+| testing.testcoveragemodel.constrained-by.motivation.constraint           | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
+| business.businessservice.delivers-value.motivation.value                 | [businessservice](./02-business-layer-report.md#businessservice)          | [value](./01-motivation-layer-report.md#value)             | [Motivation](./01-motivation-layer-report.md) | delivers-value         | many-to-many | medium   |
+| application.applicationservice.delivers-value.motivation.value           | [applicationservice](./04-application-layer-report.md#applicationservice) | [value](./01-motivation-layer-report.md#value)             | [Motivation](./01-motivation-layer-report.md) | delivers-value         | many-to-many | medium   |
+| testing.coveragerequirement.fulfills-requirements.motivation.requirement | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement)   | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [testcasesketch](./12-testing-layer-report.md#testcasesketch)             | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcoveragemodel.governed-by-principles.motivation.principle    | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [principle](./01-motivation-layer-report.md#principle)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | many-to-many | high     |
+| testing.testcasesketch.supports-goals.motivation.goal                    | [testcasesketch](./12-testing-layer-report.md#testcasesketch)             | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
+| testing.testcoveragemodel.supports-goals.motivation.goal                 | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
 
 ## Node Reference
 
@@ -237,10 +237,10 @@ Restriction on the way in which a system is realized
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                         | Layer                                   | Predicate      | Direction | Cardinality  |
-| ------------------------------------------------------------------------------------ | --------------------------------------- | -------------- | --------- | ------------ |
-| [coveragerequirement](<[Testing](./12-testing-layer-report.md)#coveragerequirement>) | [Testing](./12-testing-layer-report.md) | constrained-by | inbound   | many-to-many |
-| [testcoveragemodel](<[Testing](./12-testing-layer-report.md)#testcoveragemodel>)     | [Testing](./12-testing-layer-report.md) | constrained-by | inbound   | many-to-many |
+| Related Node                                                            | Layer                                   | Predicate      | Direction | Cardinality  |
+| ----------------------------------------------------------------------- | --------------------------------------- | -------------- | --------- | ------------ |
+| [coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Testing](./12-testing-layer-report.md) | constrained-by | inbound   | many-to-many |
+| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Testing](./12-testing-layer-report.md) | constrained-by | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -314,10 +314,10 @@ High-level statement of intent, direction, or desired end state
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                     | Layer                                   | Predicate      | Direction | Cardinality  |
-| -------------------------------------------------------------------------------- | --------------------------------------- | -------------- | --------- | ------------ |
-| [testcasesketch](<[Testing](./12-testing-layer-report.md)#testcasesketch>)       | [Testing](./12-testing-layer-report.md) | supports-goals | inbound   | many-to-many |
-| [testcoveragemodel](<[Testing](./12-testing-layer-report.md)#testcoveragemodel>) | [Testing](./12-testing-layer-report.md) | supports-goals | inbound   | many-to-many |
+| Related Node                                                        | Layer                                   | Predicate      | Direction | Cardinality  |
+| ------------------------------------------------------------------- | --------------------------------------- | -------------- | --------- | ------------ |
+| [testcasesketch](./12-testing-layer-report.md#testcasesketch)       | [Testing](./12-testing-layer-report.md) | supports-goals | inbound   | many-to-many |
+| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel) | [Testing](./12-testing-layer-report.md) | supports-goals | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -394,9 +394,9 @@ Normative property of all systems in a given context
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                     | Layer                                   | Predicate              | Direction | Cardinality  |
-| -------------------------------------------------------------------------------- | --------------------------------------- | ---------------------- | --------- | ------------ |
-| [testcoveragemodel](<[Testing](./12-testing-layer-report.md)#testcoveragemodel>) | [Testing](./12-testing-layer-report.md) | governed-by-principles | inbound   | many-to-many |
+| Related Node                                                        | Layer                                   | Predicate              | Direction | Cardinality  |
+| ------------------------------------------------------------------- | --------------------------------------- | ---------------------- | --------- | ------------ |
+| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel) | [Testing](./12-testing-layer-report.md) | governed-by-principles | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -443,11 +443,11 @@ Statement of need that must be realized
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                         | Layer                                   | Predicate             | Direction | Cardinality  |
-| ------------------------------------------------------------------------------------ | --------------------------------------- | --------------------- | --------- | ------------ |
-| [coveragerequirement](<[Testing](./12-testing-layer-report.md)#coveragerequirement>) | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
-| [testcasesketch](<[Testing](./12-testing-layer-report.md)#testcasesketch>)           | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
-| [testcoveragemodel](<[Testing](./12-testing-layer-report.md)#testcoveragemodel>)     | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
+| Related Node                                                            | Layer                                   | Predicate             | Direction | Cardinality  |
+| ----------------------------------------------------------------------- | --------------------------------------- | --------------------- | --------- | ------------ |
+| [coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
+| [testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
+| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -515,10 +515,10 @@ Relative worth, utility, or importance of something
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                               | Layer                                           | Predicate      | Direction | Cardinality  |
-| ------------------------------------------------------------------------------------------ | ----------------------------------------------- | -------------- | --------- | ------------ |
-| [businessservice](<[Business](./02-business-layer-report.md)#businessservice>)             | [Business](./02-business-layer-report.md)       | delivers-value | inbound   | many-to-many |
-| [applicationservice](<[Application](./04-application-layer-report.md)#applicationservice>) | [Application](./04-application-layer-report.md) | delivers-value | inbound   | many-to-many |
+| Related Node                                                              | Layer                                           | Predicate      | Direction | Cardinality  |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | -------------- | --------- | ------------ |
+| [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | delivers-value | inbound   | many-to-many |
+| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | delivers-value | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -532,4 +532,4 @@ ValueType element in Motivation Layer
 
 ---
 
-_Generated: 2026-02-11T21:36:57.792Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:39:52.911Z | Generator: generate-layer-reports.ts_

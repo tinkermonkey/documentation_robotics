@@ -3,8 +3,8 @@
 ## Report Index
 
 - [Layer Introduction](#layer-introduction)
-- [Intra-Layer Relationships Diagram](#intra-layer-relationships)
-- [Inter-Layer Dependencies Diagram](#inter-layer-dependencies)
+- [Intra-Layer Relationships](#intra-layer-relationships)
+- [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Contexttype](#contexttype)
@@ -179,16 +179,16 @@ flowchart TB
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                                          | Source Node                                 | Dest Node                                                                  | Dest Layer                                    | Predicate              | Cardinality  | Strength |
-| ------------------------------------------------------------------------ | ------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------- | ---------------------- | ------------ | -------- |
-| testing.coveragerequirement.constrained-by.motivation.constraint         | [coveragerequirement](#coveragerequirement) | [constraint](<[Motivation](./01-motivation-layer-report.md)#constraint>)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
-| testing.testcoveragemodel.constrained-by.motivation.constraint           | [testcoveragemodel](#testcoveragemodel)     | [constraint](<[Motivation](./01-motivation-layer-report.md)#constraint>)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
-| testing.coveragerequirement.fulfills-requirements.motivation.requirement | [coveragerequirement](#coveragerequirement) | [requirement](<[Motivation](./01-motivation-layer-report.md)#requirement>) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [testcasesketch](#testcasesketch)           | [requirement](<[Motivation](./01-motivation-layer-report.md)#requirement>) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [testcoveragemodel](#testcoveragemodel)     | [requirement](<[Motivation](./01-motivation-layer-report.md)#requirement>) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcoveragemodel.governed-by-principles.motivation.principle    | [testcoveragemodel](#testcoveragemodel)     | [principle](<[Motivation](./01-motivation-layer-report.md)#principle>)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | many-to-many | high     |
-| testing.testcasesketch.supports-goals.motivation.goal                    | [testcasesketch](#testcasesketch)           | [goal](<[Motivation](./01-motivation-layer-report.md)#goal>)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
-| testing.testcoveragemodel.supports-goals.motivation.goal                 | [testcoveragemodel](#testcoveragemodel)     | [goal](<[Motivation](./01-motivation-layer-report.md)#goal>)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
+| Relationship ID                                                          | Source Node                                                             | Dest Node                                                  | Dest Layer                                    | Predicate              | Cardinality  | Strength |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------- | ---------------------- | ------------ | -------- |
+| testing.coveragerequirement.constrained-by.motivation.constraint         | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
+| testing.testcoveragemodel.constrained-by.motivation.constraint           | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
+| testing.coveragerequirement.fulfills-requirements.motivation.requirement | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcoveragemodel.governed-by-principles.motivation.principle    | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [principle](./01-motivation-layer-report.md#principle)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | many-to-many | high     |
+| testing.testcasesketch.supports-goals.motivation.goal                    | [testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
+| testing.testcoveragemodel.supports-goals.motivation.goal                 | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
 
 ## Node Reference
 
@@ -284,10 +284,10 @@ Requirement for test coverage of a target
 
 #### Inter-Layer Relationships
 
-| Related Node                                                               | Layer                                         | Predicate             | Direction | Cardinality  |
-| -------------------------------------------------------------------------- | --------------------------------------------- | --------------------- | --------- | ------------ |
-| [constraint](<[Motivation](./01-motivation-layer-report.md)#constraint>)   | [Motivation](./01-motivation-layer-report.md) | constrained-by        | outbound  | many-to-many |
-| [requirement](<[Motivation](./01-motivation-layer-report.md)#requirement>) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-many |
+| Related Node                                               | Layer                                         | Predicate             | Direction | Cardinality  |
+| ---------------------------------------------------------- | --------------------------------------------- | --------------------- | --------- | ------------ |
+| [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by        | outbound  | many-to-many |
+| [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -542,10 +542,10 @@ Abstract test case selecting specific partition values
 
 #### Inter-Layer Relationships
 
-| Related Node                                                               | Layer                                         | Predicate             | Direction | Cardinality  |
-| -------------------------------------------------------------------------- | --------------------------------------------- | --------------------- | --------- | ------------ |
-| [requirement](<[Motivation](./01-motivation-layer-report.md)#requirement>) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-many |
-| [goal](<[Motivation](./01-motivation-layer-report.md)#goal>)               | [Motivation](./01-motivation-layer-report.md) | supports-goals        | outbound  | many-to-many |
+| Related Node                                               | Layer                                         | Predicate             | Direction | Cardinality  |
+| ---------------------------------------------------------- | --------------------------------------------- | --------------------- | --------- | ------------ |
+| [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-many |
+| [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals        | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -565,12 +565,12 @@ Complete test coverage model for application
 
 #### Inter-Layer Relationships
 
-| Related Node                                                               | Layer                                         | Predicate              | Direction | Cardinality  |
-| -------------------------------------------------------------------------- | --------------------------------------------- | ---------------------- | --------- | ------------ |
-| [constraint](<[Motivation](./01-motivation-layer-report.md)#constraint>)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | outbound  | many-to-many |
-| [requirement](<[Motivation](./01-motivation-layer-report.md)#requirement>) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | outbound  | many-to-many |
-| [principle](<[Motivation](./01-motivation-layer-report.md)#principle>)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | outbound  | many-to-many |
-| [goal](<[Motivation](./01-motivation-layer-report.md)#goal>)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | outbound  | many-to-many |
+| Related Node                                               | Layer                                         | Predicate              | Direction | Cardinality  |
+| ---------------------------------------------------------- | --------------------------------------------- | ---------------------- | --------- | ------------ |
+| [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | outbound  | many-to-many |
+| [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | outbound  | many-to-many |
+| [principle](./01-motivation-layer-report.md#principle)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | outbound  | many-to-many |
+| [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -603,4 +603,4 @@ An artifact or functionality that requires test coverage
 
 ---
 
-_Generated: 2026-02-11T21:36:57.801Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:39:52.920Z | Generator: generate-layer-reports.ts_

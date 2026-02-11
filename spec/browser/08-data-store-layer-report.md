@@ -3,8 +3,8 @@
 ## Report Index
 
 - [Layer Introduction](#layer-introduction)
-- [Intra-Layer Relationships Diagram](#intra-layer-relationships)
-- [Inter-Layer Dependencies Diagram](#inter-layer-dependencies)
+- [Intra-Layer Relationships](#intra-layer-relationships)
+- [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Column](#column)
@@ -145,11 +145,11 @@ flowchart TB
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                    | Source Node                       | Dest Node                                                      | Dest Layer                                    | Predicate       | Cardinality | Strength |
-| -------------------------------------------------- | --------------------------------- | -------------------------------------------------------------- | --------------------------------------------- | --------------- | ----------- | -------- |
-| api.schema.database-column.data-store.column       | [schema](#schema)                 | [column]([Data Store](./08-data-store-layer-report.md)#column) | [Data Store](./08-data-store-layer-report.md) | database-column | many-to-one | medium   |
-| api.schema.database-table.data-store.table         | [schema](#schema)                 | [table]([Data Store](./08-data-store-layer-report.md)#table)   | [Data Store](./08-data-store-layer-report.md) | database-table  | many-to-one | medium   |
-| api.securityscheme.database-table.data-store.table | [securityscheme](#securityscheme) | [table]([Data Store](./08-data-store-layer-report.md)#table)   | [Data Store](./08-data-store-layer-report.md) | database-table  | many-to-one | medium   |
+| Relationship ID                                    | Source Node                                               | Dest Node                                        | Dest Layer                                    | Predicate       | Cardinality | Strength |
+| -------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------- | --------------- | ----------- | -------- |
+| api.schema.database-column.data-store.column       | [schema](./06-api-layer-report.md#schema)                 | [column](./08-data-store-layer-report.md#column) | [Data Store](./08-data-store-layer-report.md) | database-column | many-to-one | medium   |
+| api.schema.database-table.data-store.table         | [schema](./06-api-layer-report.md#schema)                 | [table](./08-data-store-layer-report.md#table)   | [Data Store](./08-data-store-layer-report.md) | database-table  | many-to-one | medium   |
+| api.securityscheme.database-table.data-store.table | [securityscheme](./06-api-layer-report.md#securityscheme) | [table](./08-data-store-layer-report.md#table)   | [Data Store](./08-data-store-layer-report.md) | database-table  | many-to-one | medium   |
 
 ## Node Reference
 
@@ -171,9 +171,9 @@ Table column definition
 
 #### Inter-Layer Relationships
 
-| Related Node                                       | Layer                           | Predicate       | Direction | Cardinality |
-| -------------------------------------------------- | ------------------------------- | --------------- | --------- | ----------- |
-| [schema](<[Api](./06-api-layer-report.md)#schema>) | [Api](./06-api-layer-report.md) | database-column | inbound   | many-to-one |
+| Related Node                              | Layer                           | Predicate       | Direction | Cardinality |
+| ----------------------------------------- | ------------------------------- | --------------- | --------- | ----------- |
+| [schema](./06-api-layer-report.md#schema) | [Api](./06-api-layer-report.md) | database-column | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -395,10 +395,10 @@ Database table definition
 
 #### Inter-Layer Relationships
 
-| Related Node                                                       | Layer                           | Predicate      | Direction | Cardinality |
-| ------------------------------------------------------------------ | ------------------------------- | -------------- | --------- | ----------- |
-| [schema](<[Api](./06-api-layer-report.md)#schema>)                 | [Api](./06-api-layer-report.md) | database-table | inbound   | many-to-one |
-| [securityscheme](<[Api](./06-api-layer-report.md)#securityscheme>) | [Api](./06-api-layer-report.md) | database-table | inbound   | many-to-one |
+| Related Node                                              | Layer                           | Predicate      | Direction | Cardinality |
+| --------------------------------------------------------- | ------------------------------- | -------------- | --------- | ----------- |
+| [schema](./06-api-layer-report.md#schema)                 | [Api](./06-api-layer-report.md) | database-table | inbound   | many-to-one |
+| [securityscheme](./06-api-layer-report.md#securityscheme) | [Api](./06-api-layer-report.md) | database-table | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -450,4 +450,4 @@ Database view
 
 ---
 
-_Generated: 2026-02-11T21:36:57.799Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:39:52.916Z | Generator: generate-layer-reports.ts_

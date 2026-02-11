@@ -3,8 +3,8 @@
 ## Report Index
 
 - [Layer Introduction](#layer-introduction)
-- [Intra-Layer Relationships Diagram](#intra-layer-relationships)
-- [Inter-Layer Dependencies Diagram](#inter-layer-dependencies)
+- [Intra-Layer Relationships](#intra-layer-relationships)
+- [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Artifact](#artifact)
@@ -93,10 +93,10 @@ flowchart TB
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                            | Source Node           | Dest Node                                                                    | Dest Layer                                | Predicate      | Cardinality | Strength |
-| ---------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------- | ----------------------------------------- | -------------- | ----------- | -------- |
-| technology.artifact.classification.security.classification | [artifact](#artifact) | [classification](<[Security](./03-security-layer-report.md)#classification>) | [Security](./03-security-layer-report.md) | classification | many-to-one | low      |
-| technology.artifact.referenced-by.security.classification  | [artifact](#artifact) | [classification](<[Security](./03-security-layer-report.md)#classification>) | [Security](./03-security-layer-report.md) | referenced-by  | many-to-one | medium   |
+| Relationship ID                                            | Source Node                                          | Dest Node                                                      | Dest Layer                                | Predicate      | Cardinality | Strength |
+| ---------------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------- | -------------- | ----------- | -------- |
+| technology.artifact.classification.security.classification | [artifact](./05-technology-layer-report.md#artifact) | [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | classification | many-to-one | low      |
+| technology.artifact.referenced-by.security.classification  | [artifact](./05-technology-layer-report.md#artifact) | [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | referenced-by  | many-to-one | medium   |
 
 ## Node Reference
 
@@ -108,10 +108,10 @@ Physical piece of data used or produced
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                 | Layer                                     | Predicate      | Direction | Cardinality |
-| ---------------------------------------------------------------------------- | ----------------------------------------- | -------------- | --------- | ----------- |
-| [classification](<[Security](./03-security-layer-report.md)#classification>) | [Security](./03-security-layer-report.md) | classification | outbound  | many-to-one |
-| [classification](<[Security](./03-security-layer-report.md)#classification>) | [Security](./03-security-layer-report.md) | referenced-by  | outbound  | many-to-one |
+| Related Node                                                   | Layer                                     | Predicate      | Direction | Cardinality |
+| -------------------------------------------------------------- | ----------------------------------------- | -------------- | --------- | ----------- |
+| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | classification | outbound  | many-to-one |
+| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | referenced-by  | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -285,4 +285,4 @@ TechServiceType element in Technology Layer
 
 ---
 
-_Generated: 2026-02-11T21:36:57.794Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:39:52.913Z | Generator: generate-layer-reports.ts_

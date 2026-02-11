@@ -3,8 +3,8 @@
 ## Report Index
 
 - [Layer Introduction](#layer-introduction)
-- [Intra-Layer Relationships Diagram](#intra-layer-relationships)
-- [Inter-Layer Dependencies Diagram](#inter-layer-dependencies)
+- [Intra-Layer Relationships](#intra-layer-relationships)
+- [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Actioncomponent](#actioncomponent)
@@ -554,4 +554,4 @@ ViewType element in UX Layer
 
 ---
 
-_Generated: 2026-02-11T21:36:57.799Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:39:52.917Z | Generator: generate-layer-reports.ts_

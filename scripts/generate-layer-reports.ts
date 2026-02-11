@@ -380,6 +380,7 @@ class LayerReportGenerator {
     const lines: string[] = [];
 
     lines.push(`# ${reportData.layer.name}\n`);
+    lines.push("\n");
     lines.push(this.generateTableOfContents(reportData));
     lines.push("\n");
     lines.push(this.generateLayerIntroduction(reportData));
@@ -400,9 +401,10 @@ class LayerReportGenerator {
   private generateTableOfContents(reportData: LayerReportData): string {
     const lines: string[] = [];
     lines.push("## Report Index\n");
+    lines.push("\n");
     lines.push("- [Layer Introduction](#layer-introduction)\n");
-    lines.push("- [Intra-Layer Relationships Diagram](#intra-layer-relationships)\n");
-    lines.push("- [Inter-Layer Dependencies Diagram](#inter-layer-dependencies)\n");
+    lines.push("- [Intra-Layer Relationships](#intra-layer-relationships)\n");
+    lines.push("- [Inter-Layer Dependencies](#inter-layer-dependencies)\n");
     lines.push("- [Inter-Layer Relationships Table](#inter-layer-relationships-table)\n");
 
     if (reportData.nodeSchemas.length > 0) {
@@ -413,12 +415,14 @@ class LayerReportGenerator {
       }
     }
 
+    lines.push("\n");
     return lines.join("");
   }
 
   private generateLayerIntroduction(reportData: LayerReportData): string {
     const lines: string[] = [];
     lines.push("## Layer Introduction\n");
+    lines.push("\n");
     lines.push(`**Layer ${reportData.layer.number}**: ${formatLayerName(reportData.layer.id)}\n`);
 
     if (reportData.layer.inspired_by) {
@@ -557,19 +561,36 @@ class LayerReportGenerator {
     for (const rel of interLayerRels) {
       const sourceType = rel.source_spec_node_id.split(".")[1] || "unknown";
       const destType = rel.destination_spec_node_id.split(".")[1] || "unknown";
+      const sourceLayer = rel.source_layer;
       const destLayer = rel.destination_layer;
-      const destLayerNum = this.data
-        .getAllLayers()
-        .find((l) => l.id === destLayer);
+
+      const sourceLayerNum = this.data.getAllLayers().find((l) => l.id === sourceLayer);
+      const destLayerNum = this.data.getAllLayers().find((l) => l.id === destLayer);
+
+      const sourceLayerFilename = sourceLayerNum
+        ? `./${String(sourceLayerNum.number).padStart(2, "0")}-${sourceLayer}-layer-report.md`
+        : "";
+      const destLayerFilename = destLayerNum
+        ? `./${String(destLayerNum.number).padStart(2, "0")}-${destLayer}-layer-report.md`
+        : "";
       const destLayerLink = destLayerNum
-        ? `[${formatLayerName(destLayer)}](./${String(destLayerNum.number).padStart(2, "0")}-${destLayer}-layer-report.md)`
+        ? `[${formatLayerName(destLayer)}](${destLayerFilename})`
         : destLayer;
 
       const sourceAnchor = createAnchor(sourceType);
       const destAnchor = createAnchor(destType);
 
+      // Create source link (to source node in source layer)
+      const sourceLink = sourceLayerNum
+        ? `[${sourceType}](${sourceLayerFilename}#${sourceAnchor})`
+        : sourceType;
+      // Create dest link (to dest node in dest layer)
+      const destLink = destLayerNum
+        ? `[${destType}](${destLayerFilename}#${destAnchor})`
+        : destType;
+
       lines.push(
-        `| ${rel.id} | [${sourceType}](#${sourceAnchor}) | [${destType}](${destLayerLink}#${destAnchor}) | ${destLayerLink} | ${rel.predicate} | ${rel.cardinality} | ${rel.strength} |\n`
+        `| ${rel.id} | ${sourceLink} | ${destLink} | ${destLayerLink} | ${rel.predicate} | ${rel.cardinality} | ${rel.strength} |\n`
       );
     }
 
@@ -641,13 +662,16 @@ class LayerReportGenerator {
           const relatedLayer =
             direction === "outbound" ? rel.destination_layer : rel.source_layer;
           const layerNum = this.data.getAllLayers().find((l) => l.id === relatedLayer);
+          const layerFilename = layerNum
+            ? `./${String(layerNum.number).padStart(2, "0")}-${relatedLayer}-layer-report.md`
+            : "";
           const layerLink = layerNum
-            ? `[${formatLayerName(relatedLayer)}](./${String(layerNum.number).padStart(2, "0")}-${relatedLayer}-layer-report.md)`
+            ? `[${formatLayerName(relatedLayer)}](${layerFilename})`
             : relatedLayer;
           const relatedAnchor = createAnchor(relatedType || "unknown");
 
           lines.push(
-            `| [${relatedType}](${layerLink}#${relatedAnchor}) | ${layerLink} | ${rel.predicate} | ${direction} | ${rel.cardinality} |\n`
+            `| [${relatedType}](${layerFilename}#${relatedAnchor}) | ${layerLink} | ${rel.predicate} | ${direction} | ${rel.cardinality} |\n`
           );
         }
 
