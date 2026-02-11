@@ -7,6 +7,7 @@ import { Model } from "../core/model.js";
 import type { Element } from "../core/element.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { TABLE_COLUMN_WIDTHS, TABLE_SEPARATOR } from "../utils/table-formatting.js";
 
 export interface SearchOptions {
   layer?: string;
@@ -157,18 +158,18 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     } else {
       console.log(ansis.bold(`Found ${results.length} element(s) matching "${query}":`));
     }
-    console.log(ansis.dim("─".repeat(80)));
+    console.log(ansis.dim(TABLE_SEPARATOR));
 
     // Print header
-    const layerWidth = 12;
-    const idWidth = 28;
-    const typeWidth = 12;
-    const nameWidth = 28;
+    const layerWidth = TABLE_COLUMN_WIDTHS.SEARCH_LAYER_WIDTH;
+    const idWidth = TABLE_COLUMN_WIDTHS.SEARCH_ID_WIDTH;
+    const typeWidth = TABLE_COLUMN_WIDTHS.SEARCH_TYPE_WIDTH;
+    const nameWidth = TABLE_COLUMN_WIDTHS.SEARCH_NAME_WIDTH;
 
     console.log(
       `${ansis.cyan("LAYER".padEnd(layerWidth))} ${ansis.cyan("ID".padEnd(idWidth))} ${ansis.cyan("TYPE".padEnd(typeWidth))} ${ansis.cyan("NAME")}`
     );
-    console.log(ansis.dim("─".repeat(80)));
+    console.log(ansis.dim(TABLE_SEPARATOR));
 
     // Print rows
     for (const result of results) {

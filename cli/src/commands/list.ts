@@ -7,6 +7,7 @@ import { Model } from "../core/model.js";
 import { CLIError, ErrorCategory, ModelNotFoundError, handleError } from "../utils/errors.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { TABLE_COLUMN_WIDTHS, TABLE_SEPARATOR } from "../utils/table-formatting.js";
 
 export interface ListOptions {
   type?: string;
@@ -86,17 +87,17 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
 
     console.log("");
     console.log(ansis.bold(`Elements in ${ansis.cyan(layer)} layer:`));
-    console.log(ansis.dim("─".repeat(80)));
+    console.log(ansis.dim(TABLE_SEPARATOR));
 
     // Print header
-    const idWidth = 30;
-    const typeWidth = 15;
-    const nameWidth = 35;
+    const idWidth = TABLE_COLUMN_WIDTHS.LIST_ID_WIDTH;
+    const typeWidth = TABLE_COLUMN_WIDTHS.LIST_TYPE_WIDTH;
+    const nameWidth = TABLE_COLUMN_WIDTHS.LIST_NAME_WIDTH;
 
     console.log(
       `${ansis.cyan("ID".padEnd(idWidth))} ${ansis.cyan("TYPE".padEnd(typeWidth))} ${ansis.cyan("NAME")}`
     );
-    console.log(ansis.dim("─".repeat(80)));
+    console.log(ansis.dim(TABLE_SEPARATOR));
 
     // Print rows
     for (const element of elements) {
