@@ -1,5 +1,2 @@
-# Generated layer reports
-*.md
-
 # Build artifacts
 .cache/
