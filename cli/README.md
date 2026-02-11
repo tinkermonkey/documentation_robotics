@@ -354,6 +354,31 @@ my-viewer/
 └── ...                 # Other static files
 ```
 
+## Generating Layer Reports
+
+To generate comprehensive markdown reports for all 12 architecture layers:
+
+```bash
+npm run generate:layer-reports
+```
+
+This command:
+- Loads 354 node schemas, 252 relationship schemas, 12 layer definitions, and 47 predicates
+- Computes per-layer statistics and relationship classifications
+- Generates 12 markdown reports in `spec/browser/` with Mermaid diagrams
+- Generates `spec/browser/README.md` with overview and dependency matrix
+- Completes in 10-20 seconds
+
+**Output Location**: `spec/browser/{NN}-{layer-name}-layer-report.md`
+
+**When to Regenerate**:
+- After modifying layer definitions in `spec/layers/*.layer.json`
+- After adding/modifying node schemas in `spec/schemas/nodes/`
+- After adding/modifying relationship schemas in `spec/schemas/relationships/`
+- Before creating a new spec version release
+
+**Git Integration**: The generated reports in `spec/browser/` are committed to git for easy browsing on GitHub. Regenerate them before spec releases to keep documentation in sync with specification changes.
+
 ## Building from Source
 
 The CLI uses a sophisticated multi-stage code generation system at build time to convert JSON specifications into type-safe TypeScript code.
@@ -416,12 +441,6 @@ npm run test
 git add spec/ cli/src/generated/
 git commit -m "Update schemas and generated code"
 ```
-
-### Documentation
-
-- 📘 [Build System Documentation](../docs/BUILD_SYSTEM.md) - Complete build workflow guide
-- 📗 [Generator Scripts Guide](../docs/GENERATOR_SCRIPTS_GUIDE.md) - How to use and maintain generators
-- 📕 [Phase 5 Integration](../docs/PHASE_5_INTEGRATION.md) - Integration overview
 
 ## Example Workflows
 
