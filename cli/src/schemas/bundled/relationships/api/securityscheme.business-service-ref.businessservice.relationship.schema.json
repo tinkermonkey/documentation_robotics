@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.business-service-ref.business"
+      "const": "api.securityscheme.business-service-ref.business.businessservice"
     },
     "source_spec_node_id": {
       "const": "api.securityscheme"

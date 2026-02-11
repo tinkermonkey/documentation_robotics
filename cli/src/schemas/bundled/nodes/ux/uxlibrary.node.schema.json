@@ -60,9 +60,7 @@
           "description": "Source code reference"
         }
       },
-      "required": [
-        "version"
-      ],
+      "required": ["version"],
       "additionalProperties": false
     }
   }

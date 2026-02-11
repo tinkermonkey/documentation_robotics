@@ -127,12 +127,22 @@ export class ReferenceRegistry {
   /**
    * Register an element and all its references
    * Scans element properties for known reference names
+   *
+   * Uses semantic ID (elementId) for legacy format elements or ID for spec-aligned elements
+   * This ensures compatibility with Python CLI behavior which uses semantic IDs
    */
   registerElement(element: Element): void {
+    // Use semantic ID for legacy elements, UUID for spec-aligned elements
+    const elementId = (element as any).elementId || element.id;
+
     // Extract references from explicit references array
     if (element.references) {
       for (const ref of element.references) {
-        this.addReference(ref);
+        // Rewrite source to use consistent ID
+        this.addReference({
+          ...ref,
+          source: elementId,
+        });
       }
     }
 
@@ -143,7 +153,7 @@ export class ReferenceRegistry {
           // Handle string value
           if (typeof propValue === "string") {
             this.addReference({
-              source: element.id,
+              source: elementId,
               target: propValue,
               type: propName,
             });
@@ -153,7 +163,7 @@ export class ReferenceRegistry {
             for (const target of propValue) {
               if (typeof target === "string") {
                 this.addReference({
-                  source: element.id,
+                  source: elementId,
                   target: target,
                   type: propName,
                 });
@@ -164,7 +174,7 @@ export class ReferenceRegistry {
       }
 
       // Scan nested properties for *Ref/*Reference properties
-      const nestedRefs = this.scanNestedReferences(element.id, element.properties);
+      const nestedRefs = this.scanNestedReferences(elementId, element.properties);
       for (const ref of nestedRefs) {
         this.addReference(ref);
       }

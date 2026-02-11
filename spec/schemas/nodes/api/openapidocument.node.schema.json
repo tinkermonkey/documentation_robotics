@@ -52,14 +52,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "openapi",
-        "info",
-        "servers",
-        "paths",
-        "security",
-        "tags"
-      ],
+      "required": ["openapi", "info", "servers", "paths", "security", "tags"],
       "additionalProperties": false
     }
   }

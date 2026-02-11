@@ -79,8 +79,15 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       throw new CLIError(`Element ${id} not found`, 1);
     }
 
-    const layer = (await model.getLayer(layerName))!;
-    const element = layer.getElement(id)!;
+    const layer = await model.getLayer(layerName);
+    if (!layer) {
+      throw new CLIError(`Layer ${layerName} not found`, 1);
+    }
+
+    const element = layer.getElement(id);
+    if (!element) {
+      throw new CLIError(`Element ${id} not found`, 1);
+    }
 
     // Validate that at least one field is specified
     const hasUpdates =

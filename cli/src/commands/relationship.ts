@@ -7,6 +7,114 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, ErrorCategory, handleError } from "../utils/errors.js";
+import {
+  getValidRelationships,
+  getValidPredicatesForSource,
+  getValidDestinationsForSourceAndPredicate,
+} from "../generated/relationship-index.js";
+import { normalizeNodeType } from "../generated/node-types.js";
+
+/**
+ * Validate element properties and construct a SpecNodeId
+ * @throws {CLIError} if element properties are invalid
+ */
+function constructSpecNodeId(
+  element: { layer_id?: unknown; type?: unknown },
+  elementId: string
+): string {
+  const layerId = element.layer_id;
+  const type = element.type;
+
+  if (typeof layerId !== "string" || !layerId) {
+    throw new CLIError(
+      `Invalid element ${elementId}: missing or invalid layer_id`,
+      ErrorCategory.SYSTEM
+    );
+  }
+
+  if (typeof type !== "string" || !type) {
+    throw new CLIError(
+      `Invalid element ${elementId}: missing or invalid type`,
+      ErrorCategory.SYSTEM
+    );
+  }
+
+  // Normalize type name for schema validation (e.g., "process" -> "businessprocess")
+  const normalizedType = normalizeNodeType(layerId, type);
+
+  return `${layerId}.${normalizedType}`;
+}
+
+/**
+ * Validate a relationship combination using schema-driven registry
+ * @returns {valid, suggestions} where suggestions are provided if invalid
+ */
+export function validateRelationshipCombination(
+  sourceSpecNodeId: string,
+  predicate: string,
+  destSpecNodeId: string
+): { valid: boolean; suggestions?: string[] } {
+  const valid =
+    getValidRelationships(sourceSpecNodeId, predicate, destSpecNodeId)
+      .length > 0;
+
+  if (valid) {
+    return { valid: true };
+  }
+
+  // Generate helpful suggestions
+  const suggestions: string[] = [];
+  const validPredicates = getValidPredicatesForSource(sourceSpecNodeId);
+
+  if (validPredicates.length > 0) {
+    suggestions.push(
+      `Valid predicates for ${sourceSpecNodeId}: ${validPredicates.join(", ")}`
+    );
+  } else {
+    suggestions.push(`No valid relationships defined for ${sourceSpecNodeId}`);
+  }
+
+  // If predicate is provided, show valid destinations
+  if (predicate) {
+    const validDests = getValidDestinationsForSourceAndPredicate(
+      sourceSpecNodeId,
+      predicate
+    );
+    if (validDests.length > 0) {
+      suggestions.push(
+        `Valid destinations for --[${predicate}]-->: ${validDests.join(", ")}`
+      );
+    } else {
+      suggestions.push(
+        `No valid destinations for ${sourceSpecNodeId} --[${predicate}]-->`
+      );
+    }
+  }
+
+  return { valid: false, suggestions };
+}
+
+/**
+ * Get cardinality and strength info for a relationship
+ */
+export function getRelationshipConstraints(
+  sourceSpecNodeId: string,
+  predicate: string,
+  destSpecNodeId: string
+): { cardinality: string; strength: string } | null {
+  const rels = getValidRelationships(
+    sourceSpecNodeId,
+    predicate,
+    destSpecNodeId
+  );
+  if (rels.length === 0) return null;
+
+  const rel = rels[0];
+  return {
+    cardinality: rel.cardinality,
+    strength: rel.strength,
+  };
+}
 
 export function relationshipCommands(program: Command): void {
   program
@@ -36,9 +144,29 @@ Examples:
           throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
 
+        // Find source element for schema validation
+        const sourceLayer = await model.getLayer(sourceLayerName);
+        if (!sourceLayer) {
+          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+        }
+        const sourceElement = sourceLayer.getElement(source);
+        if (!sourceElement) {
+          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+        }
+
         // Find target element
         const targetLayerName = await findElementLayer(model, target);
         if (!targetLayerName) {
+          throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+        }
+
+        // Find target element for schema validation
+        const targetLayer = await model.getLayer(targetLayerName);
+        if (!targetLayer) {
+          throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+        }
+        const targetElement = targetLayer.getElement(target);
+        if (!targetElement) {
           throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
         }
 
@@ -49,6 +177,31 @@ Examples:
             ErrorCategory.USER
           );
         }
+
+        // Schema-driven validation
+        const sourceSpecNodeId = constructSpecNodeId(sourceElement, source);
+        const targetSpecNodeId = constructSpecNodeId(targetElement, target);
+
+        const validation = validateRelationshipCombination(
+          sourceSpecNodeId,
+          options.predicate,
+          targetSpecNodeId
+        );
+
+        if (!validation.valid) {
+          throw new CLIError(
+            `Invalid relationship: ${source} --[${options.predicate}]--> ${target}`,
+            ErrorCategory.USER,
+            validation.suggestions
+          );
+        }
+
+        // Get cardinality and strength info
+        const constraints = getRelationshipConstraints(
+          sourceSpecNodeId,
+          options.predicate,
+          targetSpecNodeId
+        );
 
         // Parse properties if provided
         let properties: Record<string, unknown> | undefined;
@@ -74,11 +227,15 @@ Examples:
         await model.saveRelationships();
         await model.saveManifest();
 
-        console.log(
-          ansis.green(
-            `✓ Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`
-          )
-        );
+        // Show cardinality and strength in output
+        let message = `✓ Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
+        if (constraints) {
+          message += ansis.dim(
+            ` (${constraints.cardinality}, ${constraints.strength} strength)`
+          );
+        }
+
+        console.log(ansis.green(message));
       } catch (error) {
         handleError(error);
       }
@@ -121,6 +278,8 @@ Examples:
         // In non-interactive environments (CI, tests), skip confirmation
         const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
         if (!options.force && isInteractive) {
+          // Dynamic import of prompts is safe here: caught by outer try-catch
+          // This allows lazy loading of the prompt library only when needed
           const { confirm } = await import("@clack/prompts");
           const confirmed = await confirm({
             message: `Delete ${toDelete.length} relationship(s)? This cannot be undone.`,

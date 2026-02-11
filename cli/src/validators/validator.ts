@@ -1,5 +1,5 @@
 /**
- * Unified validator orchestrating the 4-stage validation pipeline
+ * Unified validator orchestrating the 5-stage validation pipeline
  */
 
 import { ValidationResult } from "./types.js";
@@ -7,6 +7,7 @@ import { SchemaValidator } from "./schema-validator.js";
 import { NamingValidator } from "./naming-validator.js";
 import { ReferenceValidator } from "./reference-validator.js";
 import { SemanticValidator } from "./semantic-validator.js";
+import { RelationshipValidator } from "./relationship-schema-validator.js";
 import type { Model } from "../core/model.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 
@@ -15,27 +16,30 @@ declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
- * Unified validator implementing the 4-stage validation pipeline:
+ * Unified validator implementing the 5-stage validation pipeline:
  * 1. Schema validation (AJV)
  * 2. Naming validation (element ID format)
  * 3. Reference validation (cross-layer integrity)
  * 4. Semantic validation (business rules)
+ * 5. Relationship schema validation (cardinality constraints)
  */
 export class Validator {
   private schemaValidator: SchemaValidator;
   private namingValidator: NamingValidator;
   private referenceValidator: ReferenceValidator;
   private semanticValidator: SemanticValidator;
+  private relationshipValidator: RelationshipValidator;
 
   constructor() {
     this.schemaValidator = new SchemaValidator();
     this.namingValidator = new NamingValidator();
     this.referenceValidator = new ReferenceValidator();
     this.semanticValidator = new SemanticValidator();
+    this.relationshipValidator = new RelationshipValidator();
   }
 
   /**
-   * Validate a complete model through all 4 stages
+   * Validate a complete model through all 5 stages
    */
   async validateModel(model: Model): Promise<ValidationResult> {
     const rootSpan = isTelemetryEnabled
@@ -101,6 +105,22 @@ export class Validator {
         }
       } finally {
         endSpan(semanticStageSpan);
+      }
+
+      // Stage 5: Relationship schema validation (cardinality enforcement)
+      const relationshipStageSpan = isTelemetryEnabled
+        ? startSpan("validation.stage.relationship-schema")
+        : null;
+      try {
+        await this.relationshipValidator.initialize();
+        const relationshipResult = await this.relationshipValidator.validateModel(model);
+        result.merge(relationshipResult, "[Relationship Schema]");
+
+        if (isTelemetryEnabled && relationshipStageSpan) {
+          relationshipStageSpan.setAttribute("validation.error_count", result.errors.length);
+        }
+      } finally {
+        endSpan(relationshipStageSpan);
       }
 
       if (isTelemetryEnabled && rootSpan) {

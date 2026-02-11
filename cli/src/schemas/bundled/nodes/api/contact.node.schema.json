@@ -34,10 +34,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "url",
-        "email"
-      ],
+      "required": ["url", "email"],
       "additionalProperties": false
     }
   }

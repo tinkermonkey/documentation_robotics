@@ -36,12 +36,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "targetRef",
-        "sketchCount",
-        "implementedCount",
-        "automatedCount"
-      ],
+      "required": ["targetRef", "sketchCount", "implementedCount", "automatedCount"],
       "additionalProperties": false
     }
   }

@@ -367,6 +367,7 @@ export class Model {
           id: element.id,
           name: element.name,
           type: element.type,
+          layer: element.layer || name, // Add layer for graph compatibility
           ...(element.description && { documentation: element.description }),
           ...(Object.keys(element.properties || {}).length > 0 && {
             properties: element.properties,
@@ -869,5 +870,168 @@ export class Model {
    */
   async traverse(startNodeId: string, predicate: string, maxDepth: number = 10) {
     return this.graph.traverse(startNodeId, predicate, maxDepth);
+  }
+
+  /**
+   * Create a backup of the current model state
+   * Used for rollback support in migration operations
+   *
+   * @param label Descriptive label for the backup (e.g., "pre-migration")
+   * @returns Path to the backup directory
+   */
+  async createBackup(label: string): Promise<string> {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const backupDir = path.join(this.rootPath, ".dr-backups", `${label}-${timestamp}`);
+
+    // Create backup directory
+    await ensureDir(backupDir);
+
+    // Backup layers directory
+    const layersSource = path.join(this.rootPath, "documentation-robotics", "model");
+    const layersBackup = path.join(backupDir, "layers");
+    if (await this.directoryExists(layersSource)) {
+      await this.copyDirectory(layersSource, layersBackup);
+    }
+
+    // Backup manifest
+    const manifestSource = path.join(this.rootPath, "documentation-robotics", "model", "manifest.yaml");
+    const manifestBackup = path.join(backupDir, "manifest.yaml");
+    if (await this.fileExists(manifestSource)) {
+      await fs.copyFile(manifestSource, manifestBackup);
+    }
+
+    return backupDir;
+  }
+
+  /**
+   * Restore model from a backup directory
+   * Used for rollback after failed migrations
+   *
+   * @param backupPath Path to the backup directory
+   */
+  async restoreFromBackup(backupPath: string): Promise<void> {
+    // Restore layers
+    const layersBackup = path.join(backupPath, "layers");
+    const layersTarget = path.join(this.rootPath, "documentation-robotics", "model");
+    if (await this.directoryExists(layersBackup)) {
+      await this.copyDirectory(layersBackup, layersTarget);
+    }
+
+    // Restore manifest
+    const manifestBackup = path.join(backupPath, "manifest.yaml");
+    const manifestTarget = path.join(this.rootPath, "documentation-robotics", "model", "manifest.yaml");
+    if (await this.fileExists(manifestBackup)) {
+      await fs.copyFile(manifestBackup, manifestTarget);
+    }
+
+    // Reload model to refresh in-memory state
+    const reloadedModel = await Model.load(this.rootPath, { lazyLoad: this.lazyLoad });
+    this.layers = reloadedModel.layers;
+    this.manifest = reloadedModel.manifest;
+    this.graph = reloadedModel.graph;
+    this.relationships = reloadedModel.relationships;
+  }
+
+  /**
+   * Save dirty layers with atomic write semantics
+   * Writes to temporary file first, then renames on success to ensure data safety
+   *
+   * @throws Error if atomic write fails
+   */
+  async saveDirtyLayersAtomic(): Promise<void> {
+    // First, save all layers to temporary files
+    const tempLayerWrites: Array<{ layer: Layer; tempPath: string }> = [];
+
+    try {
+      for (const layer of this.layers.values()) {
+        if (layer.isDirty()) {
+          const layerPath = path.join(
+            this.rootPath,
+            "documentation-robotics",
+            "model",
+            `${layer.name}_layer`
+          );
+
+          const tempPath = `${layerPath}.tmp`;
+          await ensureDir(tempPath);
+
+          // Write layer elements to temp directory
+          for (const element of layer.elements.values()) {
+            const elementPath = path.join(tempPath, `${element.id}.json`);
+            const content = JSON.stringify(element.toJSON(), null, 2);
+            await writeFile(elementPath, content);
+          }
+
+          tempLayerWrites.push({ layer, tempPath });
+        }
+      }
+
+      // All temp writes succeeded, now commit by renaming
+      for (const { layer, tempPath } of tempLayerWrites) {
+        const layerPath = path.join(
+          this.rootPath,
+          "documentation-robotics",
+          "model",
+          `${layer.name}_layer`
+        );
+
+        // Remove old directory and rename temp to actual
+        if (await this.directoryExists(layerPath)) {
+          await fs.rm(layerPath, { recursive: true, force: true });
+        }
+        await fs.rename(tempPath, layerPath);
+      }
+    } catch (error) {
+      // Cleanup any temp directories on failure
+      for (const { tempPath } of tempLayerWrites) {
+        if (await this.directoryExists(tempPath)) {
+          await fs.rm(tempPath, { recursive: true, force: true });
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Helper: Check if file exists
+   */
+  private async fileExists(filePath: string): Promise<boolean> {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Helper: Check if directory exists
+   */
+  private async directoryExists(dirPath: string): Promise<boolean> {
+    try {
+      const stat = await fs.stat(dirPath);
+      return stat.isDirectory();
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Helper: Recursively copy directory
+   */
+  private async copyDirectory(src: string, dest: string): Promise<void> {
+    await ensureDir(dest);
+    const entries = await fs.readdir(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+
+      if (entry.isDirectory()) {
+        await this.copyDirectory(srcPath, destPath);
+      } else {
+        await fs.copyFile(srcPath, destPath);
+      }
+    }
   }
 }

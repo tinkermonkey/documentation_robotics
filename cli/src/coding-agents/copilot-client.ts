@@ -16,6 +16,7 @@ import { BaseChatClient, ChatOptions } from "./base-chat-client.js";
 import { spawnSync, spawn, ChildProcess } from "child_process";
 import ansis from "ansis";
 import { getChatLogger } from "../utils/chat-logger.js";
+import { getErrorMessage } from "../utils/errors.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -137,7 +138,7 @@ export class CopilotClient extends BaseChatClient {
         (span as any).setAttribute("client.name", "GitHub Copilot");
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       return false;
@@ -454,7 +455,7 @@ export class CopilotClient extends BaseChatClient {
         (span as any).recordException(error as Error);
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       throw error;

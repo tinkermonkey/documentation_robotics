@@ -43,10 +43,7 @@
           "description": "IndexType classification"
         }
       },
-      "required": [
-        "title",
-        "type"
-      ],
+      "required": ["title", "type"],
       "additionalProperties": false
     }
   }

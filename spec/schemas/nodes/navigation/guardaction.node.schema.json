@@ -40,12 +40,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "action",
-        "target",
-        "message",
-        "preserveRoute"
-      ],
+      "required": ["action", "target", "message", "preserveRoute"],
       "additionalProperties": false
     }
   }

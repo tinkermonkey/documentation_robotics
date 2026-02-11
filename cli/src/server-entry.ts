@@ -6,6 +6,7 @@
 
 import { Model } from "./core/model.js";
 import { VisualizationServer } from "./server/server.js";
+import { getErrorMessage } from "./utils/errors.js";
 
 // Get configuration from environment variables
 const port = parseInt(process.env.DR_VISUALIZE_PORT || "8080", 10);
@@ -83,7 +84,7 @@ async function main() {
     // Setup graceful shutdown handlers
     setupShutdownHandlers();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     console.error(`Error: ${message}`);
     if (error instanceof Error) {
       console.error(`Stack: ${error.stack}`);

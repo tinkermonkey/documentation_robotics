@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.aggregates.testing"
+      "const": "testing.coveragerequirement.aggregates.testing.partitionvalue"
     },
     "source_spec_node_id": {
       "const": "testing.coveragerequirement"

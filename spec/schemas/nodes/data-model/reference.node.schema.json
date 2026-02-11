@@ -22,13 +22,7 @@
       "properties": {
         "on_delete": {
           "type": "string",
-          "enum": [
-            "CASCADE",
-            "SET NULL",
-            "SET DEFAULT",
-            "RESTRICT",
-            "NO ACTION"
-          ],
+          "enum": ["CASCADE", "SET NULL", "SET DEFAULT", "RESTRICT", "NO ACTION"],
           "description": "ReferentialAction classification"
         }
       },

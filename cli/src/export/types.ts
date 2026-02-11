@@ -1,4 +1,5 @@
 import type { Model } from "../core/model.js";
+import { getAllLayerIds } from "../generated/layer-registry.js";
 
 /**
  * Options for export operations
@@ -57,22 +58,9 @@ export const LAYER_COLORS: Record<string, string> = {
 };
 
 /**
- * All 12 supported layers
+ * All 12 supported layers (from generated registry)
  */
-export const ALL_LAYERS: string[] = [
-  "motivation",
-  "business",
-  "security",
-  "application",
-  "technology",
-  "api",
-  "data-model",
-  "data-store",
-  "ux",
-  "navigation",
-  "apm",
-  "testing",
-];
+export const ALL_LAYERS: string[] = getAllLayerIds();
 
 /**
  * Escape XML special characters

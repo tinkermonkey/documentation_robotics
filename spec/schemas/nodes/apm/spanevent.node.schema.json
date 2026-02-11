@@ -38,10 +38,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "timeUnixNano",
-        "droppedAttributesCount"
-      ],
+      "required": ["timeUnixNano", "droppedAttributesCount"],
       "additionalProperties": false
     }
   }

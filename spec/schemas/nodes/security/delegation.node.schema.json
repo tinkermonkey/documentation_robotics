@@ -40,11 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "delegator",
-        "delegatee",
-        "delegationType"
-      ],
+      "required": ["delegator", "delegatee", "delegationType"],
       "additionalProperties": false
     }
   }

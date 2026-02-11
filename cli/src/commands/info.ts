@@ -5,6 +5,8 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
+import { TABLE_COLUMN_WIDTHS, TABLE_SEPARATOR } from "../utils/table-formatting.js";
 
 export interface InfoOptions {
   layer?: string;
@@ -34,7 +36,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
 
     console.log("");
     console.log(ansis.bold(`${ansis.blue("Model:")} ${manifest.name}`));
-    console.log(ansis.dim("─".repeat(80)));
+    console.log(ansis.dim(TABLE_SEPARATOR));
 
     console.log(`${ansis.gray("Name:")}          ${manifest.name}`);
     console.log(`${ansis.gray("Version:")}       ${manifest.version}`);
@@ -61,7 +63,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
     if (layerNames.length > 0) {
       console.log("");
       console.log(ansis.bold("Layers:"));
-      console.log(ansis.dim("─".repeat(80)));
+      console.log(ansis.dim(TABLE_SEPARATOR));
 
       if (options.layer) {
         // Show specific layer info
@@ -89,8 +91,8 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
         }
       } else {
         // Show all layers summary
-        const idWidth = 20;
-        const countWidth = 10;
+        const idWidth = TABLE_COLUMN_WIDTHS.INFO_ID_WIDTH;
+        const countWidth = TABLE_COLUMN_WIDTHS.INFO_COUNT_WIDTH;
 
         for (const layerName of layerNames) {
           const layer = await model.getLayer(layerName);
@@ -118,10 +120,10 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
   } finally {

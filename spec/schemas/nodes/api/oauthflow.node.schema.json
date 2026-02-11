@@ -33,11 +33,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "authorizationUrl",
-        "tokenUrl",
-        "scopes"
-      ],
+      "required": ["authorizationUrl", "tokenUrl", "scopes"],
       "additionalProperties": false
     }
   }

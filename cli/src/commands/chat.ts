@@ -9,6 +9,7 @@ import { Model } from "../core/model.js";
 import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { detectAvailableClients } from "../coding-agents/chat-utils.js";
 import { initializeChatLogger, getChatLogger } from "../utils/chat-logger.js";
+import { CLIError, getErrorMessage } from "../utils/errors.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -16,7 +17,6 @@ import {
   emitLog,
   SeverityNumber,
 } from "../telemetry/index.js";
-import { CLIError } from "../utils/errors.js";
 
 /**
  * Get the preferred chat client from manifest metadata
@@ -273,7 +273,7 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
           }
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         if (isTelemetryEnabled && span) {
           emitLog(SeverityNumber.ERROR, "Message send failed", {
             "error.message": message,
@@ -295,10 +295,10 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
 
     // Log fatal error if logger is available

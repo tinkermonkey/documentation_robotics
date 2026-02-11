@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "motivation.associated-with.motivation"
+      "const": "motivation.value.associated-with.motivation.constraint"
     },
     "source_spec_node_id": {
       "const": "motivation.value"

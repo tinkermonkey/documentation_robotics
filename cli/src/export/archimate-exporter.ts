@@ -2,6 +2,7 @@ import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import { escapeXml } from "./types.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * ArchiMate XML Exporter for layers 1, 2, 4, 5
@@ -136,7 +137,7 @@ export class ArchiMateExporter implements Exporter {
         (span as any).recordException(error as Error);
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       throw error;

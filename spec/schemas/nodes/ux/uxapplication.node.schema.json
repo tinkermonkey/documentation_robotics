@@ -41,9 +41,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "channel"
-      ],
+      "required": ["channel"],
       "additionalProperties": false
     }
   }

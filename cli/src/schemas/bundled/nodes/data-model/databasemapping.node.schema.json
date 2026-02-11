@@ -34,22 +34,11 @@
         },
         "partition_strategy": {
           "type": "string",
-          "enum": [
-            "range",
-            "list",
-            "hash",
-            "composite",
-            "none"
-          ],
+          "enum": ["range", "list", "hash", "composite", "none"],
           "description": "PartitionStrategy classification"
         }
       },
-      "required": [
-        "table",
-        "schema",
-        "catalog",
-        "engine"
-      ],
+      "required": ["table", "schema", "catalog", "engine"],
       "additionalProperties": false
     }
   }

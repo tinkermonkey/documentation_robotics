@@ -4,64 +4,88 @@
 
 import ansis from "ansis";
 import { Model } from "../core/model.js";
+import { getAllLayerIds, getSpecNodeTypesForLayer, getLayerById } from "../generated/index.js";
+import { RELATIONSHIPS_BY_SOURCE } from "../generated/relationship-index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
- * Expected element types per layer
+ * Expected element types per layer (derived from generated registry)
  */
-const LAYER_ELEMENT_TYPES: Record<string, string[]> = {
-  motivation: ["stakeholder", "goal", "requirement", "principle"],
-  business: ["business-service", "business-process", "business-actor"],
-  security: ["authentication-mechanism", "authorization-policy", "threat", "security-control"],
-  application: ["application-service", "application-component", "application-interface"],
-  technology: ["technology-service", "technology-component", "infrastructure-service"],
-  api: ["rest-resource", "rest-operation", "api-specification"],
-  "data-model": ["entity", "value-object", "relationship", "attribute"],
-  "data-store": ["database", "table", "storage-service"],
-  ux: ["ux-application", "ux-library", "ux-spec", "screen", "component"],
-  navigation: ["navigation-path", "navigation-transition", "route"],
-  apm: ["metric", "trace", "log-source", "alert-rule"],
-  testing: ["test-strategy", "test-case", "test-data", "test-result"],
-};
+function getLayerElementTypes(): Record<string, string[]> {
+  const layerTypes: Record<string, string[]> = {};
+  const layers = getAllLayerIds();
+  for (const layer of layers) {
+    layerTypes[layer] = getSpecNodeTypesForLayer(layer).map((t) => {
+      // Extract element type from spec node ID (e.g., "motivation.goal" -> "goal")
+      return t.split(".")[1] || "";
+    }).filter(Boolean);
+  }
+  return layerTypes;
+}
+
+const LAYER_ELEMENT_TYPES = getLayerElementTypes();
 
 /**
- * Expected cross-layer relationships per layer
+ * Get expected cross-layer relationships per layer
+ * Derived from the relationship catalog for consistency
  */
-const LAYER_RELATIONSHIPS: Record<
+function getLayerCrossLayerRelationships(): Record<
   string,
   Array<{
     target: string;
     relationship: string;
   }>
-> = {
-  business: [{ target: "motivation", relationship: "realizes" }],
-  application: [
-    { target: "business", relationship: "realizes" },
-    { target: "security", relationship: "uses" },
-  ],
-  technology: [
-    { target: "application", relationship: "hosts" },
-    { target: "security", relationship: "implements" },
-  ],
-  api: [{ target: "application", relationship: "exposes" }],
-  "data-model": [{ target: "application", relationship: "used-by" }],
-  "data-store": [
-    { target: "technology", relationship: "runs-on" },
-    { target: "data-model", relationship: "implements" },
-  ],
-  ux: [
-    { target: "application", relationship: "implements" },
-    { target: "navigation", relationship: "uses" },
-  ],
-  navigation: [{ target: "ux", relationship: "defines" }],
-  apm: [
-    { target: "technology", relationship: "monitors" },
-    { target: "application", relationship: "monitors" },
-  ],
-  testing: [
-    { target: "application", relationship: "tests" },
-    { target: "api", relationship: "tests" },
-  ],
-};
+> {
+  const relationships: Record<
+    string,
+    Array<{
+      target: string;
+      relationship: string;
+    }>
+  > = {};
+
+  // Build cross-layer relationships from the relationship catalog
+  // by finding relationships where source and destination are in different layers
+  const layers = getAllLayerIds();
+
+  for (const sourceLayerId of layers) {
+    const sourceLayer = getLayerById(sourceLayerId);
+    if (!sourceLayer) continue;
+
+    relationships[sourceLayerId] = [];
+
+    // Use Set for O(1) duplicate detection instead of linear search
+    const seenRelationships = new Set<string>();
+
+    // Get all node types for this layer
+    const sourceNodeTypes = getSpecNodeTypesForLayer(sourceLayerId);
+
+    // For each source node type, find relationships to other layers
+    for (const sourceNodeType of sourceNodeTypes) {
+      const rels = RELATIONSHIPS_BY_SOURCE.get(sourceNodeType) || [];
+
+      for (const rel of rels) {
+        // Extract destination layer from spec node ID
+        const destLayerId = rel.destinationSpecNodeId.split(".")[0];
+        if (destLayerId && destLayerId !== sourceLayerId) {
+          // Create composite key for O(1) lookup
+          const key = `${destLayerId}:${rel.predicate}`;
+          if (!seenRelationships.has(key)) {
+            seenRelationships.add(key);
+            relationships[sourceLayerId].push({
+              target: destLayerId,
+              relationship: rel.predicate,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return relationships;
+}
+
+const LAYER_RELATIONSHIPS = getLayerCrossLayerRelationships();
 
 interface ConformanceIssue {
   severity: "error" | "warning";
@@ -151,16 +175,26 @@ export async function conformanceCommand(options: {
       // Check 3: Cross-layer relationships are documented
       const expectedRelationships = LAYER_RELATIONSHIPS[layerName] || [];
 
+      // Get all relationships for this layer
+      const allRelationships = model.relationships.getAll();
+      const layerRelationships = allRelationships.filter((rel) => rel.layer === layerName);
+
       // Validate expected cross-layer relationships exist
-      // Note: The relationship registry would be accessed in production
-      // This check documents which relationships are expected per layer specification
       for (const expectedRel of expectedRelationships) {
-        // In a full implementation, check model.relationshipRegistry for actual relationships
-        // For now, just document that the layer has expected cross-layer relationships defined
-        issues.push({
-          severity: "warning",
-          message: `Expected relationship to ${expectedRel.target}: ${expectedRel.relationship}`,
-        });
+        // Check if any actual relationship matches this expected relationship
+        const hasRelationship = layerRelationships.some(
+          (rel) =>
+            rel.predicate === expectedRel.relationship &&
+            rel.targetLayer === expectedRel.target
+        );
+
+        // Only warn if the expected relationship is not found in actual data
+        if (!hasRelationship) {
+          issues.push({
+            severity: "warning",
+            message: `Expected relationship to ${expectedRel.target}: ${expectedRel.relationship} not found`,
+          });
+        }
       }
 
       // Populate results
@@ -170,7 +204,7 @@ export async function conformanceCommand(options: {
         stats: {
           elementCount: elements.length,
           elementTypes: presentTypes.size,
-          relationshipCount: 0, // Would be populated from relationship registry
+          relationshipCount: layerRelationships.length,
         },
       };
 
@@ -237,7 +271,7 @@ export async function conformanceCommand(options: {
 
     console.log();
   } catch (error) {
-    console.error(ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
     process.exit(1);
   }
 }

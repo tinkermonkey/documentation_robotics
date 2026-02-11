@@ -12,6 +12,7 @@ import { parse as parseYAML } from "yaml";
 import { Model } from "./model.js";
 import { Element } from "./element.js";
 import { ReferenceRegistry } from "./reference-registry.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Transform types for property mapping
@@ -208,7 +209,7 @@ export class ProjectionEngine {
       );
     } catch (error) {
       throw new Error(
-        `Failed to load projection rules from ${path}: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to load projection rules from ${path}: ${getErrorMessage(error)}`
       );
     }
   }
@@ -528,7 +529,7 @@ export class ProjectionEngine {
           } catch (error) {
             // Log warning and continue
             console.warn(
-              `Warning: Failed to project ${element.id} with rule ${rule.name}: ${error instanceof Error ? error.message : String(error)}`
+              `Warning: Failed to project ${element.id} with rule ${rule.name}: ${getErrorMessage(error)}`
             );
           }
         }

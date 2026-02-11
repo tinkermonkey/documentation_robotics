@@ -37,10 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "default",
-        "enum"
-      ],
+      "required": ["default", "enum"],
       "additionalProperties": false
     }
   }

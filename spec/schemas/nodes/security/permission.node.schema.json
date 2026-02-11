@@ -40,11 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "scope",
-        "resource",
-        "action"
-      ],
+      "required": ["scope", "resource", "action"],
       "additionalProperties": false
     }
   }

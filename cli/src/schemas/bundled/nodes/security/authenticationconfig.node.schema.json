@@ -44,10 +44,7 @@
           "description": "Source code reference"
         }
       },
-      "required": [
-        "provider",
-        "sessionTimeout"
-      ],
+      "required": ["provider", "sessionTimeout"],
       "additionalProperties": false
     }
   }

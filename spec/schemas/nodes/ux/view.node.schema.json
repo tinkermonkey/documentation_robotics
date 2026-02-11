@@ -59,9 +59,7 @@
           "description": "Source code reference"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "additionalProperties": false
     }
   }

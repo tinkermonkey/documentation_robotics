@@ -34,9 +34,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "assessmentType"
-      ],
+      "required": ["assessmentType"],
       "additionalProperties": false
     }
   }

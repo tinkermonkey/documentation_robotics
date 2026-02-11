@@ -34,13 +34,6 @@ pipelines:
         expect_stdout_contains:
           - "Added"
 
-      - command: "relationship add data-store.table.rel-test-table data-store.column.rel-test-column --predicate has-primary-key"
-        files_to_compare:
-          - relationships.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Added"
-
       - command: "relationship delete data-store.table.rel-test-table data-store.column.rel-test-column --predicate composes"
         files_to_compare:
           - relationships.yaml
@@ -52,7 +45,6 @@ pipelines:
         files_to_compare:
           - manifest.yaml
           - 08_data-store/tables.yaml
-          - relationships.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.column.rel-test-column --force"

@@ -34,10 +34,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "key",
-        "value"
-      ],
+      "required": ["key", "value"],
       "additionalProperties": false
     }
   }

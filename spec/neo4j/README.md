@@ -5,6 +5,7 @@ This directory contains Neo4j exports of the Documentation Robotics specificatio
 ## Overview
 
 The spec metadata export captures the **structure** of the 12-layer architecture model:
+
 - **212 SpecNode types** - Element types like `motivation.goal`, `api.endpoint`
 - **252 SpecRelationship types** - Allowed relationships between types
 - **47 Predicates** - Semantic relationship types (influence, realizes, etc.)
@@ -62,31 +63,37 @@ npm run export:spec-neo4j
 ### Node Types
 
 **SpecNode** (212 nodes)
+
 - Properties: `spec_node_id`, `layer_id`, `type`, `title`, `description`, `required_attribute_count`, `total_attribute_count`
 - Labels: `SpecNode`, `SpecNode_{layer}`
 - Example: `motivation.goal`, `api.endpoint`
 
 **SpecRelationship** (252 nodes)
+
 - Properties: `id`, `source_spec_node_id`, `destination_spec_node_id`, `predicate`, `cardinality`, `strength`, `required`
 - Labels: `SpecRelationship`
 - Example: `motivation.influence.motivation` (goal → assessment)
 
 **Predicate** (47 nodes)
+
 - Properties: `predicate`, `inverse`, `category`, `description`, `archimate_alignment`, `directionality`, `transitivity`, `symmetry`
 - Labels: `Predicate`
 - Example: `influence`, `realizes`, `depends-on`
 
 **Layer** (12 nodes)
+
 - Properties: `id`, `number`, `name`, `description`, `standard`, `standard_version`, `node_type_count`
 - Labels: `Layer`
 - Example: `motivation` (layer 1), `api` (layer 6)
 
 **AttributeSpec** (varies by schema)
+
 - Properties: `id`, `spec_node_id`, `name`, `type`, `format`, `required`, `description`
 - Labels: `AttributeSpec`
 - Example: `motivation.goal.priority` (required string attribute)
 
 **PredicateCategory** (12 nodes, synthetic)
+
 - Properties: `name`
 - Labels: `PredicateCategory`
 - Example: `structural`, `behavioral`, `dependency`
@@ -210,21 +217,27 @@ ORDER BY sn.spec_node_id, attr.name;
 ## Use Cases
 
 ### 1. Schema Documentation
+
 Explore the full type system visually in Neo4j Browser to understand allowed element types and relationships.
 
 ### 2. Impact Analysis
+
 When modifying a node type or predicate, query to find all affected relationship schemas.
 
 ### 3. Validation Rule Discovery
+
 Query for attribute constraints (required fields, formats) when building validators or documentation.
 
 ### 4. Cross-Layer Traceability
+
 Understand which layers can reference which other layers through relationship analysis.
 
 ### 5. ArchiMate Alignment
+
 Find predicates aligned with ArchiMate concepts for standards compliance.
 
 ### 6. Schema Evolution
+
 Compare exports over time to track how the specification evolves.
 
 ## Notes

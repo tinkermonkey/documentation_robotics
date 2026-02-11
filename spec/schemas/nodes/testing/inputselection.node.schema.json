@@ -40,12 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "partitionRef",
-        "selectedValue",
-        "concreteValue",
-        "valueSource"
-      ],
+      "required": ["partitionRef", "selectedValue", "concreteValue", "valueSource"],
       "additionalProperties": false
     }
   }

@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.composes.apm"
+      "const": "apm.meterconfig.composes.apm.spanevent"
     },
     "source_spec_node_id": {
       "const": "apm.meterconfig"

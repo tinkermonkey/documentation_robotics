@@ -6,6 +6,7 @@
  */
 
 import type { Model } from "./model.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Represents a single version migration
@@ -201,7 +202,7 @@ export class MigrationRegistry {
         } catch (error) {
           throw new Error(
             `Migration ${migration.fromVersion} → ${migration.toVersion} failed: ${
-              error instanceof Error ? error.message : String(error)
+              getErrorMessage(error)
             }`
           );
         }

@@ -20,6 +20,7 @@ import ansis from "ansis";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Claude Code Integration Manager
@@ -157,7 +158,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     } catch (error) {
       spinnerObj.stop("Installation failed");
       console.error(
-        ansis.red("✗ Error: " + (error instanceof Error ? error.message : String(error)))
+        ansis.red("✗ Error: " + (getErrorMessage(error)))
       );
       process.exit(1);
     }
@@ -303,7 +304,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     } catch (error) {
       spinnerObj.stop("Upgrade failed");
       console.error(
-        ansis.red("✗ Error: " + (error instanceof Error ? error.message : String(error)))
+        ansis.red("✗ Error: " + (getErrorMessage(error)))
       );
       process.exit(1);
     }
@@ -381,7 +382,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     } catch (error) {
       spinnerObj.stop("Removal failed");
       console.error(
-        ansis.red("✗ Error: " + (error instanceof Error ? error.message : String(error)))
+        ansis.red("✗ Error: " + (getErrorMessage(error)))
       );
       process.exit(1);
     }

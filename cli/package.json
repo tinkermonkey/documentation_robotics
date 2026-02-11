@@ -13,8 +13,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bash scripts/sync-spec-schemas.sh && tsc && node esbuild.config.js && npm run copy-schemas",
-    "build:debug": "bash scripts/sync-spec-schemas.sh && tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",
+    "build": "bash scripts/sync-spec-schemas.sh && bun scripts/generate-registry.ts && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
+    "build:debug": "bash scripts/sync-spec-schemas.sh && bun scripts/generate-registry.ts && bun scripts/generate-validators.ts && tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",
+    "build:ci": "bash scripts/sync-spec-schemas.sh && bun scripts/generate-registry.ts --strict && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
     "sync-schemas": "bash scripts/sync-spec-schemas.sh",
     "copy-schemas": "cp -r src/schemas dist/",
     "dev": "node dist/cli.js",
@@ -22,6 +23,7 @@
     "type-check": "tsc --noEmit",
     "test": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts",
     "test:unit": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts",
+    "test:generated": "bun test tests/unit/generators/*.test.ts",
     "test:integration": "bun test tests/integration/*.test.ts",
     "test:validators": "bun test --concurrent ./tests/unit/validators/",
     "test:compatibility": "bun test --concurrent tests/compatibility",

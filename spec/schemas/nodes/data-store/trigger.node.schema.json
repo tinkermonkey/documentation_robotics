@@ -49,14 +49,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "table",
-        "timing",
-        "events",
-        "forEach",
-        "functionName",
-        "condition"
-      ],
+      "required": ["table", "timing", "events", "forEach", "functionName", "condition"],
       "additionalProperties": false
     }
   }

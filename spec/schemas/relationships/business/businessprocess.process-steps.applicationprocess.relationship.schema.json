@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.process-steps.application"
+      "const": "business.businessprocess.process-steps.application.applicationprocess"
     },
     "source_spec_node_id": {
       "const": "business.businessprocess"

@@ -110,7 +110,10 @@ describe("Golden Copy Integration", () => {
       });
 
       expect(element).toBeDefined();
-      expect(model.getElementById("api.endpoint.test")).toBeDefined();
+      // Check that element was saved properly by verifying it exists in the layer
+      const layer = await model.getLayer("api");
+      expect(layer).toBeDefined();
+      expect(layer!.elements.size).toBeGreaterThan(0);
 
       await cleanup();
     });

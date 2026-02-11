@@ -43,10 +43,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "in",
-        "required"
-      ],
+      "required": ["in", "required"],
       "additionalProperties": false
     }
   }

@@ -43,13 +43,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "field",
-        "operator",
-        "value",
-        "message",
-        "source"
-      ],
+      "required": ["field", "operator", "value", "message", "source"],
       "additionalProperties": false
     }
   }

@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.references.api"
+      "const": "api.operation.references.api.schema"
     },
     "source_spec_node_id": {
       "const": "api.operation"

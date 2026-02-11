@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.database-column.data-store"
+      "const": "api.schema.database-column.data-store.column"
     },
     "source_spec_node_id": {
       "const": "api.schema"

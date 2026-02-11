@@ -43,10 +43,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "header",
-        "field"
-      ],
+      "required": ["header", "field"],
       "additionalProperties": false
     }
   }

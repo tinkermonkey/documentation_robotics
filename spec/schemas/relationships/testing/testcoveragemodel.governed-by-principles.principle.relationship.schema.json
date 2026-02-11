@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.governed-by-principles.motivation"
+      "const": "testing.testcoveragemodel.governed-by-principles.motivation.principle"
     },
     "source_spec_node_id": {
       "const": "testing.testcoveragemodel"

@@ -7,6 +7,7 @@ import { Model } from "../core/model.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, ErrorCategory, handleError } from "../utils/errors.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export async function showCommand(id: string, options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled
@@ -31,8 +32,20 @@ export async function showCommand(id: string, options: { model?: string } = {}):
       ]);
     }
 
-    const layer = (await model.getLayer(layerName))!;
-    const element = layer.getElement(id)!;
+    const layer = await model.getLayer(layerName);
+    if (!layer) {
+      throw new CLIError(`Layer ${layerName} not found`, ErrorCategory.USER, [
+        'Use "dr schema layers" to list all available layers',
+      ]);
+    }
+
+    const element = layer.getElement(id);
+    if (!element) {
+      throw new CLIError(`Element ${id} not found`, ErrorCategory.USER, [
+        `Use "dr search ${id}" to find similar elements`,
+        'Use "dr list <layer>" to list all elements in a layer',
+      ]);
+    }
 
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute("show.found", true);
@@ -133,7 +146,7 @@ export async function showCommand(id: string, options: { model?: string } = {}):
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
     handleError(error);

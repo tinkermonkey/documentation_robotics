@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.delivers-value.motivation"
+      "const": "business.businessservice.delivers-value.motivation.value"
     },
     "source_spec_node_id": {
       "const": "business.businessservice"

@@ -37,10 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "url",
-        "variables"
-      ],
+      "required": ["url", "variables"],
       "additionalProperties": false
     }
   }

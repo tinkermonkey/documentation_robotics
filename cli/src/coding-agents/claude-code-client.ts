@@ -16,6 +16,7 @@ import { BaseChatClient, ChatOptions } from "./base-chat-client.js";
 import { spawnSync, spawn, ChildProcess } from "child_process";
 import ansis from "ansis";
 import { getChatLogger } from "../utils/chat-logger.js";
+import { getErrorMessage } from "../utils/errors.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -71,7 +72,7 @@ export class ClaudeCodeClient extends BaseChatClient {
         (span as any).setAttribute("client.name", "Claude Code");
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       return false;
@@ -164,14 +165,14 @@ export class ClaudeCodeClient extends BaseChatClient {
             // Log JSON parse failure - this indicates a protocol mismatch or CLI bug
             if (isTelemetryEnabled && span) {
               emitLog(SeverityNumber.WARN, "Failed to parse Claude event JSON", {
-                "error.message": error instanceof Error ? error.message : String(error),
+                "error.message": getErrorMessage(error),
                 "event.rawLine": line.substring(0, 200),
                 "event.lineLength": line.length,
               });
             }
             if (logger) {
               void logger.logError(
-                `Failed to parse Claude event: ${error instanceof Error ? error.message : String(error)}`,
+                `Failed to parse Claude event: ${getErrorMessage(error)}`,
                 {
                   source: "json-parse",
                   client: "Claude Code",
@@ -303,14 +304,14 @@ export class ClaudeCodeClient extends BaseChatClient {
             // Log JSON parse failure for remaining buffer
             if (isTelemetryEnabled && span) {
               emitLog(SeverityNumber.WARN, "Failed to parse remaining buffer as JSON", {
-                "error.message": error instanceof Error ? error.message : String(error),
+                "error.message": getErrorMessage(error),
                 "buffer.content": buffer.substring(0, 200),
                 "buffer.length": buffer.length,
               });
             }
             if (logger) {
               void logger.logError(
-                `Failed to parse remaining buffer: ${error instanceof Error ? error.message : String(error)}`,
+                `Failed to parse remaining buffer: ${getErrorMessage(error)}`,
                 {
                   source: "json-parse-buffer",
                   client: "Claude Code",
@@ -495,7 +496,7 @@ export class ClaudeCodeClient extends BaseChatClient {
         (span as any).recordException(error as Error);
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       throw error;

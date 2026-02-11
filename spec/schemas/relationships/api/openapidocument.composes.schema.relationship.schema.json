@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.composes.api"
+      "const": "api.openapidocument.composes.api.schema"
     },
     "source_spec_node_id": {
       "const": "api.openapidocument"

@@ -37,10 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "outcomeType",
-        "httpStatusRange"
-      ],
+      "required": ["outcomeType", "httpStatusRange"],
       "additionalProperties": false
     }
   }

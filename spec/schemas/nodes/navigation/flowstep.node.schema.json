@@ -40,10 +40,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "sequence",
-        "route"
-      ],
+      "required": ["sequence", "route"],
       "additionalProperties": false
     }
   }

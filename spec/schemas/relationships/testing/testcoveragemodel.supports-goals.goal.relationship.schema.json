@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.supports-goals.motivation"
+      "const": "testing.testcoveragemodel.supports-goals.motivation.goal"
     },
     "source_spec_node_id": {
       "const": "testing.testcoveragemodel"

@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "motivation.aggregates.motivation"
+      "const": "motivation.goal.aggregates.motivation.requirement"
     },
     "source_spec_node_id": {
       "const": "motivation.goal"

@@ -37,10 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "operationId",
-        "operationRef"
-      ],
+      "required": ["operationId", "operationRef"],
       "additionalProperties": false
     }
   }

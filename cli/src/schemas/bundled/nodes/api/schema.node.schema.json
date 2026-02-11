@@ -49,10 +49,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "type",
-        "format"
-      ],
+      "required": ["type", "format"],
       "additionalProperties": false
     }
   }

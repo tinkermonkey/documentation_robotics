@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.associated-with.api"
+      "const": "api.contact.associated-with.api.openapidocument"
     },
     "source_spec_node_id": {
       "const": "api.contact"

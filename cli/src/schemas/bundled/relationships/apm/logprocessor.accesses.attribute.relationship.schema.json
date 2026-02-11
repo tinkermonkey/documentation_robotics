@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.accesses.apm"
+      "const": "apm.logprocessor.accesses.apm.attribute"
     },
     "source_spec_node_id": {
       "const": "apm.logprocessor"

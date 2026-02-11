@@ -34,10 +34,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "actor",
-        "constraint"
-      ],
+      "required": ["actor", "constraint"],
       "additionalProperties": false
     }
   }

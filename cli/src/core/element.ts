@@ -1,9 +1,18 @@
+import { randomUUID } from "crypto";
+
 import type {
   Element as IElement,
+  ElementMetadata,
   Reference,
   Relationship,
   SourceReference,
 } from "../types/index.js";
+
+/**
+ * Module-level flag to track if legacy format deprecation warning has been shown
+ * This prevents log flooding when loading unmigrated models with hundreds of elements
+ */
+let legacyFormatWarningShown = false;
 
 /**
  * Type guard to check if a value is a SourceReference
@@ -35,43 +44,282 @@ function isRecord(obj: unknown): obj is Record<string, unknown> {
 /**
  * Element class representing an individual architecture item
  *
+ * Aligns with spec-node.schema.json structure for direct validation.
  * Provides type-safe access to element properties with layer-aware handling
- * for source references (different storage patterns for different layer types)
+ * for source references (different storage patterns for different layer types).
+ *
+ * Supports both new spec-aligned format and automatic migration from legacy format.
  */
 export class Element implements IElement {
-  id: string;
-  type: string;
-  name: string;
-  description?: string;
-  properties: Record<string, unknown>;
-  references: Reference[];
-  relationships: Relationship[];
-  layer?: string; // Track which layer this element belongs to (Python CLI compatibility)
-  filePath?: string; // Track source file path for saving back (Python CLI compatibility)
-  rawData?: any; // Preserve raw YAML data to avoid losing unknown fields (Python CLI compatibility)
+  // Spec-node aligned required fields
+  id: string = "";
+  spec_node_id: string = "";
+  type: string = "";
+  layer_id: string = "";
+  name: string = "";
 
-  constructor(data: {
-    id: string;
-    type: string;
-    name: string;
-    description?: string;
-    properties?: Record<string, unknown>;
-    references?: Reference[];
-    relationships?: Relationship[];
-    layer?: string;
-    filePath?: string;
-    rawData?: any;
-  }) {
-    this.id = data.id;
-    this.type = data.type;
+  // Spec-node aligned optional fields
+  description?: string;
+  attributes: Record<string, unknown> = {};
+  source_reference?: SourceReference;
+  metadata?: ElementMetadata;
+
+  // Legacy fields for backward compatibility
+  properties: Record<string, unknown> = {};
+  elementId?: string;
+
+  // Relationship tracking (unchanged)
+  references: Reference[] = [];
+  relationships: Relationship[] = [];
+
+  // Internal tracking (unchanged)
+  layer?: string;
+  filePath?: string;
+  rawData?: any;
+
+  constructor(data: any) {
+    // Detect if data is in legacy format and migrate if necessary
+    if (this.isLegacyFormat(data)) {
+      this.initializeFromLegacy(data);
+    } else {
+      this.initializeFromSpecNode(data);
+    }
+  }
+
+  /**
+   * Detect if data is in legacy format
+   *
+   * An element is considered LEGACY FORMAT if it has:
+   * - elementId field (legacy semantic identifier) — checked FIRST to catch mixed-format elements
+   * - OR id as dotted format (e.g., "motivation.goal.example")
+   *
+   * This check is performed FIRST (before checking spec alignment) because during migration,
+   * an element might have BOTH elementId (legacy) AND spec_node_id (newly added). Without
+   * checking elementId first, such mixed-format elements would incorrectly be classified as
+   * new format, causing the semantic elementId information to be lost.
+   *
+   * Migration ensures elements transition from:
+   * - Legacy: { elementId: "...", id: "dotted.id", properties: {...} }
+   * - To New: { spec_node_id: "...", id: "uuid", layer_id: "...", type: "...", ... }
+   */
+  private isLegacyFormat(data: any): boolean {
+    // CRITICAL: Check for elementId FIRST, even if spec-aligned fields are present
+    // This catches mixed-format elements during migration where both might be present
+    if (data.elementId) {
+      return true;
+    }
+
+    // Check for legacy dotted ID format
+    if (data.id && typeof data.id === "string" && data.id.includes(".")) {
+      return true;
+    }
+
+    // Otherwise it's new format
+    return false;
+  }
+
+  /**
+   * Initialize Element from legacy format data
+   * Automatically migrates to spec-node aligned structure
+   */
+  private initializeFromLegacy(data: any): void {
+    // Generate UUID if not present or if it's a semantic ID
+    const isSemanticId = data.id && typeof data.id === "string" && data.id.includes(".");
+    this.id = !isSemanticId && this.isUUID(data.id) ? data.id : this.generateUUID();
+
+    // Extract layer and type from semantic ID
+    const semanticId = data.elementId || (isSemanticId ? data.id : null);
+    if (semanticId) {
+      const parts = semanticId.split(".");
+
+      // Validate semantic ID format: must be exactly 3 dot-separated parts (layer.type.name)
+      if (parts.length !== 3) {
+        throw new Error(
+          `Invalid semantic ID format '${semanticId}': ` +
+          `expected format '{layer}.{type}.{name}' with exactly 3 dot-separated parts, ` +
+          `but got ${parts.length} parts [${parts.map((p: string) => `'${p}'`).join(", ")}]`
+        );
+      }
+
+      this.layer_id = parts[0];
+      this.layer = parts[0]; // Set legacy layer property for graph compatibility
+      this.type = parts[1];
+      this.elementId = semanticId;
+    } else {
+      // Fallback: use provided type and layer
+      this.type = data.type || "";
+      this.layer_id = data.layer || "";
+      this.layer = data.layer || ""; // Set legacy layer property for graph compatibility
+      this.elementId = undefined;
+    }
+
+    this.spec_node_id = `${this.layer_id}.${this.type}`;
+
+    // Core fields
     this.name = data.name;
     this.description = data.description;
-    this.properties = data.properties ?? {};
-    this.references = data.references ?? [];
-    this.relationships = data.relationships ?? [];
-    this.layer = data.layer;
+
+    // Migrate properties to attributes
+    this.attributes = data.properties || {};
+    this.properties = data.properties || {};
+
+    // Extract source reference if present in properties
+    const sourceRef = this.extractSourceReferenceFromLegacy(data);
+    if (sourceRef) {
+      this.source_reference = sourceRef;
+    }
+
+    // Initialize metadata with migration timestamp
+    this.metadata = {
+      created_at: data.metadata?.created_at || new Date().toISOString(),
+      updated_at: data.metadata?.updated_at || new Date().toISOString(),
+      created_by: data.metadata?.created_by,
+      version: data.metadata?.version || 1,
+    };
+
+    // Relationship tracking
+    this.references = data.references || [];
+    this.relationships = data.relationships || [];
+
+    // Internal tracking
+    this.layer = data.layer || this.layer_id;
     this.filePath = data.filePath;
     this.rawData = data.rawData;
+
+    // Log deprecation warning once per session to avoid log flooding
+    if (!legacyFormatWarningShown) {
+      console.warn(
+        `Element initialized from legacy format: ${this.elementId || this.id}. ` +
+          "Legacy format with flat properties will be removed in a future version. " +
+          "Consider migrating to spec-node aligned format using 'dr migrate elements'."
+      );
+      legacyFormatWarningShown = true;
+    }
+  }
+
+  /**
+   * Initialize Element from spec-node aligned format
+   */
+  private initializeFromSpecNode(data: IElement): void {
+    this.id = data.id;
+    this.spec_node_id = data.spec_node_id;
+    this.type = data.type;
+    this.layer_id = data.layer_id;
+    this.name = data.name;
+    this.description = data.description;
+    this.attributes = data.attributes || {};
+    this.source_reference = data.source_reference;
+    this.metadata = data.metadata;
+
+    // Initialize legacy fields for backward compatibility
+    this.properties = data.properties || {};
+    this.elementId = data.elementId;
+
+    // Relationship tracking
+    this.references = data.references || [];
+    this.relationships = data.relationships || [];
+
+    // Internal tracking
+    this.layer = data.layer || data.layer_id;
+    this.filePath = data.filePath;
+    this.rawData = data.rawData;
+  }
+
+  /**
+   * Extract source reference from legacy format properties
+   * Handles both ArchiMate and OpenAPI patterns
+   *
+   * Logs warnings when properties exist but recognized patterns aren't found,
+   * to help identify data that may be silently lost during migration.
+   */
+  private extractSourceReferenceFromLegacy(data: any): SourceReference | undefined {
+    // Check for x-source-reference (OpenAPI pattern, layers 6-8)
+    const xSourceRef = data.properties?.["x-source-reference"];
+    if (xSourceRef && isSourceReference(xSourceRef)) {
+      return xSourceRef;
+    }
+
+    // Check for properties.source.reference (ArchiMate pattern, layers 1-5, 9-12)
+    const sourceObj = data.properties?.source;
+    if (sourceObj && isRecord(sourceObj) && "reference" in sourceObj) {
+      const ref = sourceObj.reference;
+      if (isSourceReference(ref)) {
+        return ref;
+      }
+    }
+
+    // Warn if element has properties but no recognized source reference pattern
+    // This indicates potential data loss during migration
+    if (data.properties && isRecord(data.properties) && Object.keys(data.properties).length > 0) {
+      const elementId = data.elementId || data.id || "unknown";
+      const hasPropertiesSource = "source" in data.properties;
+      const hasXSourceRef = "x-source-reference" in data.properties;
+
+      if (hasPropertiesSource || hasXSourceRef) {
+        // Properties exist but don't match expected structure
+        console.warn(
+          `WARNING: Element '${elementId}' has source reference data in unexpected format. ` +
+            `Expected either 'x-source-reference' (OpenAPI) or 'properties.source.reference' (ArchiMate), ` +
+            `but found: ${Object.keys(data.properties).join(", ")}. ` +
+            `Source reference data may have been lost during migration.`
+        );
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Check if a value is a valid UUIDv4
+   */
+  private isUUID(str: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+  }
+
+  /**
+   * Generate a cryptographically secure UUIDv4
+   * Uses Node.js crypto.randomUUID() (available since Node.js 15.7.0)
+   */
+  private generateUUID(): string {
+    // randomUUID() is available in Node.js 15.7.0+
+    // It provides cryptographically secure random UUID generation
+    // for production-grade unique identifiers
+    return randomUUID();
+  }
+
+  /**
+   * Convert Element to spec-node format for validation
+   * Returns object that matches spec-node.schema.json structure
+   */
+  toSpecNode(): Record<string, unknown> {
+    return {
+      id: this.id,
+      spec_node_id: this.spec_node_id,
+      type: this.type,
+      layer_id: this.layer_id,
+      name: this.name,
+      ...(this.description && { description: this.description }),
+      ...(Object.keys(this.attributes).length > 0 && { attributes: this.attributes }),
+      ...(this.source_reference && { source_reference: this.source_reference }),
+      ...(this.metadata && { metadata: this.metadata }),
+    };
+  }
+
+  /**
+   * Create Element from spec-node format
+   */
+  static fromSpecNode(data: Record<string, unknown>): Element {
+    return new Element({
+      id: data.id as string,
+      spec_node_id: data.spec_node_id as string,
+      type: data.type as string,
+      layer_id: data.layer_id as string,
+      name: data.name as string,
+      description: data.description as string | undefined,
+      attributes: (data.attributes as Record<string, unknown>) || {},
+      source_reference: data.source_reference as SourceReference | undefined,
+      metadata: data.metadata as ElementMetadata | undefined,
+    });
   }
 
   /**
@@ -106,6 +354,29 @@ export class Element implements IElement {
     const current = this.getArrayProperty<T>(key);
     current.push(item);
     this.properties[key] = current;
+  }
+
+  /**
+   * Get metadata with defensive copy for audit integrity
+   *
+   * Returns a deep copy of metadata to prevent external code from mutating
+   * the internal metadata object. This ensures timestamp immutability
+   * for audit trail integrity.
+   *
+   * @returns A defensive copy of the metadata object, or undefined if not set
+   */
+  getMetadata(): ElementMetadata | undefined {
+    if (!this.metadata) {
+      return undefined;
+    }
+
+    // Return a defensive copy to prevent external mutations
+    return {
+      created_at: this.metadata.created_at,
+      updated_at: this.metadata.updated_at,
+      created_by: this.metadata.created_by,
+      version: this.metadata.version,
+    };
   }
 
   /**
@@ -197,12 +468,14 @@ export class Element implements IElement {
   }
 
   /**
-   * Serialize to JSON representation
+   * Serialize to JSON representation (spec-node aligned format)
    */
   toJSON(): IElement {
     const result: IElement = {
       id: this.id,
+      spec_node_id: this.spec_node_id,
       type: this.type,
+      layer_id: this.layer_id,
       name: this.name,
     };
 
@@ -210,8 +483,25 @@ export class Element implements IElement {
       result.description = this.description;
     }
 
+    if (Object.keys(this.attributes).length > 0) {
+      result.attributes = this.attributes;
+    }
+
+    if (this.source_reference) {
+      result.source_reference = this.source_reference;
+    }
+
+    if (this.metadata) {
+      result.metadata = this.metadata;
+    }
+
+    // Include legacy fields for backward compatibility if present
     if (Object.keys(this.properties).length > 0) {
       result.properties = this.properties;
+    }
+
+    if (this.elementId) {
+      result.elementId = this.elementId;
     }
 
     if (this.references.length > 0) {

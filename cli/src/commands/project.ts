@@ -4,6 +4,7 @@
 
 import ansis from "ansis";
 import { Model } from "../core/model.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export async function projectCommand(
   elementId: string,
@@ -78,7 +79,7 @@ export async function projectCommand(
           results.push({ layer: targetLayer, element: projected });
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.log(ansis.red(`✗ Error projecting to ${targetLayer}: ${message}`));
       }
     }
@@ -138,7 +139,7 @@ export async function projectCommand(
 
     console.log("");
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
   }
@@ -189,10 +190,9 @@ export async function projectAllCommand(
       const byLayer = new Map<string, any[]>();
       for (const element of projected) {
         const layer = element.layer || "unknown";
-        if (!byLayer.has(layer)) {
-          byLayer.set(layer, []);
-        }
-        byLayer.get(layer)!.push(element);
+        const existing = byLayer.get(layer) ?? [];
+        existing.push(element);
+        byLayer.set(layer, existing);
       }
 
       // Display grouped results
@@ -219,7 +219,7 @@ export async function projectAllCommand(
 
     console.log("");
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
   }

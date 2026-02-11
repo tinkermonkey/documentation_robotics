@@ -30,7 +30,7 @@ pipelines:
         expect_stdout_contains:
           - "Deactivated"
 
-      - command: "changeset apply test-changeset-001 --no-validate"
+      - command: "changeset apply test-changeset-001 --no-validate --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
@@ -62,11 +62,11 @@ pipelines:
         expect_stdout_contains:
           - "Activated"
 
-      - command: "add business service changeset-service-001 --name 'Service from Changeset' --description 'Business service in changeset'"
+      - command: "add business process changeset-process-001 --name 'Process from Changeset' --description 'Business process in changeset'"
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "add business service changeset-service-002 --name 'Related Service' --description 'Another business service for relationship'"
+      - command: "add business process changeset-process-002 --name 'Related Process' --description 'Another business process for relationship'"
         files_to_compare: []
         expect_exit_code: 0
 
@@ -76,28 +76,28 @@ pipelines:
         expect_stdout_contains:
           - "Deactivated"
 
-      - command: "changeset apply multi-element-changeset --no-validate"
+      - command: "changeset apply multi-element-changeset --no-validate --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/services.yaml
+          - 02_business/processs.yaml
         expect_exit_code: 0
 
-      - command: "relationship add business.service.changeset-service-001 business.service.changeset-service-002 --predicate serves"
+      - command: "relationship add business.process.changeset-process-001 business.process.changeset-process-002 --predicate flows-to"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete business.service.changeset-service-001 --force"
+      - command: "delete business.process.changeset-process-001 --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/services.yaml
+          - 02_business/processs.yaml
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete business.service.changeset-service-002 --force"
+      - command: "delete business.process.changeset-process-002 --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/services.yaml
+          - 02_business/processs.yaml
         expect_exit_code: 0
 
   - name: "Changeset with element deletion"
@@ -128,7 +128,7 @@ pipelines:
         expect_stdout_contains:
           - "Deactivated"
 
-      - command: "changeset apply delete-changeset --no-validate"
+      - command: "changeset apply delete-changeset --no-validate --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml

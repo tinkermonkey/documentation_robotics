@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.composes.apm"
+      "const": "apm.apmconfiguration.composes.apm.metricinstrument"
     },
     "source_spec_node_id": {
       "const": "apm.apmconfiguration"

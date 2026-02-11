@@ -106,20 +106,20 @@ See `cli/README.md` for complete setup and usage documentation.
 
 **Internal Layer Names** - The CLI uses canonical **hyphenated, lowercase layer names** for all internal references:
 
-| Layer | Canonical Name | Layer Instance                   | Notes                                                |
-| ----- | -------------- | -------------------------------- | ---------------------------------------------------- |
-| 1     | `motivation`   | `01-motivation.layer.json`       | Single word, no hyphen                               |
-| 2     | `business`     | `02-business.layer.json`         | Single word, no hyphen                               |
-| 3     | `security`     | `03-security.layer.json`         | Single word, no hyphen                               |
-| 4     | `application`  | `04-application.layer.json`      | Single word, no hyphen                               |
-| 5     | `technology`   | `05-technology.layer.json`       | Single word, no hyphen                               |
-| 6     | `api`          | `06-api.layer.json`              | Single word, no hyphen                               |
-| 7     | `data-model`   | `07-data-model.layer.json`       | **Hyphenated** - use `data-model`, not `data_model`  |
-| 8     | `data-store`   | `08-data-store.layer.json`       | **Hyphenated** - use `data-store`, not `datastore`   |
-| 9     | `ux`           | `09-ux.layer.json`               | Single word, no hyphen                               |
-| 10    | `navigation`   | `10-navigation.layer.json`       | Single word, no hyphen                               |
-| 11    | `apm`          | `11-apm.layer.json`              | **Short form internally** - schema uses full name    |
-| 12    | `testing`      | `12-testing.layer.json`          | Single word, no hyphen                               |
+| Layer | Canonical Name | Layer Instance              | Notes                                               |
+| ----- | -------------- | --------------------------- | --------------------------------------------------- |
+| 1     | `motivation`   | `01-motivation.layer.json`  | Single word, no hyphen                              |
+| 2     | `business`     | `02-business.layer.json`    | Single word, no hyphen                              |
+| 3     | `security`     | `03-security.layer.json`    | Single word, no hyphen                              |
+| 4     | `application`  | `04-application.layer.json` | Single word, no hyphen                              |
+| 5     | `technology`   | `05-technology.layer.json`  | Single word, no hyphen                              |
+| 6     | `api`          | `06-api.layer.json`         | Single word, no hyphen                              |
+| 7     | `data-model`   | `07-data-model.layer.json`  | **Hyphenated** - use `data-model`, not `data_model` |
+| 8     | `data-store`   | `08-data-store.layer.json`  | **Hyphenated** - use `data-store`, not `datastore`  |
+| 9     | `ux`           | `09-ux.layer.json`          | Single word, no hyphen                              |
+| 10    | `navigation`   | `10-navigation.layer.json`  | Single word, no hyphen                              |
+| 11    | `apm`          | `11-apm.layer.json`         | **Short form internally** - schema uses full name   |
+| 12    | `testing`      | `12-testing.layer.json`     | Single word, no hyphen                              |
 
 **Key Rules**:
 
@@ -194,6 +194,7 @@ Federated architecture model spanning 12 interconnected layers:
 **CRITICAL**: Schema changes require updating BOTH `spec/schemas/` and `cli/src/schemas/bundled/`.
 
 This applies to:
+
 - **Base schemas** in `base/` (e.g., `spec-node.schema.json`)
 - **Common schemas** in `common/` (e.g., `attribute-spec.schema.json`, `source-references.schema.json`)
 - **Layer schemas** (e.g., `01-motivation-layer.schema.json`)
@@ -263,6 +264,32 @@ This applies to:
 - `cli/scripts/generate-spec-instances.ts` - Generates spec layer/node/predicate instances
 - `scripts/generate-layer-docs.ts` - Generates markdown docs from spec instances
 
+### Schema and Validation Commands
+
+Introspect and validate architecture specifications:
+
+```bash
+dr schema layers                                  # List all layers with node type counts
+dr schema types <layer>                          # List valid node types for a layer
+dr schema node <spec_node_id>                    # Show node schema details
+dr schema relationship <source_type> [predicate] # Show valid relationships
+dr conformance [--layers layer1,layer2]          # Validate model against layer specs
+```
+
+Key files: `cli/src/commands/schema.ts`, `cli/src/commands/conformance.ts`
+
+### Element Migration
+
+Migrate elements to spec-node aligned format:
+
+```bash
+dr migrate elements [--source dir] [--target dir] [--dry-run] [--no-backup]
+```
+
+This transforms elements from legacy format to the spec-node aligned structure with proper metadata and source references.
+
+Key files: `cli/src/commands/model-migrate.ts`, `cli/src/export/model-migration.ts`
+
 ### Staging Workflow
 
 Changesets provide a safe way to prepare model changes before committing:
@@ -308,13 +335,47 @@ Tests use a shared golden copy pattern for fast, isolated test directories:
 ```typescript
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 
-const workdir = await createTestWorkdir();  // Cloned from golden copy
+const workdir = await createTestWorkdir(); // Cloned from golden copy
 // ... use workdir.path, call workdir.cleanup in afterEach
 ```
 
 - **Baseline source**: `cli-validation/test-project/baseline/` — edit this to add test data
 - **Golden copy helper**: `cli/tests/helpers/golden-copy.ts`
 - **Auto-initialized**: Via `cli/tests/setup.ts` (preloaded by Bun)
+
+### Specification Validation Strategy
+
+**Validation Layers** (Pre-commit + CI):
+
+1. **Pre-commit Hooks** (Local Developer Workflow)
+   - **JSON Schema Syntax**: Pre-commit validates all `spec/schemas/**/*.schema.json` files use valid JSON schema syntax via `check-jsonschema`
+   - **Markdown Linting**: Pre-commit lints all layer documentation and schema-related markdown files
+   - **TypeScript Type Checking**: Pre-commit validates CLI TypeScript code for type safety
+   - **File Integrity**: Pre-commit checks for trailing whitespace, CRLF line endings, and other basic file hygiene
+   - **Purpose**: Catch structural issues early before committing broken specs
+
+2. **CI Pipeline Validation** (`.github/workflows/cli-tests.yml` - `spec-validation` job)
+   - **Schema Syntax Validation**: All 354 node schemas + 252 relationship schemas validated for valid JSON
+   - **Markdown Validation**: Layer specifications markdown linting
+   - **Cross-validation**: CLI schema bundling checked against spec schema source via `dr validate --schemas`
+   - **Purpose**: Ensure specs remain valid throughout development, prevent broken commits from reaching main
+
+3. **CLI Validation Commands** (Runtime)
+   - `dr validate --schemas`: Cross-validates spec schemas with CLI bundled schemas
+   - Provides immediate feedback when working with models
+
+**Key Points**:
+
+- **Pre-commit prevents broken local commits** — catches file format/syntax errors
+- **CI validates spec correctness** — runs comprehensive schema validation on all PRs/merges
+- **Removed hooks**: `validate-markdown-specs` and `validate-relationship-catalog` were custom pre-commit hooks; their validation is now performed by the CI pipeline's `spec-validation` job for more comprehensive and maintainable validation
+- **Why moved to CI**:
+  - Custom validation logic is fragile when maintained in pre-commit hooks
+  - Schema validation needs to check 606 files; better suited for CI where it runs on all PRs
+  - Single source of truth (CI) is easier to debug and maintain
+  - Developers get better feedback with CI logs than pre-commit errors
+- **If you modify specs**: Changes are validated automatically when you push to PR; no need for manual validation
+- **If validation fails**: Check the CI logs in the `spec-validation` job for detailed error messages
 
 ## Standards
 

@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import { Model } from "../core/model.js";
 import { Validator } from "../validators/validator.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export interface ValidateOptions {
   layers?: string[];
@@ -35,6 +36,7 @@ export interface ValidateOptions {
  */
 /**
  * Recursively find all JSON schema files in a directory
+ * Excludes 'layers' subdirectory since layer instances are not schemas
  */
 async function findJsonFiles(dir: string, baseDir: string = dir): Promise<string[]> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -42,10 +44,11 @@ async function findJsonFiles(dir: string, baseDir: string = dir): Promise<string
 
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
+    // Skip 'layers' directory - layer instances are synced but are not schemas
+    if (entry.isDirectory() && entry.name !== "layers") {
       const subFiles = await findJsonFiles(fullPath, baseDir);
       files.push(...subFiles);
-    } else if (entry.name.endsWith(".json")) {
+    } else if (entry.name.endsWith(".json") && entry.isFile()) {
       // Store relative path from base directory
       files.push(path.relative(baseDir, fullPath));
     }
@@ -110,7 +113,7 @@ async function validateSchemaSynchronization(): Promise<void> {
         }
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       mismatches.push(`  ${ansis.red("✗")} ${schemaFile} - Error reading spec schema: ${message}`);
     }
   }
@@ -204,7 +207,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       throw new Error("Validation failed");
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
 
     // Always preserve full error details in stderr for debugging

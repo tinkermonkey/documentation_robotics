@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "motivation.associated-with.motivation"
+      "const": "motivation.requirement.associated-with.motivation.driver"
     },
     "source_spec_node_id": {
       "const": "motivation.requirement"

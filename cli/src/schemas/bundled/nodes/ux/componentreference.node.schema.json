@@ -37,9 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "ref"
-      ],
+      "required": ["ref"],
       "additionalProperties": false
     }
   }

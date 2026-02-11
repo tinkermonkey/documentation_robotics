@@ -38,10 +38,7 @@
           "description": "Source code reference"
         }
       },
-      "required": [
-        "type",
-        "parameters"
-      ],
+      "required": ["type", "parameters"],
       "additionalProperties": false
     }
   }

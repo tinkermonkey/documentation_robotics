@@ -246,7 +246,7 @@ describe("Changeset Rollback Verification", () => {
 
       // Try to commit (should fail and rollback)
       try {
-        await manager.commit(model, changeset.id!);
+        await manager.commit(model, changeset.id!, { force: true });
         expect(true).toBe(false); // Should not reach
       } catch (error) {
         expect(error instanceof Error).toBe(true);
@@ -288,8 +288,8 @@ describe("Changeset Rollback Verification", () => {
       });
 
       try {
-        // Disable validation to reach the apply phase where failure occurs
-        await manager.commit(model, changeset.id!, { validate: false });
+        // Use force to bypass drift detection, validate: false to skip semantic validation
+        await manager.commit(model, changeset.id!, { validate: false, force: true });
         expect(true).toBe(false);
       } catch (error) {
         expect(error instanceof Error).toBe(true);
@@ -327,8 +327,8 @@ describe("Changeset Rollback Verification", () => {
       });
 
       try {
-        // Disable validation to reach the apply phase where failure occurs
-        await manager.commit(model, changeset.id!, { validate: false });
+        // Use force to bypass drift detection, validate: false to skip semantic validation
+        await manager.commit(model, changeset.id!, { validate: false, force: true });
         expect(true).toBe(false);
       } catch (error) {
         expect(error instanceof Error).toBe(true);
@@ -395,7 +395,8 @@ describe("Changeset Rollback Verification", () => {
       };
 
       try {
-        await manager.commit(model, changeset.id!, { validate: false });
+        // Use force to bypass drift detection, validate: false to skip semantic validation
+        await manager.commit(model, changeset.id!, { validate: false, force: true });
         expect(true).toBe(false);
       } catch (error) {
         expect(error instanceof Error).toBe(true);

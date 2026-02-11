@@ -45,10 +45,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "fieldRef",
-        "presenceRule"
-      ],
+      "required": ["fieldRef", "presenceRule"],
       "additionalProperties": false
     }
   }

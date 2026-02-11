@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.aggregates.apm"
+      "const": "apm.resource.aggregates.apm.metricinstrument"
     },
     "source_spec_node_id": {
       "const": "apm.resource"

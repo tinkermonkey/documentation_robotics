@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.required-permissions.security"
+      "const": "api.operation.required-permissions.security.permission"
     },
     "source_spec_node_id": {
       "const": "api.operation"

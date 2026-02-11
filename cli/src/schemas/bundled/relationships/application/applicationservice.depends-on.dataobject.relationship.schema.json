@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.depends-on.application"
+      "const": "application.applicationservice.depends-on.application.dataobject"
     },
     "source_spec_node_id": {
       "const": "application.applicationservice"

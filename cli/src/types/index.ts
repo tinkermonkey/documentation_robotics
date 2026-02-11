@@ -2,6 +2,9 @@
  * Core type definitions for Documentation Robotics CLI
  */
 
+// Import source reference types for use in Element interface
+import type { SourceReference } from "./source-reference.js";
+
 // Export source reference types
 export type {
   ProvenanceType,
@@ -32,16 +35,53 @@ export interface Relationship {
 }
 
 /**
+ * Element metadata for lifecycle and version tracking
+ *
+ * Note: created_at and updated_at should be treated as immutable after element initialization.
+ * For safe external access with immutability guarantees, use Element.getMetadata() which
+ * returns a defensive copy protecting against external mutations.
+ */
+export interface ElementMetadata {
+  created_at?: string; // ISO 8601 timestamp (immutable after initialization)
+  updated_at?: string; // ISO 8601 timestamp (immutable after initialization)
+  created_by?: string;
+  version?: number;
+}
+
+/**
  * Element representation
+ *
+ * Aligned with spec-node.schema.json structure for direct validation
+ * Supports both new spec-aligned format and legacy format during migration
  */
 export interface Element {
-  id: string; // Format: {layer}-{type}-{kebab-case-name}
-  type: string;
+  // Spec-node aligned fields (required in new format)
+  id: string; // UUIDv4 format (e.g., "550e8400-e29b-41d4-a716-446655440000")
+  spec_node_id: string; // Reference to spec node type (e.g., "motivation.goal")
+  type: string; // Denormalized node type (e.g., "goal", "endpoint")
+  layer_id: string; // Denormalized layer ID (e.g., "motivation", "api")
   name: string;
+
+  // Spec-node aligned optional fields
   description?: string;
+  attributes?: Record<string, unknown>; // Type-specific properties
+  source_reference?: SourceReference; // Provenance tracking
+  metadata?: ElementMetadata; // Lifecycle tracking
+
+  // Legacy fields (for backward compatibility during migration)
+  /** @deprecated Use attributes instead. Will be removed in next major version. */
   properties?: Record<string, unknown>;
+  /** @deprecated Use id and spec_node_id instead. Semantic ID like "api.endpoint.create-customer" */
+  elementId?: string;
+
+  // Relationship tracking (unchanged)
   references?: Reference[];
   relationships?: Relationship[];
+
+  // Internal tracking (unchanged)
+  layer?: string;
+  filePath?: string;
+  rawData?: any;
 }
 
 /**

@@ -2,6 +2,7 @@ import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import { ALL_LAYERS, LAYER_COLORS, escapeXml } from "./types.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * GraphML Exporter - generates GraphML format for graph visualization tools
@@ -149,7 +150,7 @@ export class GraphMLExporter implements Exporter {
         (span as any).recordException(error as Error);
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       throw error;

@@ -2,6 +2,8 @@ import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import { ALL_LAYERS } from "./types.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { formatLayerName } from "../utils/layer-name-formatter.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Markdown Exporter - generates comprehensive markdown documentation
@@ -251,7 +253,7 @@ export class MarkdownExporter implements Exporter {
         (span as any).recordException(error as Error);
         (span as any).setStatus({
           code: 2,
-          message: error instanceof Error ? error.message : String(error),
+          message: getErrorMessage(error),
         });
       }
       throw error;
@@ -275,13 +277,10 @@ export class MarkdownExporter implements Exporter {
   }
 
   /**
-   * Format layer name for display
+   * Format layer name for display (delegates to centralized formatter)
    */
   private formatLayerName(name: string): string {
-    return name
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+    return formatLayerName(name);
   }
 
   /**

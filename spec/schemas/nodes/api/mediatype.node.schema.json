@@ -46,9 +46,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "contentType"
-      ],
+      "required": ["contentType"],
       "additionalProperties": false
     }
   }

@@ -5,6 +5,7 @@
 import ansis from "ansis";
 import type { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
+import { formatLayerNameWithSuffix } from "../utils/layer-name-formatter.js";
 
 interface ValidationStats {
   totalElements: number;
@@ -80,10 +81,10 @@ export class ValidationFormatter {
       if (hasErrors) {
         const errorCount = result.errors.filter((e) => e.layer === layerName).length;
         lines.push(
-          `${ansis.red("✗")} ${this.formatLayerName(layerName)} (${count} elements) - ${errorCount} error(s)`
+          `${ansis.red("✗")} ${formatLayerNameWithSuffix(layerName)} (${count} elements) - ${errorCount} error(s)`
         );
       } else {
-        lines.push(`${ansis.green("✓")} ${this.formatLayerName(layerName)} (${count} elements)`);
+        lines.push(`${ansis.green("✓")} ${formatLayerNameWithSuffix(layerName)} (${count} elements)`);
       }
     }
 
@@ -279,28 +280,6 @@ export class ValidationFormatter {
     }
 
     return stats;
-  }
-
-  /**
-   * Format layer name for display
-   */
-  private static formatLayerName(layerName: string): string {
-    const names: Record<string, string> = {
-      motivation: "Motivation layer",
-      business: "Business layer",
-      security: "Security layer",
-      application: "Application layer",
-      technology: "Technology layer",
-      api: "API layer",
-      "data-model": "Data Model layer",
-      "data-store": "Data Store layer",
-      ux: "UX layer",
-      navigation: "Navigation layer",
-      apm: "APM layer",
-      testing: "Testing layer",
-    };
-
-    return names[layerName] || layerName;
   }
 
   /**

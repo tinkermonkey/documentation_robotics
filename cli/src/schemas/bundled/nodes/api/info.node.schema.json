@@ -46,11 +46,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "title",
-        "version",
-        "termsOfService"
-      ],
+      "required": ["title", "version", "termsOfService"],
       "additionalProperties": false
     }
   }

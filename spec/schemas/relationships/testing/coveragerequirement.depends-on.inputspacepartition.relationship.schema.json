@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.depends-on.testing"
+      "const": "testing.coveragerequirement.depends-on.testing.inputspacepartition"
     },
     "source_spec_node_id": {
       "const": "testing.coveragerequirement"

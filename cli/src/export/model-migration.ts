@@ -14,6 +14,7 @@ import type { GraphNode, GraphEdge } from "../core/graph-model.js";
 import { writeFile, mkdir, cp, rm, readFile } from "fs/promises";
 import * as path from "path";
 import { randomUUID } from "crypto";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Represents a single element's old ID → new UUID mapping
@@ -150,7 +151,7 @@ export class ModelMigrationService {
       result.duration = Date.now() - startTime;
       return result;
     } catch (error) {
-      result.validationErrors.push(error instanceof Error ? error.message : String(error));
+      result.validationErrors.push(getErrorMessage(error));
       result.duration = Date.now() - startTime;
 
       // Attempt rollback on error
@@ -174,7 +175,7 @@ export class ModelMigrationService {
               JSON.stringify(
                 {
                   timestamp: new Date().toISOString(),
-                  originalError: error instanceof Error ? error.message : String(error),
+                  originalError: getErrorMessage(error),
                   rollbackError: rollbackMessage,
                   message:
                     "Migration failed and rollback was unsuccessful. Data may be corrupted. Do not use this directory.",
@@ -420,7 +421,7 @@ export class ModelMigrationService {
         }
       }
     } catch (error) {
-      errors.push(`Validation failed: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(`Validation failed: ${getErrorMessage(error)}`);
     }
 
     return errors;
@@ -449,7 +450,7 @@ export class ModelMigrationService {
       // Restore from backup
       await cp(backupDir, targetDir, { recursive: true });
     } catch (error) {
-      throw new Error(`Rollback failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Rollback failed: ${getErrorMessage(error)}`);
     }
   }
 }

@@ -34,9 +34,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "serviceName"
-      ],
+      "required": ["serviceName"],
       "additionalProperties": false
     }
   }

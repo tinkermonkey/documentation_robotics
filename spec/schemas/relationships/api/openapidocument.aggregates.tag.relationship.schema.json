@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.aggregates.api"
+      "const": "api.openapidocument.aggregates.api.tag"
     },
     "source_spec_node_id": {
       "const": "api.openapidocument"

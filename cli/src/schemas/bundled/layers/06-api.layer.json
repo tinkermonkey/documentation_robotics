@@ -1,0 +1,42 @@
+{
+  "id": "api",
+  "number": 6,
+  "name": "API Layer",
+  "description": "Layer 6: API Layer",
+  "inspired_by": {
+    "standard": "OpenAPI 3.0",
+    "version": "3.0",
+    "url": "https://spec.openapis.org/oas/v3.0.0"
+  },
+  "node_types": [
+    "api.callback",
+    "api.components",
+    "api.contact",
+    "api.encoding",
+    "api.example",
+    "api.externaldocumentation",
+    "api.header",
+    "api.info",
+    "api.license",
+    "api.link",
+    "api.mediatype",
+    "api.oauthflow",
+    "api.oauthflows",
+    "api.openapidocument",
+    "api.operation",
+    "api.parameter",
+    "api.parameterlocation",
+    "api.parameterstyle",
+    "api.pathitem",
+    "api.paths",
+    "api.requestbody",
+    "api.response",
+    "api.responses",
+    "api.schema",
+    "api.securityscheme",
+    "api.securitytype",
+    "api.server",
+    "api.servervariable",
+    "api.tag"
+  ]
+}

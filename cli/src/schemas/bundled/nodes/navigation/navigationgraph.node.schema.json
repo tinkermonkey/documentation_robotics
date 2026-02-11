@@ -49,10 +49,7 @@
           "description": "Contains relationship"
         }
       },
-      "required": [
-        "version",
-        "application"
-      ],
+      "required": ["version", "application"],
       "additionalProperties": false
     }
   }

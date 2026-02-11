@@ -7,39 +7,26 @@ import { Model } from "../core/model.js";
 import { Layer } from "../core/layer.js";
 import { Element } from "../core/element.js";
 import { MutationHandler } from "../core/mutation-handler.js";
-import {
-  InvalidJSONError,
-  CLIError,
-  handleError,
-  handleSuccess,
-  ErrorCategory,
-  findSimilar,
-  formatValidOptions,
-  ModelNotFoundError,
-} from "../utils/errors.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { generateElementId } from "../utils/id-generator.js";
+import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
+import { isValidNodeType, getNodeTypesForLayer } from "../generated/node-types.js";
+import {
+  CLIError,
+  ErrorCategory,
+  InvalidJSONError,
+  ModelNotFoundError,
+  findSimilar,
+  formatValidOptions,
+  getErrorMessage,
+  handleError,
+  handleSuccess,
+} from "../utils/errors.js";
 
 // Telemetry flag check
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
-
-// Valid canonical layer names (from CLAUDE.md section 4.1)
-const VALID_LAYERS = [
-  "motivation",
-  "business",
-  "security",
-  "application",
-  "technology",
-  "api",
-  "data-model",
-  "data-store",
-  "ux",
-  "navigation",
-  "apm",
-  "testing",
-];
 
 export interface AddOptions {
   name?: string;
@@ -64,9 +51,10 @@ export async function addCommand(
 
   try {
     // Validate layer name
-    if (!VALID_LAYERS.includes(layer)) {
-      const similar = findSimilar(layer, VALID_LAYERS, 3);
-      const suggestions: string[] = [`Use a valid layer name: ${formatValidOptions(VALID_LAYERS)}`];
+    if (!isValidLayer(layer)) {
+      const validLayers = getAllLayerIds();
+      const similar = findSimilar(layer, validLayers, 3);
+      const suggestions: string[] = [`Use a valid layer name: ${formatValidOptions(validLayers)}`];
       if (similar.length > 0) {
         suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
       }
@@ -76,7 +64,29 @@ export async function addCommand(
       });
     }
 
+    // Validate element type for this layer
+    if (!isValidNodeType(layer, type)) {
+      const validNodeTypes = getNodeTypesForLayer(layer);
+      const typeNames = validNodeTypes.map((t) => t.type).sort();
+      const similar = findSimilar(type, typeNames, 3);
+      const suggestions: string[] = [`Valid types for ${layer}: ${formatValidOptions(typeNames)}`];
+      if (similar.length > 0) {
+        suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+      }
+      throw new CLIError(
+        `Invalid element type "${type}" for layer "${layer}"`,
+        ErrorCategory.USER,
+        suggestions,
+        {
+          operation: "add",
+          context: `Layer: ${layer}, Type: ${type}, Name: ${name}`,
+        }
+      );
+    }
+
     // Generate full element ID: {layer}.{type}.{kebab-name}
+    // Use the user-provided type (abbreviated form like "service") for backwards compatibility
+    // Type normalization for schema validation is handled by isValidNodeType() above
     // This matches Python CLI format for compatibility
     const elementId = generateElementId(layer, type, name);
 
@@ -96,7 +106,7 @@ export async function addCommand(
     try {
       model = await Model.load();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {
         throw new ModelNotFoundError();
       }
@@ -121,9 +131,11 @@ export async function addCommand(
     }
 
     // Create element with Python CLI compatible ID format
+    // Use user-provided type (not normalized) for element type field to maintain
+    // backwards compatibility with file naming (services.yaml not businessservices.yaml)
     const element = new Element({
       id: elementId,
-      type,
+      type: type,
       name: options.name || name,
       description: options.description,
       properties,

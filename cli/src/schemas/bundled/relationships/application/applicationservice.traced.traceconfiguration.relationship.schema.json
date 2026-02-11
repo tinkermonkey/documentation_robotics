@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.traced.apm"
+      "const": "application.applicationservice.traced.apm.traceconfiguration"
     },
     "source_spec_node_id": {
       "const": "application.applicationservice"

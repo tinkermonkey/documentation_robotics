@@ -181,14 +181,14 @@ describe("info command", () => {
 
     // Add multiple types to business layer
     await runDr(
-      ["add", "business", "business-service", "business-service-test-1", "--name", "Service"],
+      ["add", "business", "businessservice", "business-service-test-1", "--name", "Service"],
       { cwd: tempDir.path }
     );
     await runDr(
-      ["add", "business", "business-process", "business-process-test-1", "--name", "Process"],
+      ["add", "business", "businessprocess", "business-process-test-1", "--name", "Process"],
       { cwd: tempDir.path }
     );
-    await runDr(["add", "business", "business-actor", "business-actor-test-1", "--name", "Actor"], {
+    await runDr(["add", "business", "businessactor", "business-actor-test-1", "--name", "Actor"], {
       cwd: tempDir.path,
     });
 

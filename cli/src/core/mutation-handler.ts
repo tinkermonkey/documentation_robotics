@@ -12,6 +12,7 @@ import { Model } from "./model.js";
 import { Element } from "./element.js";
 import { StagingAreaManager } from "./staging-area.js";
 import { CLIError } from "../utils/errors.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export type MutationType = "add" | "update" | "delete";
 
@@ -331,7 +332,7 @@ export class MutationHandler {
       await this.context.model.saveManifest();
     } catch (error) {
       throw new CLIError(
-        `Failed to persist changes: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to persist changes: ${getErrorMessage(error)}`,
         1,
         ["Check that the model directory is writable", "Verify the model is not corrupted"]
       );

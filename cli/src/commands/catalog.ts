@@ -9,6 +9,7 @@ import { Command } from "commander";
 import ansis from "ansis";
 import { RelationshipCatalog } from "../core/relationship-catalog.js";
 import { Model } from "../core/model.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export function catalogCommands(program: Command): void {
   const catalog = program
@@ -122,7 +123,7 @@ Examples:
           console.log(ansis.dim(`Total: ${types.length} relationship types`));
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }
@@ -169,7 +170,7 @@ Examples:
           }
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }
@@ -228,7 +229,7 @@ Examples:
           console.log(ansis.dim(`Found ${results.length} matching types`));
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }
@@ -328,7 +329,7 @@ Examples:
           }
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }
@@ -365,17 +366,16 @@ Examples:
         if (options.format === "markdown") {
           // Generate markdown documentation
           output += "# Relationship Catalog Documentation\n\n";
-          output += `**Version:** ${metadata.version}  \n`;
-          output += `**Generated:** ${new Date().toISOString()}  \n`;
+          output += `**Version:** ${metadata.version}\n`;
+          output += `**Generated:** ${new Date().toISOString()}\n`;
           output += `**Total Types:** ${types.length}\n\n`;
 
           // Group by category
           const byCategory = new Map<string, typeof types>();
           for (const type of types) {
-            if (!byCategory.has(type.category)) {
-              byCategory.set(type.category, []);
-            }
-            byCategory.get(type.category)!.push(type);
+            const existing = byCategory.get(type.category) ?? [];
+            existing.push(type);
+            byCategory.set(type.category, existing);
           }
 
           for (const [category, categoryTypes] of byCategory) {
@@ -383,14 +383,14 @@ Examples:
 
             for (const type of categoryTypes.sort((a, b) => a.id.localeCompare(b.id))) {
               output += `### ${type.id}\n\n`;
-              output += `**Predicate:** \`${type.predicate}\`  \n`;
+              output += `**Predicate:** \`${type.predicate}\`\n`;
               if (type.inversePredicate) {
-                output += `**Inverse Predicate:** \`${type.inversePredicate}\`  \n`;
+                output += `**Inverse Predicate:** \`${type.inversePredicate}\`\n`;
               }
               if (type.archimateAlignment) {
-                output += `**ArchiMate Alignment:** ${type.archimateAlignment}  \n`;
+                output += `**ArchiMate Alignment:** ${type.archimateAlignment}\n`;
               }
-              output += `**Applicable Layers:** ${type.applicableLayers.join(", ")}  \n\n`;
+              output += `**Applicable Layers:** ${type.applicableLayers.join(", ")}\n\n`;
               output += `**Description:** ${type.description}\n\n`;
 
               // Semantics
@@ -449,7 +449,7 @@ Examples:
           console.log(output);
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         console.error(ansis.red(`Error: ${message}`));
         process.exit(1);
       }

@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.apm-trace.apm"
+      "const": "api.operation.apm-trace.apm.traceconfiguration"
     },
     "source_spec_node_id": {
       "const": "api.operation"

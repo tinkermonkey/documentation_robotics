@@ -66,23 +66,6 @@ repos:
         files: ^spec/schemas/.*\.schema\.json$
         args: [--schemafile, "https://json-schema.org/draft-07/schema"]
 
-  # Spec validation (requires Python virtual environment)
-  - repo: local
-    hooks:
-      - id: validate-markdown-specs
-        name: Validate markdown layer specifications
-        entry: bash -c 'source .venv/bin/activate && python scripts/validate.py --markdown --schemas --no-output'
-        language: system
-        files: ^spec/layers/.*\.md$
-        pass_filenames: false
-
-      - id: validate-relationship-catalog
-        name: Validate relationship catalog schema
-        entry: bash -c 'source .venv/bin/activate && python scripts/validate.py --schemas --no-output'
-        language: system
-        files: ^spec/schemas/relationship-catalog\.json$
-        pass_filenames: false
-
 # Exclude patterns
 exclude: |
   (?x)^(

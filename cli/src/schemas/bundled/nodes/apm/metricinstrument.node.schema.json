@@ -44,10 +44,7 @@
           "description": "Source code reference for code-defined metrics"
         }
       },
-      "required": [
-        "type",
-        "unit"
-      ],
+      "required": ["type", "unit"],
       "additionalProperties": false
     }
   }

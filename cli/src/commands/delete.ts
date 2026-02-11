@@ -11,6 +11,7 @@ import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, handleError, ErrorCategory, ModelNotFoundError } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
@@ -39,7 +40,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     try {
       model = await Model.load();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {
         throw new ModelNotFoundError();
       }
@@ -56,7 +57,14 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     }
 
     const layer = (await model.getLayer(layerName))!;
-    const element = layer.getElement(id)!;
+    const element = layer.getElement(id);
+
+    if (!element) {
+      throw new CLIError(`Element ${id} not found`, ErrorCategory.USER, [
+        `Use "dr search ${id}" to find similar elements`,
+        'Use "dr list <layer>" to list all elements in a layer',
+      ]);
+    }
 
     // Build reference registry to track dependencies
     const registry = new ReferenceRegistry();

@@ -12,6 +12,7 @@ import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js
 import { ReferenceRegistry } from "../core/reference-registry.js";
 import type { ToolDefinition, ToolExecutionResult } from "../types/index.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * Get tool definitions for Claude to use with the model
@@ -163,7 +164,7 @@ export async function executeModelTool(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
     throw error;
@@ -245,11 +246,11 @@ async function executeDrList(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
     return {
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     };
   } finally {
     endSpan(span);
@@ -329,11 +330,11 @@ async function executeDrFind(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
     return {
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     };
   } finally {
     endSpan(span);
@@ -432,11 +433,11 @@ async function executeDrSearch(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
     return {
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     };
   } finally {
     endSpan(span);
@@ -543,11 +544,11 @@ async function executeDrTrace(
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
       });
     }
     return {
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     };
   } finally {
     endSpan(span);

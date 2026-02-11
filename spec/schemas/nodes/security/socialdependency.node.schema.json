@@ -43,13 +43,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "depender",
-        "dependee",
-        "resource",
-        "objective",
-        "criticality"
-      ],
+      "required": ["depender", "dependee", "resource", "objective", "criticality"],
       "additionalProperties": false
     }
   }

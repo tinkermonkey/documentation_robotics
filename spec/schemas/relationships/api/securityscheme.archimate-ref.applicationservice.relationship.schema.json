@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.archimate-ref.application"
+      "const": "api.securityscheme.archimate-ref.application.applicationservice"
     },
     "source_spec_node_id": {
       "const": "api.securityscheme"
