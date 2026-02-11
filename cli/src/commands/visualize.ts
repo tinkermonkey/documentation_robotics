@@ -10,6 +10,7 @@ import { Model } from "../core/model.js";
 import { logVerbose, logDebug } from "../utils/globals.js";
 import { CLIError } from "../utils/errors.js";
 import { getSpecReferencePath, getModelPath } from "../utils/project-paths.js";
+import { extractErrorMessage } from "../utils/error-utils.js";
 
 // Conditional telemetry import based on compile-time flag
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -388,7 +389,7 @@ export async function visualizeCommand(
       throw error;
     }
     // Non-CLIError needs to be printed and wrapped
-    const message = error instanceof Error ? error.message : String(error);
+    const message = extractErrorMessage(error);
     console.error(message);
     throw new CLIError(message, 1);
   }

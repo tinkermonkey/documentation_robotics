@@ -12,6 +12,7 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { ElementMigration } from "../utils/element-migration.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
+import { extractErrorMessage } from "../utils/error-utils.js";
 
 export async function migrateElementsCommand(options: {
   dryRun?: boolean;
@@ -88,7 +89,7 @@ export async function migrateElementsCommand(options: {
       } catch (error) {
         console.error(
           ansis.red(
-            `✗ Migration failed to save changes: ${error instanceof Error ? error.message : String(error)}`
+            `✗ Migration failed to save changes: ${extractErrorMessage(error)}`
           )
         );
         console.log(ansis.yellow(`  Rollback: Restoring from backup at ${backupPath}`));
@@ -104,7 +105,7 @@ export async function migrateElementsCommand(options: {
           console.error(ansis.red(`  Manual recovery needed from backup at: ${backupPath}`));
         }
         throw new CLIError(
-          `Migration failed to save changes: ${error instanceof Error ? error.message : String(error)}`,
+          `Migration failed to save changes: ${extractErrorMessage(error)}`,
           ErrorCategory.SYSTEM,
           [`Check backup at: ${backupPath}`]
         );

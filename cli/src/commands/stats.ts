@@ -8,6 +8,7 @@ import { Model } from "../core/model.js";
 import { StatsCollector } from "../core/stats-collector.js";
 import { formatStats, StatsFormat } from "../export/stats-formatters.js";
 import path from "path";
+import { extractErrorMessage } from "../utils/error-utils.js";
 
 export interface StatsOptions {
   format?: StatsFormat;
@@ -72,7 +73,7 @@ export async function statsCommand(options: StatsOptions): Promise<void> {
       console.log(output);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = extractErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
   }

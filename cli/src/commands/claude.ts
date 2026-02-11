@@ -8,6 +8,7 @@
 import { Command } from "commander";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
 import { CLIError } from "../utils/errors.js";
+import { extractErrorMessage } from "../utils/error-utils.js";
 
 /**
  * Register all Claude integration subcommands
@@ -63,7 +64,7 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
+        throw new CLIError(extractErrorMessage(error), 1);
       }
     });
 
@@ -95,7 +96,7 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
+        throw new CLIError(extractErrorMessage(error), 1);
       }
     });
 
@@ -139,7 +140,7 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
+        throw new CLIError(extractErrorMessage(error), 1);
       }
     });
 
@@ -163,7 +164,7 @@ Examples:
       try {
         await manager.status();
       } catch (error) {
-        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
+        throw new CLIError(extractErrorMessage(error), 1);
       }
     });
 
@@ -187,7 +188,7 @@ Examples:
       try {
         await manager.list();
       } catch (error) {
-        throw new CLIError(error instanceof Error ? error.message : String(error), 1);
+        throw new CLIError(extractErrorMessage(error), 1);
       }
     });
 }

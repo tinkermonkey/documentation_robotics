@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import { Model } from "../core/model.js";
 import { Validator } from "../validators/validator.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
+import { extractErrorMessage } from "../utils/error-utils.js";
 
 export interface ValidateOptions {
   layers?: string[];
@@ -112,7 +113,7 @@ async function validateSchemaSynchronization(): Promise<void> {
         }
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = extractErrorMessage(error);
       mismatches.push(`  ${ansis.red("✗")} ${schemaFile} - Error reading spec schema: ${message}`);
     }
   }
@@ -206,7 +207,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       throw new Error("Validation failed");
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = extractErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
 
     // Always preserve full error details in stderr for debugging

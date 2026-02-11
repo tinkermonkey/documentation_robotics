@@ -5,6 +5,7 @@
 import ansis from "ansis";
 import type { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
+import { formatLayerName } from "../utils/layer-name-mapping.js";
 
 interface ValidationStats {
   totalElements: number;
@@ -285,22 +286,7 @@ export class ValidationFormatter {
    * Format layer name for display
    */
   private static formatLayerName(layerName: string): string {
-    const names: Record<string, string> = {
-      motivation: "Motivation layer",
-      business: "Business layer",
-      security: "Security layer",
-      application: "Application layer",
-      technology: "Technology layer",
-      api: "API layer",
-      "data-model": "Data Model layer",
-      "data-store": "Data Store layer",
-      ux: "UX layer",
-      navigation: "Navigation layer",
-      apm: "APM layer",
-      testing: "Testing layer",
-    };
-
-    return names[layerName] || layerName;
+    return formatLayerName(layerName);
   }
 
   /**

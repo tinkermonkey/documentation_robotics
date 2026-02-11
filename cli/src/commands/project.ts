@@ -4,6 +4,7 @@
 
 import ansis from "ansis";
 import { Model } from "../core/model.js";
+import { extractErrorMessage } from "../utils/error-utils.js";
 
 export async function projectCommand(
   elementId: string,
@@ -78,7 +79,7 @@ export async function projectCommand(
           results.push({ layer: targetLayer, element: projected });
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = extractErrorMessage(error);
         console.log(ansis.red(`✗ Error projecting to ${targetLayer}: ${message}`));
       }
     }
@@ -138,7 +139,7 @@ export async function projectCommand(
 
     console.log("");
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = extractErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
   }
@@ -218,7 +219,7 @@ export async function projectAllCommand(
 
     console.log("");
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = extractErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
   }
