@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.triggers.api"
+      "const": "api.operation.triggers.api.callback"
     },
     "source_spec_node_id": {
       "const": "api.operation"

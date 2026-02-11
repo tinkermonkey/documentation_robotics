@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.serves.testing"
+      "const": "testing.inputspacepartition.serves.testing.testcoveragetarget"
     },
     "source_spec_node_id": {
       "const": "testing.inputspacepartition"

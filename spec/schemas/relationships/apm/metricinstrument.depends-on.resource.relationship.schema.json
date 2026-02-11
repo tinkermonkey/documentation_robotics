@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.depends-on.apm"
+      "const": "apm.metricinstrument.depends-on.apm.resource"
     },
     "source_spec_node_id": {
       "const": "apm.metricinstrument"

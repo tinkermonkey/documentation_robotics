@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "technology.classification.security"
+      "const": "technology.artifact.classification.security.classification"
     },
     "source_spec_node_id": {
       "const": "technology.artifact"

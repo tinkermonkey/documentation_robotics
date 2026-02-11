@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.serves.apm"
+      "const": "apm.exporterconfig.serves.apm.apmconfiguration"
     },
     "source_spec_node_id": {
       "const": "apm.exporterconfig"

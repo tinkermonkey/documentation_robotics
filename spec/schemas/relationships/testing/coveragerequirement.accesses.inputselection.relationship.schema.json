@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.accesses.testing"
+      "const": "testing.coveragerequirement.accesses.testing.inputselection"
     },
     "source_spec_node_id": {
       "const": "testing.coveragerequirement"

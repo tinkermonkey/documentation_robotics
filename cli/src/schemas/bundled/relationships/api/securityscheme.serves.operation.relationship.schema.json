@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.serves.api"
+      "const": "api.securityscheme.serves.api.operation"
     },
     "source_spec_node_id": {
       "const": "api.securityscheme"

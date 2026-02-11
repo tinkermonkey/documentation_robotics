@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.fulfills-requirements.motivation"
+      "const": "testing.testcasesketch.fulfills-requirements.motivation.requirement"
     },
     "source_spec_node_id": {
       "const": "testing.testcasesketch"

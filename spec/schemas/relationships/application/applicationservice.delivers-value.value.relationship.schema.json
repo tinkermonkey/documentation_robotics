@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "application.delivers-value.motivation"
+      "const": "application.applicationservice.delivers-value.motivation.value"
     },
     "source_spec_node_id": {
       "const": "application.applicationservice"

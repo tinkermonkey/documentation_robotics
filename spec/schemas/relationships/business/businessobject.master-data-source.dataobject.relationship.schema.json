@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.master-data-source.application"
+      "const": "business.businessobject.master-data-source.application.dataobject"
     },
     "source_spec_node_id": {
       "const": "business.businessobject"

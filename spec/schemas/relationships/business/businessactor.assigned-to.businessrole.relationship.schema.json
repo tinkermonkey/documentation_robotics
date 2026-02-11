@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.assigned-to.business"
+      "const": "business.businessactor.assigned-to.business.businessrole"
     },
     "source_spec_node_id": {
       "const": "business.businessactor"

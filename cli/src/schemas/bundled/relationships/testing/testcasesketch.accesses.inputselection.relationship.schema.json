@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.accesses.testing"
+      "const": "testing.testcasesketch.accesses.testing.inputselection"
     },
     "source_spec_node_id": {
       "const": "testing.testcasesketch"

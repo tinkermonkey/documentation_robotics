@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "motivation.influence.motivation"
+      "const": "motivation.driver.influence.motivation.requirement"
     },
     "source_spec_node_id": {
       "const": "motivation.driver"

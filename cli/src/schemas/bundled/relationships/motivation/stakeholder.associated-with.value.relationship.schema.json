@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "motivation.associated-with.motivation"
+      "const": "motivation.stakeholder.associated-with.motivation.value"
     },
     "source_spec_node_id": {
       "const": "motivation.stakeholder"

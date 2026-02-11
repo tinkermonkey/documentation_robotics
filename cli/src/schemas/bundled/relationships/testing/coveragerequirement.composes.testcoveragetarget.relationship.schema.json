@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.composes.testing"
+      "const": "testing.coveragerequirement.composes.testing.testcoveragetarget"
     },
     "source_spec_node_id": {
       "const": "testing.coveragerequirement"

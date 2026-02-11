@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.references.testing"
+      "const": "testing.testcasesketch.references.testing.partitionvalue"
     },
     "source_spec_node_id": {
       "const": "testing.testcasesketch"

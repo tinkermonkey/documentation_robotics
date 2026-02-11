@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.serves.business"
+      "const": "business.businessservice.serves.business.businessactor"
     },
     "source_spec_node_id": {
       "const": "business.businessservice"

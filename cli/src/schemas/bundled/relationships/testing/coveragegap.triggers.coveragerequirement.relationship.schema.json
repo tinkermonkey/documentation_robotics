@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.triggers.testing"
+      "const": "testing.coveragegap.triggers.testing.coveragerequirement"
     },
     "source_spec_node_id": {
       "const": "testing.coveragegap"

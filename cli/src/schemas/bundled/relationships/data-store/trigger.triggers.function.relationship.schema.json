@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "data-store.triggers.data-store"
+      "const": "data-store.trigger.triggers.data-store.function"
     },
     "source_spec_node_id": {
       "const": "data-store.trigger"

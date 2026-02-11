@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.triggers.apm"
+      "const": "apm.dataqualitymetric.triggers.apm.logrecord"
     },
     "source_spec_node_id": {
       "const": "apm.dataqualitymetric"

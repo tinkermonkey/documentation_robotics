@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.archimate-ref.application"
+      "const": "data-model.jsonschema.archimate-ref.application.applicationservice"
     },
     "source_spec_node_id": {
       "const": "data-model.jsonschema"

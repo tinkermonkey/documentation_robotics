@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.data-governance.data-model"
+      "const": "data-model.jsonschema.data-governance.data-model.datagovernance"
     },
     "source_spec_node_id": {
       "const": "data-model.jsonschema"

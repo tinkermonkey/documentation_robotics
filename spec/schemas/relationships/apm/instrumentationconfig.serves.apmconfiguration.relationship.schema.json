@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.serves.apm"
+      "const": "apm.instrumentationconfig.serves.apm.apmconfiguration"
     },
     "source_spec_node_id": {
       "const": "apm.instrumentationconfig"

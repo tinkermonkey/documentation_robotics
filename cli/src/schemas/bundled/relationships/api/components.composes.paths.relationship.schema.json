@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.composes.api"
+      "const": "api.components.composes.api.paths"
     },
     "source_spec_node_id": {
       "const": "api.components"

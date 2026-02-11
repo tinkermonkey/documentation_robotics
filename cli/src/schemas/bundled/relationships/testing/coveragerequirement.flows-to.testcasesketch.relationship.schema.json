@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.flows-to.testing"
+      "const": "testing.coveragerequirement.flows-to.testing.testcasesketch"
     },
     "source_spec_node_id": {
       "const": "testing.coveragerequirement"

@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.accesses.business"
+      "const": "business.businessprocess.accesses.business.businessobject"
     },
     "source_spec_node_id": {
       "const": "business.businessprocess"

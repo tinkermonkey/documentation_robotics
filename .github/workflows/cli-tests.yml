@@ -42,10 +42,7 @@ jobs:
 
       - name: Build CLI
         working-directory: ./cli
-        # Note: Using 'build' instead of 'build:ci' due to pre-existing duplicate relationship IDs
-        # that need to be fixed in spec schemas before strict mode can be enforced.
-        # TODO: Switch to 'npm run build:ci' after duplicates are resolved in spec/schemas/relationships/
-        run: npm run build
+        run: npm run build:ci
 
       - name: Run linting
         working-directory: ./cli
@@ -93,10 +90,7 @@ jobs:
 
       - name: Build CLI
         working-directory: ./cli
-        # Note: Using 'build' instead of 'build:ci' due to pre-existing duplicate relationship IDs
-        # that need to be fixed in spec schemas before strict mode can be enforced.
-        # TODO: Switch to 'npm run build:ci' after duplicates are resolved in spec/schemas/relationships/
-        run: npm run build
+        run: npm run build:ci
 
       - name: Run linting
         working-directory: ./cli
@@ -306,10 +300,7 @@ jobs:
 
       - name: Cross-validate spec schemas with CLI bundled schemas
         working-directory: ./cli
-        # Note: Using 'build' instead of 'build:ci' due to pre-existing duplicate relationship IDs
-        # that need to be fixed in spec schemas before strict mode can be enforced.
-        # TODO: Switch to 'npm run build:ci' after duplicates are resolved in spec/schemas/relationships/
         run: |
           npm install
-          npm run build
+          npm run build:ci
           node dist/cli.js validate --schemas

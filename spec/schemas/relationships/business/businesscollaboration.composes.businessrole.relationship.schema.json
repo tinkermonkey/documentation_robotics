@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.composes.business"
+      "const": "business.businesscollaboration.composes.business.businessrole"
     },
     "source_spec_node_id": {
       "const": "business.businesscollaboration"

@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "data-store.aggregates.data-store"
+      "const": "data-store.index.aggregates.data-store.column"
     },
     "source_spec_node_id": {
       "const": "data-store.index"

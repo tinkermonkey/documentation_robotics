@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.flows-to.business"
+      "const": "business.businessprocess.flows-to.business.businessprocess"
     },
     "source_spec_node_id": {
       "const": "business.businessprocess"

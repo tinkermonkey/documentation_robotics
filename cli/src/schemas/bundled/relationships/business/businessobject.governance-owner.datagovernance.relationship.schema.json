@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.governance-owner.data-model"
+      "const": "business.businessobject.governance-owner.data-model.datagovernance"
     },
     "source_spec_node_id": {
       "const": "business.businessobject"

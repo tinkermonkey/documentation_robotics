@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.composes.apm"
+      "const": "apm.span.composes.apm.traceconfiguration"
     },
     "source_spec_node_id": {
       "const": "apm.span"

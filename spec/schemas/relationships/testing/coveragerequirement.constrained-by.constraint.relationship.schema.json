@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.constrained-by.motivation"
+      "const": "testing.coveragerequirement.constrained-by.motivation.constraint"
     },
     "source_spec_node_id": {
       "const": "testing.coveragerequirement"

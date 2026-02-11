@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "motivation.influence.motivation"
+      "const": "motivation.constraint.influence.motivation.goal"
     },
     "source_spec_node_id": {
       "const": "motivation.constraint"

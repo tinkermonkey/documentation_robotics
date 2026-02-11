@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.business-interface-ref.business"
+      "const": "api.securityscheme.business-interface-ref.business.businessinterface"
     },
     "source_spec_node_id": {
       "const": "api.securityscheme"

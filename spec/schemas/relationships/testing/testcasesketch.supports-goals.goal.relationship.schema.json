@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.supports-goals.motivation"
+      "const": "testing.testcasesketch.supports-goals.motivation.goal"
     },
     "source_spec_node_id": {
       "const": "testing.testcasesketch"

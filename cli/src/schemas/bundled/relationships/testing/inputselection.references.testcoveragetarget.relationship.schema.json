@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "testing.references.testing"
+      "const": "testing.inputselection.references.testing.testcoveragetarget"
     },
     "source_spec_node_id": {
       "const": "testing.inputselection"

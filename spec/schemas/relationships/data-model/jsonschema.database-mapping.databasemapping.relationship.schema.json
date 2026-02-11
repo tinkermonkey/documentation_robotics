@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.database-mapping.data-model"
+      "const": "data-model.jsonschema.database-mapping.data-model.databasemapping"
     },
     "source_spec_node_id": {
       "const": "data-model.jsonschema"

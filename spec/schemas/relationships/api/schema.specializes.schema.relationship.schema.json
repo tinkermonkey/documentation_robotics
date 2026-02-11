@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.specializes.api"
+      "const": "api.schema.specializes.api.schema"
     },
     "source_spec_node_id": {
       "const": "api.schema"

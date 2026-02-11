@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.separation-of-duty.security"
+      "const": "business.businessprocess.separation-of-duty.security.separationofduty"
     },
     "source_spec_node_id": {
       "const": "business.businessprocess"

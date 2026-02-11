@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "data-model.business-object-ref.business"
+      "const": "data-model.jsonschema.business-object-ref.business.businessobject"
     },
     "source_spec_node_id": {
       "const": "data-model.jsonschema"

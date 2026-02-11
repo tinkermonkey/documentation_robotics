@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.security-controls.security"
+      "const": "business.businessprocess.security-controls.security.securityconstraints"
     },
     "source_spec_node_id": {
       "const": "business.businessprocess"

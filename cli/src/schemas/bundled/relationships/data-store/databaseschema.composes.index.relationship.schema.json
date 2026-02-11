@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "data-store.composes.data-store"
+      "const": "data-store.databaseschema.composes.data-store.index"
     },
     "source_spec_node_id": {
       "const": "data-store.databaseschema"

@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.flows-to.apm"
+      "const": "apm.metricinstrument.flows-to.apm.exporterconfig"
     },
     "source_spec_node_id": {
       "const": "apm.metricinstrument"

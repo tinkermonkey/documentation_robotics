@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "apm.references.apm"
+      "const": "apm.logrecord.references.apm.span"
     },
     "source_spec_node_id": {
       "const": "apm.logrecord"

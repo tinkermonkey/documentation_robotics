@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.represented-by-dataobject.application"
+      "const": "business.businessobject.represented-by-dataobject.application.dataobject"
     },
     "source_spec_node_id": {
       "const": "business.businessobject"

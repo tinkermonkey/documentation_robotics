@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "business.triggers.business"
+      "const": "business.businessevent.triggers.business.businessprocess"
     },
     "source_spec_node_id": {
       "const": "business.businessevent"

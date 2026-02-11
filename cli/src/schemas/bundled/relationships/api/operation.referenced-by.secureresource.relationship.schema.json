@@ -9,7 +9,7 @@
   ],
   "properties": {
     "id": {
-      "const": "api.referenced-by.security"
+      "const": "api.operation.referenced-by.security.secureresource"
     },
     "source_spec_node_id": {
       "const": "api.operation"
