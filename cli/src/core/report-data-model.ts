@@ -1,0 +1,582 @@
+/**
+ * ReportDataModel - Unified reporting interface for architecture models
+ *
+ * Combines statistics collection, relationship classification, and data model analysis
+ * to provide comprehensive insights into architecture model structure, quality, and completeness.
+ */
+
+import { Model } from "./model.js";
+import { StatsCollector, ModelStats } from "./stats-collector.js";
+import { RelationshipCatalog, RelationshipType } from "./relationship-catalog.js";
+import type { Relationship } from "../types/index.js";
+
+/**
+ * Relationship with semantic classification metadata
+ */
+export interface ClassifiedRelationship {
+  id: string;
+  source: string; // Element ID
+  target: string; // Element ID
+  predicate: string;
+
+  // Classification
+  category: string; // e.g., "structural", "behavioral", "dependency"
+  archimateAlignment: string | null;
+
+  // Semantic properties
+  directionality: "unidirectional" | "bidirectional";
+  transitivity: boolean;
+  symmetry: boolean;
+  reflexivity?: boolean;
+
+  // Analysis
+  sourceLayer: string;
+  targetLayer: string;
+  isCrossLayer: boolean;
+  isSpecCompliant: boolean;
+}
+
+/**
+ * Data model entity (Layer 7 specific)
+ */
+export interface DataModelEntity {
+  id: string;
+  name: string;
+  layer: string;
+  attributes: string[];
+  relatedEntities: string[];
+  isReferenced: boolean; // Referenced from other layers
+}
+
+/**
+ * Data model layer specific insights
+ */
+export interface DataModelInsights {
+  entityCount: number;
+  attributeCount: number;
+  relationshipCount: number;
+  entities: DataModelEntity[];
+
+  // Coverage metrics
+  entityCoverage: number; // 0-100
+  attributeCoverage: number; // 0-100
+
+  // Complexity
+  avgAttributesPerEntity: number;
+  maxAttributesPerEntity: number;
+  avgRelationshipsPerEntity: number;
+
+  // Quality
+  referencedEntities: number; // Entities referenced from higher layers
+  orphanedEntities: string[];
+}
+
+/**
+ * Relationship analysis results
+ */
+export interface RelationshipAnalysis {
+  totalRelationships: number;
+  classified: ClassifiedRelationship[];
+  byCategory: Record<string, number>;
+  byPredicate: Record<string, number>;
+  crossLayerCount: number;
+  intraLayerCount: number;
+  circularDependencies: CircularPath[];
+}
+
+/**
+ * Circular dependency detection result
+ */
+export interface CircularPath {
+  elements: string[];
+  predicates: string[];
+  pathLength: number;
+}
+
+/**
+ * Quality metrics for the model
+ */
+export interface QualityMetrics {
+  // Coverage
+  elementCoverage: number; // 0-100
+  relationshipCoverage: number; // 0-100
+  documentationCoverage: number; // 0-100
+  layerCoverage: number; // Populated layers / total layers
+
+  // Structural quality
+  orphanedElements: number;
+  circularDependencies: number;
+
+  // Semantic quality
+  archimateCompliance: number; // 0-100
+  specCompliance: number; // 0-100 (relationships matching schemas)
+  semanticConsistency: number; // 0-100
+
+  // Layering quality
+  crossLayerReferenceHealth: number; // 0-100
+  layerComplianceScore: number; // Higher -> lower layer direction compliance
+}
+
+/**
+ * Complete report containing statistics, relationships, data model insights, and quality metrics
+ */
+export interface ReportData {
+  timestamp: string;
+  statistics: ModelStats;
+  relationships: RelationshipAnalysis;
+  dataModel: DataModelInsights;
+  quality: QualityMetrics;
+}
+
+/**
+ * ReportDataModel class - Unified reporting interface
+ */
+export class ReportDataModel {
+  private model: Model;
+  private statsCollector: StatsCollector;
+  private relationshipCatalog: RelationshipCatalog;
+
+  private cachedStats: ModelStats | null = null;
+  private cachedRelationships: RelationshipAnalysis | null = null;
+  private cachedDataModel: DataModelInsights | null = null;
+  private cachedQuality: QualityMetrics | null = null;
+  private cachedReport: ReportData | null = null;
+
+  private relationshipTypeMap: Map<string, RelationshipType> = new Map();
+  private catalogLoaded = false;
+
+  constructor(model: Model) {
+    this.model = model;
+    this.statsCollector = new StatsCollector(model);
+    this.relationshipCatalog = new RelationshipCatalog();
+  }
+
+  /**
+   * Load the relationship catalog and build relationship type map
+   */
+  async loadCatalog(): Promise<void> {
+    if (this.catalogLoaded) return;
+
+    await this.relationshipCatalog.load();
+    const types = this.relationshipCatalog.getAllTypes();
+
+    for (const type of types) {
+      this.relationshipTypeMap.set(type.predicate, type);
+    }
+
+    this.catalogLoaded = true;
+  }
+
+  /**
+   * Collect all report data (statistics, relationships, data model, quality metrics)
+   */
+  async collect(): Promise<ReportData> {
+    if (this.cachedReport) {
+      return this.cachedReport;
+    }
+
+    await this.loadCatalog();
+
+    const statistics = await this.getStatistics();
+    const relationships = await this.getRelationshipAnalysis();
+    const dataModel = await this.getDataModelInsights();
+    const quality = await this.getQualityMetrics();
+
+    this.cachedReport = {
+      timestamp: new Date().toISOString(),
+      statistics,
+      relationships,
+      dataModel,
+      quality,
+    };
+
+    return this.cachedReport;
+  }
+
+  /**
+   * Get model statistics
+   */
+  async getStatistics(): Promise<ModelStats> {
+    if (this.cachedStats) {
+      return this.cachedStats;
+    }
+
+    this.cachedStats = await this.statsCollector.collect();
+    return this.cachedStats;
+  }
+
+  /**
+   * Get relationship analysis with classification
+   */
+  async getRelationshipAnalysis(): Promise<RelationshipAnalysis> {
+    if (this.cachedRelationships) {
+      return this.cachedRelationships;
+    }
+
+    await this.loadCatalog();
+
+    const allRelationships = this.model.relationships.getAll();
+    const classified: ClassifiedRelationship[] = [];
+    const byCategory: Record<string, number> = {};
+    const byPredicate: Record<string, number> = {};
+
+    let crossLayerCount = 0;
+    let intraLayerCount = 0;
+
+    for (let i = 0; i < allRelationships.length; i++) {
+      const rel = allRelationships[i];
+      const classified_rel = this.classifyRelationship(rel, i.toString());
+      classified.push(classified_rel);
+
+      // Count by category
+      if (!byCategory[classified_rel.category]) {
+        byCategory[classified_rel.category] = 0;
+      }
+      byCategory[classified_rel.category]++;
+
+      // Count by predicate
+      if (!byPredicate[rel.predicate]) {
+        byPredicate[rel.predicate] = 0;
+      }
+      byPredicate[rel.predicate]++;
+
+      // Count cross vs intra-layer
+      if (classified_rel.isCrossLayer) {
+        crossLayerCount++;
+      } else {
+        intraLayerCount++;
+      }
+    }
+
+    const circularDependencies = this.detectCircularDependencies(classified);
+
+    this.cachedRelationships = {
+      totalRelationships: allRelationships.length,
+      classified,
+      byCategory,
+      byPredicate,
+      crossLayerCount,
+      intraLayerCount,
+      circularDependencies,
+    };
+
+    return this.cachedRelationships;
+  }
+
+  /**
+   * Get relationships filtered by category
+   */
+  async getRelationshipsByCategory(category: string): Promise<ClassifiedRelationship[]> {
+    const analysis = await this.getRelationshipAnalysis();
+    return analysis.classified.filter((rel) => rel.category === category);
+  }
+
+  /**
+   * Get data model layer (Layer 7) specific insights
+   */
+  async getDataModelInsights(): Promise<DataModelInsights> {
+    if (this.cachedDataModel) {
+      return this.cachedDataModel;
+    }
+
+    const dataModelLayer = await this.model.getLayer("data-model");
+    const entities: DataModelEntity[] = [];
+    let attributeCount = 0;
+
+    if (dataModelLayer) {
+      const elements = dataModelLayer.listElements();
+
+      // Get all references to data model entities from other layers
+      const referencesFrom = new Set<string>();
+      for (const layerName of this.model.getLayerNames()) {
+        if (layerName === "data-model") continue;
+        const layer = await this.model.getLayer(layerName);
+        if (!layer) continue;
+
+        for (const element of layer.listElements()) {
+          if (element.references) {
+            for (const ref of element.references) {
+              if (ref.target.startsWith("data-model.")) {
+                referencesFrom.add(ref.target);
+              }
+            }
+          }
+        }
+      }
+
+      for (const element of elements) {
+        const attributes = element.attributes ? Object.keys(element.attributes) : [];
+        attributeCount += attributes.length;
+
+        entities.push({
+          id: element.id || "",
+          name: element.name,
+          layer: "data-model",
+          attributes,
+          relatedEntities: element.relationships ? element.relationships.map((r) => r.target) : [],
+          isReferenced: referencesFrom.has(element.id || ""),
+        });
+      }
+    }
+
+    const entityCount = entities.length;
+    const referencedCount = entities.filter((e) => e.isReferenced).length;
+    const orphaned = entities.filter((e) => !e.isReferenced && e.relatedEntities.length === 0);
+
+    const avgAttrs = entityCount > 0 ? attributeCount / entityCount : 0;
+    const maxAttrs = Math.max(0, ...entities.map((e) => e.attributes.length));
+    const avgRels =
+      entityCount > 0 ? entities.reduce((sum, e) => sum + e.relatedEntities.length, 0) / entityCount : 0;
+
+    this.cachedDataModel = {
+      entityCount,
+      attributeCount,
+      relationshipCount: entities.reduce((sum, e) => sum + e.relatedEntities.length, 0),
+      entities,
+      entityCoverage: entityCount > 0 ? (referencedCount / entityCount) * 100 : 0,
+      attributeCoverage: entityCount > 0 && attributeCount > 0 ? 100 : 0, // Placeholder
+      avgAttributesPerEntity: Math.round(avgAttrs * 10) / 10,
+      maxAttributesPerEntity: maxAttrs,
+      avgRelationshipsPerEntity: Math.round(avgRels * 10) / 10,
+      referencedEntities: referencedCount,
+      orphanedEntities: orphaned.map((e) => e.id),
+    };
+
+    return this.cachedDataModel;
+  }
+
+  /**
+   * Get quality metrics for the model
+   */
+  async getQualityMetrics(): Promise<QualityMetrics> {
+    if (this.cachedQuality) {
+      return this.cachedQuality;
+    }
+
+    const stats = await this.getStatistics();
+    const relationships = await this.getRelationshipAnalysis();
+
+    // Coverage metrics
+    const elementCoverage = stats.statistics.totalElements > 0 ? 100 : 0;
+    const relationshipCoverage =
+      stats.statistics.totalElements > 0
+        ? (stats.statistics.totalRelationships / stats.statistics.totalElements) * 100
+        : 0;
+    const documentationCoverage = this.calculateDocumentationCoverage(stats);
+    const layerCoverage = (stats.statistics.populatedLayers / stats.statistics.totalLayers) * 100;
+
+    // Structural quality
+    const orphanedElements = stats.orphanedElements.length;
+    const circularDependencies = relationships.circularDependencies.length;
+
+    // Semantic quality - simplified calculation
+    const archimateCompliance = this.calculateArchimateCompliance(relationships);
+    const specCompliance = this.calculateSpecCompliance(relationships);
+    const semanticConsistency = (archimateCompliance + specCompliance) / 2;
+
+    // Layering quality
+    const crossLayerReferenceHealth =
+      relationships.totalRelationships > 0
+        ? (relationships.crossLayerCount / relationships.totalRelationships) * 100
+        : 0;
+
+    // Layer compliance score: proportion of relationships going higher -> lower
+    const layerComplianceScore = this.calculateLayerComplianceScore(relationships);
+
+    this.cachedQuality = {
+      elementCoverage,
+      relationshipCoverage: Math.min(100, relationshipCoverage),
+      documentationCoverage,
+      layerCoverage,
+      orphanedElements,
+      circularDependencies,
+      archimateCompliance,
+      specCompliance,
+      semanticConsistency,
+      crossLayerReferenceHealth: Math.min(100, crossLayerReferenceHealth),
+      layerComplianceScore,
+    };
+
+    return this.cachedQuality;
+  }
+
+  /**
+   * Classify a single relationship with semantic metadata
+   */
+  private classifyRelationship(rel: Relationship, id: string): ClassifiedRelationship {
+    const sourceLayer = rel.source.split(".")[0];
+    const targetLayer = rel.target.split(".")[0];
+    const isCrossLayer = sourceLayer !== targetLayer;
+
+    const relationshipType = this.relationshipTypeMap.get(rel.predicate);
+
+    return {
+      id,
+      source: rel.source,
+      target: rel.target,
+      predicate: rel.predicate,
+      category: relationshipType?.category || "unknown",
+      archimateAlignment: relationshipType?.archimateAlignment || null,
+      directionality: relationshipType?.semantics.directionality || "unidirectional",
+      transitivity: relationshipType?.semantics.transitivity || false,
+      symmetry: relationshipType?.semantics.symmetry || false,
+      reflexivity: relationshipType?.semantics.reflexivity,
+      sourceLayer,
+      targetLayer,
+      isCrossLayer,
+      isSpecCompliant: true, // Placeholder - would validate against relationship schemas
+    };
+  }
+
+  /**
+   * Detect circular dependencies in relationships
+   */
+  private detectCircularDependencies(relationships: ClassifiedRelationship[]): CircularPath[] {
+    const circularPaths: CircularPath[] = [];
+    const visited = new Set<string>();
+    const path: string[] = [];
+    const predicatePath: string[] = [];
+
+    for (const rel of relationships) {
+      if (!visited.has(rel.source)) {
+        this.findCircles(rel.source, relationships, visited, path, predicatePath, circularPaths);
+      }
+    }
+
+    return circularPaths;
+  }
+
+  /**
+   * Helper to find circular paths using DFS
+   */
+  private findCircles(
+    node: string,
+    relationships: ClassifiedRelationship[],
+    visited: Set<string>,
+    path: string[],
+    predicatePath: string[],
+    circularPaths: CircularPath[]
+  ): void {
+    if (path.includes(node)) {
+      const circleStart = path.indexOf(node);
+      const circlePath = path.slice(circleStart);
+      const circlePredicates = predicatePath.slice(circleStart);
+
+      // Only add if not already found
+      const circleKey = circlePath.sort().join("→");
+      const isDuplicate = circularPaths.some(
+        (c) => c.elements.sort().join("→") === circleKey
+      );
+
+      if (!isDuplicate && circlePath.length > 1) {
+        circularPaths.push({
+          elements: circlePath,
+          predicates: circlePredicates,
+          pathLength: circlePath.length,
+        });
+      }
+      return;
+    }
+
+    if (visited.has(node)) {
+      return;
+    }
+
+    path.push(node);
+    visited.add(node);
+
+    // Find all outgoing edges from this node
+    for (const rel of relationships) {
+      if (rel.source === node) {
+        predicatePath.push(rel.predicate);
+        this.findCircles(rel.target, relationships, visited, path, predicatePath, circularPaths);
+        predicatePath.pop();
+      }
+    }
+
+    path.pop();
+  }
+
+  /**
+   * Calculate documentation coverage percentage
+   */
+  private calculateDocumentationCoverage(stats: ModelStats): number {
+    // This is a simplified calculation - a real implementation would check
+    // if elements have descriptions
+    return stats.statistics.totalElements > 0 ? 75 : 0; // Placeholder
+  }
+
+  /**
+   * Calculate ArchiMate alignment percentage
+   */
+  private calculateArchimateCompliance(analysis: RelationshipAnalysis): number {
+    if (analysis.totalRelationships === 0) return 100;
+
+    const archimateAligned = analysis.classified.filter((r) => r.archimateAlignment).length;
+    return Math.round((archimateAligned / analysis.totalRelationships) * 100);
+  }
+
+  /**
+   * Calculate spec compliance percentage
+   */
+  private calculateSpecCompliance(analysis: RelationshipAnalysis): number {
+    if (analysis.totalRelationships === 0) return 100;
+
+    const specCompliant = analysis.classified.filter((r) => r.isSpecCompliant).length;
+    return Math.round((specCompliant / analysis.totalRelationships) * 100);
+  }
+
+  /**
+   * Calculate layer compliance score (directional compliance)
+   */
+  private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
+    const layerOrder: Record<string, number> = {
+      motivation: 1,
+      business: 2,
+      security: 3,
+      application: 4,
+      technology: 5,
+      api: 6,
+      "data-model": 7,
+      "data-store": 8,
+      ux: 9,
+      navigation: 10,
+      apm: 11,
+      testing: 12,
+    };
+
+    if (analysis.totalRelationships === 0) return 100;
+
+    let compliantCount = 0;
+
+    for (const rel of analysis.classified) {
+      const sourceOrder = layerOrder[rel.sourceLayer] || 0;
+      const targetOrder = layerOrder[rel.targetLayer] || 0;
+
+      // Compliant if source > target (higher layer -> lower layer) or same layer
+      if (sourceOrder >= targetOrder) {
+        compliantCount++;
+      }
+    }
+
+    return Math.round((compliantCount / analysis.totalRelationships) * 100);
+  }
+
+  /**
+   * Clear all cached data
+   */
+  clearCache(): void {
+    this.cachedStats = null;
+    this.cachedRelationships = null;
+    this.cachedDataModel = null;
+    this.cachedQuality = null;
+    this.cachedReport = null;
+  }
+
+  /**
+   * Get the relationship catalog
+   */
+  getCatalog(): RelationshipCatalog {
+    return this.relationshipCatalog;
+  }
+}
