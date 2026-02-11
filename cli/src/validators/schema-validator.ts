@@ -45,7 +45,6 @@ export class SchemaValidator {
 
   private ajv: Ajv;
   private compiledSchemas: Map<string, ValidateFunction> = new Map(); // Key: layer.type
-  private loadedSchemaIds: Set<string> = new Set();
   private schemasDir: string;
 
   constructor() {
