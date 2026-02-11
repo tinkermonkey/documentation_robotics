@@ -8,10 +8,10 @@ describe("formatLayerName", () => {
     expect(formatLayerName("security")).toBe("Security");
     expect(formatLayerName("application")).toBe("Application");
     expect(formatLayerName("technology")).toBe("Technology");
-    expect(formatLayerName("api")).toBe("Api");
-    expect(formatLayerName("ux")).toBe("Ux");
+    expect(formatLayerName("api")).toBe("API");
+    expect(formatLayerName("ux")).toBe("UX");
     expect(formatLayerName("navigation")).toBe("Navigation");
-    expect(formatLayerName("apm")).toBe("Apm");
+    expect(formatLayerName("apm")).toBe("APM");
     expect(formatLayerName("testing")).toBe("Testing");
   });
 
@@ -37,10 +37,10 @@ describe("formatLayerNameWithSuffix", () => {
     expect(formatLayerNameWithSuffix("security")).toBe("Security layer");
     expect(formatLayerNameWithSuffix("application")).toBe("Application layer");
     expect(formatLayerNameWithSuffix("technology")).toBe("Technology layer");
-    expect(formatLayerNameWithSuffix("api")).toBe("Api layer");
-    expect(formatLayerNameWithSuffix("ux")).toBe("Ux layer");
+    expect(formatLayerNameWithSuffix("api")).toBe("API layer");
+    expect(formatLayerNameWithSuffix("ux")).toBe("UX layer");
     expect(formatLayerNameWithSuffix("navigation")).toBe("Navigation layer");
-    expect(formatLayerNameWithSuffix("apm")).toBe("Apm layer");
+    expect(formatLayerNameWithSuffix("apm")).toBe("APM layer");
     expect(formatLayerNameWithSuffix("testing")).toBe("Testing layer");
   });
 
