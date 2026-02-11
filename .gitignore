@@ -65,6 +65,7 @@ documentation/claude_thoughts/
 # Node.js / Bun
 node_modules/
 dist/
+**/src/generated/
 
 # Graph database files (regenerate from schemas)
 tools/graph-db/*.lbug/
