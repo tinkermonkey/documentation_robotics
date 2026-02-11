@@ -11,7 +11,7 @@ import { validateSourceReferenceOptions, buildSourceReference } from "../utils/s
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { generateElementId } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
-import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
+import { isValidNodeType, getNodeTypesForLayer } from "../generated/node-types.js";
 import {
   CLIError,
   ErrorCategory,
@@ -84,12 +84,11 @@ export async function addCommand(
       );
     }
 
-    // Normalize the type name (e.g., "service" → "businessservice" for business layer)
-    const normalizedType = normalizeNodeType(layer, type);
-
     // Generate full element ID: {layer}.{type}.{kebab-name}
+    // Use the user-provided type (abbreviated form like "service") for backwards compatibility
+    // Type normalization for schema validation is handled by isValidNodeType() above
     // This matches Python CLI format for compatibility
-    const elementId = generateElementId(layer, normalizedType, name);
+    const elementId = generateElementId(layer, type, name);
 
     span = isTelemetryEnabled
       ? startSpan("element.add", {
@@ -132,9 +131,11 @@ export async function addCommand(
     }
 
     // Create element with Python CLI compatible ID format
+    // Use user-provided type (not normalized) for element type field to maintain
+    // backwards compatibility with file naming (services.yaml not businessservices.yaml)
     const element = new Element({
       id: elementId,
-      type: normalizedType,
+      type: type,
       name: options.name || name,
       description: options.description,
       properties,
