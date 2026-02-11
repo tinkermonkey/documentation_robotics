@@ -12,6 +12,7 @@ import {
   PlantUMLExporter,
   GraphMLExporter,
   MarkdownExporter,
+  EnhancedMarkdownExporter,
 } from "../export/index.js";
 import { writeFile } from "../utils/file-io.js";
 import * as path from "path";
@@ -78,6 +79,11 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
 
     manager.register("markdown", new MarkdownExporter(), {
       description: "Markdown documentation",
+      mimeType: "text/markdown",
+    });
+
+    manager.register("enhanced-markdown", new EnhancedMarkdownExporter(), {
+      description: "Enhanced Markdown with Mermaid diagrams and tables",
       mimeType: "text/markdown",
     });
 
