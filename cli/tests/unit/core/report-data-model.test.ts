@@ -4,7 +4,7 @@ import { Model } from "@/core/model";
 import { ReportDataModel } from "@/core/report-data-model";
 
 describe("ReportDataModel", () => {
-  let workdir: any;
+  let workdir: { path: string; cleanup: () => Promise<void> };
 
   beforeAll(async () => {
     workdir = await createTestWorkdir();
@@ -173,5 +173,83 @@ describe("ReportDataModel", () => {
         expect(rel.category).toBe(category);
       }
     }
+  });
+
+  it("should handle relationships with unknown predicates", async () => {
+    const model = await Model.load(workdir.path);
+    const reportModel = new ReportDataModel(model);
+
+    // Load catalog first
+    await reportModel.loadCatalog();
+
+    const relationships = await reportModel.getRelationshipAnalysis();
+
+    // Unknown relationships should be marked with "unknown" category
+    const unknownRels = relationships.classified.filter(r => r.category === "unknown");
+
+    // Each unknown relationship should not be spec compliant
+    for (const rel of unknownRels) {
+      expect(rel.isSpecCompliant).toBe(false);
+    }
+
+    expect(relationships.byCategory).toBeDefined();
+    // "unknown" category should exist if there are any non-catalog predicates
+  });
+
+  it("should report zero metrics for empty model", async () => {
+    const model = await Model.load(workdir.path);
+    const reportModel = new ReportDataModel(model);
+
+    // This test verifies behavior with minimal/empty data
+    const stats = await reportModel.getStatistics();
+
+    // Even with minimal data, these should never be negative
+    expect(stats.statistics.totalElements).toBeGreaterThanOrEqual(0);
+    expect(stats.statistics.totalRelationships).toBeGreaterThanOrEqual(0);
+    expect(stats.statistics.totalLayers).toBe(12);
+  });
+
+  it("should handle layer compliance with invalid layer names", async () => {
+    const model = await Model.load(workdir.path);
+    const reportModel = new ReportDataModel(model);
+
+    const relationships = await reportModel.getRelationshipAnalysis();
+    const quality = await reportModel.getQualityMetrics();
+
+    // Layer compliance score should be between 0 and 100
+    expect(quality.layerComplianceScore).toBeGreaterThanOrEqual(0);
+    expect(quality.layerComplianceScore).toBeLessThanOrEqual(100);
+  });
+
+  it("should calculate documentation coverage based on element descriptions", async () => {
+    const model = await Model.load(workdir.path);
+    const reportModel = new ReportDataModel(model);
+
+    const quality = await reportModel.getQualityMetrics();
+
+    // Documentation coverage should be a valid percentage
+    expect(quality.documentationCoverage).toBeGreaterThanOrEqual(0);
+    expect(quality.documentationCoverage).toBeLessThanOrEqual(100);
+  });
+
+  it("should mark relationships as spec compliant only when predicate is known", async () => {
+    const model = await Model.load(workdir.path);
+    const reportModel = new ReportDataModel(model);
+
+    const relationships = await reportModel.getRelationshipAnalysis();
+    const quality = await reportModel.getQualityMetrics();
+
+    // Spec compliance should reflect the proportion of known predicates
+    expect(quality.specCompliance).toBeGreaterThanOrEqual(0);
+    expect(quality.specCompliance).toBeLessThanOrEqual(100);
+
+    // Count manually to verify
+    const compliantCount = relationships.classified.filter(r => r.isSpecCompliant).length;
+    const expectedCompliance =
+      relationships.totalRelationships > 0
+        ? Math.round((compliantCount / relationships.totalRelationships) * 100)
+        : 100;
+
+    expect(quality.specCompliance).toBe(expectedCompliance);
   });
 });

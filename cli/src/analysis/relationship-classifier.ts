@@ -7,6 +7,7 @@
 
 import { RelationshipCatalog, RelationshipType } from "../core/relationship-catalog.js";
 import { ClassifiedRelationship } from "../core/report-data-model.js";
+import { getLayerOrder } from "../core/layers.js";
 import type { Relationship } from "../types/index.js";
 
 /**
@@ -370,24 +371,8 @@ export class RelationshipClassifier {
    * Get layer ordering for compliance checking
    */
   private getLayerOrder(layer1: string, layer2: string): number {
-    const layerOrder: Record<string, number> = {
-      motivation: 1,
-      business: 2,
-      security: 3,
-      application: 4,
-      technology: 5,
-      api: 6,
-      "data-model": 7,
-      "data-store": 8,
-      ux: 9,
-      navigation: 10,
-      apm: 11,
-      testing: 12,
-    };
-
-    const order1 = layerOrder[layer1] || 0;
-    const order2 = layerOrder[layer2] || 0;
-
+    const order1 = getLayerOrder(layer1);
+    const order2 = getLayerOrder(layer2);
     return order1 - order2;
   }
 }

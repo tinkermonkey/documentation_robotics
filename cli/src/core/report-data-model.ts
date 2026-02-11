@@ -8,6 +8,7 @@
 import { Model } from "./model.js";
 import { StatsCollector, ModelStats } from "./stats-collector.js";
 import { RelationshipCatalog, RelationshipType } from "./relationship-catalog.js";
+import { getLayerOrder } from "./layers.js";
 import type { Relationship } from "../types/index.js";
 
 /**
@@ -410,6 +411,9 @@ export class ReportDataModel {
 
     const relationshipType = this.relationshipTypeMap.get(rel.predicate);
 
+    // Determine spec compliance: unknown predicates are not compliant
+    const isSpecCompliant = relationshipType !== undefined;
+
     return {
       id,
       source: rel.source,
@@ -424,7 +428,7 @@ export class ReportDataModel {
       sourceLayer,
       targetLayer,
       isCrossLayer,
-      isSpecCompliant: true, // Placeholder - would validate against relationship schemas
+      isSpecCompliant,
     };
   }
 
@@ -462,10 +466,10 @@ export class ReportDataModel {
       const circlePath = path.slice(circleStart);
       const circlePredicates = predicatePath.slice(circleStart);
 
-      // Only add if not already found
-      const circleKey = circlePath.sort().join("→");
+      // Only add if not already found (use immutable sort for comparison)
+      const circleKey = [...circlePath].sort().join("→");
       const isDuplicate = circularPaths.some(
-        (c) => c.elements.sort().join("→") === circleKey
+        (c) => [...c.elements].sort().join("→") === circleKey
       );
 
       if (!isDuplicate && circlePath.length > 1) {
@@ -499,11 +503,25 @@ export class ReportDataModel {
 
   /**
    * Calculate documentation coverage percentage
+   * Checks what proportion of elements have meaningful descriptions
    */
   private calculateDocumentationCoverage(stats: ModelStats): number {
-    // This is a simplified calculation - a real implementation would check
-    // if elements have descriptions
-    return stats.statistics.totalElements > 0 ? 75 : 0; // Placeholder
+    if (stats.statistics.totalElements === 0) return 0;
+
+    // Count elements with descriptions across all layers
+    let documentedCount = 0;
+    for (const layerName of this.model.getLayerNames()) {
+      const layer = this.model.layers.get(layerName);
+      if (!layer) continue;
+
+      for (const element of layer.listElements()) {
+        if (element.description && element.description.trim().length > 0) {
+          documentedCount++;
+        }
+      }
+    }
+
+    return Math.round((documentedCount / stats.statistics.totalElements) * 100);
   }
 
   /**
@@ -528,38 +546,28 @@ export class ReportDataModel {
 
   /**
    * Calculate layer compliance score (directional compliance)
+   * Measures adherence to the higher -> lower layer reference rule
    */
   private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
-    const layerOrder: Record<string, number> = {
-      motivation: 1,
-      business: 2,
-      security: 3,
-      application: 4,
-      technology: 5,
-      api: 6,
-      "data-model": 7,
-      "data-store": 8,
-      ux: 9,
-      navigation: 10,
-      apm: 11,
-      testing: 12,
-    };
-
     if (analysis.totalRelationships === 0) return 100;
 
     let compliantCount = 0;
 
     for (const rel of analysis.classified) {
-      const sourceOrder = layerOrder[rel.sourceLayer] || 0;
-      const targetOrder = layerOrder[rel.targetLayer] || 0;
+      const sourceOrder = getLayerOrder(rel.sourceLayer);
+      const targetOrder = getLayerOrder(rel.targetLayer);
 
-      // Compliant if source > target (higher layer -> lower layer) or same layer
-      if (sourceOrder >= targetOrder) {
+      // Compliant if source >= target (higher layer -> lower/same layer)
+      // Invalid layer names are treated as order 0
+      if (sourceOrder >= targetOrder && sourceOrder > 0 && targetOrder > 0) {
         compliantCount++;
+      } else if (sourceOrder <= 0 || targetOrder <= 0) {
+        // If either layer is unknown, don't count as compliant
+        continue;
       }
     }
 
-    return Math.round((compliantCount / analysis.totalRelationships) * 100);
+    return compliantCount > 0 ? Math.round((compliantCount / analysis.totalRelationships) * 100) : 0;
   }
 
   /**
