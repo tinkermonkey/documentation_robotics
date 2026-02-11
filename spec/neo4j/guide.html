@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Robotics Spec Explorer Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .neo4j-link {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        .neo4j-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .stats {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            display: block;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        .section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .section h3 {
+            color: #764ba2;
+            margin: 20px 0 10px 0;
+        }
+        .query-block {
+            margin: 20px 0;
+            position: relative;
+        }
+        .query-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        .query-description {
+            font-size: 0.95em;
+            color: #666;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            position: relative;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+        .copy-btn.copied {
+            background: #48bb78;
+        }
+        ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .toc {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .toc h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .toc ul {
+            list-style: none;
+            margin-left: 0;
+        }
+        .toc li {
+            margin: 5px 0;
+        }
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .toc a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+        .tip {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .tip strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Documentation Robotics</h1>
+            <p>Spec Explorer Guide for Neo4j</p>
+            <a href="http://localhost:7474" target="_blank" class="neo4j-link">Open Neo4j Browser →</a>
+        </header>
+
+        <div class="stats">
+            <h2>What's in this Database</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number">354</span>
+                    <span class="stat-label">SpecNode Types</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">252</span>
+                    <span class="stat-label">SpecRelationships</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">47</span>
+                    <span class="stat-label">Predicates</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">12</span>
+                    <span class="stat-label">Layers</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section toc">
+            <h3>📚 Table of Contents</h3>
+            <ul>
+                <li><a href="#verify">Quick Verification</a></li>
+                <li><a href="#layers">The 12 Layers</a></li>
+                <li><a href="#types">Browse Node Types</a></li>
+                <li><a href="#cross-layer">Cross-Layer Relationships</a></li>
+                <li><a href="#predicates">Predicate Analysis</a></li>
+                <li><a href="#attributes">Attribute Constraints</a></li>
+                <li><a href="#hubs">Hub Analysis</a></li>
+                <li><a href="#visualization">Visual Exploration</a></li>
+                <li><a href="#use-cases">Common Use Cases</a></li>
+            </ul>
+        </div>
+
+        <div class="section" id="verify">
+            <h2>✅ Quick Verification</h2>
+            <p>Let's verify the data loaded correctly:</p>
+
+            <div class="query-block">
+                <div class="query-title">Count all SpecNodes</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (n:SpecNode) RETURN COUNT(n) AS specNodes;</code></pre>
+            </div>
+
+            <div class="query-block">
+                <div class="query-title">Count all Layers</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (n:Layer) RETURN COUNT(n) AS layers;</code></pre>
+            </div>
+
+            <div class="query-block">
+                <div class="query-title">Count all Predicates</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (n:Predicate) RETURN COUNT(n) AS predicates;</code></pre>
+            </div>
+
+            <div class="tip">
+                <strong>Expected:</strong> 354 spec nodes, 12 layers, 47 predicates, 252 relationships
+            </div>
+        </div>
+
+        <div class="section" id="layers">
+            <h2>🏗️ The 12 Layers</h2>
+            <p>Explore all layers with their node type counts and standards:</p>
+
+            <div class="query-block">
+                <div class="query-description">Shows each layer with its number, name, node type count, and associated standard</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (l:Layer)
+OPTIONAL MATCH (sn:SpecNode)-[:BELONGS_TO_LAYER]->(l)
+RETURN l.number AS layer,
+       l.name AS name,
+       COUNT(sn) AS nodeTypes,
+       l.standard AS standard
+ORDER BY l.number;</code></pre>
+            </div>
+
+            <div class="tip">
+                <strong>Tip:</strong> Click the table icon in Neo4j Browser for a cleaner view. Notice how different layers align with different standards (ArchiMate, OpenAPI, etc.)
+            </div>
+        </div>
+
+        <div class="section" id="types">
+            <h2>📋 Browse Node Types by Layer</h2>
+
+            <h3>API Layer (Layer 6)</h3>
+            <div class="query-block">
+                <div class="query-description">All element types available in the API layer</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sn:SpecNode)-[:BELONGS_TO_LAYER]->(l:Layer {id: 'api'})
+RETURN sn.type AS elementType,
+       sn.title AS title,
+       sn.description AS description,
+       sn.total_attribute_count AS attributes
+ORDER BY sn.type;</code></pre>
+            </div>
+
+            <h3>Data Model Layer (Layer 7)</h3>
+            <div class="query-block">
+                <div class="query-description">All element types available in the data model layer</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sn:SpecNode)-[:BELONGS_TO_LAYER]->(l:Layer {id: 'data-model'})
+RETURN sn.type AS elementType,
+       sn.title AS title,
+       sn.total_attribute_count AS attributes
+ORDER BY sn.type;</code></pre>
+            </div>
+
+            <div class="tip">
+                <strong>Try other layers:</strong> motivation, business, security, application, technology, data-store, ux, navigation, apm, testing
+            </div>
+        </div>
+
+        <div class="section" id="cross-layer">
+            <h2>🔗 Cross-Layer Relationships</h2>
+            <p>Discover which layers reference which other layers:</p>
+
+            <div class="query-block">
+                <div class="query-description">Shows all cross-layer relationship patterns</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(source:SpecNode)-[:BELONGS_TO_LAYER]->(l1:Layer)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(l2:Layer)
+WHERE l1.id <> l2.id
+RETURN l1.number AS sourceLayer,
+       l1.name AS sourceLayerName,
+       l2.number AS targetLayer,
+       l2.name AS targetLayerName,
+       COUNT(sr) AS relationshipTypes
+ORDER BY relationshipTypes DESC;</code></pre>
+            </div>
+
+            <div class="tip">
+                <strong>Key insight:</strong> This shows the dependency structure of the architecture model. Higher layers reference lower layers.
+            </div>
+        </div>
+
+        <div class="section" id="predicates">
+            <h2>🏷️ Predicate Analysis</h2>
+
+            <h3>Most Used Predicates</h3>
+            <div class="query-block">
+                <div class="query-description">Find which semantic relationships are used most frequently</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sr:SpecRelationship)-[:USES_PREDICATE]->(p:Predicate)
+RETURN p.predicate AS predicate,
+       p.category AS category,
+       p.description AS meaning,
+       COUNT(sr) AS usageCount
+ORDER BY usageCount DESC
+LIMIT 10;</code></pre>
+            </div>
+
+            <h3>Predicates by Category</h3>
+            <div class="query-block">
+                <div class="query-description">Group predicates by their semantic category</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (p:Predicate)
+RETURN p.category AS category,
+       COUNT(p) AS predicateCount,
+       COLLECT(p.predicate)[0..5] AS examples
+ORDER BY predicateCount DESC;</code></pre>
+            </div>
+
+            <h3>Explore Specific Predicate: "influence"</h3>
+            <div class="query-block">
+                <div class="query-description">See where the "influence" predicate is used</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sr:SpecRelationship {predicate: 'influence'})
+MATCH (sr)-[:HAS_SOURCE]->(source:SpecNode)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+RETURN source.spec_node_id AS from,
+       target.spec_node_id AS to,
+       sr.strength AS strength,
+       sr.cardinality AS cardinality;</code></pre>
+            </div>
+        </div>
+
+        <div class="section" id="attributes">
+            <h2>📊 Attribute Constraints</h2>
+
+            <h3>Types with Most Required Attributes</h3>
+            <div class="query-block">
+                <div class="query-description">Find element types with the most validation constraints</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sn:SpecNode)
+WHERE sn.required_attribute_count > 0
+RETURN sn.spec_node_id AS nodeType,
+       sn.required_attribute_count AS requiredAttrs,
+       sn.total_attribute_count AS totalAttrs
+ORDER BY sn.required_attribute_count DESC
+LIMIT 15;</code></pre>
+            </div>
+
+            <h3>Attributes for a Specific Type</h3>
+            <div class="query-block">
+                <div class="query-description">Explore attributes for api.endpoint</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sn:SpecNode {spec_node_id: 'api.endpoint'})-[r:HAS_ATTRIBUTE]->(attr:AttributeSpec)
+RETURN attr.name AS attribute,
+       attr.type AS dataType,
+       attr.required AS required,
+       attr.description AS description
+ORDER BY r.order;</code></pre>
+            </div>
+
+            <div class="tip">
+                <strong>Try other types:</strong> motivation.goal, business.service, data-store.table, ux.component
+            </div>
+        </div>
+
+        <div class="section" id="hubs">
+            <h2>🎯 Hub Analysis</h2>
+            <p>Which element types are most connected in the spec?</p>
+
+            <div class="query-block">
+                <div class="query-description">Find the most connected types (hub types)</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sn:SpecNode)
+OPTIONAL MATCH (sn)<-[:HAS_SOURCE]-(outgoing:SpecRelationship)
+OPTIONAL MATCH (sn)<-[:HAS_TARGET]-(incoming:SpecRelationship)
+WITH sn, COUNT(DISTINCT outgoing) AS outgoingCount, COUNT(DISTINCT incoming) AS incomingCount
+RETURN sn.spec_node_id AS nodeType,
+       outgoingCount AS canReferTo,
+       incomingCount AS canBeReferencedBy,
+       outgoingCount + incomingCount AS totalConnections
+ORDER BY totalConnections DESC
+LIMIT 15;</code></pre>
+            </div>
+
+            <div class="tip">
+                <strong>Interpretation:</strong>
+                <ul>
+                    <li><strong>canReferTo:</strong> How many other types this type can reference</li>
+                    <li><strong>canBeReferencedBy:</strong> How many types can reference this type</li>
+                    <li>High total = central/important type in the architecture</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section" id="visualization">
+            <h2>📈 Visual Graph Exploration</h2>
+
+            <h3>API Layer Relationship Network</h3>
+            <div class="query-block">
+                <div class="query-description">Visualize API layer types and their relationships</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (source:SpecNode_api)
+MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(source)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+MATCH (sr)-[:USES_PREDICATE]->(p:Predicate)
+RETURN source, sr, target, p
+LIMIT 50;</code></pre>
+            </div>
+
+            <div class="tip">
+                <strong>Tip:</strong> Click the graph visualization icon in Neo4j Browser. Try dragging nodes to explore the network structure!
+            </div>
+        </div>
+
+        <div class="section" id="use-cases">
+            <h2>💡 Common Use Cases</h2>
+
+            <h3>1. Impact Analysis</h3>
+            <div class="query-block">
+                <div class="query-description">What would be affected if we change 'api.endpoint'?</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sn:SpecNode {spec_node_id: 'api.endpoint'})
+MATCH (sr:SpecRelationship)-[:HAS_SOURCE|HAS_TARGET]->(sn)
+RETURN sr.id AS affectedRelationship, sr.predicate AS predicate;</code></pre>
+            </div>
+
+            <h3>2. Validation Rule Discovery</h3>
+            <div class="query-block">
+                <div class="query-description">Find all required string attributes (useful for building validators)</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (sn:SpecNode)-[:HAS_ATTRIBUTE]->(attr:AttributeSpec)
+WHERE attr.required = true AND attr.type = 'string'
+RETURN sn.spec_node_id AS nodeType,
+       attr.name AS requiredField,
+       attr.description AS purpose
+ORDER BY sn.spec_node_id;</code></pre>
+            </div>
+
+            <h3>3. Cross-Layer Traceability</h3>
+            <div class="query-block">
+                <div class="query-description">What can an API endpoint reference?</div>
+                <pre><button class="copy-btn" onclick="copyQuery(this)">Copy</button><code>MATCH (api:SpecNode {type: 'endpoint'})
+MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(api)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(l:Layer)
+RETURN DISTINCT l.name AS canReferenceLayers,
+       target.type AS elementTypes,
+       sr.predicate AS usingPredicate;</code></pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎓 Next Steps</h2>
+            <ul>
+                <li>Explore the queries above in <a href="http://localhost:7474" target="_blank">Neo4j Browser</a></li>
+                <li>Modify queries to explore other layers and types</li>
+                <li>Use the graph visualization to understand relationships</li>
+                <li>Check the README: <code>spec/neo4j/README.md</code></li>
+                <li>Regenerate export: <code>npm run export:spec-neo4j</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function copyQuery(button) {
+            const code = button.nextElementSibling.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

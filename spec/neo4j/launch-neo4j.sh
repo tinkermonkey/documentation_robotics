@@ -54,8 +54,10 @@ else
         -p $HTTP_PORT:7474 \
         -p $BOLT_PORT:7687 \
         -v "$SCRIPT_DIR/spec-explorer-guide.html:/var/lib/neo4j/import/spec-explorer-guide.html" \
+        -v "$SCRIPT_DIR/browser-guide.html:/var/lib/neo4j/import/browser-guide.html" \
         -e NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PASSWORD} \
         -e NEO4J_PLUGINS='["apoc"]' \
+        -e NEO4J_browser_remote__content__hostname__whitelist=localhost,127.0.0.1 \
         neo4j:latest
     echo "✓ Container created"
 fi
@@ -96,15 +98,22 @@ echo -e "${GREEN}Username:${NC} $NEO4J_USER"
 echo -e "${GREEN}Password:${NC} $NEO4J_PASSWORD"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo -e "${YELLOW}📚 Interactive Guide Available!${NC}"
-echo "  In Neo4j Browser, run this command to start the guided tour:"
-echo -e "  ${GREEN}:play file:///var/lib/neo4j/import/spec-explorer-guide.html${NC}"
+echo -e "${YELLOW}📚 Interactive Guides Available!${NC}"
 echo ""
-echo "  The guide includes:"
-echo "  • Overview of the 12-layer model"
-echo "  • Executable example queries"
-echo "  • Visual exploration tips"
-echo "  • Common use case patterns"
+echo "  ${GREEN}Option 1: Standalone Guide (Recommended)${NC}"
+echo "  Open in your browser: http://localhost:8000/guide.html"
+echo "  • Beautiful interface with copy-to-clipboard buttons"
+echo "  • Optimized queries for clean visualizations"
+echo "  • Use alongside Neo4j Browser"
+echo ""
+echo "  ${GREEN}Option 2: Browser Guide (In Neo4j)${NC}"
+echo "  First, start the CORS server in a separate terminal:"
+echo -e "  ${GREEN}cd spec/neo4j && python3 cors-server.py${NC}"
+echo ""
+echo "  Then in Neo4j Browser, run:"
+echo -e "  ${GREEN}:play http://localhost:8000/browser-guide.html${NC}"
+echo "  • 14 interactive slides with clickable queries"
+echo "  • Navigate with arrow buttons"
 echo ""
 echo "Run verification queries:"
 echo "  MATCH (n:SpecNode) RETURN COUNT(n) AS specNodes;"

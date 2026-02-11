@@ -44,18 +44,44 @@ docker stop doc-robotics-neo4j
 docker rm doc-robotics-neo4j
 ```
 
-### Interactive Guide
+### Interactive Guides
 
-Once Neo4j is running, launch the **interactive browser guide** for a guided tour:
+Two guide formats are available for exploring the spec:
 
-1. Open Neo4j Browser: http://localhost:7474
-2. Run this command in the query box:
+**Option 1: Standalone HTML Guide (Recommended)**
 
-   ```cypher
-   :play file:///var/lib/neo4j/import/spec-explorer-guide.html
+1. Start the CORS server:
+
+   ```bash
+   cd spec/neo4j && python3 cors-server.py
    ```
 
-The guide includes:
+2. Open in your browser: http://localhost:8000/guide.html
+
+Features:
+
+- ✅ Beautiful, modern interface
+- ✅ One-click copy-to-clipboard for all queries
+- ✅ Organized by topic with table of contents
+- ✅ Works immediately, no configuration
+
+**Option 2: Neo4j Browser Guide**
+
+1. Ensure CORS server is running (see above)
+2. Open Neo4j Browser: http://localhost:7474
+3. Run this command:
+
+   ```cypher
+   :play http://localhost:8000/browser-guide.html
+   ```
+
+Features:
+
+- ✅ 14 interactive slides with clickable queries
+- ✅ Native Neo4j Browser integration
+- ✅ Navigate with arrow buttons
+
+**Both guides include:**
 
 - 📊 **15 interactive slides** with executable queries
 - 🔍 **Layer-by-layer exploration** of the 12-layer model
@@ -76,7 +102,12 @@ Each query is runnable directly from the guide—just click to execute!
   - `edges.csv` - All relationship data
   - `import.sh` - Shell script for neo4j-admin import
 - `launch-neo4j.sh` - One-command launcher script (**recommended**)
-- `spec-explorer-guide.html` - Interactive Neo4j Browser guide with 15 slides
+- `cors-server.py` - HTTP server with CORS headers for serving guides (**required for `:play` command**)
+- `guide.html` - Standalone HTML guide with modern interface (**recommended**)
+- `browser-guide.html` - Neo4j Browser guide (14 slides, use with `:play`)
+- `spec-explorer-guide.html` - Original guide (deprecated, use `guide.html` instead)
+- `visualization-tips.md` - Strategies for clean Neo4j graph visualizations
+- `GUIDE_USAGE.md` - Complete guide usage documentation
 - `README.md` - This file
 - `.gitignore` - Updated to track generated files
 
