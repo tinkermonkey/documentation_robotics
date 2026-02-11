@@ -12,6 +12,7 @@ import {
   getValidPredicatesForSource,
   getValidDestinationsForSourceAndPredicate,
 } from "../generated/relationship-index.js";
+import { normalizeNodeType } from "../generated/node-types.js";
 
 /**
  * Validate element properties and construct a SpecNodeId
@@ -38,7 +39,10 @@ function constructSpecNodeId(
     );
   }
 
-  return `${layerId}.${type}`;
+  // Normalize type name for schema validation (e.g., "process" -> "businessprocess")
+  const normalizedType = normalizeNodeType(layerId, type);
+
+  return `${layerId}.${normalizedType}`;
 }
 
 /**
