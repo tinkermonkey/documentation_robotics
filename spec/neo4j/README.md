@@ -44,6 +44,30 @@ docker stop doc-robotics-neo4j
 docker rm doc-robotics-neo4j
 ```
 
+### Interactive Guide
+
+Once Neo4j is running, launch the **interactive browser guide** for a guided tour:
+
+1. Open Neo4j Browser: http://localhost:7474
+2. Run this command in the query box:
+
+   ```cypher
+   :play file:///var/lib/neo4j/import/spec-explorer-guide.html
+   ```
+
+The guide includes:
+
+- 📊 **15 interactive slides** with executable queries
+- 🔍 **Layer-by-layer exploration** of the 12-layer model
+- 🔗 **Cross-layer relationship patterns** and dependency analysis
+- 🏷️ **Predicate usage analysis** (structural, behavioral, dependency, etc.)
+- 📋 **Attribute constraint discovery** for validation rules
+- 🎯 **Common use cases**: Impact analysis, validation rule discovery, traceability
+- 📈 **Visual graph exploration** with hub analysis
+- 🎓 **ArchiMate alignment** and standards compliance
+
+Each query is runnable directly from the guide—just click to execute!
+
 ## Files
 
 - `import.cypher` - Cypher script for importing spec metadata (generated, **now tracked in git**)
@@ -52,6 +76,7 @@ docker rm doc-robotics-neo4j
   - `edges.csv` - All relationship data
   - `import.sh` - Shell script for neo4j-admin import
 - `launch-neo4j.sh` - One-command launcher script (**recommended**)
+- `spec-explorer-guide.html` - Interactive Neo4j Browser guide with 15 slides
 - `README.md` - This file
 - `.gitignore` - Updated to track generated files
 

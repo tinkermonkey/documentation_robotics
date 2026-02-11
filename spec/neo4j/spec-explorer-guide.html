@@ -1,0 +1,386 @@
+<article class="guide" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+  <carousel class="deck container-fluid">
+
+    <!-- Slide 1: Welcome -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Documentation Robotics Spec Explorer</h3>
+        <p class="lead">Interactive guide to exploring the 12-layer architecture specification</p>
+        <br/>
+        <div>
+          <p>This guide will help you explore the Documentation Robotics specification structure through Neo4j queries.</p>
+          <p><strong>What's in this database:</strong></p>
+          <ul>
+            <li><strong>354 SpecNode types</strong> - Element type definitions (e.g., goal, endpoint, table)</li>
+            <li><strong>252 SpecRelationship types</strong> - Allowed relationships between types</li>
+            <li><strong>47 Predicates</strong> - Semantic relationship catalog (influence, realizes, etc.)</li>
+            <li><strong>12 Layers</strong> - Motivation, Business, Security, Application, Technology, API, Data Model, Data Store, UX, Navigation, APM, Testing</li>
+            <li><strong>1,192 AttributeSpecs</strong> - Type-specific attributes with validation rules</li>
+          </ul>
+          <p><em>Note: This is the spec structure (meta-model), not user data.</em></p>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 2: Quick Verification -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Quick Verification</h3>
+        <p>Let's verify the data loaded correctly:</p>
+        <br/>
+        <div>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (n:SpecNode) RETURN COUNT(n) AS specNodes;</pre>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (n:Layer) RETURN COUNT(n) AS layers;</pre>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (n:Predicate) RETURN COUNT(n) AS predicates;</pre>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (n:SpecRelationship) RETURN COUNT(n) AS relationships;</pre>
+          <p><strong>Expected results:</strong> 354 spec nodes, 12 layers, 47 predicates, 252 relationships</p>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 3: The 12 Layers -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Explore the 12 Layers</h3>
+        <p>See all layers with their node type counts:</p>
+        <br/>
+        <div>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (l:Layer)
+OPTIONAL MATCH (sn:SpecNode)-[:BELONGS_TO_LAYER]->(l)
+RETURN l.number AS layer,
+       l.name AS name,
+       COUNT(sn) AS nodeTypes,
+       l.standard AS standard
+ORDER BY l.number;</pre>
+          <p>Click on any row to see details. Notice how different layers have different standards (ArchiMate, OpenAPI, etc.).</p>
+          <br/>
+          <p><strong>Try this:</strong> Click the table visualization icon to see a cleaner view.</p>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 4: Node Types by Layer -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Browse Node Types by Layer</h3>
+        <p>Explore what element types exist in each layer:</p>
+        <br/>
+        <div>
+          <p><strong>API Layer (Layer 6):</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sn:SpecNode)-[:BELONGS_TO_LAYER]->(l:Layer {id: 'api'})
+RETURN sn.type AS elementType,
+       sn.title AS title,
+       sn.description AS description,
+       sn.total_attribute_count AS attributes
+ORDER BY sn.type;</pre>
+          <p><strong>Data Model Layer (Layer 7):</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sn:SpecNode)-[:BELONGS_TO_LAYER]->(l:Layer {id: 'data-model'})
+RETURN sn.type AS elementType,
+       sn.title AS title,
+       sn.total_attribute_count AS attributes
+ORDER BY sn.type;</pre>
+          <p><em>Change the layer ID to explore other layers: motivation, business, security, application, technology, data-store, ux, navigation, apm, testing</em></p>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 5: Cross-Layer Relationships -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Cross-Layer Relationship Patterns</h3>
+        <p>Discover which layers reference which other layers:</p>
+        <br/>
+        <div>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(source:SpecNode)-[:BELONGS_TO_LAYER]->(l1:Layer)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(l2:Layer)
+WHERE l1.id &lt;&gt; l2.id
+RETURN l1.number AS sourceLayer,
+       l1.name AS sourceLayerName,
+       l2.number AS targetLayer,
+       l2.name AS targetLayerName,
+       COUNT(sr) AS relationshipTypes
+ORDER BY relationshipTypes DESC;</pre>
+          <p>This shows the dependency structure of the architecture model. Higher layers reference lower layers.</p>
+          <br/>
+          <p><strong>Key insight:</strong> Notice which layers are most connected to others.</p>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 6: Predicate Analysis -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Understanding Predicates</h3>
+        <p>Predicates define the semantic meaning of relationships:</p>
+        <br/>
+        <div>
+          <p><strong>Most used predicates:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sr:SpecRelationship)-[:USES_PREDICATE]->(p:Predicate)
+RETURN p.predicate AS predicate,
+       p.category AS category,
+       p.description AS meaning,
+       COUNT(sr) AS usageCount
+ORDER BY usageCount DESC
+LIMIT 10;</pre>
+          <p><strong>Predicates by category:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (p:Predicate)
+RETURN p.category AS category,
+       COUNT(p) AS predicateCount,
+       COLLECT(p.predicate)[0..5] AS examples
+ORDER BY predicateCount DESC;</pre>
+          <p><em>Categories include: structural, behavioral, dependency, traceability, security, testing, governance</em></p>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 7: Specific Predicate Usage -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Exploring Specific Predicates</h3>
+        <p>See where a specific predicate is used:</p>
+        <br/>
+        <div>
+          <p><strong>Example: "influence" predicate:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sr:SpecRelationship {predicate: 'influence'})
+MATCH (sr)-[:HAS_SOURCE]->(source:SpecNode)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+RETURN source.spec_node_id AS from,
+       target.spec_node_id AS to,
+       sr.strength AS strength,
+       sr.cardinality AS cardinality;</pre>
+          <p><strong>Example: "realizes" predicate:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sr:SpecRelationship {predicate: 'realizes'})
+MATCH (sr)-[:HAS_SOURCE]->(source:SpecNode)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+RETURN source.spec_node_id AS from,
+       target.spec_node_id AS to;</pre>
+          <p><em>Try other predicates: composes, associated-with, references, depends-on, flows-to, serves, accesses</em></p>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 8: Attribute Discovery -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Attribute Constraints</h3>
+        <p>Discover required attributes for validation:</p>
+        <br/>
+        <div>
+          <p><strong>Node types with most required attributes:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sn:SpecNode)
+WHERE sn.required_attribute_count &gt; 0
+RETURN sn.spec_node_id AS nodeType,
+       sn.required_attribute_count AS requiredAttrs,
+       sn.total_attribute_count AS totalAttrs
+ORDER BY sn.required_attribute_count DESC
+LIMIT 15;</pre>
+          <p><strong>Attributes for a specific node type (e.g., api.endpoint):</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sn:SpecNode {spec_node_id: 'api.endpoint'})-[r:HAS_ATTRIBUTE]->(attr:AttributeSpec)
+RETURN attr.name AS attribute,
+       attr.type AS dataType,
+       attr.required AS required,
+       attr.description AS description
+ORDER BY r.order;</pre>
+          <p><em>Try other node types: motivation.goal, business.service, data-store.table, ux.component</em></p>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 9: Graph Visualization -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Visual Graph Exploration</h3>
+        <p>Visualize the relationships between types:</p>
+        <br/>
+        <div>
+          <p><strong>API Layer types and their relationships:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (source:SpecNode_api)
+MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(source)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+MATCH (sr)-[:USES_PREDICATE]->(p:Predicate)
+RETURN source, sr, target, p
+LIMIT 50;</pre>
+          <p><strong>Motivation layer influence patterns:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (source:SpecNode_motivation)
+MATCH (sr:SpecRelationship {predicate: 'influence'})-[:HAS_SOURCE]->(source)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+RETURN source, sr, target;</pre>
+          <p><em>Click the graph visualization icon to see the network. Try dragging nodes to explore relationships!</em></p>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 10: Hub Analysis -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Finding Hub Types</h3>
+        <p>Which element types are most connected in the spec?</p>
+        <br/>
+        <div>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sn:SpecNode)
+OPTIONAL MATCH (sn)&lt;-[:HAS_SOURCE]-(outgoing:SpecRelationship)
+OPTIONAL MATCH (sn)&lt;-[:HAS_TARGET]-(incoming:SpecRelationship)
+WITH sn, COUNT(DISTINCT outgoing) AS outgoingCount, COUNT(DISTINCT incoming) AS incomingCount
+RETURN sn.spec_node_id AS nodeType,
+       outgoingCount AS canReferTo,
+       incomingCount AS canBeReferencedBy,
+       outgoingCount + incomingCount AS totalConnections
+ORDER BY totalConnections DESC
+LIMIT 15;</pre>
+          <p><strong>Interpretation:</strong></p>
+          <ul>
+            <li><strong>canReferTo</strong> - How many other types this type can reference</li>
+            <li><strong>canBeReferencedBy</strong> - How many types can reference this type</li>
+            <li>High total = central/important type in the architecture</li>
+          </ul>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 11: ArchiMate Alignment -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>ArchiMate Standards Alignment</h3>
+        <p>Explore how the spec aligns with ArchiMate standard:</p>
+        <br/>
+        <div>
+          <p><strong>ArchiMate-aligned layers:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (l:Layer)
+WHERE l.standard = 'ArchiMate'
+RETURN l.number AS layer,
+       l.name AS name,
+       l.standard_version AS version
+ORDER BY l.number;</pre>
+          <p><strong>Predicates aligned with ArchiMate:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (p:Predicate)
+WHERE p.archimate_alignment IS NOT NULL
+RETURN p.predicate AS predicate,
+       p.archimate_alignment AS archimateEquivalent,
+       p.category AS category,
+       p.description AS description;</pre>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 12: Use Cases -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Common Use Cases</h3>
+        <br/>
+        <div>
+          <p><strong>1. Impact Analysis</strong> - When modifying a node type:</p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">// Example: What would be affected if we change 'api.endpoint'?
+MATCH (sn:SpecNode {spec_node_id: 'api.endpoint'})
+MATCH (sr:SpecRelationship)-[:HAS_SOURCE|HAS_TARGET]->(sn)
+RETURN sr.id AS affectedRelationship, sr.predicate AS predicate;</pre>
+          <p><strong>2. Validation Rule Discovery</strong> - Build validators:</p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">// Find all required string attributes across all types
+MATCH (sn:SpecNode)-[:HAS_ATTRIBUTE]->(attr:AttributeSpec)
+WHERE attr.required = true AND attr.type = 'string'
+RETURN sn.spec_node_id AS nodeType,
+       attr.name AS requiredField,
+       attr.description AS purpose
+ORDER BY sn.spec_node_id;</pre>
+          <p><strong>3. Cross-Layer Traceability</strong> - Understand dependencies:</p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">// What can an API endpoint reference?
+MATCH (api:SpecNode {type: 'endpoint'})
+MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(api)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(l:Layer)
+RETURN DISTINCT l.name AS canReferenceLayers,
+       target.type AS elementTypes,
+       sr.predicate AS usingPredicate;</pre>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 13: Advanced Patterns -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Advanced Query Patterns</h3>
+        <br/>
+        <div>
+          <p><strong>Transitive relationships (find predicates that support transitivity):</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (p:Predicate)
+WHERE p.transitivity = true
+RETURN p.predicate AS predicate,
+       p.description AS meaning,
+       p.category AS category;</pre>
+          <p><strong>Symmetric relationships:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (p:Predicate)
+WHERE p.symmetry = true
+RETURN p.predicate AS predicate,
+       p.inverse AS inverse,
+       p.description AS meaning;</pre>
+          <p><strong>Find all mandatory relationships:</strong></p>
+          <pre class="pre-scrollable code runnable standalone-example ng-binding">MATCH (sr:SpecRelationship)
+WHERE sr.required = true
+MATCH (sr)-[:HAS_SOURCE]->(source:SpecNode)
+MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)
+RETURN source.spec_node_id AS from,
+       sr.predicate AS relationship,
+       target.spec_node_id AS to,
+       sr.cardinality AS cardinality;</pre>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 14: Export & Integration -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Next Steps</h3>
+        <br/>
+        <div>
+          <p><strong>Regenerate this export after spec changes:</strong></p>
+          <pre class="code">npm run export:spec-neo4j</pre>
+          <p><strong>For model instance data (user architecture elements):</strong></p>
+          <pre class="code">dr graph-migrate --format neo4j --output model.cypher</pre>
+          <p><strong>Useful Neo4j Browser commands:</strong></p>
+          <ul>
+            <li><code>:help</code> - Neo4j Browser help</li>
+            <li><code>:schema</code> - View graph schema</li>
+            <li><code>:clear</code> - Clear the query window</li>
+            <li><code>:history</code> - Show query history</li>
+            <li><code>:play spec-explorer</code> - Reload this guide</li>
+          </ul>
+          <p><strong>Documentation:</strong></p>
+          <ul>
+            <li>README: <code>spec/neo4j/README.md</code></li>
+            <li>Export script: <code>scripts/export-spec-to-neo4j.ts</code></li>
+            <li>Spec schemas: <code>spec/schemas/</code></li>
+          </ul>
+        </div>
+      </div>
+    </slide>
+
+    <!-- Slide 15: Resources -->
+    <slide class="row-fluid">
+      <div class="col-sm-12">
+        <h3>Additional Resources</h3>
+        <br/>
+        <div>
+          <p><strong>Standards Referenced:</strong></p>
+          <ul>
+            <li><strong>ArchiMate 3.2</strong> - Layers 1, 2, 4, 5 (Motivation, Business, Application, Technology)</li>
+            <li><strong>OpenAPI 3.0</strong> - Layer 6 (API)</li>
+            <li><strong>JSON Schema Draft 7</strong> - Layer 7 (Data Model)</li>
+            <li><strong>OpenTelemetry</strong> - Layer 11 (APM)</li>
+          </ul>
+          <p><strong>Neo4j Learning:</strong></p>
+          <ul>
+            <li><code>:play cypher</code> - Learn Cypher query language</li>
+            <li><code>:play concepts</code> - Graph database concepts</li>
+            <li><a href="https://neo4j.com/docs/" target="_blank">Neo4j Documentation</a></li>
+          </ul>
+          <p><strong>Documentation Robotics:</strong></p>
+          <ul>
+            <li>Main README: <code>README.md</code></li>
+            <li>CLI Guide: <code>cli/README.md</code></li>
+            <li>Project Instructions: <code>CLAUDE.md</code></li>
+          </ul>
+          <p class="lead">Happy exploring! 🚀</p>
+        </div>
+      </div>
+    </slide>
+
+  </carousel>
+</article>

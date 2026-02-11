@@ -53,6 +53,7 @@ else
         --name "$CONTAINER_NAME" \
         -p $HTTP_PORT:7474 \
         -p $BOLT_PORT:7687 \
+        -v "$SCRIPT_DIR/spec-explorer-guide.html:/var/lib/neo4j/import/spec-explorer-guide.html" \
         -e NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PASSWORD} \
         -e NEO4J_PLUGINS='["apoc"]' \
         neo4j:latest
@@ -94,6 +95,16 @@ echo -e "${GREEN}Open:${NC}     http://localhost:$HTTP_PORT"
 echo -e "${GREEN}Username:${NC} $NEO4J_USER"
 echo -e "${GREEN}Password:${NC} $NEO4J_PASSWORD"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo -e "${YELLOW}📚 Interactive Guide Available!${NC}"
+echo "  In Neo4j Browser, run this command to start the guided tour:"
+echo -e "  ${GREEN}:play file:///var/lib/neo4j/import/spec-explorer-guide.html${NC}"
+echo ""
+echo "  The guide includes:"
+echo "  • Overview of the 12-layer model"
+echo "  • Executable example queries"
+echo "  • Visual exploration tips"
+echo "  • Common use case patterns"
 echo ""
 echo "Run verification queries:"
 echo "  MATCH (n:SpecNode) RETURN COUNT(n) AS specNodes;"
