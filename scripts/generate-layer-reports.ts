@@ -608,7 +608,9 @@ class LayerReportGenerator {
 
     for (const schema of reportData.nodeSchemas) {
       const anchor = createAnchor(schema.type);
-      lines.push(`### ${formatNodeTypeName(schema.type)}\n`);
+      // Use formatted name for readability, but markdown will anchor to lowercase anchor
+      const heading = formatNodeTypeName(schema.type);
+      lines.push(`### ${heading}\n`);
       lines.push(`**Spec Node ID**: \`${schema.spec_node_id}\`\n\n`);
       lines.push(`${schema.description}\n\n`);
 

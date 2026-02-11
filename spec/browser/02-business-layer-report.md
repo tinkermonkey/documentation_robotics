@@ -7,21 +7,21 @@
 - [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
-  - [Businessactor](#businessactor)
-  - [Businesscollaboration](#businesscollaboration)
-  - [Businessevent](#businessevent)
-  - [Businessfunction](#businessfunction)
-  - [Businessinteraction](#businessinteraction)
-  - [Businessinterface](#businessinterface)
-  - [Businessobject](#businessobject)
   - [Businessprocess](#businessprocess)
-  - [Businessrole](#businessrole)
-  - [Businessservice](#businessservice)
   - [Contract](#contract)
   - [Eventtype](#eventtype)
-  - [Product](#product)
-  - [Representation](#representation)
+  - [Businessinteraction](#businessinteraction)
+  - [Businessevent](#businessevent)
+  - [Businessfunction](#businessfunction)
+  - [Businessinterface](#businessinterface)
+  - [Businessobject](#businessobject)
   - [Representationformat](#representationformat)
+  - [Representation](#representation)
+  - [Product](#product)
+  - [Businessservice](#businessservice)
+  - [Businessrole](#businessrole)
+  - [Businesscollaboration](#businesscollaboration)
+  - [Businessactor](#businessactor)
 
 ## Layer Introduction
 
@@ -50,26 +50,26 @@ Layer 2: Business Layer
 ```mermaid
 flowchart LR
   subgraph business
-    businessactor["businessactor"]
-    businesscollaboration["businesscollaboration"]
-    businessevent["businessevent"]
-    businessfunction["businessfunction"]
-    businessinteraction["businessinteraction"]
-    businessinterface["businessinterface"]
-    businessobject["businessobject"]
     businessprocess["businessprocess"]
-    businessrole["businessrole"]
-    businessservice["businessservice"]
     contract["contract"]
     eventtype["eventtype"]
-    product["product"]
-    representation["representation"]
+    businessinteraction["businessinteraction"]
+    businessevent["businessevent"]
+    businessfunction["businessfunction"]
+    businessinterface["businessinterface"]
+    businessobject["businessobject"]
     representationformat["representationformat"]
-    businessactor -->|assigned-to| businessrole
+    representation["representation"]
+    product["product"]
+    businessservice["businessservice"]
+    businessrole["businessrole"]
+    businesscollaboration["businesscollaboration"]
+    businessactor["businessactor"]
     businesscollaboration -->|composes| businessrole
-    businessevent -->|triggers| businessprocess
     businessprocess -->|accesses| businessobject
+    businessactor -->|assigned-to| businessrole
     businessprocess -->|flows-to| businessprocess
+    businessevent -->|triggers| businessprocess
     businessservice -->|serves| businessactor
   end
 ```
@@ -91,21 +91,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  testing --> motivation
-  technology --> security
+  api --> business
+  api --> application
+  api --> data_store
+  api --> security
+  api --> apm
   data_model --> application
   data_model --> business
-  business --> data_model
-  business --> application
-  business --> security
-  business --> motivation
-  application --> motivation
   application --> apm
-  api --> apm
-  api --> application
-  api --> business
-  api --> security
-  api --> data_store
+  application --> motivation
+  technology --> security
+  testing --> motivation
+  business --> security
+  business --> application
+  business --> motivation
+  business --> data_model
   class business current
 ```
 
@@ -117,16 +117,16 @@ flowchart TB
 | business.businessprocess.process-steps.application.applicationprocess       | [businessprocess](./02-business-layer-report.md#businessprocess) | [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | process-steps             | many-to-many | medium   |
 | business.businessprocess.realized-by-process.application.applicationprocess | [businessprocess](./02-business-layer-report.md#businessprocess) | [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | realized-by-process       | many-to-one  | medium   |
 | business.businessobject.represented-by-dataobject.application.dataobject    | [businessobject](./02-business-layer-report.md#businessobject)   | [dataobject](./04-application-layer-report.md#dataobject)                 | [Application](./04-application-layer-report.md) | represented-by-dataobject | many-to-one  | medium   |
-| api.operation.business-interface-ref.business.businessinterface             | [operation](./06-api-layer-report.md#operation)                  | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | business-interface-ref    | many-to-one  | medium   |
 | api.securityscheme.business-interface-ref.business.businessinterface        | [securityscheme](./06-api-layer-report.md#securityscheme)        | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | business-interface-ref    | many-to-one  | medium   |
+| api.operation.business-interface-ref.business.businessinterface             | [operation](./06-api-layer-report.md#operation)                  | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | business-interface-ref    | many-to-one  | medium   |
 | data-model.jsonschema.business-object-ref.business.businessobject           | [jsonschema](./07-data-model-layer-report.md#jsonschema)         | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref       | many-to-one  | medium   |
-| api.operation.business-service-ref.business.businessservice                 | [operation](./06-api-layer-report.md#operation)                  | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | business-service-ref      | many-to-one  | medium   |
 | api.securityscheme.business-service-ref.business.businessservice            | [securityscheme](./06-api-layer-report.md#securityscheme)        | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | business-service-ref      | many-to-one  | medium   |
-| data-model.jsonschema.referenced-by.business.businessobject                 | [jsonschema](./07-data-model-layer-report.md#jsonschema)         | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by             | many-to-one  | medium   |
+| api.operation.business-service-ref.business.businessservice                 | [operation](./06-api-layer-report.md#operation)                  | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | business-service-ref      | many-to-one  | medium   |
+| api.securityscheme.referenced-by.business.businessinterface                 | [securityscheme](./06-api-layer-report.md#securityscheme)        | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | referenced-by             | many-to-one  | medium   |
 | api.operation.referenced-by.business.businessinterface                      | [operation](./06-api-layer-report.md#operation)                  | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | referenced-by             | many-to-one  | medium   |
 | api.operation.referenced-by.business.businessservice                        | [operation](./06-api-layer-report.md#operation)                  | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | referenced-by             | many-to-one  | medium   |
-| api.securityscheme.referenced-by.business.businessinterface                 | [securityscheme](./06-api-layer-report.md#securityscheme)        | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | referenced-by             | many-to-one  | medium   |
 | api.securityscheme.referenced-by.business.businessservice                   | [securityscheme](./06-api-layer-report.md#securityscheme)        | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | referenced-by             | many-to-one  | medium   |
+| data-model.jsonschema.referenced-by.business.businessobject                 | [jsonschema](./07-data-model-layer-report.md#jsonschema)         | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by             | many-to-one  | medium   |
 | business.businessobject.governance-owner.data-model.datagovernance          | [businessobject](./02-business-layer-report.md#businessobject)   | [datagovernance](./07-data-model-layer-report.md#datagovernance)          | [Data Model](./07-data-model-layer-report.md)   | governance-owner          | many-to-one  | medium   |
 | business.businessservice.delivers-value.motivation.value                    | [businessservice](./02-business-layer-report.md#businessservice) | [value](./01-motivation-layer-report.md#value)                            | [Motivation](./01-motivation-layer-report.md)   | delivers-value            | many-to-many | medium   |
 | business.businessprocess.referenced-by.security.separationofduty            | [businessprocess](./02-business-layer-report.md#businessprocess) | [separationofduty](./03-security-layer-report.md#separationofduty)        | [Security](./03-security-layer-report.md)       | referenced-by             | many-to-one  | medium   |
@@ -135,32 +135,53 @@ flowchart TB
 
 ## Node Reference
 
-### Businessactor
+### Businessprocess
 
-**Spec Node ID**: `business.businessactor`
+**Spec Node ID**: `business.businessprocess`
 
-An organizational entity capable of performing behavior
+Sequence of business behaviors achieving a result
 
 #### Intra-Layer Relationships
 
-| Related Node                        | Predicate   | Direction | Cardinality  |
-| ----------------------------------- | ----------- | --------- | ------------ |
-| [businessrole](#businessrole)       | assigned-to | outbound  | many-to-many |
-| [businessservice](#businessservice) | serves      | inbound   | many-to-many |
+| Related Node                        | Predicate | Direction | Cardinality  |
+| ----------------------------------- | --------- | --------- | ------------ |
+| [businessobject](#businessobject)   | accesses  | outbound  | many-to-many |
+| [businessprocess](#businessprocess) | flows-to  | outbound  | many-to-many |
+| [businessevent](#businessevent)     | triggers  | inbound   | many-to-many |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                              | Layer                                           | Predicate           | Direction | Cardinality  |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | --------- | ------------ |
+| [securityconstraints](./03-security-layer-report.md#securityconstraints)  | [Security](./03-security-layer-report.md)       | security-controls   | outbound  | many-to-many |
+| [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | realized-by-process | outbound  | many-to-one  |
+| [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | process-steps       | outbound  | many-to-many |
+| [separationofduty](./03-security-layer-report.md#separationofduty)        | [Security](./03-security-layer-report.md)       | separation-of-duty  | outbound  | many-to-one  |
+| [separationofduty](./03-security-layer-report.md#separationofduty)        | [Security](./03-security-layer-report.md)       | referenced-by       | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
-### Businesscollaboration
+### Contract
 
-**Spec Node ID**: `business.businesscollaboration`
+**Spec Node ID**: `business.contract`
 
-Aggregate of business roles working together
+Formal specification of agreement
 
-#### Intra-Layer Relationships
+[Back to Index](#report-index)
 
-| Related Node                  | Predicate | Direction | Cardinality  |
-| ----------------------------- | --------- | --------- | ------------ |
-| [businessrole](#businessrole) | composes  | outbound  | many-to-many |
+### Eventtype
+
+**Spec Node ID**: `business.eventtype`
+
+EventType element in Business Layer
+
+[Back to Index](#report-index)
+
+### Businessinteraction
+
+**Spec Node ID**: `business.businessinteraction`
+
+Unit of collective behavior by collaboration
 
 [Back to Index](#report-index)
 
@@ -186,14 +207,6 @@ Collection of business behavior based on criteria
 
 [Back to Index](#report-index)
 
-### Businessinteraction
-
-**Spec Node ID**: `business.businessinteraction`
-
-Unit of collective behavior by collaboration
-
-[Back to Index](#report-index)
-
 ### Businessinterface
 
 **Spec Node ID**: `business.businessinterface`
@@ -204,10 +217,10 @@ Point of access where business service is available
 
 | Related Node                                              | Layer                           | Predicate              | Direction | Cardinality |
 | --------------------------------------------------------- | ------------------------------- | ---------------------- | --------- | ----------- |
-| [operation](./06-api-layer-report.md#operation)           | [Api](./06-api-layer-report.md) | business-interface-ref | inbound   | many-to-one |
+| [securityscheme](./06-api-layer-report.md#securityscheme) | [Api](./06-api-layer-report.md) | referenced-by          | inbound   | many-to-one |
 | [operation](./06-api-layer-report.md#operation)           | [Api](./06-api-layer-report.md) | referenced-by          | inbound   | many-to-one |
 | [securityscheme](./06-api-layer-report.md#securityscheme) | [Api](./06-api-layer-report.md) | business-interface-ref | inbound   | many-to-one |
-| [securityscheme](./06-api-layer-report.md#securityscheme) | [Api](./06-api-layer-report.md) | referenced-by          | inbound   | many-to-one |
+| [operation](./06-api-layer-report.md#operation)           | [Api](./06-api-layer-report.md) | business-interface-ref | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -229,50 +242,33 @@ Concept used within business domain
 | ---------------------------------------------------------------- | ----------------------------------------------- | ------------------------- | --------- | ----------- |
 | [jsonschema](./07-data-model-layer-report.md#jsonschema)         | [Data Model](./07-data-model-layer-report.md)   | business-object-ref       | inbound   | many-to-one |
 | [jsonschema](./07-data-model-layer-report.md#jsonschema)         | [Data Model](./07-data-model-layer-report.md)   | referenced-by             | inbound   | many-to-one |
-| [datagovernance](./07-data-model-layer-report.md#datagovernance) | [Data Model](./07-data-model-layer-report.md)   | governance-owner          | outbound  | many-to-one |
 | [dataobject](./04-application-layer-report.md#dataobject)        | [Application](./04-application-layer-report.md) | master-data-source        | outbound  | many-to-one |
+| [datagovernance](./07-data-model-layer-report.md#datagovernance) | [Data Model](./07-data-model-layer-report.md)   | governance-owner          | outbound  | many-to-one |
 | [dataobject](./04-application-layer-report.md#dataobject)        | [Application](./04-application-layer-report.md) | represented-by-dataobject | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
-### Businessprocess
+### Representationformat
 
-**Spec Node ID**: `business.businessprocess`
+**Spec Node ID**: `business.representationformat`
 
-Sequence of business behaviors achieving a result
-
-#### Intra-Layer Relationships
-
-| Related Node                        | Predicate | Direction | Cardinality  |
-| ----------------------------------- | --------- | --------- | ------------ |
-| [businessevent](#businessevent)     | triggers  | inbound   | many-to-many |
-| [businessobject](#businessobject)   | accesses  | outbound  | many-to-many |
-| [businessprocess](#businessprocess) | flows-to  | outbound  | many-to-many |
-
-#### Inter-Layer Relationships
-
-| Related Node                                                              | Layer                                           | Predicate           | Direction | Cardinality  |
-| ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | --------- | ------------ |
-| [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | process-steps       | outbound  | many-to-many |
-| [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | realized-by-process | outbound  | many-to-one  |
-| [separationofduty](./03-security-layer-report.md#separationofduty)        | [Security](./03-security-layer-report.md)       | referenced-by       | outbound  | many-to-one  |
-| [securityconstraints](./03-security-layer-report.md#securityconstraints)  | [Security](./03-security-layer-report.md)       | security-controls   | outbound  | many-to-many |
-| [separationofduty](./03-security-layer-report.md#separationofduty)        | [Security](./03-security-layer-report.md)       | separation-of-duty  | outbound  | many-to-one  |
+RepresentationFormat element in Business Layer
 
 [Back to Index](#report-index)
 
-### Businessrole
+### Representation
 
-**Spec Node ID**: `business.businessrole`
+**Spec Node ID**: `business.representation`
 
-The responsibility for performing specific behavior
+Perceptible form of business object
 
-#### Intra-Layer Relationships
+[Back to Index](#report-index)
 
-| Related Node                                    | Predicate   | Direction | Cardinality  |
-| ----------------------------------------------- | ----------- | --------- | ------------ |
-| [businessactor](#businessactor)                 | assigned-to | inbound   | many-to-many |
-| [businesscollaboration](#businesscollaboration) | composes    | inbound   | many-to-many |
+### Product
+
+**Spec Node ID**: `business.product`
+
+Coherent collection of services with a value
 
 [Back to Index](#report-index)
 
@@ -292,54 +288,58 @@ Service that fulfills a business need
 
 | Related Node                                              | Layer                                         | Predicate            | Direction | Cardinality  |
 | --------------------------------------------------------- | --------------------------------------------- | -------------------- | --------- | ------------ |
-| [value](./01-motivation-layer-report.md#value)            | [Motivation](./01-motivation-layer-report.md) | delivers-value       | outbound  | many-to-many |
-| [operation](./06-api-layer-report.md#operation)           | [Api](./06-api-layer-report.md)               | business-service-ref | inbound   | many-to-one  |
-| [operation](./06-api-layer-report.md#operation)           | [Api](./06-api-layer-report.md)               | referenced-by        | inbound   | many-to-one  |
 | [securityscheme](./06-api-layer-report.md#securityscheme) | [Api](./06-api-layer-report.md)               | business-service-ref | inbound   | many-to-one  |
+| [operation](./06-api-layer-report.md#operation)           | [Api](./06-api-layer-report.md)               | referenced-by        | inbound   | many-to-one  |
 | [securityscheme](./06-api-layer-report.md#securityscheme) | [Api](./06-api-layer-report.md)               | referenced-by        | inbound   | many-to-one  |
+| [operation](./06-api-layer-report.md#operation)           | [Api](./06-api-layer-report.md)               | business-service-ref | inbound   | many-to-one  |
+| [value](./01-motivation-layer-report.md#value)            | [Motivation](./01-motivation-layer-report.md) | delivers-value       | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
-### Contract
+### Businessrole
 
-**Spec Node ID**: `business.contract`
+**Spec Node ID**: `business.businessrole`
 
-Formal specification of agreement
+The responsibility for performing specific behavior
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Eventtype
-
-**Spec Node ID**: `business.eventtype`
-
-EventType element in Business Layer
-
-[Back to Index](#report-index)
-
-### Product
-
-**Spec Node ID**: `business.product`
-
-Coherent collection of services with a value
+| Related Node                                    | Predicate   | Direction | Cardinality  |
+| ----------------------------------------------- | ----------- | --------- | ------------ |
+| [businesscollaboration](#businesscollaboration) | composes    | inbound   | many-to-many |
+| [businessactor](#businessactor)                 | assigned-to | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
-### Representation
+### Businesscollaboration
 
-**Spec Node ID**: `business.representation`
+**Spec Node ID**: `business.businesscollaboration`
 
-Perceptible form of business object
+Aggregate of business roles working together
+
+#### Intra-Layer Relationships
+
+| Related Node                  | Predicate | Direction | Cardinality  |
+| ----------------------------- | --------- | --------- | ------------ |
+| [businessrole](#businessrole) | composes  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
-### Representationformat
+### Businessactor
 
-**Spec Node ID**: `business.representationformat`
+**Spec Node ID**: `business.businessactor`
 
-RepresentationFormat element in Business Layer
+An organizational entity capable of performing behavior
+
+#### Intra-Layer Relationships
+
+| Related Node                        | Predicate   | Direction | Cardinality  |
+| ----------------------------------- | ----------- | --------- | ------------ |
+| [businessrole](#businessrole)       | assigned-to | outbound  | many-to-many |
+| [businessservice](#businessservice) | serves      | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-11T21:44:05.253Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:45:57.102Z | Generator: generate-layer-reports.ts_
