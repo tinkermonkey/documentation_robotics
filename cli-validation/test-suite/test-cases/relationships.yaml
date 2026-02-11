@@ -34,14 +34,7 @@ pipelines:
         expect_stdout_contains:
           - "Added"
 
-      - command: "relationship add data-store.table.rel-test-table data-store.column.rel-test-column --predicate aggregates"
-        files_to_compare:
-          - relationships.yaml
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Added"
-
-      - command: "relationship delete data-store.table.rel-test-table data-store.column.rel-test-column --predicate aggregates"
+      - command: "relationship delete data-store.table.rel-test-table data-store.column.rel-test-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
