@@ -106,49 +106,49 @@ flowchart LR
     statuscode["statuscode"]
     traceconfiguration["traceconfiguration"]
     transformoperation["transformoperation"]
-    apmconfiguration -->|composes| metricinstrument
-    apmconfiguration -->|composes| spanevent
-    apmconfiguration -->|composes| traceconfiguration
-    dataqualitymetric -->|triggers| logrecord
-    exporterconfig -->|serves| apmconfiguration
-    exporterconfig -->|serves| resource
-    instrumentationconfig -->|serves| apmconfiguration
-    instrumentationconfig -->|serves| resource
-    instrumentationscope -->|aggregates| exporterconfig
-    instrumentationscope -->|aggregates| metricinstrument
-    instrumentationscope -->|aggregates| span
-    logprocessor -->|accesses| attribute
-    logprocessor -->|flows-to| exporterconfig
-    logprocessor -->|flows-to| logprocessor
-    logprocessor -->|flows-to| span
-    logrecord -->|depends-on| instrumentationscope
-    logrecord -->|depends-on| resource
-    logrecord -->|references| span
-    meterconfig -->|composes| metricinstrument
-    meterconfig -->|composes| spanevent
-    meterconfig -->|composes| traceconfiguration
-    metricinstrument -->|accesses| attribute
-    metricinstrument -->|depends-on| instrumentationscope
-    metricinstrument -->|depends-on| resource
-    metricinstrument -->|flows-to| exporterconfig
-    metricinstrument -->|flows-to| logprocessor
-    metricinstrument -->|flows-to| span
-    resource -->|aggregates| exporterconfig
-    resource -->|aggregates| metricinstrument
-    resource -->|aggregates| span
-    span -->|composes| metricinstrument
-    span -->|composes| spanevent
-    span -->|composes| traceconfiguration
-    span -->|depends-on| instrumentationscope
-    span -->|depends-on| resource
-    span -->|flows-to| exporterconfig
-    span -->|flows-to| logprocessor
-    span -->|flows-to| span
-    span -->|references| span
     spanlink -->|references| span
     traceconfiguration -->|aggregates| exporterconfig
+    instrumentationscope -->|aggregates| exporterconfig
+    apmconfiguration -->|composes| metricinstrument
+    span -->|flows-to| span
+    exporterconfig -->|serves| resource
+    resource -->|aggregates| span
+    span -->|composes| spanevent
+    resource -->|aggregates| exporterconfig
+    metricinstrument -->|flows-to| logprocessor
+    resource -->|aggregates| metricinstrument
+    span -->|flows-to| exporterconfig
+    instrumentationscope -->|aggregates| metricinstrument
+    span -->|composes| traceconfiguration
+    meterconfig -->|composes| metricinstrument
+    span -->|composes| metricinstrument
+    metricinstrument -->|depends-on| resource
+    logprocessor -->|accesses| attribute
+    instrumentationscope -->|aggregates| span
+    logprocessor -->|flows-to| logprocessor
+    metricinstrument -->|flows-to| span
+    logprocessor -->|flows-to| exporterconfig
+    instrumentationconfig -->|serves| apmconfiguration
+    span -->|depends-on| instrumentationscope
+    exporterconfig -->|serves| apmconfiguration
     traceconfiguration -->|aggregates| metricinstrument
+    span -->|references| span
+    dataqualitymetric -->|triggers| logrecord
+    logrecord -->|references| span
+    logrecord -->|depends-on| instrumentationscope
+    span -->|flows-to| logprocessor
+    metricinstrument -->|accesses| attribute
+    meterconfig -->|composes| spanevent
+    instrumentationconfig -->|serves| resource
+    span -->|depends-on| resource
+    metricinstrument -->|flows-to| exporterconfig
+    meterconfig -->|composes| traceconfiguration
+    logrecord -->|depends-on| resource
+    logprocessor -->|flows-to| span
+    metricinstrument -->|depends-on| instrumentationscope
     traceconfiguration -->|aggregates| span
+    apmconfiguration -->|composes| traceconfiguration
+    apmconfiguration -->|composes| spanevent
   end
 ```
 
@@ -169,21 +169,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  testing --> motivation
-  technology --> security
+  api --> business
+  api --> application
+  api --> data_store
+  api --> security
+  api --> apm
   data_model --> application
   data_model --> business
-  business --> data_model
-  business --> application
-  business --> security
-  business --> motivation
-  application --> motivation
   application --> apm
-  api --> apm
-  api --> application
-  api --> business
-  api --> security
-  api --> data_store
+  application --> motivation
+  technology --> security
+  testing --> motivation
+  business --> security
+  business --> application
+  business --> motivation
+  business --> data_model
   class apm current
 ```
 
@@ -215,10 +215,10 @@ Complete APM configuration for an application
 | Related Node                                    | Predicate | Direction | Cardinality  |
 | ----------------------------------------------- | --------- | --------- | ------------ |
 | [metricinstrument](#metricinstrument)           | composes  | outbound  | many-to-many |
-| [spanevent](#spanevent)                         | composes  | outbound  | many-to-many |
-| [traceconfiguration](#traceconfiguration)       | composes  | outbound  | many-to-many |
-| [exporterconfig](#exporterconfig)               | serves    | inbound   | many-to-many |
 | [instrumentationconfig](#instrumentationconfig) | serves    | inbound   | many-to-many |
+| [exporterconfig](#exporterconfig)               | serves    | inbound   | many-to-many |
+| [traceconfiguration](#traceconfiguration)       | composes  | outbound  | many-to-many |
+| [spanevent](#spanevent)                         | composes  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -293,14 +293,14 @@ Configuration for telemetry data export destinations, specifying protocol (OTLP,
 
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
-| [apmconfiguration](#apmconfiguration)         | serves     | outbound  | many-to-many |
-| [resource](#resource)                         | serves     | outbound  | many-to-many |
+| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
 | [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
-| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
+| [resource](#resource)                         | serves     | outbound  | many-to-many |
 | [resource](#resource)                         | aggregates | inbound   | many-to-many |
 | [span](#span)                                 | flows-to   | inbound   | many-to-many |
-| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
+| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
+| [apmconfiguration](#apmconfiguration)         | serves     | outbound  | many-to-many |
+| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -348,9 +348,9 @@ Logical unit of code that generates telemetry
 | [exporterconfig](#exporterconfig)     | aggregates | outbound  | many-to-many |
 | [metricinstrument](#metricinstrument) | aggregates | outbound  | many-to-many |
 | [span](#span)                         | aggregates | outbound  | many-to-many |
+| [span](#span)                         | depends-on | inbound   | many-to-many |
 | [logrecord](#logrecord)               | depends-on | inbound   | many-to-many |
 | [metricinstrument](#metricinstrument) | depends-on | inbound   | many-to-many |
-| [span](#span)                         | depends-on | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -396,12 +396,12 @@ A processing pipeline component for log records, enabling filtering, transformat
 
 | Related Node                          | Predicate | Direction | Cardinality  |
 | ------------------------------------- | --------- | --------- | ------------ |
-| [attribute](#attribute)               | accesses  | outbound  | many-to-many |
-| [exporterconfig](#exporterconfig)     | flows-to  | outbound  | many-to-many |
-| [logprocessor](#logprocessor)         | flows-to  | outbound  | many-to-many |
-| [span](#span)                         | flows-to  | outbound  | many-to-many |
 | [metricinstrument](#metricinstrument) | flows-to  | inbound   | many-to-many |
+| [attribute](#attribute)               | accesses  | outbound  | many-to-many |
+| [logprocessor](#logprocessor)         | flows-to  | outbound  | many-to-many |
+| [exporterconfig](#exporterconfig)     | flows-to  | outbound  | many-to-many |
 | [span](#span)                         | flows-to  | inbound   | many-to-many |
+| [span](#span)                         | flows-to  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -424,9 +424,9 @@ OpenTelemetry log entry
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
 | [dataqualitymetric](#dataqualitymetric)       | triggers   | inbound   | many-to-many |
+| [span](#span)                                 | references | outbound  | many-to-many |
 | [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
 | [resource](#resource)                         | depends-on | outbound  | many-to-many |
-| [span](#span)                                 | references | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -465,17 +465,17 @@ Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
 | [apmconfiguration](#apmconfiguration)         | composes   | inbound   | many-to-many |
+| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
+| [resource](#resource)                         | aggregates | inbound   | many-to-many |
 | [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
 | [meterconfig](#meterconfig)                   | composes   | inbound   | many-to-many |
-| [attribute](#attribute)                       | accesses   | outbound  | many-to-many |
-| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
-| [resource](#resource)                         | depends-on | outbound  | many-to-many |
-| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
-| [span](#span)                                 | flows-to   | outbound  | many-to-many |
-| [resource](#resource)                         | aggregates | inbound   | many-to-many |
 | [span](#span)                                 | composes   | inbound   | many-to-many |
+| [resource](#resource)                         | depends-on | outbound  | many-to-many |
+| [span](#span)                                 | flows-to   | outbound  | many-to-many |
 | [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
+| [attribute](#attribute)                       | accesses   | outbound  | many-to-many |
+| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
+| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -498,13 +498,13 @@ Immutable representation of entity producing telemetry
 | Related Node                                    | Predicate  | Direction | Cardinality  |
 | ----------------------------------------------- | ---------- | --------- | ------------ |
 | [exporterconfig](#exporterconfig)               | serves     | inbound   | many-to-many |
-| [instrumentationconfig](#instrumentationconfig) | serves     | inbound   | many-to-many |
-| [logrecord](#logrecord)                         | depends-on | inbound   | many-to-many |
-| [metricinstrument](#metricinstrument)           | depends-on | inbound   | many-to-many |
+| [span](#span)                                   | aggregates | outbound  | many-to-many |
 | [exporterconfig](#exporterconfig)               | aggregates | outbound  | many-to-many |
 | [metricinstrument](#metricinstrument)           | aggregates | outbound  | many-to-many |
-| [span](#span)                                   | aggregates | outbound  | many-to-many |
+| [metricinstrument](#metricinstrument)           | depends-on | inbound   | many-to-many |
+| [instrumentationconfig](#instrumentationconfig) | serves     | inbound   | many-to-many |
 | [span](#span)                                   | depends-on | inbound   | many-to-many |
+| [logrecord](#logrecord)                         | depends-on | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -534,21 +534,21 @@ Unit of work in distributed tracing
 
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
-| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
-| [logrecord](#logrecord)                       | references | inbound   | many-to-many |
-| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
-| [resource](#resource)                         | aggregates | inbound   | many-to-many |
-| [metricinstrument](#metricinstrument)         | composes   | outbound  | many-to-many |
-| [spanevent](#spanevent)                       | composes   | outbound  | many-to-many |
-| [traceconfiguration](#traceconfiguration)     | composes   | outbound  | many-to-many |
-| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
-| [resource](#resource)                         | depends-on | outbound  | many-to-many |
-| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
-| [span](#span)                                 | flows-to   | outbound  | many-to-many |
-| [span](#span)                                 | references | outbound  | many-to-many |
 | [spanlink](#spanlink)                         | references | inbound   | many-to-many |
+| [span](#span)                                 | flows-to   | outbound  | many-to-many |
+| [resource](#resource)                         | aggregates | inbound   | many-to-many |
+| [spanevent](#spanevent)                       | composes   | outbound  | many-to-many |
+| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
+| [traceconfiguration](#traceconfiguration)     | composes   | outbound  | many-to-many |
+| [metricinstrument](#metricinstrument)         | composes   | outbound  | many-to-many |
+| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
+| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
+| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
+| [span](#span)                                 | references | outbound  | many-to-many |
+| [logrecord](#logrecord)                       | references | inbound   | many-to-many |
+| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
+| [resource](#resource)                         | depends-on | outbound  | many-to-many |
+| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
 | [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
@@ -563,9 +563,9 @@ Timestamped event during span execution
 
 | Related Node                          | Predicate | Direction | Cardinality  |
 | ------------------------------------- | --------- | --------- | ------------ |
-| [apmconfiguration](#apmconfiguration) | composes  | inbound   | many-to-many |
-| [meterconfig](#meterconfig)           | composes  | inbound   | many-to-many |
 | [span](#span)                         | composes  | inbound   | many-to-many |
+| [meterconfig](#meterconfig)           | composes  | inbound   | many-to-many |
+| [apmconfiguration](#apmconfiguration) | composes  | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -617,19 +617,19 @@ Distributed tracing configuration
 
 | Related Node                          | Predicate  | Direction | Cardinality  |
 | ------------------------------------- | ---------- | --------- | ------------ |
-| [apmconfiguration](#apmconfiguration) | composes   | inbound   | many-to-many |
-| [meterconfig](#meterconfig)           | composes   | inbound   | many-to-many |
-| [span](#span)                         | composes   | inbound   | many-to-many |
 | [exporterconfig](#exporterconfig)     | aggregates | outbound  | many-to-many |
+| [span](#span)                         | composes   | inbound   | many-to-many |
 | [metricinstrument](#metricinstrument) | aggregates | outbound  | many-to-many |
+| [meterconfig](#meterconfig)           | composes   | inbound   | many-to-many |
 | [span](#span)                         | aggregates | outbound  | many-to-many |
+| [apmconfiguration](#apmconfiguration) | composes   | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                              | Layer                                           | Predicate | Direction | Cardinality |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | --------- | --------- | ----------- |
-| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | traced    | inbound   | many-to-one |
 | [operation](./06-api-layer-report.md#operation)                           | [Api](./06-api-layer-report.md)                 | apm-trace | inbound   | many-to-one |
+| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | traced    | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -643,4 +643,4 @@ TransformOperation element in APM Observability Layer
 
 ---
 
-_Generated: 2026-02-11T21:55:19.885Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:56:39.327Z | Generator: generate-layer-reports.ts_

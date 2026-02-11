@@ -88,24 +88,24 @@ flowchart LR
     triggerforeach["triggerforeach"]
     triggertiming["triggertiming"]
     view["view"]
-    constraint -->|aggregates| column
-    database -->|composes| column
-    database -->|composes| constraint
     database -->|composes| databaseschema
-    database -->|composes| index
-    database -->|composes| table
-    databaseschema -->|composes| column
-    databaseschema -->|composes| constraint
-    databaseschema -->|composes| databaseschema
-    databaseschema -->|composes| index
+    constraint -->|aggregates| column
     databaseschema -->|composes| table
-    index -->|aggregates| column
-    table -->|composes| column
+    database -->|composes| constraint
     table -->|composes| constraint
-    table -->|composes| databaseschema
-    table -->|composes| index
+    database -->|composes| index
     table -->|composes| table
+    database -->|composes| table
+    table -->|composes| index
+    table -->|composes| column
+    table -->|composes| databaseschema
+    databaseschema -->|composes| constraint
     trigger -->|triggers| function
+    databaseschema -->|composes| index
+    index -->|aggregates| column
+    databaseschema -->|composes| databaseschema
+    database -->|composes| column
+    databaseschema -->|composes| column
   end
 ```
 
@@ -126,21 +126,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  testing --> motivation
-  technology --> security
+  api --> business
+  api --> application
+  api --> data_store
+  api --> security
+  api --> apm
   data_model --> application
   data_model --> business
-  business --> data_model
-  business --> application
-  business --> security
-  business --> motivation
-  application --> motivation
   application --> apm
-  api --> apm
-  api --> application
-  api --> business
-  api --> security
-  api --> data_store
+  application --> motivation
+  technology --> security
+  testing --> motivation
+  business --> security
+  business --> application
+  business --> motivation
+  business --> data_model
   class data_store current
 ```
 
@@ -165,10 +165,10 @@ Table column definition
 | Related Node                      | Predicate  | Direction | Cardinality  |
 | --------------------------------- | ---------- | --------- | ------------ |
 | [constraint](#constraint)         | aggregates | inbound   | many-to-many |
+| [table](#table)                   | composes   | inbound   | many-to-many |
+| [index](#index)                   | aggregates | inbound   | many-to-many |
 | [database](#database)             | composes   | inbound   | many-to-many |
 | [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
-| [index](#index)                   | aggregates | inbound   | many-to-many |
-| [table](#table)                   | composes   | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -190,8 +190,8 @@ Table constraint
 | --------------------------------- | ---------- | --------- | ------------ |
 | [column](#column)                 | aggregates | outbound  | many-to-many |
 | [database](#database)             | composes   | inbound   | many-to-many |
-| [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
 | [table](#table)                   | composes   | inbound   | many-to-many |
+| [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -213,11 +213,11 @@ Database instance containing schemas
 
 | Related Node                      | Predicate | Direction | Cardinality  |
 | --------------------------------- | --------- | --------- | ------------ |
-| [column](#column)                 | composes  | outbound  | many-to-many |
-| [constraint](#constraint)         | composes  | outbound  | many-to-many |
 | [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
+| [constraint](#constraint)         | composes  | outbound  | many-to-many |
 | [index](#index)                   | composes  | outbound  | many-to-many |
 | [table](#table)                   | composes  | outbound  | many-to-many |
+| [column](#column)                 | composes  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -232,12 +232,12 @@ Logical grouping of database objects
 | Related Node                      | Predicate | Direction | Cardinality  |
 | --------------------------------- | --------- | --------- | ------------ |
 | [database](#database)             | composes  | inbound   | many-to-many |
-| [column](#column)                 | composes  | outbound  | many-to-many |
-| [constraint](#constraint)         | composes  | outbound  | many-to-many |
-| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
-| [index](#index)                   | composes  | outbound  | many-to-many |
 | [table](#table)                   | composes  | outbound  | many-to-many |
 | [table](#table)                   | composes  | inbound   | many-to-many |
+| [constraint](#constraint)         | composes  | outbound  | many-to-many |
+| [index](#index)                   | composes  | outbound  | many-to-many |
+| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
+| [column](#column)                 | composes  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -298,9 +298,9 @@ Database index for query optimization
 | Related Node                      | Predicate  | Direction | Cardinality  |
 | --------------------------------- | ---------- | --------- | ------------ |
 | [database](#database)             | composes   | inbound   | many-to-many |
+| [table](#table)                   | composes   | inbound   | many-to-many |
 | [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
 | [column](#column)                 | aggregates | outbound  | many-to-many |
-| [table](#table)                   | composes   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -386,13 +386,13 @@ Database table definition
 
 | Related Node                      | Predicate | Direction | Cardinality  |
 | --------------------------------- | --------- | --------- | ------------ |
-| [database](#database)             | composes  | inbound   | many-to-many |
 | [databaseschema](#databaseschema) | composes  | inbound   | many-to-many |
-| [column](#column)                 | composes  | outbound  | many-to-many |
 | [constraint](#constraint)         | composes  | outbound  | many-to-many |
-| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
-| [index](#index)                   | composes  | outbound  | many-to-many |
 | [table](#table)                   | composes  | outbound  | many-to-many |
+| [database](#database)             | composes  | inbound   | many-to-many |
+| [index](#index)                   | composes  | outbound  | many-to-many |
+| [column](#column)                 | composes  | outbound  | many-to-many |
+| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -451,4 +451,4 @@ Database view
 
 ---
 
-_Generated: 2026-02-11T21:55:19.882Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:56:39.326Z | Generator: generate-layer-reports.ts_

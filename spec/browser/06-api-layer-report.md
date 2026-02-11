@@ -94,36 +94,36 @@ flowchart LR
     server["server"]
     servervariable["servervariable"]
     tag["tag"]
-    components -->|composes| paths
-    components -->|composes| responses
-    components -->|composes| schema
-    contact -->|associated-with| openapidocument
-    license -->|associated-with| openapidocument
-    link -->|references| operation
-    link -->|references| schema
-    link -->|references| tag
-    openapidocument -->|aggregates| server
-    openapidocument -->|aggregates| tag
-    openapidocument -->|composes| paths
-    openapidocument -->|composes| responses
-    openapidocument -->|composes| schema
-    operation -->|aggregates| server
-    operation -->|aggregates| tag
-    operation -->|composes| paths
-    operation -->|composes| responses
-    operation -->|composes| schema
-    operation -->|references| operation
-    operation -->|references| schema
-    operation -->|references| tag
     operation -->|triggers| callback
-    parameter -->|references| operation
-    parameter -->|references| schema
-    parameter -->|references| tag
-    schema -->|references| operation
-    schema -->|references| schema
     schema -->|references| tag
+    schema -->|references| schema
+    components -->|composes| schema
+    openapidocument -->|aggregates| server
+    openapidocument -->|composes| paths
+    operation -->|aggregates| tag
+    parameter -->|references| schema
+    operation -->|references| operation
     schema -->|specializes| schema
+    contact -->|associated-with| openapidocument
+    openapidocument -->|composes| schema
+    operation -->|composes| paths
+    operation -->|references| schema
+    schema -->|references| operation
+    operation -->|references| tag
+    components -->|composes| responses
     securityscheme -->|serves| operation
+    link -->|references| operation
+    openapidocument -->|aggregates| tag
+    license -->|associated-with| openapidocument
+    parameter -->|references| operation
+    parameter -->|references| tag
+    link -->|references| tag
+    link -->|references| schema
+    components -->|composes| paths
+    operation -->|aggregates| server
+    openapidocument -->|composes| responses
+    operation -->|composes| schema
+    operation -->|composes| responses
   end
 ```
 
@@ -144,21 +144,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  testing --> motivation
-  technology --> security
+  api --> business
+  api --> application
+  api --> data_store
+  api --> security
+  api --> apm
   data_model --> application
   data_model --> business
-  business --> data_model
-  business --> application
-  business --> security
-  business --> motivation
-  application --> motivation
   application --> apm
-  api --> apm
-  api --> application
-  api --> business
-  api --> security
-  api --> data_store
+  application --> motivation
+  technology --> security
+  testing --> motivation
+  business --> security
+  business --> application
+  business --> motivation
+  business --> data_model
   class api current
 ```
 
@@ -167,23 +167,23 @@ flowchart TB
 | Relationship ID                                                      | Source Node                                               | Dest Node                                                                 | Dest Layer                                      | Predicate              | Cardinality  | Strength |
 | -------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------- | ------------ | -------- |
 | api.operation.apm-trace.apm.traceconfiguration                       | [operation](./06-api-layer-report.md#operation)           | [traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [Apm](./11-apm-layer-report.md)                 | apm-trace              | many-to-one  | medium   |
-| api.operation.archimate-ref.application.applicationservice           | [operation](./06-api-layer-report.md#operation)           | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref          | many-to-one  | medium   |
 | api.securityscheme.archimate-ref.application.applicationservice      | [securityscheme](./06-api-layer-report.md#securityscheme) | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref          | many-to-one  | medium   |
-| api.operation.business-interface-ref.business.businessinterface      | [operation](./06-api-layer-report.md#operation)           | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | business-interface-ref | many-to-one  | medium   |
+| api.operation.archimate-ref.application.applicationservice           | [operation](./06-api-layer-report.md#operation)           | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref          | many-to-one  | medium   |
 | api.securityscheme.business-interface-ref.business.businessinterface | [securityscheme](./06-api-layer-report.md#securityscheme) | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | business-interface-ref | many-to-one  | medium   |
-| api.operation.business-service-ref.business.businessservice          | [operation](./06-api-layer-report.md#operation)           | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | business-service-ref   | many-to-one  | medium   |
+| api.operation.business-interface-ref.business.businessinterface      | [operation](./06-api-layer-report.md#operation)           | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | business-interface-ref | many-to-one  | medium   |
 | api.securityscheme.business-service-ref.business.businessservice     | [securityscheme](./06-api-layer-report.md#securityscheme) | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | business-service-ref   | many-to-one  | medium   |
+| api.operation.business-service-ref.business.businessservice          | [operation](./06-api-layer-report.md#operation)           | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | business-service-ref   | many-to-one  | medium   |
+| api.securityscheme.referenced-by.business.businessinterface          | [securityscheme](./06-api-layer-report.md#securityscheme) | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | referenced-by          | many-to-one  | medium   |
 | api.operation.referenced-by.business.businessinterface               | [operation](./06-api-layer-report.md#operation)           | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | referenced-by          | many-to-one  | medium   |
 | api.operation.referenced-by.business.businessservice                 | [operation](./06-api-layer-report.md#operation)           | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | referenced-by          | many-to-one  | medium   |
-| api.securityscheme.referenced-by.business.businessinterface          | [securityscheme](./06-api-layer-report.md#securityscheme) | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | referenced-by          | many-to-one  | medium   |
 | api.securityscheme.referenced-by.business.businessservice            | [securityscheme](./06-api-layer-report.md#securityscheme) | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | referenced-by          | many-to-one  | medium   |
 | api.schema.database-column.data-store.column                         | [schema](./06-api-layer-report.md#schema)                 | [column](./08-data-store-layer-report.md#column)                          | [Data Store](./08-data-store-layer-report.md)   | database-column        | many-to-one  | medium   |
 | api.schema.database-table.data-store.table                           | [schema](./06-api-layer-report.md#schema)                 | [table](./08-data-store-layer-report.md#table)                            | [Data Store](./08-data-store-layer-report.md)   | database-table         | many-to-one  | medium   |
 | api.securityscheme.database-table.data-store.table                   | [securityscheme](./06-api-layer-report.md#securityscheme) | [table](./08-data-store-layer-report.md#table)                            | [Data Store](./08-data-store-layer-report.md)   | database-table         | many-to-one  | medium   |
 | api.operation.referenced-by.security.permission                      | [operation](./06-api-layer-report.md#operation)           | [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | referenced-by          | many-to-many | medium   |
 | api.operation.referenced-by.security.secureresource                  | [operation](./06-api-layer-report.md#operation)           | [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | referenced-by          | many-to-one  | medium   |
-| api.securityscheme.referenced-by.security.permission                 | [securityscheme](./06-api-layer-report.md#securityscheme) | [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | referenced-by          | many-to-many | medium   |
 | api.securityscheme.referenced-by.security.secureresource             | [securityscheme](./06-api-layer-report.md#securityscheme) | [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | referenced-by          | many-to-one  | medium   |
+| api.securityscheme.referenced-by.security.permission                 | [securityscheme](./06-api-layer-report.md#securityscheme) | [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | referenced-by          | many-to-many | medium   |
 | api.operation.required-permissions.security.permission               | [operation](./06-api-layer-report.md#operation)           | [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | required-permissions   | many-to-many | critical |
 | api.securityscheme.required-permissions.security.permission          | [securityscheme](./06-api-layer-report.md#securityscheme) | [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | required-permissions   | many-to-many | critical |
 | api.operation.security-resource.security.secureresource              | [operation](./06-api-layer-report.md#operation)           | [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | security-resource      | many-to-one  | critical |
@@ -215,9 +215,9 @@ Reusable component definitions
 
 | Related Node            | Predicate | Direction | Cardinality  |
 | ----------------------- | --------- | --------- | ------------ |
-| [paths](#paths)         | composes  | outbound  | many-to-many |
-| [responses](#responses) | composes  | outbound  | many-to-many |
 | [schema](#schema)       | composes  | outbound  | many-to-many |
+| [responses](#responses) | composes  | outbound  | many-to-many |
+| [paths](#paths)         | composes  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -300,8 +300,8 @@ Describes a relationship between API responses and subsequent operations, enabli
 | Related Node            | Predicate  | Direction | Cardinality  |
 | ----------------------- | ---------- | --------- | ------------ |
 | [operation](#operation) | references | outbound  | many-to-many |
-| [schema](#schema)       | references | outbound  | many-to-many |
 | [tag](#tag)             | references | outbound  | many-to-many |
+| [schema](#schema)       | references | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -339,13 +339,13 @@ Root of an OpenAPI specification file
 
 | Related Node            | Predicate       | Direction | Cardinality  |
 | ----------------------- | --------------- | --------- | ------------ |
-| [contact](#contact)     | associated-with | inbound   | many-to-many |
-| [license](#license)     | associated-with | inbound   | many-to-many |
 | [server](#server)       | aggregates      | outbound  | many-to-many |
-| [tag](#tag)             | aggregates      | outbound  | many-to-many |
 | [paths](#paths)         | composes        | outbound  | many-to-many |
-| [responses](#responses) | composes        | outbound  | many-to-many |
+| [contact](#contact)     | associated-with | inbound   | many-to-many |
 | [schema](#schema)       | composes        | outbound  | many-to-many |
+| [tag](#tag)             | aggregates      | outbound  | many-to-many |
+| [license](#license)     | associated-with | inbound   | many-to-many |
+| [responses](#responses) | composes        | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -359,34 +359,34 @@ Single API operation (HTTP method on a path)
 
 | Related Node                      | Predicate  | Direction | Cardinality  |
 | --------------------------------- | ---------- | --------- | ------------ |
-| [link](#link)                     | references | inbound   | many-to-many |
-| [server](#server)                 | aggregates | outbound  | many-to-many |
-| [tag](#tag)                       | aggregates | outbound  | many-to-many |
-| [paths](#paths)                   | composes   | outbound  | many-to-many |
-| [responses](#responses)           | composes   | outbound  | many-to-many |
-| [schema](#schema)                 | composes   | outbound  | many-to-many |
-| [operation](#operation)           | references | outbound  | many-to-many |
-| [schema](#schema)                 | references | outbound  | many-to-many |
-| [tag](#tag)                       | references | outbound  | many-to-many |
 | [callback](#callback)             | triggers   | outbound  | many-to-many |
-| [parameter](#parameter)           | references | inbound   | many-to-many |
+| [tag](#tag)                       | aggregates | outbound  | many-to-many |
+| [operation](#operation)           | references | outbound  | many-to-many |
+| [paths](#paths)                   | composes   | outbound  | many-to-many |
+| [schema](#schema)                 | references | outbound  | many-to-many |
 | [schema](#schema)                 | references | inbound   | many-to-many |
+| [tag](#tag)                       | references | outbound  | many-to-many |
 | [securityscheme](#securityscheme) | serves     | inbound   | many-to-many |
+| [link](#link)                     | references | inbound   | many-to-many |
+| [parameter](#parameter)           | references | inbound   | many-to-many |
+| [server](#server)                 | aggregates | outbound  | many-to-many |
+| [schema](#schema)                 | composes   | outbound  | many-to-many |
+| [responses](#responses)           | composes   | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                              | Layer                                           | Predicate              | Direction | Cardinality  |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------- | --------- | ------------ |
-| [traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [Apm](./11-apm-layer-report.md)                 | apm-trace              | outbound  | many-to-one  |
-| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref          | outbound  | many-to-one  |
-| [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | business-interface-ref | outbound  | many-to-one  |
-| [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | business-service-ref   | outbound  | many-to-one  |
 | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
-| [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
 | [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | referenced-by          | outbound  | many-to-many |
-| [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
 | [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | required-permissions   | outbound  | many-to-many |
 | [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | security-resource      | outbound  | many-to-one  |
+| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref          | outbound  | many-to-one  |
+| [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
+| [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
+| [traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [Apm](./11-apm-layer-report.md)                 | apm-trace              | outbound  | many-to-one  |
+| [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | business-interface-ref | outbound  | many-to-one  |
+| [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | business-service-ref   | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -400,8 +400,8 @@ Parameter for an operation
 
 | Related Node            | Predicate  | Direction | Cardinality  |
 | ----------------------- | ---------- | --------- | ------------ |
-| [operation](#operation) | references | outbound  | many-to-many |
 | [schema](#schema)       | references | outbound  | many-to-many |
+| [operation](#operation) | references | outbound  | many-to-many |
 | [tag](#tag)             | references | outbound  | many-to-many |
 
 [Back to Index](#report-index)
@@ -440,9 +440,9 @@ Available API endpoints and operations
 
 | Related Node                        | Predicate | Direction | Cardinality  |
 | ----------------------------------- | --------- | --------- | ------------ |
-| [components](#components)           | composes  | inbound   | many-to-many |
 | [openapidocument](#openapidocument) | composes  | inbound   | many-to-many |
 | [operation](#operation)             | composes  | inbound   | many-to-many |
+| [components](#components)           | composes  | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -488,23 +488,23 @@ Data type definition (JSON Schema subset)
 
 | Related Node                        | Predicate   | Direction | Cardinality  |
 | ----------------------------------- | ----------- | --------- | ------------ |
-| [components](#components)           | composes    | inbound   | many-to-many |
-| [link](#link)                       | references  | inbound   | many-to-many |
-| [openapidocument](#openapidocument) | composes    | inbound   | many-to-many |
-| [operation](#operation)             | composes    | inbound   | many-to-many |
-| [operation](#operation)             | references  | inbound   | many-to-many |
-| [parameter](#parameter)             | references  | inbound   | many-to-many |
-| [operation](#operation)             | references  | outbound  | many-to-many |
-| [schema](#schema)                   | references  | outbound  | many-to-many |
 | [tag](#tag)                         | references  | outbound  | many-to-many |
+| [schema](#schema)                   | references  | outbound  | many-to-many |
+| [components](#components)           | composes    | inbound   | many-to-many |
+| [parameter](#parameter)             | references  | inbound   | many-to-many |
 | [schema](#schema)                   | specializes | outbound  | many-to-many |
+| [openapidocument](#openapidocument) | composes    | inbound   | many-to-many |
+| [operation](#operation)             | references  | inbound   | many-to-many |
+| [operation](#operation)             | references  | outbound  | many-to-many |
+| [link](#link)                       | references  | inbound   | many-to-many |
+| [operation](#operation)             | composes    | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
 | Related Node                                     | Layer                                         | Predicate       | Direction | Cardinality |
 | ------------------------------------------------ | --------------------------------------------- | --------------- | --------- | ----------- |
-| [column](./08-data-store-layer-report.md#column) | [Data Store](./08-data-store-layer-report.md) | database-column | outbound  | many-to-one |
 | [table](./08-data-store-layer-report.md#table)   | [Data Store](./08-data-store-layer-report.md) | database-table  | outbound  | many-to-one |
+| [column](./08-data-store-layer-report.md#column) | [Data Store](./08-data-store-layer-report.md) | database-column | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -524,16 +524,16 @@ Security mechanism for the API
 
 | Related Node                                                              | Layer                                           | Predicate              | Direction | Cardinality  |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------- | --------- | ------------ |
+| [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
 | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref          | outbound  | many-to-one  |
 | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | business-interface-ref | outbound  | many-to-one  |
 | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | business-service-ref   | outbound  | many-to-one  |
-| [table](./08-data-store-layer-report.md#table)                            | [Data Store](./08-data-store-layer-report.md)   | database-table         | outbound  | many-to-one  |
-| [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
 | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
-| [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | referenced-by          | outbound  | many-to-many |
-| [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
-| [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | required-permissions   | outbound  | many-to-many |
 | [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | security-resource      | outbound  | many-to-one  |
+| [table](./08-data-store-layer-report.md#table)                            | [Data Store](./08-data-store-layer-report.md)   | database-table         | outbound  | many-to-one  |
+| [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | required-permissions   | outbound  | many-to-many |
+| [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | referenced-by          | outbound  | many-to-one  |
+| [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | referenced-by          | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -578,15 +578,15 @@ A metadata label used to group and categorize API operations for documentation o
 
 | Related Node                        | Predicate  | Direction | Cardinality  |
 | ----------------------------------- | ---------- | --------- | ------------ |
-| [link](#link)                       | references | inbound   | many-to-many |
-| [openapidocument](#openapidocument) | aggregates | inbound   | many-to-many |
+| [schema](#schema)                   | references | inbound   | many-to-many |
 | [operation](#operation)             | aggregates | inbound   | many-to-many |
 | [operation](#operation)             | references | inbound   | many-to-many |
+| [openapidocument](#openapidocument) | aggregates | inbound   | many-to-many |
 | [parameter](#parameter)             | references | inbound   | many-to-many |
-| [schema](#schema)                   | references | inbound   | many-to-many |
+| [link](#link)                       | references | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-11T21:55:19.881Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:56:39.326Z | Generator: generate-layer-reports.ts_

@@ -7,7 +7,7 @@ on:
       - "spec/schemas/*.schema.json"
       - "spec/layers/*.layer.json"
       - "spec/nodes/**/*.node.json"
-      - "scripts/generate-layer-docs.ts"
+      - "scripts/generate-layer-reports.ts"
 
 jobs:
   validate-docs:
@@ -20,22 +20,19 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: cd cli && bun install
-
       - name: Generate documentation
-        run: cd cli && bun run ../scripts/generate-layer-docs.ts --output ../spec/layers/
+        run: bun run scripts/generate-layer-reports.ts
 
       - name: Check for changes
         run: |
-          git diff --exit-code spec/layers/
+          git diff --exit-code spec/browser/
           if [ $? -ne 0 ]; then
             echo "❌ Documentation is out of sync with schemas."
             echo ""
             echo "Documentation files are auto-generated from specification instances."
             echo "To fix this, run:"
             echo ""
-            echo "  cd cli && bun run ../scripts/generate-layer-docs.ts --output ../spec/layers/"
+            echo "  bun run scripts/generate-layer-reports.ts"
             echo ""
             echo "Then commit the updated files."
             exit 1

@@ -76,10 +76,10 @@ flowchart LR
     x_database["x-database"]
     x_security["x-security"]
     x_ui["x-ui"]
-    jsonschema -->|apm-data-quality-metrics| dataqualitymetrics
     jsonschema -->|data-governance| datagovernance
-    jsonschema -->|database-mapping| databasemapping
     schemaproperty -->|database-mapping| databasemapping
+    jsonschema -->|database-mapping| databasemapping
+    jsonschema -->|apm-data-quality-metrics| dataqualitymetrics
   end
 ```
 
@@ -100,21 +100,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  testing --> motivation
-  technology --> security
+  api --> business
+  api --> application
+  api --> data_store
+  api --> security
+  api --> apm
   data_model --> application
   data_model --> business
-  business --> data_model
-  business --> application
-  business --> security
-  business --> motivation
-  application --> motivation
   application --> apm
-  api --> apm
-  api --> application
-  api --> business
-  api --> security
-  api --> data_store
+  application --> motivation
+  technology --> security
+  testing --> motivation
+  business --> security
+  business --> application
+  business --> motivation
+  business --> data_model
   class data_model current
 ```
 
@@ -147,8 +147,8 @@ Specifies how a logical data model entity maps to physical database storage, inc
 
 | Related Node                      | Predicate        | Direction | Cardinality |
 | --------------------------------- | ---------------- | --------- | ----------- |
-| [jsonschema](#jsonschema)         | database-mapping | inbound   | many-to-one |
 | [schemaproperty](#schemaproperty) | database-mapping | inbound   | many-to-one |
+| [jsonschema](#jsonschema)         | database-mapping | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -196,9 +196,9 @@ Root schema document
 
 | Related Node                              | Predicate                | Direction | Cardinality |
 | ----------------------------------------- | ------------------------ | --------- | ----------- |
-| [dataqualitymetrics](#dataqualitymetrics) | apm-data-quality-metrics | outbound  | many-to-one |
 | [datagovernance](#datagovernance)         | data-governance          | outbound  | many-to-one |
 | [databasemapping](#databasemapping)       | database-mapping         | outbound  | many-to-one |
+| [dataqualitymetrics](#dataqualitymetrics) | apm-data-quality-metrics | outbound  | many-to-one |
 
 #### Inter-Layer Relationships
 
@@ -338,4 +338,4 @@ UI rendering hints
 
 ---
 
-_Generated: 2026-02-11T21:55:19.882Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:56:39.326Z | Generator: generate-layer-reports.ts_

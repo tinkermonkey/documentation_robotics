@@ -105,21 +105,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  testing --> motivation
-  technology --> security
+  api --> business
+  api --> application
+  api --> data_store
+  api --> security
+  api --> apm
   data_model --> application
   data_model --> business
-  business --> data_model
-  business --> application
-  business --> security
-  business --> motivation
-  application --> motivation
   application --> apm
-  api --> apm
-  api --> application
-  api --> business
-  api --> security
-  api --> data_store
+  application --> motivation
+  technology --> security
+  testing --> motivation
+  business --> security
+  business --> application
+  business --> motivation
+  business --> data_model
   class ux current
 ```
 
@@ -555,4 +555,4 @@ ViewType element in UX Layer
 
 ---
 
-_Generated: 2026-02-11T21:55:19.883Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:56:39.327Z | Generator: generate-layer-reports.ts_

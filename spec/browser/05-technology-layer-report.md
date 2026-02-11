@@ -74,21 +74,21 @@ flowchart TB
   navigation["Navigation"]
   apm["Apm"]
   testing["Testing"]
-  testing --> motivation
-  technology --> security
+  api --> business
+  api --> application
+  api --> data_store
+  api --> security
+  api --> apm
   data_model --> application
   data_model --> business
-  business --> data_model
-  business --> application
-  business --> security
-  business --> motivation
-  application --> motivation
   application --> apm
-  api --> apm
-  api --> application
-  api --> business
-  api --> security
-  api --> data_store
+  application --> motivation
+  technology --> security
+  testing --> motivation
+  business --> security
+  business --> application
+  business --> motivation
+  business --> data_model
   class technology current
 ```
 
@@ -111,8 +111,8 @@ Physical piece of data used or produced
 
 | Related Node                                                   | Layer                                     | Predicate      | Direction | Cardinality |
 | -------------------------------------------------------------- | ----------------------------------------- | -------------- | --------- | ----------- |
-| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | classification | outbound  | many-to-one |
 | [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | referenced-by  | outbound  | many-to-one |
+| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | classification | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -286,4 +286,4 @@ TechServiceType element in Technology Layer
 
 ---
 
-_Generated: 2026-02-11T21:55:19.880Z | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-11T21:56:39.325Z | Generator: generate-layer-reports.ts_
