@@ -554,12 +554,15 @@ export class StagingAreaManager {
               }
 
               if (change.type === "add" && change.after) {
+                const { Element } = await import("./element.js");
+                const elementData = change.after as Record<string, unknown>;
+                const elementId = elementData.id as string;
+
+                // Check if element already exists using the UUID from elementData
                 const elements = layer.listElements();
-                const elementExists = elements.some((e) => e.id === change.elementId);
+                const elementExists = elements.some((e) => e.id === elementId);
 
                 if (!elementExists) {
-                  const { Element } = await import("./element.js");
-                  const elementData = change.after as Record<string, unknown>;
                   // Pass the entire elementData to Element constructor - it already has all fields from toJSON()
                   const element = new Element(elementData);
                   layer.addElement(element);
