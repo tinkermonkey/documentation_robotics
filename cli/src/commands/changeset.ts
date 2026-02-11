@@ -191,12 +191,13 @@ export async function changesetListCommand(): Promise<void> {
  */
 export async function changesetApplyCommand(
   name: string,
-  options?: { validate?: boolean }
+  options?: { validate?: boolean; force?: boolean }
 ): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.apply", {
         "changeset.name": name,
         "apply.validate": options?.validate !== false,
+        "apply.force": options?.force === true,
       })
     : null;
 
@@ -242,7 +243,10 @@ export async function changesetApplyCommand(
       endSpan(span);
       process.exit(1);
     }
-    const result = await manager.apply(model, changesetId, { validate: options?.validate });
+    const result = await manager.apply(model, changesetId, {
+      validate: options?.validate,
+      force: options?.force
+    });
 
     console.log();
 
@@ -1498,12 +1502,14 @@ Examples:
     .command("apply <name>")
     .description("Apply a changeset to the model")
     .option("--no-validate", "Skip validation before applying")
+    .option("--force", "Force apply even if base model has drifted")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr changeset apply "v1.1 migration"
-  $ dr changeset apply "v1.1 migration" --no-validate`
+  $ dr changeset apply "v1.1 migration" --no-validate
+  $ dr changeset apply "v1.1 migration" --force`
     )
     .action(async (name, options) => {
       await changesetApplyCommand(name, options);

@@ -63,6 +63,12 @@ function formatStepResult(step: StepResult, indent: string = '', verbose: boolea
         step.tsOutput.stdout.length > MAX_STDOUT_DISPLAY ? '...' : ''
       }\n`;
     }
+    if (step.tsOutput.stderr) {
+      const stderr = step.tsOutput.stderr.substring(0, MAX_STDOUT_DISPLAY);
+      output += `${indent}  ${colorize('Stderr:', COLORS.dim)} ${stderr}${
+        step.tsOutput.stderr.length > MAX_STDOUT_DISPLAY ? '...' : ''
+      }\n`;
+    }
     if (step.filesystemDiff.ts.length > 0) {
       output += `${indent}  ${colorize('Files Changed:', COLORS.dim)} ${step.filesystemDiff.ts.length}\n`;
       for (const change of step.filesystemDiff.ts.slice(0, MAX_FILES_SHOWN)) {
