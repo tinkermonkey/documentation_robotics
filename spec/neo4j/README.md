@@ -6,7 +6,7 @@ This directory contains Neo4j exports of the Documentation Robotics specificatio
 
 The spec metadata export captures the **structure** of the 12-layer architecture model:
 
-- **212 SpecNode types** - Element types like `motivation.goal`, `api.endpoint`
+- **354 SpecNode types** - Element types like `motivation.goal`, `api.endpoint`
 - **252 SpecRelationship types** - Allowed relationships between types
 - **47 Predicates** - Semantic relationship types (influence, realizes, etc.)
 - **12 Layers** - Motivation, Business, Security, Application, etc.
@@ -14,17 +14,50 @@ The spec metadata export captures the **structure** of the 12-layer architecture
 
 This is distinct from model instance data (user's actual architecture elements), which is exported via `dr graph-migrate`.
 
+## Quick Start (Recommended)
+
+The easiest way to explore the spec in Neo4j:
+
+```bash
+# One command to start Neo4j and import data
+./spec/neo4j/launch-neo4j.sh
+
+# Open the provided URL in your browser
+# Username: neo4j, Password: password
+```
+
+The launch script will:
+
+- Start a Neo4j container automatically
+- Import the spec metadata (or skip if already loaded)
+- Provide a clickable URL to explore the data
+
+**To stop Neo4j:**
+
+```bash
+docker stop doc-robotics-neo4j
+```
+
+**To remove container and data:**
+
+```bash
+docker rm doc-robotics-neo4j
+```
+
 ## Files
 
-- `import.cypher` - Cypher script for importing spec metadata (generated)
-- `csv/` - CSV files for bulk import via neo4j-admin (generated)
+- `import.cypher` - Cypher script for importing spec metadata (generated, **now tracked in git**)
+- `csv/` - CSV files for bulk import via neo4j-admin (generated, **now tracked in git**)
   - `nodes.csv` - All node data
   - `edges.csv` - All relationship data
   - `import.sh` - Shell script for neo4j-admin import
-- `README.md` - This file (checked into git)
-- `.gitignore` - Ignores generated files
+- `launch-neo4j.sh` - One-command launcher script (**recommended**)
+- `README.md` - This file
+- `.gitignore` - Updated to track generated files
 
-## Usage
+## Alternative Usage Methods
+
+If you need more control than the launch script, you can use these methods:
 
 ### Option 1: Cypher Script (Interactive)
 
@@ -62,7 +95,7 @@ npm run export:spec-neo4j
 
 ### Node Types
 
-**SpecNode** (212 nodes)
+**SpecNode** (354 nodes)
 
 - Properties: `spec_node_id`, `layer_id`, `type`, `title`, `description`, `required_attribute_count`, `total_attribute_count`
 - Labels: `SpecNode`, `SpecNode_{layer}`
@@ -113,7 +146,7 @@ After import, run these queries in Neo4j Browser to validate:
 
 ```cypher
 // 1. Count validation
-MATCH (n:SpecNode) RETURN COUNT(n) AS specNodes; // Expected: 212
+MATCH (n:SpecNode) RETURN COUNT(n) AS specNodes; // Expected: 354
 MATCH (n:SpecRelationship) RETURN COUNT(n) AS specRelationships; // Expected: 252
 MATCH (n:Predicate) RETURN COUNT(n) AS predicates; // Expected: 47
 MATCH (n:Layer) RETURN COUNT(n) AS layers; // Expected: 12
@@ -243,7 +276,7 @@ Compare exports over time to track how the specification evolves.
 ## Notes
 
 - This export is **read-only** - it documents the spec structure, not user data
-- Generated files are not checked into git (only this README)
-- Re-run export after modifying schemas in `spec/schemas/`
+- Generated files **are tracked in git** to allow exploration without regenerating
+- Re-run export after modifying schemas in `spec/schemas/`: `npm run export:spec-neo4j`
 - The export script is at `scripts/export-spec-to-neo4j.ts`
 - For model instance data, use `dr graph-migrate` instead
