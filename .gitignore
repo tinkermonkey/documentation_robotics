@@ -51,6 +51,9 @@ htmlcov/
 docs/_build/
 documentation/claude_thoughts/
 
+# Claude AI Assistant temporary files
+.claude_prompt*.txt
+
 # Logs
 *.log
 .dr/logs/
