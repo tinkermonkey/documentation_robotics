@@ -13,6 +13,7 @@
 **Effort**: 30 minutes
 
 **Issue**:
+
 ```typescript
 // Splits spec_node_id without checking array length
 const parts = spec_node_id.split(".");
@@ -20,6 +21,7 @@ const layer = parts[1]; // May be undefined if format is wrong
 ```
 
 **Fix**: Add validation with clear error messages
+
 ```typescript
 const parts = spec_node_id.split(".");
 if (parts.length < 3) {
@@ -41,12 +43,14 @@ const layer = parts[1];
 **Issue**: Moving AJV to static class-level state creates test pollution if tests forget to call `reset()`.
 
 **Fix**: Add reset calls to test setup files
+
 ```typescript
 // In test setup (beforeEach)
 SchemaValidator.reset();
 ```
 
 **Locations to add reset calls**:
+
 - `cli/tests/unit/validators/schema-validator.test.ts`
 - `cli/tests/integration/export-command.test.ts`
 - Any other tests that create SchemaValidator instances
@@ -62,6 +66,7 @@ SchemaValidator.reset();
 **Issue**: New function now escapes `<` and `>` to `&lt;` and `&gt;`, changing output format.
 
 **Fix**: Document in commit message
+
 ```
 fix: Update markdown escaping to include HTML entities
 
@@ -84,14 +89,14 @@ generated markdown documents.
 **Effort**: 30 minutes
 
 **Issue**:
+
 ```typescript
 // Uses console.warn instead of project logging
-console.warn(
-  `Malformed element ID format in relationship: source="${rel.source}" ...`
-);
+console.warn(`Malformed element ID format in relationship: source="${rel.source}" ...`);
 ```
 
 **Fix**: Use structured logging with error ID
+
 ```typescript
 import { logWarning } from "../utils/logging.js";
 
@@ -104,6 +109,7 @@ logWarning("REPORT_001", {
 ```
 
 **Check**:
+
 - Verify project has `logWarning()` in logging utilities
 - Use consistent error ID format (`CATEGORY_NNN`)
 - Update all console.warn calls in new modules
@@ -121,6 +127,7 @@ logWarning("REPORT_001", {
 **Create**: `cli/tests/unit/core/spec-loader.test.ts`
 
 **Test Coverage Needed**:
+
 - Successful schema loading
 - Error handling for missing files
 - JSON parse errors
@@ -128,6 +135,7 @@ logWarning("REPORT_001", {
 - Caching behavior
 
 **Example structure**:
+
 ```typescript
 describe("SpecDataLoader", () => {
   describe("load", () => {
@@ -157,6 +165,7 @@ describe("SpecDataLoader", () => {
 **Create**: `cli/tests/unit/core/spec-data-service.test.ts`
 
 **Test Coverage Needed**:
+
 - Service initialization
 - Node type queries
 - Relationship type queries
@@ -173,6 +182,7 @@ describe("SpecDataLoader", () => {
 **Effort**: 1.5 hours
 
 **Test Cases Needed**:
+
 - Simple 2-node cycle (A→B→A)
 - Complex multi-node cycles (A→B→C→A)
 - Multiple independent cycles
@@ -181,6 +191,7 @@ describe("SpecDataLoader", () => {
 - No cycles in acyclic graph
 
 **Example test**:
+
 ```typescript
 it("should find cycles reachable through alternate paths", async () => {
   // Build relationships: A→B, B→C, C→B (cycle), D→C
@@ -203,6 +214,7 @@ it("should find cycles reachable through alternate paths", async () => {
 ## Quick Action Plan
 
 ### Phase 1: High-Priority (Before Next Merge)
+
 1. [ ] Add reset calls to SchemaValidator tests
 2. [ ] Document escapeMarkdown change in commit
 3. [ ] Fix property access in generate-layer-reports.ts
@@ -211,6 +223,7 @@ it("should find cycles reachable through alternate paths", async () => {
 **Estimated**: 2-3 hours
 
 ### Phase 2: Important (Next PR)
+
 5. [ ] Add SpecDataLoader unit tests
 6. [ ] Add SpecDataService unit tests
 7. [ ] Add circular dependency edge case tests
@@ -218,6 +231,7 @@ it("should find cycles reachable through alternate paths", async () => {
 **Estimated**: 5-6 hours
 
 ### Phase 3: Documentation
+
 8. [ ] Update CHANGELOG with all fixes
 9. [ ] Update PR description with complete list of changes
 10. [ ] Add notes for maintainers about remaining work
@@ -229,12 +243,14 @@ it("should find cycles reachable through alternate paths", async () => {
 ## Files to Focus On
 
 **For High-Priority Fixes**:
+
 - `scripts/generate-layer-reports.ts` - Property access validation
 - `cli/src/validators/schema-validator.test.ts` - Add reset calls
 - `cli/src/core/report-data-model.ts` - Logging patterns
 - Commit messages - Document behavioral changes
 
 **For Important Additions**:
+
 - `cli/tests/unit/core/spec-loader.test.ts` (new)
 - `cli/tests/unit/core/spec-data-service.test.ts` (new)
 - `cli/tests/unit/core/report-data-model.test.ts` (enhance)

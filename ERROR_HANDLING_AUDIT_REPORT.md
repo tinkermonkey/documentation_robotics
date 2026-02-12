@@ -1,4 +1,5 @@
 # Error Handling Audit Report
+
 ## PR: feature/issue-365-clean-up-and-complete-layer-re
 
 **Audit Date**: 2026-02-12
@@ -31,6 +32,7 @@ This audit identified **8 critical error handling issues** that create silent fa
 The `loadCatalog()` and `collect()` methods execute async operations without any error handling or propagation mechanism. If `this.relationshipCatalog.load()` or subsequent operations fail, the error will crash the entire report collection with no context.
 
 **Code Analysis**:
+
 ```typescript
 async loadCatalog(): Promise<void> {
   if (this.catalogLoaded) return;
@@ -56,6 +58,7 @@ async collect(): Promise<ReportData> {
 ```
 
 **Hidden Errors That Could Silently Fail**:
+
 - File I/O errors reading predicates.json (ENOENT, EACCES, EIO)
 - JSON parsing errors in predicates.json (malformed JSON)
 - Schema file access errors (missing schemas directory)
@@ -63,6 +66,7 @@ async collect(): Promise<ReportData> {
 - Out-of-memory on large schema sets
 
 **User Impact**:
+
 - User runs `dr report` command
 - No feedback about what went wrong
 - Raw stack trace printed to console (if DEBUG env set)
@@ -73,6 +77,7 @@ async collect(): Promise<ReportData> {
 Add specific error handling with context to each async operation, wrapping them in try-catch blocks that provide meaningful error messages with actionable suggestions.
 
 **Example Fix**:
+
 ```typescript
 async collect(): Promise<ReportData> {
   if (this.cachedReport) {
@@ -119,6 +124,7 @@ async collect(): Promise<ReportData> {
 The code silently falls back from bundled schemas to spec directory without informing the user which path was used. This masks configuration problems and makes debugging deployment issues nearly impossible.
 
 **Code Analysis**:
+
 ```typescript
 async load(): Promise<void> {
   // Load predicates.json
@@ -143,12 +149,14 @@ async load(): Promise<void> {
 ```
 
 **Issues**:
+
 1. **Overly broad catch block** (line 108) - Catches both file read errors AND JSON parse errors
 2. **Silent fallback** - User doesn't know if bundled or spec path was used in production
 3. **Nested try-catch obscures errors** - Inner catch block swallows fallback path error, rethrows original error
 4. **Misleading error message** - References `this.predicatesPath` (original path) not the one that actually failed
 
 **Hidden Errors That Could Be Caught and Hidden**:
+
 - `TypeError` from JSON.parse on malformed JSON gets caught by outer catch
 - Race condition if predicatesPath changes between attempts
 - Memory errors or stream errors during file read (rare but possible)
@@ -156,18 +164,21 @@ async load(): Promise<void> {
 - Permission denied on bundled path (should fail immediately, not fall back)
 
 **User Impact**:
+
 - User has no way to know which predicates.json is being loaded in production
 - If spec/ path is corrupted, user won't know (falls back silently)
 - If bundled schemas are outdated, user won't know
 - Debugging production issues becomes nearly impossible
 
 **Recommendation**:
+
 1. Separate JSON.parse into its own try-catch
 2. Log which path is actually loaded (not just debug)
 3. Distinguish between "bundled path not found" vs "bundled path corrupted"
 4. Make fallback behavior explicit and logged with a warning
 
 **Example Fix**:
+
 ```typescript
 async load(): Promise<void> {
   let loadedFromFallback = false;
@@ -224,25 +235,28 @@ async load(): Promise<void> {
 The code splits spec_node_id strings and accesses index [1] without checking if the split produced enough parts. This causes `undefined` values to be used as node IDs.
 
 **Code Analysis**:
+
 ```typescript
 // Line 441-442: Intra-layer diagram generation
 const sourceId = rel.source_spec_node_id.split(".")[1]?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
-const destId = rel.destination_spec_node_id.split(".")[1]?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
+const destId =
+  rel.destination_spec_node_id.split(".")[1]?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
 
 // Line 509-510: Inter-layer relationships table
 const sourceType = rel.source_spec_node_id.split(".")[1] || "unknown";
 const destType = rel.destination_spec_node_id.split(".")[1] || "unknown";
 
 // Line 588-589: Node reference - Intra-layer relationships
-rel.destination_spec_node_id.split(".")[1]  // ← NO fallback to "unknown"
-rel.source_spec_node_id.split(".")[1]        // ← NO fallback to "unknown"
+rel.destination_spec_node_id.split(".")[1]; // ← NO fallback to "unknown"
+rel.source_spec_node_id.split(".")[1]; // ← NO fallback to "unknown"
 
 // Line 616-617: Node reference - Inter-layer relationships
-rel.destination_spec_node_id.split(".")[1]  // ← NO fallback to "unknown"
-rel.source_spec_node_id.split(".")[1]        // ← NO fallback to "unknown"
+rel.destination_spec_node_id.split(".")[1]; // ← NO fallback to "unknown"
+rel.source_spec_node_id.split(".")[1]; // ← NO fallback to "unknown"
 ```
 
 **Issues**:
+
 1. **Inconsistent fallbacks** - Some places use `|| "unknown"`, others don't
 2. **Invalid element IDs allowed** - spec_node_id format should be validated earlier
 3. **Silent failures** - No error when format is wrong, just uses "unknown"
@@ -250,24 +264,28 @@ rel.source_spec_node_id.split(".")[1]        // ← NO fallback to "unknown"
 5. **Markdown generation bugs** - "unknown" node references in generated docs
 
 **Hidden Errors**:
+
 - spec_node_id with 0 or 1 parts silently becomes "unknown"
 - Malformed spec data produces incorrect markdown output
 - No indication to user that spec data is corrupted
 - Generated reports contain broken links/references
 
 **User Impact**:
+
 - Generated layer reports contain incorrect node references
 - Users see "unknown" instead of actual node type names
 - No indication that spec data is invalid
 - Debugging spec issues becomes difficult
 
 **Recommendation**:
+
 1. Validate spec_node_id format when loading schemas (in SpecDataLoader)
 2. Extract node type ID to a helper function with validation
 3. Log warnings when format is unexpected
 4. Make error handling consistent across all usages
 
 **Example Fix**:
+
 ```typescript
 /**
  * Extract node type from spec_node_id with validation
@@ -280,7 +298,7 @@ function extractNodeType(specNodeId: string): string {
   if (parts.length < 2) {
     console.warn(
       `Invalid spec_node_id format: "${specNodeId}". ` +
-      `Expected format: "layer.nodeType" (e.g., "motivation.goal")`
+        `Expected format: "layer.nodeType" (e.g., "motivation.goal")`
     );
     return "unknown";
   }
@@ -304,6 +322,7 @@ const destType = extractNodeType(rel.destination_spec_node_id);
 JSON.parse calls are wrapped in try-catch, which is good, but the errors thrown don't include which file is being parsed in some cases, and the catch block is at the wrong scope in one location.
 
 **Code Analysis**:
+
 ```typescript
 // Line 117-120: Layer parsing - GOOD (has file context)
 try {
@@ -330,7 +349,9 @@ try {
 try {
   data = JSON.parse(content) as { predicates: Record<string, Record<string, unknown>> };
 } catch (parseError) {
-  throw new Error(`Failed to parse predicates file ${predicatesPath}: ${getErrorMessage(parseError)}`);
+  throw new Error(
+    `Failed to parse predicates file ${predicatesPath}: ${getErrorMessage(parseError)}`
+  );
 }
 ```
 
@@ -339,17 +360,19 @@ try {
 The JSON.parse calls ARE properly wrapped with context. However, there's an issue with the cast at line 270:
 
 ```typescript
-const predSpec = pred as unknown as PredicateSpec;  // ← Unsafe cast, no validation
+const predSpec = pred as unknown as PredicateSpec; // ← Unsafe cast, no validation
 ```
 
 This casts without checking if required fields exist, which could cause runtime errors later when accessing predSpec properties.
 
 **Issues**:
+
 1. **Unsafe casting without validation** - Lines 270-278
 2. **Missing field validation after parse** - No check that required properties exist
 3. **Schema validation missing** - Only catch syntax errors, not semantic errors
 
 **Hidden Errors**:
+
 - PredicateSpec with missing required fields gets silently accepted
 - Undefined property access on predSpec at lines 271-276
 - No indication to user that predicates.json has invalid schema
@@ -358,11 +381,14 @@ This casts without checking if required fields exist, which could cause runtime 
 Add validation after JSON.parse to ensure all required fields exist.
 
 **Example Fix**:
+
 ```typescript
 try {
   data = JSON.parse(content) as { predicates: Record<string, Record<string, unknown>> };
 } catch (parseError) {
-  throw new Error(`Failed to parse predicates file ${predicatesPath}: ${getErrorMessage(parseError)}`);
+  throw new Error(
+    `Failed to parse predicates file ${predicatesPath}: ${getErrorMessage(parseError)}`
+  );
 }
 
 const predicates = new Map<string, PredicateSpec>();
@@ -371,7 +397,7 @@ for (const [key, pred] of Object.entries(data.predicates)) {
   if (!pred.predicate || !pred.inverse || !pred.category || !pred.semantics) {
     throw new Error(
       `Invalid predicate definition in ${predicatesPath}: key "${key}" missing required fields. ` +
-      `Required: predicate, inverse, category, semantics`
+        `Required: predicate, inverse, category, semantics`
     );
   }
 
@@ -399,6 +425,7 @@ for (const [key, pred] of Object.entries(data.predicates)) {
 The catch block catches all errors and outputs them using `console.error`, which is inconsistent with the project's error handling standards. The error output doesn't use the CLIError formatting system.
 
 **Code Analysis**:
+
 ```typescript
 catch (error) {
   const message = getErrorMessage(error);
@@ -408,6 +435,7 @@ catch (error) {
 ```
 
 **Issues**:
+
 1. **Inconsistent error handling** - Should use CLIError/handleError() function
 2. **No error categorization** - Doesn't distinguish between user error, system error, not found, etc.
 3. **No suggestions provided** - User gets raw error with no actionable next steps
@@ -415,11 +443,13 @@ catch (error) {
 5. **No error context** - Which step failed? What was being reported?
 
 **Hidden Errors**:
+
 - Users can't tell if error is their fault or system fault
 - No error tracking/telemetry integration
 - Debugging difficult without error categorization
 
 **User Impact**:
+
 - User sees bare error message with no guidance
 - No way to categorize errors for bug reports
 - No actionable next steps
@@ -428,6 +458,7 @@ catch (error) {
 Use project's CLIError class and handleError() function for consistent error reporting.
 
 **Example Fix**:
+
 ```typescript
 export async function reportCommand(options: ReportOptions): Promise<void> {
   try {
@@ -443,7 +474,7 @@ export async function reportCommand(options: ReportOptions): Promise<void> {
         [
           "Ensure model is valid: run 'dr conformance'",
           "Check model path is accessible: dr list",
-          "Check file permissions in model directory"
+          "Check file permissions in model directory",
         ],
         { operation: `report --type ${options.type}` }
       );
@@ -469,6 +500,7 @@ export async function reportCommand(options: ReportOptions): Promise<void> {
 When relationship schema files cannot be parsed, they are silently skipped with only a warn-level console message. This means incomplete relationship data is returned without alerting the user.
 
 **Code Analysis**:
+
 ```typescript
 for (const file of relationshipFiles) {
   try {
@@ -493,6 +525,7 @@ for (const file of relationshipFiles) {
 ```
 
 **Issues**:
+
 1. **Silent data loss** - Skipped schemas mean incomplete relationship data returned
 2. **Only warns** - User may not see warning depending on logging level
 3. **No error tracking** - No way to know which schemas were skipped
@@ -500,12 +533,14 @@ for (const file of relationshipFiles) {
 5. **No recovery action** - User has no way to fix the problem
 
 **Hidden Errors**:
+
 - Corrupted relationship schema files silently skipped
 - Missing relationship predicates due to parse errors
 - Report generation using incomplete relationship data
 - User has no indication data is incomplete
 
 **User Impact**:
+
 - Report generated with missing relationship data
 - User doesn't know relationships are missing
 - Analysis results are incorrect but appear valid
@@ -513,11 +548,13 @@ for (const file of relationshipFiles) {
 
 **Recommendation**:
 Track which schemas failed to parse and either:
+
 1. Fail loudly if too many schemas fail
 2. Return an error flag indicating data is incomplete
 3. Collect failed files and report after completion
 
 **Example Fix**:
+
 ```typescript
 private async computeApplicableLayers(): Promise<Record<string, string[]>> {
   const layersByPredicate: Record<string, Set<string>> = {};
@@ -577,6 +614,7 @@ private async computeApplicableLayers(): Promise<Record<string, string[]>> {
 The main() function has minimal error handling with no context about which step failed. Error message only shows generic "Error generating layer reports".
 
 **Code Analysis**:
+
 ```typescript
 main().catch((err) => {
   const errorMessage = err instanceof Error ? err.message : String(err);
@@ -589,6 +627,7 @@ main().catch((err) => {
 ```
 
 **Issues**:
+
 1. **No operation context** - Doesn't indicate which layer/file was being processed
 2. **No partial progress indication** - If 10 of 12 layers generated, no indication
 3. **Generic error message** - User doesn't know if spec loading failed or generation failed
@@ -596,6 +635,7 @@ main().catch((err) => {
 5. **No recovery suggestions** - User has no actionable next steps
 
 **User Impact**:
+
 - User doesn't know if issue is with spec loading, model loading, or generation
 - No indication of partial progress (if processing multiple files)
 - Difficult to debug without stack trace
@@ -604,6 +644,7 @@ main().catch((err) => {
 Add context tracking and more granular error handling.
 
 **Example Fix**:
+
 ```typescript
 async function main() {
   let processedLayers = 0;
@@ -656,7 +697,7 @@ async function main() {
         } catch (error) {
           throw new Error(
             `Failed to generate ${formatLayerName(layer.id)} layer report: ` +
-            `${error instanceof Error ? error.message : String(error)}`
+              `${error instanceof Error ? error.message : String(error)}`
           );
         }
       }
@@ -692,6 +733,7 @@ async function main() {
 The `calculateLayerComplianceScore` function calls `getLayerOrder()` multiple times without checking if the function might fail or return invalid values (like -1 for unknown layers).
 
 **Code Analysis**:
+
 ```typescript
 private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
   // Only count relationships with known (valid) layer names
@@ -719,6 +761,7 @@ private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
 ```
 
 **Issues**:
+
 1. **Function called twice unnecessarily** - Inefficient (getLayerOrder called 4 times instead of 2)
 2. **No check for getLayerOrder failure** - If it returns null or throws, error propagates
 3. **Unknown layers silently filtered** - User doesn't know some relationships excluded
@@ -726,11 +769,13 @@ private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
 5. **Potentially missing relationships in metric** - Metric incomplete but appears valid
 
 **Hidden Errors**:
+
 - If getLayerOrder throws unexpectedly, crashes entire report
 - Relationships with non-canonical layer names silently excluded
 - Metrics incomplete but user has no indication
 
 **User Impact**:
+
 - Report metrics exclude some relationships without explanation
 - If layering errors exist, user has no feedback
 - Performance issue with repeated function calls
@@ -739,6 +784,7 @@ private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
 Cache layer order lookups and log filtering decisions.
 
 **Example Fix**:
+
 ```typescript
 private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
   let validCount = 0;
@@ -790,16 +836,16 @@ private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
 
 ## SUMMARY TABLE
 
-| Issue | Location | Severity | Type | Impact |
-|-------|----------|----------|------|--------|
-| 1 | report-data-model.ts:191-217 | CRITICAL | Unhandled async errors | Report generation crashes silently |
-| 2 | relationship-catalog.ts:105-124 | CRITICAL | Silent fallback, broad catch | Config issues masked, deployment fails |
-| 3 | generate-layer-reports.ts:441, 509, 588, 616 | CRITICAL | Unsafe property access | Invalid markdown generated, broken links |
-| 4 | spec-loader.ts:270-278 | HIGH | Unsafe casting without validation | Runtime errors on malformed data |
-| 5 | report.ts:102-105 | HIGH | Generic console.error | No actionable feedback to users |
-| 6 | relationship-catalog.ts:174-193 | HIGH | Silent schema skipping | Incomplete report data, user unaware |
-| 7 | generate-layer-reports.ts:760-806 | MEDIUM | Missing operation context | Difficult debugging, no partial progress |
-| 8 | report-data-model.ts:605-627 | MEDIUM | Missing validation, repeated calls | Incomplete metrics, performance issue |
+| Issue | Location                                     | Severity | Type                               | Impact                                   |
+| ----- | -------------------------------------------- | -------- | ---------------------------------- | ---------------------------------------- |
+| 1     | report-data-model.ts:191-217                 | CRITICAL | Unhandled async errors             | Report generation crashes silently       |
+| 2     | relationship-catalog.ts:105-124              | CRITICAL | Silent fallback, broad catch       | Config issues masked, deployment fails   |
+| 3     | generate-layer-reports.ts:441, 509, 588, 616 | CRITICAL | Unsafe property access             | Invalid markdown generated, broken links |
+| 4     | spec-loader.ts:270-278                       | HIGH     | Unsafe casting without validation  | Runtime errors on malformed data         |
+| 5     | report.ts:102-105                            | HIGH     | Generic console.error              | No actionable feedback to users          |
+| 6     | relationship-catalog.ts:174-193              | HIGH     | Silent schema skipping             | Incomplete report data, user unaware     |
+| 7     | generate-layer-reports.ts:760-806            | MEDIUM   | Missing operation context          | Difficult debugging, no partial progress |
+| 8     | report-data-model.ts:605-627                 | MEDIUM   | Missing validation, repeated calls | Incomplete metrics, performance issue    |
 
 ---
 
@@ -819,6 +865,7 @@ private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
 ## PROJECT STANDARDS COMPLIANCE
 
 According to CLAUDE.md:
+
 - **Rule**: Never silently fail in production code
 - **Status**: VIOLATED in Issues 1, 2, 3, 6
 - **Rule**: Always log errors using appropriate logging functions

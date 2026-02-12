@@ -121,6 +121,7 @@ private findCircles(
 #### Impact
 
 Example: With edges A→B, B→C, C→B (cycle), D→C:
+
 1. Explore from A: marks A, B, C as visited, finds B↔C cycle ✓
 2. Explore from D: C already visited from step 1, so D→C→B→C cycle is **never explored** ✗
 
@@ -368,6 +369,7 @@ Uses `console.warn()` instead of structured logging with error IDs.
 **Good News**: All 204 tests currently pass ✓
 
 **Gaps Identified**:
+
 - SpecDataLoader: Zero unit tests
 - SpecDataService: Zero unit tests
 - Circular dependency detection: Only partial coverage
@@ -419,14 +421,14 @@ Uses `console.warn()` instead of structured logging with error IDs.
 
 ## Summary Statistics
 
-| Category | Count | Status |
-|----------|-------|--------|
-| Critical Issues | 4 | 🔴 Must Fix |
-| High-Priority Issues | 6 | 🟠 Should Fix |
-| Important Issues | 4 | 🟡 Consider Fix |
-| Test Coverage Gaps | 4 | 📋 Add Tests |
-| Total Issues | **18** | |
-| Files Affected | 15+ | |
+| Category             | Count  | Status          |
+| -------------------- | ------ | --------------- |
+| Critical Issues      | 4      | 🔴 Must Fix     |
+| High-Priority Issues | 6      | 🟠 Should Fix   |
+| Important Issues     | 4      | 🟡 Consider Fix |
+| Test Coverage Gaps   | 4      | 📋 Add Tests    |
+| Total Issues         | **18** |                 |
+| Files Affected       | 15+    |                 |
 
 **Total Effort Estimate**: 5-8 hours to address all issues
 
