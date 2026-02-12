@@ -223,8 +223,10 @@ export class MarkdownGenerator {
     // Add nodes
     for (const node of nodes) {
       const nodeId = this.sanitizeId(node.id);
-      const label = `${node.name}<br/>(${node.type})`;
-      lines.push(`  ${nodeId}["${this.escapeMarkdownLocal(label)}"]`);
+      const escapedName = this.escapeMarkdownLocal(node.name);
+      const escapedType = this.escapeMarkdownLocal(node.type);
+      const label = `${escapedName}<br/>(${escapedType})`;
+      lines.push(`  ${nodeId}["${label}"]`);
     }
 
     // Add edges between nodes in the same layer

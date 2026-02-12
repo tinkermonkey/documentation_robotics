@@ -88,14 +88,14 @@ describe("DataModelAnalyzer", () => {
 
     expect(coverage).toBeDefined();
     expect(coverage.totalEntities).toBeGreaterThanOrEqual(0);
-    expect(coverage.documentsEntities).toBeGreaterThanOrEqual(0);
+    expect(coverage.entitiesWithAttributes).toBeGreaterThanOrEqual(0);
     expect(coverage.constraintsEntities).toBeGreaterThanOrEqual(0);
     expect(coverage.referencedEntities).toBeGreaterThanOrEqual(0);
     expect(coverage.orphanedEntities).toBeGreaterThanOrEqual(0);
 
     // Check percentage metrics
-    expect(coverage.documentationCoverage).toBeGreaterThanOrEqual(0);
-    expect(coverage.documentationCoverage).toBeLessThanOrEqual(100);
+    expect(coverage.attributeCoverage).toBeGreaterThanOrEqual(0);
+    expect(coverage.attributeCoverage).toBeLessThanOrEqual(100);
     expect(coverage.constraintCoverage).toBeGreaterThanOrEqual(0);
     expect(coverage.constraintCoverage).toBeLessThanOrEqual(100);
     expect(coverage.referenceCoverage).toBeGreaterThanOrEqual(0);

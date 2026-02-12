@@ -53,11 +53,11 @@ export interface EntityRelationship {
  */
 export interface DataModelCoverageMetrics {
   totalEntities: number;
-  documentsEntities: number;
+  entitiesWithAttributes: number;
   constraintsEntities: number;
   referencedEntities: number;
   orphanedEntities: number;
-  documentationCoverage: number; // 0-100
+  attributeCoverage: number; // 0-100
   constraintCoverage: number; // 0-100
   referenceCoverage: number; // 0-100
 }
@@ -269,11 +269,11 @@ export class DataModelAnalyzer {
 
     return {
       totalEntities,
-      documentsEntities: documentsCount,
+      entitiesWithAttributes: documentsCount,
       constraintsEntities: constraintCount,
       referencedEntities: referencedCount,
       orphanedEntities: orphanedCount,
-      documentationCoverage:
+      attributeCoverage:
         totalEntities > 0 ? Math.round((documentsCount / totalEntities) * 100) : 0,
       constraintCoverage: totalEntities > 0 ? Math.round((constraintCount / totalEntities) * 100) : 0,
       referenceCoverage: totalEntities > 0 ? Math.round((referencedCount / totalEntities) * 100) : 0,

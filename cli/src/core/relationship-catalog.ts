@@ -181,7 +181,8 @@ export class RelationshipCatalog {
             layersByPredicate[predicate].add(sourceLayer);
           }
         } catch (error) {
-          // Skip files that can't be parsed
+          // Log parsing errors and skip files that can't be parsed
+          console.warn(`Could not parse relationship schema ${file}:`, error);
           continue;
         }
       }
