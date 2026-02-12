@@ -21,7 +21,8 @@ describe("SpecDataLoader", () => {
 
   beforeEach(() => {
     // Use the actual spec directory in the repo for these tests
-    testSpecDir = path.join(process.cwd(), "spec");
+    // The spec directory is at the root of the monorepo, not in the cli directory
+    testSpecDir = path.join(process.cwd(), "..", "spec");
   });
 
   afterEach(async () => {
@@ -90,7 +91,10 @@ describe("SpecDataLoader", () => {
       let foundPredicate = false;
       for (const [key, predicate] of data.predicates.entries()) {
         expect(typeof key).toBe("string");
-        expect(predicate).toHaveProperty("name");
+        expect(predicate).toHaveProperty("predicate");
+        expect(predicate).toHaveProperty("inverse");
+        expect(predicate).toHaveProperty("category");
+        expect(predicate).toHaveProperty("description");
         foundPredicate = true;
         break;
       }
