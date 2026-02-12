@@ -18,6 +18,7 @@
     "build:ci": "bash scripts/sync-spec-schemas.sh && bun scripts/generate-registry.ts --strict && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
     "sync-schemas": "bash scripts/sync-spec-schemas.sh",
     "copy-schemas": "cp -r src/schemas dist/",
+    "generate-layer-reports": "bun run ../scripts/generate-layer-reports.ts",
     "dev": "node dist/cli.js",
     "lint": "tsc --noEmit",
     "type-check": "tsc --noEmit",

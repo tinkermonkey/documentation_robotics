@@ -271,7 +271,9 @@ describe("SpecDataLoader", () => {
       for (const relType of data.relationshipTypes) {
         // Source should be valid (for cross-layer relationships, source can be any layer)
         expect(relType).toHaveProperty("source_spec_node_id");
+        expect(nodeTypeIds.has(relType.source_spec_node_id)).toBe(true);
         expect(relType).toHaveProperty("destination_spec_node_id");
+        expect(nodeTypeIds.has(relType.destination_spec_node_id)).toBe(true);
       }
     });
   });

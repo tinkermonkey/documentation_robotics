@@ -750,7 +750,7 @@ class LayerReportGenerator {
 // ============================================================================
 
 class ReadmeGenerator {
-  constructor(private data: ReportDataModel) {}
+  constructor(private data: ReportDataModel, private specVersion: string, private commitHash: string) {}
 
   generate(): string {
     const lines: string[] = [];
@@ -783,7 +783,7 @@ class ReadmeGenerator {
     lines.push("\n");
     const timestamp = new Date().toISOString();
     lines.push(
-      `_Generated: ${timestamp} | Generator: generate-layer-reports.ts_\n`
+      `_Generated: ${timestamp} | Spec Version: ${this.specVersion} | Commit: ${this.commitHash} | Generator: generate-layer-reports.ts_\n`
     );
 
     return lines.join("");
@@ -883,7 +883,7 @@ async function main() {
 
   // Generate README
   console.log("Generating README.md...");
-  const readmeGen = new ReadmeGenerator(model);
+  const readmeGen = new ReadmeGenerator(model, specVersion, commitHash);
   const readmeContent = readmeGen.generate();
   await fs.writeFile(path.join(outputDir, "README.md"), readmeContent, "utf-8");
 
