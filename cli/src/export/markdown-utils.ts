@@ -47,7 +47,7 @@ export function valueToMarkdown(value: unknown): string {
     return `[${value.map((v) => valueToMarkdown(v)).join(", ")}]`;
   }
   if (value && typeof value === "object") {
-    return `\`${escapeMarkdown(JSON.stringify(value))}\``;
+    return `\`${JSON.stringify(value)}\``;
   }
   return String(value);
 }
