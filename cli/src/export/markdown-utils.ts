@@ -18,7 +18,7 @@ export const LAYER_DESCRIPTIONS = {
   navigation: "Application routing, navigation flows, and page structures.",
   apm: "Observability, monitoring, metrics, logging, and tracing.",
   testing: "Test strategies, test cases, test data, and test coverage.",
-};
+} as const;
 
 /**
  * Escape markdown special characters for safe display in markdown documents
