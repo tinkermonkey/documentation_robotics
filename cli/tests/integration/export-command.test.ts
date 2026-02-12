@@ -329,7 +329,7 @@ describe("Export Command Integration Tests", () => {
     expect(spec.paths).toBeDefined();
     expect(spec.paths["/api/orders"]).toBeDefined();
     expect(spec.paths["/api/orders"].post).toBeDefined();
-    expect(spec.paths["/api/orders"].post.operationId).toBe("createOrder");
+    expect(spec.paths["/api/orders"].post.operationId).toBe("api-endpoint-create-order");
     expect(spec.paths["/api/orders"].post.responses["201"]).toBeDefined();
   });
 
@@ -412,7 +412,7 @@ describe("Export Command Integration Tests", () => {
     expect(schema.$schema).toBeDefined();
     expect(schema.$schema.includes("json-schema.org")).toBe(true);
     expect(schema.definitions).toBeDefined();
-    expect(schema.definitions.Order).toBeDefined();
-    expect(schema.definitions.Order.properties.id.type).toBe("string");
+    expect(schema.definitions["data-model-entity-order"]).toBeDefined();
+    expect(schema.definitions["data-model-entity-order"].properties.id.type).toBe("string");
   });
 });
