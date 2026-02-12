@@ -159,7 +159,7 @@ function formatText(stats: ModelStats, verbose?: boolean): string {
  * Format as JSON
  */
 function formatJSON(stats: ModelStats): string {
-  return JSON.stringify(stats, null, 2);
+  return JSON.stringify(stats, null, 2) + "\n";
 }
 
 /**

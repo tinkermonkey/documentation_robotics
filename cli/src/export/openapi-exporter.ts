@@ -295,7 +295,7 @@ export class OpenAPIExporter implements Exporter {
         delete (spec as Partial<OpenAPISpec>).components;
       }
 
-      const result = JSON.stringify(spec, null, 2);
+      const result = JSON.stringify(spec, null, 2) + "\n";
 
       if (isTelemetryEnabled && span) {
         const endpointCount = Array.from(pathGroups.values()).reduce(

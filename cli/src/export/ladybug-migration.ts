@@ -269,7 +269,7 @@ export class LadybugMigrationService {
    * Serialize document to JSON
    */
   serializeToJson(document: LadybugDocument): string {
-    return JSON.stringify(document, null, 2);
+    return JSON.stringify(document, null, 2) + "\n";
   }
 
   /**

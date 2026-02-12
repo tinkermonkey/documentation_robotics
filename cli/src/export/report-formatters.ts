@@ -75,7 +75,7 @@ function formatText(report: ReportData, options: ReportFormatterOptions): string
  * Format as JSON
  */
 function formatJSON(report: ReportData): string {
-  return JSON.stringify(report, null, 2);
+  return JSON.stringify(report, null, 2) + "\n";
 }
 
 /**
