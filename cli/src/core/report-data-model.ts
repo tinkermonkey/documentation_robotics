@@ -51,6 +51,10 @@ export interface DataModelEntity {
 
 /**
  * Data model layer specific insights
+ *
+ * Coverage metrics are percentages (0-100) representing data model completeness:
+ * - entityCoverage: Percentage of entities referenced from higher layers
+ * - attributeCoverage: Percentage of attributes populated across entities
  */
 export interface DataModelInsights {
   entityCount: number;
@@ -59,8 +63,8 @@ export interface DataModelInsights {
   entities: DataModelEntity[];
 
   // Coverage metrics
-  entityCoverage: number; // 0-100
-  attributeCoverage: number; // 0-100
+  entityCoverage: number;
+  attributeCoverage: number;
 
   // Complexity
   avgAttributesPerEntity: number;
@@ -96,26 +100,34 @@ export interface CircularPath {
 
 /**
  * Quality metrics for the model
+ *
+ * Percentages (0-100) represent quality metrics:
+ * - Coverage metrics (elementCoverage, relationshipCoverage, documentationCoverage, archimateCompliance, specCompliance, semanticConsistency, crossLayerReferenceHealth):
+ *   Express completeness or compliance as percentages
+ * - Structural metrics (orphanedElements, circularDependencies):
+ *   Count of problematic elements
+ * - Compliance metrics (layerComplianceScore):
+ *   Percentage of relationships following higher→lower layer rule
  */
 export interface QualityMetrics {
   // Coverage
-  elementCoverage: number; // 0-100
-  relationshipCoverage: number; // 0-100
-  documentationCoverage: number; // 0-100
-  layerCoverage: number; // Populated layers / total layers
+  elementCoverage: number;
+  relationshipCoverage: number;
+  documentationCoverage: number;
+  layerCoverage: number;
 
   // Structural quality
   orphanedElements: number;
   circularDependencies: number;
 
   // Semantic quality
-  archimateCompliance: number; // 0-100
-  specCompliance: number; // 0-100 (relationships matching schemas)
-  semanticConsistency: number; // 0-100
+  archimateCompliance: number;
+  specCompliance: number;
+  semanticConsistency: number;
 
   // Layering quality
-  crossLayerReferenceHealth: number; // 0-100
-  layerComplianceScore: number; // Higher -> lower layer direction compliance
+  crossLayerReferenceHealth: number;
+  layerComplianceScore: number;
 }
 
 /**

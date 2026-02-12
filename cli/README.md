@@ -368,7 +368,6 @@ This command:
 - Computes per-layer statistics and relationship classifications
 - Generates 12 markdown reports in `spec/browser/` with Mermaid diagrams
 - Generates `spec/browser/README.md` with overview and dependency matrix
-- Completes in 10-20 seconds
 
 **Output Location**: `spec/browser/{NN}-{layer-name}-layer-report.md`
 
