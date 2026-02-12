@@ -104,7 +104,11 @@ export class SpecDataLoader {
     const layers = await Promise.all(
       files.map(async (f) => {
         const content = await fs.readFile(f, "utf-8");
-        return JSON.parse(content) as LayerSpec;
+        try {
+          return JSON.parse(content) as LayerSpec;
+        } catch (error) {
+          throw new Error(`Failed to parse layer file ${f}: ${getErrorMessage(error)}`);
+        }
       })
     );
 
@@ -126,7 +130,12 @@ export class SpecDataLoader {
     const nodeTypes = await Promise.all(
       files.map(async (f) => {
         const content = await fs.readFile(f, "utf-8");
-        const schema = JSON.parse(content);
+        let schema;
+        try {
+          schema = JSON.parse(content);
+        } catch (error) {
+          throw new Error(`Failed to parse node schema file ${f}: ${getErrorMessage(error)}`);
+        }
 
         // Extract const values from schema properties
         const spec_node_id = schema.properties?.spec_node_id?.const;
@@ -194,7 +203,12 @@ export class SpecDataLoader {
     const relationshipTypes = await Promise.all(
       files.map(async (f) => {
         const content = await fs.readFile(f, "utf-8");
-        const schema = JSON.parse(content);
+        let schema;
+        try {
+          schema = JSON.parse(content);
+        } catch (error) {
+          throw new Error(`Failed to parse relationship schema file ${f}: ${getErrorMessage(error)}`);
+        }
 
         const id = schema.properties?.id?.const;
         const source_spec_node_id = schema.properties?.source_spec_node_id?.const;
@@ -234,7 +248,12 @@ export class SpecDataLoader {
 
     try {
       const content = await fs.readFile(predicatesPath, "utf-8");
-      const data = JSON.parse(content) as { predicates: Record<string, Record<string, unknown>> };
+      let data;
+      try {
+        data = JSON.parse(content) as { predicates: Record<string, Record<string, unknown>> };
+      } catch (parseError) {
+        throw new Error(`Failed to parse predicates file ${predicatesPath}: ${getErrorMessage(parseError)}`);
+      }
 
       const predicates = new Map<string, PredicateSpec>();
       for (const [, pred] of Object.entries(data.predicates)) {

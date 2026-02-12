@@ -19,8 +19,7 @@ const MAX_DETAIL_ELEMENTS = 10;
 export interface MarkdownGeneratorOptions {
   includeMermaid?: boolean; // Include Mermaid diagrams
   includeTables?: boolean; // Include formatted tables
-  tableFormat?: "markdown" | "html"; // Table format style
-  maxTableRows?: number; // Maximum rows per table before paginating
+  maxTableRows?: number; // Maximum rows per table before truncating with overflow message
   diagramType?: "graph" | "flowchart"; // Type of Mermaid diagram
   includeSourceReferences?: boolean; // Include source code references
 }
@@ -33,7 +32,7 @@ export interface MarkdownGeneratorOptions {
  * - Formatted markdown tables with improved styling
  * - Layer-specific visualizations
  * - Cross-layer relationship diagrams
- * - Responsive table pagination
+ * - Table row truncation with overflow message (tables capped at maxTableRows)
  */
 export class MarkdownGenerator {
   private model: Model;
@@ -44,7 +43,6 @@ export class MarkdownGenerator {
     this.options = {
       includeMermaid: options.includeMermaid ?? true,
       includeTables: options.includeTables ?? true,
-      tableFormat: options.tableFormat ?? "markdown",
       maxTableRows: options.maxTableRows ?? 50,
       diagramType: options.diagramType ?? "graph",
       includeSourceReferences: options.includeSourceReferences ?? false,

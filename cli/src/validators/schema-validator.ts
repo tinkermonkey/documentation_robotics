@@ -135,7 +135,7 @@ export class SchemaValidator {
           SchemaValidator.registeredSchemaIds.add(schemaName);
           continue;
         }
-        console.warn(`Warning: Failed to load base schema ${schemaName}: ${errorMsg}`);
+        console.warn(`[SCHEMA-LOAD-001] Failed to load base schema ${schemaName}: ${errorMsg}`);
       }
     }
 
@@ -190,10 +190,11 @@ export class SchemaValidator {
         this.compiledSchemas.set(cacheKey, validate);
         SchemaValidator.registeredSchemaIds.add(schemaId);
         return validate;
-      } catch (registrationError: any) {
+      } catch (registrationError: unknown) {
         // If compilation fails due to duplicate registration, mark as registered
         // and return null to fall back to base validation
-        if (registrationError.message && registrationError.message.includes("already exists")) {
+        const errorMsg = SchemaValidator.getErrorMessage(registrationError);
+        if (errorMsg.includes("already exists")) {
           SchemaValidator.registeredSchemaIds.add(schemaId);
           return null;
         }
@@ -207,7 +208,7 @@ export class SchemaValidator {
         // This is expected for type-specific schema discovery - fallback to base validator only
         return null;
       }
-      console.warn(`Warning: Failed to load spec node schema for ${layer}.${type}: ${errorMsg}`);
+      console.warn(`[SCHEMA-LOAD-002] Failed to load spec node schema for ${layer}.${type}: ${errorMsg}`);
       return null;
     }
   }
@@ -384,5 +385,22 @@ export class SchemaValidator {
       default:
         return undefined;
     }
+  }
+
+  /**
+   * Reset static state for test isolation
+   *
+   * Clears the shared AJV instance and schema registry, allowing tests
+   * to load schemas from a clean state without conflicts.
+   *
+   * Usage (in test setup):
+   *   beforeEach(() => {
+   *     SchemaValidator.reset();
+   *   });
+   */
+  static reset(): void {
+    SchemaValidator.sharedAjv = null;
+    SchemaValidator.baseSchemaLoadedInSharedInstance = false;
+    SchemaValidator.registeredSchemaIds.clear();
   }
 }

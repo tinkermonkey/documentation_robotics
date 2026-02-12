@@ -32,7 +32,6 @@ export class MermaidMarkdownExporter implements Exporter {
       const generatorOptions: MarkdownGeneratorOptions = {
         includeMermaid: true,
         includeTables: true,
-        tableFormat: "markdown",
         maxTableRows: 50,
         diagramType: "graph",
         includeSourceReferences: options.includeSources === true,
