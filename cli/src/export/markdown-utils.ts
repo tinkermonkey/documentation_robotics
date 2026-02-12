@@ -78,5 +78,5 @@ export function valueToMarkdown(value: unknown): string {
  * Get layer description by layer name
  */
 export function getLayerDescription(layer: string): string {
-  return LAYER_DESCRIPTIONS[layer] || "Architecture layer";
+  return LAYER_DESCRIPTIONS[layer as keyof typeof LAYER_DESCRIPTIONS] || "Architecture layer";
 }

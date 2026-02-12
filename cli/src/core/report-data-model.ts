@@ -150,7 +150,7 @@ export interface ReportData {
  * This prevents accidental bugs where the invariant could be violated.
  */
 export function createClassifiedRelationship(
-  rel: Omit<ClassifiedRelationship, "isCrossLayer">,
+  rel: Omit<ClassifiedRelationship, "isCrossLayer" | "sourceLayer" | "targetLayer">,
   sourceLayer: string,
   targetLayer: string
 ): ClassifiedRelationship {
