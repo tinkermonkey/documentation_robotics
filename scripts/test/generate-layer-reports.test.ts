@@ -71,17 +71,88 @@ describe("generate-layer-reports.ts", () => {
 
     // Create a minimal invalid structure
     const layersDir = path.join(invalidSpecDir, "layers");
-    await fs.mkdir(layersDir, { recursive: true });
+    const schemasDir = path.join(invalidSpecDir, "schemas", "base");
+    const nodesDir = path.join(invalidSpecDir, "schemas", "nodes");
+    const relDir = path.join(invalidSpecDir, "schemas", "relationships");
 
-    // Write an invalid JSON file
+    await fs.mkdir(layersDir, { recursive: true });
+    await fs.mkdir(schemasDir, { recursive: true });
+    await fs.mkdir(nodesDir, { recursive: true });
+    await fs.mkdir(relDir, { recursive: true });
+
+    // Write minimal valid layer to satisfy loader requirements
+    await fs.writeFile(
+      path.join(layersDir, "01-test.layer.json"),
+      JSON.stringify({
+        id: "test",
+        number: 1,
+        name: "Test Layer",
+        description: "A test layer",
+        node_types: [],
+      })
+    );
+
+    // Write an invalid JSON file (malformed)
     await fs.writeFile(
       path.join(layersDir, "invalid.layer.json"),
       "{ invalid json"
     );
 
-    // The script should handle this gracefully when loaded
-    // This is primarily a verification that our error handling works
-    expect(true).toBe(true);
+    // Write empty schemas for loader requirements
+    await fs.writeFile(
+      path.join(schemasDir, "predicates.json"),
+      JSON.stringify({ predicates: {} })
+    );
+
+    // Create a basic node schema directory
+    await fs.mkdir(path.join(nodesDir, "test"), { recursive: true });
+    await fs.writeFile(
+      path.join(nodesDir, "test", "test.node.schema.json"),
+      JSON.stringify({
+        properties: {
+          spec_node_id: { const: "test.TestNode" },
+          layer_id: { const: "test" },
+          type: { const: "TestNode" },
+        },
+        title: "Test Node",
+        description: "A test node",
+      })
+    );
+
+    // Create a basic relationship schema directory
+    await fs.mkdir(path.join(relDir, "test"), { recursive: true });
+    await fs.writeFile(
+      path.join(relDir, "test", "test.relationship.schema.json"),
+      JSON.stringify({
+        properties: {
+          id: { const: "test.rel.1" },
+          source_spec_node_id: { const: "test.TestNode" },
+          source_layer: { const: "test" },
+          destination_spec_node_id: { const: "test.TestNode" },
+          destination_layer: { const: "test" },
+          predicate: { const: "relates-to" },
+        },
+      })
+    );
+
+    // Attempt to load the directory with invalid JSON - should throw descriptive error
+    let errorThrown = false;
+    let errorMessage = "";
+
+    try {
+      // Simulate what the script does: use SpecDataLoader
+      const { SpecDataLoader: CoreLoader } = await import("../cli/src/core/spec-loader.js");
+      const loader = new CoreLoader({ specDir: invalidSpecDir });
+      await loader.load();
+    } catch (error) {
+      errorThrown = true;
+      errorMessage = error instanceof Error ? error.message : String(error);
+    }
+
+    // Should throw an error due to invalid JSON
+    expect(errorThrown).toBe(true);
+    // Error message should be descriptive
+    expect(errorMessage).toMatch(/Failed to parse|invalid/i);
   });
 
   it("should produce reports for all 12 layers", async () => {

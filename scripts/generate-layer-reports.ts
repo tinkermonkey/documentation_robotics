@@ -17,25 +17,15 @@
 
 import * as fs from "fs/promises";
 import * as path from "path";
-import { globSync } from "fs";
 import { formatLayerName as formatLayerNameUtil } from "../cli/src/utils/layer-name-formatter.js";
+import { SpecDataLoader } from "../cli/src/core/spec-loader.js";
+import type { LayerSpec, NodeTypeSpec, RelationshipTypeSpec, PredicateSpec } from "../cli/src/core/spec-loader-types.js";
 
 // ============================================================================
-// Type Definitions
+// Type Definitions (aligned with spec loader types)
 // ============================================================================
 
-interface Layer {
-  id: string;
-  number: number;
-  name: string;
-  description: string;
-  inspired_by?: {
-    standard: string;
-    version: string;
-    url?: string;
-  };
-  node_types: string[];
-}
+interface Layer extends LayerSpec {}
 
 interface NodeSchema {
   spec_node_id: string;
@@ -56,19 +46,7 @@ interface RelationshipSchema {
   strength: string;
 }
 
-interface Predicate {
-  predicate: string;
-  inverse: string;
-  category: string;
-  description: string;
-  archimate_alignment: string | null;
-  semantics: {
-    directionality: string;
-    transitivity: boolean;
-    symmetry: boolean;
-    reflexivity?: boolean;
-  };
-}
+interface Predicate extends PredicateSpec {}
 
 interface SpecData {
   layers: Layer[];
@@ -96,142 +74,60 @@ interface LayerStatistics {
 }
 
 // ============================================================================
-// Data Loader
+// Data Loader (uses centralized SpecDataLoader)
 // ============================================================================
 
-class SpecDataLoader {
-  constructor(private specDir: string) {}
+class ReportSpecDataLoader {
+  private coreLoader: SpecDataLoader;
+
+  constructor(specDir: string) {
+    // Pass specDir to the core loader via options
+    this.coreLoader = new SpecDataLoader({ specDir });
+  }
 
   async loadAll(): Promise<SpecData> {
-    const [layers, nodeSchemas, relationshipSchemas, predicates] = await Promise.all([
-      this.loadLayers(),
-      this.loadNodeSchemas(),
-      this.loadRelationshipSchemas(),
-      this.loadPredicates(),
-    ]);
+    // Load data using the core loader
+    const data = await this.coreLoader.load();
+
+    // Transform core loader types to report types
+    const nodeSchemas: NodeSchema[] = data.nodeTypes.map((nt) => ({
+      spec_node_id: nt.spec_node_id,
+      layer_id: nt.layer_id,
+      type: nt.type,
+      title: nt.title,
+      description: nt.description,
+    }));
+
+    const relationshipSchemas: RelationshipSchema[] = data.relationshipTypes.map((rt) => ({
+      id: rt.id,
+      source_spec_node_id: rt.source_spec_node_id,
+      source_layer: rt.source_layer,
+      destination_spec_node_id: rt.destination_spec_node_id,
+      destination_layer: rt.destination_layer,
+      predicate: rt.predicate,
+      cardinality: rt.cardinality,
+      strength: rt.strength,
+    }));
 
     return {
-      layers,
+      layers: data.layers as Layer[],
       nodeSchemas,
       relationshipSchemas,
-      predicates,
+      predicates: data.predicates as Map<string, Predicate>,
     };
   }
+}
 
-  private async loadLayers(): Promise<Layer[]> {
-    const files = globSync(`${this.specDir}/layers/*.layer.json`);
-    const layers = await Promise.all(
-      files.map(async (f) => {
-        const content = await fs.readFile(f, "utf-8");
-        return JSON.parse(content) as Layer;
-      })
-    );
-    return layers.sort((a, b) => a.number - b.number);
-  }
+// ============================================================================
+// Error Handling Utilities
+// ============================================================================
 
-  private async loadNodeSchemas(): Promise<NodeSchema[]> {
-    const files = globSync(`${this.specDir}/schemas/nodes/**/*.node.schema.json`);
-    const schemas: NodeSchema[] = [];
-    const skippedSchemas: string[] = [];
-
-    for (const f of files) {
-      const content = await fs.readFile(f, "utf-8");
-      const schema = JSON.parse(content);
-
-      const spec_node_id = schema.properties?.spec_node_id?.const;
-      const layer_id = schema.properties?.layer_id?.const;
-      const type = schema.properties?.type?.const;
-
-      if (!spec_node_id || !layer_id || !type) {
-        skippedSchemas.push(`${f} (missing: ${!spec_node_id ? 'spec_node_id' : ''} ${!layer_id ? 'layer_id' : ''} ${!type ? 'type' : ''})`);
-        continue;
-      }
-
-      schemas.push({
-        spec_node_id,
-        layer_id,
-        type,
-        title: schema.title || "",
-        description: schema.description || "",
-      });
-    }
-
-    if (skippedSchemas.length > 0) {
-      console.warn(`Warning: Skipped ${skippedSchemas.length} node schemas with incomplete configuration:`);
-      skippedSchemas.forEach(s => console.warn(`  - ${s}`));
-    }
-
-    return schemas;
-  }
-
-  private async loadRelationshipSchemas(): Promise<RelationshipSchema[]> {
-    const files = globSync(`${this.specDir}/schemas/relationships/**/*.relationship.schema.json`);
-    const schemas: RelationshipSchema[] = [];
-    const skippedSchemas: string[] = [];
-
-    for (const f of files) {
-      const content = await fs.readFile(f, "utf-8");
-      const schema = JSON.parse(content);
-
-      const id = schema.properties?.id?.const;
-      const source_spec_node_id = schema.properties?.source_spec_node_id?.const;
-      const source_layer = schema.properties?.source_layer?.const;
-      const destination_spec_node_id = schema.properties?.destination_spec_node_id?.const;
-      const destination_layer = schema.properties?.destination_layer?.const;
-      const predicate = schema.properties?.predicate?.const;
-
-      if (!id || !source_spec_node_id || !source_layer || !destination_spec_node_id || !destination_layer || !predicate) {
-        const missing = [];
-        if (!id) missing.push('id');
-        if (!source_spec_node_id) missing.push('source_spec_node_id');
-        if (!source_layer) missing.push('source_layer');
-        if (!destination_spec_node_id) missing.push('destination_spec_node_id');
-        if (!destination_layer) missing.push('destination_layer');
-        if (!predicate) missing.push('predicate');
-        skippedSchemas.push(`${f} (missing: ${missing.join(', ')})`);
-        continue;
-      }
-
-      schemas.push({
-        id,
-        source_spec_node_id,
-        source_layer,
-        destination_spec_node_id,
-        destination_layer,
-        predicate,
-        cardinality: schema.properties?.cardinality?.const || "many-to-many",
-        strength: schema.properties?.strength?.const || "medium",
-      });
-    }
-
-    if (skippedSchemas.length > 0) {
-      console.warn(`Warning: Skipped ${skippedSchemas.length} relationship schemas with incomplete configuration:`);
-      skippedSchemas.forEach(s => console.warn(`  - ${s}`));
-    }
-
-    return schemas;
-  }
-
-  private async loadPredicates(): Promise<Map<string, Predicate>> {
-    const content = await fs.readFile(
-      `${this.specDir}/schemas/base/predicates.json`,
-      "utf-8"
-    );
-    const data = JSON.parse(content);
-
-    const predicates = new Map<string, Predicate>();
-    for (const [, pred] of Object.entries(data.predicates) as [string, any][]) {
-      predicates.set(pred.predicate, {
-        predicate: pred.predicate,
-        inverse: pred.inverse,
-        category: pred.category,
-        description: pred.description,
-        archimate_alignment: pred.archimate_alignment,
-        semantics: pred.semantics,
-      });
-    }
-
-    return predicates;
+function parseJSON<T>(content: string, filePath: string, context: string): T {
+  try {
+    return JSON.parse(content) as T;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse ${context} (${filePath}): ${errorMessage}`);
   }
 }
 
@@ -884,7 +780,7 @@ async function main() {
   await fs.mkdir(outputDir, { recursive: true });
 
   // Load spec data
-  const loader = new SpecDataLoader(specDir);
+  const loader = new ReportSpecDataLoader(specDir);
   const specData = await loader.loadAll();
   console.log(`Loaded ${specData.layers.length} layers`);
   console.log(`Loaded ${specData.nodeSchemas.length} node schemas`);

@@ -472,4 +472,156 @@ describe("MarkdownGenerator", () => {
       expect(markdown).toContain("flowchart");
     });
   });
+
+  describe("Error handling for graph API issues", () => {
+    it("should handle relationships referencing non-existent nodes gracefully", async () => {
+      const testModel = new Model("/tmp/test", new Manifest({
+        name: "Test Model with Missing Nodes",
+      }));
+
+      // Add one node
+      testModel.graph.addNode({
+        id: "motivation.goal.existing",
+        layer: "motivation",
+        type: "goal",
+        name: "Existing Goal",
+        properties: {},
+      });
+
+      // Add an edge to a non-existent node
+      testModel.graph.addEdge({
+        id: "broken-edge",
+        source: "motivation.goal.existing",
+        destination: "business.capability.nonexistent",
+        predicate: "satisfied-by",
+      });
+
+      const gen = new MarkdownGenerator(testModel);
+      // Should not throw error, should handle gracefully
+      const markdown = await gen.generate();
+
+      expect(markdown).toContain("Test Model with Missing Nodes");
+      // Should contain the existing node
+      expect(markdown).toContain("Existing Goal");
+    });
+
+    it("should handle nodes with null or undefined properties", async () => {
+      const testModel = new Model("/tmp/test", new Manifest({
+        name: "Test Model with Null Properties",
+      }));
+
+      testModel.graph.addNode({
+        id: "test.element.null-props",
+        layer: "motivation",
+        type: "goal",
+        name: "Goal with null values",
+        description: undefined,
+        properties: null as any,
+      });
+
+      const gen = new MarkdownGenerator(testModel);
+      const markdown = await gen.generate();
+
+      expect(markdown).toContain("Goal with null values");
+      expect(markdown).not.toContain("undefined");
+      expect(markdown).not.toContain("null");
+    });
+
+    it("should handle graph with duplicate edge IDs gracefully", async () => {
+      const testModel = new Model("/tmp/test", new Manifest({
+        name: "Test Model with Duplicates",
+      }));
+
+      testModel.graph.addNode({
+        id: "node1",
+        layer: "motivation",
+        type: "goal",
+        name: "Node 1",
+        properties: {},
+      });
+
+      testModel.graph.addNode({
+        id: "node2",
+        layer: "business",
+        type: "capability",
+        name: "Node 2",
+        properties: {},
+      });
+
+      testModel.graph.addEdge({
+        id: "dup-edge",
+        source: "node1",
+        destination: "node2",
+        predicate: "test",
+      });
+
+      // Try adding duplicate (implementation may handle silently or throw)
+      try {
+        testModel.graph.addEdge({
+          id: "dup-edge",
+          source: "node1",
+          destination: "node2",
+          predicate: "test",
+        });
+      } catch {
+        // Expected - duplicates may be rejected
+      }
+
+      const gen = new MarkdownGenerator(testModel);
+      const markdown = await gen.generate();
+
+      expect(markdown).toContain("Test Model with Duplicates");
+      expect(markdown).toContain("Node 1");
+      expect(markdown).toContain("Node 2");
+    });
+
+    it("should handle nodes with missing required layer field", async () => {
+      const testModel = new Model("/tmp/test", new Manifest({
+        name: "Test Missing Layer",
+      }));
+
+      testModel.graph.addNode({
+        id: "bad.element.nolayer",
+        layer: "unknown-layer",
+        type: "unknown",
+        name: "Unknown Layer Node",
+        properties: {},
+      });
+
+      const gen = new MarkdownGenerator(testModel);
+      const markdown = await gen.generate();
+
+      // Should still generate markdown without crashing
+      expect(markdown).toContain("# Test Missing Layer");
+    });
+
+    it("should handle edges with missing source or destination", async () => {
+      const testModel = new Model("/tmp/test", new Manifest({
+        name: "Test Missing Edge Nodes",
+      }));
+
+      testModel.graph.addNode({
+        id: "source.element.exists",
+        layer: "motivation",
+        type: "goal",
+        name: "Source Exists",
+        properties: {},
+      });
+
+      // Add edge with missing destination node
+      testModel.graph.addEdge({
+        id: "broken-dest",
+        source: "source.element.exists",
+        destination: "target.element.missing",
+        predicate: "relates-to",
+      });
+
+      const gen = new MarkdownGenerator(testModel);
+      const markdown = await gen.generate();
+
+      // Should generate successfully despite missing destination
+      expect(markdown).toContain("Test Missing Edge Nodes");
+      expect(markdown).toContain("Source Exists");
+    });
+  });
 });
