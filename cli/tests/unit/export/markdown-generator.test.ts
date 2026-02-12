@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { Model } from "@/core/model";
 import { Manifest } from "@/core/manifest";
 import { MarkdownGenerator } from "@/export/markdown-generator";
+import { Layer } from "@/core/layer";
+import { Element } from "@/core/element";
 import type { GraphNode } from "@/core/graph-model";
 
 describe("MarkdownGenerator", () => {

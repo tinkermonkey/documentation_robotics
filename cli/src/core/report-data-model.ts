@@ -410,7 +410,10 @@ export class ReportDataModel {
         ? (stats.statistics.totalRelationships / stats.statistics.totalElements) * 100
         : 0;
     const documentationCoverage = this.calculateDocumentationCoverage(stats);
-    const layerCoverage = (stats.statistics.populatedLayers / stats.statistics.totalLayers) * 100;
+    const layerCoverage =
+      stats.statistics.totalLayers > 0
+        ? (stats.statistics.populatedLayers / stats.statistics.totalLayers) * 100
+        : 0;
 
     // Structural quality
     const orphanedElements = stats.orphanedElements.length;
@@ -496,8 +499,10 @@ export class ReportDataModel {
 
   /**
    * Detect circular dependencies in relationships
+   * Max depth limit prevents stack overflow on complex graphs
    */
   private detectCircularDependencies(relationships: ClassifiedRelationship[]): CircularPath[] {
+    const MAX_SEARCH_DEPTH = 100;
     const circularPaths: CircularPath[] = [];
     const visited = new Set<string>();
     const path: string[] = [];
@@ -505,7 +510,7 @@ export class ReportDataModel {
 
     for (const rel of relationships) {
       if (!visited.has(rel.source)) {
-        this.findCircles(rel.source, relationships, visited, path, predicatePath, circularPaths);
+        this.findCircles(rel.source, relationships, visited, path, predicatePath, circularPaths, 0, MAX_SEARCH_DEPTH);
       }
     }
 
@@ -513,7 +518,7 @@ export class ReportDataModel {
   }
 
   /**
-   * Helper to find circular paths using DFS
+   * Helper to find circular paths using DFS with depth limit
    */
   private findCircles(
     node: string,
@@ -521,8 +526,14 @@ export class ReportDataModel {
     visited: Set<string>,
     path: string[],
     predicatePath: string[],
-    circularPaths: CircularPath[]
+    circularPaths: CircularPath[],
+    depth: number,
+    maxDepth: number
   ): void {
+    // Prevent stack overflow on complex graphs
+    if (depth > maxDepth) {
+      return;
+    }
     if (path.includes(node)) {
       const circleStart = path.indexOf(node);
       const circlePath = path.slice(circleStart);
@@ -555,7 +566,7 @@ export class ReportDataModel {
     for (const rel of relationships) {
       if (rel.source === node) {
         predicatePath.push(rel.predicate);
-        this.findCircles(rel.target, relationships, visited, path, predicatePath, circularPaths);
+        this.findCircles(rel.target, relationships, visited, path, predicatePath, circularPaths, depth + 1, maxDepth);
         predicatePath.pop();
       }
     }

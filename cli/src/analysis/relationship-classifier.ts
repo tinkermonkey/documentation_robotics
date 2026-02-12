@@ -7,7 +7,7 @@
 
 import { RelationshipCatalog, RelationshipType } from "../core/relationship-catalog.js";
 import { ClassifiedRelationship } from "../core/report-data-model.js";
-import { getLayerOrder } from "../core/layers.js";
+import { getLayerOrder, isValidLayerName } from "../core/layers.js";
 import type { Relationship } from "../types/index.js";
 
 /**
@@ -257,11 +257,19 @@ export class RelationshipClassifier {
 
       // Check layer direction for cross-layer relationships
       if (rel.isCrossLayer) {
-        const layerOrder = this.getLayerOrder(rel.sourceLayer, rel.targetLayer);
-        if (layerOrder < 0) {
+        // First check if both layers are valid
+        if (!isValidLayerName(rel.sourceLayer) || !isValidLayerName(rel.targetLayer)) {
           warnings.push(
-            `Cross-layer relationship violates layer hierarchy: ${rel.sourceLayer} → ${rel.targetLayer}`
+            `Cross-layer relationship references unknown layer(s): ${rel.sourceLayer} → ${rel.targetLayer}`
           );
+        } else {
+          // Only check hierarchy if both layers are known
+          const layerOrder = this.getLayerOrder(rel.sourceLayer, rel.targetLayer);
+          if (layerOrder < 0) {
+            warnings.push(
+              `Cross-layer relationship violates layer hierarchy: ${rel.sourceLayer} → ${rel.targetLayer}`
+            );
+          }
         }
       }
     }
