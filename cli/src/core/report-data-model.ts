@@ -144,6 +144,25 @@ export interface ReportData {
 }
 
 /**
+ * Factory function to create a ClassifiedRelationship with enforced invariants
+ *
+ * Ensures that `isCrossLayer` correctly reflects whether sourceLayer !== targetLayer.
+ * This prevents accidental bugs where the invariant could be violated.
+ */
+export function createClassifiedRelationship(
+  rel: Omit<ClassifiedRelationship, "isCrossLayer">,
+  sourceLayer: string,
+  targetLayer: string
+): ClassifiedRelationship {
+  return {
+    ...rel,
+    sourceLayer,
+    targetLayer,
+    isCrossLayer: sourceLayer !== targetLayer,
+  };
+}
+
+/**
  * ReportDataModel class - Unified reporting interface
  */
 export class ReportDataModel {
@@ -240,7 +259,8 @@ export class ReportDataModel {
 
     for (let i = 0; i < allRelationships.length; i++) {
       const rel = allRelationships[i];
-      const classifiedRel = this.classifyRelationship(rel, i.toString());
+      const relationshipId = `${rel.source}→${rel.predicate}→${rel.target}`;
+      const classifiedRel = this.classifyRelationship(rel, relationshipId);
       classified.push(classifiedRel);
 
       // Count by category
@@ -442,29 +462,28 @@ export class ReportDataModel {
       );
     }
 
-    const isCrossLayer = sourceLayer !== targetLayer;
-
     const relationshipType = this.relationshipTypeMap.get(rel.predicate);
 
     // Determine spec compliance: unknown predicates are not compliant
     const isSpecCompliant = relationshipType !== undefined;
 
-    return {
-      id,
-      source: rel.source,
-      target: rel.target,
-      predicate: rel.predicate,
-      category: relationshipType?.category || "unknown",
-      archimateAlignment: relationshipType?.archimateAlignment || null,
-      directionality: relationshipType?.semantics.directionality || "unidirectional",
-      transitivity: relationshipType?.semantics.transitivity || false,
-      symmetry: relationshipType?.semantics.symmetry || false,
-      reflexivity: relationshipType?.semantics.reflexivity,
+    return createClassifiedRelationship(
+      {
+        id,
+        source: rel.source,
+        target: rel.target,
+        predicate: rel.predicate,
+        category: relationshipType?.category || "unknown",
+        archimateAlignment: relationshipType?.archimateAlignment || null,
+        directionality: relationshipType?.semantics.directionality || "unidirectional",
+        transitivity: relationshipType?.semantics.transitivity || false,
+        symmetry: relationshipType?.semantics.symmetry || false,
+        reflexivity: relationshipType?.semantics.reflexivity,
+        isSpecCompliant,
+      },
       sourceLayer,
-      targetLayer,
-      isCrossLayer,
-      isSpecCompliant,
-    };
+      targetLayer
+    );
   }
 
   /**

@@ -494,14 +494,14 @@ export class MarkdownGenerator {
   }
 
   /**
-   * Get description for a layer (delegates to shared utility)
+   * Get description for a layer
    */
   private getLayerDescriptionText(layer: string): string {
     return getLayerDescription(layer);
   }
 
   /**
-   * Format layer name for display (delegates to centralized formatter)
+   * Format layer name for display
    */
   private formatLayerName(layer: string): string {
     return formatLayerName(layer);
@@ -518,14 +518,14 @@ export class MarkdownGenerator {
   }
 
   /**
-   * Escape markdown special characters (delegates to shared utility)
+   * Escape markdown special characters
    */
   private escapeMarkdownLocal(str: string): string {
     return escapeMarkdown(str);
   }
 
   /**
-   * Convert value to string for display (delegates to shared utility)
+   * Convert value to string for display
    */
   private valueToString(value: unknown): string {
     return valueToMarkdown(value);

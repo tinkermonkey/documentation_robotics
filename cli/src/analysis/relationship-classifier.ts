@@ -140,7 +140,9 @@ export class RelationshipClassifier {
     const classified: ClassifiedRelationship[] = [];
 
     for (let i = 0; i < relationships.length; i++) {
-      const classifiedRel = await this.classify(relationships[i], i.toString());
+      const rel = relationships[i];
+      const relationshipId = `${rel.source}→${rel.predicate}→${rel.target}`;
+      const classifiedRel = await this.classify(rel, relationshipId);
       classified.push(classifiedRel);
     }
 

@@ -5,7 +5,7 @@
 /**
  * Layer descriptions for documentation
  */
-export const LAYER_DESCRIPTIONS: Record<string, string> = {
+export const LAYER_DESCRIPTIONS = {
   motivation: "Goals, requirements, drivers, and strategic outcomes of the architecture.",
   business: "Business processes, functions, roles, and services.",
   security: "Authentication, authorization, security threats, and controls.",
@@ -21,7 +21,21 @@ export const LAYER_DESCRIPTIONS: Record<string, string> = {
 };
 
 /**
- * Escape markdown special characters
+ * Escape markdown special characters for safe display in markdown documents
+ *
+ * Escapes the following characters:
+ * - `\` → `\\` (backslash: prevents escape sequences)
+ * - `|` → `\|` (pipe: prevents table syntax interpretation)
+ * - `*` → `\*` (asterisk: prevents bold/italic formatting)
+ * - `[` → `\[` (bracket: prevents link syntax)
+ * - `]` → `\]` (bracket: prevents link syntax)
+ * - `{` → `\{` (brace: prevents code interpolation)
+ * - `}` → `\}` (brace: prevents code interpolation)
+ * - `<` → `&lt;` (less-than: HTML entity for safety)
+ * - `>` → `&gt;` (greater-than: HTML entity for safety)
+ *
+ * Note: Backticks (`) and underscores (_) are intentionally NOT escaped to allow
+ * inline code and emphasis formatting in natural text output.
  */
 export function escapeMarkdown(str: string): string {
   return str
@@ -37,7 +51,15 @@ export function escapeMarkdown(str: string): string {
 }
 
 /**
- * Convert value to string for markdown display
+ * Convert any value to a safely escaped string representation for markdown display
+ *
+ * Handles different types with type-specific formatting:
+ * - **Strings**: Fully escaped via escapeMarkdown() to prevent markdown interpretation
+ * - **Numbers**: Rendered as plain numeric strings (no formatting needed)
+ * - **Booleans**: Rendered as "true" or "false" strings
+ * - **Arrays**: Rendered as `[item1, item2, ...]` with recursive escaping of elements
+ * - **Objects**: Rendered as inline code block with JSON stringification: `{...}`
+ * - **Null/Undefined**: Rendered as string representation
  */
 export function valueToMarkdown(value: unknown): string {
   if (typeof value === "string") return escapeMarkdown(value);

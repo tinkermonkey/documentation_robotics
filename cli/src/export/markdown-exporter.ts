@@ -249,28 +249,28 @@ export class MarkdownExporter implements Exporter {
   }
 
   /**
-   * Escape markdown special characters (delegates to shared utility)
+   * Escape markdown special characters
    */
   private escapeMarkdownLocal(str: string): string {
     return escapeMarkdown(str);
   }
 
   /**
-   * Format layer name for display (delegates to centralized formatter)
+   * Format layer name for display
    */
   private formatLayerName(name: string): string {
     return formatLayerName(name);
   }
 
   /**
-   * Get layer description (delegates to shared utility)
+   * Get layer description
    */
   private getLayerDescription(layer: string): string {
     return getLayerDescription(layer);
   }
 
   /**
-   * Convert value to markdown representation (delegates to shared utility)
+   * Convert value to markdown representation
    */
   private valueToMarkdownLocal(value: unknown): string {
     return valueToMarkdown(value);
