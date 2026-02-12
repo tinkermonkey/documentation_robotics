@@ -119,19 +119,6 @@ class ReportSpecDataLoader {
 }
 
 // ============================================================================
-// Error Handling Utilities
-// ============================================================================
-
-function parseJSON<T>(content: string, filePath: string, context: string): T {
-  try {
-    return JSON.parse(content) as T;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to parse ${context} (${filePath}): ${errorMessage}`);
-  }
-}
-
-// ============================================================================
 // Report Data Model
 // ============================================================================
 
