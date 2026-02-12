@@ -233,12 +233,12 @@ export class StatsCollector {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`[stats-collector] Validation failed: ${errorMessage}`);
 
-      // Return failed state with error count indicating collection failure
-      // Use error count = 2 to distinguish from model validation errors
+      // Return failed state with sentinel error count -1 indicating collection failure
+      // (cannot be confused with actual error count which is always >= 0)
       return {
         isValid: false,
         lastValidated: new Date().toISOString(),
-        errors: 2, // Indicates validation collection failed (vs. model validation errors)
+        errors: -1, // Sentinel: validation collection itself failed
         warnings: 0,
       };
     }

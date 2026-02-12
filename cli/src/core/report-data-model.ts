@@ -209,22 +209,29 @@ export class ReportDataModel {
       return this.cachedReport;
     }
 
-    await this.loadCatalog();
+    try {
+      await this.loadCatalog();
 
-    const statistics = await this.getStatistics();
-    const relationships = await this.getRelationshipAnalysis();
-    const dataModel = await this.getDataModelInsights();
-    const quality = await this.getQualityMetrics();
+      const statistics = await this.getStatistics();
+      const relationships = await this.getRelationshipAnalysis();
+      const dataModel = await this.getDataModelInsights();
+      const quality = await this.getQualityMetrics();
 
-    this.cachedReport = {
-      timestamp: new Date().toISOString(),
-      statistics,
-      relationships,
-      dataModel,
-      quality,
-    };
+      this.cachedReport = {
+        timestamp: new Date().toISOString(),
+        statistics,
+        relationships,
+        dataModel,
+        quality,
+      };
 
-    return this.cachedReport;
+      return this.cachedReport;
+    } catch (error) {
+      throw new Error(
+        `Failed to collect report data: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      );
+    }
   }
 
   /**
@@ -475,10 +482,10 @@ export class ReportDataModel {
         predicate: rel.predicate,
         category: relationshipType?.category || "unknown",
         archimateAlignment: relationshipType?.archimateAlignment || null,
-        directionality: relationshipType?.semantics.directionality || "unidirectional",
-        transitivity: relationshipType?.semantics.transitivity || false,
-        symmetry: relationshipType?.semantics.symmetry || false,
-        reflexivity: relationshipType?.semantics.reflexivity,
+        directionality: relationshipType?.semantics?.directionality || "unidirectional",
+        transitivity: relationshipType?.semantics?.transitivity || false,
+        symmetry: relationshipType?.semantics?.symmetry || false,
+        reflexivity: relationshipType?.semantics?.reflexivity,
         isSpecCompliant,
       },
       sourceLayer,
@@ -553,6 +560,7 @@ export class ReportDataModel {
     }
 
     path.pop();
+    visited.delete(node); // Remove from visited during backtrack to detect cycles from alternate paths
   }
 
   /**

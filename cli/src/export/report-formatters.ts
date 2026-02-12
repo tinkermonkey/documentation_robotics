@@ -228,7 +228,7 @@ function formatRelationshipsSection(lines: string[], report: ReportData): void {
     .slice(0, 5);
 
   for (const [category, count] of categoryEntries) {
-    const percentage = (count / relationships.totalRelationships) * 100;
+    const percentage = relationships.totalRelationships > 0 ? (count / relationships.totalRelationships) * 100 : 0;
     lines.push(`  ${category.padEnd(20)} ${String(count).padEnd(3)} (${percentage.toFixed(0)}%)`);
   }
 

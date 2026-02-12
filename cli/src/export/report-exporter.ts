@@ -43,7 +43,8 @@ export class ReportExporter implements Exporter {
       return formatReport(report, formatterOptions);
     } catch (error) {
       throw new Error(
-        `Failed to export comprehensive report: ${getErrorMessage(error)}`
+        `Failed to export comprehensive report: ${getErrorMessage(error)}`,
+        { cause: error }
       );
     }
   }

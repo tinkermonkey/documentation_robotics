@@ -337,6 +337,9 @@ let globalSpecDataService: SpecDataService | null = null;
 
 /**
  * Get or create global SpecDataService instance
+ * WARNING: Options are only applied on first call. Subsequent calls with different
+ * options will be silently ignored and the existing instance returned. Call resetGlobalSpecDataService()
+ * before calling this again with different options.
  */
 export function getGlobalSpecDataService(options: SpecLoaderOptions = {}): SpecDataService {
   if (!globalSpecDataService) {

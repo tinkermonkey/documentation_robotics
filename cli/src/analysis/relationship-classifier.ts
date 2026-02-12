@@ -120,10 +120,10 @@ export class RelationshipClassifier {
       predicate: rel.predicate,
       category: relationshipType?.category || "unknown",
       archimateAlignment: relationshipType?.archimateAlignment || null,
-      directionality: relationshipType?.semantics.directionality || "unidirectional",
-      transitivity: relationshipType?.semantics.transitivity || false,
-      symmetry: relationshipType?.semantics.symmetry || false,
-      reflexivity: relationshipType?.semantics.reflexivity,
+      directionality: relationshipType?.semantics?.directionality || "unidirectional",
+      transitivity: relationshipType?.semantics?.transitivity || false,
+      symmetry: relationshipType?.semantics?.symmetry || false,
+      reflexivity: relationshipType?.semantics?.reflexivity,
       sourceLayer,
       targetLayer,
       isCrossLayer,
@@ -359,10 +359,11 @@ export class RelationshipClassifier {
     }
 
     const strongPercentage = (strongCount / relationships.length) * 100;
+    const weakPercentage = (weakCount / relationships.length) * 100;
 
     if (strongPercentage > 50) {
       return RelationshipStrength.Strong;
-    } else if (strongPercentage < 20) {
+    } else if (weakPercentage > 50) {
       return RelationshipStrength.Weak;
     }
 

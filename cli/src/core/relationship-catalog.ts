@@ -187,8 +187,12 @@ export class RelationshipCatalog {
             layersByPredicate[predicate].add(sourceLayer);
           }
         } catch (error) {
-          // Log parsing errors and skip files that can't be parsed
-          console.warn(`Could not parse relationship schema ${file}:`, error);
+          // Separate JSON parse errors (expected/recoverable) from file read errors (unexpected)
+          if (error instanceof SyntaxError) {
+            console.warn(`Malformed JSON in relationship schema ${file}: ${error.message}`);
+          } else {
+            console.warn(`Could not parse relationship schema ${file}:`, error);
+          }
           continue;
         }
       }
