@@ -364,23 +364,29 @@ describe("StagedChangesetStorage", () => {
 
   describe("ID sanitization edge cases", () => {
     it("should handle IDs starting with numbers", () => {
-      const changeset = Changeset.create("123-test");
+      const storage = new StagedChangesetStorage(TEST_DIR);
+      const changeset = storage.create("123-test");
       expect(changeset.id).toBeDefined();
-      // Should not throw when creating changeset with numeric-starting ID
+      // Verify the ID starts with a number (not prefixed or removed)
+      expect(changeset.id).toMatch(/^123/);
     });
 
-    it("should truncate IDs longer than 100 characters", () => {
+    it("should handle IDs longer than 100 characters", () => {
+      const storage = new StagedChangesetStorage(TEST_DIR);
       const longId = "a".repeat(150);
-      const changeset = Changeset.create(longId);
-      // The ID should be created but may be truncated by sanitizeId
+      const changeset = storage.create(longId);
+      // Verify the ID is created (behavior: preserve full length)
       expect(changeset.id).toBeDefined();
+      expect(changeset.id).toBe("a".repeat(150));
     });
 
     it("should sanitize IDs with special characters", () => {
-      const changeset = Changeset.create("test@#$%-feature");
-      // Should sanitize special characters out
+      const storage = new StagedChangesetStorage(TEST_DIR);
+      const changeset = storage.create("test@#$%-feature");
+      // Should sanitize special characters out (@ # $ % removed)
       expect(changeset.id).toBeDefined();
       expect(changeset.id).toMatch(/^[a-z0-9-]+$/);
+      expect(changeset.id).toBe("test-feature");
     });
 
     it("should reject IDs that become empty after sanitization", () => {

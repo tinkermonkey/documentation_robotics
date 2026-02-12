@@ -667,9 +667,8 @@ describe("MarkdownGenerator", () => {
       expect(markdown).toBeDefined();
       expect(markdown.length).toBeGreaterThan(0);
 
-      // Check that we have some endpoints mentioned but not necessarily all 15
-      // (details may be truncated)
-      expect(markdown).toContain("API Layer");
+      // Verify the truncation message appears when there are more than 10 elements
+      expect(markdown).toContain("... and 5 more elements");
     });
 
     it("should handle models with few elements gracefully", async () => {
