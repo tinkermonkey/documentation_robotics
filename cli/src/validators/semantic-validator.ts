@@ -9,9 +9,26 @@ import path from "path";
 
 /**
  * Validator for semantic/business rule validation
+ *
+ * Validates model conformance to architectural business rules including:
+ * - Relationship predicate validation against relationship catalog
+ * - Cross-layer reference constraints
+ * - Layer-specific validation rules
+ *
+ * Loads relationship catalog asynchronously on first use to avoid startup overhead.
  */
 export class SemanticValidator {
+  /**
+   * Cached relationship catalog from relationship-catalog.json
+   * Contains mapping of relationship predicates to their definitions
+   * Null if catalog fails to load (validation continues with reduced coverage)
+   */
   private relationshipCatalog: Record<string, any> | null = null;
+
+  /**
+   * Flag to track if catalog load has been attempted
+   * Prevents repeated load attempts if catalog is missing or fails to parse
+   */
   private catalogLoaded: boolean = false;
 
   constructor() {
@@ -46,8 +63,12 @@ export class SemanticValidator {
       this.relationshipCatalog = await import(catalogPath, { assert: { type: "json" } }).then(
         (m) => m.default
       );
-    } catch {
+    } catch (error) {
       // Catalog load failure is gracefully handled - validation continues without predicate checking
+      // Note: Missing catalog reduces validation coverage (predicates won't be validated)
+      if (process.env.DEBUG) {
+        console.warn("[DEBUG] Failed to load relationship catalog:", error instanceof Error ? error.message : String(error));
+      }
       this.relationshipCatalog = null;
     }
   }

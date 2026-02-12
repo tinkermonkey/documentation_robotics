@@ -1,6 +1,7 @@
 import Graph from "graphology";
 import { ReferenceRegistry } from "./reference-registry.js";
 import { Model } from "./model.js";
+import type { Element } from "./element.js";
 
 /**
  * Direction to trace dependencies (matches Python CLI TraceDirection enum)
@@ -564,11 +565,11 @@ export class DependencyTracker {
   /**
    * Find elements with no references (requires model)
    */
-  getOrphanedElements(): any[] {
+  getOrphanedElements(): Element[] {
     if (!this.model) return [];
 
     const graph = this.getGraph();
-    const orphaned: any[] = [];
+    const orphaned: Element[] = [];
 
     for (const layer of this.model.layers.values()) {
       for (const element of layer.elements.values()) {

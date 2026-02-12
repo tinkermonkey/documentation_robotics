@@ -2,6 +2,17 @@ import Graph from "graphology";
 import type { Reference, Element } from "../types/index.js";
 
 /**
+ * Type guard to check if an element is in legacy format
+ * Legacy elements have an elementId property for backward compatibility
+ *
+ * @param element Element to check
+ * @returns true if element has legacy elementId property
+ */
+function hasLegacyElementId(element: Element): element is Element & { elementId: string } {
+  return "elementId" in element && typeof (element as unknown as Record<string, unknown>).elementId === "string";
+}
+
+/**
  * Reference registry - tracks and validates cross-layer references
  *
  * NOTE: Phase 3 Deferred - Registry Consolidation
@@ -132,8 +143,18 @@ export class ReferenceRegistry {
    * This ensures compatibility with Python CLI behavior which uses semantic IDs
    */
   registerElement(element: Element): void {
+    // Validate required element properties
+    if (!element) {
+      return;
+    }
+
     // Use semantic ID for legacy elements, UUID for spec-aligned elements
-    const elementId = (element as any).elementId || element.id;
+    const elementId = hasLegacyElementId(element) ? element.elementId : element.id;
+
+    // Skip if element has no ID
+    if (!elementId) {
+      return;
+    }
 
     // Extract references from explicit references array
     if (element.references) {
