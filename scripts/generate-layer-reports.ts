@@ -17,6 +17,7 @@
 
 import * as fs from "fs/promises";
 import * as path from "path";
+import { execSync } from "child_process";
 import { formatLayerName as formatLayerNameUtil } from "../cli/src/utils/layer-name-formatter.js";
 import { SpecDataLoader } from "../cli/src/core/spec-loader.js";
 import type { LayerSpec, NodeTypeSpec, RelationshipTypeSpec, PredicateSpec } from "../cli/src/core/spec-loader-types.js";
@@ -339,7 +340,7 @@ function formatMarkdownTable(headers: string[], rows: string[][]): string {
 // ============================================================================
 
 class LayerReportGenerator {
-  constructor(private data: ReportDataModel) {}
+  constructor(private data: ReportDataModel, private specVersion: string, private commitHash: string) {}
 
   generate(reportData: LayerReportData): string {
     const lines: string[] = [];
@@ -444,32 +445,84 @@ class LayerReportGenerator {
       return lines.join("");
     }
 
-    if (reportData.statistics.intraRelationshipCount === 0) {
-      lines.push("No intra-layer relationships defined.\n");
-      return lines.join("");
+    // Check if hierarchical grouping is needed (>30 nodes)
+    if (reportData.nodeSchemas.length > 30) {
+      lines.push("### Hierarchical Organization\n");
+      lines.push("\n");
+      lines.push(`This layer contains ${reportData.nodeSchemas.length} node types. To improve readability, they are organized hierarchically:\n`);
+      lines.push("\n");
+
+      // Group by first character of type name
+      const groupedNodes = new Map<string, typeof reportData.nodeSchemas>();
+      for (const schema of reportData.nodeSchemas) {
+        const group = schema.type.charAt(0).toUpperCase();
+        if (!groupedNodes.has(group)) {
+          groupedNodes.set(group, []);
+        }
+        groupedNodes.get(group)!.push(schema);
+      }
+
+      // Display summary table
+      lines.push("| Group | Count | Types |\n");
+      lines.push("|-------|-------|-------|\n");
+      for (const group of Array.from(groupedNodes.keys()).sort()) {
+        const types = groupedNodes.get(group) || [];
+        const typeList = types.map((t) => `\`${t.type}\``).join(", ");
+        lines.push(`| **${group}** | ${types.length} | ${typeList} |\n`);
+      }
+
+      lines.push("\n");
+      if (reportData.statistics.intraRelationshipCount === 0) {
+        lines.push("No intra-layer relationships are defined for this layer.\n");
+      } else {
+        lines.push("### Relationship Map\n");
+        lines.push("\n");
+        lines.push("Key relationships between node types:\n");
+        lines.push("\n");
+        lines.push("| Source Type | Predicate | Destination Type | Count |\n");
+        lines.push("|-------------|-----------|------------------|-------|\n");
+        const relationshipMap = new Map<string, { count: number; predicate: string }>();
+        for (const rel of reportData.intraRelationships) {
+          const sourceType = extractTypeFromSpecNodeId(rel.source_spec_node_id, "intraRelationships");
+          const destType = extractTypeFromSpecNodeId(rel.destination_spec_node_id, "intraRelationships");
+          const key = `${sourceType}|${rel.predicate}|${destType}`;
+          const existing = relationshipMap.get(key) || { count: 0, predicate: rel.predicate };
+          existing.count += 1;
+          relationshipMap.set(key, existing);
+        }
+        for (const [key, value] of relationshipMap) {
+          const [sourceType, predicate, destType] = key.split("|");
+          lines.push(`| \`${sourceType}\` | ${predicate} | \`${destType}\` | ${value.count} |\n`);
+        }
+      }
+    } else {
+      if (reportData.statistics.intraRelationshipCount === 0) {
+        lines.push("No intra-layer relationships defined.\n");
+        return lines.join("");
+      }
+
+      lines.push("```mermaid\n");
+      lines.push(`flowchart LR\n`);
+      lines.push(`  subgraph ${reportData.layer.id}\n`);
+
+      // Add all nodes
+      for (const schema of reportData.nodeSchemas) {
+        const nodeId = schema.type.replace(/[^a-zA-Z0-9]/g, "_");
+        lines.push(`    ${nodeId}["${schema.type}"]\n`);
+      }
+
+      // Add relationships
+      for (const rel of reportData.intraRelationships) {
+        const sourceType = extractTypeFromSpecNodeId(rel.source_spec_node_id, "intraRelationships");
+        const destType = extractTypeFromSpecNodeId(rel.destination_spec_node_id, "intraRelationships");
+        const sourceId = sourceType.replace(/[^a-zA-Z0-9]/g, "_");
+        const destId = destType.replace(/[^a-zA-Z0-9]/g, "_");
+        lines.push(`    ${sourceId} -->|${rel.predicate}| ${destId}\n`);
+      }
+
+      lines.push("  end\n");
+      lines.push("```\n");
     }
-
-    lines.push("```mermaid\n");
-    lines.push(`flowchart LR\n`);
-    lines.push(`  subgraph ${reportData.layer.id}\n`);
-
-    // Add all nodes
-    for (const schema of reportData.nodeSchemas) {
-      const nodeId = schema.type.replace(/[^a-zA-Z0-9]/g, "_");
-      lines.push(`    ${nodeId}["${schema.type}"]\n`);
-    }
-
-    // Add relationships
-    for (const rel of reportData.intraRelationships) {
-      const sourceType = extractTypeFromSpecNodeId(rel.source_spec_node_id, "intraRelationships");
-      const destType = extractTypeFromSpecNodeId(rel.destination_spec_node_id, "intraRelationships");
-      const sourceId = sourceType.replace(/[^a-zA-Z0-9]/g, "_");
-      const destId = destType.replace(/[^a-zA-Z0-9]/g, "_");
-      lines.push(`    ${sourceId} -->|${rel.predicate}| ${destId}\n`);
-    }
-
-    lines.push("  end\n");
-    lines.push("```\n");
 
     return lines.join("");
   }
@@ -593,12 +646,32 @@ class LayerReportGenerator {
       lines.push(`**Spec Node ID**: \`${schema.spec_node_id}\`\n\n`);
       lines.push(`${schema.description}\n\n`);
 
-      // Intra-layer relationships
+      // Calculate per-node relationship metrics
       const intraRels = reportData.intraRelationships.filter(
         (r) =>
           r.source_spec_node_id === schema.spec_node_id ||
           r.destination_spec_node_id === schema.spec_node_id
       );
+
+      const interRels = reportData.interRelationships.filter(
+        (r) =>
+          r.source_spec_node_id === schema.spec_node_id ||
+          r.destination_spec_node_id === schema.spec_node_id
+      );
+
+      const intraInbound = reportData.intraRelationships.filter((r) => r.destination_spec_node_id === schema.spec_node_id).length;
+      const intraOutbound = reportData.intraRelationships.filter((r) => r.source_spec_node_id === schema.spec_node_id).length;
+      const interInbound = interRels.filter((r) => r.destination_spec_node_id === schema.spec_node_id).length;
+      const interOutbound = interRels.filter((r) => r.source_spec_node_id === schema.spec_node_id).length;
+
+      // Display metrics
+      lines.push("#### Relationship Metrics\n");
+      lines.push("\n");
+      lines.push(`- **Intra-Layer**: Inbound: ${intraInbound} | Outbound: ${intraOutbound}\n`);
+      lines.push(`- **Inter-Layer**: Inbound: ${interInbound} | Outbound: ${interOutbound}\n`);
+      lines.push("\n");
+
+      // Intra-layer relationships
 
       if (intraRels.length > 0) {
         lines.push("#### Intra-Layer Relationships\n");
@@ -622,12 +695,6 @@ class LayerReportGenerator {
       }
 
       // Inter-layer relationships
-      const interRels = reportData.interRelationships.filter(
-        (r) =>
-          r.source_spec_node_id === schema.spec_node_id ||
-          r.destination_spec_node_id === schema.spec_node_id
-      );
-
       if (interRels.length > 0) {
         lines.push("#### Inter-Layer Relationships\n");
         lines.push("\n");
@@ -672,7 +739,9 @@ class LayerReportGenerator {
 
   private generateFooter(reportData: LayerReportData): string {
     const timestamp = new Date().toISOString();
-    return `---\n\n_Generated: ${timestamp} | Generator: generate-layer-reports.ts_\n`;
+    const specVersion = this.specVersion;
+    const commitHash = this.commitHash;
+    return `---\n\n_Generated: ${timestamp} | Spec Version: ${specVersion} | Commit: ${commitHash} | Generator: generate-layer-reports.ts_\n`;
   }
 }
 
@@ -791,6 +860,16 @@ async function main() {
   // Ensure output directory exists
   await fs.mkdir(outputDir, { recursive: true });
 
+  // Load spec version and commit hash
+  const specVersionPath = path.join(specDir, "VERSION");
+  const specVersion = (await fs.readFile(specVersionPath, "utf-8")).trim();
+  let commitHash = "unknown";
+  try {
+    commitHash = execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
+  } catch {
+    console.warn("Could not determine git commit hash");
+  }
+
   // Load spec data
   const loader = new ReportSpecDataLoader(specDir);
   const specData = await loader.loadAll();
@@ -809,7 +888,7 @@ async function main() {
   await fs.writeFile(path.join(outputDir, "README.md"), readmeContent, "utf-8");
 
   // Generate layer reports
-  const reportGen = new LayerReportGenerator(model);
+  const reportGen = new LayerReportGenerator(model, specVersion, commitHash);
   for (const layer of specData.layers) {
     console.log(`Generating ${formatLayerName(layer.id)} layer report...`);
     const reportData = model.getLayerReportData(layer.id);
