@@ -65,6 +65,22 @@ export class SchemaValidator {
   }
 
   /**
+   * Extract error message from unknown error type with proper type checking
+   */
+  private static getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === "object" && error !== null && "message" in error) {
+      const msg = (error as Record<string, unknown>).message;
+      if (typeof msg === "string") {
+        return msg;
+      }
+    }
+    return "Unknown error";
+  }
+
+  /**
    * Ensure base schemas are pre-compiled validators are initialized
    * Loads base schema files from disk and registers them with AJV for reference resolution.
    * This allows per-type schemas to resolve $ref to base schemas during compilation.
@@ -107,20 +123,19 @@ export class SchemaValidator {
         // This allows $ref to "filename.schema.json#/definitions/..." to be resolved
         this.ajv.addSchema(schema, schemaName);
         SchemaValidator.registeredSchemaIds.add(schemaName);
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Check for the specific AJV error about duplicate schema registration
         // AJV error message: "schema with key or id <name> already exists"
         // This is expected when multiple validators are created in the same process
-        const isDuplicateSchemaError =
-          error.message &&
-          /schema with key or id [^ ]+ already exists/.test(error.message);
+        const errorMsg = SchemaValidator.getErrorMessage(error);
+        const isDuplicateSchemaError = /schema with key or id [^ ]+ already exists/.test(errorMsg);
 
         if (isDuplicateSchemaError) {
           // Skip warning for duplicate registration - this is expected
           SchemaValidator.registeredSchemaIds.add(schemaName);
           continue;
         }
-        console.warn(`Warning: Failed to load base schema ${schemaName}: ${error.message}`);
+        console.warn(`Warning: Failed to load base schema ${schemaName}: ${errorMsg}`);
       }
     }
 
@@ -184,14 +199,15 @@ export class SchemaValidator {
         }
         throw registrationError;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Skip reference resolution errors - they're expected for schema discovery
       // Base schema validation still passes via pre-compiled validators
-      if (error.message && error.message.includes("can't resolve reference")) {
+      const errorMsg = SchemaValidator.getErrorMessage(error);
+      if (errorMsg.includes("can't resolve reference")) {
         // This is expected for type-specific schema discovery - fallback to base validator only
         return null;
       }
-      console.warn(`Warning: Failed to load spec node schema for ${layer}.${type}: ${error.message}`);
+      console.warn(`Warning: Failed to load spec node schema for ${layer}.${type}: ${errorMsg}`);
       return null;
     }
   }

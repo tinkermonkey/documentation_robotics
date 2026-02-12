@@ -1,11 +1,17 @@
 import type { Model } from "../core/model.js";
 import type { GraphNode } from "../core/graph-model.js";
 import { formatLayerName } from "../utils/layer-name-formatter.js";
+import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
 import {
   escapeMarkdown,
   valueToMarkdown,
   getLayerDescription,
 } from "./markdown-utils.js";
+
+/**
+ * Maximum number of elements to show in element details section
+ */
+const MAX_DETAIL_ELEMENTS = 10;
 
 /**
  * Options for markdown generation
@@ -114,20 +120,20 @@ export class MarkdownGenerator {
 
       // Layer diagram
       if (this.options.includeMermaid) {
-        lines.push(this.generateLayerDiagram(layerName, layerNodes));
+        lines.push(this.generateLayerDiagram(layerNodes));
         lines.push("");
       }
 
       // Elements table
       if (this.options.includeTables) {
-        lines.push(this.generateLayerElementsTable(layerName, layerNodes));
+        lines.push(this.generateLayerElementsTable(layerNodes));
         lines.push("");
       }
 
       // Element details
       lines.push("#### Element Details");
       lines.push("");
-      lines.push(this.generateElementDetailsMarkdown(layerName, layerNodes));
+      lines.push(this.generateElementDetailsMarkdown(layerNodes));
       lines.push("");
     }
 
@@ -154,21 +160,6 @@ export class MarkdownGenerator {
     lines.push("```mermaid");
     lines.push("graph TD");
 
-    const layerOrder = [
-      "motivation",
-      "business",
-      "security",
-      "application",
-      "technology",
-      "api",
-      "data-model",
-      "data-store",
-      "ux",
-      "navigation",
-      "apm",
-      "testing",
-    ];
-
     const layerNodeCounts = new Map<string, number>();
 
     // Count nodes per layer
@@ -178,7 +169,7 @@ export class MarkdownGenerator {
     }
 
     // Create layer nodes in diagram
-    for (const layer of layerOrder) {
+    for (const layer of CANONICAL_LAYER_NAMES) {
       const count = layerNodeCounts.get(layer) || 0;
       if (count > 0) {
         const displayName = `${this.formatLayerName(layer)}<br/>(${count} elements)`;
@@ -188,7 +179,7 @@ export class MarkdownGenerator {
 
     // Add connections between consecutive non-empty layers
     let lastLayer: string | null = null;
-    for (const layer of layerOrder) {
+    for (const layer of CANONICAL_LAYER_NAMES) {
       if ((layerNodeCounts.get(layer) || 0) > 0) {
         if (lastLayer) {
           lines.push(
@@ -206,7 +197,7 @@ export class MarkdownGenerator {
   /**
    * Generate diagram for a specific layer
    */
-  private generateLayerDiagram(layerName: string, nodes: GraphNode[]): string {
+  private generateLayerDiagram(nodes: GraphNode[]): string {
     if (nodes.length === 0) return "";
 
     const lines: string[] = [];
@@ -214,10 +205,10 @@ export class MarkdownGenerator {
 
     switch (this.options.diagramType) {
       case "flowchart":
-        lines.push(this.generateLayerFlowchart(layerName, nodes));
+        lines.push(this.generateLayerFlowchart(nodes));
         break;
       default:
-        lines.push(this.generateLayerGraph(layerName, nodes));
+        lines.push(this.generateLayerGraph(nodes));
     }
 
     lines.push("```");
@@ -227,7 +218,7 @@ export class MarkdownGenerator {
   /**
    * Generate layer graph diagram
    */
-  private generateLayerGraph(_layerName: string, nodes: GraphNode[]): string {
+  private generateLayerGraph(nodes: GraphNode[]): string {
     const lines: string[] = [];
     lines.push("graph LR");
 
@@ -257,7 +248,7 @@ export class MarkdownGenerator {
   /**
    * Generate flowchart for a layer
    */
-  private generateLayerFlowchart(_layerName: string, nodes: GraphNode[]): string {
+  private generateLayerFlowchart(nodes: GraphNode[]): string {
     const lines: string[] = [];
     lines.push("flowchart TD");
 
@@ -355,10 +346,7 @@ export class MarkdownGenerator {
   /**
    * Generate elements table for a layer
    */
-  private generateLayerElementsTable(
-    _layerName: string,
-    nodes: GraphNode[]
-  ): string {
+  private generateLayerElementsTable(nodes: GraphNode[]): string {
     const rows: string[] = [];
     rows.push("| Element ID | Name | Type | Description |");
     rows.push("|-----------|------|------|-------------|");
@@ -367,6 +355,7 @@ export class MarkdownGenerator {
       const id = this.escapeMarkdownLocal(node.id);
       const name = this.escapeMarkdownLocal(node.name);
       const type = this.escapeMarkdownLocal(node.type);
+      // Truncate description to 100 characters and escape markdown
       const desc = node.description
         ? this.escapeMarkdownLocal(node.description.substring(0, 100))
         : "";
@@ -386,14 +375,11 @@ export class MarkdownGenerator {
   /**
    * Generate element details markdown
    */
-  private generateElementDetailsMarkdown(
-    _layerName: string,
-    nodes: GraphNode[]
-  ): string {
+  private generateElementDetailsMarkdown(nodes: GraphNode[]): string {
     const details: string[] = [];
 
-    for (const node of nodes.slice(0, 10)) {
-      // Limit to first 10 for readability
+    for (const node of nodes.slice(0, MAX_DETAIL_ELEMENTS)) {
+      // Limit to first MAX_DETAIL_ELEMENTS for readability
       details.push(`##### ${this.escapeMarkdownLocal(node.name)} (\`${node.id}\`)`);
       details.push("");
 
@@ -456,8 +442,8 @@ export class MarkdownGenerator {
       }
     }
 
-    if (nodes.length > 10) {
-      details.push(`*... and ${nodes.length - 10} more elements*`);
+    if (nodes.length > MAX_DETAIL_ELEMENTS) {
+      details.push(`*... and ${nodes.length - MAX_DETAIL_ELEMENTS} more elements*`);
       details.push("");
     }
 

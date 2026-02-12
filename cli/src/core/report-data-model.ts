@@ -226,14 +226,14 @@ export class ReportDataModel {
 
     for (let i = 0; i < allRelationships.length; i++) {
       const rel = allRelationships[i];
-      const classified_rel = this.classifyRelationship(rel, i.toString());
-      classified.push(classified_rel);
+      const classifiedRel = this.classifyRelationship(rel, i.toString());
+      classified.push(classifiedRel);
 
       // Count by category
-      if (!byCategory[classified_rel.category]) {
-        byCategory[classified_rel.category] = 0;
+      if (!byCategory[classifiedRel.category]) {
+        byCategory[classifiedRel.category] = 0;
       }
-      byCategory[classified_rel.category]++;
+      byCategory[classifiedRel.category]++;
 
       // Count by predicate
       if (!byPredicate[rel.predicate]) {
@@ -242,7 +242,7 @@ export class ReportDataModel {
       byPredicate[rel.predicate]++;
 
       // Count cross vs intra-layer
-      if (classified_rel.isCrossLayer) {
+      if (classifiedRel.isCrossLayer) {
         crossLayerCount++;
       } else {
         intraLayerCount++;
@@ -405,8 +405,11 @@ export class ReportDataModel {
    * Classify a single relationship with semantic metadata
    */
   private classifyRelationship(rel: Relationship, id: string): ClassifiedRelationship {
-    const sourceLayer = rel.source.split(".")[0];
-    const targetLayer = rel.target.split(".")[0];
+    // Extract layer name from element ID (format: layer.type.name)
+    const sourceParts = rel.source.split(".");
+    const targetParts = rel.target.split(".");
+    const sourceLayer = sourceParts[0] || "";
+    const targetLayer = targetParts[0] || "";
     const isCrossLayer = sourceLayer !== targetLayer;
 
     const relationshipType = this.relationshipTypeMap.get(rel.predicate);
