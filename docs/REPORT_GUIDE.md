@@ -104,9 +104,7 @@ Includes:
 - Entity count and attributes
 - Referenced vs orphaned entities
 - Complexity metrics
-- Cardinality analysis
 - Data quality issues
-- Entity clusters
 
 ### Quality Report
 
@@ -369,20 +367,20 @@ Complete analysis with all available information.
 
 ## Relationship Categories
 
-Reports show relationships organized by 13 semantic categories:
+Reports show relationships organized by semantic categories from the relationship catalog:
 
 - **Motivation** - Goals, requirements, constraints
 - **Business** - Business processes and services
 - **Security** - Authentication, authorization, threats
-- **Application** - Application services, components
-- **Technology** - Infrastructure, platforms, tools
-- **API** - REST APIs, endpoints, operations
 - **Data** - Schema relationships, mappings
-- **Data Store** - Database relationships
+- **Structural** - Realization and implementation relationships
+- **Behavioral** - Behavioral relationships
+- **Dependency** - Dependency relationships
+- **Governance** - Rules, policies, and governance
+- **Traceability** - Traceability relationships
+- **APM** - Observability and monitoring
+- **Testing** - Tests and test suites
 - **UX** - User interface components
-- **Navigation** - Routing, navigation structures
-- **APM** - Observability, monitoring
-- **Testing** - Tests, test suites, fixtures
 
 Each category shows:
 
@@ -410,7 +408,6 @@ For Layer 7 (Data Model) reports:
 
 - Entity coverage (referenced %)
 - Attribute coverage (documented %)
-- Constraint coverage (constrained %)
 
 **Quality Issues**
 

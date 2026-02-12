@@ -127,7 +127,7 @@ export class RelationshipClassifier {
       sourceLayer,
       targetLayer,
       isCrossLayer,
-      isSpecCompliant: true, // Placeholder - would validate against relationship schemas
+      isSpecCompliant: relationshipType !== undefined,
     };
   }
 

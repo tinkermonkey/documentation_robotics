@@ -15,7 +15,7 @@ export interface MarkdownGeneratorOptions {
   includeTables?: boolean; // Include formatted tables
   tableFormat?: "markdown" | "html"; // Table format style
   maxTableRows?: number; // Maximum rows per table before paginating
-  diagramType?: "graph" | "flowchart" | "sequence"; // Type of Mermaid diagram
+  diagramType?: "graph" | "flowchart"; // Type of Mermaid diagram
   includeSourceReferences?: boolean; // Include source code references
 }
 
@@ -189,7 +189,7 @@ export class MarkdownGenerator {
     // Add connections between consecutive non-empty layers
     let lastLayer: string | null = null;
     for (const layer of layerOrder) {
-      if (layerNodeCounts.get(layer) || 0 > 0) {
+      if ((layerNodeCounts.get(layer) || 0) > 0) {
         if (lastLayer) {
           lines.push(
             `  ${this.sanitizeId(lastLayer)} --> ${this.sanitizeId(layer)}`
@@ -215,10 +215,6 @@ export class MarkdownGenerator {
     switch (this.options.diagramType) {
       case "flowchart":
         lines.push(this.generateLayerFlowchart(layerName, nodes));
-        break;
-      case "sequence":
-        // For sequence diagrams, we need multiple layers
-        lines.push(this.generateLayerGraph(layerName, nodes));
         break;
       default:
         lines.push(this.generateLayerGraph(layerName, nodes));
