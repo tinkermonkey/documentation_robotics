@@ -336,6 +336,11 @@ export class ReportDataModel {
     const referencedCount = entities.filter((e) => e.isReferenced).length;
     const orphaned = entities.filter((e) => !e.isReferenced && e.relatedEntities.length === 0);
 
+    // Calculate actual attribute coverage: percentage of entities that have at least one attribute
+    const entitiesWithAttributes = entities.filter((e) => e.attributes.length > 0).length;
+    const attributeCoverage =
+      entityCount > 0 ? (entitiesWithAttributes / entityCount) * 100 : 0;
+
     const avgAttrs = entityCount > 0 ? attributeCount / entityCount : 0;
     const maxAttrs = Math.max(0, ...entities.map((e) => e.attributes.length));
     const avgRels =
@@ -347,7 +352,7 @@ export class ReportDataModel {
       relationshipCount: entities.reduce((sum, e) => sum + e.relatedEntities.length, 0),
       entities,
       entityCoverage: entityCount > 0 ? (referencedCount / entityCount) * 100 : 0,
-      attributeCoverage: entityCount > 0 && attributeCount > 0 ? 100 : 0, // Placeholder
+      attributeCoverage,
       avgAttributesPerEntity: Math.round(avgAttrs * 10) / 10,
       maxAttributesPerEntity: maxAttrs,
       avgRelationshipsPerEntity: Math.round(avgRels * 10) / 10,
@@ -420,8 +425,21 @@ export class ReportDataModel {
     // Extract layer name from element ID (format: layer.type.name)
     const sourceParts = rel.source.split(".");
     const targetParts = rel.target.split(".");
-    const sourceLayer = sourceParts[0] || "";
-    const targetLayer = targetParts[0] || "";
+
+    // Validate element ID format: must have at least layer (part 0)
+    const sourceLayer = sourceParts[0];
+    const targetLayer = targetParts[0];
+
+    if (!sourceLayer || !targetLayer) {
+      // Log warning for malformed element IDs but continue with available data
+      // This allows partial analysis without breaking the entire report
+      console.warn(
+        `Malformed element ID format in relationship: source="${rel.source}" (${sourceParts.length} parts), ` +
+          `target="${rel.target}" (${targetParts.length} parts). ` +
+          `Expected format: layer.type.name`
+      );
+    }
+
     const isCrossLayer = sourceLayer !== targetLayer;
 
     const relationshipType = this.relationshipTypeMap.get(rel.predicate);

@@ -797,6 +797,10 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Error:", err);
+  const errorMessage = err instanceof Error ? err.message : String(err);
+  console.error("Error generating layer reports:", errorMessage);
+  if (err instanceof Error && err.stack) {
+    console.error("Stack trace:", err.stack);
+  }
   process.exit(1);
 });

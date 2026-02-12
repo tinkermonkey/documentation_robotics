@@ -45,10 +45,20 @@ export class SpecDataLoader {
 
   /**
    * Get default path to spec directory
+   *
+   * IMPORTANT: This assumes the monorepo build layout where compiled JS is in cli/dist/core.
+   * The path navigation (../../../spec) depends on:
+   * - cli/dist/core/spec-loader.js compiled location
+   * - spec/ directory at repository root
+   *
+   * This will NOT work if the CLI is distributed as a standalone npm package.
+   * For package distribution, provide specDir option explicitly.
+   *
+   * TODO: Consider validating that the resolved spec directory exists to catch
+   * layout mismatches early with a clear error message.
    */
   private getDefaultSpecDir(): string {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
-    // Navigate from cli/src/core to repository root/spec
     return path.join(currentDir, "../../../spec");
   }
 
