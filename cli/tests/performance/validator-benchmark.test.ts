@@ -18,6 +18,7 @@ describe("Validator Performance Benchmark", () => {
   let validator: SchemaValidator;
 
   beforeAll(() => {
+    SchemaValidator.reset();
     validator = new SchemaValidator();
   });
 

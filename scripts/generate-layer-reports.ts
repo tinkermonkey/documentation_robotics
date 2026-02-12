@@ -74,6 +74,29 @@ interface LayerStatistics {
 }
 
 // ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Extract type segment from spec_node_id (format: layer.type.name)
+ * @param specNodeId The spec node ID to parse
+ * @param context Optional context for error messages
+ * @returns The type segment
+ * @throws Error if format is invalid
+ */
+function extractTypeFromSpecNodeId(specNodeId: string, context: string = ""): string {
+  const parts = specNodeId.split(".");
+  if (parts.length < 2) {
+    throw new Error(
+      `Invalid spec_node_id format: "${specNodeId}". Expected format: "layer.type.name"${
+        context ? ` in ${context}` : ""
+      }`
+    );
+  }
+  return parts[1];
+}
+
+// ============================================================================
 // Data Loader (uses centralized SpecDataLoader)
 // ============================================================================
 
@@ -438,8 +461,10 @@ class LayerReportGenerator {
 
     // Add relationships
     for (const rel of reportData.intraRelationships) {
-      const sourceId = rel.source_spec_node_id.split(".")[1]?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
-      const destId = rel.destination_spec_node_id.split(".")[1]?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
+      const sourceType = extractTypeFromSpecNodeId(rel.source_spec_node_id, "intraRelationships");
+      const destType = extractTypeFromSpecNodeId(rel.destination_spec_node_id, "intraRelationships");
+      const sourceId = sourceType.replace(/[^a-zA-Z0-9]/g, "_");
+      const destId = destType.replace(/[^a-zA-Z0-9]/g, "_");
       lines.push(`    ${sourceId} -->|${rel.predicate}| ${destId}\n`);
     }
 
@@ -506,8 +531,8 @@ class LayerReportGenerator {
 
     const rows: string[][] = [];
     for (const rel of interLayerRels) {
-      const sourceType = rel.source_spec_node_id.split(".")[1] || "unknown";
-      const destType = rel.destination_spec_node_id.split(".")[1] || "unknown";
+      const sourceType = extractTypeFromSpecNodeId(rel.source_spec_node_id, "interLayerRels");
+      const destType = extractTypeFromSpecNodeId(rel.destination_spec_node_id, "interLayerRels");
       const sourceLayer = rel.source_layer;
       const destLayer = rel.destination_layer;
 
@@ -585,9 +610,9 @@ class LayerReportGenerator {
             rel.source_spec_node_id === schema.spec_node_id ? "outbound" : "inbound";
           const relatedType =
             direction === "outbound"
-              ? rel.destination_spec_node_id.split(".")[1]
-              : rel.source_spec_node_id.split(".")[1];
-          const relatedAnchor = createAnchor(relatedType || "unknown");
+              ? extractTypeFromSpecNodeId(rel.destination_spec_node_id, "intraRels")
+              : extractTypeFromSpecNodeId(rel.source_spec_node_id, "intraRels");
+          const relatedAnchor = createAnchor(relatedType);
           intraRows.push([`[${relatedType}](#${relatedAnchor})`, rel.predicate, direction, rel.cardinality]);
         }
 
@@ -613,8 +638,8 @@ class LayerReportGenerator {
             rel.source_spec_node_id === schema.spec_node_id ? "outbound" : "inbound";
           const relatedType =
             direction === "outbound"
-              ? rel.destination_spec_node_id.split(".")[1]
-              : rel.source_spec_node_id.split(".")[1];
+              ? extractTypeFromSpecNodeId(rel.destination_spec_node_id, "interRels")
+              : extractTypeFromSpecNodeId(rel.source_spec_node_id, "interRels");
           const relatedLayer =
             direction === "outbound" ? rel.destination_layer : rel.source_layer;
           const layerNum = this.data.getAllLayers().find((l) => l.id === relatedLayer);

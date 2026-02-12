@@ -463,7 +463,8 @@ export class ReportDataModel {
       // Log warning for malformed element IDs but continue with available data
       // This allows partial analysis without breaking the entire report
       console.warn(
-        `Malformed element ID format in relationship: source="${rel.source}" (${sourceParts.length} parts), ` +
+        `[REPORT_001] Malformed element ID format in relationship: ` +
+          `source="${rel.source}" (${sourceParts.length} parts), ` +
           `target="${rel.target}" (${targetParts.length} parts). ` +
           `Expected format: layer.type.name`
       );

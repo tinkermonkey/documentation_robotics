@@ -3,7 +3,7 @@
  * Verifies that legacy 'datastore' naming is rejected and canonical 'data-store' is accepted
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { Manifest } from "../../src/core/manifest.js";
 import { NamingValidator } from "../../src/validators/naming-validator.js";
 import { SchemaValidator } from "../../src/validators/schema-validator.js";
@@ -11,6 +11,9 @@ import { Layer } from "../../src/core/layer.js";
 import { Element } from "../../src/core/element.js";
 
 describe("Layer 8 naming validation", () => {
+  beforeEach(() => {
+    SchemaValidator.reset();
+  });
   it("rejects manifest with legacy datastore key", async () => {
     // Create manifest with legacy 'datastore' key (incorrect)
     const manifestData = {
