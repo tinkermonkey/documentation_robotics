@@ -3,6 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
+import { tmpdir } from "os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,8 +12,8 @@ describe("generate-layer-reports.ts", () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    // Create a temporary directory for test outputs
-    tempDir = await fs.mkdtemp(path.join(__dirname, "../../.test-temp-"));
+    // Create a temporary directory for test outputs (using OS temp directory)
+    tempDir = await fs.mkdtemp(path.join(tmpdir(), "generate-layer-reports-test-"));
   });
 
   afterEach(async () => {
