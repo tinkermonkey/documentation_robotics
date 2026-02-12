@@ -7,26 +7,14 @@ import { ReportDataModel } from "../core/report-data-model.js";
 import { formatReport, ReportFormatterOptions } from "./report-formatters.js";
 import { Exporter, ExportOptions } from "./types.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
 
 /**
  * Comprehensive report exporter
  */
 export class ReportExporter implements Exporter {
   name = "Comprehensive Report";
-  supportedLayers = [
-    "motivation",
-    "business",
-    "security",
-    "application",
-    "technology",
-    "api",
-    "data-model",
-    "data-store",
-    "ux",
-    "navigation",
-    "apm",
-    "testing",
-  ];
+  supportedLayers = [...CANONICAL_LAYER_NAMES];
 
   /**
    * Export model as comprehensive report

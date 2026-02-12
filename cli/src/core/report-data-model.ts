@@ -7,7 +7,7 @@
 
 import { Model } from "./model.js";
 import { StatsCollector, ModelStats } from "./stats-collector.js";
-import { RelationshipCatalog, RelationshipType } from "./relationship-catalog.js";
+import { RelationshipCatalog, RelationshipType, type Directionality } from "./relationship-catalog.js";
 import { getLayerOrder } from "./layers.js";
 import type { Relationship } from "../types/index.js";
 
@@ -25,7 +25,7 @@ export interface ClassifiedRelationship {
   archimateAlignment: string | null;
 
   // Semantic properties
-  directionality: "unidirectional" | "bidirectional";
+  directionality: Directionality;
   transitivity: boolean;
   symmetry: boolean;
   reflexivity?: boolean;
@@ -102,8 +102,10 @@ export interface CircularPath {
  * Quality metrics for the model
  *
  * Percentages (0-100) represent quality metrics:
- * - Coverage metrics (elementCoverage, relationshipCoverage, documentationCoverage, archimateCompliance, specCompliance, semanticConsistency, crossLayerReferenceHealth):
+ * - Coverage metrics (elementCoverage, relationshipCoverage, documentationCoverage, archimateCompliance, specCompliance, semanticConsistency):
  *   Express completeness or compliance as percentages
+ * - Composition metrics (crossLayerReferenceHealth):
+ *   Descriptive ratio of cross-layer to total relationships (not a quality indicator)
  * - Structural metrics (orphanedElements, circularDependencies):
  *   Count of problematic elements
  * - Compliance metrics (layerComplianceScore):
@@ -404,8 +406,8 @@ export class ReportDataModel {
     this.cachedQuality = {
       elementCoverage,
       relationshipCoverage: Math.min(100, relationshipCoverage),
-      documentationCoverage,
-      layerCoverage,
+      documentationCoverage: Math.min(100, documentationCoverage),
+      layerCoverage: Math.min(100, layerCoverage),
       orphanedElements,
       circularDependencies,
       archimateCompliance,

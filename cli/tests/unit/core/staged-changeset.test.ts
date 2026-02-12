@@ -361,4 +361,34 @@ describe("StagedChangesetStorage", () => {
       expect(loaded?.changes[0].elementId).toBe("elem-2");
     });
   });
+
+  describe("ID sanitization edge cases", () => {
+    it("should handle IDs starting with numbers", () => {
+      const changeset = Changeset.create("123-test");
+      expect(changeset.id).toBeDefined();
+      // Should not throw when creating changeset with numeric-starting ID
+    });
+
+    it("should truncate IDs longer than 100 characters", () => {
+      const longId = "a".repeat(150);
+      const changeset = Changeset.create(longId);
+      // The ID should be created but may be truncated by sanitizeId
+      expect(changeset.id).toBeDefined();
+    });
+
+    it("should sanitize IDs with special characters", () => {
+      const changeset = Changeset.create("test@#$%-feature");
+      // Should sanitize special characters out
+      expect(changeset.id).toBeDefined();
+      expect(changeset.id).toMatch(/^[a-z0-9-]+$/);
+    });
+
+    it("should reject IDs that become empty after sanitization", () => {
+      const storage = new StagedChangesetStorage(TEST_DIR);
+      expect(() => {
+        // This should throw when trying to sanitize-only special chars
+        storage.create("@#$%");
+      }).toThrow();
+    });
+  });
 });

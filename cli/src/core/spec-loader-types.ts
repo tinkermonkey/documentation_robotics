@@ -5,6 +5,8 @@
  * spec/schemas/ directory. They are separate from the CLI's architecture model types.
  */
 
+import type { Directionality } from "./relationship-catalog.js";
+
 /**
  * Layer specification metadata
  */
@@ -71,7 +73,7 @@ export interface PredicateSpec {
   description: string;
   archimate_alignment: string | null;
   semantics: {
-    directionality: string;
+    directionality: Directionality;
     transitivity: boolean;
     symmetry: boolean;
     reflexivity?: boolean;

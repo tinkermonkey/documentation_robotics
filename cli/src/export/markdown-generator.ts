@@ -21,7 +21,6 @@ export interface MarkdownGeneratorOptions {
   includeTables?: boolean; // Include formatted tables
   maxTableRows?: number; // Maximum rows per table before truncating with overflow message
   diagramType?: "graph" | "flowchart"; // Type of Mermaid diagram
-  includeSourceReferences?: boolean; // Include source code references
 }
 
 /**
@@ -45,7 +44,6 @@ export class MarkdownGenerator {
       includeTables: options.includeTables ?? true,
       maxTableRows: options.maxTableRows ?? 50,
       diagramType: options.diagramType ?? "graph",
-      includeSourceReferences: options.includeSourceReferences ?? false,
     };
   }
 
@@ -308,22 +306,7 @@ export class MarkdownGenerator {
     rows.push("| Layer | Elements | Relationships | Description |");
     rows.push("|-------|----------|----------------|-------------|");
 
-    const layerOrder = [
-      "motivation",
-      "business",
-      "security",
-      "application",
-      "technology",
-      "api",
-      "data-model",
-      "data-store",
-      "ux",
-      "navigation",
-      "apm",
-      "testing",
-    ];
-
-    for (const layer of layerOrder) {
+    for (const layer of CANONICAL_LAYER_NAMES) {
       const nodes = this.model.graph.getNodesByLayer(layer);
       if (nodes.length === 0) continue;
 

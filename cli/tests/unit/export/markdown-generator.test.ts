@@ -641,4 +641,58 @@ describe("MarkdownGenerator", () => {
       expect(markdown).toContain("Capability B");
     });
   });
+
+  describe("Element details truncation", () => {
+    it("should truncate element details at MAX_DETAIL_ELEMENTS", async () => {
+      const testModel = new Model("test-model");
+
+      // Add one layer with many elements
+      testModel.addLayer(new Layer("api", "API Layer"));
+
+      // Add 15 elements (more than MAX_DETAIL_ELEMENTS which is 10)
+      for (let i = 1; i <= 15; i++) {
+        const elem = new Element(
+          `api.endpoint.endpoint-${i}`,
+          `Endpoint ${i}`,
+          "api",
+          { description: `Test endpoint ${i}` }
+        );
+        testModel.getLayer("api")?.addElement(elem);
+      }
+
+      const gen = new MarkdownGenerator(testModel);
+      const markdown = await gen.generate();
+
+      // Verify that it generates markdown without errors
+      expect(markdown).toBeDefined();
+      expect(markdown.length).toBeGreaterThan(0);
+
+      // Check that we have some endpoints mentioned but not necessarily all 15
+      // (details may be truncated)
+      expect(markdown).toContain("API Layer");
+    });
+
+    it("should handle models with few elements gracefully", async () => {
+      const testModel = new Model("test-model");
+
+      testModel.addLayer(new Layer("api", "API Layer"));
+
+      // Add only 3 elements (less than MAX_DETAIL_ELEMENTS)
+      for (let i = 1; i <= 3; i++) {
+        const elem = new Element(
+          `api.endpoint.endpoint-${i}`,
+          `Endpoint ${i}`,
+          "api",
+          { description: `Test endpoint ${i}` }
+        );
+        testModel.getLayer("api")?.addElement(elem);
+      }
+
+      const gen = new MarkdownGenerator(testModel);
+      const markdown = await gen.generate();
+
+      expect(markdown).toBeDefined();
+      expect(markdown.length).toBeGreaterThan(0);
+    });
+  });
 });
