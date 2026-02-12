@@ -18,6 +18,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { globSync } from "fs";
+import { formatLayerName as formatLayerNameUtil } from "../cli/src/utils/layer-name-formatter.js";
 
 // ============================================================================
 // Type Definitions
@@ -130,61 +131,84 @@ class SpecDataLoader {
 
   private async loadNodeSchemas(): Promise<NodeSchema[]> {
     const files = globSync(`${this.specDir}/schemas/nodes/**/*.node.schema.json`);
-    const schemas = await Promise.all(
-      files.map(async (f) => {
-        const content = await fs.readFile(f, "utf-8");
-        const schema = JSON.parse(content);
+    const schemas: NodeSchema[] = [];
+    const skippedSchemas: string[] = [];
 
-        const spec_node_id = schema.properties?.spec_node_id?.const;
-        const layer_id = schema.properties?.layer_id?.const;
-        const type = schema.properties?.type?.const;
+    for (const f of files) {
+      const content = await fs.readFile(f, "utf-8");
+      const schema = JSON.parse(content);
 
-        if (!spec_node_id || !layer_id || !type) {
-          console.warn(`Warning: Node schema ${f} missing required const values`);
-        }
+      const spec_node_id = schema.properties?.spec_node_id?.const;
+      const layer_id = schema.properties?.layer_id?.const;
+      const type = schema.properties?.type?.const;
 
-        return {
-          spec_node_id: spec_node_id || "unknown",
-          layer_id: layer_id || "unknown",
-          type: type || "unknown",
-          title: schema.title || "",
-          description: schema.description || "",
-        };
-      })
-    );
+      if (!spec_node_id || !layer_id || !type) {
+        skippedSchemas.push(`${f} (missing: ${!spec_node_id ? 'spec_node_id' : ''} ${!layer_id ? 'layer_id' : ''} ${!type ? 'type' : ''})`);
+        continue;
+      }
+
+      schemas.push({
+        spec_node_id,
+        layer_id,
+        type,
+        title: schema.title || "",
+        description: schema.description || "",
+      });
+    }
+
+    if (skippedSchemas.length > 0) {
+      console.warn(`Warning: Skipped ${skippedSchemas.length} node schemas with incomplete configuration:`);
+      skippedSchemas.forEach(s => console.warn(`  - ${s}`));
+    }
+
     return schemas;
   }
 
   private async loadRelationshipSchemas(): Promise<RelationshipSchema[]> {
     const files = globSync(`${this.specDir}/schemas/relationships/**/*.relationship.schema.json`);
-    const schemas = await Promise.all(
-      files.map(async (f) => {
-        const content = await fs.readFile(f, "utf-8");
-        const schema = JSON.parse(content);
+    const schemas: RelationshipSchema[] = [];
+    const skippedSchemas: string[] = [];
 
-        const id = schema.properties?.id?.const;
-        const source_spec_node_id = schema.properties?.source_spec_node_id?.const;
-        const source_layer = schema.properties?.source_layer?.const;
-        const destination_spec_node_id = schema.properties?.destination_spec_node_id?.const;
-        const destination_layer = schema.properties?.destination_layer?.const;
-        const predicate = schema.properties?.predicate?.const;
+    for (const f of files) {
+      const content = await fs.readFile(f, "utf-8");
+      const schema = JSON.parse(content);
 
-        if (!id || !source_spec_node_id || !source_layer || !destination_spec_node_id || !destination_layer || !predicate) {
-          console.warn(`Warning: Relationship schema ${f} missing required const values`);
-        }
+      const id = schema.properties?.id?.const;
+      const source_spec_node_id = schema.properties?.source_spec_node_id?.const;
+      const source_layer = schema.properties?.source_layer?.const;
+      const destination_spec_node_id = schema.properties?.destination_spec_node_id?.const;
+      const destination_layer = schema.properties?.destination_layer?.const;
+      const predicate = schema.properties?.predicate?.const;
 
-        return {
-          id: id || "unknown",
-          source_spec_node_id: source_spec_node_id || "unknown",
-          source_layer: source_layer || "unknown",
-          destination_spec_node_id: destination_spec_node_id || "unknown",
-          destination_layer: destination_layer || "unknown",
-          predicate: predicate || "unknown",
-          cardinality: schema.properties?.cardinality?.const || "many-to-many",
-          strength: schema.properties?.strength?.const || "medium",
-        };
-      })
-    );
+      if (!id || !source_spec_node_id || !source_layer || !destination_spec_node_id || !destination_layer || !predicate) {
+        const missing = [];
+        if (!id) missing.push('id');
+        if (!source_spec_node_id) missing.push('source_spec_node_id');
+        if (!source_layer) missing.push('source_layer');
+        if (!destination_spec_node_id) missing.push('destination_spec_node_id');
+        if (!destination_layer) missing.push('destination_layer');
+        if (!predicate) missing.push('predicate');
+        skippedSchemas.push(`${f} (missing: ${missing.join(', ')})`);
+        continue;
+      }
+
+      schemas.push({
+        id,
+        source_spec_node_id,
+        source_layer,
+        destination_spec_node_id,
+        destination_layer,
+        predicate,
+        cardinality: schema.properties?.cardinality?.const || "many-to-many",
+        strength: schema.properties?.strength?.const || "medium",
+      });
+    }
+
+    if (skippedSchemas.length > 0) {
+      console.warn(`Warning: Skipped ${skippedSchemas.length} relationship schemas with incomplete configuration:`);
+      skippedSchemas.forEach(s => console.warn(`  - ${s}`));
+    }
+
     return schemas;
   }
 
@@ -350,11 +374,12 @@ class ReportDataModel {
 // Markdown Generator Utilities
 // ============================================================================
 
+/**
+ * Use the centralized formatLayerName from layer-name-formatter.ts
+ * This ensures consistent acronym handling (API, UX, APM) across all scripts
+ */
 function formatLayerName(layerId: string): string {
-  return layerId
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  return formatLayerNameUtil(layerId);
 }
 
 function formatNodeTypeName(type: string): string {

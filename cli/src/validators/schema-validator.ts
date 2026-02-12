@@ -108,9 +108,14 @@ export class SchemaValidator {
         this.ajv.addSchema(schema, schemaName);
         SchemaValidator.registeredSchemaIds.add(schemaName);
       } catch (error: any) {
-        // Ignore "already exists" errors - they're expected when multiple validators
-        // are created in the same process. Only warn about other errors.
-        if (error.message && error.message.includes("already exists")) {
+        // Check for the specific AJV error about duplicate schema registration
+        // AJV error message: "schema with key or id <name> already exists"
+        // This is expected when multiple validators are created in the same process
+        const isDuplicateSchemaError =
+          error.message &&
+          /schema with key or id [^ ]+ already exists/.test(error.message);
+
+        if (isDuplicateSchemaError) {
           // Skip warning for duplicate registration - this is expected
           SchemaValidator.registeredSchemaIds.add(schemaName);
           continue;

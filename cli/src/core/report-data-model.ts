@@ -549,25 +549,28 @@ export class ReportDataModel {
    * Measures adherence to the higher -> lower layer reference rule
    */
   private calculateLayerComplianceScore(analysis: RelationshipAnalysis): number {
-    if (analysis.totalRelationships === 0) return 100;
+    // Only count relationships with known (valid) layer names
+    const validRelationships = analysis.classified.filter((rel) => {
+      const sourceOrder = getLayerOrder(rel.sourceLayer);
+      const targetOrder = getLayerOrder(rel.targetLayer);
+      return sourceOrder > 0 && targetOrder > 0;
+    });
+
+    if (validRelationships.length === 0) return 100;
 
     let compliantCount = 0;
 
-    for (const rel of analysis.classified) {
+    for (const rel of validRelationships) {
       const sourceOrder = getLayerOrder(rel.sourceLayer);
       const targetOrder = getLayerOrder(rel.targetLayer);
 
       // Compliant if source >= target (higher layer -> lower/same layer)
-      // Invalid layer names are treated as order 0
-      if (sourceOrder >= targetOrder && sourceOrder > 0 && targetOrder > 0) {
+      if (sourceOrder >= targetOrder) {
         compliantCount++;
-      } else if (sourceOrder <= 0 || targetOrder <= 0) {
-        // If either layer is unknown, don't count as compliant
-        continue;
       }
     }
 
-    return compliantCount > 0 ? Math.round((compliantCount / analysis.totalRelationships) * 100) : 0;
+    return Math.round((compliantCount / validRelationships.length) * 100);
   }
 
   /**

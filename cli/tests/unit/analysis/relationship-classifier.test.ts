@@ -237,4 +237,73 @@ describe("RelationshipClassifier", () => {
     expect(classified.targetLayer).toBe("motivation");
     expect(classified.isCrossLayer).toBe(false);
   });
+
+  it("should handle malformed element IDs without dots", async () => {
+    const rel: Relationship = {
+      source: "invalidId",
+      target: "motivation.goal.test1",
+      predicate: "supports",
+    };
+
+    const classified = await classifier.classify(rel);
+
+    // Source ID without dots should be treated as entire string as layer
+    expect(classified.sourceLayer).toBe("invalidId");
+    expect(classified.targetLayer).toBe("motivation");
+    expect(classified.isCrossLayer).toBe(true);
+  });
+
+  it("should handle element IDs with only one segment", async () => {
+    const rel: Relationship = {
+      source: "layer",
+      target: "motivation.goal.test1",
+      predicate: "supports",
+    };
+
+    const classified = await classifier.classify(rel);
+
+    expect(classified.sourceLayer).toBe("layer");
+    expect(classified.targetLayer).toBe("motivation");
+  });
+
+  it("should handle empty layer names from malformed IDs", async () => {
+    const rel: Relationship = {
+      source: "",
+      target: "motivation.goal.test1",
+      predicate: "supports",
+    };
+
+    const classified = await classifier.classify(rel);
+
+    // Empty source layer should be treated as empty string
+    expect(classified.sourceLayer).toBe("");
+    expect(classified.targetLayer).toBe("motivation");
+  });
+
+  it("should classify batch with mixed valid and malformed IDs", async () => {
+    const relationships: Relationship[] = [
+      {
+        source: "motivation.goal.test1",
+        target: "business.process.test1",
+        predicate: "supports",
+      },
+      {
+        source: "invalidId",
+        target: "motivation.goal.test1",
+        predicate: "supports",
+      },
+      {
+        source: "business.process.test1",
+        target: "application.service.test1",
+        predicate: "realizes",
+      },
+    ];
+
+    const classified = await classifier.classifyBatch(relationships);
+
+    expect(classified.length).toBe(3);
+    expect(classified[0].sourceLayer).toBe("motivation");
+    expect(classified[1].sourceLayer).toBe("invalidId");
+    expect(classified[2].sourceLayer).toBe("business");
+  });
 });
