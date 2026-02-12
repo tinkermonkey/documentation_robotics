@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import { execSync } from "child_process";
 import { tmpdir } from "os";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -142,7 +141,7 @@ describe("generate-layer-reports.ts", () => {
 
     try {
       // Simulate what the script does: use SpecDataLoader
-      const { SpecDataLoader: CoreLoader } = await import("../cli/src/core/spec-loader.js");
+      const { SpecDataLoader: CoreLoader } = await import("../../cli/src/core/spec-loader.js");
       const loader = new CoreLoader({ specDir: invalidSpecDir });
       await loader.load();
     } catch (error) {
