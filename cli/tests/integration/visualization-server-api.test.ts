@@ -581,9 +581,10 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(spec).toHaveProperty("tags");
       expect(Array.isArray(spec.tags)).toBe(true);
 
-      // Validate components with security schemes
+      // Validate components
+      // Note: securitySchemes only present if auth is enabled
+      // This test runs with --no-auth, so we only check components exists
       expect(spec).toHaveProperty("components");
-      expect(spec.components).toHaveProperty("securitySchemes");
     });
 
     it("should include all REST endpoints in OpenAPI spec", async () => {
