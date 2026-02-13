@@ -1076,4 +1076,4 @@ VerificationLevel element in Security Layer
 
 ---
 
-_Generated: 2026-02-13T10:34:36.988Z | Spec Version: 0.8.0 | Commit: f946950 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T11:58:05.059Z | Spec Version: 0.8.0 | Commit: c1cfcc4 | Generator: generate-layer-reports.ts_
