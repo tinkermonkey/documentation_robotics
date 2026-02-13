@@ -180,6 +180,14 @@ class ReportDataModel {
       }
       map.get(rel.source_layer)!.push(rel);
     }
+    // Sort each array for deterministic ordering
+    for (const [layer, rels] of map.entries()) {
+      map.set(layer, rels.sort((a, b) => {
+        const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
+        const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
+        return aKey.localeCompare(bKey);
+      }));
+    }
     return map;
   }
 
@@ -190,6 +198,14 @@ class ReportDataModel {
         map.set(rel.destination_layer, []);
       }
       map.get(rel.destination_layer)!.push(rel);
+    }
+    // Sort each array for deterministic ordering
+    for (const [layer, rels] of map.entries()) {
+      map.set(layer, rels.sort((a, b) => {
+        const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
+        const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
+        return aKey.localeCompare(bKey);
+      }));
     }
     return map;
   }
@@ -269,7 +285,12 @@ class ReportDataModel {
   }
 
   getAllRelationships(): RelationshipSchema[] {
-    return this.data.relationshipSchemas;
+    // Return sorted copy for deterministic iteration
+    return [...this.data.relationshipSchemas].sort((a, b) => {
+      const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
+      const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
+      return aKey.localeCompare(bKey);
+    });
   }
 
   getPredicates(): Map<string, Predicate> {

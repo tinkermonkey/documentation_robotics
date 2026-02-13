@@ -396,4 +396,4 @@ TechServiceType element in Technology Layer
 
 ---
 
-_Generated: 2026-02-13T12:13:48.562Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:24:41.655Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_
