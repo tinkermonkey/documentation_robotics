@@ -28,8 +28,8 @@ jobs:
       - name: Check for changes
         run: |
           # Check for meaningful changes (ignore timestamp and commit hash in footer)
-          # Extract only content changes (lines starting with + or -), excluding Generated footer
-          git diff spec/browser/ | grep "^[-+]" | grep -v "^[-+]_Generated:" > /tmp/meaningful_diff.txt || true
+          # Extract only content changes (single + or - followed by non-special char), excluding Generated footer
+          git diff spec/browser/ | grep "^[+-][^+-]" | grep -v "^[+-]_Generated:" > /tmp/meaningful_diff.txt || true
           if [ -s /tmp/meaningful_diff.txt ]; then
             echo "❌ Documentation is out of sync with schemas."
             echo ""
