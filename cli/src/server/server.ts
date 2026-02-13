@@ -24,6 +24,7 @@ import {
   LayerNameSchema,
   IdSchema,
   AnnotationFilterSchema,
+  ElementIdSchema,
 } from "./schemas.js";
 
 interface WSMessage {
@@ -309,15 +310,15 @@ export class VisualizationServer {
     // Get specific element
     this.app.get(
       "/api/elements/:id",
-      zValidator("param", z.object({ id: IdSchema })),
+      zValidator("param", z.object({ id: ElementIdSchema })),
       async (c) => {
         try {
           const { id: elementId } = c.req.valid("param");
           const element = await this.findElement(elementId);
 
-        if (!element) {
-          return c.json({ error: "Element not found" }, 404);
-        }
+          if (!element) {
+            return c.json({ error: "Element not found" }, 404);
+          }
 
           return c.json({
             ...element.toJSON(),
@@ -425,10 +426,11 @@ export class VisualizationServer {
     // Update annotation
     this.app.put(
       "/api/annotations/:annotationId",
+      zValidator("param", z.object({ annotationId: IdSchema })),
       zValidator("json", AnnotationUpdateSchema),
       async (c) => {
         try {
-          const annotationId = c.req.param("annotationId");
+          const { annotationId } = c.req.valid("param");
           const annotation = this.annotations.get(annotationId);
 
           if (!annotation) {
@@ -467,10 +469,11 @@ export class VisualizationServer {
     // PATCH annotation (partial update - recommended)
     this.app.patch(
       "/api/annotations/:annotationId",
+      zValidator("param", z.object({ annotationId: IdSchema })),
       zValidator("json", AnnotationUpdateSchema),
       async (c) => {
         try {
-          const annotationId = c.req.param("annotationId");
+          const { annotationId } = c.req.valid("param");
           const annotation = this.annotations.get(annotationId);
 
           if (!annotation) {
@@ -562,10 +565,11 @@ export class VisualizationServer {
     // POST annotation reply
     this.app.post(
       "/api/annotations/:annotationId/replies",
+      zValidator("param", z.object({ annotationId: IdSchema })),
       zValidator("json", AnnotationReplyCreateSchema),
       async (c) => {
         try {
-          const annotationId = c.req.param("annotationId");
+          const { annotationId } = c.req.valid("param");
           const annotation = this.annotations.get(annotationId);
 
           if (!annotation) {
