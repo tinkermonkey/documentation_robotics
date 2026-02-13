@@ -3,9 +3,10 @@
  * HTTP server with WebSocket support for real-time model updates
  */
 
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { upgradeWebSocket, websocket } from "hono/bun";
 import { cors } from "hono/cors";
+import { swaggerUI } from "@hono/swagger-ui";
 import { serve } from "bun";
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
@@ -15,6 +16,21 @@ import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
 import { getErrorMessage } from "../utils/errors.js";
+import {
+  AnnotationCreateSchema,
+  AnnotationUpdateSchema,
+  AnnotationReplyCreateSchema,
+  LayerNameSchema,
+  IdSchema,
+  AnnotationFilterSchema,
+  ElementIdSchema,
+  ErrorResponseSchema,
+  HealthResponseSchema,
+  AnnotationSchema,
+  AnnotationReplySchema,
+  AnnotationsListSchema,
+  ChangesetsListSchema,
+} from "./schemas.js";
 
 interface WSMessage {
   type: "subscribe" | "annotate" | "ping";
@@ -101,7 +117,7 @@ export interface VisualizationServerOptions {
  * Visualization Server class
  */
 export class VisualizationServer {
-  private app: Hono;
+  private app: OpenAPIHono;
   private model: Model;
   private _server?: ReturnType<typeof serve>;
   private clients: Set<HonoWSContext> = new Set();
@@ -119,7 +135,7 @@ export class VisualizationServer {
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
 
   constructor(model: Model, options?: VisualizationServerOptions) {
-    this.app = new Hono();
+    this.app = new OpenAPIHono();
     this.model = model;
 
     // Auth configuration (CLI options override environment variables)
@@ -229,38 +245,81 @@ export class VisualizationServer {
     if (this.viewerPath) {
       this.app.get("/*", async (c, next) => {
         const requestPath = c.req.path;
-        console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
+        if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
 
         // Skip API routes and WebSocket - let them be handled by their specific routes
         if (requestPath.startsWith("/api/") || requestPath === "/ws" || requestPath === "/health") {
-          console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
+          if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
           return next(); // Pass to next handler instead of returning 404
         }
 
-        console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
+        if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
         return this.serveCustomViewer(requestPath.substring(1));
       });
     }
 
     // Health check endpoint
-    this.app.get("/health", (c) => {
+    const healthRoute = createRoute({
+      method: 'get',
+      path: '/health',
+      tags: ['Health'],
+      summary: 'Health check',
+      description: 'Check if the server is running and healthy',
+      responses: {
+        200: {
+          description: 'Server is healthy',
+          content: {
+            'application/json': {
+              schema: HealthResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(healthRoute, (c) => {
       return c.json({
         status: "ok",
         version: "0.1.0",
       });
     });
 
-    // REST API endpoints
-
     // Get full model
-    this.app.get("/api/model", async (c) => {
-      console.log(`[ROUTE] /api/model handler called`);
+    const getModelRoute = createRoute({
+      method: 'get',
+      path: '/api/model',
+      tags: ['Model'],
+      summary: 'Get full model',
+      description: 'Retrieve the complete architecture model across all layers',
+      responses: {
+        200: {
+          description: 'Model data retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getModelRoute, async (c) => {
+      if (process.env.VERBOSE) console.log(`[ROUTE] /api/model handler called`);
       try {
-        console.log(`[ROUTE] /api/model serializing model...`);
+        if (process.env.VERBOSE) console.log(`[ROUTE] /api/model serializing model...`);
         const modelData = await this.serializeModel();
-        console.log(
-          `[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`
-        );
+        if (process.env.VERBOSE)
+          console.log(
+            `[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`
+          );
         return c.json(modelData);
       } catch (error) {
         const message = getErrorMessage(error);
@@ -270,9 +329,46 @@ export class VisualizationServer {
     });
 
     // Get specific layer
-    this.app.get("/api/layers/:name", async (c) => {
+    const getLayerRoute = createRoute({
+      method: 'get',
+      path: '/api/layers/:name',
+      tags: ['Model'],
+      summary: 'Get layer',
+      description: 'Retrieve a specific layer with all its elements',
+      request: {
+        params: z.object({ name: LayerNameSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Layer retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Layer not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getLayerRoute, async (c) => {
       try {
-        const layerName = c.req.param("name");
+        const { name: layerName } = c.req.valid("param");
         const layer = await this.model.getLayer(layerName);
 
         if (!layer) {
@@ -293,9 +389,46 @@ export class VisualizationServer {
     });
 
     // Get specific element
-    this.app.get("/api/elements/:id", async (c) => {
+    const getElementRoute = createRoute({
+      method: 'get',
+      path: '/api/elements/:id',
+      tags: ['Model'],
+      summary: 'Get element',
+      description: 'Retrieve a specific architecture element with its metadata and annotations',
+      request: {
+        params: z.object({ id: ElementIdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Element retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Element not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getElementRoute, async (c) => {
       try {
-        const elementId = c.req.param("id");
+        const { id: elementId } = c.req.valid("param");
         const element = await this.findElement(elementId);
 
         if (!element) {
@@ -313,7 +446,33 @@ export class VisualizationServer {
     });
 
     // Get JSON Schema specifications
-    this.app.get("/api/spec", async (c) => {
+    const getSpecRoute = createRoute({
+      method: 'get',
+      path: '/api/spec',
+      tags: ['Schema'],
+      summary: 'Get JSON schemas',
+      description: 'Retrieve all JSON Schema definitions used by the system',
+      responses: {
+        200: {
+          description: 'Schemas retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getSpecRoute, async (c) => {
       try {
         const schemas = await this.loadSchemas();
         return c.json({
@@ -333,8 +492,30 @@ export class VisualizationServer {
     // Annotations API (spec-compliant routes)
 
     // Get all annotations (optionally filtered by elementId)
-    this.app.get("/api/annotations", (c) => {
-      const elementId = c.req.query("elementId");
+    const getAnnotationsRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations',
+      tags: ['Annotations'],
+      summary: 'Get annotations',
+      description: 'Retrieve all annotations, optionally filtered by element',
+      request: {
+        query: AnnotationFilterSchema,
+      },
+      responses: {
+        200: {
+          description: 'Annotations retrieved successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationsListSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getAnnotationsRoute, (c) => {
+      const query = c.req.valid("query");
+      const elementId = query.elementId;
 
       if (elementId) {
         // Filter by element
@@ -352,19 +533,60 @@ export class VisualizationServer {
     });
 
     // Create annotation
-    this.app.post("/api/annotations", async (c) => {
-      try {
-        const body = await c.req.json();
-
-        // Validate required fields (author is optional)
-        if (!body.elementId || !body.content) {
-          return c.json(
-            {
-              error: "Missing required fields: elementId, content",
+    const createAnnotationRoute = createRoute({
+      method: 'post',
+      path: '/api/annotations',
+      tags: ['Annotations'],
+      summary: 'Create annotation',
+      description: 'Create a new annotation on a model element',
+      request: {
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationCreateSchema,
             },
-            400
-          );
-        }
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Annotation created successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        400: {
+          description: 'Invalid request body',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Element not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(createAnnotationRoute, async (c) => {
+      try {
+        const body = c.req.valid("json");
 
         // Verify element exists
         const element = await this.findElement(body.elementId);
@@ -375,11 +597,11 @@ export class VisualizationServer {
         // Create annotation
         const annotation: ClientAnnotation = {
           id: this.generateAnnotationId(),
-          elementId: String(body.elementId),
-          author: body.author ? String(body.author) : "Anonymous", // Default to Anonymous if not provided
-          content: String(body.content),
+          elementId: body.elementId,
+          author: body.author,
+          content: body.content,
           createdAt: new Date().toISOString(),
-          tags: body.tags || [],
+          tags: body.tags,
           resolved: false, // Default to unresolved
         };
 
@@ -405,27 +627,71 @@ export class VisualizationServer {
       }
     });
 
-    // Update annotation
-    this.app.put("/api/annotations/:annotationId", async (c) => {
+    // Update annotation (PUT)
+    const updateAnnotationRoute = createRoute({
+      method: 'put',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Update annotation',
+      description: 'Update an existing annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationUpdateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Annotation updated successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(updateAnnotationRoute, async (c) => {
       try {
-        const annotationId = c.req.param("annotationId");
+        const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
           return c.json({ error: "Annotation not found" }, 404);
         }
 
-        const body = await c.req.json();
+        const body = c.req.valid("json");
 
         // Update fields
         if (body.content !== undefined) {
-          annotation.content = String(body.content);
+          annotation.content = body.content;
         }
         if (body.tags !== undefined) {
           annotation.tags = body.tags;
         }
         if (body.resolved !== undefined) {
-          annotation.resolved = Boolean(body.resolved);
+          annotation.resolved = body.resolved;
         }
         annotation.updatedAt = new Date().toISOString();
 
@@ -443,27 +709,71 @@ export class VisualizationServer {
       }
     });
 
-    // PATCH annotation (partial update - recommended)
-    this.app.patch("/api/annotations/:annotationId", async (c) => {
+    // Partial update annotation (PATCH)
+    const patchAnnotationRoute = createRoute({
+      method: 'patch',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Partially update annotation',
+      description: 'Partially update an existing annotation (recommended over PUT)',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationUpdateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Annotation updated successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(patchAnnotationRoute, async (c) => {
       try {
-        const annotationId = c.req.param("annotationId");
+        const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
           return c.json({ error: "Annotation not found" }, 404);
         }
 
-        const body = await c.req.json();
+        const body = c.req.valid("json");
 
         // Update only provided fields (partial update)
         if (body.content !== undefined) {
-          annotation.content = String(body.content);
+          annotation.content = body.content;
         }
         if (body.tags !== undefined) {
           annotation.tags = body.tags;
         }
         if (body.resolved !== undefined) {
-          annotation.resolved = Boolean(body.resolved);
+          annotation.resolved = body.resolved;
         }
         annotation.updatedAt = new Date().toISOString();
 
@@ -482,9 +792,41 @@ export class VisualizationServer {
     });
 
     // Delete annotation
-    this.app.delete("/api/annotations/:annotationId", async (c) => {
+    const deleteAnnotationRoute = createRoute({
+      method: 'delete',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Delete annotation',
+      description: 'Delete an existing annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        204: {
+          description: 'Annotation deleted successfully',
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(deleteAnnotationRoute, async (c) => {
       try {
-        const annotationId = c.req.param("annotationId");
+        const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
@@ -514,8 +856,37 @@ export class VisualizationServer {
     });
 
     // GET annotation replies
-    this.app.get("/api/annotations/:annotationId/replies", (c) => {
-      const annotationId = c.req.param("annotationId");
+    const getAnnotationRepliesRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations/:annotationId/replies',
+      tags: ['Annotations'],
+      summary: 'Get annotation replies',
+      description: 'Retrieve all replies to an annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Replies retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getAnnotationRepliesRoute, (c) => {
+      const { annotationId } = c.req.valid("param");
       const annotation = this.annotations.get(annotationId);
 
       if (!annotation) {
@@ -527,31 +898,65 @@ export class VisualizationServer {
     });
 
     // POST annotation reply
-    this.app.post("/api/annotations/:annotationId/replies", async (c) => {
+    const createAnnotationReplyRoute = createRoute({
+      method: 'post',
+      path: '/api/annotations/:annotationId/replies',
+      tags: ['Annotations'],
+      summary: 'Create annotation reply',
+      description: 'Add a reply to an annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationReplyCreateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Reply created successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationReplySchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(createAnnotationReplyRoute, async (c) => {
       try {
-        const annotationId = c.req.param("annotationId");
+        const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
           return c.json({ error: "Annotation not found" }, 404);
         }
 
-        const body = await c.req.json();
-
-        // Validate required fields
-        if (!body.author || !body.content) {
-          return c.json(
-            {
-              error: "Missing required fields: author, content",
-            },
-            400
-          );
-        }
+        const body = c.req.valid("json");
 
         const reply: AnnotationReply = {
           id: this.generateReplyId(),
-          author: String(body.author),
-          content: String(body.content),
+          author: body.author,
+          content: body.content,
           createdAt: new Date().toISOString(),
         };
 
@@ -579,7 +984,25 @@ export class VisualizationServer {
     // Changesets API
 
     // Get all changesets
-    this.app.get("/api/changesets", (c) => {
+    const getChangesetsRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets',
+      tags: ['Changesets'],
+      summary: 'Get changesets',
+      description: 'Retrieve a list of all changesets',
+      responses: {
+        200: {
+          description: 'Changesets retrieved successfully',
+          content: {
+            'application/json': {
+              schema: ChangesetsListSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getChangesetsRoute, (c) => {
       const changesets: Record<string, any> = {};
 
       for (const [id, changeset] of this.changesets) {
@@ -599,8 +1022,37 @@ export class VisualizationServer {
     });
 
     // Get specific changeset
-    this.app.get("/api/changesets/:changesetId", (c) => {
-      const changesetId = c.req.param("changesetId");
+    const getChangesetRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets/:changesetId',
+      tags: ['Changesets'],
+      summary: 'Get changeset',
+      description: 'Retrieve a specific changeset with all its changes',
+      request: {
+        params: z.object({ changesetId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Changeset retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Changeset not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getChangesetRoute, (c) => {
+      const { changesetId } = c.req.valid("param");
       const changeset = this.changesets.get(changesetId);
 
       if (!changeset) {
@@ -609,6 +1061,37 @@ export class VisualizationServer {
 
       return c.json(changeset);
     });
+
+    // OpenAPI documentation endpoint
+    this.app.doc('/api-spec.yaml', {
+      openapi: '3.0.3',
+      info: {
+        title: 'Documentation Robotics Visualization Server API',
+        version: '0.1.0',
+        description: 'API specification for the DR CLI visualization server',
+        contact: {
+          name: 'Documentation Robotics',
+          url: 'https://github.com/tinkermonkey/documentation_robotics',
+        },
+        license: {
+          name: 'ISC',
+        },
+      },
+      servers: [
+        { url: 'http://localhost:8080', description: 'Local development server' },
+      ],
+      tags: [
+        { name: 'Health', description: 'Server health and status' },
+        { name: 'Schema', description: 'JSON Schema specifications' },
+        { name: 'Model', description: 'Architecture model data' },
+        { name: 'Changesets', description: 'Model changesets and history' },
+        { name: 'Annotations', description: 'User annotations on model elements' },
+        { name: 'WebSocket', description: 'Real-time updates via WebSocket' },
+      ],
+    });
+
+    // Swagger UI for interactive API exploration
+    this.app.get('/api-docs', swaggerUI({ url: '/api-spec.yaml' }));
 
     // WebSocket endpoint
     this.app.get(
@@ -2144,7 +2627,7 @@ export class VisualizationServer {
    * Serve a file from the custom viewer path
    */
   private async serveCustomViewer(filePath: string): Promise<Response> {
-    console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
+    if (process.env.VERBOSE) console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
 
     if (!this.viewerPath) {
       console.error(`[VIEWER] Custom viewer path not configured`);
@@ -2157,7 +2640,7 @@ export class VisualizationServer {
 
       // Resolve absolute path and prevent directory traversal
       const fullPath = path.resolve(this.viewerPath, filePath);
-      console.log(`[VIEWER] Resolved path: ${fullPath}`);
+      if (process.env.VERBOSE) console.log(`[VIEWER] Resolved path: ${fullPath}`);
 
       // Security check: ensure the resolved path is within viewerPath
       if (!fullPath.startsWith(path.resolve(this.viewerPath))) {
@@ -2166,7 +2649,7 @@ export class VisualizationServer {
       }
 
       // Read file
-      console.log(`[VIEWER] Reading file: ${fullPath}`);
+      if (process.env.VERBOSE) console.log(`[VIEWER] Reading file: ${fullPath}`);
       const content = await fs.readFile(fullPath);
 
       // Determine content type
@@ -2190,7 +2673,8 @@ export class VisualizationServer {
 
       const contentType = contentTypes[ext] || "application/octet-stream";
 
-      console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
+      if (process.env.VERBOSE)
+        console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
       return new Response(content, {
         status: 200,
         headers: {

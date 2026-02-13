@@ -4,7 +4,7 @@ name: Validate Documentation
 # between local (tsx) and CI (bun) environments. Docs should be manually regenerated
 # before committing spec changes.
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch: # Manual trigger only
   # pull_request:
   #   paths:
   #     - "spec/schemas/base/**"

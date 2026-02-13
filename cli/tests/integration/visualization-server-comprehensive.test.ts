@@ -147,9 +147,9 @@ describe.serial("Visualization Server - Model Loading", () => {
     expect(data.elements[0]).toHaveProperty("name");
   });
 
-  it("should return 404 for non-existent layer", async () => {
+  it("should return 400 for invalid layer name format", async () => {
     const response = await fetch(`${baseUrl}/api/layers/nonexistent`);
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(400);
   });
 
   it("should load model via GET /api/model", async () => {

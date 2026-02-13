@@ -1,3 +1,8 @@
+# DEPRECATED: This file is maintained for backward compatibility only.
+# The OpenAPI specification is now auto-generated from route definitions.
+# To regenerate this file, run: npm run generate:openapi
+# This ensures the spec is always in sync with the actual server implementation.
+
 openapi: 3.0.3
 info:
   title: Documentation Robotics Visualization Server API
