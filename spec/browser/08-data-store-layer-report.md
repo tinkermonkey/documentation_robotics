@@ -88,24 +88,24 @@ flowchart LR
     triggerforeach["triggerforeach"]
     triggertiming["triggertiming"]
     view["view"]
-    trigger -->|triggers| function
-    table -->|composes| table
-    table -->|composes| index
-    table -->|composes| databaseschema
-    table -->|composes| constraint
-    table -->|composes| column
-    index -->|aggregates| column
-    databaseschema -->|composes| table
-    databaseschema -->|composes| index
-    databaseschema -->|composes| databaseschema
-    databaseschema -->|composes| constraint
-    databaseschema -->|composes| column
-    database -->|composes| table
-    database -->|composes| index
-    database -->|composes| databaseschema
-    database -->|composes| constraint
-    database -->|composes| column
     constraint -->|aggregates| column
+    database -->|composes| column
+    database -->|composes| constraint
+    database -->|composes| databaseschema
+    database -->|composes| index
+    database -->|composes| table
+    databaseschema -->|composes| column
+    databaseschema -->|composes| constraint
+    databaseschema -->|composes| databaseschema
+    databaseschema -->|composes| index
+    databaseschema -->|composes| table
+    index -->|aggregates| column
+    table -->|composes| column
+    table -->|composes| constraint
+    table -->|composes| databaseschema
+    table -->|composes| index
+    table -->|composes| table
+    trigger -->|triggers| function
   end
 ```
 
@@ -127,9 +127,9 @@ flowchart TB
   apm["APM"]
   testing["Testing"]
   technology --> security
-  testing --> motivation
   data_model --> business
   data_model --> application
+  testing --> motivation
   business --> motivation
   business --> security
   business --> application
@@ -149,8 +149,8 @@ flowchart TB
 | Relationship ID                                    | Source Node                                               | Dest Node                                        | Dest Layer                                    | Predicate       | Cardinality | Strength |
 | -------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------- | --------------- | ----------- | -------- |
 | api.schema.database-column.data-store.column       | [schema](./06-api-layer-report.md#schema)                 | [column](./08-data-store-layer-report.md#column) | [Data Store](./08-data-store-layer-report.md) | database-column | many-to-one | medium   |
-| api.securityscheme.database-table.data-store.table | [securityscheme](./06-api-layer-report.md#securityscheme) | [table](./08-data-store-layer-report.md#table)   | [Data Store](./08-data-store-layer-report.md) | database-table  | many-to-one | medium   |
 | api.schema.database-table.data-store.table         | [schema](./06-api-layer-report.md#schema)                 | [table](./08-data-store-layer-report.md#table)   | [Data Store](./08-data-store-layer-report.md) | database-table  | many-to-one | medium   |
+| api.securityscheme.database-table.data-store.table | [securityscheme](./06-api-layer-report.md#securityscheme) | [table](./08-data-store-layer-report.md#table)   | [Data Store](./08-data-store-layer-report.md) | database-table  | many-to-one | medium   |
 
 ## Node Reference
 
@@ -503,8 +503,8 @@ Database table definition
 
 | Related Node                                              | Layer                           | Predicate      | Direction | Cardinality |
 | --------------------------------------------------------- | ------------------------------- | -------------- | --------- | ----------- |
-| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | database-table | inbound   | many-to-one |
 | [schema](./06-api-layer-report.md#schema)                 | [API](./06-api-layer-report.md) | database-table | inbound   | many-to-one |
+| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | database-table | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -581,4 +581,4 @@ Database view
 
 ---
 
-_Generated: 2026-02-13T12:01:09.777Z | Spec Version: 0.8.0 | Commit: 680a318 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:04:30.783Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_

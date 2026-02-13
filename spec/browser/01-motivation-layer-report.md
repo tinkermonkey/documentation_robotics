@@ -74,64 +74,64 @@ flowchart LR
     stakeholdertype["stakeholdertype"]
     value["value"]
     valuetype["valuetype"]
-    value -->|associated-with| value
-    value -->|associated-with| stakeholder
-    value -->|associated-with| outcome
-    value -->|associated-with| goal
-    value -->|associated-with| driver
-    value -->|associated-with| constraint
-    stakeholder -->|associated-with| value
-    stakeholder -->|associated-with| stakeholder
-    stakeholder -->|associated-with| outcome
-    stakeholder -->|associated-with| goal
-    stakeholder -->|associated-with| driver
-    stakeholder -->|associated-with| constraint
-    requirement -->|associated-with| value
-    requirement -->|associated-with| stakeholder
-    requirement -->|associated-with| outcome
-    requirement -->|associated-with| goal
-    requirement -->|associated-with| driver
-    requirement -->|associated-with| constraint
-    requirement -->|aggregates| requirement
-    requirement -->|aggregates| goal
-    principle -->|influence| requirement
-    principle -->|influence| principle
-    principle -->|influence| goal
-    principle -->|influence| assessment
-    outcome -->|realizes| value
-    outcome -->|realizes| goal
-    outcome -->|associated-with| value
-    outcome -->|associated-with| stakeholder
-    outcome -->|associated-with| outcome
-    outcome -->|associated-with| goal
-    outcome -->|associated-with| driver
-    outcome -->|associated-with| constraint
-    meaning -->|associated-with| value
-    meaning -->|associated-with| stakeholder
-    meaning -->|associated-with| outcome
-    meaning -->|associated-with| goal
-    meaning -->|associated-with| driver
-    meaning -->|associated-with| constraint
-    goal -->|realizes| value
-    goal -->|realizes| goal
-    goal -->|influence| requirement
-    goal -->|influence| principle
-    goal -->|influence| goal
-    goal -->|influence| assessment
-    goal -->|aggregates| requirement
-    goal -->|aggregates| goal
-    driver -->|influence| requirement
-    driver -->|influence| principle
-    driver -->|influence| goal
-    driver -->|influence| assessment
-    constraint -->|influence| requirement
-    constraint -->|influence| principle
-    constraint -->|influence| goal
-    constraint -->|influence| assessment
-    assessment -->|influence| requirement
-    assessment -->|influence| principle
-    assessment -->|influence| goal
     assessment -->|influence| assessment
+    assessment -->|influence| goal
+    assessment -->|influence| principle
+    assessment -->|influence| requirement
+    constraint -->|influence| assessment
+    constraint -->|influence| goal
+    constraint -->|influence| principle
+    constraint -->|influence| requirement
+    driver -->|influence| assessment
+    driver -->|influence| goal
+    driver -->|influence| principle
+    driver -->|influence| requirement
+    goal -->|aggregates| goal
+    goal -->|aggregates| requirement
+    goal -->|influence| assessment
+    goal -->|influence| goal
+    goal -->|influence| principle
+    goal -->|influence| requirement
+    goal -->|realizes| goal
+    goal -->|realizes| value
+    meaning -->|associated-with| constraint
+    meaning -->|associated-with| driver
+    meaning -->|associated-with| goal
+    meaning -->|associated-with| outcome
+    meaning -->|associated-with| stakeholder
+    meaning -->|associated-with| value
+    outcome -->|associated-with| constraint
+    outcome -->|associated-with| driver
+    outcome -->|associated-with| goal
+    outcome -->|associated-with| outcome
+    outcome -->|associated-with| stakeholder
+    outcome -->|associated-with| value
+    outcome -->|realizes| goal
+    outcome -->|realizes| value
+    principle -->|influence| assessment
+    principle -->|influence| goal
+    principle -->|influence| principle
+    principle -->|influence| requirement
+    requirement -->|aggregates| goal
+    requirement -->|aggregates| requirement
+    requirement -->|associated-with| constraint
+    requirement -->|associated-with| driver
+    requirement -->|associated-with| goal
+    requirement -->|associated-with| outcome
+    requirement -->|associated-with| stakeholder
+    requirement -->|associated-with| value
+    stakeholder -->|associated-with| constraint
+    stakeholder -->|associated-with| driver
+    stakeholder -->|associated-with| goal
+    stakeholder -->|associated-with| outcome
+    stakeholder -->|associated-with| stakeholder
+    stakeholder -->|associated-with| value
+    value -->|associated-with| constraint
+    value -->|associated-with| driver
+    value -->|associated-with| goal
+    value -->|associated-with| outcome
+    value -->|associated-with| stakeholder
+    value -->|associated-with| value
   end
 ```
 
@@ -153,9 +153,9 @@ flowchart TB
   apm["APM"]
   testing["Testing"]
   technology --> security
-  testing --> motivation
   data_model --> business
   data_model --> application
+  testing --> motivation
   business --> motivation
   business --> security
   business --> application
@@ -174,16 +174,16 @@ flowchart TB
 
 | Relationship ID                                                          | Source Node                                                               | Dest Node                                                  | Dest Layer                                    | Predicate              | Cardinality  | Strength |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------- | ---------------------- | ------------ | -------- |
-| testing.testcoveragemodel.constrained-by.motivation.constraint           | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
-| testing.coveragerequirement.constrained-by.motivation.constraint         | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement)   | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
-| business.businessservice.delivers-value.motivation.value                 | [businessservice](./02-business-layer-report.md#businessservice)          | [value](./01-motivation-layer-report.md#value)             | [Motivation](./01-motivation-layer-report.md) | delivers-value         | many-to-many | medium   |
 | application.applicationservice.delivers-value.motivation.value           | [applicationservice](./04-application-layer-report.md#applicationservice) | [value](./01-motivation-layer-report.md#value)             | [Motivation](./01-motivation-layer-report.md) | delivers-value         | many-to-many | medium   |
-| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [testcasesketch](./12-testing-layer-report.md#testcasesketch)             | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| business.businessservice.delivers-value.motivation.value                 | [businessservice](./02-business-layer-report.md#businessservice)          | [value](./01-motivation-layer-report.md#value)             | [Motivation](./01-motivation-layer-report.md) | delivers-value         | many-to-many | medium   |
+| testing.coveragerequirement.constrained-by.motivation.constraint         | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement)   | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
 | testing.coveragerequirement.fulfills-requirements.motivation.requirement | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement)   | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [testcasesketch](./12-testing-layer-report.md#testcasesketch)             | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcasesketch.supports-goals.motivation.goal                    | [testcasesketch](./12-testing-layer-report.md#testcasesketch)             | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
+| testing.testcoveragemodel.constrained-by.motivation.constraint           | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
+| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
 | testing.testcoveragemodel.governed-by-principles.motivation.principle    | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [principle](./01-motivation-layer-report.md#principle)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | many-to-many | high     |
 | testing.testcoveragemodel.supports-goals.motivation.goal                 | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)       | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
-| testing.testcasesketch.supports-goals.motivation.goal                    | [testcasesketch](./12-testing-layer-report.md#testcasesketch)             | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
 
 ## Node Reference
 
@@ -255,8 +255,8 @@ Restriction on the way in which a system is realized
 
 | Related Node                                                            | Layer                                   | Predicate      | Direction | Cardinality  |
 | ----------------------------------------------------------------------- | --------------------------------------- | -------------- | --------- | ------------ |
-| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Testing](./12-testing-layer-report.md) | constrained-by | inbound   | many-to-many |
 | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Testing](./12-testing-layer-report.md) | constrained-by | inbound   | many-to-many |
+| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Testing](./12-testing-layer-report.md) | constrained-by | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -352,8 +352,8 @@ High-level statement of intent, direction, or desired end state
 
 | Related Node                                                        | Layer                                   | Predicate      | Direction | Cardinality  |
 | ------------------------------------------------------------------- | --------------------------------------- | -------------- | --------- | ------------ |
-| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel) | [Testing](./12-testing-layer-report.md) | supports-goals | inbound   | many-to-many |
 | [testcasesketch](./12-testing-layer-report.md#testcasesketch)       | [Testing](./12-testing-layer-report.md) | supports-goals | inbound   | many-to-many |
+| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel) | [Testing](./12-testing-layer-report.md) | supports-goals | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -516,9 +516,9 @@ Statement of need that must be realized
 
 | Related Node                                                            | Layer                                   | Predicate             | Direction | Cardinality  |
 | ----------------------------------------------------------------------- | --------------------------------------- | --------------------- | --------- | ------------ |
-| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
-| [testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
 | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
+| [testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
+| [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Testing](./12-testing-layer-report.md) | fulfills-requirements | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -608,8 +608,8 @@ Relative worth, utility, or importance of something
 
 | Related Node                                                              | Layer                                           | Predicate      | Direction | Cardinality  |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | -------------- | --------- | ------------ |
-| [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | delivers-value | inbound   | many-to-many |
 | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | delivers-value | inbound   | many-to-many |
+| [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | delivers-value | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -628,4 +628,4 @@ ValueType element in Motivation Layer
 
 ---
 
-_Generated: 2026-02-13T12:01:09.771Z | Spec Version: 0.8.0 | Commit: 680a318 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:04:30.777Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_

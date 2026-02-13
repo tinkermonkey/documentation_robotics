@@ -76,10 +76,10 @@ flowchart LR
     x_database["x-database"]
     x_security["x-security"]
     x_ui["x-ui"]
-    schemaproperty -->|database-mapping| databasemapping
-    jsonschema -->|database-mapping| databasemapping
-    jsonschema -->|data-governance| datagovernance
     jsonschema -->|apm-data-quality-metrics| dataqualitymetrics
+    jsonschema -->|data-governance| datagovernance
+    jsonschema -->|database-mapping| databasemapping
+    schemaproperty -->|database-mapping| databasemapping
   end
 ```
 
@@ -101,9 +101,9 @@ flowchart TB
   apm["APM"]
   testing["Testing"]
   technology --> security
-  testing --> motivation
   data_model --> business
   data_model --> application
+  testing --> motivation
   business --> motivation
   business --> security
   business --> application
@@ -122,10 +122,10 @@ flowchart TB
 
 | Relationship ID                                                    | Source Node                                                    | Dest Node                                                                 | Dest Layer                                      | Predicate           | Cardinality | Strength |
 | ------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | ----------- | -------- |
+| business.businessobject.governance-owner.data-model.datagovernance | [businessobject](./02-business-layer-report.md#businessobject) | [datagovernance](./07-data-model-layer-report.md#datagovernance)          | [Data Model](./07-data-model-layer-report.md)   | governance-owner    | many-to-one | medium   |
 | data-model.jsonschema.archimate-ref.application.applicationservice | [jsonschema](./07-data-model-layer-report.md#jsonschema)       | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref       | many-to-one | medium   |
 | data-model.jsonschema.business-object-ref.business.businessobject  | [jsonschema](./07-data-model-layer-report.md#jsonschema)       | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref | many-to-one | medium   |
 | data-model.jsonschema.referenced-by.business.businessobject        | [jsonschema](./07-data-model-layer-report.md#jsonschema)       | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by       | many-to-one | medium   |
-| business.businessobject.governance-owner.data-model.datagovernance | [businessobject](./02-business-layer-report.md#businessobject) | [datagovernance](./07-data-model-layer-report.md#datagovernance)          | [Data Model](./07-data-model-layer-report.md)   | governance-owner    | many-to-one | medium   |
 
 ## Node Reference
 
@@ -229,9 +229,9 @@ Root schema document
 
 | Related Node                                                              | Layer                                           | Predicate           | Direction | Cardinality |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | --------- | ----------- |
-| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by       | outbound  | many-to-one |
-| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref | outbound  | many-to-one |
 | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref       | outbound  | many-to-one |
+| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref | outbound  | many-to-one |
+| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by       | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -438,4 +438,4 @@ UI rendering hints
 
 ---
 
-_Generated: 2026-02-13T12:01:09.776Z | Spec Version: 0.8.0 | Commit: 680a318 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:04:30.783Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_

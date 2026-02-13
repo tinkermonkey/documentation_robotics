@@ -75,9 +75,9 @@ flowchart TB
   apm["APM"]
   testing["Testing"]
   technology --> security
-  testing --> motivation
   data_model --> business
   data_model --> application
+  testing --> motivation
   business --> motivation
   business --> security
   business --> application
@@ -116,8 +116,8 @@ Physical piece of data used or produced
 
 | Related Node                                                   | Layer                                     | Predicate      | Direction | Cardinality |
 | -------------------------------------------------------------- | ----------------------------------------- | -------------- | --------- | ----------- |
-| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | referenced-by  | outbound  | many-to-one |
 | [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | classification | outbound  | many-to-one |
+| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | referenced-by  | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -396,4 +396,4 @@ TechServiceType element in Technology Layer
 
 ---
 
-_Generated: 2026-02-13T12:01:09.775Z | Spec Version: 0.8.0 | Commit: 680a318 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:04:30.782Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_

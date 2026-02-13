@@ -511,8 +511,14 @@ class LayerReportGenerator {
         lines.push(`    ${nodeId}["${schema.type}"]\n`);
       }
 
-      // Add relationships
-      for (const rel of reportData.intraRelationships) {
+      // Add relationships (sorted for deterministic output)
+      const sortedRelationships = [...reportData.intraRelationships].sort((a, b) => {
+        const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
+        const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
+        return aKey.localeCompare(bKey);
+      });
+
+      for (const rel of sortedRelationships) {
         const sourceType = extractTypeFromSpecNodeId(rel.source_spec_node_id, "intraRelationships");
         const destType = extractTypeFromSpecNodeId(rel.destination_spec_node_id, "intraRelationships");
         const sourceId = sourceType.replace(/[^a-zA-Z0-9]/g, "_");
@@ -582,8 +588,15 @@ class LayerReportGenerator {
       return lines.join("");
     }
 
+    // Sort relationships for deterministic output
+    const sortedInterLayerRels = [...interLayerRels].sort((a, b) => {
+      const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
+      const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
+      return aKey.localeCompare(bKey);
+    });
+
     const rows: string[][] = [];
-    for (const rel of interLayerRels) {
+    for (const rel of sortedInterLayerRels) {
       const sourceType = extractTypeFromSpecNodeId(rel.source_spec_node_id, "interLayerRels");
       const destType = extractTypeFromSpecNodeId(rel.destination_spec_node_id, "interLayerRels");
       const sourceLayer = rel.source_layer;
@@ -699,8 +712,15 @@ class LayerReportGenerator {
         lines.push("#### Inter-Layer Relationships\n");
         lines.push("\n");
 
+        // Sort relationships for deterministic output
+        const sortedInterRels = [...interRels].sort((a, b) => {
+          const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
+          const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
+          return aKey.localeCompare(bKey);
+        });
+
         const interRows: string[][] = [];
-        for (const rel of interRels) {
+        for (const rel of sortedInterRels) {
           const direction =
             rel.source_spec_node_id === schema.spec_node_id ? "outbound" : "inbound";
           const relatedType =

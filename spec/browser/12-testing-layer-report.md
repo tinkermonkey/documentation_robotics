@@ -94,52 +94,52 @@ flowchart LR
     testcasesketch["testcasesketch"]
     testcoveragemodel["testcoveragemodel"]
     testcoveragetarget["testcoveragetarget"]
-    testcoveragetarget -->|flows-to| testcasesketch
-    testcoveragetarget -->|flows-to| coveragerequirement
-    testcoveragetarget -->|composes| testcoveragetarget
-    testcoveragetarget -->|composes| outcomecategory
-    testcoveragetarget -->|composes| inputpartitionselection
-    testcoveragemodel -->|composes| testcoveragetarget
-    testcoveragemodel -->|composes| outcomecategory
-    testcoveragemodel -->|composes| inputpartitionselection
-    testcasesketch -->|validates| testcoveragetarget
-    testcasesketch -->|validates| coveragerequirement
-    testcasesketch -->|references| testcoveragetarget
-    testcasesketch -->|references| partitionvalue
-    testcasesketch -->|references| coveragerequirement
-    testcasesketch -->|depends-on| outcomecategory
-    testcasesketch -->|depends-on| inputspacepartition
-    testcasesketch -->|depends-on| contextvariation
-    testcasesketch -->|accesses| inputselection
-    testcasesketch -->|accesses| inputpartitionselection
-    targetcoveragesummary -->|validates| testcoveragetarget
-    targetcoveragesummary -->|validates| coveragerequirement
-    partitiondependency -->|triggers| partitionvalue
-    partitiondependency -->|triggers| coveragerequirement
-    inputspacepartition -->|serves| testcoveragetarget
-    inputselection -->|references| testcoveragetarget
-    inputselection -->|references| partitionvalue
-    inputselection -->|references| coveragerequirement
-    inputpartitionselection -->|aggregates| partitionvalue
-    inputpartitionselection -->|aggregates| contextvariation
-    coveragerequirement -->|references| testcoveragetarget
-    coveragerequirement -->|references| partitionvalue
-    coveragerequirement -->|references| coveragerequirement
-    coveragerequirement -->|flows-to| testcasesketch
-    coveragerequirement -->|flows-to| coveragerequirement
-    coveragerequirement -->|depends-on| outcomecategory
-    coveragerequirement -->|depends-on| inputspacepartition
-    coveragerequirement -->|depends-on| contextvariation
-    coveragerequirement -->|composes| testcoveragetarget
-    coveragerequirement -->|composes| outcomecategory
-    coveragerequirement -->|composes| inputpartitionselection
-    coveragerequirement -->|aggregates| partitionvalue
-    coveragerequirement -->|aggregates| contextvariation
-    coveragerequirement -->|accesses| inputselection
-    coveragerequirement -->|accesses| inputpartitionselection
-    coveragegap -->|triggers| partitionvalue
-    coveragegap -->|triggers| coveragerequirement
     contextvariation -->|serves| testcoveragetarget
+    coveragegap -->|triggers| coveragerequirement
+    coveragegap -->|triggers| partitionvalue
+    coveragerequirement -->|accesses| inputpartitionselection
+    coveragerequirement -->|accesses| inputselection
+    coveragerequirement -->|aggregates| contextvariation
+    coveragerequirement -->|aggregates| partitionvalue
+    coveragerequirement -->|composes| inputpartitionselection
+    coveragerequirement -->|composes| outcomecategory
+    coveragerequirement -->|composes| testcoveragetarget
+    coveragerequirement -->|depends-on| contextvariation
+    coveragerequirement -->|depends-on| inputspacepartition
+    coveragerequirement -->|depends-on| outcomecategory
+    coveragerequirement -->|flows-to| coveragerequirement
+    coveragerequirement -->|flows-to| testcasesketch
+    coveragerequirement -->|references| coveragerequirement
+    coveragerequirement -->|references| partitionvalue
+    coveragerequirement -->|references| testcoveragetarget
+    inputpartitionselection -->|aggregates| contextvariation
+    inputpartitionselection -->|aggregates| partitionvalue
+    inputselection -->|references| coveragerequirement
+    inputselection -->|references| partitionvalue
+    inputselection -->|references| testcoveragetarget
+    inputspacepartition -->|serves| testcoveragetarget
+    partitiondependency -->|triggers| coveragerequirement
+    partitiondependency -->|triggers| partitionvalue
+    targetcoveragesummary -->|validates| coveragerequirement
+    targetcoveragesummary -->|validates| testcoveragetarget
+    testcasesketch -->|accesses| inputpartitionselection
+    testcasesketch -->|accesses| inputselection
+    testcasesketch -->|depends-on| contextvariation
+    testcasesketch -->|depends-on| inputspacepartition
+    testcasesketch -->|depends-on| outcomecategory
+    testcasesketch -->|references| coveragerequirement
+    testcasesketch -->|references| partitionvalue
+    testcasesketch -->|references| testcoveragetarget
+    testcasesketch -->|validates| coveragerequirement
+    testcasesketch -->|validates| testcoveragetarget
+    testcoveragemodel -->|composes| inputpartitionselection
+    testcoveragemodel -->|composes| outcomecategory
+    testcoveragemodel -->|composes| testcoveragetarget
+    testcoveragetarget -->|composes| inputpartitionselection
+    testcoveragetarget -->|composes| outcomecategory
+    testcoveragetarget -->|composes| testcoveragetarget
+    testcoveragetarget -->|flows-to| coveragerequirement
+    testcoveragetarget -->|flows-to| testcasesketch
   end
 ```
 
@@ -161,9 +161,9 @@ flowchart TB
   apm["APM"]
   testing["Testing"]
   technology --> security
-  testing --> motivation
   data_model --> business
   data_model --> application
+  testing --> motivation
   business --> motivation
   business --> security
   business --> application
@@ -182,14 +182,14 @@ flowchart TB
 
 | Relationship ID                                                          | Source Node                                                             | Dest Node                                                  | Dest Layer                                    | Predicate              | Cardinality  | Strength |
 | ------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------- | ---------------------- | ------------ | -------- |
-| testing.testcoveragemodel.constrained-by.motivation.constraint           | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
 | testing.coveragerequirement.constrained-by.motivation.constraint         | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
-| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
 | testing.coveragerequirement.fulfills-requirements.motivation.requirement | [coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
+| testing.testcasesketch.supports-goals.motivation.goal                    | [testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
+| testing.testcoveragemodel.constrained-by.motivation.constraint           | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
+| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
 | testing.testcoveragemodel.governed-by-principles.motivation.principle    | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [principle](./01-motivation-layer-report.md#principle)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | many-to-many | high     |
 | testing.testcoveragemodel.supports-goals.motivation.goal                 | [testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
-| testing.testcasesketch.supports-goals.motivation.goal                    | [testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
 
 ## Node Reference
 
@@ -317,8 +317,8 @@ Requirement for test coverage of a target
 
 | Related Node                                               | Layer                                         | Predicate             | Direction | Cardinality  |
 | ---------------------------------------------------------- | --------------------------------------------- | --------------------- | --------- | ------------ |
-| [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-many |
 | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by        | outbound  | many-to-many |
+| [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -680,8 +680,8 @@ Abstract test case selecting specific partition values
 
 | Related Node                                               | Layer                                         | Predicate             | Direction | Cardinality  |
 | ---------------------------------------------------------- | --------------------------------------------- | --------------------- | --------- | ------------ |
-| [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals        | outbound  | many-to-many |
 | [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-many |
+| [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals        | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -708,10 +708,10 @@ Complete test coverage model for application
 
 | Related Node                                               | Layer                                         | Predicate              | Direction | Cardinality  |
 | ---------------------------------------------------------- | --------------------------------------------- | ---------------------- | --------- | ------------ |
-| [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | outbound  | many-to-many |
-| [principle](./01-motivation-layer-report.md#principle)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | outbound  | many-to-many |
-| [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | outbound  | many-to-many |
 | [constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | outbound  | many-to-many |
+| [requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | outbound  | many-to-many |
+| [principle](./01-motivation-layer-report.md#principle)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | outbound  | many-to-many |
+| [goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -749,4 +749,4 @@ An artifact or functionality that requires test coverage
 
 ---
 
-_Generated: 2026-02-13T12:01:09.780Z | Spec Version: 0.8.0 | Commit: 680a318 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:04:30.787Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_

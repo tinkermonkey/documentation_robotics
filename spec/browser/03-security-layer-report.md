@@ -141,9 +141,9 @@ flowchart TB
   apm["APM"]
   testing["Testing"]
   technology --> security
-  testing --> motivation
   data_model --> business
   data_model --> application
+  testing --> motivation
   business --> motivation
   business --> security
   business --> application
@@ -162,19 +162,19 @@ flowchart TB
 
 | Relationship ID                                                         | Source Node                                                      | Dest Node                                                                | Dest Layer                                | Predicate            | Cardinality  | Strength |
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------- | -------------------- | ------------ | -------- |
+| api.operation.referenced-by.security.permission                         | [operation](./06-api-layer-report.md#operation)                  | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | referenced-by        | many-to-many | medium   |
+| api.operation.referenced-by.security.secureresource                     | [operation](./06-api-layer-report.md#operation)                  | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | referenced-by        | many-to-one  | medium   |
+| api.operation.required-permissions.security.permission                  | [operation](./06-api-layer-report.md#operation)                  | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | required-permissions | many-to-many | critical |
+| api.operation.security-resource.security.secureresource                 | [operation](./06-api-layer-report.md#operation)                  | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | security-resource    | many-to-one  | critical |
+| api.securityscheme.referenced-by.security.permission                    | [securityscheme](./06-api-layer-report.md#securityscheme)        | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | referenced-by        | many-to-many | medium   |
+| api.securityscheme.referenced-by.security.secureresource                | [securityscheme](./06-api-layer-report.md#securityscheme)        | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | referenced-by        | many-to-one  | medium   |
+| api.securityscheme.required-permissions.security.permission             | [securityscheme](./06-api-layer-report.md#securityscheme)        | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | required-permissions | many-to-many | critical |
+| api.securityscheme.security-resource.security.secureresource            | [securityscheme](./06-api-layer-report.md#securityscheme)        | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | security-resource    | many-to-one  | critical |
+| business.businessprocess.referenced-by.security.separationofduty        | [businessprocess](./02-business-layer-report.md#businessprocess) | [separationofduty](./03-security-layer-report.md#separationofduty)       | [Security](./03-security-layer-report.md) | referenced-by        | many-to-one  | medium   |
+| business.businessprocess.security-controls.security.securityconstraints | [businessprocess](./02-business-layer-report.md#businessprocess) | [securityconstraints](./03-security-layer-report.md#securityconstraints) | [Security](./03-security-layer-report.md) | security-controls    | many-to-many | high     |
+| business.businessprocess.separation-of-duty.security.separationofduty   | [businessprocess](./02-business-layer-report.md#businessprocess) | [separationofduty](./03-security-layer-report.md#separationofduty)       | [Security](./03-security-layer-report.md) | separation-of-duty   | many-to-one  | medium   |
 | technology.artifact.classification.security.classification              | [artifact](./05-technology-layer-report.md#artifact)             | [classification](./03-security-layer-report.md#classification)           | [Security](./03-security-layer-report.md) | classification       | many-to-one  | low      |
 | technology.artifact.referenced-by.security.classification               | [artifact](./05-technology-layer-report.md#artifact)             | [classification](./03-security-layer-report.md#classification)           | [Security](./03-security-layer-report.md) | referenced-by        | many-to-one  | medium   |
-| business.businessprocess.referenced-by.security.separationofduty        | [businessprocess](./02-business-layer-report.md#businessprocess) | [separationofduty](./03-security-layer-report.md#separationofduty)       | [Security](./03-security-layer-report.md) | referenced-by        | many-to-one  | medium   |
-| api.securityscheme.referenced-by.security.secureresource                | [securityscheme](./06-api-layer-report.md#securityscheme)        | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | referenced-by        | many-to-one  | medium   |
-| api.securityscheme.referenced-by.security.permission                    | [securityscheme](./06-api-layer-report.md#securityscheme)        | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | referenced-by        | many-to-many | medium   |
-| api.operation.referenced-by.security.secureresource                     | [operation](./06-api-layer-report.md#operation)                  | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | referenced-by        | many-to-one  | medium   |
-| api.operation.referenced-by.security.permission                         | [operation](./06-api-layer-report.md#operation)                  | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | referenced-by        | many-to-many | medium   |
-| api.securityscheme.required-permissions.security.permission             | [securityscheme](./06-api-layer-report.md#securityscheme)        | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | required-permissions | many-to-many | critical |
-| api.operation.required-permissions.security.permission                  | [operation](./06-api-layer-report.md#operation)                  | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | required-permissions | many-to-many | critical |
-| business.businessprocess.security-controls.security.securityconstraints | [businessprocess](./02-business-layer-report.md#businessprocess) | [securityconstraints](./03-security-layer-report.md#securityconstraints) | [Security](./03-security-layer-report.md) | security-controls    | many-to-many | high     |
-| api.securityscheme.security-resource.security.secureresource            | [securityscheme](./06-api-layer-report.md#securityscheme)        | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | security-resource    | many-to-one  | critical |
-| api.operation.security-resource.security.secureresource                 | [operation](./06-api-layer-report.md#operation)                  | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | security-resource    | many-to-one  | critical |
-| business.businessprocess.separation-of-duty.security.separationofduty   | [businessprocess](./02-business-layer-report.md#businessprocess) | [separationofduty](./03-security-layer-report.md#separationofduty)       | [Security](./03-security-layer-report.md) | separation-of-duty   | many-to-one  | medium   |
 
 ## Node Reference
 
@@ -362,8 +362,8 @@ A single classification level defining data sensitivity and protection requireme
 
 | Related Node                                         | Layer                                         | Predicate      | Direction | Cardinality |
 | ---------------------------------------------------- | --------------------------------------------- | -------------- | --------- | ----------- |
-| [artifact](./05-technology-layer-report.md#artifact) | [Technology](./05-technology-layer-report.md) | referenced-by  | inbound   | many-to-one |
 | [artifact](./05-technology-layer-report.md#artifact) | [Technology](./05-technology-layer-report.md) | classification | inbound   | many-to-one |
+| [artifact](./05-technology-layer-report.md#artifact) | [Technology](./05-technology-layer-report.md) | referenced-by  | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -707,10 +707,10 @@ Permission definition
 
 | Related Node                                              | Layer                           | Predicate            | Direction | Cardinality  |
 | --------------------------------------------------------- | ------------------------------- | -------------------- | --------- | ------------ |
-| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | required-permissions | inbound   | many-to-many |
-| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | referenced-by        | inbound   | many-to-many |
-| [operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | required-permissions | inbound   | many-to-many |
 | [operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | referenced-by        | inbound   | many-to-many |
+| [operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | required-permissions | inbound   | many-to-many |
+| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | referenced-by        | inbound   | many-to-many |
+| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | required-permissions | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -898,10 +898,10 @@ Protected resource definition
 
 | Related Node                                              | Layer                           | Predicate         | Direction | Cardinality |
 | --------------------------------------------------------- | ------------------------------- | ----------------- | --------- | ----------- |
-| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | security-resource | inbound   | many-to-one |
-| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | referenced-by     | inbound   | many-to-one |
-| [operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | security-resource | inbound   | many-to-one |
 | [operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | referenced-by     | inbound   | many-to-one |
+| [operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | security-resource | inbound   | many-to-one |
+| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | referenced-by     | inbound   | many-to-one |
+| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | security-resource | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -965,8 +965,8 @@ Different actors must perform related tasks
 
 | Related Node                                                     | Layer                                     | Predicate          | Direction | Cardinality |
 | ---------------------------------------------------------------- | ----------------------------------------- | ------------------ | --------- | ----------- |
-| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | separation-of-duty | inbound   | many-to-one |
 | [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | referenced-by      | inbound   | many-to-one |
+| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | separation-of-duty | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -1076,4 +1076,4 @@ VerificationLevel element in Security Layer
 
 ---
 
-_Generated: 2026-02-13T12:01:09.774Z | Spec Version: 0.8.0 | Commit: 680a318 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:04:30.780Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_

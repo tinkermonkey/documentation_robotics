@@ -154,9 +154,9 @@ flowchart TB
   apm["APM"]
   testing["Testing"]
   technology --> security
-  testing --> motivation
   data_model --> business
   data_model --> application
+  testing --> motivation
   business --> motivation
   business --> security
   business --> application
@@ -782,8 +782,8 @@ Distributed tracing configuration
 
 | Related Node                                                              | Layer                                           | Predicate | Direction | Cardinality |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | --------- | --------- | ----------- |
-| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | traced    | inbound   | many-to-one |
 | [operation](./06-api-layer-report.md#operation)                           | [API](./06-api-layer-report.md)                 | apm-trace | inbound   | many-to-one |
+| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | traced    | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -802,4 +802,4 @@ TransformOperation element in APM Observability Layer
 
 ---
 
-_Generated: 2026-02-13T12:01:09.779Z | Spec Version: 0.8.0 | Commit: 680a318 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:04:30.786Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_
