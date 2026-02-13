@@ -78,12 +78,12 @@ flowchart TB
   testing --> motivation
   data_model --> business
   data_model --> application
+  application --> apm
+  application --> motivation
   business --> motivation
   business --> security
   business --> application
   business --> data_model
-  application --> apm
-  application --> motivation
   api --> security
   api --> business
   api --> data_store
@@ -396,4 +396,4 @@ TechServiceType element in Technology Layer
 
 ---
 
-_Generated: 2026-02-13T11:58:05.061Z | Spec Version: 0.8.0 | Commit: c1cfcc4 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T11:58:35.819Z | Spec Version: 0.8.0 | Commit: 76c445c | Generator: generate-layer-reports.ts_
