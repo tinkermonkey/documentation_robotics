@@ -339,4 +339,4 @@ ServiceType element in Application Layer
 
 ---
 
-_Generated: 2026-02-13T12:06:35.960Z | Spec Version: 0.8.0 | Commit: 1693cf7 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:13:48.561Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_

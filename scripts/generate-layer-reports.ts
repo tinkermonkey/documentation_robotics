@@ -780,8 +780,7 @@ class LayerReportGenerator {
   private generateFooter(reportData: LayerReportData): string {
     const timestamp = new Date().toISOString();
     const specVersion = this.specVersion;
-    const commitHash = this.commitHash;
-    return `---\n\n_Generated: ${timestamp} | Spec Version: ${specVersion} | Commit: ${commitHash} | Generator: generate-layer-reports.ts_\n`;
+    return `---\n\n_Generated: ${timestamp} | Spec Version: ${specVersion} | Generator: generate-layer-reports.ts_\n`;
   }
 }
 
@@ -823,7 +822,7 @@ class ReadmeGenerator {
     lines.push("\n");
     const timestamp = new Date().toISOString();
     lines.push(
-      `_Generated: ${timestamp} | Spec Version: ${this.specVersion} | Commit: ${this.commitHash} | Generator: generate-layer-reports.ts_\n`
+      `_Generated: ${timestamp} | Spec Version: ${this.specVersion} | Generator: generate-layer-reports.ts_\n`
     );
 
     return lines.join("");
