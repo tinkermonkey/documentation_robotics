@@ -160,21 +160,21 @@ flowchart TB
   navigation["Navigation"]
   apm["APM"]
   testing["Testing"]
-  technology --> security
-  data_model --> business
-  data_model --> application
-  testing --> motivation
-  business --> motivation
-  business --> security
-  business --> application
-  business --> data_model
-  application --> apm
-  application --> motivation
-  api --> security
+  api --> apm
+  api --> application
   api --> business
   api --> data_store
-  api --> application
-  api --> apm
+  api --> security
+  application --> apm
+  application --> motivation
+  business --> application
+  business --> data_model
+  business --> motivation
+  business --> security
+  data_model --> application
+  data_model --> business
+  technology --> security
+  testing --> motivation
   class testing current
 ```
 
@@ -221,11 +221,11 @@ Different context in which functionality can be invoked
 
 | Related Node                                        | Predicate  | Direction | Cardinality  |
 | --------------------------------------------------- | ---------- | --------- | ------------ |
-| [testcasesketch](#testcasesketch)                   | depends-on | inbound   | many-to-many |
-| [inputpartitionselection](#inputpartitionselection) | aggregates | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | depends-on | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | aggregates | inbound   | many-to-many |
 | [testcoveragetarget](#testcoveragetarget)           | serves     | outbound  | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | aggregates | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | depends-on | inbound   | many-to-many |
+| [inputpartitionselection](#inputpartitionselection) | aggregates | inbound   | many-to-many |
+| [testcasesketch](#testcasesketch)                   | depends-on | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -270,8 +270,8 @@ Identified gap in test coverage requiring attention
 
 | Related Node                                | Predicate | Direction | Cardinality  |
 | ------------------------------------------- | --------- | --------- | ------------ |
-| [partitionvalue](#partitionvalue)           | triggers  | outbound  | many-to-many |
 | [coveragerequirement](#coveragerequirement) | triggers  | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)           | triggers  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -290,28 +290,28 @@ Requirement for test coverage of a target
 
 | Related Node                                        | Predicate  | Direction | Cardinality  |
 | --------------------------------------------------- | ---------- | --------- | ------------ |
-| [testcoveragetarget](#testcoveragetarget)           | flows-to   | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)                   | validates  | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)                   | references | inbound   | many-to-many |
-| [targetcoveragesummary](#targetcoveragesummary)     | validates  | inbound   | many-to-many |
-| [partitiondependency](#partitiondependency)         | triggers   | inbound   | many-to-many |
-| [inputselection](#inputselection)                   | references | inbound   | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)           | references | outbound  | many-to-many |
-| [partitionvalue](#partitionvalue)                   | references | outbound  | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | references | outbound  | many-to-many |
-| [testcasesketch](#testcasesketch)                   | flows-to   | outbound  | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | flows-to   | outbound  | many-to-many |
-| [outcomecategory](#outcomecategory)                 | depends-on | outbound  | many-to-many |
-| [inputspacepartition](#inputspacepartition)         | depends-on | outbound  | many-to-many |
-| [contextvariation](#contextvariation)               | depends-on | outbound  | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)           | composes   | outbound  | many-to-many |
-| [outcomecategory](#outcomecategory)                 | composes   | outbound  | many-to-many |
-| [inputpartitionselection](#inputpartitionselection) | composes   | outbound  | many-to-many |
-| [partitionvalue](#partitionvalue)                   | aggregates | outbound  | many-to-many |
-| [contextvariation](#contextvariation)               | aggregates | outbound  | many-to-many |
-| [inputselection](#inputselection)                   | accesses   | outbound  | many-to-many |
-| [inputpartitionselection](#inputpartitionselection) | accesses   | outbound  | many-to-many |
 | [coveragegap](#coveragegap)                         | triggers   | inbound   | many-to-many |
+| [inputpartitionselection](#inputpartitionselection) | accesses   | outbound  | many-to-many |
+| [inputselection](#inputselection)                   | accesses   | outbound  | many-to-many |
+| [contextvariation](#contextvariation)               | aggregates | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)                   | aggregates | outbound  | many-to-many |
+| [inputpartitionselection](#inputpartitionselection) | composes   | outbound  | many-to-many |
+| [outcomecategory](#outcomecategory)                 | composes   | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | composes   | outbound  | many-to-many |
+| [contextvariation](#contextvariation)               | depends-on | outbound  | many-to-many |
+| [inputspacepartition](#inputspacepartition)         | depends-on | outbound  | many-to-many |
+| [outcomecategory](#outcomecategory)                 | depends-on | outbound  | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | flows-to   | outbound  | many-to-many |
+| [testcasesketch](#testcasesketch)                   | flows-to   | outbound  | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | references | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)                   | references | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | references | outbound  | many-to-many |
+| [inputselection](#inputselection)                   | references | inbound   | many-to-many |
+| [partitiondependency](#partitiondependency)         | triggers   | inbound   | many-to-many |
+| [targetcoveragesummary](#targetcoveragesummary)     | validates  | inbound   | many-to-many |
+| [testcasesketch](#testcasesketch)                   | references | inbound   | many-to-many |
+| [testcasesketch](#testcasesketch)                   | validates  | inbound   | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | flows-to   | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -415,13 +415,13 @@ Selection of partition values to include in coverage
 
 | Related Node                                | Predicate  | Direction | Cardinality  |
 | ------------------------------------------- | ---------- | --------- | ------------ |
-| [testcoveragetarget](#testcoveragetarget)   | composes   | inbound   | many-to-many |
-| [testcoveragemodel](#testcoveragemodel)     | composes   | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)           | accesses   | inbound   | many-to-many |
-| [partitionvalue](#partitionvalue)           | aggregates | outbound  | many-to-many |
-| [contextvariation](#contextvariation)       | aggregates | outbound  | many-to-many |
-| [coveragerequirement](#coveragerequirement) | composes   | inbound   | many-to-many |
 | [coveragerequirement](#coveragerequirement) | accesses   | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement) | composes   | inbound   | many-to-many |
+| [contextvariation](#contextvariation)       | aggregates | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)           | aggregates | outbound  | many-to-many |
+| [testcasesketch](#testcasesketch)           | accesses   | inbound   | many-to-many |
+| [testcoveragemodel](#testcoveragemodel)     | composes   | inbound   | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)   | composes   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -440,11 +440,11 @@ Specific partition value selected for a test case
 
 | Related Node                                | Predicate  | Direction | Cardinality  |
 | ------------------------------------------- | ---------- | --------- | ------------ |
-| [testcasesketch](#testcasesketch)           | accesses   | inbound   | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)   | references | outbound  | many-to-many |
-| [partitionvalue](#partitionvalue)           | references | outbound  | many-to-many |
-| [coveragerequirement](#coveragerequirement) | references | outbound  | many-to-many |
 | [coveragerequirement](#coveragerequirement) | accesses   | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement) | references | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)           | references | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)   | references | outbound  | many-to-many |
+| [testcasesketch](#testcasesketch)           | accesses   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -463,9 +463,9 @@ Partitioning of an input dimension into testable categories
 
 | Related Node                                | Predicate  | Direction | Cardinality  |
 | ------------------------------------------- | ---------- | --------- | ------------ |
-| [testcasesketch](#testcasesketch)           | depends-on | inbound   | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)   | serves     | outbound  | many-to-many |
 | [coveragerequirement](#coveragerequirement) | depends-on | inbound   | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)   | serves     | outbound  | many-to-many |
+| [testcasesketch](#testcasesketch)           | depends-on | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -484,11 +484,11 @@ Category of expected outcomes (not specific assertions)
 
 | Related Node                                | Predicate  | Direction | Cardinality  |
 | ------------------------------------------- | ---------- | --------- | ------------ |
-| [testcoveragetarget](#testcoveragetarget)   | composes   | inbound   | many-to-many |
-| [testcoveragemodel](#testcoveragemodel)     | composes   | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)           | depends-on | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement) | depends-on | inbound   | many-to-many |
 | [coveragerequirement](#coveragerequirement) | composes   | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement) | depends-on | inbound   | many-to-many |
+| [testcasesketch](#testcasesketch)           | depends-on | inbound   | many-to-many |
+| [testcoveragemodel](#testcoveragemodel)     | composes   | inbound   | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)   | composes   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -533,8 +533,8 @@ Constraint between partition values across fields
 
 | Related Node                                | Predicate | Direction | Cardinality  |
 | ------------------------------------------- | --------- | --------- | ------------ |
-| [partitionvalue](#partitionvalue)           | triggers  | outbound  | many-to-many |
 | [coveragerequirement](#coveragerequirement) | triggers  | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)           | triggers  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -553,13 +553,13 @@ A specific partition within the input space
 
 | Related Node                                        | Predicate  | Direction | Cardinality  |
 | --------------------------------------------------- | ---------- | --------- | ------------ |
-| [testcasesketch](#testcasesketch)                   | references | inbound   | many-to-many |
-| [partitiondependency](#partitiondependency)         | triggers   | inbound   | many-to-many |
-| [inputselection](#inputselection)                   | references | inbound   | many-to-many |
-| [inputpartitionselection](#inputpartitionselection) | aggregates | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | references | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | aggregates | inbound   | many-to-many |
 | [coveragegap](#coveragegap)                         | triggers   | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | aggregates | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | references | inbound   | many-to-many |
+| [inputpartitionselection](#inputpartitionselection) | aggregates | inbound   | many-to-many |
+| [inputselection](#inputselection)                   | references | inbound   | many-to-many |
+| [partitiondependency](#partitiondependency)         | triggers   | inbound   | many-to-many |
+| [testcasesketch](#testcasesketch)                   | references | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -617,8 +617,8 @@ Coverage metrics summary for a single test coverage target
 
 | Related Node                                | Predicate | Direction | Cardinality  |
 | ------------------------------------------- | --------- | --------- | ------------ |
-| [testcoveragetarget](#testcoveragetarget)   | validates | outbound  | many-to-many |
 | [coveragerequirement](#coveragerequirement) | validates | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)   | validates | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -663,18 +663,18 @@ Abstract test case selecting specific partition values
 
 | Related Node                                        | Predicate  | Direction | Cardinality  |
 | --------------------------------------------------- | ---------- | --------- | ------------ |
-| [testcoveragetarget](#testcoveragetarget)           | flows-to   | inbound   | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)           | validates  | outbound  | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | validates  | outbound  | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)           | references | outbound  | many-to-many |
-| [partitionvalue](#partitionvalue)                   | references | outbound  | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | references | outbound  | many-to-many |
-| [outcomecategory](#outcomecategory)                 | depends-on | outbound  | many-to-many |
-| [inputspacepartition](#inputspacepartition)         | depends-on | outbound  | many-to-many |
-| [contextvariation](#contextvariation)               | depends-on | outbound  | many-to-many |
-| [inputselection](#inputselection)                   | accesses   | outbound  | many-to-many |
-| [inputpartitionselection](#inputpartitionselection) | accesses   | outbound  | many-to-many |
 | [coveragerequirement](#coveragerequirement)         | flows-to   | inbound   | many-to-many |
+| [inputpartitionselection](#inputpartitionselection) | accesses   | outbound  | many-to-many |
+| [inputselection](#inputselection)                   | accesses   | outbound  | many-to-many |
+| [contextvariation](#contextvariation)               | depends-on | outbound  | many-to-many |
+| [inputspacepartition](#inputspacepartition)         | depends-on | outbound  | many-to-many |
+| [outcomecategory](#outcomecategory)                 | depends-on | outbound  | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | references | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)                   | references | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | references | outbound  | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | validates  | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | validates  | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | flows-to   | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -700,9 +700,9 @@ Complete test coverage model for application
 
 | Related Node                                        | Predicate | Direction | Cardinality  |
 | --------------------------------------------------- | --------- | --------- | ------------ |
-| [testcoveragetarget](#testcoveragetarget)           | composes  | outbound  | many-to-many |
-| [outcomecategory](#outcomecategory)                 | composes  | outbound  | many-to-many |
 | [inputpartitionselection](#inputpartitionselection) | composes  | outbound  | many-to-many |
+| [outcomecategory](#outcomecategory)                 | composes  | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | composes  | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -730,23 +730,23 @@ An artifact or functionality that requires test coverage
 
 | Related Node                                        | Predicate  | Direction | Cardinality  |
 | --------------------------------------------------- | ---------- | --------- | ------------ |
-| [testcasesketch](#testcasesketch)                   | flows-to   | outbound  | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | flows-to   | outbound  | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)           | composes   | outbound  | many-to-many |
-| [outcomecategory](#outcomecategory)                 | composes   | outbound  | many-to-many |
-| [inputpartitionselection](#inputpartitionselection) | composes   | outbound  | many-to-many |
-| [testcoveragemodel](#testcoveragemodel)             | composes   | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)                   | validates  | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)                   | references | inbound   | many-to-many |
-| [targetcoveragesummary](#targetcoveragesummary)     | validates  | inbound   | many-to-many |
-| [inputspacepartition](#inputspacepartition)         | serves     | inbound   | many-to-many |
-| [inputselection](#inputselection)                   | references | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | references | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | composes   | inbound   | many-to-many |
 | [contextvariation](#contextvariation)               | serves     | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | composes   | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | references | inbound   | many-to-many |
+| [inputselection](#inputselection)                   | references | inbound   | many-to-many |
+| [inputspacepartition](#inputspacepartition)         | serves     | inbound   | many-to-many |
+| [targetcoveragesummary](#targetcoveragesummary)     | validates  | inbound   | many-to-many |
+| [testcasesketch](#testcasesketch)                   | references | inbound   | many-to-many |
+| [testcasesketch](#testcasesketch)                   | validates  | inbound   | many-to-many |
+| [testcoveragemodel](#testcoveragemodel)             | composes   | inbound   | many-to-many |
+| [inputpartitionselection](#inputpartitionselection) | composes   | outbound  | many-to-many |
+| [outcomecategory](#outcomecategory)                 | composes   | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | composes   | outbound  | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | flows-to   | outbound  | many-to-many |
+| [testcasesketch](#testcasesketch)                   | flows-to   | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-13T12:04:30.787Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:06:35.966Z | Spec Version: 0.8.0 | Commit: 1693cf7 | Generator: generate-layer-reports.ts_

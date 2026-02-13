@@ -548,19 +548,32 @@ class LayerReportGenerator {
       lines.push(`  ${layerId}["${formatLayerName(layer.id)}"]\n`);
     }
 
-    // Add layer-to-layer relationships (only across layers, no duplicates)
+    // Add layer-to-layer relationships (only across layers, no duplicates, sorted for determinism)
     const addedRelationships = new Set<string>();
+    const layerRelationships: Array<{ sourceId: string; destId: string }> = [];
+
     for (const rel of this.data.getAllRelationships()) {
       if (rel.source_layer !== rel.destination_layer) {
         const key = `${rel.source_layer}-${rel.destination_layer}`;
         if (!addedRelationships.has(key)) {
           const sourceId = rel.source_layer.replace(/[^a-zA-Z0-9]/g, "_");
           const destId = rel.destination_layer.replace(/[^a-zA-Z0-9]/g, "_");
-          lines.push(`  ${sourceId} --> ${destId}\n`);
+          layerRelationships.push({ sourceId, destId });
           addedRelationships.add(key);
         }
       }
     }
+
+    // Sort and output relationships for deterministic ordering
+    layerRelationships
+      .sort((a, b) => {
+        const aKey = `${a.sourceId}-${a.destId}`;
+        const bKey = `${b.sourceId}-${b.destId}`;
+        return aKey.localeCompare(bKey);
+      })
+      .forEach(({ sourceId, destId }) => {
+        lines.push(`  ${sourceId} --> ${destId}\n`);
+      });
 
     const currentLayerId = reportData.layer.id.replace(/[^a-zA-Z0-9]/g, "_");
     lines.push(`  class ${currentLayerId} current\n`);
@@ -690,8 +703,15 @@ class LayerReportGenerator {
         lines.push("#### Intra-Layer Relationships\n");
         lines.push("\n");
 
+        // Sort relationships for deterministic output
+        const sortedIntraRels = [...intraRels].sort((a, b) => {
+          const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
+          const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
+          return aKey.localeCompare(bKey);
+        });
+
         const intraRows: string[][] = [];
-        for (const rel of intraRels) {
+        for (const rel of sortedIntraRels) {
           const direction =
             rel.source_spec_node_id === schema.spec_node_id ? "outbound" : "inbound";
           const relatedType =

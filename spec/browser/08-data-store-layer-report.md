@@ -126,21 +126,21 @@ flowchart TB
   navigation["Navigation"]
   apm["APM"]
   testing["Testing"]
-  technology --> security
-  data_model --> business
-  data_model --> application
-  testing --> motivation
-  business --> motivation
-  business --> security
-  business --> application
-  business --> data_model
-  application --> apm
-  application --> motivation
-  api --> security
+  api --> apm
+  api --> application
   api --> business
   api --> data_store
-  api --> application
-  api --> apm
+  api --> security
+  application --> apm
+  application --> motivation
+  business --> application
+  business --> data_model
+  business --> motivation
+  business --> security
+  data_model --> application
+  data_model --> business
+  technology --> security
+  testing --> motivation
   class data_store current
 ```
 
@@ -169,11 +169,11 @@ Table column definition
 
 | Related Node                      | Predicate  | Direction | Cardinality  |
 | --------------------------------- | ---------- | --------- | ------------ |
-| [table](#table)                   | composes   | inbound   | many-to-many |
-| [index](#index)                   | aggregates | inbound   | many-to-many |
-| [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
-| [database](#database)             | composes   | inbound   | many-to-many |
 | [constraint](#constraint)         | aggregates | inbound   | many-to-many |
+| [database](#database)             | composes   | inbound   | many-to-many |
+| [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
+| [index](#index)                   | aggregates | inbound   | many-to-many |
+| [table](#table)                   | composes   | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -198,10 +198,10 @@ Table constraint
 
 | Related Node                      | Predicate  | Direction | Cardinality  |
 | --------------------------------- | ---------- | --------- | ------------ |
-| [table](#table)                   | composes   | inbound   | many-to-many |
-| [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
-| [database](#database)             | composes   | inbound   | many-to-many |
 | [column](#column)                 | aggregates | outbound  | many-to-many |
+| [database](#database)             | composes   | inbound   | many-to-many |
+| [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
+| [table](#table)                   | composes   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -233,11 +233,11 @@ Database instance containing schemas
 
 | Related Node                      | Predicate | Direction | Cardinality  |
 | --------------------------------- | --------- | --------- | ------------ |
-| [table](#table)                   | composes  | outbound  | many-to-many |
-| [index](#index)                   | composes  | outbound  | many-to-many |
-| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
-| [constraint](#constraint)         | composes  | outbound  | many-to-many |
 | [column](#column)                 | composes  | outbound  | many-to-many |
+| [constraint](#constraint)         | composes  | outbound  | many-to-many |
+| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
+| [index](#index)                   | composes  | outbound  | many-to-many |
+| [table](#table)                   | composes  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -256,13 +256,13 @@ Logical grouping of database objects
 
 | Related Node                      | Predicate | Direction | Cardinality  |
 | --------------------------------- | --------- | --------- | ------------ |
-| [table](#table)                   | composes  | inbound   | many-to-many |
-| [table](#table)                   | composes  | outbound  | many-to-many |
-| [index](#index)                   | composes  | outbound  | many-to-many |
-| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
-| [constraint](#constraint)         | composes  | outbound  | many-to-many |
-| [column](#column)                 | composes  | outbound  | many-to-many |
 | [database](#database)             | composes  | inbound   | many-to-many |
+| [column](#column)                 | composes  | outbound  | many-to-many |
+| [constraint](#constraint)         | composes  | outbound  | many-to-many |
+| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
+| [index](#index)                   | composes  | outbound  | many-to-many |
+| [table](#table)                   | composes  | outbound  | many-to-many |
+| [table](#table)                   | composes  | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -352,10 +352,10 @@ Database index for query optimization
 
 | Related Node                      | Predicate  | Direction | Cardinality  |
 | --------------------------------- | ---------- | --------- | ------------ |
-| [table](#table)                   | composes   | inbound   | many-to-many |
-| [column](#column)                 | aggregates | outbound  | many-to-many |
-| [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
 | [database](#database)             | composes   | inbound   | many-to-many |
+| [databaseschema](#databaseschema) | composes   | inbound   | many-to-many |
+| [column](#column)                 | aggregates | outbound  | many-to-many |
+| [table](#table)                   | composes   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -491,13 +491,13 @@ Database table definition
 
 | Related Node                      | Predicate | Direction | Cardinality  |
 | --------------------------------- | --------- | --------- | ------------ |
-| [table](#table)                   | composes  | outbound  | many-to-many |
-| [index](#index)                   | composes  | outbound  | many-to-many |
-| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
-| [constraint](#constraint)         | composes  | outbound  | many-to-many |
-| [column](#column)                 | composes  | outbound  | many-to-many |
-| [databaseschema](#databaseschema) | composes  | inbound   | many-to-many |
 | [database](#database)             | composes  | inbound   | many-to-many |
+| [databaseschema](#databaseschema) | composes  | inbound   | many-to-many |
+| [column](#column)                 | composes  | outbound  | many-to-many |
+| [constraint](#constraint)         | composes  | outbound  | many-to-many |
+| [databaseschema](#databaseschema) | composes  | outbound  | many-to-many |
+| [index](#index)                   | composes  | outbound  | many-to-many |
+| [table](#table)                   | composes  | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -581,4 +581,4 @@ Database view
 
 ---
 
-_Generated: 2026-02-13T12:04:30.783Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:06:35.963Z | Spec Version: 0.8.0 | Commit: 1693cf7 | Generator: generate-layer-reports.ts_

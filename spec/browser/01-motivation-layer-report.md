@@ -152,21 +152,21 @@ flowchart TB
   navigation["Navigation"]
   apm["APM"]
   testing["Testing"]
-  technology --> security
-  data_model --> business
-  data_model --> application
-  testing --> motivation
-  business --> motivation
-  business --> security
-  business --> application
-  business --> data_model
-  application --> apm
-  application --> motivation
-  api --> security
+  api --> apm
+  api --> application
   api --> business
   api --> data_store
-  api --> application
-  api --> apm
+  api --> security
+  application --> apm
+  application --> motivation
+  business --> application
+  business --> data_model
+  business --> motivation
+  business --> security
+  data_model --> application
+  data_model --> business
+  technology --> security
+  testing --> motivation
   class motivation current
 ```
 
@@ -202,14 +202,14 @@ Outcome of analysis of the state of affairs
 
 | Related Node                | Predicate | Direction | Cardinality  |
 | --------------------------- | --------- | --------- | ------------ |
-| [principle](#principle)     | influence | inbound   | many-to-many |
-| [goal](#goal)               | influence | inbound   | many-to-many |
-| [driver](#driver)           | influence | inbound   | many-to-many |
-| [constraint](#constraint)   | influence | inbound   | many-to-many |
-| [requirement](#requirement) | influence | outbound  | many-to-many |
-| [principle](#principle)     | influence | outbound  | many-to-many |
-| [goal](#goal)               | influence | outbound  | many-to-many |
 | [assessment](#assessment)   | influence | outbound  | many-to-many |
+| [goal](#goal)               | influence | outbound  | many-to-many |
+| [principle](#principle)     | influence | outbound  | many-to-many |
+| [requirement](#requirement) | influence | outbound  | many-to-many |
+| [constraint](#constraint)   | influence | inbound   | many-to-many |
+| [driver](#driver)           | influence | inbound   | many-to-many |
+| [goal](#goal)               | influence | inbound   | many-to-many |
+| [principle](#principle)     | influence | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -241,15 +241,15 @@ Restriction on the way in which a system is realized
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
-| [value](#value)             | associated-with | inbound   | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
-| [requirement](#requirement) | associated-with | inbound   | many-to-many |
-| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
-| [meaning](#meaning)         | associated-with | inbound   | many-to-many |
-| [requirement](#requirement) | influence       | outbound  | many-to-many |
-| [principle](#principle)     | influence       | outbound  | many-to-many |
-| [goal](#goal)               | influence       | outbound  | many-to-many |
 | [assessment](#assessment)   | influence       | outbound  | many-to-many |
+| [goal](#goal)               | influence       | outbound  | many-to-many |
+| [principle](#principle)     | influence       | outbound  | many-to-many |
+| [requirement](#requirement) | influence       | outbound  | many-to-many |
+| [meaning](#meaning)         | associated-with | inbound   | many-to-many |
+| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
+| [requirement](#requirement) | associated-with | inbound   | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
+| [value](#value)             | associated-with | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -288,15 +288,15 @@ External or internal condition that motivates an organization
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
-| [value](#value)             | associated-with | inbound   | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
-| [requirement](#requirement) | associated-with | inbound   | many-to-many |
-| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
-| [meaning](#meaning)         | associated-with | inbound   | many-to-many |
-| [requirement](#requirement) | influence       | outbound  | many-to-many |
-| [principle](#principle)     | influence       | outbound  | many-to-many |
-| [goal](#goal)               | influence       | outbound  | many-to-many |
 | [assessment](#assessment)   | influence       | outbound  | many-to-many |
+| [goal](#goal)               | influence       | outbound  | many-to-many |
+| [principle](#principle)     | influence       | outbound  | many-to-many |
+| [requirement](#requirement) | influence       | outbound  | many-to-many |
+| [meaning](#meaning)         | associated-with | inbound   | many-to-many |
+| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
+| [requirement](#requirement) | associated-with | inbound   | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
+| [value](#value)             | associated-with | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -328,25 +328,25 @@ High-level statement of intent, direction, or desired end state
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
-| [value](#value)             | associated-with | inbound   | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
-| [requirement](#requirement) | associated-with | inbound   | many-to-many |
-| [requirement](#requirement) | aggregates      | inbound   | many-to-many |
-| [principle](#principle)     | influence       | inbound   | many-to-many |
-| [outcome](#outcome)         | realizes        | inbound   | many-to-many |
-| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
-| [meaning](#meaning)         | associated-with | inbound   | many-to-many |
-| [value](#value)             | realizes        | outbound  | many-to-many |
-| [goal](#goal)               | realizes        | outbound  | many-to-many |
-| [requirement](#requirement) | influence       | outbound  | many-to-many |
-| [principle](#principle)     | influence       | outbound  | many-to-many |
-| [goal](#goal)               | influence       | outbound  | many-to-many |
-| [assessment](#assessment)   | influence       | outbound  | many-to-many |
-| [requirement](#requirement) | aggregates      | outbound  | many-to-many |
-| [goal](#goal)               | aggregates      | outbound  | many-to-many |
-| [driver](#driver)           | influence       | inbound   | many-to-many |
-| [constraint](#constraint)   | influence       | inbound   | many-to-many |
 | [assessment](#assessment)   | influence       | inbound   | many-to-many |
+| [constraint](#constraint)   | influence       | inbound   | many-to-many |
+| [driver](#driver)           | influence       | inbound   | many-to-many |
+| [goal](#goal)               | aggregates      | outbound  | many-to-many |
+| [requirement](#requirement) | aggregates      | outbound  | many-to-many |
+| [assessment](#assessment)   | influence       | outbound  | many-to-many |
+| [goal](#goal)               | influence       | outbound  | many-to-many |
+| [principle](#principle)     | influence       | outbound  | many-to-many |
+| [requirement](#requirement) | influence       | outbound  | many-to-many |
+| [goal](#goal)               | realizes        | outbound  | many-to-many |
+| [value](#value)             | realizes        | outbound  | many-to-many |
+| [meaning](#meaning)         | associated-with | inbound   | many-to-many |
+| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
+| [outcome](#outcome)         | realizes        | inbound   | many-to-many |
+| [principle](#principle)     | influence       | inbound   | many-to-many |
+| [requirement](#requirement) | aggregates      | inbound   | many-to-many |
+| [requirement](#requirement) | associated-with | inbound   | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
+| [value](#value)             | associated-with | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -372,12 +372,12 @@ Knowledge or expertise present in a representation
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
-| [value](#value)             | associated-with | outbound  | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
-| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
-| [goal](#goal)               | associated-with | outbound  | many-to-many |
-| [driver](#driver)           | associated-with | outbound  | many-to-many |
 | [constraint](#constraint)   | associated-with | outbound  | many-to-many |
+| [driver](#driver)           | associated-with | outbound  | many-to-many |
+| [goal](#goal)               | associated-with | outbound  | many-to-many |
+| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
+| [value](#value)             | associated-with | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -396,18 +396,18 @@ End result that has been achieved
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
-| [value](#value)             | associated-with | inbound   | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
-| [requirement](#requirement) | associated-with | inbound   | many-to-many |
-| [value](#value)             | realizes        | outbound  | many-to-many |
-| [goal](#goal)               | realizes        | outbound  | many-to-many |
-| [value](#value)             | associated-with | outbound  | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
-| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
-| [goal](#goal)               | associated-with | outbound  | many-to-many |
-| [driver](#driver)           | associated-with | outbound  | many-to-many |
-| [constraint](#constraint)   | associated-with | outbound  | many-to-many |
 | [meaning](#meaning)         | associated-with | inbound   | many-to-many |
+| [constraint](#constraint)   | associated-with | outbound  | many-to-many |
+| [driver](#driver)           | associated-with | outbound  | many-to-many |
+| [goal](#goal)               | associated-with | outbound  | many-to-many |
+| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
+| [value](#value)             | associated-with | outbound  | many-to-many |
+| [goal](#goal)               | realizes        | outbound  | many-to-many |
+| [value](#value)             | realizes        | outbound  | many-to-many |
+| [requirement](#requirement) | associated-with | inbound   | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
+| [value](#value)             | associated-with | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -439,14 +439,14 @@ Normative property of all systems in a given context
 
 | Related Node                | Predicate | Direction | Cardinality  |
 | --------------------------- | --------- | --------- | ------------ |
-| [requirement](#requirement) | influence | outbound  | many-to-many |
-| [principle](#principle)     | influence | outbound  | many-to-many |
-| [goal](#goal)               | influence | outbound  | many-to-many |
-| [assessment](#assessment)   | influence | outbound  | many-to-many |
-| [goal](#goal)               | influence | inbound   | many-to-many |
-| [driver](#driver)           | influence | inbound   | many-to-many |
-| [constraint](#constraint)   | influence | inbound   | many-to-many |
 | [assessment](#assessment)   | influence | inbound   | many-to-many |
+| [constraint](#constraint)   | influence | inbound   | many-to-many |
+| [driver](#driver)           | influence | inbound   | many-to-many |
+| [goal](#goal)               | influence | inbound   | many-to-many |
+| [assessment](#assessment)   | influence | outbound  | many-to-many |
+| [goal](#goal)               | influence | outbound  | many-to-many |
+| [principle](#principle)     | influence | outbound  | many-to-many |
+| [requirement](#requirement) | influence | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -497,20 +497,20 @@ Statement of need that must be realized
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
-| [value](#value)             | associated-with | outbound  | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
-| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
-| [goal](#goal)               | associated-with | outbound  | many-to-many |
-| [driver](#driver)           | associated-with | outbound  | many-to-many |
-| [constraint](#constraint)   | associated-with | outbound  | many-to-many |
-| [requirement](#requirement) | aggregates      | outbound  | many-to-many |
-| [goal](#goal)               | aggregates      | outbound  | many-to-many |
-| [principle](#principle)     | influence       | inbound   | many-to-many |
-| [goal](#goal)               | influence       | inbound   | many-to-many |
-| [goal](#goal)               | aggregates      | inbound   | many-to-many |
-| [driver](#driver)           | influence       | inbound   | many-to-many |
-| [constraint](#constraint)   | influence       | inbound   | many-to-many |
 | [assessment](#assessment)   | influence       | inbound   | many-to-many |
+| [constraint](#constraint)   | influence       | inbound   | many-to-many |
+| [driver](#driver)           | influence       | inbound   | many-to-many |
+| [goal](#goal)               | aggregates      | inbound   | many-to-many |
+| [goal](#goal)               | influence       | inbound   | many-to-many |
+| [principle](#principle)     | influence       | inbound   | many-to-many |
+| [goal](#goal)               | aggregates      | outbound  | many-to-many |
+| [requirement](#requirement) | aggregates      | outbound  | many-to-many |
+| [constraint](#constraint)   | associated-with | outbound  | many-to-many |
+| [driver](#driver)           | associated-with | outbound  | many-to-many |
+| [goal](#goal)               | associated-with | outbound  | many-to-many |
+| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
+| [value](#value)             | associated-with | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -550,16 +550,16 @@ Individual, team, or organization with interest in the outcome
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
-| [value](#value)             | associated-with | inbound   | many-to-many |
-| [value](#value)             | associated-with | outbound  | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
-| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
-| [goal](#goal)               | associated-with | outbound  | many-to-many |
-| [driver](#driver)           | associated-with | outbound  | many-to-many |
-| [constraint](#constraint)   | associated-with | outbound  | many-to-many |
-| [requirement](#requirement) | associated-with | inbound   | many-to-many |
-| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
 | [meaning](#meaning)         | associated-with | inbound   | many-to-many |
+| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
+| [requirement](#requirement) | associated-with | inbound   | many-to-many |
+| [constraint](#constraint)   | associated-with | outbound  | many-to-many |
+| [driver](#driver)           | associated-with | outbound  | many-to-many |
+| [goal](#goal)               | associated-with | outbound  | many-to-many |
+| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
+| [value](#value)             | associated-with | outbound  | many-to-many |
+| [value](#value)             | associated-with | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -591,18 +591,18 @@ Relative worth, utility, or importance of something
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
-| [value](#value)             | associated-with | outbound  | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
-| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
-| [goal](#goal)               | associated-with | outbound  | many-to-many |
-| [driver](#driver)           | associated-with | outbound  | many-to-many |
-| [constraint](#constraint)   | associated-with | outbound  | many-to-many |
-| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
-| [requirement](#requirement) | associated-with | inbound   | many-to-many |
-| [outcome](#outcome)         | realizes        | inbound   | many-to-many |
-| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
-| [meaning](#meaning)         | associated-with | inbound   | many-to-many |
 | [goal](#goal)               | realizes        | inbound   | many-to-many |
+| [meaning](#meaning)         | associated-with | inbound   | many-to-many |
+| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
+| [outcome](#outcome)         | realizes        | inbound   | many-to-many |
+| [requirement](#requirement) | associated-with | inbound   | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
+| [constraint](#constraint)   | associated-with | outbound  | many-to-many |
+| [driver](#driver)           | associated-with | outbound  | many-to-many |
+| [goal](#goal)               | associated-with | outbound  | many-to-many |
+| [outcome](#outcome)         | associated-with | outbound  | many-to-many |
+| [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
+| [value](#value)             | associated-with | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -628,4 +628,4 @@ ValueType element in Motivation Layer
 
 ---
 
-_Generated: 2026-02-13T12:04:30.777Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:06:35.957Z | Spec Version: 0.8.0 | Commit: 1693cf7 | Generator: generate-layer-reports.ts_

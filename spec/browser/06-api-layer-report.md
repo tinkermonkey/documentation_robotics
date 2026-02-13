@@ -144,21 +144,21 @@ flowchart TB
   navigation["Navigation"]
   apm["APM"]
   testing["Testing"]
-  technology --> security
-  data_model --> business
-  data_model --> application
-  testing --> motivation
-  business --> motivation
-  business --> security
-  business --> application
-  business --> data_model
-  application --> apm
-  application --> motivation
-  api --> security
+  api --> apm
+  api --> application
   api --> business
   api --> data_store
-  api --> application
-  api --> apm
+  api --> security
+  application --> apm
+  application --> motivation
+  business --> application
+  business --> data_model
+  business --> motivation
+  business --> security
+  data_model --> application
+  data_model --> business
+  technology --> security
+  testing --> motivation
   class api current
 ```
 
@@ -225,9 +225,9 @@ Reusable component definitions
 
 | Related Node            | Predicate | Direction | Cardinality  |
 | ----------------------- | --------- | --------- | ------------ |
-| [schema](#schema)       | composes  | outbound  | many-to-many |
-| [responses](#responses) | composes  | outbound  | many-to-many |
 | [paths](#paths)         | composes  | outbound  | many-to-many |
+| [responses](#responses) | composes  | outbound  | many-to-many |
+| [schema](#schema)       | composes  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -349,9 +349,9 @@ Describes a relationship between API responses and subsequent operations, enabli
 
 | Related Node            | Predicate  | Direction | Cardinality  |
 | ----------------------- | ---------- | --------- | ------------ |
-| [tag](#tag)             | references | outbound  | many-to-many |
-| [schema](#schema)       | references | outbound  | many-to-many |
 | [operation](#operation) | references | outbound  | many-to-many |
+| [schema](#schema)       | references | outbound  | many-to-many |
+| [tag](#tag)             | references | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -409,13 +409,13 @@ Root of an OpenAPI specification file
 
 | Related Node            | Predicate       | Direction | Cardinality  |
 | ----------------------- | --------------- | --------- | ------------ |
-| [schema](#schema)       | composes        | outbound  | many-to-many |
-| [responses](#responses) | composes        | outbound  | many-to-many |
-| [paths](#paths)         | composes        | outbound  | many-to-many |
-| [tag](#tag)             | aggregates      | outbound  | many-to-many |
-| [server](#server)       | aggregates      | outbound  | many-to-many |
-| [license](#license)     | associated-with | inbound   | many-to-many |
 | [contact](#contact)     | associated-with | inbound   | many-to-many |
+| [license](#license)     | associated-with | inbound   | many-to-many |
+| [server](#server)       | aggregates      | outbound  | many-to-many |
+| [tag](#tag)             | aggregates      | outbound  | many-to-many |
+| [paths](#paths)         | composes        | outbound  | many-to-many |
+| [responses](#responses) | composes        | outbound  | many-to-many |
+| [schema](#schema)       | composes        | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -434,19 +434,19 @@ Single API operation (HTTP method on a path)
 
 | Related Node                      | Predicate  | Direction | Cardinality  |
 | --------------------------------- | ---------- | --------- | ------------ |
-| [securityscheme](#securityscheme) | serves     | inbound   | many-to-many |
-| [schema](#schema)                 | references | inbound   | many-to-many |
-| [parameter](#parameter)           | references | inbound   | many-to-many |
-| [callback](#callback)             | triggers   | outbound  | many-to-many |
-| [tag](#tag)                       | references | outbound  | many-to-many |
-| [schema](#schema)                 | references | outbound  | many-to-many |
-| [operation](#operation)           | references | outbound  | many-to-many |
-| [schema](#schema)                 | composes   | outbound  | many-to-many |
-| [responses](#responses)           | composes   | outbound  | many-to-many |
-| [paths](#paths)                   | composes   | outbound  | many-to-many |
-| [tag](#tag)                       | aggregates | outbound  | many-to-many |
-| [server](#server)                 | aggregates | outbound  | many-to-many |
 | [link](#link)                     | references | inbound   | many-to-many |
+| [server](#server)                 | aggregates | outbound  | many-to-many |
+| [tag](#tag)                       | aggregates | outbound  | many-to-many |
+| [paths](#paths)                   | composes   | outbound  | many-to-many |
+| [responses](#responses)           | composes   | outbound  | many-to-many |
+| [schema](#schema)                 | composes   | outbound  | many-to-many |
+| [operation](#operation)           | references | outbound  | many-to-many |
+| [schema](#schema)                 | references | outbound  | many-to-many |
+| [tag](#tag)                       | references | outbound  | many-to-many |
+| [callback](#callback)             | triggers   | outbound  | many-to-many |
+| [parameter](#parameter)           | references | inbound   | many-to-many |
+| [schema](#schema)                 | references | inbound   | many-to-many |
+| [securityscheme](#securityscheme) | serves     | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -480,9 +480,9 @@ Parameter for an operation
 
 | Related Node            | Predicate  | Direction | Cardinality  |
 | ----------------------- | ---------- | --------- | ------------ |
-| [tag](#tag)             | references | outbound  | many-to-many |
-| [schema](#schema)       | references | outbound  | many-to-many |
 | [operation](#operation) | references | outbound  | many-to-many |
+| [schema](#schema)       | references | outbound  | many-to-many |
+| [tag](#tag)             | references | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -540,9 +540,9 @@ Available API endpoints and operations
 
 | Related Node                        | Predicate | Direction | Cardinality  |
 | ----------------------------------- | --------- | --------- | ------------ |
-| [operation](#operation)             | composes  | inbound   | many-to-many |
-| [openapidocument](#openapidocument) | composes  | inbound   | many-to-many |
 | [components](#components)           | composes  | inbound   | many-to-many |
+| [openapidocument](#openapidocument) | composes  | inbound   | many-to-many |
+| [operation](#operation)             | composes  | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -587,9 +587,9 @@ Possible responses from an operation
 
 | Related Node                        | Predicate | Direction | Cardinality  |
 | ----------------------------------- | --------- | --------- | ------------ |
-| [operation](#operation)             | composes  | inbound   | many-to-many |
-| [openapidocument](#openapidocument) | composes  | inbound   | many-to-many |
 | [components](#components)           | composes  | inbound   | many-to-many |
+| [openapidocument](#openapidocument) | composes  | inbound   | many-to-many |
+| [operation](#operation)             | composes  | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -608,16 +608,16 @@ Data type definition (JSON Schema subset)
 
 | Related Node                        | Predicate   | Direction | Cardinality  |
 | ----------------------------------- | ----------- | --------- | ------------ |
-| [schema](#schema)                   | specializes | outbound  | many-to-many |
-| [tag](#tag)                         | references  | outbound  | many-to-many |
-| [schema](#schema)                   | references  | outbound  | many-to-many |
-| [operation](#operation)             | references  | outbound  | many-to-many |
-| [parameter](#parameter)             | references  | inbound   | many-to-many |
-| [operation](#operation)             | references  | inbound   | many-to-many |
-| [operation](#operation)             | composes    | inbound   | many-to-many |
-| [openapidocument](#openapidocument) | composes    | inbound   | many-to-many |
-| [link](#link)                       | references  | inbound   | many-to-many |
 | [components](#components)           | composes    | inbound   | many-to-many |
+| [link](#link)                       | references  | inbound   | many-to-many |
+| [openapidocument](#openapidocument) | composes    | inbound   | many-to-many |
+| [operation](#operation)             | composes    | inbound   | many-to-many |
+| [operation](#operation)             | references  | inbound   | many-to-many |
+| [parameter](#parameter)             | references  | inbound   | many-to-many |
+| [operation](#operation)             | references  | outbound  | many-to-many |
+| [schema](#schema)                   | references  | outbound  | many-to-many |
+| [tag](#tag)                         | references  | outbound  | many-to-many |
+| [schema](#schema)                   | specializes | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -690,8 +690,8 @@ Server where the API is available
 
 | Related Node                        | Predicate  | Direction | Cardinality  |
 | ----------------------------------- | ---------- | --------- | ------------ |
-| [operation](#operation)             | aggregates | inbound   | many-to-many |
 | [openapidocument](#openapidocument) | aggregates | inbound   | many-to-many |
+| [operation](#operation)             | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -723,15 +723,15 @@ A metadata label used to group and categorize API operations for documentation o
 
 | Related Node                        | Predicate  | Direction | Cardinality  |
 | ----------------------------------- | ---------- | --------- | ------------ |
-| [schema](#schema)                   | references | inbound   | many-to-many |
-| [parameter](#parameter)             | references | inbound   | many-to-many |
-| [operation](#operation)             | references | inbound   | many-to-many |
-| [operation](#operation)             | aggregates | inbound   | many-to-many |
-| [openapidocument](#openapidocument) | aggregates | inbound   | many-to-many |
 | [link](#link)                       | references | inbound   | many-to-many |
+| [openapidocument](#openapidocument) | aggregates | inbound   | many-to-many |
+| [operation](#operation)             | aggregates | inbound   | many-to-many |
+| [operation](#operation)             | references | inbound   | many-to-many |
+| [parameter](#parameter)             | references | inbound   | many-to-many |
+| [schema](#schema)                   | references | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-13T12:04:30.782Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:06:35.962Z | Spec Version: 0.8.0 | Commit: 1693cf7 | Generator: generate-layer-reports.ts_

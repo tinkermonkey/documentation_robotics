@@ -92,21 +92,21 @@ flowchart TB
   navigation["Navigation"]
   apm["APM"]
   testing["Testing"]
-  technology --> security
-  data_model --> business
-  data_model --> application
-  testing --> motivation
-  business --> motivation
-  business --> security
-  business --> application
-  business --> data_model
-  application --> apm
-  application --> motivation
-  api --> security
+  api --> apm
+  api --> application
   api --> business
   api --> data_store
-  api --> application
-  api --> apm
+  api --> security
+  application --> apm
+  application --> motivation
+  business --> application
+  business --> data_model
+  business --> motivation
+  business --> security
+  data_model --> application
+  data_model --> business
+  technology --> security
+  testing --> motivation
   class business current
 ```
 
@@ -151,8 +151,8 @@ An organizational entity capable of performing behavior
 
 | Related Node                        | Predicate   | Direction | Cardinality  |
 | ----------------------------------- | ----------- | --------- | ------------ |
-| [businessservice](#businessservice) | serves      | inbound   | many-to-many |
 | [businessrole](#businessrole)       | assigned-to | outbound  | many-to-many |
+| [businessservice](#businessservice) | serves      | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -286,9 +286,9 @@ Sequence of business behaviors achieving a result
 
 | Related Node                        | Predicate | Direction | Cardinality  |
 | ----------------------------------- | --------- | --------- | ------------ |
-| [businessprocess](#businessprocess) | flows-to  | outbound  | many-to-many |
-| [businessobject](#businessobject)   | accesses  | outbound  | many-to-many |
 | [businessevent](#businessevent)     | triggers  | inbound   | many-to-many |
+| [businessobject](#businessobject)   | accesses  | outbound  | many-to-many |
+| [businessprocess](#businessprocess) | flows-to  | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -317,8 +317,8 @@ The responsibility for performing specific behavior
 
 | Related Node                                    | Predicate   | Direction | Cardinality  |
 | ----------------------------------------------- | ----------- | --------- | ------------ |
-| [businesscollaboration](#businesscollaboration) | composes    | inbound   | many-to-many |
 | [businessactor](#businessactor)                 | assigned-to | inbound   | many-to-many |
+| [businesscollaboration](#businesscollaboration) | composes    | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -418,4 +418,4 @@ RepresentationFormat element in Business Layer
 
 ---
 
-_Generated: 2026-02-13T12:04:30.778Z | Spec Version: 0.8.0 | Commit: 4c0d881 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-13T12:06:35.958Z | Spec Version: 0.8.0 | Commit: 1693cf7 | Generator: generate-layer-reports.ts_
