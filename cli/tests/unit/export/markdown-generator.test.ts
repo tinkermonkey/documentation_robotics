@@ -646,20 +646,26 @@ describe("MarkdownGenerator", () => {
 
   describe("Element details truncation", () => {
     it("should truncate element details at MAX_DETAIL_ELEMENTS", async () => {
-      const testModel = new Model("test-model");
+      const testManifest = new Manifest({
+        name: "Test Model",
+        version: "1.0.0",
+        description: "Test",
+        author: "Test",
+      });
+      const testModel = new Model("/tmp/test-model", testManifest);
 
       // Add one layer with many elements
-      testModel.addLayer(new Layer("api", "API Layer"));
+      testModel.addLayer(new Layer("api"));
 
       // Add 15 elements (more than MAX_DETAIL_ELEMENTS which is 10)
       for (let i = 1; i <= 15; i++) {
-        const elem = new Element(
-          `api.endpoint.endpoint-${i}`,
-          `Endpoint ${i}`,
-          "api",
-          { description: `Test endpoint ${i}` }
-        );
-        testModel.getLayer("api")?.addElement(elem);
+        const elem = new Element({
+          elementId: `api.endpoint.endpoint-${i}`,
+          name: `Endpoint ${i}`,
+          layer: "api",
+          description: `Test endpoint ${i}`,
+        });
+        testModel.layers.get("api")?.addElement(elem);
       }
 
       const gen = new MarkdownGenerator(testModel);
@@ -674,19 +680,25 @@ describe("MarkdownGenerator", () => {
     });
 
     it("should handle models with few elements gracefully", async () => {
-      const testModel = new Model("test-model");
+      const testManifest = new Manifest({
+        name: "Test Model",
+        version: "1.0.0",
+        description: "Test",
+        author: "Test",
+      });
+      const testModel = new Model("/tmp/test-model", testManifest);
 
-      testModel.addLayer(new Layer("api", "API Layer"));
+      testModel.addLayer(new Layer("api"));
 
       // Add only 3 elements (less than MAX_DETAIL_ELEMENTS)
       for (let i = 1; i <= 3; i++) {
-        const elem = new Element(
-          `api.endpoint.endpoint-${i}`,
-          `Endpoint ${i}`,
-          "api",
-          { description: `Test endpoint ${i}` }
-        );
-        testModel.getLayer("api")?.addElement(elem);
+        const elem = new Element({
+          elementId: `api.endpoint.endpoint-${i}`,
+          name: `Endpoint ${i}`,
+          layer: "api",
+          description: `Test endpoint ${i}`,
+        });
+        testModel.layers.get("api")?.addElement(elem);
       }
 
       const gen = new MarkdownGenerator(testModel);
