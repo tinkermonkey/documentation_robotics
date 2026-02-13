@@ -381,4 +381,208 @@ describe.serial("VisualizationServer Integration Tests", () => {
       expect(html).toContain("annotations");
     });
   });
+
+  describe("Validation Edge Cases", () => {
+    it("should reject annotation content that is empty string", async () => {
+      const annotation = {
+        elementId: "motivation-goal-integration-test",
+        author: "Test User",
+        content: "",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject annotation content that exceeds 5000 characters", async () => {
+      const annotation = {
+        elementId: "motivation-goal-integration-test",
+        author: "Test User",
+        content: "a".repeat(5001),
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject author name that exceeds 100 characters", async () => {
+      const annotation = {
+        elementId: "motivation-goal-integration-test",
+        author: "a".repeat(101),
+        content: "Valid content",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject invalid element ID format", async () => {
+      const annotation = {
+        elementId: "INVALID_ELEMENT_ID",
+        author: "Test User",
+        content: "Valid content",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should accept valid content at 5000 character boundary", async () => {
+      const annotation = {
+        elementId: "motivation-goal-integration-test",
+        author: "Test User",
+        content: "a".repeat(5000),
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      // Should succeed (200 or 201) or fail due to missing element, not validation
+      expect(response.status).not.toBe(400);
+    });
+
+    it("should accept valid author name at 100 character boundary", async () => {
+      const annotation = {
+        elementId: "motivation-goal-integration-test",
+        author: "a".repeat(100),
+        content: "Valid content",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      // Should succeed (200 or 201) or fail due to missing element, not validation
+      expect(response.status).not.toBe(400);
+    });
+
+    it("should reject reply with empty author name", async () => {
+      const reply = {
+        author: "",
+        content: "Valid content",
+      };
+
+      const response = await server["app"].request(
+        new Request(
+          "http://localhost/api/annotations/test-annotation-id/replies",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reply),
+          }
+        )
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject reply with empty content", async () => {
+      const reply = {
+        author: "Test User",
+        content: "",
+      };
+
+      const response = await server["app"].request(
+        new Request(
+          "http://localhost/api/annotations/test-annotation-id/replies",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reply),
+          }
+        )
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject extra fields on annotation create", async () => {
+      const annotation = {
+        elementId: "motivation-goal-integration-test",
+        author: "Test User",
+        content: "Valid content",
+        extraField: "should be rejected",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject extra fields on annotation update", async () => {
+      const update = {
+        content: "Updated content",
+        extraField: "should be rejected",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations/test-annotation-id", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(update),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+  });
 });

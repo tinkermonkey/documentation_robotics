@@ -4,6 +4,14 @@ import { z } from 'zod';
 // Accepts both formats:
 // - New spec format: layer.type.name (e.g., motivation.goal.customer-satisfaction)
 // - Legacy format: layer-type-name (e.g., motivation-goal-customer-satisfaction)
+//
+// Regex pattern: /^[a-z0-9][a-z0-9\.\-]*[a-z0-9]$|^[a-z0-9]$/
+// - Allows lowercase letters, digits, dots, and hyphens
+// - Must start and end with alphanumeric (no trailing dots/hyphens)
+// - Single character IDs are allowed (e.g., 'a')
+// Known limitation: Does not validate that consecutive dots/hyphens are present
+// (e.g., 'a--b' or 'a..b' would pass). More strict validation could be added
+// if the element ID format becomes more formally specified.
 export const ElementIdSchema = z.string()
   .min(1, 'Element ID is required')
   .regex(/^[a-z0-9][a-z0-9\.\-]*[a-z0-9]$|^[a-z0-9]$/, 'Invalid element ID format');
@@ -22,7 +30,7 @@ export const AnnotationCreateSchema = z.object({
     .min(1, 'Content is required')
     .max(5000, 'Content too long'),
   tags: z.array(z.string()).optional().default([]),
-});
+}).strict(); // Prevent extra fields
 
 // Annotation schemas - for updating annotations
 export const AnnotationUpdateSchema = z.object({
@@ -44,29 +52,7 @@ export const AnnotationReplyCreateSchema = z.object({
     .max(5000, 'Content too long'),
 }).strict(); // Prevent extra fields
 
-// Response schemas
-export const AnnotationReplySchema = z.object({
-  id: z.string(),
-  author: z.string(),
-  content: z.string(),
-  createdAt: TimestampSchema,
-});
-
-export const AnnotationSchema = z.object({
-  id: z.string(),
-  elementId: z.string(),
-  author: z.string(),
-  content: z.string(),
-  createdAt: TimestampSchema,
-  updatedAt: TimestampSchema.optional(),
-  tags: z.array(z.string()).optional(),
-  resolved: z.boolean(),
-  replies: z.array(AnnotationReplySchema).optional(),
-});
-
-// Type inference from schemas
+// Type inference from input schemas
 export type AnnotationCreate = z.infer<typeof AnnotationCreateSchema>;
 export type AnnotationUpdate = z.infer<typeof AnnotationUpdateSchema>;
 export type AnnotationReplyCreate = z.infer<typeof AnnotationReplyCreateSchema>;
-export type AnnotationReply = z.infer<typeof AnnotationReplySchema>;
-export type Annotation = z.infer<typeof AnnotationSchema>;
