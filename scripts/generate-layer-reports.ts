@@ -185,7 +185,7 @@ class ReportDataModel {
       map.set(layer, rels.sort((a, b) => {
         const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
         const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
-        return aKey.localeCompare(bKey);
+        return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
       }));
     }
     return map;
@@ -204,7 +204,7 @@ class ReportDataModel {
       map.set(layer, rels.sort((a, b) => {
         const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
         const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
-        return aKey.localeCompare(bKey);
+        return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
       }));
     }
     return map;
@@ -289,7 +289,7 @@ class ReportDataModel {
     return [...this.data.relationshipSchemas].sort((a, b) => {
       const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
       const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
-      return aKey.localeCompare(bKey);
+      return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
     });
   }
 
@@ -536,7 +536,7 @@ class LayerReportGenerator {
       const sortedRelationships = [...reportData.intraRelationships].sort((a, b) => {
         const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
         const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
-        return aKey.localeCompare(bKey);
+        return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
       });
 
       for (const rel of sortedRelationships) {
@@ -590,7 +590,7 @@ class LayerReportGenerator {
       .sort((a, b) => {
         const aKey = `${a.sourceId}-${a.destId}`;
         const bKey = `${b.sourceId}-${b.destId}`;
-        return aKey.localeCompare(bKey);
+        return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
       })
       .forEach(({ sourceId, destId }) => {
         lines.push(`  ${sourceId} --> ${destId}\n`);
@@ -626,7 +626,7 @@ class LayerReportGenerator {
     const sortedInterLayerRels = [...interLayerRels].sort((a, b) => {
       const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
       const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
-      return aKey.localeCompare(bKey);
+      return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
     });
 
     const rows: string[][] = [];
@@ -728,7 +728,7 @@ class LayerReportGenerator {
         const sortedIntraRels = [...intraRels].sort((a, b) => {
           const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
           const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
-          return aKey.localeCompare(bKey);
+          return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
         });
 
         const intraRows: string[][] = [];
@@ -757,7 +757,7 @@ class LayerReportGenerator {
         const sortedInterRels = [...interRels].sort((a, b) => {
           const aKey = `${a.source_spec_node_id}-${a.predicate}-${a.destination_spec_node_id}`;
           const bKey = `${b.source_spec_node_id}-${b.predicate}-${b.destination_spec_node_id}`;
-          return aKey.localeCompare(bKey);
+          return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
         });
 
         const interRows: string[][] = [];
