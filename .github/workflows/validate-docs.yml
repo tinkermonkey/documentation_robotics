@@ -27,8 +27,9 @@ jobs:
 
       - name: Check for changes
         run: |
-          git diff --exit-code spec/browser/
-          if [ $? -ne 0 ]; then
+          # Check for meaningful changes (ignore timestamp and commit hash in footer)
+          git diff spec/browser/ | grep -v "^[-+]_Generated:" > /tmp/meaningful_diff.txt || true
+          if [ -s /tmp/meaningful_diff.txt ]; then
             echo "❌ Documentation is out of sync with schemas."
             echo ""
             echo "Documentation files are auto-generated from specification instances."
@@ -37,6 +38,9 @@ jobs:
             echo "  bun run scripts/generate-layer-reports.ts"
             echo ""
             echo "Then commit the updated files."
+            echo ""
+            echo "Meaningful changes detected:"
+            cat /tmp/meaningful_diff.txt
             exit 1
           fi
 
