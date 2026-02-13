@@ -546,4 +546,99 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(response.headers.has("access-control-allow-origin")).toBe(true);
     });
   });
+
+  describe("OpenAPI Documentation Endpoints", () => {
+    it("should return OpenAPI specification at /api-spec.yaml", async () => {
+      serverProcess = await startServer(testDir, testPort);
+
+      const response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toMatch(/json/);
+
+      const spec = await response.json();
+
+      // Validate OpenAPI structure
+      expect(spec).toHaveProperty("openapi");
+      expect(spec.openapi).toMatch(/3\.\d\.\d/); // OpenAPI 3.x.x
+
+      // Validate info section
+      expect(spec).toHaveProperty("info");
+      expect(spec.info.title).toBe("Documentation Robotics Visualization Server API");
+      expect(spec.info).toHaveProperty("version");
+      expect(spec.info).toHaveProperty("description");
+
+      // Validate servers section
+      expect(spec).toHaveProperty("servers");
+      expect(Array.isArray(spec.servers)).toBe(true);
+      expect(spec.servers.length).toBeGreaterThan(0);
+
+      // Validate paths section
+      expect(spec).toHaveProperty("paths");
+      expect(Object.keys(spec.paths).length).toBeGreaterThan(0);
+
+      // Validate tags
+      expect(spec).toHaveProperty("tags");
+      expect(Array.isArray(spec.tags)).toBe(true);
+
+      // Validate components with security schemes
+      expect(spec).toHaveProperty("components");
+      expect(spec.components).toHaveProperty("securitySchemes");
+    });
+
+    it("should include all REST endpoints in OpenAPI spec", async () => {
+      serverProcess = await startServer(testDir, testPort);
+
+      const response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+      const spec = await response.json();
+
+      const expectedEndpoints = [
+        "/health",
+        "/api/model",
+        "/api/spec",
+        "/api/annotations",
+        "/api/changesets",
+      ];
+
+      for (const endpoint of expectedEndpoints) {
+        expect(spec.paths).toHaveProperty(endpoint);
+      }
+    });
+
+    it("should serve Swagger UI at /api-docs", async () => {
+      serverProcess = await startServer(testDir, testPort);
+
+      const response = await fetch(`http://localhost:${testPort}/api-docs`);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/html");
+
+      const html = await response.text();
+
+      // Verify it's Swagger UI HTML
+      expect(html).toContain("swagger");
+      expect(html.length).toBeGreaterThan(100); // Reasonable HTML size
+    });
+
+    it("should have valid OpenAPI paths with methods", async () => {
+      serverProcess = await startServer(testDir, testPort);
+
+      const response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+      const spec = await response.json();
+
+      // Verify /health endpoint has GET method
+      expect(spec.paths["/health"]).toHaveProperty("get");
+      expect(spec.paths["/health"].get).toHaveProperty("tags");
+      expect(spec.paths["/health"].get.tags).toContain("Health");
+
+      // Verify /api/model endpoint has GET method
+      expect(spec.paths["/api/model"]).toHaveProperty("get");
+      expect(spec.paths["/api/model"].get).toHaveProperty("tags");
+      expect(spec.paths["/api/model"].get.tags).toContain("Model");
+
+      // Verify /api/annotations has both GET and POST
+      expect(spec.paths["/api/annotations"]).toHaveProperty("get");
+      expect(spec.paths["/api/annotations"]).toHaveProperty("post");
+    });
+  });
 });

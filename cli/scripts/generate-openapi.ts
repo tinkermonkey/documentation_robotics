@@ -10,6 +10,7 @@ import { VisualizationServer } from "../src/server/server.js";
 import { Model } from "../src/core/model.js";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import * as YAML from "yaml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,54 +48,17 @@ async function generateOpenAPISpec() {
       ],
     });
 
-    // Convert to YAML-friendly format
+    // Convert to valid YAML using the yaml package
+    const specWithMetadata = {
+      ...spec,
+      // Ensure top-level metadata is present (already should be from doc())
+    };
+
     const specYaml = `# This file is auto-generated from the visualization server routes.
 # DO NOT EDIT MANUALLY - regenerate using: npm run generate:openapi
-#
-# OpenAPI specification for Documentation Robotics Visualization Server
 # Generated on ${new Date().toISOString()}
 
-openapi: 3.0.3
-info:
-  title: Documentation Robotics Visualization Server API
-  version: 0.1.0
-  description: API specification for the DR CLI visualization server
-  contact:
-    name: Documentation Robotics
-    url: https://github.com/tinkermonkey/documentation_robotics
-  license:
-    name: ISC
-
-servers:
-  - url: http://localhost:8080
-    description: Local development server
-
-tags:
-  - name: Health
-    description: Server health and status
-  - name: Schema
-    description: JSON Schema specifications
-  - name: Model
-    description: Architecture model data
-  - name: Changesets
-    description: Model changesets and history
-  - name: Annotations
-    description: User annotations on model elements
-  - name: WebSocket
-    description: Real-time updates via WebSocket
-
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: token
-    QueryAuth:
-      type: apiKey
-      in: query
-      name: token
-
-${JSON.stringify(spec, null, 2).split("\n").join("\n")}
+${YAML.stringify(specWithMetadata, { indent: 2 })}
 `;
 
     // Write spec to file

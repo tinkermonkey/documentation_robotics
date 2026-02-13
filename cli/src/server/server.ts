@@ -245,15 +245,15 @@ export class VisualizationServer {
     if (this.viewerPath) {
       this.app.get("/*", async (c, next) => {
         const requestPath = c.req.path;
-        console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
+        if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
 
         // Skip API routes and WebSocket - let them be handled by their specific routes
         if (requestPath.startsWith("/api/") || requestPath === "/ws" || requestPath === "/health") {
-          console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
+          if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
           return next(); // Pass to next handler instead of returning 404
         }
 
-        console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
+        if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
         return this.serveCustomViewer(requestPath.substring(1));
       });
     }
@@ -312,13 +312,14 @@ export class VisualizationServer {
     });
 
     this.app.openapi(getModelRoute, async (c) => {
-      console.log(`[ROUTE] /api/model handler called`);
+      if (process.env.VERBOSE) console.log(`[ROUTE] /api/model handler called`);
       try {
-        console.log(`[ROUTE] /api/model serializing model...`);
+        if (process.env.VERBOSE) console.log(`[ROUTE] /api/model serializing model...`);
         const modelData = await this.serializeModel();
-        console.log(
-          `[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`
-        );
+        if (process.env.VERBOSE)
+          console.log(
+            `[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`
+          );
         return c.json(modelData);
       } catch (error) {
         const message = getErrorMessage(error);
@@ -2626,7 +2627,7 @@ export class VisualizationServer {
    * Serve a file from the custom viewer path
    */
   private async serveCustomViewer(filePath: string): Promise<Response> {
-    console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
+    if (process.env.VERBOSE) console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
 
     if (!this.viewerPath) {
       console.error(`[VIEWER] Custom viewer path not configured`);
@@ -2639,7 +2640,7 @@ export class VisualizationServer {
 
       // Resolve absolute path and prevent directory traversal
       const fullPath = path.resolve(this.viewerPath, filePath);
-      console.log(`[VIEWER] Resolved path: ${fullPath}`);
+      if (process.env.VERBOSE) console.log(`[VIEWER] Resolved path: ${fullPath}`);
 
       // Security check: ensure the resolved path is within viewerPath
       if (!fullPath.startsWith(path.resolve(this.viewerPath))) {
@@ -2648,7 +2649,7 @@ export class VisualizationServer {
       }
 
       // Read file
-      console.log(`[VIEWER] Reading file: ${fullPath}`);
+      if (process.env.VERBOSE) console.log(`[VIEWER] Reading file: ${fullPath}`);
       const content = await fs.readFile(fullPath);
 
       // Determine content type
@@ -2672,7 +2673,8 @@ export class VisualizationServer {
 
       const contentType = contentTypes[ext] || "application/octet-stream";
 
-      console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
+      if (process.env.VERBOSE)
+        console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
       return new Response(content, {
         status: 200,
         headers: {
