@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CANONICAL_LAYER_NAMES } from '../core/layers.js';
 
 // Base schemas for common types
 // Accepts both formats:
@@ -51,6 +52,24 @@ export const AnnotationReplyCreateSchema = z.object({
     .min(1, 'Content is required')
     .max(5000, 'Content too long'),
 }).strict(); // Prevent extra fields
+
+// Layer name schema - validates against canonical layer names
+export const LayerNameSchema = z.enum(
+  [...CANONICAL_LAYER_NAMES] as unknown as [string, ...string[]]
+, {
+  message: `Invalid layer name. Must be one of: ${CANONICAL_LAYER_NAMES.join(', ')}`
+});
+
+// ID schema - validates generic IDs (annotations, changesets, elements)
+// Accepts alphanumeric characters, hyphens, and underscores
+export const IdSchema = z.string()
+  .min(1, 'ID is required')
+  .regex(/^[a-zA-Z0-9_-]+$/, 'Invalid ID format. Must contain only alphanumeric characters, hyphens, and underscores');
+
+// Annotation filter schema - validates query parameters for GET /api/annotations
+export const AnnotationFilterSchema = z.object({
+  elementId: ElementIdSchema.optional()
+}).strict(); // Prevent extra query parameters
 
 // Type inference from input schemas
 export type AnnotationCreate = z.infer<typeof AnnotationCreateSchema>;

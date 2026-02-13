@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { upgradeWebSocket, websocket } from "hono/bun";
 import { cors } from "hono/cors";
 import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import { serve } from "bun";
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
@@ -20,6 +21,9 @@ import {
   AnnotationCreateSchema,
   AnnotationUpdateSchema,
   AnnotationReplyCreateSchema,
+  LayerNameSchema,
+  IdSchema,
+  AnnotationFilterSchema,
 } from "./schemas.js";
 
 interface WSMessage {
@@ -276,10 +280,13 @@ export class VisualizationServer {
     });
 
     // Get specific layer
-    this.app.get("/api/layers/:name", async (c) => {
-      try {
-        const layerName = c.req.param("name");
-        const layer = await this.model.getLayer(layerName);
+    this.app.get(
+      "/api/layers/:name",
+      zValidator("param", z.object({ name: LayerNameSchema })),
+      async (c) => {
+        try {
+          const { name: layerName } = c.req.valid("param");
+          const layer = await this.model.getLayer(layerName);
 
         if (!layer) {
           return c.json({ error: "Layer not found" }, 404);
@@ -287,36 +294,41 @@ export class VisualizationServer {
 
         const elements = layer.listElements().map((e) => e.toJSON());
 
-        return c.json({
-          name: layerName,
-          elements,
-          elementCount: elements.length,
-        });
-      } catch (error) {
-        const message = getErrorMessage(error);
-        return c.json({ error: message }, 500);
+          return c.json({
+            name: layerName,
+            elements,
+            elementCount: elements.length,
+          });
+        } catch (error) {
+          const message = getErrorMessage(error);
+          return c.json({ error: message }, 500);
+        }
       }
-    });
+    );
 
     // Get specific element
-    this.app.get("/api/elements/:id", async (c) => {
-      try {
-        const elementId = c.req.param("id");
-        const element = await this.findElement(elementId);
+    this.app.get(
+      "/api/elements/:id",
+      zValidator("param", z.object({ id: IdSchema })),
+      async (c) => {
+        try {
+          const { id: elementId } = c.req.valid("param");
+          const element = await this.findElement(elementId);
 
         if (!element) {
           return c.json({ error: "Element not found" }, 404);
         }
 
-        return c.json({
-          ...element.toJSON(),
-          annotations: this.annotations.get(elementId) || [],
-        });
-      } catch (error) {
-        const message = getErrorMessage(error);
-        return c.json({ error: message }, 500);
+          return c.json({
+            ...element.toJSON(),
+            annotations: this.annotations.get(elementId) || [],
+          });
+        } catch (error) {
+          const message = getErrorMessage(error);
+          return c.json({ error: message }, 500);
+        }
       }
-    });
+    );
 
     // Get JSON Schema specifications
     this.app.get("/api/spec", async (c) => {
@@ -339,23 +351,28 @@ export class VisualizationServer {
     // Annotations API (spec-compliant routes)
 
     // Get all annotations (optionally filtered by elementId)
-    this.app.get("/api/annotations", (c) => {
-      const elementId = c.req.query("elementId");
+    this.app.get(
+      "/api/annotations",
+      zValidator("query", AnnotationFilterSchema),
+      (c) => {
+        const query = c.req.valid("query");
+        const elementId = query.elementId;
 
-      if (elementId) {
-        // Filter by element
-        const annotationIds = this.annotationsByElement.get(elementId) || new Set();
-        const annotations = Array.from(annotationIds)
-          .map((id) => this.annotations.get(id))
-          .filter((a): a is ClientAnnotation => a !== undefined);
+        if (elementId) {
+          // Filter by element
+          const annotationIds = this.annotationsByElement.get(elementId) || new Set();
+          const annotations = Array.from(annotationIds)
+            .map((id) => this.annotations.get(id))
+            .filter((a): a is ClientAnnotation => a !== undefined);
 
-        return c.json({ annotations });
-      } else {
-        // Return all annotations
-        const annotations = Array.from(this.annotations.values());
-        return c.json({ annotations });
+          return c.json({ annotations });
+        } else {
+          // Return all annotations
+          const annotations = Array.from(this.annotations.values());
+          return c.json({ annotations });
+        }
       }
-    });
+    );
 
     // Create annotation
     this.app.post(
@@ -490,10 +507,13 @@ export class VisualizationServer {
     );
 
     // Delete annotation
-    this.app.delete("/api/annotations/:annotationId", async (c) => {
-      try {
-        const annotationId = c.req.param("annotationId");
-        const annotation = this.annotations.get(annotationId);
+    this.app.delete(
+      "/api/annotations/:annotationId",
+      zValidator("param", z.object({ annotationId: IdSchema })),
+      async (c) => {
+        try {
+          const { annotationId } = c.req.valid("param");
+          const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
           return c.json({ error: "Annotation not found" }, 404);
@@ -514,25 +534,30 @@ export class VisualizationServer {
           timestamp: new Date().toISOString(),
         });
 
-        return c.body(null, 204);
-      } catch (error) {
-        const message = getErrorMessage(error);
-        return c.json({ error: message }, 500);
+          return c.body(null, 204);
+        } catch (error) {
+          const message = getErrorMessage(error);
+          return c.json({ error: message }, 500);
+        }
       }
-    });
+    );
 
     // GET annotation replies
-    this.app.get("/api/annotations/:annotationId/replies", (c) => {
-      const annotationId = c.req.param("annotationId");
-      const annotation = this.annotations.get(annotationId);
+    this.app.get(
+      "/api/annotations/:annotationId/replies",
+      zValidator("param", z.object({ annotationId: IdSchema })),
+      (c) => {
+        const { annotationId } = c.req.valid("param");
+        const annotation = this.annotations.get(annotationId);
 
-      if (!annotation) {
-        return c.json({ error: "Annotation not found" }, 404);
+        if (!annotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        const replies = this.replies.get(annotationId) || [];
+        return c.json({ replies });
       }
-
-      const replies = this.replies.get(annotationId) || [];
-      return c.json({ replies });
-    });
+    );
 
     // POST annotation reply
     this.app.post(
@@ -600,16 +625,20 @@ export class VisualizationServer {
     });
 
     // Get specific changeset
-    this.app.get("/api/changesets/:changesetId", (c) => {
-      const changesetId = c.req.param("changesetId");
-      const changeset = this.changesets.get(changesetId);
+    this.app.get(
+      "/api/changesets/:changesetId",
+      zValidator("param", z.object({ changesetId: IdSchema })),
+      (c) => {
+        const { changesetId } = c.req.valid("param");
+        const changeset = this.changesets.get(changesetId);
 
-      if (!changeset) {
-        return c.json({ error: "Changeset not found" }, 404);
+        if (!changeset) {
+          return c.json({ error: "Changeset not found" }, 404);
+        }
+
+        return c.json(changeset);
       }
-
-      return c.json(changeset);
-    });
+    );
 
     // WebSocket endpoint
     this.app.get(
