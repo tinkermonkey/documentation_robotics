@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import { upgradeWebSocket, websocket } from "hono/bun";
 import { cors } from "hono/cors";
+import { zValidator } from "@hono/zod-validator";
 import { serve } from "bun";
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
@@ -15,6 +16,11 @@ import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
 import { getErrorMessage } from "../utils/errors.js";
+import {
+  AnnotationCreateSchema,
+  AnnotationUpdateSchema,
+  AnnotationReplyCreateSchema,
+} from "./schemas.js";
 
 interface WSMessage {
   type: "subscribe" | "annotate" | "ping";
@@ -352,134 +358,136 @@ export class VisualizationServer {
     });
 
     // Create annotation
-    this.app.post("/api/annotations", async (c) => {
-      try {
-        const body = await c.req.json();
+    this.app.post(
+      "/api/annotations",
+      zValidator("json", AnnotationCreateSchema),
+      async (c) => {
+        try {
+          const body = c.req.valid("json");
 
-        // Validate required fields (author is optional)
-        if (!body.elementId || !body.content) {
-          return c.json(
-            {
-              error: "Missing required fields: elementId, content",
-            },
-            400
-          );
+          // Verify element exists
+          const element = await this.findElement(body.elementId);
+          if (!element) {
+            return c.json({ error: "Element not found" }, 404);
+          }
+
+          // Create annotation
+          const annotation: ClientAnnotation = {
+            id: this.generateAnnotationId(),
+            elementId: body.elementId,
+            author: body.author,
+            content: body.content,
+            createdAt: new Date().toISOString(),
+            tags: body.tags,
+            resolved: false, // Default to unresolved
+          };
+
+          // Store annotation
+          this.annotations.set(annotation.id, annotation);
+          if (!this.annotationsByElement.has(annotation.elementId)) {
+            this.annotationsByElement.set(annotation.elementId, new Set());
+          }
+          this.annotationsByElement.get(annotation.elementId)!.add(annotation.id);
+
+          // Broadcast to all clients
+          await this.broadcastMessage({
+            type: "annotation.added",
+            annotationId: annotation.id,
+            elementId: annotation.elementId,
+            timestamp: annotation.createdAt,
+          });
+
+          return c.json(annotation, 201);
+        } catch (error) {
+          const message = getErrorMessage(error);
+          return c.json({ error: message }, 500);
         }
-
-        // Verify element exists
-        const element = await this.findElement(body.elementId);
-        if (!element) {
-          return c.json({ error: "Element not found" }, 404);
-        }
-
-        // Create annotation
-        const annotation: ClientAnnotation = {
-          id: this.generateAnnotationId(),
-          elementId: String(body.elementId),
-          author: body.author ? String(body.author) : "Anonymous", // Default to Anonymous if not provided
-          content: String(body.content),
-          createdAt: new Date().toISOString(),
-          tags: body.tags || [],
-          resolved: false, // Default to unresolved
-        };
-
-        // Store annotation
-        this.annotations.set(annotation.id, annotation);
-        if (!this.annotationsByElement.has(annotation.elementId)) {
-          this.annotationsByElement.set(annotation.elementId, new Set());
-        }
-        this.annotationsByElement.get(annotation.elementId)!.add(annotation.id);
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.added",
-          annotationId: annotation.id,
-          elementId: annotation.elementId,
-          timestamp: annotation.createdAt,
-        });
-
-        return c.json(annotation, 201);
-      } catch (error) {
-        const message = getErrorMessage(error);
-        return c.json({ error: message }, 500);
       }
-    });
+    );
 
     // Update annotation
-    this.app.put("/api/annotations/:annotationId", async (c) => {
-      try {
-        const annotationId = c.req.param("annotationId");
-        const annotation = this.annotations.get(annotationId);
+    this.app.put(
+      "/api/annotations/:annotationId",
+      zValidator("json", AnnotationUpdateSchema),
+      async (c) => {
+        try {
+          const annotationId = c.req.param("annotationId");
+          const annotation = this.annotations.get(annotationId);
 
-        if (!annotation) {
-          return c.json({ error: "Annotation not found" }, 404);
+          if (!annotation) {
+            return c.json({ error: "Annotation not found" }, 404);
+          }
+
+          const body = c.req.valid("json");
+
+          // Update fields
+          if (body.content !== undefined) {
+            annotation.content = body.content;
+          }
+          if (body.tags !== undefined) {
+            annotation.tags = body.tags;
+          }
+          if (body.resolved !== undefined) {
+            annotation.resolved = body.resolved;
+          }
+          annotation.updatedAt = new Date().toISOString();
+
+          // Broadcast to all clients
+          await this.broadcastMessage({
+            type: "annotation.updated",
+            annotationId: annotation.id,
+            timestamp: annotation.updatedAt,
+          });
+
+          return c.json(annotation);
+        } catch (error) {
+          const message = getErrorMessage(error);
+          return c.json({ error: message }, 500);
         }
-
-        const body = await c.req.json();
-
-        // Update fields
-        if (body.content !== undefined) {
-          annotation.content = String(body.content);
-        }
-        if (body.tags !== undefined) {
-          annotation.tags = body.tags;
-        }
-        if (body.resolved !== undefined) {
-          annotation.resolved = Boolean(body.resolved);
-        }
-        annotation.updatedAt = new Date().toISOString();
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.updated",
-          annotationId: annotation.id,
-          timestamp: annotation.updatedAt,
-        });
-
-        return c.json(annotation);
-      } catch (error) {
-        const message = getErrorMessage(error);
-        return c.json({ error: message }, 500);
       }
-    });
+    );
 
     // PATCH annotation (partial update - recommended)
-    this.app.patch("/api/annotations/:annotationId", async (c) => {
-      try {
-        const annotationId = c.req.param("annotationId");
-        const annotation = this.annotations.get(annotationId);
+    this.app.patch(
+      "/api/annotations/:annotationId",
+      zValidator("json", AnnotationUpdateSchema),
+      async (c) => {
+        try {
+          const annotationId = c.req.param("annotationId");
+          const annotation = this.annotations.get(annotationId);
 
-        if (!annotation) {
-          return c.json({ error: "Annotation not found" }, 404);
+          if (!annotation) {
+            return c.json({ error: "Annotation not found" }, 404);
+          }
+
+          const body = c.req.valid("json");
+
+          // Update only provided fields (partial update)
+          if (body.content !== undefined) {
+            annotation.content = body.content;
+          }
+          if (body.tags !== undefined) {
+            annotation.tags = body.tags;
+          }
+          if (body.resolved !== undefined) {
+            annotation.resolved = body.resolved;
+          }
+          annotation.updatedAt = new Date().toISOString();
+
+          // Broadcast to all clients
+          await this.broadcastMessage({
+            type: "annotation.updated",
+            annotationId: annotation.id,
+            timestamp: annotation.updatedAt,
+          });
+
+          return c.json(annotation);
+        } catch (error) {
+          const message = getErrorMessage(error);
+          return c.json({ error: message }, 500);
         }
-
-        const body = await c.req.json();
-
-        // Update only provided fields (partial update)
-        if (body.content !== undefined) {
-          annotation.content = String(body.content);
-        }
-        if (body.tags !== undefined) {
-          annotation.tags = body.tags;
-        }
-        if (body.resolved !== undefined) {
-          annotation.resolved = Boolean(body.resolved);
-        }
-        annotation.updatedAt = new Date().toISOString();
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.updated",
-          annotationId: annotation.id,
-          timestamp: annotation.updatedAt,
-        });
-
-        return c.json(annotation);
-      } catch (error) {
-        const message = getErrorMessage(error);
-        return c.json({ error: message }, 500);
       }
-    });
+    );
 
     // Delete annotation
     this.app.delete("/api/annotations/:annotationId", async (c) => {
@@ -527,46 +535,39 @@ export class VisualizationServer {
     });
 
     // POST annotation reply
-    this.app.post("/api/annotations/:annotationId/replies", async (c) => {
-      try {
-        const annotationId = c.req.param("annotationId");
-        const annotation = this.annotations.get(annotationId);
+    this.app.post(
+      "/api/annotations/:annotationId/replies",
+      zValidator("json", AnnotationReplyCreateSchema),
+      async (c) => {
+        try {
+          const annotationId = c.req.param("annotationId");
+          const annotation = this.annotations.get(annotationId);
 
-        if (!annotation) {
-          return c.json({ error: "Annotation not found" }, 404);
-        }
+          if (!annotation) {
+            return c.json({ error: "Annotation not found" }, 404);
+          }
 
-        const body = await c.req.json();
+          const body = c.req.valid("json");
 
-        // Validate required fields
-        if (!body.author || !body.content) {
-          return c.json(
-            {
-              error: "Missing required fields: author, content",
-            },
-            400
-          );
-        }
+          const reply: AnnotationReply = {
+            id: this.generateReplyId(),
+            author: body.author,
+            content: body.content,
+            createdAt: new Date().toISOString(),
+          };
 
-        const reply: AnnotationReply = {
-          id: this.generateReplyId(),
-          author: String(body.author),
-          content: String(body.content),
-          createdAt: new Date().toISOString(),
-        };
+          // Store reply
+          if (!this.replies.has(annotationId)) {
+            this.replies.set(annotationId, []);
+          }
+          this.replies.get(annotationId)!.push(reply);
 
-        // Store reply
-        if (!this.replies.has(annotationId)) {
-          this.replies.set(annotationId, []);
-        }
-        this.replies.get(annotationId)!.push(reply);
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.reply.added",
-          annotationId,
-          replyId: reply.id,
-          timestamp: reply.createdAt,
+          // Broadcast to all clients
+          await this.broadcastMessage({
+            type: "annotation.reply.added",
+            annotationId,
+            replyId: reply.id,
+            timestamp: reply.createdAt,
         });
 
         return c.json(reply, 201);

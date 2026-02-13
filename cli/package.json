@@ -60,6 +60,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@clack/prompts": "^0.8.0",
+    "@hono/zod-validator": "^0.7.6",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.0",
     "ansis": "^3.0.0",
@@ -67,7 +68,8 @@
     "graphology": "^0.25.4",
     "graphology-traversal": "^0.3.1",
     "hono": "^4.11.1",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
