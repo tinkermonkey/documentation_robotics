@@ -39,6 +39,7 @@ import { claudeCommands } from "./commands/claude.js";
 import { copilotCommands } from "./commands/copilot.js";
 import { versionCommand } from "./commands/version.js";
 import { statsCommand } from "./commands/stats.js";
+import { reportCommand } from "./commands/report.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { readJSON, fileExists } from "./utils/file-io.js";
@@ -471,6 +472,41 @@ Examples:
   $ dr stats --verbose                 # Show detailed information`
   )
   .action((options) => statsCommand(options));
+
+program
+  .command("report")
+  .description("Generate comprehensive architecture reports")
+  .option("--model <path>", "Path to the model directory")
+  .option("--type <type>", "Report type: comprehensive (default), statistics, relationships, data-model, quality")
+  .option("--format <format>", "Output format: text (default), json, markdown")
+  .option("--output <path>", "Output file path (auto-detects format from extension)")
+  .option("--verbose", "Show detailed information")
+  .option("--include-data-model", "Include data model analysis (default: true)")
+  .option("--include-quality", "Include quality metrics (default: true)")
+  .addHelpText(
+    "after",
+    `
+Report types:
+  comprehensive  Full report with statistics, relationships, and data model (default)
+  statistics     Statistics and quality metrics
+  relationships  Relationship analysis and classification
+  data-model     Layer 7 data model analysis
+  quality        Quality metrics and recommendations
+
+Output formats:
+  text       Full formatted report (default)
+  json       JSON output for automation
+  markdown   Markdown report format
+
+Examples:
+  $ dr report                                      # Show comprehensive report
+  $ dr report --type relationships                 # Show relationship analysis
+  $ dr report --format json                        # Output as JSON
+  $ dr report --output report.md                   # Save as markdown file
+  $ dr report --type data-model --output dm.md     # Data model report as markdown
+  $ dr report --verbose                            # Show detailed information`
+  )
+  .action((options) => reportCommand(options));
 
 // Element subcommands
 const elementGroup = program.command("element").description("Element operations");

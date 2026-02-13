@@ -102,7 +102,7 @@ export class JsonSchemaExporter implements Exporter {
       };
       rootSchema.metadata = metadata;
 
-      const result = JSON.stringify(rootSchema, null, 2);
+      const result = JSON.stringify(rootSchema, null, 2) + "\n";
 
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute(

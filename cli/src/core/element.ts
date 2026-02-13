@@ -521,4 +521,14 @@ export class Element implements IElement {
   toString(): string {
     return `Element(${this.id})`;
   }
+
+  /**
+   * Reset module-level state (for tests and long-running processes)
+   * Allows the legacy format warning to be shown again
+   *
+   * @internal Used primarily for testing and clearing accumulated state
+   */
+  static resetLegacyWarning(): void {
+    legacyFormatWarningShown = false;
+  }
 }

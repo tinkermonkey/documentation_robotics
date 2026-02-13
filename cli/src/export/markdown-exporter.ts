@@ -4,6 +4,7 @@ import { ALL_LAYERS } from "./types.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { formatLayerName } from "../utils/layer-name-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { escapeMarkdown, valueToMarkdown, getLayerDescription } from "./markdown-utils.js";
 
 /**
  * Markdown Exporter - generates comprehensive markdown documentation
@@ -12,21 +13,6 @@ import { getErrorMessage } from "../utils/errors.js";
 export class MarkdownExporter implements Exporter {
   name = "Markdown";
   supportedLayers = ALL_LAYERS;
-
-  private readonly layerDescriptions: Record<string, string> = {
-    motivation: "Goals, requirements, drivers, and strategic outcomes of the architecture.",
-    business: "Business processes, functions, roles, and services.",
-    security: "Authentication, authorization, security threats, and controls.",
-    application: "Application components, services, and interactions.",
-    technology: "Infrastructure, platforms, systems, and technology components.",
-    api: "REST APIs, operations, endpoints, and API integrations.",
-    "data-model": "Data entities, relationships, and data structure definitions.",
-    "data-store": "Databases, data stores, and persistence mechanisms.",
-    ux: "User interface components, screens, and user experience elements.",
-    navigation: "Application routing, navigation flows, and page structures.",
-    apm: "Observability, monitoring, metrics, logging, and tracing.",
-    testing: "Test strategies, test cases, test data, and test coverage.",
-  };
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
     const span = isTelemetryEnabled
@@ -39,7 +25,7 @@ export class MarkdownExporter implements Exporter {
       const lines: string[] = [];
 
       // Document header
-      lines.push(`# ${this.escapeMarkdown(model.manifest.name)}`);
+      lines.push(`# ${this.escapeMarkdownLocal(model.manifest.name)}`);
       lines.push("");
 
       if (model.manifest.description) {
@@ -54,7 +40,7 @@ export class MarkdownExporter implements Exporter {
       lines.push(`| -------- | ----- |`);
       lines.push(`| Version | ${model.manifest.version || "1.0.0"} |`);
       if (model.manifest.author) {
-        lines.push(`| Author | ${this.escapeMarkdown(model.manifest.author)} |`);
+        lines.push(`| Author | ${this.escapeMarkdownLocal(model.manifest.author)} |`);
       }
       if (model.manifest.created) {
         lines.push(`| Created | ${model.manifest.created} |`);
@@ -77,7 +63,7 @@ export class MarkdownExporter implements Exporter {
         lines.push(`## Layer: ${this.formatLayerName(layerName)}`);
         lines.push("");
 
-        const description = this.layerDescriptions[layerName];
+        const description = this.getLayerDescription(layerName);
         if (description) {
           lines.push(`*${description}*`);
           lines.push("");
@@ -91,11 +77,11 @@ export class MarkdownExporter implements Exporter {
         lines.push(`| -- | ---- | ---- | ----------- |`);
 
         for (const element of elements) {
-          const id = this.escapeMarkdown(element.id);
-          const name = this.escapeMarkdown(element.name);
-          const type = this.escapeMarkdown(element.type);
+          const id = this.escapeMarkdownLocal(element.id);
+          const name = this.escapeMarkdownLocal(element.name);
+          const type = this.escapeMarkdownLocal(element.type);
           const desc = element.description
-            ? this.escapeMarkdown(element.description).substring(0, 100)
+            ? this.escapeMarkdownLocal(element.description).substring(0, 100)
             : "";
 
           lines.push(`| \`${id}\` | ${name} | ${type} | ${desc} |`);
@@ -108,7 +94,7 @@ export class MarkdownExporter implements Exporter {
         lines.push("");
 
         for (const element of elements) {
-          lines.push(`#### ${this.escapeMarkdown(element.name)} (\`${element.id}\`)`);
+          lines.push(`#### ${this.escapeMarkdownLocal(element.name)} (\`${element.id}\`)`);
           lines.push("");
 
           if (element.description) {
@@ -130,9 +116,9 @@ export class MarkdownExporter implements Exporter {
             lines.push("**Locations:**");
             lines.push("");
             sourceRef.locations.forEach((loc, idx) => {
-              lines.push(`${idx + 1}. \`${this.escapeMarkdown(loc.file)}\``);
+              lines.push(`${idx + 1}. \`${this.escapeMarkdownLocal(loc.file)}\``);
               if (loc.symbol) {
-                lines.push(`   - Symbol: \`${this.escapeMarkdown(loc.symbol)}\``);
+                lines.push(`   - Symbol: \`${this.escapeMarkdownLocal(loc.symbol)}\``);
               }
             });
             lines.push("");
@@ -165,7 +151,7 @@ export class MarkdownExporter implements Exporter {
             lines.push(`| -------- | ----- |`);
 
             for (const [key, value] of Object.entries(element.properties)) {
-              const displayValue = this.valueToMarkdown(value);
+              const displayValue = this.valueToMarkdownLocal(value);
               lines.push(`| \`${key}\` | ${displayValue} |`);
             }
             lines.push("");
@@ -177,7 +163,7 @@ export class MarkdownExporter implements Exporter {
             lines.push("");
 
             for (const ref of element.references) {
-              const refDesc = ref.description ? ` - ${this.escapeMarkdown(ref.description)}` : "";
+              const refDesc = ref.description ? ` - ${this.escapeMarkdownLocal(ref.description)}` : "";
               lines.push(`- **${ref.type}**: \`${ref.target}\`${refDesc}`);
             }
             lines.push("");
@@ -265,37 +251,28 @@ export class MarkdownExporter implements Exporter {
   /**
    * Escape markdown special characters
    */
-  private escapeMarkdown(str: string): string {
-    return str
-      .replace(/\\/g, "\\\\")
-      .replace(/\|/g, "\\|")
-      .replace(/\*/g, "\\*")
-      .replace(/\[/g, "\\[")
-      .replace(/\]/g, "\\]")
-      .replace(/\{/g, "\\{")
-      .replace(/\}/g, "\\}");
+  private escapeMarkdownLocal(str: string): string {
+    return escapeMarkdown(str);
   }
 
   /**
-   * Format layer name for display (delegates to centralized formatter)
+   * Format layer name for display
    */
   private formatLayerName(name: string): string {
     return formatLayerName(name);
   }
 
   /**
+   * Get layer description
+   */
+  private getLayerDescription(layer: string): string {
+    return getLayerDescription(layer);
+  }
+
+  /**
    * Convert value to markdown representation
    */
-  private valueToMarkdown(value: unknown): string {
-    if (typeof value === "string") return this.escapeMarkdown(value);
-    if (typeof value === "number") return String(value);
-    if (typeof value === "boolean") return String(value);
-    if (Array.isArray(value)) {
-      return `[${value.map((v) => this.valueToMarkdown(v)).join(", ")}]`;
-    }
-    if (value && typeof value === "object") {
-      return `\`${this.escapeMarkdown(JSON.stringify(value))}\``;
-    }
-    return String(value);
+  private valueToMarkdownLocal(value: unknown): string {
+    return valueToMarkdown(value);
   }
 }

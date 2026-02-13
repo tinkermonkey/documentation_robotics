@@ -11,8 +11,13 @@ import fs from "node:fs/promises";
 import { glob } from "glob";
 import { getErrorMessage } from "../utils/errors.js";
 
+/**
+ * Directionality of a relationship
+ */
+export type Directionality = "unidirectional" | "bidirectional";
+
 export interface RelationshipSemantics {
-  directionality: "unidirectional" | "bidirectional";
+  directionality: Directionality;
   transitivity: boolean;
   symmetry: boolean;
   reflexivity?: boolean;
@@ -110,6 +115,7 @@ export class RelationshipCatalog {
         const content = await fs.readFile(fallbackPath, "utf-8");
         this.predicatesData = JSON.parse(content);
         this.predicatesPath = fallbackPath;
+        console.debug(`Loaded predicates from fallback path: ${fallbackPath}`);
       } catch {
         throw new Error(
           `Failed to load predicates from ${this.predicatesPath}: ${getErrorMessage(error)}`
@@ -181,7 +187,12 @@ export class RelationshipCatalog {
             layersByPredicate[predicate].add(sourceLayer);
           }
         } catch (error) {
-          // Skip files that can't be parsed
+          // Separate JSON parse errors (expected/recoverable) from file read errors (unexpected)
+          if (error instanceof SyntaxError) {
+            console.warn(`Malformed JSON in relationship schema ${file}: ${error.message}`);
+          } else {
+            console.warn(`Could not parse relationship schema ${file}:`, error);
+          }
           continue;
         }
       }

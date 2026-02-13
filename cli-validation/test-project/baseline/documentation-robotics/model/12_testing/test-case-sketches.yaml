@@ -1,17 +1,20 @@
-test-case-sketches:
-  - name: Test Create Todo
-    description: Test creating a new todo item
-    status: planned
-    id: testing-case-create-todo
-  - name: Test List Todos
-    description: Test retrieving all todos
-    status: planned
-    id: testing-case-list-todos
-  - name: Test Update Todo
-    description: Test updating an existing todo
-    status: planned
-    id: testing-case-update-todo
-  - name: Test Delete Todo
-    description: Test deleting a todo
-    status: planned
-    id: testing-case-delete-todo
+Test Create Todo:
+  name: Test Create Todo
+  description: Test creating a new todo item
+  status: planned
+  id: testing.testcasesketch.create-todo
+Test List Todos:
+  name: Test List Todos
+  description: Test retrieving all todos
+  status: planned
+  id: testing.testcasesketch.list-todos
+Test Update Todo:
+  name: Test Update Todo
+  description: Test updating an existing todo
+  status: planned
+  id: testing.testcasesketch.update-todo
+Test Delete Todo:
+  name: Test Delete Todo
+  description: Test deleting a todo
+  status: planned
+  id: testing.testcasesketch.delete-todo

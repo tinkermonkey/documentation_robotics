@@ -3,4 +3,4 @@ Todo API Coverage Model:
   description: Test coverage model for todo API operations
   version: "1.0"
   application: todo-app
-  id: todo-api-coverage
+  id: testing.testcoveragemodel.todo-api-coverage

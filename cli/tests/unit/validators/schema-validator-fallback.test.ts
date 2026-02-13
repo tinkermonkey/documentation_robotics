@@ -18,6 +18,7 @@ describe("SchemaValidator - AJV Fallback Paths", () => {
   let validator: SchemaValidator;
 
   beforeEach(() => {
+    SchemaValidator.reset();
     validator = new SchemaValidator();
   });
 

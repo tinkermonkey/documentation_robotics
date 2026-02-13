@@ -345,7 +345,7 @@ export class ModelMigrationService {
       },
     };
 
-    await writeFile(modelFile, JSON.stringify(model, null, 2));
+    await writeFile(modelFile, JSON.stringify(model, null, 2) + "\n");
   }
 
   /**
@@ -370,7 +370,7 @@ export class ModelMigrationService {
       ],
     };
 
-    await writeFile(mappingFilePath, JSON.stringify(migrationMap, null, 2));
+    await writeFile(mappingFilePath, JSON.stringify(migrationMap, null, 2) + "\n");
 
     return mappingFilePath;
   }

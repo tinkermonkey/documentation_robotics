@@ -160,6 +160,7 @@ describe("Export Command Integration Tests", () => {
     expect(spec.openapi).toBe("3.0.0");
     expect(spec.info.title).toBe("Integration Test Model");
     expect(spec.paths).toBeDefined();
+    expect(Object.keys(spec.paths).length).toBeGreaterThan(0);
   });
 
   it("should successfully export model in json-schema format", async () => {
@@ -175,6 +176,7 @@ describe("Export Command Integration Tests", () => {
     const schema = JSON.parse(result);
     expect(schema.$schema).toContain("json-schema.org");
     expect(schema.definitions).toBeDefined();
+    expect(Object.keys(schema.definitions).length).toBeGreaterThan(0);
   });
 
   it("should successfully export model in plantuml format", async () => {
@@ -326,6 +328,9 @@ describe("Export Command Integration Tests", () => {
     const spec = JSON.parse(result);
     expect(spec.paths).toBeDefined();
     expect(spec.paths["/api/orders"]).toBeDefined();
+    expect(spec.paths["/api/orders"].post).toBeDefined();
+    expect(spec.paths["/api/orders"].post.operationId).toBe("api-endpoint-create-order");
+    expect(spec.paths["/api/orders"].post.responses["201"]).toBeDefined();
   });
 
   it("should export plantuml with multiple layer filters", async () => {
@@ -406,5 +411,8 @@ describe("Export Command Integration Tests", () => {
     const schema = JSON.parse(result);
     expect(schema.$schema).toBeDefined();
     expect(schema.$schema.includes("json-schema.org")).toBe(true);
+    expect(schema.definitions).toBeDefined();
+    expect(schema.definitions["data-model-entity-order"]).toBeDefined();
+    expect(schema.definitions["data-model-entity-order"].properties.id.type).toBe("string");
   });
 });

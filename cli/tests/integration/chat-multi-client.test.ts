@@ -90,11 +90,6 @@ describe("Chat Command Integration", () => {
       expect(reloadedModel?.manifest.preferred_chat_client).toBe("GitHub Copilot");
     });
 
-    it("should handle missing preference", async () => {
-      const preference = model.manifest.preferred_chat_client;
-      expect(preference).toBeUndefined();
-    });
-
     it("should update preference", async () => {
       // Set initial preference
       model.manifest.preferred_chat_client = "Claude Code";

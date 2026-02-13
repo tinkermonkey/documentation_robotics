@@ -215,6 +215,7 @@ export class StatsCollector {
   /**
    * Collect validation information
    * Runs model validation and returns actual validation status
+   * Preserves error details for debugging
    */
   private async collectValidationInfo(): Promise<ValidationInfo> {
     try {
@@ -228,10 +229,16 @@ export class StatsCollector {
         warnings: result.warnings.length,
       };
     } catch (error) {
-      // If validation fails for any reason, return a neutral state
+      // Preserve actual error information for debugging
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[stats-collector] Validation failed: ${errorMessage}`);
+
+      // Return failed state with sentinel error count -1 indicating collection failure
+      // (cannot be confused with actual error count which is always >= 0)
       return {
         isValid: false,
-        errors: 1,
+        lastValidated: new Date().toISOString(),
+        errors: -1, // Sentinel: validation collection itself failed
         warnings: 0,
       };
     }

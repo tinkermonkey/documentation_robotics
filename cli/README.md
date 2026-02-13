@@ -354,6 +354,32 @@ my-viewer/
 └── ...                 # Other static files
 ```
 
+## Generating Layer Reports
+
+To generate comprehensive markdown reports for all 12 architecture layers:
+
+```bash
+npm run generate:layer-reports
+```
+
+This command:
+
+- Loads 354 node schemas, 252 relationship schemas, 12 layer definitions, and 47 predicates
+- Computes per-layer statistics and relationship classifications
+- Generates 12 markdown reports in `spec/browser/` with Mermaid diagrams
+- Generates `spec/browser/README.md` with overview and dependency matrix
+
+**Output Location**: `spec/browser/{NN}-{layer-name}-layer-report.md`
+
+**When to Regenerate**:
+
+- After modifying layer definitions in `spec/layers/*.layer.json`
+- After adding/modifying node schemas in `spec/schemas/nodes/`
+- After adding/modifying relationship schemas in `spec/schemas/relationships/`
+- Before creating a new spec version release
+
+**Git Integration**: The generated reports in `spec/browser/` are committed to git for easy browsing on GitHub. Regenerate them before spec releases to keep documentation in sync with specification changes.
+
 ## Example Workflows
 
 ### Analyzing Dependencies

@@ -30,7 +30,7 @@ repos:
       - id: prettier
         types_or: [markdown, yaml, json]
         args: [--write, --prose-wrap=preserve]
-        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|cli/CHANGELOG\.md)
+        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|cli/CHANGELOG\.md|spec/browser/.*-layer-report\.md|spec/browser/README\.md)
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
@@ -38,7 +38,7 @@ repos:
     hooks:
       - id: markdownlint
         args: [--fix, --config, .markdownlint.json]
-        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md)
+        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|spec/browser/.*-layer-report\.md|spec/browser/README\.md)
 
   # TypeScript/JavaScript linting (for Bun CLI)
   - repo: local

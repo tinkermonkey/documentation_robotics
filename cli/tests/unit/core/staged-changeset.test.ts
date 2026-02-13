@@ -361,4 +361,37 @@ describe("StagedChangesetStorage", () => {
       expect(loaded?.changes[0].elementId).toBe("elem-2");
     });
   });
+
+  describe("ID sanitization edge cases", () => {
+    it("should handle IDs starting with numbers", async () => {
+      const storage = new StagedChangesetStorage(TEST_DIR);
+      const changeset = await storage.create("123-test", "test", undefined, "snapshot");
+      expect(changeset.id).toBeDefined();
+      // Verify the ID starts with a number (not prefixed or removed)
+      expect(changeset.id).toMatch(/^123/);
+    });
+
+    it("should handle IDs longer than 100 characters", async () => {
+      const storage = new StagedChangesetStorage(TEST_DIR);
+      const longId = "a".repeat(150);
+      const changeset = await storage.create(longId, "test", undefined, "snapshot");
+      // Verify the ID is created (behavior: preserve full length)
+      expect(changeset.id).toBeDefined();
+      expect(changeset.id).toBe("a".repeat(150));
+    });
+
+    it("should sanitize IDs with special characters", async () => {
+      const storage = new StagedChangesetStorage(TEST_DIR);
+      const changeset = await storage.create("test@#$%-feature", "test", undefined, "snapshot");
+      // Should sanitize special characters out (@ # $ % removed)
+      expect(changeset.id).toBeDefined();
+      expect(changeset.id).toMatch(/^[a-z0-9-]+$/);
+      expect(changeset.id).toBe("test-feature");
+    });
+
+    it("should reject IDs that become empty after sanitization", async () => {
+      const storage = new StagedChangesetStorage(TEST_DIR);
+      await expect(storage.create("@#$%", "test", undefined, "snapshot")).rejects.toThrow();
+    });
+  });
 });

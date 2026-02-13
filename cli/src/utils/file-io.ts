@@ -117,5 +117,5 @@ export async function readJSON<T>(path: string): Promise<T> {
  */
 export async function writeJSON<T>(path: string, data: T, pretty: boolean = true): Promise<void> {
   const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
-  await atomicWrite(path, content);
+  await atomicWrite(path, content + "\n");
 }
