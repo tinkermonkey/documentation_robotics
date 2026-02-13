@@ -19,6 +19,7 @@
     "sync-schemas": "bash scripts/sync-spec-schemas.sh",
     "copy-schemas": "cp -r src/schemas dist/",
     "generate-layer-reports": "bun run ../scripts/generate-layer-reports.ts",
+    "generate:openapi": "tsx scripts/generate-openapi.ts",
     "dev": "node dist/cli.js",
     "lint": "tsc --noEmit",
     "type-check": "tsc --noEmit",
@@ -60,6 +61,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@clack/prompts": "^0.8.0",
+    "@hono/swagger-ui": "^0.5.3",
+    "@hono/zod-openapi": "^1.2.1",
     "@hono/zod-validator": "^0.7.6",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.0",

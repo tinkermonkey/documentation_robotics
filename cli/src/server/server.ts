@@ -3,11 +3,10 @@
  * HTTP server with WebSocket support for real-time model updates
  */
 
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { upgradeWebSocket, websocket } from "hono/bun";
 import { cors } from "hono/cors";
-import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
+import { swaggerUI } from "@hono/swagger-ui";
 import { serve } from "bun";
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
@@ -25,6 +24,12 @@ import {
   IdSchema,
   AnnotationFilterSchema,
   ElementIdSchema,
+  ErrorResponseSchema,
+  HealthResponseSchema,
+  AnnotationSchema,
+  AnnotationReplySchema,
+  AnnotationsListSchema,
+  ChangesetsListSchema,
 } from "./schemas.js";
 
 interface WSMessage {
@@ -112,7 +117,7 @@ export interface VisualizationServerOptions {
  * Visualization Server class
  */
 export class VisualizationServer {
-  private app: Hono;
+  private app: OpenAPIHono;
   private model: Model;
   private _server?: ReturnType<typeof serve>;
   private clients: Set<HonoWSContext> = new Set();
@@ -130,7 +135,7 @@ export class VisualizationServer {
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
 
   constructor(model: Model, options?: VisualizationServerOptions) {
-    this.app = new Hono();
+    this.app = new OpenAPIHono();
     this.model = model;
 
     // Auth configuration (CLI options override environment variables)
@@ -254,17 +259,59 @@ export class VisualizationServer {
     }
 
     // Health check endpoint
-    this.app.get("/health", (c) => {
+    const healthRoute = createRoute({
+      method: 'get',
+      path: '/health',
+      tags: ['Health'],
+      summary: 'Health check',
+      description: 'Check if the server is running and healthy',
+      responses: {
+        200: {
+          description: 'Server is healthy',
+          content: {
+            'application/json': {
+              schema: HealthResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(healthRoute, (c) => {
       return c.json({
         status: "ok",
         version: "0.1.0",
       });
     });
 
-    // REST API endpoints
-
     // Get full model
-    this.app.get("/api/model", async (c) => {
+    const getModelRoute = createRoute({
+      method: 'get',
+      path: '/api/model',
+      tags: ['Model'],
+      summary: 'Get full model',
+      description: 'Retrieve the complete architecture model across all layers',
+      responses: {
+        200: {
+          description: 'Model data retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getModelRoute, async (c) => {
       console.log(`[ROUTE] /api/model handler called`);
       try {
         console.log(`[ROUTE] /api/model serializing model...`);
@@ -281,13 +328,47 @@ export class VisualizationServer {
     });
 
     // Get specific layer
-    this.app.get(
-      "/api/layers/:name",
-      zValidator("param", z.object({ name: LayerNameSchema })),
-      async (c) => {
-        try {
-          const { name: layerName } = c.req.valid("param");
-          const layer = await this.model.getLayer(layerName);
+    const getLayerRoute = createRoute({
+      method: 'get',
+      path: '/api/layers/:name',
+      tags: ['Model'],
+      summary: 'Get layer',
+      description: 'Retrieve a specific layer with all its elements',
+      request: {
+        params: z.object({ name: LayerNameSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Layer retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Layer not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getLayerRoute, async (c) => {
+      try {
+        const { name: layerName } = c.req.valid("param");
+        const layer = await this.model.getLayer(layerName);
 
         if (!layer) {
           return c.json({ error: "Layer not found" }, 404);
@@ -295,44 +376,102 @@ export class VisualizationServer {
 
         const elements = layer.listElements().map((e) => e.toJSON());
 
-          return c.json({
-            name: layerName,
-            elements,
-            elementCount: elements.length,
-          });
-        } catch (error) {
-          const message = getErrorMessage(error);
-          return c.json({ error: message }, 500);
-        }
+        return c.json({
+          name: layerName,
+          elements,
+          elementCount: elements.length,
+        });
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
       }
-    );
+    });
 
     // Get specific element
-    this.app.get(
-      "/api/elements/:id",
-      zValidator("param", z.object({ id: ElementIdSchema })),
-      async (c) => {
-        try {
-          const { id: elementId } = c.req.valid("param");
-          const element = await this.findElement(elementId);
+    const getElementRoute = createRoute({
+      method: 'get',
+      path: '/api/elements/:id',
+      tags: ['Model'],
+      summary: 'Get element',
+      description: 'Retrieve a specific architecture element with its metadata and annotations',
+      request: {
+        params: z.object({ id: ElementIdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Element retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Element not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
 
-          if (!element) {
-            return c.json({ error: "Element not found" }, 404);
-          }
+    this.app.openapi(getElementRoute, async (c) => {
+      try {
+        const { id: elementId } = c.req.valid("param");
+        const element = await this.findElement(elementId);
 
-          return c.json({
-            ...element.toJSON(),
-            annotations: this.annotations.get(elementId) || [],
-          });
-        } catch (error) {
-          const message = getErrorMessage(error);
-          return c.json({ error: message }, 500);
+        if (!element) {
+          return c.json({ error: "Element not found" }, 404);
         }
+
+        return c.json({
+          ...element.toJSON(),
+          annotations: this.annotations.get(elementId) || [],
+        });
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
       }
-    );
+    });
 
     // Get JSON Schema specifications
-    this.app.get("/api/spec", async (c) => {
+    const getSpecRoute = createRoute({
+      method: 'get',
+      path: '/api/spec',
+      tags: ['Schema'],
+      summary: 'Get JSON schemas',
+      description: 'Retrieve all JSON Schema definitions used by the system',
+      responses: {
+        200: {
+          description: 'Schemas retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getSpecRoute, async (c) => {
       try {
         const schemas = await this.loadSchemas();
         return c.json({
@@ -352,171 +491,342 @@ export class VisualizationServer {
     // Annotations API (spec-compliant routes)
 
     // Get all annotations (optionally filtered by elementId)
-    this.app.get(
-      "/api/annotations",
-      zValidator("query", AnnotationFilterSchema),
-      (c) => {
-        const query = c.req.valid("query");
-        const elementId = query.elementId;
+    const getAnnotationsRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations',
+      tags: ['Annotations'],
+      summary: 'Get annotations',
+      description: 'Retrieve all annotations, optionally filtered by element',
+      request: {
+        query: AnnotationFilterSchema,
+      },
+      responses: {
+        200: {
+          description: 'Annotations retrieved successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationsListSchema,
+            },
+          },
+        },
+      },
+    });
 
-        if (elementId) {
-          // Filter by element
-          const annotationIds = this.annotationsByElement.get(elementId) || new Set();
-          const annotations = Array.from(annotationIds)
-            .map((id) => this.annotations.get(id))
-            .filter((a): a is ClientAnnotation => a !== undefined);
+    this.app.openapi(getAnnotationsRoute, (c) => {
+      const query = c.req.valid("query");
+      const elementId = query.elementId;
 
-          return c.json({ annotations });
-        } else {
-          // Return all annotations
-          const annotations = Array.from(this.annotations.values());
-          return c.json({ annotations });
-        }
+      if (elementId) {
+        // Filter by element
+        const annotationIds = this.annotationsByElement.get(elementId) || new Set();
+        const annotations = Array.from(annotationIds)
+          .map((id) => this.annotations.get(id))
+          .filter((a): a is ClientAnnotation => a !== undefined);
+
+        return c.json({ annotations });
+      } else {
+        // Return all annotations
+        const annotations = Array.from(this.annotations.values());
+        return c.json({ annotations });
       }
-    );
+    });
 
     // Create annotation
-    this.app.post(
-      "/api/annotations",
-      zValidator("json", AnnotationCreateSchema),
-      async (c) => {
-        try {
-          const body = c.req.valid("json");
+    const createAnnotationRoute = createRoute({
+      method: 'post',
+      path: '/api/annotations',
+      tags: ['Annotations'],
+      summary: 'Create annotation',
+      description: 'Create a new annotation on a model element',
+      request: {
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationCreateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Annotation created successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        400: {
+          description: 'Invalid request body',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Element not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
 
-          // Verify element exists
-          const element = await this.findElement(body.elementId);
-          if (!element) {
-            return c.json({ error: "Element not found" }, 404);
-          }
+    this.app.openapi(createAnnotationRoute, async (c) => {
+      try {
+        const body = c.req.valid("json");
 
-          // Create annotation
-          const annotation: ClientAnnotation = {
-            id: this.generateAnnotationId(),
-            elementId: body.elementId,
-            author: body.author,
-            content: body.content,
-            createdAt: new Date().toISOString(),
-            tags: body.tags,
-            resolved: false, // Default to unresolved
-          };
-
-          // Store annotation
-          this.annotations.set(annotation.id, annotation);
-          if (!this.annotationsByElement.has(annotation.elementId)) {
-            this.annotationsByElement.set(annotation.elementId, new Set());
-          }
-          this.annotationsByElement.get(annotation.elementId)!.add(annotation.id);
-
-          // Broadcast to all clients
-          await this.broadcastMessage({
-            type: "annotation.added",
-            annotationId: annotation.id,
-            elementId: annotation.elementId,
-            timestamp: annotation.createdAt,
-          });
-
-          return c.json(annotation, 201);
-        } catch (error) {
-          const message = getErrorMessage(error);
-          return c.json({ error: message }, 500);
+        // Verify element exists
+        const element = await this.findElement(body.elementId);
+        if (!element) {
+          return c.json({ error: "Element not found" }, 404);
         }
-      }
-    );
 
-    // Update annotation
-    this.app.put(
-      "/api/annotations/:annotationId",
-      zValidator("param", z.object({ annotationId: IdSchema })),
-      zValidator("json", AnnotationUpdateSchema),
-      async (c) => {
-        try {
-          const { annotationId } = c.req.valid("param");
-          const annotation = this.annotations.get(annotationId);
+        // Create annotation
+        const annotation: ClientAnnotation = {
+          id: this.generateAnnotationId(),
+          elementId: body.elementId,
+          author: body.author,
+          content: body.content,
+          createdAt: new Date().toISOString(),
+          tags: body.tags,
+          resolved: false, // Default to unresolved
+        };
 
-          if (!annotation) {
-            return c.json({ error: "Annotation not found" }, 404);
-          }
-
-          const body = c.req.valid("json");
-
-          // Update fields
-          if (body.content !== undefined) {
-            annotation.content = body.content;
-          }
-          if (body.tags !== undefined) {
-            annotation.tags = body.tags;
-          }
-          if (body.resolved !== undefined) {
-            annotation.resolved = body.resolved;
-          }
-          annotation.updatedAt = new Date().toISOString();
-
-          // Broadcast to all clients
-          await this.broadcastMessage({
-            type: "annotation.updated",
-            annotationId: annotation.id,
-            timestamp: annotation.updatedAt,
-          });
-
-          return c.json(annotation);
-        } catch (error) {
-          const message = getErrorMessage(error);
-          return c.json({ error: message }, 500);
+        // Store annotation
+        this.annotations.set(annotation.id, annotation);
+        if (!this.annotationsByElement.has(annotation.elementId)) {
+          this.annotationsByElement.set(annotation.elementId, new Set());
         }
+        this.annotationsByElement.get(annotation.elementId)!.add(annotation.id);
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: "annotation.added",
+          annotationId: annotation.id,
+          elementId: annotation.elementId,
+          timestamp: annotation.createdAt,
+        });
+
+        return c.json(annotation, 201);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
       }
-    );
+    });
 
-    // PATCH annotation (partial update - recommended)
-    this.app.patch(
-      "/api/annotations/:annotationId",
-      zValidator("param", z.object({ annotationId: IdSchema })),
-      zValidator("json", AnnotationUpdateSchema),
-      async (c) => {
-        try {
-          const { annotationId } = c.req.valid("param");
-          const annotation = this.annotations.get(annotationId);
+    // Update annotation (PUT)
+    const updateAnnotationRoute = createRoute({
+      method: 'put',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Update annotation',
+      description: 'Update an existing annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationUpdateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Annotation updated successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
 
-          if (!annotation) {
-            return c.json({ error: "Annotation not found" }, 404);
-          }
+    this.app.openapi(updateAnnotationRoute, async (c) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const annotation = this.annotations.get(annotationId);
 
-          const body = c.req.valid("json");
-
-          // Update only provided fields (partial update)
-          if (body.content !== undefined) {
-            annotation.content = body.content;
-          }
-          if (body.tags !== undefined) {
-            annotation.tags = body.tags;
-          }
-          if (body.resolved !== undefined) {
-            annotation.resolved = body.resolved;
-          }
-          annotation.updatedAt = new Date().toISOString();
-
-          // Broadcast to all clients
-          await this.broadcastMessage({
-            type: "annotation.updated",
-            annotationId: annotation.id,
-            timestamp: annotation.updatedAt,
-          });
-
-          return c.json(annotation);
-        } catch (error) {
-          const message = getErrorMessage(error);
-          return c.json({ error: message }, 500);
+        if (!annotation) {
+          return c.json({ error: "Annotation not found" }, 404);
         }
+
+        const body = c.req.valid("json");
+
+        // Update fields
+        if (body.content !== undefined) {
+          annotation.content = body.content;
+        }
+        if (body.tags !== undefined) {
+          annotation.tags = body.tags;
+        }
+        if (body.resolved !== undefined) {
+          annotation.resolved = body.resolved;
+        }
+        annotation.updatedAt = new Date().toISOString();
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: "annotation.updated",
+          annotationId: annotation.id,
+          timestamp: annotation.updatedAt,
+        });
+
+        return c.json(annotation);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
       }
-    );
+    });
+
+    // Partial update annotation (PATCH)
+    const patchAnnotationRoute = createRoute({
+      method: 'patch',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Partially update annotation',
+      description: 'Partially update an existing annotation (recommended over PUT)',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationUpdateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Annotation updated successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(patchAnnotationRoute, async (c) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        const body = c.req.valid("json");
+
+        // Update only provided fields (partial update)
+        if (body.content !== undefined) {
+          annotation.content = body.content;
+        }
+        if (body.tags !== undefined) {
+          annotation.tags = body.tags;
+        }
+        if (body.resolved !== undefined) {
+          annotation.resolved = body.resolved;
+        }
+        annotation.updatedAt = new Date().toISOString();
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: "annotation.updated",
+          annotationId: annotation.id,
+          timestamp: annotation.updatedAt,
+        });
+
+        return c.json(annotation);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    });
 
     // Delete annotation
-    this.app.delete(
-      "/api/annotations/:annotationId",
-      zValidator("param", z.object({ annotationId: IdSchema })),
-      async (c) => {
-        try {
-          const { annotationId } = c.req.valid("param");
-          const annotation = this.annotations.get(annotationId);
+    const deleteAnnotationRoute = createRoute({
+      method: 'delete',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Delete annotation',
+      description: 'Delete an existing annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        204: {
+          description: 'Annotation deleted successfully',
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(deleteAnnotationRoute, async (c) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
           return c.json({ error: "Annotation not found" }, 404);
@@ -537,19 +847,102 @@ export class VisualizationServer {
           timestamp: new Date().toISOString(),
         });
 
-          return c.body(null, 204);
-        } catch (error) {
-          const message = getErrorMessage(error);
-          return c.json({ error: message }, 500);
-        }
+        return c.body(null, 204);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
       }
-    );
+    });
 
     // GET annotation replies
-    this.app.get(
-      "/api/annotations/:annotationId/replies",
-      zValidator("param", z.object({ annotationId: IdSchema })),
-      (c) => {
+    const getAnnotationRepliesRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations/:annotationId/replies',
+      tags: ['Annotations'],
+      summary: 'Get annotation replies',
+      description: 'Retrieve all replies to an annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Replies retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getAnnotationRepliesRoute, (c) => {
+      const { annotationId } = c.req.valid("param");
+      const annotation = this.annotations.get(annotationId);
+
+      if (!annotation) {
+        return c.json({ error: "Annotation not found" }, 404);
+      }
+
+      const replies = this.replies.get(annotationId) || [];
+      return c.json({ replies });
+    });
+
+    // POST annotation reply
+    const createAnnotationReplyRoute = createRoute({
+      method: 'post',
+      path: '/api/annotations/:annotationId/replies',
+      tags: ['Annotations'],
+      summary: 'Create annotation reply',
+      description: 'Add a reply to an annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationReplyCreateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Reply created successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationReplySchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(createAnnotationReplyRoute, async (c) => {
+      try {
         const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
 
@@ -557,46 +950,27 @@ export class VisualizationServer {
           return c.json({ error: "Annotation not found" }, 404);
         }
 
-        const replies = this.replies.get(annotationId) || [];
-        return c.json({ replies });
-      }
-    );
+        const body = c.req.valid("json");
 
-    // POST annotation reply
-    this.app.post(
-      "/api/annotations/:annotationId/replies",
-      zValidator("param", z.object({ annotationId: IdSchema })),
-      zValidator("json", AnnotationReplyCreateSchema),
-      async (c) => {
-        try {
-          const { annotationId } = c.req.valid("param");
-          const annotation = this.annotations.get(annotationId);
+        const reply: AnnotationReply = {
+          id: this.generateReplyId(),
+          author: body.author,
+          content: body.content,
+          createdAt: new Date().toISOString(),
+        };
 
-          if (!annotation) {
-            return c.json({ error: "Annotation not found" }, 404);
-          }
+        // Store reply
+        if (!this.replies.has(annotationId)) {
+          this.replies.set(annotationId, []);
+        }
+        this.replies.get(annotationId)!.push(reply);
 
-          const body = c.req.valid("json");
-
-          const reply: AnnotationReply = {
-            id: this.generateReplyId(),
-            author: body.author,
-            content: body.content,
-            createdAt: new Date().toISOString(),
-          };
-
-          // Store reply
-          if (!this.replies.has(annotationId)) {
-            this.replies.set(annotationId, []);
-          }
-          this.replies.get(annotationId)!.push(reply);
-
-          // Broadcast to all clients
-          await this.broadcastMessage({
-            type: "annotation.reply.added",
-            annotationId,
-            replyId: reply.id,
-            timestamp: reply.createdAt,
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: "annotation.reply.added",
+          annotationId,
+          replyId: reply.id,
+          timestamp: reply.createdAt,
         });
 
         return c.json(reply, 201);
@@ -609,7 +983,25 @@ export class VisualizationServer {
     // Changesets API
 
     // Get all changesets
-    this.app.get("/api/changesets", (c) => {
+    const getChangesetsRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets',
+      tags: ['Changesets'],
+      summary: 'Get changesets',
+      description: 'Retrieve a list of all changesets',
+      responses: {
+        200: {
+          description: 'Changesets retrieved successfully',
+          content: {
+            'application/json': {
+              schema: ChangesetsListSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getChangesetsRoute, (c) => {
       const changesets: Record<string, any> = {};
 
       for (const [id, changeset] of this.changesets) {
@@ -629,20 +1021,76 @@ export class VisualizationServer {
     });
 
     // Get specific changeset
-    this.app.get(
-      "/api/changesets/:changesetId",
-      zValidator("param", z.object({ changesetId: IdSchema })),
-      (c) => {
-        const { changesetId } = c.req.valid("param");
-        const changeset = this.changesets.get(changesetId);
+    const getChangesetRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets/:changesetId',
+      tags: ['Changesets'],
+      summary: 'Get changeset',
+      description: 'Retrieve a specific changeset with all its changes',
+      request: {
+        params: z.object({ changesetId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Changeset retrieved successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Changeset not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
 
-        if (!changeset) {
-          return c.json({ error: "Changeset not found" }, 404);
-        }
+    this.app.openapi(getChangesetRoute, (c) => {
+      const { changesetId } = c.req.valid("param");
+      const changeset = this.changesets.get(changesetId);
 
-        return c.json(changeset);
+      if (!changeset) {
+        return c.json({ error: "Changeset not found" }, 404);
       }
-    );
+
+      return c.json(changeset);
+    });
+
+    // OpenAPI documentation endpoint
+    this.app.doc('/api-spec.yaml', {
+      openapi: '3.0.3',
+      info: {
+        title: 'Documentation Robotics Visualization Server API',
+        version: '0.1.0',
+        description: 'API specification for the DR CLI visualization server',
+        contact: {
+          name: 'Documentation Robotics',
+          url: 'https://github.com/tinkermonkey/documentation_robotics',
+        },
+        license: {
+          name: 'ISC',
+        },
+      },
+      servers: [
+        { url: 'http://localhost:8080', description: 'Local development server' },
+      ],
+      tags: [
+        { name: 'Health', description: 'Server health and status' },
+        { name: 'Schema', description: 'JSON Schema specifications' },
+        { name: 'Model', description: 'Architecture model data' },
+        { name: 'Changesets', description: 'Model changesets and history' },
+        { name: 'Annotations', description: 'User annotations on model elements' },
+        { name: 'WebSocket', description: 'Real-time updates via WebSocket' },
+      ],
+    });
+
+    // Swagger UI for interactive API exploration
+    this.app.get('/api-docs', swaggerUI({ url: '/api-spec.yaml' }));
 
     // WebSocket endpoint
     this.app.get(
