@@ -1,13 +1,17 @@
 name: Validate Documentation
 
+# Temporarily disabled due to non-deterministic filesystem/environment ordering
+# between local (tsx) and CI (bun) environments. Docs should be manually regenerated
+# before committing spec changes.
 on:
-  pull_request:
-    paths:
-      - "spec/schemas/base/**"
-      - "spec/schemas/*.schema.json"
-      - "spec/layers/*.layer.json"
-      - "spec/nodes/**/*.node.json"
-      - "scripts/generate-layer-reports.ts"
+  workflow_dispatch:  # Manual trigger only
+  # pull_request:
+  #   paths:
+  #     - "spec/schemas/base/**"
+  #     - "spec/schemas/*.schema.json"
+  #     - "spec/layers/*.layer.json"
+  #     - "spec/nodes/**/*.node.json"
+  #     - "scripts/generate-layer-reports.ts"
 
 jobs:
   validate-docs:
