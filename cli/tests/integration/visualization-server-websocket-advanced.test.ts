@@ -24,6 +24,31 @@ function getTestDir(): string {
   return `${tmpdir()}/dr-viz-websocket-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 }
 
+/**
+ * Helper to wait for a WebSocket message of a specific type
+ */
+function waitForMessage(ws: WebSocket, expectedType: string, timeout: number = 5000): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Timeout waiting for message type: ${expectedType}`));
+    }, timeout);
+
+    const handler = (event: MessageEvent) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === expectedType) {
+          ws.removeEventListener("message", handler);
+          clearTimeout(timer);
+          resolve(message);
+        }
+      } catch (error) {
+        // Ignore parse errors, wait for next message
+      }
+    };
+
+    ws.addEventListener("message", handler);
+  });
+}
 
 describe.serial("WebSocket Connection Lifecycle", () => {
   let server: VisualizationServer;
@@ -288,6 +313,7 @@ describe.serial("WebSocket Subscription Management", () => {
   let model: Model;
   let port: number;
   let wsUrl: string;
+  let baseUrl: string;
   let testDir: string;
 
   beforeAll(async () => {
@@ -297,6 +323,7 @@ describe.serial("WebSocket Subscription Management", () => {
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(port);
     wsUrl = `ws://localhost:${port}/ws`;
+    baseUrl = `http://localhost:${port}`;
   });
 
   afterAll(async () => {
