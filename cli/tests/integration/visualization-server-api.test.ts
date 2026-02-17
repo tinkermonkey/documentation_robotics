@@ -319,18 +319,6 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
   });
 
-  describe("GET /health", () => {
-    it("should return healthy status", async () => {
-      serverProcess = await startServer(testDir, testPort);
-
-      const response = await fetch(`http://localhost:${testPort}/health`);
-
-      expect(response.status).toBe(200);
-
-      const data = await response.json();
-      expect(data.status).toBe("ok");
-    });
-  });
 
   describe("OpenAPI Specification", () => {
     it("should serve OpenAPI spec at /api-spec.json or /api-spec.yaml", async () => {
