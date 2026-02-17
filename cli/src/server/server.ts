@@ -1226,8 +1226,9 @@ export class VisualizationServer {
               msgStr = String(rawData);
             }
             const data = JSON.parse(msgStr) as WSMessage;
+            const parsedData = data as any;
             messageType =
-              data.jsonrpc === "2.0" ? data.method || "jsonrpc" : data.type || "unknown";
+              parsedData.jsonrpc === "2.0" ? parsedData.method || "jsonrpc" : parsedData.type || "unknown";
 
             // Telemetry: Track message processing
             await this.recordWebSocketEvent("ws.message.received", {
@@ -1236,7 +1237,7 @@ export class VisualizationServer {
             });
 
             // Check if it's a JSON-RPC message
-            if (data.jsonrpc === "2.0") {
+            if (parsedData.jsonrpc === "2.0") {
               await this.handleJSONRPCMessage(ws, data);
             } else {
               await this.handleWSMessage(ws, data);
@@ -1446,10 +1447,11 @@ export class VisualizationServer {
    * Handle WebSocket messages
    */
   private async handleWSMessage(ws: HonoWSContext, data: WSMessage): Promise<void> {
-    switch (data.type) {
+    const simpleMsg = data as SimpleWSMessage;
+    switch (simpleMsg.type) {
       case "subscribe":
         // Send subscribed confirmation
-        const topics = data.topics || ["model", "annotations"];
+        const topics = simpleMsg.topics || ["model", "annotations"];
         ws.send(
           JSON.stringify({
             type: "subscribed",
@@ -1480,10 +1482,10 @@ export class VisualizationServer {
         break;
 
       case "annotate":
-        if (data.annotation) {
+        if (simpleMsg.annotation) {
           await this.broadcastMessage({
             type: "annotation",
-            data: data.annotation,
+            data: simpleMsg.annotation,
           });
         }
         break;
@@ -1492,7 +1494,7 @@ export class VisualizationServer {
         ws.send(
           JSON.stringify({
             type: "error",
-            message: `Unknown message type: ${data.type}`,
+            message: `Unknown message type: ${simpleMsg.type}`,
           })
         );
     }
@@ -1502,7 +1504,8 @@ export class VisualizationServer {
    * Handle JSON-RPC 2.0 messages for chat functionality
    */
   private async handleJSONRPCMessage(ws: HonoWSContext, data: WSMessage): Promise<void> {
-    const { method, params, id } = data;
+    const rpcMsg = data as JSONRPCRequest;
+    const { method, params, id } = rpcMsg;
 
     // Helper to send JSON-RPC response
     const sendResponse = (result: any) => {
