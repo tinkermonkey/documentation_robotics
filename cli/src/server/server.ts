@@ -396,7 +396,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(getLayerRoute, async (c) => {
+    this.app.openapi(getLayerRoute, (async (c: any) => {
       try {
         const { name: layerName } = c.req.valid("param");
         const layer = await this.model.getLayer(layerName);
@@ -416,7 +416,7 @@ export class VisualizationServer {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
-    });
+    }) as any);
 
     // Get specific element
     const getElementRoute = createRoute({
@@ -456,7 +456,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(getElementRoute, async (c) => {
+    this.app.openapi(getElementRoute, (async (c: any) => {
       try {
         const { id: elementId } = c.req.valid("param");
         const element = await this.findElement(elementId);
@@ -473,7 +473,7 @@ export class VisualizationServer {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
-    });
+    }) as any);
 
     // Get JSON Schema specifications
     const getSpecRoute = createRoute({
@@ -502,7 +502,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(getSpecRoute, async (c) => {
+    this.app.openapi(getSpecRoute, (async (c: any) => {
       try {
         const schemas = await this.loadSchemas();
         return c.json({
@@ -517,7 +517,7 @@ export class VisualizationServer {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
-    });
+    }) as any);
 
     // Annotations API (spec-compliant routes)
 
@@ -702,7 +702,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(putAnnotationRoute, async (c) => {
+    this.app.openapi(putAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
@@ -737,7 +737,7 @@ export class VisualizationServer {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
-    });
+    }) as any);
 
     // Update annotation (PATCH)
     const patchAnnotationRoute = createRoute({
@@ -784,7 +784,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(patchAnnotationRoute, async (c) => {
+    this.app.openapi(patchAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
@@ -819,7 +819,7 @@ export class VisualizationServer {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
-    });
+    }) as any);
 
     // Delete annotation
     const deleteAnnotationRoute = createRoute({
@@ -915,7 +915,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(getAnnotationRepliesRoute, (c) => {
+    this.app.openapi(getAnnotationRepliesRoute, ((c: any) => {
       const { annotationId } = c.req.valid("param");
       const annotation = this.annotations.get(annotationId);
 
@@ -925,7 +925,7 @@ export class VisualizationServer {
 
       const replies = this.replies.get(annotationId) || [];
       return c.json({ replies });
-    });
+    }) as any);
 
     // POST annotation reply
     const createAnnotationReplyRoute = createRoute({
@@ -1081,7 +1081,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(getChangesetRoute, (c) => {
+    this.app.openapi(getChangesetRoute, ((c: any) => {
       const { changesetId } = c.req.valid("param");
       const changeset = this.changesets.get(changesetId);
 
@@ -1090,7 +1090,7 @@ export class VisualizationServer {
       }
 
       return c.json(changeset);
-    });
+    }) as any);
 
     // OpenAPI documentation endpoint
     this.app.doc('/api-spec.yaml', {
