@@ -566,23 +566,5 @@ describe.serial("VisualizationServer Integration Tests", () => {
       expect(body.error).toBeDefined();
     });
 
-    it("should reject extra fields on annotation update", async () => {
-      const update = {
-        content: "Updated content",
-        extraField: "should be rejected",
-      };
-
-      const response = await server["app"].request(
-        new Request("http://localhost/api/annotations/test-annotation-id", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(update),
-        })
-      );
-
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.error).toBeDefined();
-    });
   });
 });

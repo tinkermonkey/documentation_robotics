@@ -633,6 +633,88 @@ export class VisualizationServer {
       }
     });
 
+    // Update annotation (PUT - full update)
+    const putAnnotationRoute = createRoute({
+      method: 'put',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Update annotation',
+      description: 'Update an existing annotation (full update)',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationUpdateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Annotation updated successfully',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: z.any(),
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(putAnnotationRoute, async (c) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        const body = c.req.valid("json");
+
+        // Update only provided fields (same as PATCH for compatibility)
+        if (body.content !== undefined) {
+          annotation.content = body.content;
+        }
+        if (body.tags !== undefined) {
+          annotation.tags = body.tags;
+        }
+        if (body.resolved !== undefined) {
+          annotation.resolved = body.resolved;
+        }
+        annotation.updatedAt = new Date().toISOString();
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: "annotation.updated",
+          annotationId: annotation.id,
+          timestamp: annotation.updatedAt,
+        });
+
+        return c.json(annotation);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    });
+
     // Update annotation (PATCH)
     const patchAnnotationRoute = createRoute({
       method: 'patch',
