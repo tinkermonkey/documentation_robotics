@@ -305,6 +305,161 @@ describe.serial("WebSocket Subscription Management", () => {
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
+  it("should broadcast annotation create events to subscribed clients", async () => {
+    return new Promise<void>(async (resolve, reject) => {
+      const ws = new WebSocket(wsUrl);
+      const messages: any[] = [];
+
+      ws.onopen = () => {
+        // Subscribe to annotations
+        ws.send(JSON.stringify({ type: "subscribe", topics: ["annotations"] }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          messages.push(message);
+
+          if (message.type === "annotation.added") {
+            expect(message).toHaveProperty("elementId");
+            expect(message).toHaveProperty("annotationId");
+            ws.close();
+            resolve();
+          }
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        reject(error);
+      };
+
+      // Wait a moment for subscription to register, then create annotation
+      setTimeout(async () => {
+        try {
+          await fetch(`${baseUrl}/api/annotations`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              elementId: "motivation.goal.ws-1",
+              author: "Test User",
+              content: "Test annotation for event broadcast",
+            }),
+          });
+        } catch (error) {
+          reject(error);
+        }
+      }, 100);
+
+      setTimeout(() => reject(new Error("Event broadcast timeout")), 8000);
+    });
+  });
+
+  it("should broadcast annotation update events", async () => {
+    return new Promise<void>(async (resolve, reject) => {
+      // First, create an annotation
+      const createRes = await fetch(`${baseUrl}/api/annotations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          elementId: "motivation.goal.ws-2",
+          author: "Test User",
+          content: "Original content",
+        }),
+      });
+
+      const createdAnnotation = await createRes.json();
+      const annotationId = createdAnnotation.id;
+
+      // Now connect WebSocket and listen for update event
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: "subscribe", topics: ["annotations"] }));
+      };
+
+      ws.onerror = (error) => {
+        reject(error);
+      };
+
+      // Wait a moment for subscription, then update annotation
+      setTimeout(async () => {
+        try {
+          await fetch(`${baseUrl}/api/annotations/${annotationId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              content: "Updated content",
+            }),
+          });
+        } catch (error) {
+          reject(error);
+        }
+      }, 100);
+
+      // Use helper to wait for specific message type
+      try {
+        const message = await waitForMessage(ws, "annotation.updated", 8000);
+        expect(message).toHaveProperty("annotationId");
+        ws.close();
+        resolve();
+      } catch (error) {
+        ws.close();
+        reject(error);
+      }
+    });
+  });
+
+  it("should broadcast annotation delete events", async () => {
+    return new Promise<void>(async (resolve, reject) => {
+      // Create annotation
+      const createRes = await fetch(`${baseUrl}/api/annotations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          elementId: "motivation.goal.ws-1",
+          author: "Test User",
+          content: "To be deleted",
+        }),
+      });
+
+      const createdAnnotation = await createRes.json();
+      const annotationId = createdAnnotation.id;
+
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: "subscribe", topics: ["annotations"] }));
+      };
+
+      ws.onerror = (error) => {
+        reject(error);
+      };
+
+      setTimeout(async () => {
+        try {
+          await fetch(`${baseUrl}/api/annotations/${annotationId}`, {
+            method: "DELETE",
+          });
+        } catch (error) {
+          reject(error);
+        }
+      }, 100);
+
+      // Use helper to wait for specific message type
+      try {
+        const message = await waitForMessage(ws, "annotation.deleted", 8000);
+        expect(message).toHaveProperty("annotationId");
+        ws.close();
+        resolve();
+      } catch (error) {
+        ws.close();
+        reject(error);
+      }
+    });
+  });
+
   it("should handle subscribe messages with topic list", async () => {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(wsUrl);
