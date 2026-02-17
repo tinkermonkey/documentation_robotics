@@ -304,3 +304,33 @@ jobs:
           npm install
           npm run build:ci
           node dist/cli.js validate --schemas
+
+      - name: Validate OpenAPI specification format
+        run: |
+          echo "Checking OpenAPI spec markers and content..."
+
+          # Check that spec has auto-generated marker (not deprecated)
+          if grep -q "# AUTO-GENERATED:" docs/api-spec.yaml; then
+            echo "✓ OpenAPI spec is marked as auto-generated"
+          else
+            echo "❌ OpenAPI spec is missing auto-generated marker"
+            echo "   It should start with: # AUTO-GENERATED:"
+            exit 1
+          fi
+
+          # Check that spec does NOT have "maintained for backward compatibility" language
+          if grep -q "maintained for backward compatibility" docs/api-spec.yaml; then
+            echo "❌ OpenAPI spec still has deprecated language"
+            echo "   Remove any 'deprecated' or 'backward compatibility' references"
+            echo "   Run 'npm run generate:openapi' in cli/ directory to regenerate"
+            exit 1
+          fi
+
+          # Check that spec has valid OpenAPI version (3.0.3 or 3.1.0 are both acceptable)
+          if grep -qE "openapi: ['\"]?3\.[01]\.[0-9]" docs/api-spec.yaml; then
+            SPEC_VERSION=$(grep "openapi:" docs/api-spec.yaml | head -1)
+            echo "✓ OpenAPI spec has valid version: $SPEC_VERSION"
+          else
+            echo "❌ OpenAPI spec does not have valid OpenAPI version"
+            exit 1
+          fi
