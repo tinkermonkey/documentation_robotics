@@ -48,10 +48,11 @@ export const WSMessageSchema = z.union([
 // - api.endpoint.create-order
 // - data-store.table.user-profile
 // - a.b.c (minimal single-character segments, valid for testing purposes)
+// - ux.a.test (two-character segments are valid)
 export const ElementIdSchema = z.string()
   .min(1, 'Element ID is required')
   .regex(
-    /^[a-z][a-z0-9-]*[a-z0-9]\.[a-z][a-z0-9-]*[a-z0-9]\.[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]\.[a-z]\.[a-z]$/,
+    /^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/,
     'Invalid element ID format. Must be: layer.type.name (e.g., motivation.goal.customer-satisfaction)'
   );
 

@@ -23,7 +23,7 @@
     "dev": "node dist/cli.js",
     "lint": "tsc --noEmit",
     "type-check": "tsc --noEmit",
-    "test": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts tests/unit/integrations/base-manager.test.ts",
+    "test": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts tests/unit/integrations/base-manager.test.ts",
     "test:unit": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/scripts/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/unit/integrations/base-manager.test.ts",
     "test:generated": "bun test tests/unit/generators/*.test.ts",
     "test:integration": "bun test tests/integration/*.test.ts",

@@ -345,6 +345,8 @@ export class VisualizationServer {
       },
     });
 
+    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
+    // async route handler types. Handler is type-safe at runtime via Zod validation.
     this.app.openapi(getLayerRoute, (async (c: any) => {
       try {
         const { name: layerName } = c.req.valid("param");
@@ -405,6 +407,8 @@ export class VisualizationServer {
       },
     });
 
+    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
+    // async route handler types. Handler is type-safe at runtime via Zod validation.
     this.app.openapi(getElementRoute, (async (c: any) => {
       try {
         const { id: elementId } = c.req.valid("param");
@@ -451,6 +455,8 @@ export class VisualizationServer {
       },
     });
 
+    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
+    // async route handler types. Handler is type-safe at runtime via Zod validation.
     this.app.openapi(getSpecRoute, (async (c: any) => {
       try {
         const schemas = await this.loadSchemas();
@@ -651,6 +657,8 @@ export class VisualizationServer {
       },
     });
 
+    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
+    // async route handler types. Handler is type-safe at runtime via Zod validation.
     this.app.openapi(putAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
@@ -733,6 +741,8 @@ export class VisualizationServer {
       },
     });
 
+    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
+    // async route handler types. Handler is type-safe at runtime via Zod validation.
     this.app.openapi(patchAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
@@ -864,6 +874,8 @@ export class VisualizationServer {
       },
     });
 
+    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
+    // route handler types. Handler is type-safe at runtime via Zod validation.
     this.app.openapi(getAnnotationRepliesRoute, ((c: any) => {
       const { annotationId } = c.req.valid("param");
       const annotation = this.annotations.get(annotationId);
@@ -1030,6 +1042,8 @@ export class VisualizationServer {
       },
     });
 
+    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
+    // route handler types. Handler is type-safe at runtime via Zod validation.
     this.app.openapi(getChangesetRoute, ((c: any) => {
       const { changesetId } = c.req.valid("param");
       const changeset = this.changesets.get(changesetId);
