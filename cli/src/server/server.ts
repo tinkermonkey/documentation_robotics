@@ -30,6 +30,7 @@ import {
   AnnotationReplySchema,
   AnnotationsListSchema,
   ChangesetsListSchema,
+  ChangesetDetailSchema,
   ModelResponseSchema,
   LayerResponseSchema,
   ElementResponseSchema,
@@ -96,36 +97,7 @@ interface AnnotationReply {
 // Derive ClientAnnotation type from AnnotationSchema with proper serialization
 type ClientAnnotation = z.infer<typeof AnnotationSchema>;
 
-interface Changeset {
-  metadata: {
-    id: string;
-    name: string;
-    description?: string;
-    type: "feature" | "bugfix" | "exploration";
-    status: "active" | "applied" | "abandoned";
-    created_at: string;
-    updated_at?: string;
-    workflow?: string;
-    summary: {
-      elements_added: number;
-      elements_updated: number;
-      elements_deleted: number;
-    };
-  };
-  changes: {
-    version: string;
-    changes: Array<{
-      timestamp: string;
-      operation: "add" | "update" | "delete";
-      element_id: string;
-      layer: string;
-      element_type: string;
-      data?: any;
-      before?: any;
-      after?: any;
-    }>;
-  };
-}
+type Changeset = z.infer<typeof ChangesetDetailSchema>;
 
 // Type for WebSocket context from Hono/Bun
 // Defines the interface for WebSocket operations within the Hono/Bun environment
@@ -1232,9 +1204,15 @@ export class VisualizationServer {
               msgStr = String(rawData);
             }
             const data = JSON.parse(msgStr) as WSMessage;
-            const parsedData = data as any;
-            messageType =
-              parsedData.jsonrpc === "2.0" ? parsedData.method || "jsonrpc" : parsedData.type || "unknown";
+
+            // Type-safe discriminated union handling
+            if ('jsonrpc' in data && data.jsonrpc === '2.0') {
+              messageType = (data as JSONRPCRequest | JSONRPCResponse).method || (data as JSONRPCRequest).id?.toString() || "jsonrpc";
+            } else if ('type' in data) {
+              messageType = (data as SimpleWSMessage).type;
+            } else {
+              messageType = "unknown";
+            }
 
             // Telemetry: Track message processing
             await this.recordWebSocketEvent("ws.message.received", {
@@ -1243,7 +1221,7 @@ export class VisualizationServer {
             });
 
             // Check if it's a JSON-RPC message
-            if (parsedData.jsonrpc === "2.0") {
+            if ('jsonrpc' in data && data.jsonrpc === "2.0") {
               await this.handleJSONRPCMessage(ws, data);
             } else {
               await this.handleWSMessage(ws, data);
@@ -1268,7 +1246,9 @@ export class VisualizationServer {
               "error.message": errorMsg,
             });
 
-            console.warn(`[WebSocket] Error handling message: ${errorMsg}`);
+            if (process.env.DEBUG) {
+              console.warn(`[WebSocket] Error handling message: ${errorMsg}`);
+            }
             ws.send(
               JSON.stringify({
                 type: "error",
@@ -1287,7 +1267,9 @@ export class VisualizationServer {
             "error.message": message,
           });
 
-          console.error(`[WebSocket] Error: ${message}`);
+          if (process.env.DEBUG) {
+            console.error(`[WebSocket] Error: ${message}`);
+          }
         },
       }))
     );
@@ -1389,7 +1371,9 @@ export class VisualizationServer {
       } catch (error) {
         failureCount++;
         const msg = getErrorMessage(error);
-        console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
+        if (process.env.DEBUG) {
+          console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
+        }
       }
     }
 
@@ -1434,7 +1418,9 @@ export class VisualizationServer {
       endSpan(span);
     } catch (error) {
       // Log telemetry failures to enable production debugging
-      console.warn(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(error)}`);
+      if (process.env.DEBUG) {
+        console.warn(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(error)}`);
+      }
     }
   }
 
@@ -2091,8 +2077,9 @@ export class VisualizationServer {
 
       return schemas;
     } catch (error) {
+      const errorMsg = getErrorMessage(error);
       console.error("Failed to load schemas:", error);
-      throw new Error("Failed to load schema files");
+      throw new Error(`Failed to load schema files: ${errorMsg}`);
     }
   }
 

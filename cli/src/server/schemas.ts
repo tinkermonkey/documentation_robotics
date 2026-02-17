@@ -1,6 +1,42 @@
 import { z } from '@hono/zod-openapi';
 import { CANONICAL_LAYER_NAMES } from '../core/layers.js';
 
+// WebSocket message schemas with runtime validation
+export const SimpleWSMessageSchema = z.object({
+  type: z.enum(['subscribe', 'annotate', 'ping']),
+  topics: z.array(z.string()).optional(),
+  annotation: z.object({
+    elementId: z.string(),
+    author: z.string(),
+    text: z.string(),
+    timestamp: z.string(),
+  }).optional(),
+});
+
+export const JSONRPCRequestSchema = z.object({
+  jsonrpc: z.literal('2.0'),
+  method: z.string(),
+  params: z.unknown().optional(),
+  id: z.union([z.string(), z.number()]).optional(),
+});
+
+export const JSONRPCResponseSchema = z.object({
+  jsonrpc: z.literal('2.0'),
+  result: z.unknown().optional(),
+  error: z.object({
+    code: z.number(),
+    message: z.string(),
+    data: z.unknown().optional(),
+  }).optional(),
+  id: z.union([z.string(), z.number()]),
+});
+
+export const WSMessageSchema = z.union([
+  SimpleWSMessageSchema,
+  JSONRPCRequestSchema,
+  JSONRPCResponseSchema,
+]);
+
 // Base schemas for common types
 // Enforces three-part element ID format: layer.type.name
 // - layer: canonical layer name (e.g., motivation, api, data-store)
@@ -20,6 +56,12 @@ export const ElementIdSchema = z.string()
 
 export const TimestampSchema = z.string().datetime();
 
+// Shared tag schema - reused in annotation creation and updates
+export const TagSchema = z.string()
+  .min(1, 'Tag cannot be empty')
+  .max(50, 'Tag too long')
+  .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Tag must contain only lowercase letters, digits, and hyphens');
+
 // Annotation schemas - for creating annotations
 export const AnnotationCreateSchema = z.object({
   elementId: ElementIdSchema,
@@ -30,12 +72,7 @@ export const AnnotationCreateSchema = z.object({
   content: z.string()
     .min(1, 'Content is required')
     .max(5000, 'Content too long'),
-  tags: z.array(
-    z.string()
-      .min(1, 'Tag cannot be empty')
-      .max(50, 'Tag too long')
-      .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Tag must contain only lowercase letters, digits, and hyphens')
-  ).optional().default([]),
+  tags: z.array(TagSchema).optional().default([]),
 }).strict();
 
 // Annotation schemas - for updating annotations
@@ -44,12 +81,7 @@ export const AnnotationUpdateSchema = z.object({
     .min(1, 'Content is required')
     .max(5000, 'Content too long')
     .optional(),
-  tags: z.array(
-    z.string()
-      .min(1, 'Tag cannot be empty')
-      .max(50, 'Tag too long')
-      .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Tag must contain only lowercase letters, digits, and hyphens')
-  ).optional(),
+  tags: z.array(TagSchema).optional(),
   resolved: z.boolean().optional(),
 }).strict();
 
@@ -70,8 +102,9 @@ export const LayerNameSchema = z.enum(
   message: `Invalid layer name. Must be one of: ${CANONICAL_LAYER_NAMES.join(', ')}`
 });
 
-// ID schema - validates generic IDs (annotations, changesets, elements)
-// Accepts lowercase alphanumeric characters, hyphens, and underscores (consistent with ElementIdSchema)
+// ID schema - validates generic IDs for annotations, changesets, and other non-element identifiers
+// Accepts lowercase alphanumeric characters, hyphens, and underscores
+// Note: Different from ElementIdSchema which requires dot-separated format (layer.type.name)
 export const IdSchema = z.string()
   .min(1, 'ID is required')
   .regex(/^[a-z0-9_-]+$/, 'Invalid ID format. Must contain only lowercase alphanumeric characters, hyphens, and underscores');
@@ -181,6 +214,12 @@ export const ChangesetDetailSchema = z.object({
     status: z.enum(['active', 'applied', 'abandoned'] as const),
     created_at: z.string(),
     updated_at: z.string().optional(),
+    workflow: z.string().optional(),
+    summary: z.object({
+      elements_added: z.number(),
+      elements_updated: z.number(),
+      elements_deleted: z.number(),
+    }),
   }),
   changes: z.object({
     version: z.string(),
