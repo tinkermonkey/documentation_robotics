@@ -104,7 +104,11 @@ interface Changeset {
 }
 
 // Type for WebSocket context from Hono/Bun
-type HonoWSContext = any;
+// Defines the interface for WebSocket operations within the Hono/Bun environment
+interface HonoWSContext {
+  send(source: string | ArrayBuffer | Uint8Array | ArrayBufferView, options?: any): void;
+  close(code?: number, reason?: string): void;
+}
 
 export interface VisualizationServerOptions {
   authEnabled?: boolean;
@@ -133,6 +137,7 @@ export class VisualizationServer {
   private activeChatProcesses: Map<string, any> = new Map(); // conversationId -> Bun.spawn process
   private chatConversationCounter: number = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
+  private chatInitializationError?: Error; // Store initialization error for status endpoint
 
   constructor(model: Model, options?: VisualizationServerOptions) {
     this.app = new OpenAPIHono();
@@ -188,6 +193,7 @@ export class VisualizationServer {
 
     // Initialize chat clients asynchronously
     this.initializeChatClients().catch((error) => {
+      this.chatInitializationError = error instanceof Error ? error : new Error(String(error));
       console.error("[Chat] Failed to initialize chat clients:", error);
     });
   }
@@ -627,89 +633,7 @@ export class VisualizationServer {
       }
     });
 
-    // Update annotation (PUT)
-    const updateAnnotationRoute = createRoute({
-      method: 'put',
-      path: '/api/annotations/:annotationId',
-      tags: ['Annotations'],
-      summary: 'Update annotation',
-      description: 'Update an existing annotation',
-      request: {
-        params: z.object({ annotationId: IdSchema }),
-        body: {
-          content: {
-            'application/json': {
-              schema: AnnotationUpdateSchema,
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: 'Annotation updated successfully',
-          content: {
-            'application/json': {
-              schema: z.any(),
-            },
-          },
-        },
-        404: {
-          description: 'Annotation not found',
-          content: {
-            'application/json': {
-              schema: z.any(),
-            },
-          },
-        },
-        500: {
-          description: 'Server error',
-          content: {
-            'application/json': {
-              schema: z.any(),
-            },
-          },
-        },
-      },
-    });
-
-    this.app.openapi(updateAnnotationRoute, async (c) => {
-      try {
-        const { annotationId } = c.req.valid("param");
-        const annotation = this.annotations.get(annotationId);
-
-        if (!annotation) {
-          return c.json({ error: "Annotation not found" }, 404);
-        }
-
-        const body = c.req.valid("json");
-
-        // Update fields
-        if (body.content !== undefined) {
-          annotation.content = body.content;
-        }
-        if (body.tags !== undefined) {
-          annotation.tags = body.tags;
-        }
-        if (body.resolved !== undefined) {
-          annotation.resolved = body.resolved;
-        }
-        annotation.updatedAt = new Date().toISOString();
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.updated",
-          annotationId: annotation.id,
-          timestamp: annotation.updatedAt,
-        });
-
-        return c.json(annotation);
-      } catch (error) {
-        const message = getErrorMessage(error);
-        return c.json({ error: message }, 500);
-      }
-    });
-
-    // Partial update annotation (PATCH)
+    // Update annotation (PATCH)
     const patchAnnotationRoute = createRoute({
       method: 'patch',
       path: '/api/annotations/:annotationId',
@@ -1237,9 +1161,7 @@ export class VisualizationServer {
               "error.message": errorMsg,
             });
 
-            if (process.env.DEBUG) {
-              console.error(`[WebSocket] Error handling message: ${errorMsg}`);
-            }
+            console.warn(`[WebSocket] Error handling message: ${errorMsg}`);
             ws.send(
               JSON.stringify({
                 type: "error",
@@ -1262,6 +1184,24 @@ export class VisualizationServer {
         },
       }))
     );
+  }
+
+  /**
+   * Get OpenAPI specification document
+   * Provides a stable public API for OpenAPI spec generation
+   */
+  public getOpenAPIDocument(config: {
+    openapi: string;
+    info: {
+      title: string;
+      version: string;
+      description?: string;
+      contact?: { name?: string; url?: string };
+      license?: { name: string };
+    };
+    servers?: Array<{ url: string; description?: string }>;
+  }): any {
+    return this.app.getOpenAPI31Document(config);
   }
 
   /**
@@ -1342,9 +1282,7 @@ export class VisualizationServer {
       } catch (error) {
         failureCount++;
         const msg = getErrorMessage(error);
-        if (process.env.VERBOSE) {
-          console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
-        }
+        console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
       }
     }
 
@@ -1355,7 +1293,7 @@ export class VisualizationServer {
       "ws.broadcast.failure_count": failureCount,
     });
 
-    if (failureCount > 0 && process.env.VERBOSE) {
+    if (failureCount > 0) {
       console.warn(
         `[WebSocket] Failed to send message to ${failureCount}/${this.clients.size} clients`
       );
@@ -1495,12 +1433,19 @@ export class VisualizationServer {
         case "chat.status":
           // Check if any chat client is available
           const hasClient = this.selectedChatClient !== undefined;
+
+          // Determine error message: initialization error takes precedence
+          let statusError: string | null = null;
+          if (this.chatInitializationError) {
+            statusError = `Chat initialization failed: ${this.chatInitializationError.message}`;
+          } else if (!hasClient) {
+            statusError = "No chat client available. Install Claude Code or GitHub Copilot.";
+          }
+
           sendResponse({
             sdk_available: hasClient,
             sdk_version: hasClient ? this.selectedChatClient!.getClientName() : null,
-            error_message: hasClient
-              ? null
-              : "No chat client available. Install Claude Code or GitHub Copilot.",
+            error_message: statusError,
           });
           break;
 
@@ -2013,7 +1958,8 @@ export class VisualizationServer {
   }
 
   /**
-   * Load all JSON schemas from bundled directory
+   * Load all JSON schemas from bundled directory (recursive)
+   * Loads schemas from all subdirectories: base/, nodes/, relationships/, etc.
    */
   private async loadSchemas(): Promise<Record<string, any>> {
     const schemasPath = new URL("../schemas/bundled/", import.meta.url).pathname;
@@ -2023,15 +1969,26 @@ export class VisualizationServer {
       const fs = await import("fs/promises");
       const path = await import("path");
 
-      const fileList = await fs.readdir(schemasPath);
+      // Recursive function to walk through directories
+      const walkDirectory = async (dir: string, prefix: string = ""): Promise<void> => {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
 
-      for (const file of fileList) {
-        if (file.endsWith(".schema.json") || file.endsWith(".json")) {
-          const filePath = path.join(schemasPath, file);
-          const content = await fs.readFile(filePath, "utf-8");
-          schemas[file] = JSON.parse(content);
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          const schemaKey = prefix ? `${prefix}/${entry.name}` : entry.name;
+
+          if (entry.isDirectory()) {
+            // Recursively walk subdirectories
+            await walkDirectory(fullPath, schemaKey);
+          } else if (entry.isFile() && (entry.name.endsWith(".schema.json") || entry.name.endsWith(".json"))) {
+            // Load JSON schema files
+            const content = await fs.readFile(fullPath, "utf-8");
+            schemas[schemaKey] = JSON.parse(content);
+          }
         }
-      }
+      };
+
+      await walkDirectory(schemasPath);
 
       return schemas;
     } catch (error) {

@@ -28,8 +28,8 @@ async function generateOpenAPISpec() {
     console.log("🚀 Creating server instance...");
     const server = new VisualizationServer(model, { authEnabled: false });
 
-    // Get the OpenAPI spec from the server
-    const spec = (server as any).app.getOpenAPI31Document({
+    // Get the OpenAPI spec from the server using public API
+    const spec = server.getOpenAPIDocument({
       openapi: "3.1.0",
       info: {
         title: "Documentation Robotics Visualization Server API",

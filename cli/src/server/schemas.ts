@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { CANONICAL_LAYER_NAMES } from '../core/layers.js';
 
 // Base schemas for common types
@@ -69,7 +69,7 @@ export const IdSchema = z.string()
 // Annotation filter schema - validates query parameters for GET /api/annotations
 export const AnnotationFilterSchema = z.object({
   elementId: ElementIdSchema.optional()
-}).strict(); // Prevent extra query parameters
+}).passthrough(); // Allow extra query parameters (e.g., auth token) to pass through
 
 // Response schemas for OpenAPI documentation
 export const ErrorResponseSchema = z.object({
