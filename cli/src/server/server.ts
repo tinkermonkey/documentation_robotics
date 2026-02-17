@@ -32,7 +32,22 @@ import {
   ChangesetsListSchema,
 } from "./schemas.js";
 
-interface WSMessage {
+/**
+ * JSON-RPC 2.0 Error Codes
+ * Standard error codes for JSON-RPC error responses
+ */
+const JSONRPC_ERRORS = {
+  // Standard JSON-RPC errors
+  INVALID_PARAMS: -32602,      // Invalid method parameters
+  METHOD_NOT_FOUND: -32601,    // Method does not exist
+  INTERNAL_ERROR: -32603,      // Internal server error
+
+  // Custom application errors
+  NO_CLIENT_AVAILABLE: -32001, // No chat client available
+} as const;
+
+// Simple WebSocket messages
+interface SimpleWSMessage {
   type: "subscribe" | "annotate" | "ping";
   topics?: string[];
   annotation?: {
@@ -41,17 +56,29 @@ interface WSMessage {
     text: string;
     timestamp: string;
   };
-  jsonrpc?: string; // For JSON-RPC 2.0 messages
-  method?: string;
+}
+
+// JSON-RPC 2.0 messages
+interface JSONRPCRequest {
+  jsonrpc: "2.0";
+  method: string;
   params?: any;
   id?: string | number;
+}
+
+interface JSONRPCResponse {
+  jsonrpc: "2.0";
   result?: any;
   error?: {
     code: number;
     message: string;
     data?: any;
   };
+  id: string | number;
 }
+
+// Discriminated union of WebSocket message types
+type WSMessage = SimpleWSMessage | JSONRPCRequest | JSONRPCResponse;
 
 interface AnnotationReply {
   id: string;
@@ -60,17 +87,8 @@ interface AnnotationReply {
   createdAt: string;
 }
 
-interface ClientAnnotation {
-  id: string;
-  elementId: string;
-  author: string;
-  content: string;
-  createdAt: string;
-  updatedAt?: string;
-  tags?: string[];
-  resolved?: boolean; // Track resolution status
-  replies?: AnnotationReply[]; // Include replies when serializing
-}
+// Derive ClientAnnotation type from AnnotationSchema with proper serialization
+type ClientAnnotation = z.infer<typeof AnnotationSchema>;
 
 interface Changeset {
   metadata: {
@@ -1532,14 +1550,14 @@ export class VisualizationServer {
         case "chat.send":
           // Validate params
           if (!params || !params.message) {
-            sendError(-32602, "Message cannot be empty");
+            sendError(JSONRPC_ERRORS.INVALID_PARAMS, "Message cannot be empty");
             return;
           }
 
           // Check if chat client is available
           if (!this.selectedChatClient) {
             sendError(
-              -32001,
+              JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
               "No chat client available. Install Claude Code or GitHub Copilot to enable chat."
             );
             return;
@@ -1578,11 +1596,11 @@ export class VisualizationServer {
           break;
 
         default:
-          sendError(-32601, `Method not found: ${method}`);
+          sendError(JSONRPC_ERRORS.METHOD_NOT_FOUND, `Method not found: ${method}`);
       }
     } catch (error) {
       const errorMsg = getErrorMessage(error);
-      sendError(-32603, "Internal error", errorMsg);
+      sendError(JSONRPC_ERRORS.INTERNAL_ERROR, "Internal error", errorMsg);
     }
   }
 
@@ -1600,7 +1618,7 @@ export class VisualizationServer {
         JSON.stringify({
           jsonrpc: "2.0",
           error: {
-            code: -32001,
+            code: JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
             message: "No chat client available",
           },
           id: requestId,
@@ -1619,7 +1637,7 @@ export class VisualizationServer {
         JSON.stringify({
           jsonrpc: "2.0",
           error: {
-            code: -32001,
+            code: JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
             message: "Unknown chat client type",
           },
           id: requestId,

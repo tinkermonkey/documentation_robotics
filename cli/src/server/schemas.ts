@@ -2,20 +2,21 @@ import { z } from '@hono/zod-openapi';
 import { CANONICAL_LAYER_NAMES } from '../core/layers.js';
 
 // Base schemas for common types
-// Accepts both formats:
-// - New spec format: layer.type.name (e.g., motivation.goal.customer-satisfaction)
-// - Legacy format: layer-type-name (e.g., motivation-goal-customer-satisfaction)
+// Enforces three-part element ID format: layer.type.name
+// - layer: canonical layer name (e.g., motivation, api, data-store)
+// - type: lowercase element type (e.g., goal, endpoint, entity)
+// - name: kebab-case element name (e.g., customer-satisfaction)
 //
-// Regex pattern: /^[a-z0-9][a-z0-9\.\-]*[a-z0-9]$|^[a-z0-9]$/
-// - Allows lowercase letters, digits, dots, and hyphens
-// - Must start and end with alphanumeric (no trailing dots/hyphens)
-// - Single character IDs are allowed (e.g., 'a')
-// Known limitation: Does not validate that consecutive dots/hyphens are present
-// (e.g., 'a--b' or 'a..b' would pass). More strict validation could be added
-// if the element ID format becomes more formally specified.
+// Example valid IDs:
+// - motivation.goal.customer-satisfaction
+// - api.endpoint.create-order
+// - data-store.table.user-profile
 export const ElementIdSchema = z.string()
   .min(1, 'Element ID is required')
-  .regex(/^[a-z0-9][a-z0-9\.\-]*[a-z0-9]$|^[a-z0-9]$/, 'Invalid element ID format');
+  .regex(
+    /^[a-z][a-z0-9-]*[a-z0-9]\.[a-z][a-z0-9-]*[a-z0-9]\.[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]\.[a-z]\.[a-z]$/,
+    'Invalid element ID format. Must be: layer.type.name (e.g., motivation.goal.customer-satisfaction)'
+  );
 
 export const TimestampSchema = z.string().datetime();
 
@@ -23,14 +24,19 @@ export const TimestampSchema = z.string().datetime();
 export const AnnotationCreateSchema = z.object({
   elementId: ElementIdSchema,
   author: z.string()
-    .min(1, 'Author is required')
+    .min(1, 'Author name cannot be empty if provided')
     .max(100, 'Author name too long')
     .optional()
     .default('Anonymous'),
   content: z.string()
     .min(1, 'Content is required')
     .max(5000, 'Content too long'),
-  tags: z.array(z.string()).optional().default([]),
+  tags: z.array(
+    z.string()
+      .min(1, 'Tag cannot be empty')
+      .max(50, 'Tag too long')
+      .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Tag must contain only lowercase letters, digits, and hyphens')
+  ).optional().default([]),
 }).strict(); // Prevent extra fields
 
 // Annotation schemas - for updating annotations
@@ -39,7 +45,12 @@ export const AnnotationUpdateSchema = z.object({
     .min(1, 'Content is required')
     .max(5000, 'Content too long')
     .optional(),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(
+    z.string()
+      .min(1, 'Tag cannot be empty')
+      .max(50, 'Tag too long')
+      .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Tag must contain only lowercase letters, digits, and hyphens')
+  ).optional(),
   resolved: z.boolean().optional(),
 }).strict(); // Prevent extra fields
 
@@ -115,7 +126,7 @@ export const AnnotationRepliesSchema = z.object({
 
 export const LayerResponseSchema = z.object({
   name: z.string().describe('Layer name'),
-  elements: z.array(z.any()).describe('Layer elements'),
+  elements: z.array(z.object({}).passthrough()).describe('Layer elements (each element is an object with id, name, type, and properties)'),
   elementCount: z.number().describe('Total element count'),
 });
 
@@ -124,7 +135,7 @@ export const ElementResponseSchema = z.object({
   name: z.string().describe('Element name'),
   type: z.string().describe('Element type'),
   description: z.string().optional().describe('Element description'),
-  properties: z.record(z.string(), z.any()).optional().describe('Element properties'),
+  properties: z.record(z.string(), z.unknown()).optional().describe('Element properties (key-value pairs with arbitrary values)'),
   annotations: z.array(AnnotationSchema).optional().describe('Associated annotations'),
 });
 
@@ -133,7 +144,7 @@ export const SpecResponseSchema = z.object({
   type: z.string().describe('Response type'),
   description: z.string().describe('Response description'),
   source: z.string().describe('Schema source'),
-  schemas: z.record(z.string(), z.any()).describe('JSON schema definitions'),
+  schemas: z.record(z.string(), z.unknown()).describe('JSON schema definitions (each schema is a JSON Schema object)'),
   schemaCount: z.number().describe('Number of schemas'),
 });
 
@@ -169,9 +180,9 @@ export const ChangesetDetailSchema = z.object({
       element_id: z.string(),
       layer: z.string(),
       element_type: z.string(),
-      data: z.any().optional(),
-      before: z.any().optional(),
-      after: z.any().optional(),
+      data: z.unknown().optional().describe('Element data (varies by element type)'),
+      before: z.unknown().optional().describe('Previous element state (for update operations)'),
+      after: z.unknown().optional().describe('New element state (for update operations)'),
     })),
   }),
 });

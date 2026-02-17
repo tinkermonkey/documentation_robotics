@@ -49,16 +49,11 @@ async function generateOpenAPISpec() {
     });
 
     // Convert to valid YAML using the yaml package
-    const specWithMetadata = {
-      ...spec,
-      // Ensure top-level metadata is present (already should be from doc())
-    };
-
     const specYaml = `# This file is auto-generated from the visualization server routes.
 # DO NOT EDIT MANUALLY - regenerate using: npm run generate:openapi
 # Generated on ${new Date().toISOString()}
 
-${YAML.stringify(specWithMetadata, { indent: 2 })}
+${YAML.stringify(spec, { indent: 2 })}
 `;
 
     // Write spec to file

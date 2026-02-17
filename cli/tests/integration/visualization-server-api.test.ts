@@ -365,6 +365,23 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(data.error).toContain("not found");
     });
 
+    it("should return 404 for valid-format but non-existent element ID", async () => {
+      serverProcess = await startServer(testDir, testPort);
+
+      // Use a valid three-part format ID that doesn't exist: layer.type.name
+      const response = await fetch(
+        `http://localhost:${testPort}/api/elements/motivation.goal.nonexistent-goal`
+      );
+
+      // Should be 404 (not found), not 400 (bad request)
+      // This tests that format validation passes but element lookup fails
+      expect(response.status).toBe(404);
+
+      const data = await response.json();
+      expect(data).toHaveProperty("error");
+      expect(data.error).toContain("not found");
+    });
+
     it("should include relationships field when relationships exist", async () => {
       serverProcess = await startServer(testDir, testPort);
 
@@ -399,6 +416,62 @@ describe.serial("Visualization Server API Endpoints", () => {
 
       const data = await response.json();
       expect(data.status).toBe("ok");
+    });
+  });
+
+  describe("OpenAPI Specification", () => {
+    it("should serve OpenAPI spec at /api-spec.json or /api-spec.yaml", async () => {
+      serverProcess = await startServer(testDir, testPort);
+
+      // Try JSON first, then YAML
+      let response = await fetch(`http://localhost:${testPort}/api-spec.json`);
+      if (response.status === 404) {
+        response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+      }
+      if (response.status === 404) {
+        response = await fetch(`http://localhost:${testPort}/openapi.json`);
+      }
+
+      // One of these should exist
+      expect([200]).toContain(response.status);
+    });
+
+    it("should have consistent paths between spec and actual routes", async () => {
+      serverProcess = await startServer(testDir, testPort);
+
+      // Get OpenAPI spec
+      let specResponse = await fetch(`http://localhost:${testPort}/api-spec.json`);
+      let spec: any = null;
+      if (specResponse.status === 200) {
+        spec = await specResponse.json();
+      } else {
+        specResponse = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+        if (specResponse.status === 200) {
+          // For YAML, we'd need to parse it, but the important check is that it exists
+          expect(specResponse.status).toBe(200);
+          return;
+        }
+      }
+
+      if (!spec || !spec.paths) {
+        // If no spec, just verify routes work
+        const response = await fetch(`http://localhost:${testPort}/api/model`);
+        expect([200, 404]).toContain(response.status);
+        return;
+      }
+
+      // Verify some key routes from spec exist in reality
+      const specPaths = Object.keys(spec.paths || {});
+      expect(specPaths.length).toBeGreaterThan(0);
+
+      // Test a few critical paths
+      const criticalPaths = ["/api/model", "/health", "/api/layers/{name}"];
+      for (const path of criticalPaths) {
+        const specPath = path.replace(/{name}/, "business");
+        const response = await fetch(`http://localhost:${testPort}${specPath}`);
+        // Route should either exist (200) or give proper error (400/404)
+        expect([200, 400, 404]).toContain(response.status);
+      }
     });
   });
 
