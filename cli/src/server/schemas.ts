@@ -24,7 +24,6 @@ export const TimestampSchema = z.string().datetime();
 export const AnnotationCreateSchema = z.object({
   elementId: ElementIdSchema,
   author: z.string()
-    .min(1, 'Author name cannot be empty if provided')
     .max(100, 'Author name too long')
     .optional()
     .default('Anonymous'),
@@ -37,7 +36,7 @@ export const AnnotationCreateSchema = z.object({
       .max(50, 'Tag too long')
       .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Tag must contain only lowercase letters, digits, and hyphens')
   ).optional().default([]),
-}).strict(); // Prevent extra fields
+}).strict();
 
 // Annotation schemas - for updating annotations
 export const AnnotationUpdateSchema = z.object({
@@ -52,7 +51,7 @@ export const AnnotationUpdateSchema = z.object({
       .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Tag must contain only lowercase letters, digits, and hyphens')
   ).optional(),
   resolved: z.boolean().optional(),
-}).strict(); // Prevent extra fields
+}).strict();
 
 // Annotation schemas - for creating replies
 export const AnnotationReplyCreateSchema = z.object({
@@ -62,7 +61,7 @@ export const AnnotationReplyCreateSchema = z.object({
   content: z.string()
     .min(1, 'Content is required')
     .max(5000, 'Content too long'),
-}).strict(); // Prevent extra fields
+}).strict();
 
 // Layer name schema - validates against canonical layer names
 export const LayerNameSchema = z.enum(
@@ -72,14 +71,18 @@ export const LayerNameSchema = z.enum(
 });
 
 // ID schema - validates generic IDs (annotations, changesets, elements)
-// Accepts alphanumeric characters, hyphens, and underscores
+// Accepts lowercase alphanumeric characters, hyphens, and underscores (consistent with ElementIdSchema)
 export const IdSchema = z.string()
   .min(1, 'ID is required')
-  .regex(/^[a-zA-Z0-9_-]+$/, 'Invalid ID format. Must contain only alphanumeric characters, hyphens, and underscores');
+  .regex(/^[a-z0-9_-]+$/, 'Invalid ID format. Must contain only lowercase alphanumeric characters, hyphens, and underscores');
 
 // Annotation filter schema - validates query parameters for GET /api/annotations
+// Supports filtering by elementId, author, tags, and resolved status
 export const AnnotationFilterSchema = z.object({
-  elementId: ElementIdSchema.optional()
+  elementId: ElementIdSchema.optional(),
+  author: z.string().optional(),
+  tags: z.string().optional(),
+  resolved: z.enum(['true', 'false']).optional(),
 }).passthrough(); // Allow extra query parameters (e.g., auth token) to pass through
 
 // Response schemas for OpenAPI documentation

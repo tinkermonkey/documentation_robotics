@@ -21,18 +21,6 @@ describe("Server Schemas", () => {
       }).not.toThrow();
     });
 
-    it("should accept valid legacy format element IDs", () => {
-      expect(() => {
-        ElementIdSchema.parse("motivation-goal-customer-satisfaction");
-      }).not.toThrow();
-    });
-
-    it("should accept single character IDs", () => {
-      expect(() => {
-        ElementIdSchema.parse("a");
-      }).not.toThrow();
-    });
-
     it("should reject empty strings", () => {
       expect(() => {
         ElementIdSchema.parse("");
@@ -63,7 +51,7 @@ describe("Server Schemas", () => {
   });
 
   describe("IdSchema", () => {
-    it("should accept valid IDs with alphanumeric, hyphens, and underscores", () => {
+    it("should accept valid lowercase IDs with alphanumeric, hyphens, and underscores", () => {
       expect(() => {
         IdSchema.parse("annotation-123");
       }).not.toThrow();
@@ -75,6 +63,16 @@ describe("Server Schemas", () => {
       expect(() => {
         IdSchema.parse("id123");
       }).not.toThrow();
+    });
+
+    it("should reject uppercase letters", () => {
+      expect(() => {
+        IdSchema.parse("Annotation-123");
+      }).toThrow();
+
+      expect(() => {
+        IdSchema.parse("CHANGESET_MY_FEATURE");
+      }).toThrow();
     });
 
     it("should reject empty strings", () => {
@@ -306,6 +304,47 @@ describe("Server Schemas", () => {
       }).not.toThrow();
     });
 
+    it("should accept author filter", () => {
+      expect(() => {
+        AnnotationFilterSchema.parse({
+          author: "John Doe",
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept tags filter", () => {
+      expect(() => {
+        AnnotationFilterSchema.parse({
+          tags: "bug,urgent",
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept resolved status filter", () => {
+      expect(() => {
+        AnnotationFilterSchema.parse({
+          resolved: "true",
+        });
+      }).not.toThrow();
+
+      expect(() => {
+        AnnotationFilterSchema.parse({
+          resolved: "false",
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept multiple filter combinations", () => {
+      expect(() => {
+        AnnotationFilterSchema.parse({
+          elementId: "motivation.goal.test",
+          author: "Jane Smith",
+          tags: "feedback",
+          resolved: "false",
+        });
+      }).not.toThrow();
+    });
+
     it("should accept empty object for no filters", () => {
       expect(() => {
         AnnotationFilterSchema.parse({});
@@ -326,6 +365,14 @@ describe("Server Schemas", () => {
       expect(() => {
         AnnotationFilterSchema.parse({
           elementId: "INVALID_ID",
+        });
+      }).toThrow();
+    });
+
+    it("should reject invalid resolved value", () => {
+      expect(() => {
+        AnnotationFilterSchema.parse({
+          resolved: "maybe",
         });
       }).toThrow();
     });
