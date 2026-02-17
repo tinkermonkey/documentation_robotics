@@ -1821,7 +1821,7 @@ export class VisualizationServer {
             JSON.stringify({
               jsonrpc: "2.0",
               error: {
-                code: -32603,
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
                 message: `Chat failed: ${errorMsg}`,
               },
               id: requestId,
@@ -1849,7 +1849,7 @@ export class VisualizationServer {
         JSON.stringify({
           jsonrpc: "2.0",
           error: {
-            code: -32603,
+            code: JSONRPC_ERRORS.INTERNAL_ERROR,
             message: `Failed to launch Claude Code: ${errorMsg}`,
           },
           id: requestId,
@@ -1968,7 +1968,7 @@ export class VisualizationServer {
             JSON.stringify({
               jsonrpc: "2.0",
               error: {
-                code: -32603,
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
                 message: `Chat failed: ${errorMsg}`,
               },
               id: requestId,
@@ -1996,7 +1996,7 @@ export class VisualizationServer {
         JSON.stringify({
           jsonrpc: "2.0",
           error: {
-            code: -32603,
+            code: JSONRPC_ERRORS.INTERNAL_ERROR,
             message: `Failed to launch GitHub Copilot: ${errorMsg}`,
           },
           id: requestId,
