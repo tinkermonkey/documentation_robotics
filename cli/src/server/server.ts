@@ -35,8 +35,11 @@ import {
   LayerResponseSchema,
   ElementResponseSchema,
   SpecResponseSchema,
-  ChangesetDetailSchema,
   AnnotationRepliesSchema,
+  WSMessageSchema,
+  SimpleWSMessageSchema,
+  JSONRPCRequestSchema,
+  JSONRPCResponseSchema,
 } from "./schemas.js";
 
 /**
@@ -53,39 +56,11 @@ const JSONRPC_ERRORS = {
   NO_CLIENT_AVAILABLE: -32001, // No chat client available
 } as const;
 
-// Simple WebSocket messages
-interface SimpleWSMessage {
-  type: "subscribe" | "annotate" | "ping";
-  topics?: string[];
-  annotation?: {
-    elementId: string;
-    author: string;
-    text: string;
-    timestamp: string;
-  };
-}
-
-// JSON-RPC 2.0 messages
-interface JSONRPCRequest {
-  jsonrpc: "2.0";
-  method: string;
-  params?: any;
-  id?: string | number;
-}
-
-interface JSONRPCResponse {
-  jsonrpc: "2.0";
-  result?: any;
-  error?: {
-    code: number;
-    message: string;
-    data?: any;
-  };
-  id: string | number;
-}
-
-// Discriminated union of WebSocket message types
-type WSMessage = SimpleWSMessage | JSONRPCRequest | JSONRPCResponse;
+// WebSocket message types derived from Zod schemas for type safety and runtime validation
+type SimpleWSMessage = z.infer<typeof SimpleWSMessageSchema>;
+type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
+type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
+type WSMessage = z.infer<typeof WSMessageSchema>;
 
 interface AnnotationReply {
   id: string;
@@ -1203,11 +1178,29 @@ export class VisualizationServer {
             } else {
               msgStr = String(rawData);
             }
-            const data = JSON.parse(msgStr) as WSMessage;
+            const rawMessage = JSON.parse(msgStr);
+
+            // Runtime validation of WebSocket message format
+            const validationResult = WSMessageSchema.safeParse(rawMessage);
+            if (!validationResult.success) {
+              const errorMsg = validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+              if (process.env.DEBUG) {
+                console.error("Invalid WebSocket message format:", errorMsg);
+              }
+              ws.send(JSON.stringify({ error: "Invalid message format" }));
+              return;
+            }
+
+            const data = validationResult.data as WSMessage;
 
             // Type-safe discriminated union handling
             if ('jsonrpc' in data && data.jsonrpc === '2.0') {
-              messageType = (data as JSONRPCRequest | JSONRPCResponse).method || (data as JSONRPCRequest).id?.toString() || "jsonrpc";
+              // Check if it's a request (has method) or response (has result/error)
+              if ('method' in data && typeof data.method === 'string') {
+                messageType = (data as JSONRPCRequest).method;
+              } else {
+                messageType = (data as JSONRPCResponse).id?.toString() || "jsonrpc-response";
+              }
             } else if ('type' in data) {
               messageType = (data as SimpleWSMessage).type;
             } else {
@@ -1384,7 +1377,7 @@ export class VisualizationServer {
       "ws.broadcast.failure_count": failureCount,
     });
 
-    if (failureCount > 0) {
+    if (failureCount > 0 && process.env.DEBUG) {
       console.warn(
         `[WebSocket] Failed to send message to ${failureCount}/${this.clients.size} clients`
       );
@@ -1496,6 +1489,14 @@ export class VisualizationServer {
    * Handle JSON-RPC 2.0 messages for chat functionality
    */
   private async handleJSONRPCMessage(ws: HonoWSContext, data: WSMessage): Promise<void> {
+    // Only requests have a method; responses have result/error
+    if (!('method' in data)) {
+      // This is a response, not something we handle in this function
+      if (process.env.DEBUG) {
+        console.warn("[WebSocket] Received JSON-RPC response from client, ignoring");
+      }
+      return;
+    }
     const rpcMsg = data as JSONRPCRequest;
     const { method, params, id } = rpcMsg;
 
@@ -1544,7 +1545,7 @@ export class VisualizationServer {
 
         case "chat.send":
           // Validate params
-          if (!params || !params.message) {
+          if (!params || typeof params !== 'object' || !('message' in params) || typeof (params as any).message !== 'string') {
             sendError(JSONRPC_ERRORS.INVALID_PARAMS, "Message cannot be empty");
             return;
           }
@@ -1562,7 +1563,7 @@ export class VisualizationServer {
           const conversationId = `conv-${++this.chatConversationCounter}-${Date.now()}`;
 
           // Launch chat with selected client
-          await this.launchChat(ws, conversationId, params.message, id);
+          await this.launchChat(ws, conversationId, (params as any).message, id);
           break;
 
         case "chat.cancel":
