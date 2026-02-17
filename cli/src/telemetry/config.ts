@@ -144,7 +144,11 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
 
       // Only accept http and https protocols
       if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-        process.stderr.write(`Error: Invalid protocol "${parsedUrl.protocol}" in ${fieldName}\n`);
+        const protocolMsg =
+          parsedUrl.protocol === "" || parsedUrl.protocol === ":"
+            ? "URL must include http:// or https:// scheme"
+            : `Invalid protocol "${parsedUrl.protocol}" (expected http or https)`;
+        process.stderr.write(`Error: ${protocolMsg} in ${fieldName}\n`);
         process.stderr.write(`  Provided: ${trimmed}\n`);
         process.stderr.write(`  Expected: URL must start with http:// or https://\n`);
         process.stderr.write(`  Using fallback configuration for this field\n`);

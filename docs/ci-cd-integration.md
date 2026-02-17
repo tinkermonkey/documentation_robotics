@@ -71,6 +71,7 @@ npm run generate:openapi
 ```
 
 This command:
+
 - Loads your model from the working directory
 - Extracts OpenAPI definitions from route handlers
 - Validates schemas match the implementation
@@ -135,12 +136,14 @@ The visualization server provides automated OpenAPI specification generation. Us
 ### Setup Steps
 
 1. **Local Development**:
+
    ```bash
    cd cli
    npm run generate:openapi
    ```
 
 2. **Before Committing**:
+
    ```bash
    # Verify spec matches current implementation
    npm run generate:openapi
