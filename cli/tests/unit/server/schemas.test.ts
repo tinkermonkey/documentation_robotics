@@ -8,7 +8,6 @@ import {
   IdSchema,
   LayerNameSchema,
 } from "../../../src/server/schemas.js";
-import { ZodError } from "@hono/zod-openapi";
 
 describe("Server Schemas", () => {
   describe("ElementIdSchema", () => {

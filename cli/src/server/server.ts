@@ -1326,10 +1326,8 @@ export class VisualizationServer {
       // End span immediately (WebSocket events are typically instantaneous)
       endSpan(span);
     } catch (error) {
-      // Silently fail if telemetry is not available
-      if (process.env.DEBUG) {
-        console.debug(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(error)}`);
-      }
+      // Log telemetry failures to enable production debugging
+      console.warn(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(error)}`);
     }
   }
 
