@@ -248,7 +248,7 @@ export class VisualizationServer {
         if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
 
         // Skip API routes and WebSocket - let them be handled by their specific routes
-        if (requestPath.startsWith("/api/") || requestPath === "/ws" || requestPath === "/health") {
+        if (requestPath.startsWith("/api/") || requestPath === "/ws" || requestPath === "/health" || requestPath === "/api-spec.yaml" || requestPath === "/api-docs") {
           if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
           return next(); // Pass to next handler instead of returning 404
         }
@@ -1064,7 +1064,7 @@ export class VisualizationServer {
 
     // OpenAPI documentation endpoint
     this.app.doc('/api-spec.yaml', {
-      openapi: '3.0.3',
+      openapi: '3.1.0',
       info: {
         title: 'Documentation Robotics Visualization Server API',
         version: '0.1.0',
@@ -1390,7 +1390,7 @@ export class VisualizationServer {
     } catch (error) {
       // Silently fail if telemetry is not available
       if (process.env.DEBUG) {
-        console.debug(`[Telemetry] Failed to record WebSocket event: ${error}`);
+        console.debug(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(error)}`);
       }
     }
   }
@@ -1540,7 +1540,9 @@ export class VisualizationServer {
               cancelledConvId = convId;
               break;
             } catch (error) {
-              // Process already terminated
+              if (process.env.DEBUG) {
+                console.debug(`[Chat] Failed to cancel process for conversation ${convId}: ${getErrorMessage(error)}`);
+              }
             }
           }
 
@@ -1712,8 +1714,11 @@ export class VisualizationServer {
                     })
                   );
                 }
-              } catch {
+              } catch (parseError) {
                 // Non-JSON line, send as raw text chunk
+                if (process.env.DEBUG) {
+                  console.debug(`[Chat] Failed to parse JSON chunk: ${getErrorMessage(parseError)}`);
+                }
                 ws.send(
                   JSON.stringify({
                     jsonrpc: "2.0",
@@ -1784,8 +1789,10 @@ export class VisualizationServer {
 
           try {
             proc.kill();
-          } catch {
-            // Process may already be terminated
+          } catch (error) {
+            if (process.env.DEBUG) {
+              console.debug(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+            }
           }
         }
       };
@@ -1929,8 +1936,10 @@ export class VisualizationServer {
 
           try {
             proc.kill();
-          } catch {
-            // Process may already be terminated
+          } catch (error) {
+            if (process.env.DEBUG) {
+              console.debug(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+            }
           }
         }
       };
