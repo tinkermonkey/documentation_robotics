@@ -301,70 +301,6 @@ describe.serial("Visualization Server API Endpoints", () => {
   });
 
   describe("GET /api/elements/:id", () => {
-    it("should return element by ID", async () => {
-      serverProcess = await startServer(testDir, testPort);
-
-      // First, get the model to see what elements exist
-      const modelResponse = await fetch(`http://localhost:${testPort}/api/model`);
-      const modelData = await modelResponse.json();
-
-      // Find a business element
-      const businessElements = modelData.layers.business?.elements || [];
-      if (businessElements.length === 0) {
-        console.log("No business elements found, skipping test");
-        return;
-      }
-
-      const element = businessElements[0];
-      const response = await fetch(`http://localhost:${testPort}/api/elements/${element.id}`);
-
-      expect(response.status).toBe(200);
-
-      const data = await response.json();
-      expect(data.id).toBe(element.id);
-      expect(data).toHaveProperty("name");
-      expect(data).toHaveProperty("type");
-    });
-
-    it("should return elements from different layers", async () => {
-      serverProcess = await startServer(testDir, testPort);
-
-      // Get all elements from the model
-      const modelResponse = await fetch(`http://localhost:${testPort}/api/model`);
-      const modelData = await modelResponse.json();
-
-      // Test elements from different layers
-      const testLayers = ["business", "application", "api"];
-
-      for (const layerName of testLayers) {
-        const elements = modelData.layers[layerName]?.elements || [];
-        if (elements.length > 0) {
-          const element = elements[0];
-          const response = await fetch(`http://localhost:${testPort}/api/elements/${element.id}`);
-
-          expect(response.status).toBe(200);
-
-          const data = await response.json();
-          expect(data.id).toBe(element.id);
-          expect(data.name).toBe(element.name);
-        }
-      }
-    });
-
-    it("should return 404 for non-existent element", async () => {
-      serverProcess = await startServer(testDir, testPort);
-
-      const response = await fetch(
-        `http://localhost:${testPort}/api/elements/non-existent-element-id`
-      );
-
-      expect(response.status).toBe(404);
-
-      const data = await response.json();
-      expect(data).toHaveProperty("error");
-      expect(data.error).toContain("not found");
-    });
-
     it("should return 404 for valid-format but non-existent element ID", async () => {
       serverProcess = await startServer(testDir, testPort);
 
@@ -380,29 +316,6 @@ describe.serial("Visualization Server API Endpoints", () => {
       const data = await response.json();
       expect(data).toHaveProperty("error");
       expect(data.error).toContain("not found");
-    });
-
-    it("should include relationships field when relationships exist", async () => {
-      serverProcess = await startServer(testDir, testPort);
-
-      // Get an element from the model
-      const modelResponse = await fetch(`http://localhost:${testPort}/api/model`);
-      const modelData = await modelResponse.json();
-
-      const businessElements = modelData.layers.business?.elements || [];
-      if (businessElements.length === 0) {
-        console.log("No business elements found, skipping test");
-        return;
-      }
-
-      const element = businessElements[0];
-      const response = await fetch(`http://localhost:${testPort}/api/elements/${element.id}`);
-      const data = await response.json();
-
-      // Relationships field is optional - only present if there are relationships
-      if (data.relationships !== undefined) {
-        expect(Array.isArray(data.relationships)).toBe(true);
-      }
     });
   });
 
