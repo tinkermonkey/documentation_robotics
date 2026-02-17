@@ -47,6 +47,7 @@ export const WSMessageSchema = z.union([
 // - motivation.goal.customer-satisfaction
 // - api.endpoint.create-order
 // - data-store.table.user-profile
+// - a.b.c (minimal single-character segments, valid for testing purposes)
 export const ElementIdSchema = z.string()
   .min(1, 'Element ID is required')
   .regex(

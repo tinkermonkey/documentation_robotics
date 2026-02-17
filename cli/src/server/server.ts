@@ -44,7 +44,9 @@ import {
 
 /**
  * JSON-RPC 2.0 Error Codes
- * Standard error codes for JSON-RPC error responses
+ * Subset of JSON-RPC 2.0 error codes used in this implementation.
+ * Standard JSON-RPC 2.0 also defines PARSE_ERROR (-32700) and INVALID_REQUEST (-32600)
+ * for protocol-level errors not applicable to WebSocket message handling.
  */
 const JSONRPC_ERRORS = {
   // Standard JSON-RPC errors
@@ -77,7 +79,7 @@ type Changeset = z.infer<typeof ChangesetDetailSchema>;
 // Type for WebSocket context from Hono/Bun
 // Defines the interface for WebSocket operations within the Hono/Bun environment
 interface HonoWSContext {
-  send(source: string | ArrayBuffer | Uint8Array | ArrayBufferView, options?: any): void;
+  send(source: string | ArrayBuffer | Uint8Array | ArrayBufferView, options?: { compress?: boolean }): void;
   close(code?: number, reason?: string): void;
 }
 

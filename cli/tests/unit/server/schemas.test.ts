@@ -7,6 +7,7 @@ import {
   AnnotationFilterSchema,
   IdSchema,
   LayerNameSchema,
+  TimestampSchema,
 } from "../../../src/server/schemas.js";
 
 describe("Server Schemas", () => {
@@ -423,6 +424,60 @@ describe("Server Schemas", () => {
 
       expect(() => {
         LayerNameSchema.parse("data_store");
+      }).toThrow();
+    });
+  });
+
+  describe("TimestampSchema", () => {
+    it("should accept valid ISO 8601 timestamps", () => {
+      expect(() => {
+        TimestampSchema.parse("2024-01-15T10:30:00Z");
+      }).not.toThrow();
+
+      expect(() => {
+        TimestampSchema.parse("2024-12-31T23:59:59Z");
+      }).not.toThrow();
+
+      expect(() => {
+        TimestampSchema.parse("2024-06-15T14:30:00.123Z");
+      }).not.toThrow();
+    });
+
+    it("should accept timestamps with milliseconds", () => {
+      expect(() => {
+        TimestampSchema.parse("2024-01-15T10:30:00.000Z");
+      }).not.toThrow();
+
+      expect(() => {
+        TimestampSchema.parse("2024-01-15T10:30:00.999Z");
+      }).not.toThrow();
+    });
+
+    it("should reject invalid datetime formats", () => {
+      expect(() => {
+        TimestampSchema.parse("2024-01-15");
+      }).toThrow();
+
+      expect(() => {
+        TimestampSchema.parse("10:30:00");
+      }).toThrow();
+
+      expect(() => {
+        TimestampSchema.parse("not-a-date");
+      }).toThrow();
+
+      expect(() => {
+        TimestampSchema.parse("2024-13-01T10:30:00Z");
+      }).toThrow();
+
+      expect(() => {
+        TimestampSchema.parse("2024-01-15T10:30:00+00:00");
+      }).toThrow();
+    });
+
+    it("should reject empty strings", () => {
+      expect(() => {
+        TimestampSchema.parse("");
       }).toThrow();
     });
   });

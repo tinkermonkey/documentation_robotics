@@ -444,7 +444,9 @@ describe.serial("Visualization Server API Endpoints", () => {
       const data = await response.json();
       expect(data).toHaveProperty("error");
       // Error can be either a string or an object from Zod validation
-      expect(data.error).toBeDefined();
+      expect(data.error).toSatisfy((err: unknown) =>
+        typeof err === 'string' || (typeof err === 'object' && err !== null)
+      );
     });
 
     it("should reject invalid layer name with Zod validation", async () => {
