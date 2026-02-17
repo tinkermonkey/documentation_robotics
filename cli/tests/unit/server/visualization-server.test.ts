@@ -161,7 +161,7 @@ describe("VisualizationServer", () => {
       const message = {
         type: "annotation.added",
         annotationId: "test-annotation-id",
-        elementId: "motivation-goal-test-goal",
+        elementId: "motivation.goal.test-goal",
         timestamp: new Date().toISOString(),
       };
 
@@ -171,21 +171,21 @@ describe("VisualizationServer", () => {
 
     it("should add annotation to map", async () => {
       const annotation = {
-        elementId: "motivation-goal-test-goal",
+        elementId: "motivation.goal.test-goal",
         author: "Test Author",
         text: "Test annotation",
         timestamp: new Date().toISOString(),
       };
 
-      const annotationsBefore = server["annotations"].get("motivation-goal-test-goal")?.length ?? 0;
+      const annotationsBefore = server["annotations"].get("motivation.goal.test-goal")?.length ?? 0;
 
       // Simulate adding annotation
-      if (!server["annotations"].has("motivation-goal-test-goal")) {
-        server["annotations"].set("motivation-goal-test-goal", []);
+      if (!server["annotations"].has("motivation.goal.test-goal")) {
+        server["annotations"].set("motivation.goal.test-goal", []);
       }
-      server["annotations"].get("motivation-goal-test-goal")!.push(annotation);
+      server["annotations"].get("motivation.goal.test-goal")!.push(annotation);
 
-      const annotationsAfter = server["annotations"].get("motivation-goal-test-goal")?.length ?? 0;
+      const annotationsAfter = server["annotations"].get("motivation.goal.test-goal")?.length ?? 0;
 
       expect(annotationsAfter).toBe(annotationsBefore + 1);
     });

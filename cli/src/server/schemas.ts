@@ -77,7 +77,8 @@ export const IdSchema = z.string()
   .regex(/^[a-z0-9_-]+$/, 'Invalid ID format. Must contain only lowercase alphanumeric characters, hyphens, and underscores');
 
 // Annotation filter schema - validates query parameters for GET /api/annotations
-// Supports filtering by elementId, author, tags, and resolved status
+// Currently only supports filtering by elementId
+// Note: author, tags, and resolved fields are accepted by schema for future extensibility but not yet implemented
 export const AnnotationFilterSchema = z.object({
   elementId: ElementIdSchema.optional(),
   author: z.string().optional(),

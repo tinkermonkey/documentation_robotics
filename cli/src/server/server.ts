@@ -657,13 +657,13 @@ export class VisualizationServer {
       }
     });
 
-    // Update annotation (PUT - full update)
+    // Update annotation (PUT - partial update for compatibility)
     const putAnnotationRoute = createRoute({
       method: 'put',
       path: '/api/annotations/:annotationId',
       tags: ['Annotations'],
       summary: 'Update annotation',
-      description: 'Update an existing annotation (full update)',
+      description: 'Update an existing annotation (only provided fields are updated)',
       request: {
         params: z.object({ annotationId: IdSchema }),
         body: {
@@ -1592,9 +1592,7 @@ export class VisualizationServer {
               cancelledConvId = convId;
               break;
             } catch (error) {
-              if (process.env.DEBUG) {
-                console.debug(`[Chat] Failed to cancel process for conversation ${convId}: ${getErrorMessage(error)}`);
-              }
+              console.warn(`[Chat] Failed to cancel process for conversation ${convId}: ${getErrorMessage(error)}`);
             }
           }
 
@@ -1842,9 +1840,7 @@ export class VisualizationServer {
           try {
             proc.kill();
           } catch (error) {
-            if (process.env.DEBUG) {
-              console.debug(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
-            }
+            console.warn(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
           }
         }
       };
@@ -1989,9 +1985,7 @@ export class VisualizationServer {
           try {
             proc.kill();
           } catch (error) {
-            if (process.env.DEBUG) {
-              console.debug(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
-            }
+            console.warn(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
           }
         }
       };
@@ -2050,10 +2044,8 @@ export class VisualizationServer {
             try {
               client.send(message);
             } catch (error) {
-              if (process.env.DEBUG) {
-                const msg = getErrorMessage(error);
-                console.debug(`[Watcher] Failed to send update: ${msg}`);
-              }
+              const msg = getErrorMessage(error);
+              console.warn(`[Watcher] Failed to send update: ${msg}`);
             }
           }
         } catch (error) {
