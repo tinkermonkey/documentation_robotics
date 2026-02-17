@@ -309,12 +309,12 @@ jobs:
         run: |
           echo "Checking OpenAPI spec markers and content..."
 
-          # Check that spec has auto-generated marker (not deprecated)
-          if grep -q "# AUTO-GENERATED:" docs/api-spec.yaml; then
-            echo "✓ OpenAPI spec is marked as auto-generated"
+          # Check that spec has hand-maintained marker (validation approach)
+          if grep -q "# HAND-MAINTAINED:" docs/api-spec.yaml; then
+            echo "✓ OpenAPI spec has validation marker"
           else
-            echo "❌ OpenAPI spec is missing auto-generated marker"
-            echo "   It should start with: # AUTO-GENERATED:"
+            echo "❌ OpenAPI spec is missing validation marker"
+            echo "   It should start with: # HAND-MAINTAINED:"
             exit 1
           fi
 

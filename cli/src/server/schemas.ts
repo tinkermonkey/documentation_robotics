@@ -84,7 +84,10 @@ export const AnnotationUpdateSchema = z.object({
     .optional(),
   tags: z.array(TagSchema).optional(),
   resolved: z.boolean().optional(),
-}).strict();
+}).strict().refine(
+  (obj) => Object.keys(obj).some(key => obj[key as keyof typeof obj] !== undefined),
+  'At least one field must be provided for update'
+);
 
 // Annotation schemas - for creating replies
 export const AnnotationReplyCreateSchema = z.object({
@@ -178,9 +181,9 @@ export const ElementResponseSchema = z.object({
 });
 
 export const ModelResponseSchema = z.object({
+  manifest: z.record(z.string(), z.unknown()).describe('Model manifest metadata'),
   layers: z.record(z.string(), z.object({}).passthrough()).describe('All layers in the model (key-value pairs mapping layer names to layer objects)'),
-  layerCount: z.number().describe('Total number of layers'),
-  elementCount: z.number().describe('Total number of elements across all layers'),
+  totalElements: z.number().describe('Total number of elements across all layers'),
 });
 
 export const SpecResponseSchema = z.object({
@@ -193,7 +196,6 @@ export const SpecResponseSchema = z.object({
 });
 
 export const ChangesetMetadataSchema = z.object({
-  id: z.string(),
   name: z.string(),
   status: z.enum(['active', 'applied', 'abandoned'] as const),
   type: z.enum(['feature', 'bugfix', 'exploration'] as const),

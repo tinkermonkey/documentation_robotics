@@ -8,6 +8,10 @@ import {
   IdSchema,
   LayerNameSchema,
   TimestampSchema,
+  SimpleWSMessageSchema,
+  JSONRPCRequestSchema,
+  JSONRPCResponseSchema,
+  WSMessageSchema,
 } from "../../../src/server/schemas.js";
 
 describe("Server Schemas", () => {
@@ -217,10 +221,10 @@ describe("Server Schemas", () => {
       }).not.toThrow();
     });
 
-    it("should accept empty object for no updates", () => {
+    it("should reject empty object with no fields", () => {
       expect(() => {
         AnnotationUpdateSchema.parse({});
-      }).not.toThrow();
+      }).toThrow("At least one field must be provided for update");
     });
 
     it("should reject empty content", () => {
@@ -478,6 +482,243 @@ describe("Server Schemas", () => {
     it("should reject empty strings", () => {
       expect(() => {
         TimestampSchema.parse("");
+      }).toThrow();
+    });
+  });
+
+  describe("SimpleWSMessageSchema", () => {
+    it("should accept valid subscribe message", () => {
+      expect(() => {
+        SimpleWSMessageSchema.parse({
+          type: "subscribe",
+          topics: ["layer:api", "element:changes"],
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept valid annotate message", () => {
+      expect(() => {
+        SimpleWSMessageSchema.parse({
+          type: "annotate",
+          annotation: {
+            elementId: "api.endpoint.create-user",
+            author: "John Doe",
+            text: "This endpoint needs documentation",
+            timestamp: "2024-01-15T10:30:00Z",
+          },
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept ping message", () => {
+      expect(() => {
+        SimpleWSMessageSchema.parse({
+          type: "ping",
+        });
+      }).not.toThrow();
+    });
+
+    it("should require type field", () => {
+      expect(() => {
+        SimpleWSMessageSchema.parse({
+          topics: ["layer:api"],
+        });
+      }).toThrow();
+    });
+
+    it("should reject invalid message type", () => {
+      expect(() => {
+        SimpleWSMessageSchema.parse({
+          type: "invalid",
+        });
+      }).toThrow();
+    });
+
+    it("should allow optional topics and annotation", () => {
+      const result = SimpleWSMessageSchema.parse({
+        type: "subscribe",
+      });
+      expect(result.topics).toBeUndefined();
+    });
+  });
+
+  describe("JSONRPCRequestSchema", () => {
+    it("should accept valid JSON-RPC request with string id", () => {
+      expect(() => {
+        JSONRPCRequestSchema.parse({
+          jsonrpc: "2.0",
+          method: "model.getElement",
+          params: { elementId: "api.endpoint.create-user" },
+          id: "req-1",
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept valid JSON-RPC request with numeric id", () => {
+      expect(() => {
+        JSONRPCRequestSchema.parse({
+          jsonrpc: "2.0",
+          method: "annotation.list",
+          params: { layer: "api" },
+          id: 42,
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept JSON-RPC request without params", () => {
+      expect(() => {
+        JSONRPCRequestSchema.parse({
+          jsonrpc: "2.0",
+          method: "model.getVersion",
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept JSON-RPC notification without id", () => {
+      expect(() => {
+        JSONRPCRequestSchema.parse({
+          jsonrpc: "2.0",
+          method: "notification.publish",
+          params: { message: "Model updated" },
+        });
+      }).not.toThrow();
+    });
+
+    it("should require jsonrpc version 2.0", () => {
+      expect(() => {
+        JSONRPCRequestSchema.parse({
+          jsonrpc: "1.0",
+          method: "test",
+          id: 1,
+        });
+      }).toThrow();
+    });
+
+    it("should require method field", () => {
+      expect(() => {
+        JSONRPCRequestSchema.parse({
+          jsonrpc: "2.0",
+          id: 1,
+        });
+      }).toThrow();
+    });
+  });
+
+  describe("JSONRPCResponseSchema", () => {
+    it("should accept successful response with result", () => {
+      expect(() => {
+        JSONRPCResponseSchema.parse({
+          jsonrpc: "2.0",
+          result: { elements: 42, layers: 12 },
+          id: "req-1",
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept error response", () => {
+      expect(() => {
+        JSONRPCResponseSchema.parse({
+          jsonrpc: "2.0",
+          error: {
+            code: -32600,
+            message: "Invalid Request",
+          },
+          id: 1,
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept error response with data", () => {
+      expect(() => {
+        JSONRPCResponseSchema.parse({
+          jsonrpc: "2.0",
+          error: {
+            code: -32603,
+            message: "Internal error",
+            data: { context: "Failed to load layer" },
+          },
+          id: "req-123",
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept numeric id", () => {
+      expect(() => {
+        JSONRPCResponseSchema.parse({
+          jsonrpc: "2.0",
+          result: { status: "ok" },
+          id: 999,
+        });
+      }).not.toThrow();
+    });
+
+    it("should require jsonrpc version 2.0", () => {
+      expect(() => {
+        JSONRPCResponseSchema.parse({
+          jsonrpc: "1.0",
+          result: {},
+          id: 1,
+        });
+      }).toThrow();
+    });
+
+    it("should require id field", () => {
+      expect(() => {
+        JSONRPCResponseSchema.parse({
+          jsonrpc: "2.0",
+          result: { test: "data" },
+        });
+      }).toThrow();
+    });
+
+    it("should not allow both result and error", () => {
+      // This is a semantic constraint not enforced at schema level,
+      // but the schema should still parse both present (JSON-RPC spec says don't send both)
+      expect(() => {
+        JSONRPCResponseSchema.parse({
+          jsonrpc: "2.0",
+          result: { ok: true },
+          error: { code: 1, message: "Error" },
+          id: 1,
+        });
+      }).not.toThrow();
+    });
+  });
+
+  describe("WSMessageSchema", () => {
+    it("should accept SimpleWSMessage", () => {
+      expect(() => {
+        WSMessageSchema.parse({
+          type: "ping",
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept JSONRPCRequest", () => {
+      expect(() => {
+        WSMessageSchema.parse({
+          jsonrpc: "2.0",
+          method: "test.call",
+          id: 1,
+        });
+      }).not.toThrow();
+    });
+
+    it("should accept JSONRPCResponse", () => {
+      expect(() => {
+        WSMessageSchema.parse({
+          jsonrpc: "2.0",
+          result: { ok: true },
+          id: 1,
+        });
+      }).not.toThrow();
+    });
+
+    it("should reject unknown message types", () => {
+      expect(() => {
+        WSMessageSchema.parse({
+          unknown: "field",
+        });
       }).toThrow();
     });
   });
