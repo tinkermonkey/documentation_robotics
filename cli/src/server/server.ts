@@ -30,6 +30,12 @@ import {
   AnnotationReplySchema,
   AnnotationsListSchema,
   ChangesetsListSchema,
+  ModelResponseSchema,
+  LayerResponseSchema,
+  ElementResponseSchema,
+  SpecResponseSchema,
+  ChangesetDetailSchema,
+  AnnotationRepliesSchema,
 } from "./schemas.js";
 
 /**
@@ -320,7 +326,7 @@ export class VisualizationServer {
           description: 'Model data retrieved successfully',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ModelResponseSchema,
             },
           },
         },
@@ -367,7 +373,7 @@ export class VisualizationServer {
           description: 'Layer retrieved successfully',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: LayerResponseSchema,
             },
           },
         },
@@ -375,7 +381,7 @@ export class VisualizationServer {
           description: 'Layer not found',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -383,7 +389,7 @@ export class VisualizationServer {
           description: 'Server error',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -427,7 +433,7 @@ export class VisualizationServer {
           description: 'Element retrieved successfully',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ElementResponseSchema,
             },
           },
         },
@@ -435,7 +441,7 @@ export class VisualizationServer {
           description: 'Element not found',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -443,7 +449,7 @@ export class VisualizationServer {
           description: 'Server error',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -481,7 +487,7 @@ export class VisualizationServer {
           description: 'Schemas retrieved successfully',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: SpecResponseSchema,
             },
           },
         },
@@ -489,7 +495,7 @@ export class VisualizationServer {
           description: 'Server error',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -673,7 +679,7 @@ export class VisualizationServer {
           description: 'Annotation updated successfully',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: AnnotationSchema,
             },
           },
         },
@@ -681,7 +687,7 @@ export class VisualizationServer {
           description: 'Annotation not found',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -689,7 +695,7 @@ export class VisualizationServer {
           description: 'Server error',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -755,7 +761,7 @@ export class VisualizationServer {
           description: 'Annotation updated successfully',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: AnnotationSchema,
             },
           },
         },
@@ -763,7 +769,7 @@ export class VisualizationServer {
           description: 'Annotation not found',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -771,7 +777,7 @@ export class VisualizationServer {
           description: 'Server error',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -894,7 +900,7 @@ export class VisualizationServer {
           description: 'Replies retrieved successfully',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: AnnotationRepliesSchema,
             },
           },
         },
@@ -902,7 +908,7 @@ export class VisualizationServer {
           description: 'Annotation not found',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -1060,7 +1066,7 @@ export class VisualizationServer {
           description: 'Changeset retrieved successfully',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ChangesetDetailSchema,
             },
           },
         },
@@ -1068,7 +1074,7 @@ export class VisualizationServer {
           description: 'Changeset not found',
           content: {
             'application/json': {
-              schema: z.any(),
+              schema: ErrorResponseSchema,
             },
           },
         },
@@ -2796,7 +2802,11 @@ export class VisualizationServer {
       try {
         client.close();
       } catch (error) {
-        // Ignore errors on close
+        // Only suppress expected "already closed" errors
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!errorMessage.includes('already closed') && process.env.VERBOSE) {
+          console.error(`[SERVER] Unexpected error closing WebSocket client: ${errorMessage}`);
+        }
       }
     }
     this.clients.clear();

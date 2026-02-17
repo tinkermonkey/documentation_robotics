@@ -142,6 +142,12 @@ export const ElementResponseSchema = z.object({
   annotations: z.array(AnnotationSchema).optional().describe('Associated annotations'),
 });
 
+export const ModelResponseSchema = z.object({
+  layers: z.record(z.string(), z.object({}).passthrough()).describe('All layers in the model (key-value pairs mapping layer names to layer objects)'),
+  layerCount: z.number().describe('Total number of layers'),
+  elementCount: z.number().describe('Total number of elements across all layers'),
+});
+
 export const SpecResponseSchema = z.object({
   version: z.string().describe('Spec version'),
   type: z.string().describe('Response type'),
