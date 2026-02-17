@@ -57,8 +57,8 @@ async function generateOpenAPISpec() {
 ${YAML.stringify(spec, { indent: 2 })}
 `;
 
-    // Write spec to file
-    const outputPath = join(projectRoot, "docs", "api-spec.yaml");
+    // Write spec to file (to repo root docs/, not cli/docs/)
+    const outputPath = join(projectRoot, "..", "docs", "api-spec.yaml");
     console.log(`📝 Writing OpenAPI spec to ${outputPath}...`);
     await writeFile(outputPath, specYaml, "utf-8");
 
