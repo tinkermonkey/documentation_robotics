@@ -158,6 +158,15 @@ export class VisualizationServer {
     this.withDanger = options?.withDanger || false;
     this.viewerPath = options?.viewerPath;
 
+    // Validate cross-field configuration
+    if (!this.authEnabled && options?.authToken) {
+      console.warn(
+        "[VisualizationServer] Warning: authToken provided but authEnabled is false. " +
+        "The token will be generated but not used for authentication. " +
+        "Set authEnabled: true to enable authentication."
+      );
+    }
+
     // Add CORS middleware
     this.app.use("/*", cors());
 
@@ -265,6 +274,43 @@ export class VisualizationServer {
    */
   private generateAuthToken(): string {
     return `dr-${randomBytes(24).toString('base64url')}`;
+  }
+
+  /**
+   * Shared annotation update logic for PUT/PATCH handlers
+   * Performs partial updates with atomic operations
+   */
+  private async updateAnnotation(
+    annotationId: string,
+    body: z.infer<typeof AnnotationUpdateSchema>
+  ): Promise<ClientAnnotation | null> {
+    const annotation = this.annotations.get(annotationId);
+
+    if (!annotation) {
+      return null;
+    }
+
+    // Create new annotation object with updates (atomic update, no direct mutation)
+    // This prevents race conditions if the annotation is read during WebSocket broadcast
+    const updatedAnnotation: ClientAnnotation = {
+      ...annotation,
+      content: body.content ?? annotation.content,
+      tags: body.tags ?? annotation.tags,
+      resolved: body.resolved ?? annotation.resolved,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Store the updated annotation atomically
+    this.annotations.set(annotationId, updatedAnnotation);
+
+    // Broadcast to all clients
+    await this.broadcastMessage({
+      type: "annotation.updated",
+      annotationId: updatedAnnotation.id,
+      timestamp: updatedAnnotation.updatedAt,
+    });
+
+    return updatedAnnotation;
   }
 
   /**
@@ -572,6 +618,17 @@ export class VisualizationServer {
 
     this.app.openapi(getAnnotationsRoute, (c) => {
       const query = c.req.valid("query");
+
+      // Validate that only supported filters are used
+      if (query.author || query.tags || query.resolved) {
+        return c.json({
+          error: "Unsupported filter",
+          message: "Filtering by author, tags, or resolved status is not yet implemented. Only elementId filtering is supported.",
+          supported_filters: ["elementId"],
+          planned_filters: ["author", "tags", "resolved"]
+        }, 400);
+      }
+
       const elementId = query.elementId;
 
       if (elementId) {
@@ -788,33 +845,13 @@ export class VisualizationServer {
     this.app.openapi(putAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
-        const annotation = this.annotations.get(annotationId);
-
-        if (!annotation) {
-          return c.json({ error: "Annotation not found" }, 404);
-        }
-
         const body = c.req.valid("json");
 
-        // Create new annotation object with updates (atomic update, no direct mutation)
-        // This prevents race conditions if the annotation is read during WebSocket broadcast
-        const updatedAnnotation: ClientAnnotation = {
-          ...annotation,
-          content: body.content ?? annotation.content,
-          tags: body.tags ?? annotation.tags,
-          resolved: body.resolved ?? annotation.resolved,
-          updatedAt: new Date().toISOString(),
-        };
+        const updatedAnnotation = await this.updateAnnotation(annotationId, body);
 
-        // Store the updated annotation atomically
-        this.annotations.set(annotationId, updatedAnnotation);
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.updated",
-          annotationId: updatedAnnotation.id,
-          timestamp: updatedAnnotation.updatedAt,
-        });
+        if (!updatedAnnotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
 
         return c.json(updatedAnnotation);
       } catch (error) {
@@ -872,33 +909,13 @@ export class VisualizationServer {
     this.app.openapi(patchAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
-        const annotation = this.annotations.get(annotationId);
-
-        if (!annotation) {
-          return c.json({ error: "Annotation not found" }, 404);
-        }
-
         const body = c.req.valid("json");
 
-        // Create new annotation object with updates (atomic update, no direct mutation)
-        // This prevents race conditions if the annotation is read during WebSocket broadcast
-        const updatedAnnotation: ClientAnnotation = {
-          ...annotation,
-          content: body.content ?? annotation.content,
-          tags: body.tags ?? annotation.tags,
-          resolved: body.resolved ?? annotation.resolved,
-          updatedAt: new Date().toISOString(),
-        };
+        const updatedAnnotation = await this.updateAnnotation(annotationId, body);
 
-        // Store the updated annotation atomically
-        this.annotations.set(annotationId, updatedAnnotation);
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.updated",
-          annotationId: updatedAnnotation.id,
-          timestamp: updatedAnnotation.updatedAt,
-        });
+        if (!updatedAnnotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
 
         return c.json(updatedAnnotation);
       } catch (error) {
@@ -1405,8 +1422,8 @@ export class VisualizationServer {
             "error.message": message,
           });
 
-          // Always log WebSocket errors (disconnections, protocol violations, TLS failures)
-          console.error(`[WebSocket] Error: ${message}`);
+          // Always log WebSocket errors with full context including stack trace for debugging
+          console.error("[WebSocket] Error:", error);
         },
       }))
       );
@@ -2237,7 +2254,12 @@ export class VisualizationServer {
           } else if (entry.isFile() && (entry.name.endsWith(".schema.json") || entry.name.endsWith(".json"))) {
             // Load JSON schema files
             const content = await fs.readFile(fullPath, "utf-8");
-            schemas[schemaKey] = JSON.parse(content);
+            try {
+              schemas[schemaKey] = JSON.parse(content);
+            } catch (parseError) {
+              const parseErrorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+              throw new Error(`Invalid JSON in schema file ${fullPath}: ${parseErrorMsg}`);
+            }
           }
         }
       };

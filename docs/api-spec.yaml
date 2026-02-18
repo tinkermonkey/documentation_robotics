@@ -680,6 +680,8 @@ paths:
 
         - `{"type": "annotation.deleted", "annotationId": "..."}` - Annotation deleted
 
+        - `{"type": "annotation.reply.added", "annotationId": "...", "replyId": "...", "timestamp": "..."}` - Reply added to annotation
+
         - `{"type": "annotation", "data": {...}}` - Annotation broadcast (legacy, from annotate message)
 
         - `{"type": "changeset.created", "changesetId": "...", "name": "...", "timestamp": "..."}` -
