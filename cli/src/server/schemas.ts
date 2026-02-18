@@ -1,6 +1,38 @@
 import { z } from '@hono/zod-openapi';
 import { CANONICAL_LAYER_NAMES } from '../core/layers.js';
 
+/**
+ * Branded type for ElementId
+ * Provides compile-time safety by distinguishing ElementId from plain strings
+ * Use with parseElementId() to validate and brand a string at runtime
+ *
+ * Example:
+ *   const brandedId = parseElementId("motivation.goal.customer-satisfaction");
+ *   function processElement(id: ElementId) { ... } // Type-safe
+ */
+export type ElementId = string & { readonly __brand: 'ElementId' };
+
+/**
+ * Parse and validate a string as an ElementId
+ * Returns a branded type for compile-time type safety
+ */
+export function parseElementId(input: string): ElementId {
+  const result = ElementIdSchema.safeParse(input);
+  if (!result.success) {
+    const errorMessages = result.error.issues.map(issue => issue.message).join('; ');
+    throw new Error(`Invalid element ID: ${errorMessages}`);
+  }
+  return result.data as ElementId;
+}
+
+/**
+ * Type guard for ElementId
+ * Use with function parameters for optional compile-time checking
+ */
+export function isElementId(value: unknown): value is ElementId {
+  return typeof value === 'string' && ElementIdSchema.safeParse(value).success;
+}
+
 // WebSocket message schemas with runtime validation
 export const SimpleWSMessageSchema = z.object({
   type: z.enum(['subscribe', 'annotate', 'ping']),
@@ -134,6 +166,13 @@ export const LayerNameSchema = z.enum(
 // ID schema - validates generic IDs for annotations, changesets, and other non-element identifiers
 // Accepts lowercase alphanumeric characters, hyphens, and underscores
 // Note: Different from ElementIdSchema which requires dot-separated format (layer.type.name)
+//
+// Lowercase-only constraint rationale:
+// - Provides case-insensitive ID lookups by normalizing to lowercase at validation time
+// - Prevents collisions (MyId vs myid cannot coexist in same namespace)
+// - System-generated IDs comply; externally-generated uppercase IDs will be rejected
+// - If external systems need uppercase support, IDs should be normalized before API transmission
+// - Consider implementing ID normalization in API middleware if integration with external systems is required
 export const IdSchema = z.string()
   .min(1, 'ID is required')
   .regex(/^[a-z0-9_-]+$/, 'Invalid ID format. Must contain only lowercase alphanumeric characters, hyphens, and underscores');

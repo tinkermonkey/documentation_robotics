@@ -12,17 +12,11 @@ import { createRequire } from "module";
 // hono/bun imports are conditional - they're only available in Bun runtime
 // For Node.js/tsx environments (e.g., generating OpenAPI spec), these are lazily imported
 // These are conditionally loaded in loadBunAdapters() and remain undefined in non-Bun runtimes
-/**
- * @type {(handler: any) => any}
- * Bun-specific WebSocket upgrade middleware from hono/bun
- * Only available in Bun runtime; undefined in Node.js/tsx
- */
+// Bun-specific WebSocket upgrade middleware from hono/bun
+// Only available in Bun runtime; undefined in Node.js/tsx
 let upgradeWebSocket: any;
-/**
- * @type {(handler: any) => any}
- * Bun-specific WebSocket middleware from hono/bun
- * Only available in Bun runtime; undefined in Node.js/tsx
- */
+// Bun-specific WebSocket middleware from hono/bun
+// Only available in Bun runtime; undefined in Node.js/tsx
 let websocket: any;
 const require = createRequire(import.meta.url);
 import { Model } from "../core/model.js";
@@ -83,7 +77,9 @@ const JSONRPC_ERRORS = {
  * properly validates and transforms request/response data at runtime via Zod,
  * so the type assertions are safe despite bypassing TypeScript's type checker.
  *
- * TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+ * TODO (tracking): Remove these casts after @hono/zod-openapi improves async handler typing
+ * See: https://github.com/honojs/middleware/issues (upstream issue tracking)
+ * Target version: @hono/zod-openapi v2.0.0+ (when async handler typing is improved)
  *
  * Affected endpoints:
  * - Annotation creation (POST /api/annotations)
@@ -1231,10 +1227,17 @@ export class VisualizationServer {
         async (c, next) => {
           // Check WebSocket auth if enabled
           if (this.authEnabled) {
-            // Accept token from multiple sources:
-            // 1. Query parameter: ?token=<token> (works in all browsers)
-            // 2. Sec-WebSocket-Protocol header: token, <actual-token> (browser-compatible workaround)
-            // 3. Authorization header: Bearer <token> (non-browser clients only)
+            // Accept token from multiple sources to support diverse client environments:
+            // 1. Query parameter: ?token=<token>
+            //    Why: Works in all browsers. Simple and universally compatible.
+            // 2. Sec-WebSocket-Protocol header: token, <actual-token>
+            //    Why: Browsers cannot set custom HTTP headers during WebSocket handshake
+            //    for security reasons. The WebSocket spec allows subprotocol negotiation
+            //    as an alternative auth mechanism. Format: ["token", "YOUR_TOKEN"]
+            // 3. Authorization header: Bearer <token>
+            //    Why: Standard OAuth2/JWT pattern for non-browser clients (Node.js, cURL, etc)
+            //    that can set arbitrary headers. Browsers cannot use this for WebSocket due
+            //    to HTTP header restrictions during handshake.
 
             const queryToken = c.req.query("token");
 

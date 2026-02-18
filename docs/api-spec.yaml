@@ -890,13 +890,10 @@ components:
           additionalProperties:
             type: object
           description: Map of schema filename to JSON Schema object
-        schema_count:
+        schemaCount:
           type: integer
           description: Number of schemas included
           example: 12
-        schemaCount:
-          type: integer
-          description: Alternative field name for schema count
         manifest:
           type: object
           description: Schema manifest metadata
