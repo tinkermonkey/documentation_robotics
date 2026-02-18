@@ -11,7 +11,18 @@ import { createRequire } from "module";
 
 // hono/bun imports are conditional - they're only available in Bun runtime
 // For Node.js/tsx environments (e.g., generating OpenAPI spec), these are lazily imported
+// These are conditionally loaded in loadBunAdapters() and remain undefined in non-Bun runtimes
+/**
+ * @type {(handler: any) => any}
+ * Bun-specific WebSocket upgrade middleware from hono/bun
+ * Only available in Bun runtime; undefined in Node.js/tsx
+ */
 let upgradeWebSocket: any;
+/**
+ * @type {(handler: any) => any}
+ * Bun-specific WebSocket middleware from hono/bun
+ * Only available in Bun runtime; undefined in Node.js/tsx
+ */
 let websocket: any;
 const require = createRequire(import.meta.url);
 import { Model } from "../core/model.js";
@@ -1135,61 +1146,63 @@ export class VisualizationServer {
     this.app.get('/api-docs', swaggerUI({ url: '/api-spec.yaml' }));
 
     // WebSocket endpoint
-    this.app.get(
-      "/ws",
-      async (c, next) => {
-        // Check WebSocket auth if enabled
-        if (this.authEnabled) {
-          // Accept token from multiple sources:
-          // 1. Query parameter: ?token=<token> (works in all browsers)
-          // 2. Sec-WebSocket-Protocol header: token, <actual-token> (browser-compatible workaround)
-          // 3. Authorization header: Bearer <token> (non-browser clients only)
+    // Only register if WebSocket adapter is available (Bun runtime)
+    if (upgradeWebSocket) {
+      this.app.get(
+        "/ws",
+        async (c, next) => {
+          // Check WebSocket auth if enabled
+          if (this.authEnabled) {
+            // Accept token from multiple sources:
+            // 1. Query parameter: ?token=<token> (works in all browsers)
+            // 2. Sec-WebSocket-Protocol header: token, <actual-token> (browser-compatible workaround)
+            // 3. Authorization header: Bearer <token> (non-browser clients only)
 
-          const queryToken = c.req.query("token");
+            const queryToken = c.req.query("token");
 
-          // Check Sec-WebSocket-Protocol header (browser-compatible method)
-          // Format: "token, <actual-token>" or "token,<actual-token>"
-          const wsProtocol = c.req.header("Sec-WebSocket-Protocol");
-          let protocolToken: string | null = null;
-          if (wsProtocol) {
-            const protocols = wsProtocol.split(",").map((p) => p.trim());
-            // Look for protocol pair: ['token', '<actual-token>']
-            const tokenIndex = protocols.indexOf("token");
-            if (tokenIndex !== -1 && protocols.length > tokenIndex + 1) {
-              protocolToken = protocols[tokenIndex + 1];
+            // Check Sec-WebSocket-Protocol header (browser-compatible method)
+            // Format: "token, <actual-token>" or "token,<actual-token>"
+            const wsProtocol = c.req.header("Sec-WebSocket-Protocol");
+            let protocolToken: string | null = null;
+            if (wsProtocol) {
+              const protocols = wsProtocol.split(",").map((p) => p.trim());
+              // Look for protocol pair: ['token', '<actual-token>']
+              const tokenIndex = protocols.indexOf("token");
+              if (tokenIndex !== -1 && protocols.length > tokenIndex + 1) {
+                protocolToken = protocols[tokenIndex + 1];
+              }
+            }
+
+            // Check Authorization header (non-browser clients)
+            const authHeader = c.req.header("Authorization");
+            const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+
+            const token = queryToken || protocolToken || bearerToken;
+
+            if (!token) {
+              return c.json(
+                {
+                  error:
+                    'Authentication required. Provide token via: 1) Query param (?token=YOUR_TOKEN), 2) Sec-WebSocket-Protocol header (browser: new WebSocket(url, ["token", "YOUR_TOKEN"])), or 3) Authorization header (Bearer YOUR_TOKEN)',
+                },
+                401
+              );
+            }
+
+            if (token !== this.authToken) {
+              return c.json({ error: "Invalid authentication token" }, 403);
+            }
+
+            // If token came from Sec-WebSocket-Protocol, we need to respond with the protocol
+            // This is required by the WebSocket spec for subprotocol negotiation
+            if (protocolToken) {
+              c.header("Sec-WebSocket-Protocol", "token");
             }
           }
 
-          // Check Authorization header (non-browser clients)
-          const authHeader = c.req.header("Authorization");
-          const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
-
-          const token = queryToken || protocolToken || bearerToken;
-
-          if (!token) {
-            return c.json(
-              {
-                error:
-                  'Authentication required. Provide token via: 1) Query param (?token=YOUR_TOKEN), 2) Sec-WebSocket-Protocol header (browser: new WebSocket(url, ["token", "YOUR_TOKEN"])), or 3) Authorization header (Bearer YOUR_TOKEN)',
-              },
-              401
-            );
-          }
-
-          if (token !== this.authToken) {
-            return c.json({ error: "Invalid authentication token" }, 403);
-          }
-
-          // If token came from Sec-WebSocket-Protocol, we need to respond with the protocol
-          // This is required by the WebSocket spec for subprotocol negotiation
-          if (protocolToken) {
-            c.header("Sec-WebSocket-Protocol", "token");
-          }
-        }
-
-        return next();
-      },
-      upgradeWebSocket(() => ({
+          return next();
+        },
+        upgradeWebSocket(() => ({
         onOpen: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket connection
           await this.recordWebSocketEvent("ws.connection.open", {
@@ -1328,7 +1341,8 @@ export class VisualizationServer {
           console.error(`[WebSocket] Error: ${message}`);
         },
       }))
-    );
+      );
+    }
   }
 
   /**
