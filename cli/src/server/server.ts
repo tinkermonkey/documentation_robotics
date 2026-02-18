@@ -4,11 +4,16 @@
  */
 
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { upgradeWebSocket, websocket } from "hono/bun";
 import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
-import { serve } from "bun";
 import { randomBytes } from "crypto";
+import { createRequire } from "module";
+
+// hono/bun imports are conditional - they're only available in Bun runtime
+// For Node.js/tsx environments (e.g., generating OpenAPI spec), these are lazily imported
+let upgradeWebSocket: any;
+let websocket: any;
+const require = createRequire(import.meta.url);
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
 import { telemetryMiddleware } from "./telemetry-middleware.js";
@@ -113,7 +118,7 @@ export interface VisualizationServerOptions {
 export class VisualizationServer {
   private app: OpenAPIHono;
   private model: Model;
-  private _server?: ReturnType<typeof serve>;
+  private _server?: any; // Bun.serve return type, loaded dynamically
   private clients: Set<HonoWSContext> = new Set();
   private watcher?: any;
   private annotations: Map<string, ClientAnnotation> = new Map(); // annotationId -> annotation
@@ -132,6 +137,9 @@ export class VisualizationServer {
   constructor(model: Model, options?: VisualizationServerOptions) {
     this.app = new OpenAPIHono();
     this.model = model;
+
+    // Load Bun-specific imports if available (for WebSocket support in Bun runtime)
+    this.loadBunAdapters();
 
     // Auth configuration (CLI options override environment variables)
     this.authEnabled = options?.authEnabled ?? process.env.DR_AUTH_ENABLED !== "false";
@@ -186,6 +194,29 @@ export class VisualizationServer {
       this.chatInitializationError = error instanceof Error ? error : new Error(String(error));
       console.error("[Chat] Failed to initialize chat clients:", error);
     });
+  }
+
+  /**
+   * Load Bun-specific WebSocket adapters if available
+   * This is called in the constructor to support WebSocket functionality in Bun runtime
+   * In Node.js/tsx environments (e.g., generating OpenAPI spec), these imports are skipped
+   */
+  private loadBunAdapters(): void {
+    // Check if we're running in Bun runtime by checking for Bun global
+    if (typeof (global as any).Bun !== "undefined") {
+      try {
+        // Use dynamic import for Bun-specific adapters
+        // This is safe to call only in Bun runtime
+        const honoModule = require("hono/bun") as any;
+        upgradeWebSocket = honoModule.upgradeWebSocket;
+        websocket = honoModule.websocket;
+      } catch {
+        // Fallback if hono/bun is not available
+        if (process.env.VERBOSE) {
+          console.log("[Server] Could not load WebSocket adapters from hono/bun");
+        }
+      }
+    }
   }
 
   /**
@@ -1159,7 +1190,7 @@ export class VisualizationServer {
         return next();
       },
       upgradeWebSocket(() => ({
-        onOpen: async (_evt, ws) => {
+        onOpen: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket connection
           await this.recordWebSocketEvent("ws.connection.open", {
             "ws.client_count": this.clients.size + 1,
@@ -1181,7 +1212,7 @@ export class VisualizationServer {
           }
         },
 
-        onClose: async (_evt, ws) => {
+        onClose: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket disconnection
           await this.recordWebSocketEvent("ws.connection.close", {
             "ws.client_count": this.clients.size - 1,
@@ -1193,7 +1224,7 @@ export class VisualizationServer {
           }
         },
 
-        onMessage: async (message, ws) => {
+        onMessage: async (message: any, ws: HonoWSContext) => {
           const messageStartTime = Date.now();
           let messageType = "unknown";
 
@@ -1284,7 +1315,7 @@ export class VisualizationServer {
           }
         },
 
-        onError: async (error) => {
+        onError: async (error: any) => {
           const message = getErrorMessage(error);
 
           // Telemetry: Track WebSocket error
@@ -2790,6 +2821,9 @@ export class VisualizationServer {
    */
   async start(port: number = 8080): Promise<void> {
     this.setupFileWatcher();
+
+    // Dynamically import serve from bun to allow usage with non-Bun runtimes
+    const { serve } = await import("bun");
 
     this._server = serve({
       port,
