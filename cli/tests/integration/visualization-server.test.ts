@@ -169,33 +169,42 @@ describe.serial("VisualizationServer Integration Tests", () => {
   });
 
   describe("Annotation System", () => {
-    it("should store annotations by element ID", async () => {
-      const annotation1 = {
+    it("should store annotations by element ID via HTTP API", async () => {
+      const annotationData = {
         elementId: "motivation.goal.integration-test",
         author: "User 1",
         content: "First annotation",
         tags: [],
       };
 
-      if (!server["annotations"].has("motivation.goal.integration-test")) {
-        server["annotations"].set("motivation.goal.integration-test", []);
-      }
+      // Create annotation via POST HTTP API
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotationData),
+        })
+      );
 
-      server["annotations"].get("motivation.goal.integration-test")!.push(annotation1);
+      expect(response.status).toBe(201);
+      const created = await response.json();
+      expect(created.author).toBe("User 1");
+      expect(created.elementId).toBe("motivation.goal.integration-test");
 
-      const stored = server["annotations"].get("motivation.goal.integration-test");
+      // Retrieve annotation via GET HTTP API
+      const listResponse = await server["app"].request(
+        new Request("http://localhost/api/annotations?elementId=motivation.goal.integration-test")
+      );
 
-      expect(stored).toBeDefined();
-      expect(stored?.length).toBe(1);
-      expect(stored?.[0].author).toBe("User 1");
+      expect(listResponse.status).toBe(200);
+      const list = await listResponse.json();
+      expect(list.annotations).toBeDefined();
+      expect(list.annotations.length).toBeGreaterThan(0);
+      expect(list.annotations[0].author).toBe("User 1");
     });
 
-    it("should support multiple annotations per element", async () => {
+    it("should support multiple annotations per element via HTTP API", async () => {
       const elementId = "motivation.requirement.integration-test";
-
-      if (!server["annotations"].has(elementId)) {
-        server["annotations"].set(elementId, []);
-      }
 
       const annotations = [
         {
@@ -212,15 +221,36 @@ describe.serial("VisualizationServer Integration Tests", () => {
         },
       ];
 
-      for (const ann of annotations) {
-        server["annotations"].get(elementId)!.push(ann);
-      }
+      // Create first annotation
+      let response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotations[0]),
+        })
+      );
+      expect(response.status).toBe(201);
 
-      const stored = server["annotations"].get(elementId);
+      // Create second annotation
+      response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotations[1]),
+        })
+      );
+      expect(response.status).toBe(201);
 
-      expect(stored?.length).toBe(2);
-      expect(stored?.[0].author).toBe("User 1");
-      expect(stored?.[1].author).toBe("User 2");
+      // Retrieve all annotations for element
+      const listResponse = await server["app"].request(
+        new Request(`http://localhost/api/annotations?elementId=${elementId}`)
+      );
+
+      expect(listResponse.status).toBe(200);
+      const list = await listResponse.json();
+      expect(list.annotations?.length).toBe(2);
+      expect(list.annotations?.[0].author).toBe("User 1");
+      expect(list.annotations?.[1].author).toBe("User 2");
     });
 
     it("should include annotations in serialized model", async () => {

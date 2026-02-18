@@ -105,8 +105,8 @@ const JSONRPC_ERRORS = {
  * properly validates and transforms request/response data at runtime via Zod,
  * so the type assertions are safe despite bypassing TypeScript's type checker.
  *
- * TODO (tracking): Remove these casts after @hono/zod-openapi improves async handler typing
- * See: https://github.com/honojs/middleware/issues (upstream issue tracking)
+ * TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+ * Upstream tracking: https://github.com/honojs/hono/issues/3524
  * Target version: @hono/zod-openapi v2.0.0+ (when async handler typing is improved)
  *
  * Affected endpoints:
@@ -646,9 +646,6 @@ export class VisualizationServer {
 
     this.app.openapi(getAnnotationsRoute, (c) => {
       const query = c.req.valid("query");
-
-      // Note: author, tags, and resolved filter fields are accepted but not yet used.
-      // They are reserved for future implementation. Currently only elementId filtering is supported.
 
       const elementId = query.elementId;
 
@@ -1533,16 +1530,18 @@ export class VisualizationServer {
 
   /**
    * Generate unique annotation ID
+   * Uses cryptographically secure random bytes for collision-resistant IDs
    */
   private generateAnnotationId(): string {
-    return `ann-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    return `ann-${Date.now()}-${randomBytes(4).toString('hex')}`;
   }
 
   /**
    * Generate unique reply ID
+   * Uses cryptographically secure random bytes for collision-resistant IDs
    */
   private generateReplyId(): string {
-    return `reply-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    return `reply-${Date.now()}-${randomBytes(4).toString('hex')}`;
   }
 
   /**
@@ -1560,15 +1559,23 @@ export class VisualizationServer {
     });
 
     let failureCount = 0;
+    const failedClients: HonoWSContext[] = [];
+
     for (const client of this.clients) {
       try {
         client.send(messageStr);
       } catch (error) {
         failureCount++;
+        failedClients.push(client);
         const msg = getErrorMessage(error);
         // Always log broadcast failures for operational visibility in production
         console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
       }
+    }
+
+    // Remove dead clients from the active client set
+    for (const client of failedClients) {
+      this.clients.delete(client);
     }
 
     // Telemetry: Track broadcast completion
@@ -2041,7 +2048,24 @@ export class VisualizationServer {
 
       // Start streaming in background
       streamOutput().catch((err) => {
-        console.error(`[Claude Code] Stream error: ${getErrorMessage(err)}`);
+        const errorMsg = getErrorMessage(err);
+        console.error(`[Claude Code] Stream error: ${errorMsg}`);
+
+        // Notify client of stream failure via WebSocket
+        try {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Stream error: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+        } catch (sendError) {
+          console.error(`[Claude Code] Failed to send stream error notification: ${getErrorMessage(sendError)}`);
+        }
       });
     } catch (error) {
       const errorMsg = getErrorMessage(error);
@@ -3001,10 +3025,10 @@ export class VisualizationServer {
       try {
         client.close();
       } catch (error) {
-        // Only suppress expected "already closed" errors
+        // Log unexpected errors regardless of VERBOSE flag for operational visibility
         const errorMessage = error instanceof Error ? error.message : String(error);
-        if (!errorMessage.includes('already closed') && process.env.VERBOSE) {
-          console.error(`[SERVER] Unexpected error closing WebSocket client: ${errorMessage}`);
+        if (!errorMessage.includes('already closed')) {
+          console.warn(`[SERVER] Unexpected error closing WebSocket client: ${errorMessage}`);
         }
       }
     }

@@ -73,7 +73,7 @@ export const JSONRPCResponseSchema = z.object({
     message: z.string(),
     data: z.unknown().optional(),
   }).optional(),
-  id: z.union([z.string(), z.number()]),
+  id: z.union([z.string(), z.number(), z.null()]),
 }).refine(
   (data) => (data.result !== undefined) !== (data.error !== undefined),
   {
@@ -137,6 +137,7 @@ export const TagSchema = z.string()
 export const AnnotationCreateSchema = z.object({
   elementId: ElementIdSchema,
   author: z.string()
+    .min(1, 'Author is required')
     .max(100, 'Author name too long')
     .optional()
     .default('Anonymous'),
@@ -192,8 +193,9 @@ export const IdSchema = z.string()
 
 // Annotation filter schema - validates query parameters for GET /api/annotations
 // Currently only supports filtering by elementId
-// Note: author, tags, and resolved fields are included in the schema but filtering is not yet implemented.
-// The handler only filters by elementId; these fields are reserved for future extensibility.
+// UNIMPLEMENTED FILTERS: author, tags, and resolved fields are defined here but filtering is not yet implemented.
+// See /workspace/cli/src/server/server.ts:650-651 for implementation details.
+// These fields are reserved for future extensibility and currently ignored by the handler.
 export const AnnotationFilterSchema = z.object({
   elementId: ElementIdSchema.optional(),
   author: z.string().optional(),
