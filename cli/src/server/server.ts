@@ -75,8 +75,9 @@ const JSONRPC_ERRORS = {
  * - Annotation updates (PATCH /api/annotations/:id)
  * - Annotation replacement (PUT /api/annotations/:id)
  * - Annotation deletion (DELETE /api/annotations/:id)
- * - Tag filtering (GET /api/annotations?tags=...)
- * - Statistics endpoints (GET /api/statistics/...)
+ * - Layer retrieval (GET /api/layers/:layerName)
+ * - Element retrieval (GET /api/elements/:id)
+ * - Schema retrieval (GET /api/spec)
  */
 
 // WebSocket message types derived from Zod schemas for type safety and runtime validation
@@ -361,7 +362,7 @@ export class VisualizationServer {
       },
     });
 
-    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
+    // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(getLayerRoute, (async (c: any) => {
       try {
         const { layerName } = c.req.valid("param");
@@ -422,7 +423,7 @@ export class VisualizationServer {
       },
     });
 
-    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
+    // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(getElementRoute, (async (c: any) => {
       try {
         const { id: elementId } = c.req.valid("param");
@@ -432,9 +433,14 @@ export class VisualizationServer {
           return c.json({ error: "Element not found" }, 404);
         }
 
+        const annotationIds = this.annotationsByElement.get(elementId) || new Set();
+        const annotations = Array.from(annotationIds)
+          .map((id) => this.annotations.get(id))
+          .filter((a): a is ClientAnnotation => a !== undefined);
+
         return c.json({
           ...element.toJSON(),
-          annotations: this.annotations.get(elementId) || [],
+          annotations,
         });
       } catch (error) {
         const message = getErrorMessage(error);
@@ -469,7 +475,7 @@ export class VisualizationServer {
       },
     });
 
-    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
+    // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(getSpecRoute, (async (c: any) => {
       try {
         const schemas = await this.loadSchemas();
@@ -670,7 +676,7 @@ export class VisualizationServer {
       },
     });
 
-    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
+    // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(putAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
@@ -753,7 +759,7 @@ export class VisualizationServer {
       },
     });
 
-    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
+    // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(patchAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
@@ -885,7 +891,7 @@ export class VisualizationServer {
       },
     });
 
-    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
+    // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(getAnnotationRepliesRoute, ((c: any) => {
       const { annotationId } = c.req.valid("param");
       const annotation = this.annotations.get(annotationId);
@@ -1052,7 +1058,7 @@ export class VisualizationServer {
       },
     });
 
-    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
+    // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(getChangesetRoute, ((c: any) => {
       const { changesetId } = c.req.valid("param");
       const changeset = this.changesets.get(changesetId);
@@ -1864,7 +1870,9 @@ export class VisualizationServer {
       };
 
       // Start streaming in background
-      streamOutput();
+      streamOutput().catch((err) => {
+        console.error(`[Claude Code] Stream error: ${getErrorMessage(err)}`);
+      });
     } catch (error) {
       const errorMsg = getErrorMessage(error);
 
@@ -2009,7 +2017,9 @@ export class VisualizationServer {
       };
 
       // Start streaming in background
-      streamOutput();
+      streamOutput().catch((err) => {
+        console.error(`[Copilot] Stream error: ${getErrorMessage(err)}`);
+      });
     } catch (error) {
       const errorMsg = getErrorMessage(error);
 

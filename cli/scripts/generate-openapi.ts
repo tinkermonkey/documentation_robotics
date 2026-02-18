@@ -13,7 +13,6 @@ import { dirname, join } from "path";
 import * as YAML from "yaml";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const projectRoot = dirname(dirname(__filename));
 
 async function generateOpenAPISpec() {

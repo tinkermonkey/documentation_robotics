@@ -140,7 +140,8 @@ export const IdSchema = z.string()
 
 // Annotation filter schema - validates query parameters for GET /api/annotations
 // Currently only supports filtering by elementId
-// Note: author, tags, and resolved fields are accepted by schema for future extensibility but not yet implemented
+// Note: author, tags, and resolved fields are included in the schema but filtering is not yet implemented.
+// The handler only filters by elementId; these fields are reserved for future extensibility.
 export const AnnotationFilterSchema = z.object({
   elementId: ElementIdSchema.optional(),
   author: z.string().optional(),
