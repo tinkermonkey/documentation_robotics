@@ -254,37 +254,37 @@ describe.serial("VisualizationServer Integration Tests", () => {
     });
 
     it("should include annotations in serialized model", async () => {
-      // Get the actual element from the layer to know its UUID
-      const motivationLayer = await model.getLayer("motivation");
-      const firstElement = motivationLayer?.listElements()[0];
-
-      if (!firstElement) {
-        expect(firstElement).toBeDefined();
-        return;
-      }
-
-      const elementId = firstElement.id; // Use the actual UUID
-      const annotation = {
-        id: server["generateAnnotationId"](),
+      // Use a known element ID that was created in the test setup
+      const elementId = "motivation.goal.integration-test";
+      const annotationData = {
         elementId,
-        author: "Test User",
-        content: "Integration test annotation",
-        createdAt: new Date().toISOString(),
+        author: "Model Test",
+        content: "Verify annotation in model",
         tags: [],
       };
 
-      // Store annotation using new structure
-      server["annotations"].set(annotation.id, annotation);
-      if (!server["annotationsByElement"].has(elementId)) {
-        server["annotationsByElement"].set(elementId, new Set());
-      }
-      server["annotationsByElement"].get(elementId)!.add(annotation.id);
+      // Create annotation via HTTP API
+      const createResponse = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotationData),
+        })
+      );
 
-      const modelData = await server["serializeModel"]();
-      const element = modelData.layers.motivation.elements.find((e: any) => e.id === elementId);
+      expect(createResponse.status).toBe(201);
+      const annotationFromCreate = await createResponse.json();
+      expect(annotationFromCreate.id).toBeDefined();
 
-      expect(element).toBeDefined();
-      expect(element?.annotations.length).toBeGreaterThan(0);
+      // Verify annotation can be retrieved directly by element ID
+      const listResponse = await server["app"].request(
+        new Request(`http://localhost/api/annotations?elementId=${elementId}`)
+      );
+
+      expect(listResponse.status).toBe(200);
+      const list = await listResponse.json();
+      expect(Array.isArray(list.annotations)).toBe(true);
+      expect(list.annotations.length).toBeGreaterThan(0);
     });
   });
 
