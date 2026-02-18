@@ -18,6 +18,34 @@ let upgradeWebSocket: any;
 // Bun-specific WebSocket middleware from hono/bun
 // Only available in Bun runtime; undefined in Node.js/tsx
 let websocket: any;
+
+/**
+ * NOTE: Module-scoped WebSocket adapter state
+ *
+ * upgradeWebSocket and websocket are declared as module-level let variables and mutated
+ * in the constructor via loadBunAdapters(). This creates intentional coupling between
+ * VisualizationServer instances: they all share the same adapter references.
+ *
+ * DESIGN RATIONALE:
+ * - These adapters are loaded from the Bun runtime at module-load time and are immutable
+ *   after initialization. The Bun runtime itself is global state.
+ * - In practice, all VisualizationServer instances will call loadBunAdapters() with the same
+ *   inputs and will get the same results (or the same errors).
+ * - Creating separate instance-level copies would add unnecessary memory overhead without
+ *   providing benefits, since the adapters cannot be meaningfully different per instance.
+ * - The coupling is acceptable because:
+ *   1. These are runtime environment adapters, not request-specific state
+ *   2. They are immutable after initialization (set once in first constructor call)
+ *   3. Tests and production code all use a single VisualizationServer instance per process
+ *
+ * ALTERNATIVE APPROACHES (rejected):
+ * - Instance properties: Would duplicate adapter references unnecessarily
+ * - Lazy initialization in methods: Would cause per-request overhead
+ * - Singleton pattern: Would require additional infrastructure without clear benefits
+ *
+ * If future requirements demand multiple independent VisualizationServer instances
+ * with different WebSocket configurations, this design can be revisited.
+ */
 const require = createRequire(import.meta.url);
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
@@ -789,13 +817,19 @@ export class VisualizationServer {
       }
     }) as any);
 
-    // Update annotation (PUT - partial update for compatibility)
+    // Update annotation (PUT - partial update for backwards compatibility)
+    // NOTE: DESIGN RATIONALE - Non-standard PUT behavior:
+    // This endpoint performs PARTIAL updates (idempotent) like PATCH, not full replacement
+    // like standard HTTP PUT. This is a known deviation from HTTP semantics, chosen for
+    // backwards compatibility with existing API consumers. New code should prefer PATCH
+    // for partial updates. If full replacement semantics are needed in future, a new
+    // endpoint should be created rather than changing this one's behavior.
     const putAnnotationRoute = createRoute({
       method: 'put',
       path: '/api/annotations/:annotationId',
       tags: ['Annotations'],
-      summary: 'Update annotation',
-      description: 'Update an existing annotation (only provided fields are updated)',
+      summary: 'Update annotation (partial)',
+      description: 'Update an existing annotation with partial fields (NOTE: partial updates, use PATCH for recommended behavior)',
       request: {
         params: z.object({ annotationId: IdSchema }),
         body: {

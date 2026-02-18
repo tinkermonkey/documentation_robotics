@@ -13,9 +13,91 @@ import {
   JSONRPCRequestSchema,
   JSONRPCResponseSchema,
   WSMessageSchema,
+  parseElementId,
+  isElementId,
 } from "../../../src/server/schemas.js";
 
 describe("Server Schemas", () => {
+  describe("parseElementId and isElementId", () => {
+    describe("parseElementId", () => {
+      it("should parse and brand a valid element ID", () => {
+        const brandedId = parseElementId("motivation.goal.customer-satisfaction");
+        expect(brandedId).toBe("motivation.goal.customer-satisfaction");
+      });
+
+      it("should parse element IDs with numbers", () => {
+        const brandedId = parseElementId("api.endpoint.create-order-123");
+        expect(brandedId).toBe("api.endpoint.create-order-123");
+      });
+
+      it("should throw on invalid element ID format", () => {
+        expect(() => parseElementId("invalid-id")).toThrow(
+          "Invalid element ID: Invalid element ID format"
+        );
+      });
+
+      it("should throw on missing parts", () => {
+        expect(() => parseElementId("motivation.goal")).toThrow(
+          "Invalid element ID:"
+        );
+      });
+
+      it("should throw with descriptive error message on validation failure", () => {
+        expect(() => parseElementId("UPPERCASE.GOAL.test")).toThrow(
+          "Invalid element ID:"
+        );
+      });
+
+      it("should throw on empty string", () => {
+        expect(() => parseElementId("")).toThrow("Invalid element ID:");
+      });
+
+      it("should throw on IDs with special characters", () => {
+        expect(() => parseElementId("api@endpoint!create")).toThrow(
+          "Invalid element ID:"
+        );
+      });
+    });
+
+    describe("isElementId", () => {
+      it("should return true for valid element IDs", () => {
+        expect(isElementId("motivation.goal.customer-satisfaction")).toBe(true);
+        expect(isElementId("api.endpoint.create-order")).toBe(true);
+        expect(isElementId("data-store.table.user-profile")).toBe(true);
+      });
+
+      it("should return false for invalid element IDs", () => {
+        expect(isElementId("invalid-id")).toBe(false);
+        expect(isElementId("UPPERCASE.GOAL.test")).toBe(false);
+        expect(isElementId("api@endpoint!create")).toBe(false);
+      });
+
+      it("should return false for non-string values", () => {
+        expect(isElementId(123)).toBe(false);
+        expect(isElementId(null)).toBe(false);
+        expect(isElementId(undefined)).toBe(false);
+        expect(isElementId({ elementId: "api.endpoint.test" })).toBe(false);
+        expect(isElementId(["api", "endpoint", "test"])).toBe(false);
+      });
+
+      it("should return false for empty string", () => {
+        expect(isElementId("")).toBe(false);
+      });
+
+      it("should return false for IDs with missing parts", () => {
+        expect(isElementId("motivation.goal")).toBe(false);
+        expect(isElementId("motivation")).toBe(false);
+      });
+
+      it("should return false for IDs with leading hyphens in any segment", () => {
+        // The regex requires first character of each segment to be [a-z]
+        expect(isElementId("motivation.-goal.test")).toBe(false);
+        expect(isElementId("motivation.goal.-test")).toBe(false);
+        expect(isElementId("-.goal.test")).toBe(false);
+      });
+    });
+  });
+
   describe("ElementIdSchema", () => {
     it("should accept valid new format element IDs", () => {
       expect(() => {

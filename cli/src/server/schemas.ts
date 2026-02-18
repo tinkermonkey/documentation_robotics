@@ -6,9 +6,22 @@ import { CANONICAL_LAYER_NAMES } from '../core/layers.js';
  * Provides compile-time safety by distinguishing ElementId from plain strings
  * Use with parseElementId() to validate and brand a string at runtime
  *
+ * This type is exported as a public API contract for external consumers who want
+ * to use strong typing in their code. However, internal server.ts implementation
+ * uses plain string keys in Maps and other internal structures for simplicity.
+ *
+ * USAGE PATTERNS:
+ * - External/public APIs: Type function parameters with ElementId for contract clarity
+ * - Internal state: Use plain strings in Maps/Sets for performance and simplicity
+ * - Validation: Use parseElementId() to validate untrusted input
+ * - Type guards: Use isElementId() for optional runtime type checking
+ *
  * Example:
  *   const brandedId = parseElementId("motivation.goal.customer-satisfaction");
- *   function processElement(id: ElementId) { ... } // Type-safe
+ *   function processElement(id: ElementId) { ... } // Type-safe public API
+ *
+ *   // Internal implementation can use plain strings:
+ *   private annotations: Map<string, Annotation> = new Map();
  */
 export type ElementId = string & { readonly __brand: 'ElementId' };
 
