@@ -229,7 +229,11 @@ export class VisualizationServer {
       } catch (error) {
         // Log error details for production debugging (not just VERBOSE mode)
         const message = error instanceof Error ? error.message : String(error);
-        console.warn(`[Server] Could not load WebSocket adapters from hono/bun: ${message}`);
+        console.warn(
+          `[Server] WARNING: Could not load WebSocket adapters from hono/bun: ${message}. ` +
+            `WebSocket endpoints (/ws) will not be available. ` +
+            `Please ensure 'hono' is installed and the Bun runtime is properly configured.`
+        );
         if (process.env.VERBOSE && error instanceof Error && error.stack) {
           console.debug("[Server] Stack trace:", error.stack);
         }
@@ -1430,19 +1434,17 @@ export class VisualizationServer {
    * Get OpenAPI specification document
    * Provides a stable public API for OpenAPI spec generation
    *
-   * NOTE: Currently generates OpenAPI 3.1.0 spec regardless of `config.openapi` parameter.
-   * The `openapi` parameter is accepted for API compatibility but not used internally.
-   * Post-generation normalization (in generate-openapi.ts) converts 3.1.0 → 3.0.3
-   * to comply with CLAUDE.md requirements for Layer 6 (API layer).
+   * BEHAVIOR: Always returns OpenAPI 3.1.0 spec regardless of `config.openapi` parameter.
+   * The `openapi` parameter is accepted for API compatibility but is not used internally.
    *
-   * LIMITATION: Hono's @hono/zod-openapi library (v1.2.1) only supports 3.1.0 generation.
-   * We compensate by:
-   * 1. Generating spec with getOpenAPI31Document()
-   * 2. Normalizing version string post-generation
-   * 3. Validating the converted spec maintains 3.0.3 compatibility
+   * RATIONALE:
+   * - Hono's @hono/zod-openapi library (v1.2.1) only supports 3.1.0 generation
+   * - Post-generation normalization (in generate-openapi.ts) converts 3.1.0 → 3.0.3
+   * - This conversion occurs when generating the committed spec file for Layer 6 (API layer)
    *
-   * This is documented but fragile - future Hono versions may break this approach.
-   * A better solution would be Hono library support for native 3.0.3 generation.
+   * IMPLEMENTATION DETAIL:
+   * Directly calls getOpenAPI31Document() from Hono, which always produces 3.1.0.
+   * This is a known limitation that could be resolved if Hono adds native 3.0.3 support.
    */
   public getOpenAPIDocument(config: {
     openapi: string;

@@ -34,7 +34,9 @@ describe("VisualizationServer.getOpenAPIDocument()", () => {
     });
 
     expect(doc).toBeDefined();
-    expect(doc.openapi).toBe("3.0.0");
+    // NOTE: getOpenAPIDocument always returns 3.1.0 regardless of input parameter
+    // The openapi parameter is accepted for API compatibility but not used internally
+    expect(doc.openapi).toBe("3.1.0");
     expect(doc.info).toBeDefined();
     expect(doc.info.title).toBe("Test API");
     expect(doc.info.version).toBe("1.0.0");
