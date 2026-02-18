@@ -170,10 +170,24 @@ export const AnnotationReplyCreateSchema = z.object({
     .max(5000, 'Content too long'),
 }).strict();
 
+// Runtime validation helper for LayerNameSchema
+// Ensures CANONICAL_LAYER_NAMES has the expected structure for z.enum()
+function validateLayerNamesTuple(): [string, ...string[]] {
+  if (!Array.isArray(CANONICAL_LAYER_NAMES) || CANONICAL_LAYER_NAMES.length === 0) {
+    throw new Error(
+      'CANONICAL_LAYER_NAMES must be a non-empty array for LayerNameSchema'
+    );
+  }
+  if (!CANONICAL_LAYER_NAMES.every((name) => typeof name === 'string')) {
+    throw new Error(
+      'CANONICAL_LAYER_NAMES must contain only string values'
+    );
+  }
+  return CANONICAL_LAYER_NAMES as [string, ...string[]];
+}
+
 // Layer name schema - validates against canonical layer names
-export const LayerNameSchema = z.enum(
-  [...CANONICAL_LAYER_NAMES] as unknown as [string, ...string[]]
-, {
+export const LayerNameSchema = z.enum(validateLayerNamesTuple(), {
   message: `Invalid layer name. Must be one of: ${CANONICAL_LAYER_NAMES.join(', ')}`
 });
 

@@ -2039,9 +2039,9 @@ export class VisualizationServer {
           this.activeChatProcesses.delete(conversationId);
 
           try {
-            proc.kill();
+            await this.killProcessWithRetry(proc, conversationId, "Claude Code");
           } catch (error) {
-            console.warn(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+            console.error(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
           }
         }
       };
@@ -2203,9 +2203,9 @@ export class VisualizationServer {
           this.activeChatProcesses.delete(conversationId);
 
           try {
-            proc.kill();
+            await this.killProcessWithRetry(proc, conversationId, "Copilot");
           } catch (error) {
-            console.warn(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+            console.error(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
           }
         }
       };
@@ -2882,6 +2882,7 @@ export class VisualizationServer {
             <textarea placeholder="Annotation text" id="ann-text" required></textarea>
             <button type="submit">Add Annotation</button>
           </form>
+          <div id="ann-error" style="margin-top: 8px; min-height: 1.2em;"></div>
         </div>
       \`;
 
@@ -2902,14 +2903,31 @@ export class VisualizationServer {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ elementId, author, content: text })
       })
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.id) {
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok && data && data.id) {
             document.getElementById('ann-author').value = '';
             document.getElementById('ann-text').value = '';
+            const errorDiv = document.getElementById('ann-error');
+            if (errorDiv) errorDiv.textContent = '';
+          } else if (!ok) {
+            const errorMsg = (data && data.error) ? data.error : 'Failed to create annotation';
+            const errorDiv = document.getElementById('ann-error');
+            if (errorDiv) {
+              errorDiv.textContent = 'Error: ' + errorMsg;
+              errorDiv.style.color = '#d32f2f';
+              errorDiv.style.marginTop = '8px';
+            }
           }
         })
-        .catch(err => console.error('Failed to add annotation:', err));
+        .catch(err => {
+          const errorDiv = document.getElementById('ann-error');
+          if (errorDiv) {
+            errorDiv.textContent = 'Error: Failed to add annotation: ' + err.message;
+            errorDiv.style.color = '#d32f2f';
+            errorDiv.style.marginTop = '8px';
+          }
+        });
     }
   </script>
 </body>
@@ -3014,6 +3032,62 @@ export class VisualizationServer {
    */
   isAuthEnabled(): boolean {
     return this.authEnabled;
+  }
+
+  /**
+   * Kill a process with retry logic and exponential backoff
+   * Attempts graceful SIGTERM first, then force SIGKILL if needed
+   */
+  private async killProcessWithRetry(
+    proc: any,
+    conversationId: string,
+    label: string
+  ): Promise<void> {
+    const maxRetries = 3;
+    let attempt = 0;
+    const baseDelay = 100; // milliseconds
+
+    while (attempt < maxRetries) {
+      try {
+        if (proc.killed) {
+          // Process already terminated
+          return;
+        }
+
+        // Try graceful termination with SIGTERM
+        proc.kill("SIGTERM");
+
+        // Wait for process to exit gracefully
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        if (proc.killed) {
+          return;
+        }
+      } catch (error) {
+        // Continue to retry
+      }
+
+      attempt++;
+      if (attempt < maxRetries) {
+        // Exponential backoff: 100ms, 200ms, 400ms
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    // Force kill if graceful shutdown failed
+    try {
+      if (!proc.killed) {
+        proc.kill("SIGKILL");
+        console.warn(
+          `[${label}] Process for conversation ${conversationId} did not respond to SIGTERM, force killed with SIGKILL`
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to kill process: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   /**

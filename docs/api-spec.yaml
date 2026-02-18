@@ -142,7 +142,9 @@ paths:
   /api/spec:
     get:
       summary: Get JSON Schema specifications
-      description: "Returns all JSON Schema files from `.dr/schemas/` directory.
+      description: "Returns all JSON Schema files from the configured schema directory.
+
+        The schema directory location depends on the deployment environment: typically `.dr/schemas/` for local deployments, or configured via `SCHEMA_BASE_PATH` environment variable.
 
         Includes layer schemas, relationship catalog, and link registry."
       tags:
