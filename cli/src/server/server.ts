@@ -318,10 +318,19 @@ export class VisualizationServer {
     });
 
     this.app.openapi(healthRoute, (c) => {
-      return c.json({
-        status: "ok",
+      const response: any = {
+        status: this.chatInitializationError ? "degraded" : "ok",
         version: "0.1.0",
-      });
+      };
+
+      // Include warnings if any services failed to initialize
+      if (this.chatInitializationError) {
+        response.warnings = [
+          `Chat service unavailable: ${getErrorMessage(this.chatInitializationError)}`
+        ];
+      }
+
+      return c.json(response);
     });
 
     // Get full model
@@ -675,6 +684,61 @@ export class VisualizationServer {
       }
     });
 
+    // Get individual annotation by ID
+    const getAnnotationRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Get annotation by ID',
+      description: 'Retrieve a specific annotation by its ID',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Annotation retrieved successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getAnnotationRoute, (async (c: any) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        return c.json(annotation);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    }) as any);
+
     // Update annotation (PUT - partial update for compatibility)
     const putAnnotationRoute = createRoute({
       method: 'put',
@@ -732,26 +796,27 @@ export class VisualizationServer {
 
         const body = c.req.valid("json");
 
-        // Update only provided fields (same as PATCH for compatibility)
-        if (body.content !== undefined) {
-          annotation.content = body.content;
-        }
-        if (body.tags !== undefined) {
-          annotation.tags = body.tags;
-        }
-        if (body.resolved !== undefined) {
-          annotation.resolved = body.resolved;
-        }
-        annotation.updatedAt = new Date().toISOString();
+        // Create new annotation object with updates (atomic update, no direct mutation)
+        // This prevents race conditions if the annotation is read during WebSocket broadcast
+        const updatedAnnotation: ClientAnnotation = {
+          ...annotation,
+          content: body.content ?? annotation.content,
+          tags: body.tags ?? annotation.tags,
+          resolved: body.resolved ?? annotation.resolved,
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Store the updated annotation atomically
+        this.annotations.set(annotationId, updatedAnnotation);
 
         // Broadcast to all clients
         await this.broadcastMessage({
           type: "annotation.updated",
-          annotationId: annotation.id,
-          timestamp: annotation.updatedAt,
+          annotationId: updatedAnnotation.id,
+          timestamp: updatedAnnotation.updatedAt,
         });
 
-        return c.json(annotation);
+        return c.json(updatedAnnotation);
       } catch (error) {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
@@ -815,26 +880,27 @@ export class VisualizationServer {
 
         const body = c.req.valid("json");
 
-        // Update only provided fields (partial update)
-        if (body.content !== undefined) {
-          annotation.content = body.content;
-        }
-        if (body.tags !== undefined) {
-          annotation.tags = body.tags;
-        }
-        if (body.resolved !== undefined) {
-          annotation.resolved = body.resolved;
-        }
-        annotation.updatedAt = new Date().toISOString();
+        // Create new annotation object with updates (atomic update, no direct mutation)
+        // This prevents race conditions if the annotation is read during WebSocket broadcast
+        const updatedAnnotation: ClientAnnotation = {
+          ...annotation,
+          content: body.content ?? annotation.content,
+          tags: body.tags ?? annotation.tags,
+          resolved: body.resolved ?? annotation.resolved,
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Store the updated annotation atomically
+        this.annotations.set(annotationId, updatedAnnotation);
 
         // Broadcast to all clients
         await this.broadcastMessage({
           type: "annotation.updated",
-          annotationId: annotation.id,
-          timestamp: annotation.updatedAt,
+          annotationId: updatedAnnotation.id,
+          timestamp: updatedAnnotation.updatedAt,
         });
 
-        return c.json(annotation);
+        return c.json(updatedAnnotation);
       } catch (error) {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
@@ -1350,6 +1416,20 @@ export class VisualizationServer {
   /**
    * Get OpenAPI specification document
    * Provides a stable public API for OpenAPI spec generation
+   *
+   * NOTE: Currently generates OpenAPI 3.1.0 spec regardless of `config.openapi` parameter.
+   * The `openapi` parameter is accepted for API compatibility but not used internally.
+   * Post-generation normalization (in generate-openapi.ts) converts 3.1.0 → 3.0.3
+   * to comply with CLAUDE.md requirements for Layer 6 (API layer).
+   *
+   * LIMITATION: Hono's @hono/zod-openapi library (v1.2.1) only supports 3.1.0 generation.
+   * We compensate by:
+   * 1. Generating spec with getOpenAPI31Document()
+   * 2. Normalizing version string post-generation
+   * 3. Validating the converted spec maintains 3.0.3 compatibility
+   *
+   * This is documented but fragile - future Hono versions may break this approach.
+   * A better solution would be Hono library support for native 3.0.3 generation.
    */
   public getOpenAPIDocument(config: {
     openapi: string;

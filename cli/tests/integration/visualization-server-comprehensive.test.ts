@@ -752,6 +752,33 @@ describe("Visualization Server - Authentication", () => {
     expect(response.status).toBe(403);
   });
 
+  it("should reject requests with malformed Bearer header (empty token)", async () => {
+    const response = await fetch(`${baseUrl}/api/model`, {
+      headers: {
+        Authorization: "Bearer ",
+      },
+    });
+    expect(response.status).toBe(401);
+  });
+
+  it("should reject requests with wrong auth scheme (Basic instead of Bearer)", async () => {
+    const response = await fetch(`${baseUrl}/api/model`, {
+      headers: {
+        Authorization: "Basic aW52YWxpZDppbnZhbGlk", // base64 of "invalid:invalid"
+      },
+    });
+    expect(response.status).toBe(401);
+  });
+
+  it("should reject requests with missing token in Bearer scheme", async () => {
+    const response = await fetch(`${baseUrl}/api/model`, {
+      headers: {
+        Authorization: "Bearer",
+      },
+    });
+    expect(response.status).toBe(401);
+  });
+
   it("should allow health check without authentication", async () => {
     const response = await fetch(`${baseUrl}/health`);
     expect(response.status).toBe(200);
