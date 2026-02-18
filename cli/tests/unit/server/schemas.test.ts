@@ -356,14 +356,14 @@ describe("Server Schemas", () => {
       }).not.toThrow();
     });
 
-    it("should allow passthrough of extra fields like auth token", () => {
-      // With .passthrough(), extra fields should be allowed and passed through
-      const result = AnnotationFilterSchema.parse({
-        elementId: "motivation.goal.test",
-        token: "auth-token-value",
-      });
-      expect(result.elementId).toBe("motivation.goal.test");
-      expect((result as any).token).toBe("auth-token-value");
+    it("should reject extra fields with .strict() validation", () => {
+      // With .strict(), extra fields should be rejected for security
+      expect(() => {
+        AnnotationFilterSchema.parse({
+          elementId: "motivation.goal.test",
+          token: "auth-token-value",
+        });
+      }).toThrow();
     });
 
     it("should reject invalid element ID format", () => {
@@ -380,6 +380,90 @@ describe("Server Schemas", () => {
           resolved: "maybe",
         });
       }).toThrow();
+    });
+  });
+
+  describe("TagSchema", () => {
+    it("should accept valid tags", () => {
+      const validTags = [
+        "tag",
+        "my-tag",
+        "test-123",
+        "a",
+        "z",
+        "0",
+        "9",
+        "lowercase-with-hyphens",
+        "a1b2c3-d4e5",
+      ];
+
+      for (const tag of validTags) {
+        expect(() => {
+          TagSchema.parse(tag);
+        }).not.toThrow();
+      }
+    });
+
+    it("should reject empty tags", () => {
+      expect(() => {
+        TagSchema.parse("");
+      }).toThrow("Tag cannot be empty");
+    });
+
+    it("should reject tags exceeding 50 characters", () => {
+      const longTag = "a".repeat(51);
+      expect(() => {
+        TagSchema.parse(longTag);
+      }).toThrow("Tag too long");
+    });
+
+    it("should accept tags at exactly 50 characters", () => {
+      const maxTag = "a".repeat(50);
+      expect(() => {
+        TagSchema.parse(maxTag);
+      }).not.toThrow();
+    });
+
+    it("should reject tags with uppercase letters", () => {
+      expect(() => {
+        TagSchema.parse("MyTag");
+      }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
+
+      expect(() => {
+        TagSchema.parse("TAG");
+      }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
+    });
+
+    it("should reject tags with special characters", () => {
+      expect(() => {
+        TagSchema.parse("tag@example");
+      }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
+
+      expect(() => {
+        TagSchema.parse("tag_underscore");
+      }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
+
+      expect(() => {
+        TagSchema.parse("tag.dot");
+      }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
+    });
+
+    it("should reject tags starting with hyphen", () => {
+      expect(() => {
+        TagSchema.parse("-tag");
+      }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
+    });
+
+    it("should reject tags ending with hyphen", () => {
+      expect(() => {
+        TagSchema.parse("tag-");
+      }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
+    });
+
+    it("should reject tags with consecutive hyphens", () => {
+      expect(() => {
+        TagSchema.parse("tag--name");
+      }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
     });
   });
 

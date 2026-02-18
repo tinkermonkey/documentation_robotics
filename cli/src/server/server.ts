@@ -65,12 +65,7 @@ type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
 type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
 type WSMessage = z.infer<typeof WSMessageSchema>;
 
-interface AnnotationReply {
-  id: string;
-  author: string;
-  content: string;
-  createdAt: string;
-}
+type AnnotationReply = z.infer<typeof AnnotationReplySchema>;
 
 // Derive ClientAnnotation type from AnnotationSchema with proper serialization
 type ClientAnnotation = z.infer<typeof AnnotationSchema>;
@@ -1272,9 +1267,10 @@ export class VisualizationServer {
               "error.message": errorMsg,
             });
 
-            if (process.env.DEBUG) {
-              console.warn(`[WebSocket] Error handling message: ${errorMsg}`);
-            }
+            // Always log message handling errors for operational visibility
+            console.warn(
+              `[WebSocket] Error handling ${messageType} message (${durationMs}ms): ${errorMsg}`
+            );
             ws.send(
               JSON.stringify({
                 type: "error",
@@ -1396,9 +1392,8 @@ export class VisualizationServer {
       } catch (error) {
         failureCount++;
         const msg = getErrorMessage(error);
-        if (process.env.DEBUG) {
-          console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
-        }
+        // Always log broadcast failures for operational visibility in production
+        console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
       }
     }
 
@@ -1409,10 +1404,14 @@ export class VisualizationServer {
       "ws.broadcast.failure_count": failureCount,
     });
 
-    if (failureCount > 0 && process.env.DEBUG) {
-      console.warn(
-        `[WebSocket] Failed to send message to ${failureCount}/${this.clients.size} clients`
-      );
+    // Always warn about significant broadcast failures (>10% failure rate)
+    if (failureCount > 0) {
+      const failureRate = this.clients.size > 0 ? (failureCount / this.clients.size) * 100 : 0;
+      if (failureRate >= 10 || failureCount > 5) {
+        console.warn(
+          `[WebSocket] Broadcast completed with ${failureCount}/${this.clients.size} client failures (${failureRate.toFixed(1)}% failure rate)`
+        );
+      }
     }
   }
 
@@ -1523,9 +1522,12 @@ export class VisualizationServer {
     // Only requests have a method; responses have result/error
     if (!('method' in data)) {
       // This is a response, not something we handle in this function
-      if (process.env.DEBUG) {
-        console.warn("[WebSocket] Received JSON-RPC response from client, ignoring");
-      }
+      // Log unexpected protocol patterns for operational visibility
+      const responseType = ('result' in data) ? 'success' : ('error' in data) ? 'error' : 'unknown';
+      const msgId = ('id' in data) ? data.id : 'unknown';
+      console.warn(
+        `[WebSocket] Received JSON-RPC ${responseType} response from client (ID: ${msgId}), ignoring`
+      );
       return;
     }
     const rpcMsg = data as JSONRPCRequest;
