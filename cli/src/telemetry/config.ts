@@ -92,9 +92,9 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
             `Error: Cannot read config file ${configPath} - permission denied\n`
           );
           process.stderr.write("Suggestions:\n");
-          process.stderr.write("  • Check file permissions with: ls -l ${configPath}\n");
+          process.stderr.write(`  • Check file permissions with: ls -l ${configPath}\n`);
           process.stderr.write("  • Ensure you have read access to the file\n");
-          process.stderr.write("  • Try: chmod 644 ${configPath}\n");
+          process.stderr.write(`  • Try: chmod 644 ${configPath}\n`);
         }
         // YAML parse errors
         else if (

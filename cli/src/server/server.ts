@@ -1200,10 +1200,9 @@ export class VisualizationServer {
             const validationResult = WSMessageSchema.safeParse(rawMessage);
             if (!validationResult.success) {
               const errorMsg = validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
-              if (process.env.DEBUG) {
-                console.error("Invalid WebSocket message format:", errorMsg);
-              }
-              ws.send(JSON.stringify({ error: "Invalid message format" }));
+              // Always log validation errors for production debugging
+              console.error("Invalid WebSocket message format:", errorMsg);
+              ws.send(JSON.stringify({ error: "Invalid message format", details: errorMsg }));
               return;
             }
 
@@ -1276,9 +1275,8 @@ export class VisualizationServer {
             "error.message": message,
           });
 
-          if (process.env.DEBUG) {
-            console.error(`[WebSocket] Error: ${message}`);
-          }
+          // Always log WebSocket errors (disconnections, protocol violations, TLS failures)
+          console.error(`[WebSocket] Error: ${message}`);
         },
       }))
     );
@@ -1427,9 +1425,8 @@ export class VisualizationServer {
       endSpan(span);
     } catch (error) {
       // Log telemetry failures to enable production debugging
-      if (process.env.DEBUG) {
-        console.warn(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(error)}`);
-      }
+      // Always log errors (not just in DEBUG) to catch silent failures
+      console.warn(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(error)}`);
     }
   }
 
