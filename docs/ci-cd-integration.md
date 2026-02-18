@@ -151,7 +151,7 @@ The visualization server provides automated OpenAPI specification generation. Us
    ```
 
 3. **In CI/CD Pipelines**:
-   - Validate that `docs/api-spec.yaml` has the `# HAND-MAINTAINED:` marker
+   - Validate that `docs/api-spec.yaml` has the `# AUTO-GENERATED:` marker
    - Regenerate spec on releases
    - Version both spec and CLI together
 
@@ -170,7 +170,7 @@ Add to your release preparation workflow:
 - name: Verify Spec Format
   run: |
     # Check that spec has validation marker
-    grep "# HAND-MAINTAINED:" docs/api-spec.yaml || exit 1
+    grep "# AUTO-GENERATED:" docs/api-spec.yaml || exit 1
 
     # Validate YAML syntax
     python -m yaml docs/api-spec.yaml
@@ -188,7 +188,7 @@ Add to your release preparation workflow:
 
 The CI pipeline automatically validates:
 
-- ✓ `# HAND-MAINTAINED:` marker is present (indicates schema-first approach)
+- ✓ `# AUTO-GENERATED:` marker is present (indicates programmatically generated spec)
 - ✓ Valid OpenAPI version (3.0.x or 3.1.x)
 - ✓ No deprecated "backward compatibility" language
 - ✓ Valid YAML syntax
