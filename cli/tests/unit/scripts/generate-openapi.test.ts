@@ -78,8 +78,8 @@ describe("generate-openapi Script", () => {
 
             const content = readFileSync(specPath, "utf-8");
 
-            // Check for hand-maintained marker (validated against server routes)
-            expect(content).toContain("# HAND-MAINTAINED:");
+            // Check for auto-generated marker (not hand-maintained)
+            expect(content).toContain("# AUTO-GENERATED:");
 
             // Check for OpenAPI version 3.0.3 (project standard per CLAUDE.md)
             expect(content).toMatch(/openapi:\s*['"]?3\.0\.3/);
@@ -293,10 +293,10 @@ describe("generate-openapi Script", () => {
             const specPath = resolve(import.meta.dir, "../../../../docs/api-spec.yaml");
             const content = readFileSync(specPath, "utf-8");
 
-            // Verify the file has hand-maintained marker and validation instructions
-            expect(content).toContain("# HAND-MAINTAINED:");
+            // Verify the file has auto-generated marker and DO NOT EDIT instructions
+            expect(content).toContain("# AUTO-GENERATED:");
             expect(content).toContain("npm run generate:openapi");
-            expect(content).toContain("validate that the specification accurately reflects");
+            expect(content).toContain("DO NOT EDIT MANUALLY");
 
             resolve(undefined);
           } catch (error) {
