@@ -619,15 +619,8 @@ export class VisualizationServer {
     this.app.openapi(getAnnotationsRoute, (c) => {
       const query = c.req.valid("query");
 
-      // Validate that only supported filters are used
-      if (query.author || query.tags || query.resolved) {
-        return c.json({
-          error: "Unsupported filter",
-          message: "Filtering by author, tags, or resolved status is not yet implemented. Only elementId filtering is supported.",
-          supported_filters: ["elementId"],
-          planned_filters: ["author", "tags", "resolved"]
-        }, 400);
-      }
+      // Note: author, tags, and resolved filter fields are accepted but not yet used.
+      // They are reserved for future implementation. Currently only elementId filtering is supported.
 
       const elementId = query.elementId;
 

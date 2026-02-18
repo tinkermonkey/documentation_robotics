@@ -348,11 +348,11 @@ const workdir = await createTestWorkdir(); // Cloned from golden copy
 **Validation Layers** (Pre-commit + CI):
 
 1. **Pre-commit Hooks** (Local Developer Workflow)
-   - **JSON Schema Syntax**: Pre-commit validates all `spec/schemas/**/*.schema.json` files use valid JSON schema syntax via `check-jsonschema`
    - **Markdown Linting**: Pre-commit lints all layer documentation and schema-related markdown files
    - **TypeScript Type Checking**: Pre-commit validates CLI TypeScript code for type safety
    - **File Integrity**: Pre-commit checks for trailing whitespace, CRLF line endings, and other basic file hygiene
    - **Purpose**: Catch structural issues early before committing broken specs
+   - **Note**: JSON Schema syntax validation is performed in CI (see below) rather than pre-commit for reliability
 
 2. **CI Pipeline Validation** (`.github/workflows/cli-tests.yml` - `spec-validation` job)
    - **Schema Syntax Validation**: All 354 node schemas + 252 relationship schemas validated for valid JSON
@@ -368,7 +368,7 @@ const workdir = await createTestWorkdir(); // Cloned from golden copy
 
 - **Pre-commit prevents broken local commits** — catches file format/syntax errors
 - **CI validates spec correctness** — runs comprehensive schema validation on all PRs/merges
-- **Removed hooks**: `validate-markdown-specs` and `validate-relationship-catalog` were custom pre-commit hooks; their validation is now performed by the CI pipeline's `spec-validation` job for more comprehensive and maintainable validation
+- **Removed hooks**: `validate-markdown-specs`, `validate-relationship-catalog`, and `check-jsonschema` were pre-commit hooks that had reliability issues; their validation is now performed by the CI pipeline's `spec-validation` job for more comprehensive and maintainable validation
 - **Why moved to CI**:
   - Custom validation logic is fragile when maintained in pre-commit hooks
   - Schema validation needs to check 606 files; better suited for CI where it runs on all PRs
