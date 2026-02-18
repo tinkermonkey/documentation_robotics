@@ -1432,19 +1432,13 @@ export class VisualizationServer {
 
   /**
    * Get OpenAPI specification document
-   * Provides a stable public API for OpenAPI spec generation
+   * Provides a stable public API for OpenAPI spec generation.
    *
-   * BEHAVIOR: Always returns OpenAPI 3.1.0 spec regardless of `config.openapi` parameter.
-   * The `openapi` parameter is accepted for API compatibility but is not used internally.
+   * BEHAVIOR: Returns an OpenAPI spec with the version specified in `config.openapi`.
+   * The returned document will have whatever OpenAPI version was passed in the config.
    *
-   * RATIONALE:
-   * - Hono's @hono/zod-openapi library (v1.2.1) only supports 3.1.0 generation
-   * - Post-generation normalization (in generate-openapi.ts) converts 3.1.0 → 3.0.3
-   * - This conversion occurs when generating the committed spec file for Layer 6 (API layer)
-   *
-   * IMPLEMENTATION DETAIL:
-   * Directly calls getOpenAPI31Document() from Hono, which always produces 3.1.0.
-   * This is a known limitation that could be resolved if Hono adds native 3.0.3 support.
+   * NOTE: Hono's getOpenAPI31Document() passes the config directly through and
+   * uses the specified version in the output. There is no forced version conversion.
    */
   public getOpenAPIDocument(config: {
     openapi: string;
