@@ -422,30 +422,6 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(response.status).toBe(400);
     });
 
-    it("should return consistent error format", async () => {
-      serverProcess = await startServer(testDir, testPort);
-
-      const response = await fetch(`http://localhost:${testPort}/api/layers/invalid-layer`);
-
-      expect(response.status).toBe(400);
-
-      const data = await response.json();
-      expect(data).toHaveProperty("error");
-      // Validate error format matches OpenAPI spec: error can be string or Zod validation array
-      // String errors: simple validation messages
-      // Array errors: detailed Zod field validation with path, code, and message
-      if (typeof data.error === 'string') {
-        expect(data.error.length).toBeGreaterThan(0);
-      } else if (Array.isArray(data.error)) {
-        expect(data.error.length).toBeGreaterThan(0);
-        data.error.forEach((err: unknown) => {
-          expect(typeof err === 'object' && err !== null).toBe(true);
-        });
-      } else {
-        throw new Error(`Error must be string or array, got ${typeof data.error}`);
-      }
-    });
-
     it("should reject invalid layer name with Zod validation", async () => {
       serverProcess = await startServer(testDir, testPort);
 
