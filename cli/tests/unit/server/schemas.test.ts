@@ -7,6 +7,7 @@ import {
   AnnotationFilterSchema,
   IdSchema,
   LayerNameSchema,
+  TagSchema,
   TimestampSchema,
   SimpleWSMessageSchema,
   JSONRPCRequestSchema,
@@ -460,10 +461,8 @@ describe("Server Schemas", () => {
       }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
     });
 
-    it("should reject tags with consecutive hyphens", () => {
-      expect(() => {
-        TagSchema.parse("tag--name");
-      }).toThrow("Tag must contain only lowercase letters, digits, and hyphens");
+    it("should accept tags with consecutive hyphens", () => {
+      expect(TagSchema.parse("tag--name")).toBe("tag--name");
     });
   });
 
