@@ -29,7 +29,13 @@ export const JSONRPCResponseSchema = z.object({
     data: z.unknown().optional(),
   }).optional(),
   id: z.union([z.string(), z.number()]),
-});
+}).refine(
+  (data) => (data.result !== undefined) !== (data.error !== undefined),
+  {
+    message: "JSON-RPC 2.0 response must contain either 'result' or 'error', not both",
+    path: ["response"],
+  }
+);
 
 export const WSMessageSchema = z.union([
   SimpleWSMessageSchema,
@@ -58,7 +64,25 @@ export const ElementIdSchema = z.string()
 
 export const TimestampSchema = z.string().datetime();
 
-// Shared tag schema - reused in annotation creation and updates
+/**
+ * Tag validation schema.
+ *
+ * Format: lowercase alphanumeric with optional internal hyphens
+ * Pattern: /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/
+ *
+ * Constraints:
+ * - Cannot start or end with hyphens: Prevents URL slugification issues and confusion with CLI flags (e.g., --tag-name)
+ * - Single character tags allowed (e.g., "a", "1") via the second alternation
+ * - Matches common tag conventions (GitHub labels, NPM tags, etc.)
+ *
+ * Examples:
+ * - ✅ "api-critical"
+ * - ✅ "high-priority"
+ * - ✅ "p0"
+ * - ❌ "-api-critical" (starts with hyphen)
+ * - ❌ "api-critical-" (ends with hyphen)
+ * - ❌ "API-CRITICAL" (uppercase not allowed)
+ */
 export const TagSchema = z.string()
   .min(1, 'Tag cannot be empty')
   .max(50, 'Tag too long')

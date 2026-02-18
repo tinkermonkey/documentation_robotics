@@ -173,8 +173,8 @@ describe.serial("VisualizationServer Integration Tests", () => {
       const annotation1 = {
         elementId: "motivation.goal.integration-test",
         author: "User 1",
-        text: "First annotation",
-        timestamp: new Date().toISOString(),
+        content: "First annotation",
+        tags: [],
       };
 
       if (!server["annotations"].has("motivation.goal.integration-test")) {
@@ -201,14 +201,14 @@ describe.serial("VisualizationServer Integration Tests", () => {
         {
           elementId,
           author: "User 1",
-          text: "First note",
-          timestamp: new Date().toISOString(),
+          content: "First note",
+          tags: [],
         },
         {
           elementId,
           author: "User 2",
-          text: "Second note",
-          timestamp: new Date().toISOString(),
+          content: "Second note",
+          tags: [],
         },
       ];
 

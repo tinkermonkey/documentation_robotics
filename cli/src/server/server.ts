@@ -59,6 +59,28 @@ const JSONRPC_ERRORS = {
   NO_CLIENT_AVAILABLE: -32001, // No chat client available
 } as const;
 
+/**
+ * HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
+ *
+ * Type casts (`as any`) are used in this file due to @hono/zod-openapi v1.2.1
+ * type inference limitations with async middleware handlers. The middleware
+ * properly validates and transforms request/response data at runtime via Zod,
+ * so the type assertions are safe despite bypassing TypeScript's type checker.
+ *
+ * TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+ *
+ * Affected endpoints:
+ * - Annotation creation (POST /api/annotations)
+ * - Annotation retrieval (GET /api/annotations/:id)
+ * - Annotation updates (PATCH /api/annotations/:id)
+ * - Annotation replacement (PUT /api/annotations/:id)
+ * - Annotation deletion (DELETE /api/annotations/:id)
+ * - Tag filtering (GET /api/annotations?tags=...)
+ * - Statistics endpoints (GET /api/statistics/...)
+ */
+const HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE =
+  "See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE constant at top of file";
+
 // WebSocket message types derived from Zod schemas for type safety and runtime validation
 type SimpleWSMessage = z.infer<typeof SimpleWSMessageSchema>;
 type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
@@ -341,11 +363,7 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
-    // The library has incomplete TypeScript support for async route handlers with complex
-    // response types. The handler is type-safe at runtime via Zod schema validation on
-    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
-    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
     this.app.openapi(getLayerRoute, (async (c: any) => {
       try {
         const { layerName } = c.req.valid("param");
@@ -406,11 +424,7 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
-    // The library has incomplete TypeScript support for async route handlers with complex
-    // response types. The handler is type-safe at runtime via Zod schema validation on
-    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
-    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
     this.app.openapi(getElementRoute, (async (c: any) => {
       try {
         const { id: elementId } = c.req.valid("param");
@@ -457,11 +471,7 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
-    // The library has incomplete TypeScript support for async route handlers with complex
-    // response types. The handler is type-safe at runtime via Zod schema validation on
-    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
-    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
     this.app.openapi(getSpecRoute, (async (c: any) => {
       try {
         const schemas = await this.loadSchemas();
@@ -662,11 +672,7 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
-    // The library has incomplete TypeScript support for async route handlers with complex
-    // response types. The handler is type-safe at runtime via Zod schema validation on
-    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
-    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
     this.app.openapi(putAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
@@ -749,11 +755,7 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
-    // The library has incomplete TypeScript support for async route handlers with complex
-    // response types. The handler is type-safe at runtime via Zod schema validation on
-    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
-    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
     this.app.openapi(patchAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
@@ -885,8 +887,7 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
-    // route handler types. Handler is type-safe at runtime via Zod validation.
+    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
     this.app.openapi(getAnnotationRepliesRoute, ((c: any) => {
       const { annotationId } = c.req.valid("param");
       const annotation = this.annotations.get(annotationId);
@@ -1053,8 +1054,7 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
-    // route handler types. Handler is type-safe at runtime via Zod validation.
+    // ✅ Type cast required: See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
     this.app.openapi(getChangesetRoute, ((c: any) => {
       const { changesetId } = c.req.valid("param");
       const changeset = this.changesets.get(changesetId);

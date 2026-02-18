@@ -356,6 +356,32 @@ describe.serial("Visualization Server - Annotations", () => {
     expect(data.content).toBe("Patched content only"); // Should preserve previous value
   });
 
+  it("should reject PATCH with empty body", async () => {
+    // AnnotationUpdateSchema requires at least one field to be provided
+    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(400);
+    const error = await response.json();
+    expect(error.error.message).toContain("at least one field");
+  });
+
+  it("should reject PUT with empty body", async () => {
+    // AnnotationUpdateSchema requires at least one field to be provided
+    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    expect(response.status).toBe(400);
+    const error = await response.json();
+    expect(error.error.message).toContain("at least one field");
+  });
+
   it("should create annotation without author (defaults to Anonymous)", async () => {
     const annotationData = {
       elementId: "motivation.goal.g1",

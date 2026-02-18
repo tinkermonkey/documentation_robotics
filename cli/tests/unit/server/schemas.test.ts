@@ -755,13 +755,32 @@ describe("Server Schemas", () => {
     });
 
     it("should not allow both result and error", () => {
-      // This is a semantic constraint not enforced at schema level,
-      // but the schema should still parse both present (JSON-RPC spec says don't send both)
+      // JSON-RPC 2.0 spec requires mutual exclusivity between result and error
       expect(() => {
         JSONRPCResponseSchema.parse({
           jsonrpc: "2.0",
           result: { ok: true },
           error: { code: 1, message: "Error" },
+          id: 1,
+        });
+      }).toThrow("must contain either 'result' or 'error'");
+    });
+
+    it("should allow result without error", () => {
+      expect(() => {
+        JSONRPCResponseSchema.parse({
+          jsonrpc: "2.0",
+          result: { ok: true },
+          id: 1,
+        });
+      }).not.toThrow();
+    });
+
+    it("should allow error without result", () => {
+      expect(() => {
+        JSONRPCResponseSchema.parse({
+          jsonrpc: "2.0",
+          error: { code: -32600, message: "Invalid Request" },
           id: 1,
         });
       }).not.toThrow();
