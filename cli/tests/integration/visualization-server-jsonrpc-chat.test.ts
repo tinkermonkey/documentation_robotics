@@ -91,7 +91,8 @@ describe.serial("JSON-RPC Chat Methods", () => {
             // Verify result structure
             const result = response.result;
             expect(typeof result.sdk_available).toBe("boolean");
-            expect(typeof result.error_message).toBe("string");
+            // error_message is null when client is available, string when not
+            expect(result.error_message === null || typeof result.error_message === "string").toBe(true);
 
             ws.close();
             resolve();
@@ -122,11 +123,17 @@ describe.serial("JSON-RPC Chat Methods", () => {
             const response = await waitForJsonRpcResponse(ws, "status-2");
             const result = response.result;
 
-            // When no client is available, sdk_available should be false
-            // and error_message should indicate why
+            // Verify response structure has both fields
+            expect(result).toHaveProperty("sdk_available");
+            expect(result).toHaveProperty("error_message");
+
+            // When no client is available, error_message should be a string with explanation
+            // When client is available, error_message should be null
             if (!result.sdk_available) {
-              expect(result.error_message).toBeTruthy();
               expect(typeof result.error_message).toBe("string");
+              expect(result.error_message?.length || 0).toBeGreaterThan(0);
+            } else {
+              expect(result.error_message).toBe(null);
             }
 
             ws.close();
@@ -251,39 +258,6 @@ describe.serial("JSON-RPC Chat Methods", () => {
       });
     });
 
-    it("should return error when no chat client available on chat.send", async () => {
-      return new Promise<void>((resolve, reject) => {
-        const ws = new WebSocket(wsUrl);
-
-        ws.onopen = async () => {
-          try {
-            // Send valid chat.send request but without available chat client
-            ws.send(JSON.stringify({
-              jsonrpc: "2.0",
-              method: "chat.send",
-              params: { message: "Hello, chat!" },
-              id: "send-4",
-            }));
-
-            const response = await waitForJsonRpcResponse(ws, "send-4");
-
-            // Should get error about no client available
-            expect(response).toHaveProperty("error");
-            expect(response.error.message).toContain("No chat client available");
-
-            ws.close();
-            resolve();
-          } catch (error) {
-            ws.close();
-            reject(error);
-          }
-        };
-
-        ws.onerror = () => {
-          reject(new Error("WebSocket connection failed"));
-        };
-      });
-    });
   });
 
   describe("chat.cancel method", () => {

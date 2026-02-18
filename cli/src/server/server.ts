@@ -1752,7 +1752,7 @@ export class VisualizationServer {
 
         case "chat.send":
           // Validate params
-          if (!params || typeof params !== 'object' || !('message' in params) || typeof (params as any).message !== 'string') {
+          if (!params || typeof params !== 'object' || !('message' in params) || typeof (params as any).message !== 'string' || (params as any).message.trim() === '') {
             sendError(JSONRPC_ERRORS.INVALID_PARAMS, "Message cannot be empty");
             return;
           }
