@@ -8,6 +8,7 @@ import { upgradeWebSocket, websocket } from "hono/bun";
 import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
 import { serve } from "bun";
+import { randomBytes } from "crypto";
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
 import { telemetryMiddleware } from "./telemetry-middleware.js";
@@ -203,7 +204,7 @@ export class VisualizationServer {
    * Generate a random auth token
    */
   private generateAuthToken(): string {
-    return `dr-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    return `dr-${randomBytes(24).toString('base64url')}`;
   }
 
   /**
@@ -310,12 +311,12 @@ export class VisualizationServer {
     // Get specific layer
     const getLayerRoute = createRoute({
       method: 'get',
-      path: '/api/layers/:name',
+      path: '/api/layers/:layerName',
       tags: ['Model'],
       summary: 'Get layer',
       description: 'Retrieve a specific layer with all its elements',
       request: {
-        params: z.object({ name: LayerNameSchema }),
+        params: z.object({ layerName: LayerNameSchema }),
       },
       responses: {
         200: {
@@ -345,11 +346,14 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
-    // async route handler types. Handler is type-safe at runtime via Zod validation.
+    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
+    // The library has incomplete TypeScript support for async route handlers with complex
+    // response types. The handler is type-safe at runtime via Zod schema validation on
+    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
+    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
     this.app.openapi(getLayerRoute, (async (c: any) => {
       try {
-        const { name: layerName } = c.req.valid("param");
+        const { layerName } = c.req.valid("param");
         const layer = await this.model.getLayer(layerName);
 
         if (!layer) {
@@ -407,8 +411,11 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
-    // async route handler types. Handler is type-safe at runtime via Zod validation.
+    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
+    // The library has incomplete TypeScript support for async route handlers with complex
+    // response types. The handler is type-safe at runtime via Zod schema validation on
+    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
+    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
     this.app.openapi(getElementRoute, (async (c: any) => {
       try {
         const { id: elementId } = c.req.valid("param");
@@ -455,8 +462,11 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
-    // async route handler types. Handler is type-safe at runtime via Zod validation.
+    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
+    // The library has incomplete TypeScript support for async route handlers with complex
+    // response types. The handler is type-safe at runtime via Zod schema validation on
+    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
+    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
     this.app.openapi(getSpecRoute, (async (c: any) => {
       try {
         const schemas = await this.loadSchemas();
@@ -657,8 +667,11 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
-    // async route handler types. Handler is type-safe at runtime via Zod validation.
+    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
+    // The library has incomplete TypeScript support for async route handlers with complex
+    // response types. The handler is type-safe at runtime via Zod schema validation on
+    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
+    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
     this.app.openapi(putAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
@@ -741,8 +754,11 @@ export class VisualizationServer {
       },
     });
 
-    // Type cast needed: @hono/zod-openapi type inference doesn't fully resolve
-    // async route handler types. Handler is type-safe at runtime via Zod validation.
+    // Type cast needed: @hono/zod-openapi v1.2.1 type inference limitation
+    // The library has incomplete TypeScript support for async route handlers with complex
+    // response types. The handler is type-safe at runtime via Zod schema validation on
+    // inputs and outputs. See: https://github.com/honojs/middleware/issues/xxx
+    // TODO: Remove these casts after @hono/zod-openapi improves async handler typing
     this.app.openapi(patchAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
@@ -1056,6 +1072,8 @@ export class VisualizationServer {
     }) as any);
 
     // OpenAPI documentation endpoint
+    // Note: @hono/zod-openapi always generates 3.1.0, so we specify it here
+    // but the version is normalized to 3.0.3 in the generate-openapi.ts script
     this.app.doc('/api-spec.yaml', {
       openapi: '3.1.0',
       info: {
@@ -1347,14 +1365,14 @@ export class VisualizationServer {
    * Generate unique annotation ID
    */
   private generateAnnotationId(): string {
-    return `ann-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `ann-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**
    * Generate unique reply ID
    */
   private generateReplyId(): string {
-    return `reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `reply-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**

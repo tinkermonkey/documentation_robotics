@@ -122,7 +122,7 @@ export const AnnotationFilterSchema = z.object({
   author: z.string().optional(),
   tags: z.string().optional(),
   resolved: z.enum(['true', 'false']).optional(),
-}).passthrough(); // Allow extra query parameters (e.g., auth token) to pass through
+}).strict(); // Validate only declared fields
 
 // Response schemas for OpenAPI documentation
 export const ErrorResponseSchema = z.object({
