@@ -25,7 +25,9 @@ const rawMessage = JSON.parse(msgStr);
 // Only then is validation applied (line 1211-1218)
 const validationResult = WSMessageSchema.safeParse(rawMessage);
 if (!validationResult.success) {
-  const errorMsg = validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+  const errorMsg = validationResult.error.issues
+    .map((e) => `${e.path.join(".")}: ${e.message}`)
+    .join("; ");
   console.error("Invalid WebSocket message format:", errorMsg);
   ws.send(JSON.stringify({ error: "Invalid message format", details: errorMsg }));
   return;
@@ -46,6 +48,7 @@ if (!validationResult.success) {
 **Hidden Errors:**
 
 This catch block at line 1256 could hide:
+
 - `SyntaxError` from JSON.parse() - malformed JSON
 - `TypeError` if msgStr is not a string (type coercion failure)
 - Any validation error that occurs before validation result is checked
@@ -69,16 +72,20 @@ try {
     msgStr: msgStr.substring(0, 200), // First 200 chars for debugging
     messageSize: msgStr.length,
   });
-  ws.send(JSON.stringify({
-    error: "Invalid JSON format",
-    details: "Message could not be parsed as JSON"
-  }));
+  ws.send(
+    JSON.stringify({
+      error: "Invalid JSON format",
+      details: "Message could not be parsed as JSON",
+    })
+  );
   return;
 }
 
 const validationResult = WSMessageSchema.safeParse(rawMessage);
 if (!validationResult.success) {
-  const errorMsg = validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+  const errorMsg = validationResult.error.issues
+    .map((e) => `${e.path.join(".")}: ${e.message}`)
+    .join("; ");
   console.error("Invalid WebSocket message format:", errorMsg);
   ws.send(JSON.stringify({ error: "Invalid message format", details: errorMsg }));
   return;
@@ -145,6 +152,7 @@ private async loadSchemas(): Promise<Record<string, any>> {
 **Hidden Errors:**
 
 This catch block could hide:
+
 - `SyntaxError` from specific schema file JSON parsing
 - Which file caused the parse error (file path is lost)
 - Whether it's a file I/O issue vs. JSON parsing issue
@@ -171,16 +179,17 @@ const walkDirectory = async (dir: string, prefix: string = ""): Promise<void> =>
 
     if (entry.isDirectory()) {
       await walkDirectory(fullPath, schemaKey);
-    } else if (entry.isFile() && (entry.name.endsWith(".schema.json") || entry.name.endsWith(".json"))) {
+    } else if (
+      entry.isFile() &&
+      (entry.name.endsWith(".schema.json") || entry.name.endsWith(".json"))
+    ) {
       const content = await fs.readFile(fullPath, "utf-8");
 
       try {
         schemas[schemaKey] = JSON.parse(content);
       } catch (parseError) {
         const parseErrorMsg = parseError instanceof Error ? parseError.message : String(parseError);
-        throw new Error(
-          `Failed to parse schema file ${schemaKey}: ${parseErrorMsg}`
-        );
+        throw new Error(`Failed to parse schema file ${schemaKey}: ${parseErrorMsg}`);
       }
     }
   }
@@ -209,7 +218,7 @@ const streamOutput = async () => {
 };
 
 // Start streaming in background
-streamOutput();  // ❌ NO ERROR HANDLING - fire-and-forget promise
+streamOutput(); // ❌ NO ERROR HANDLING - fire-and-forget promise
 ```
 
 The function `streamOutput()` is called without awaiting it, and if it rejects, the error is lost:
@@ -245,6 +254,7 @@ streamOutput();
 **Hidden Errors:**
 
 Unhandled promise rejections could occur from:
+
 - `stdoutReader.read()` failures
 - `ws.send()` failures (WebSocket already closed)
 - Stream processing errors after outer try-catch
@@ -280,9 +290,7 @@ streamOutput().catch((error) => {
       })
     );
   } catch (sendError) {
-    console.error(
-      `[Claude Code] Failed to send error response: ${getErrorMessage(sendError)}`
-    );
+    console.error(`[Claude Code] Failed to send error response: ${getErrorMessage(sendError)}`);
   }
   this.activeChatProcesses.delete(conversationId);
 });
@@ -315,6 +323,7 @@ async start(port: number = 8080): Promise<void> {
 ```
 
 The `serve()` function could fail silently if:
+
 - Port is already in use
 - Insufficient permissions
 - System resource exhaustion
@@ -330,6 +339,7 @@ The `serve()` function could fail silently if:
 **Hidden Errors:**
 
 Errors that could occur and be hidden:
+
 - EADDRINUSE (port already in use)
 - EACCES (permission denied)
 - EMFILE (too many open files)
@@ -424,6 +434,7 @@ try {
 **Hidden Errors:**
 
 Errors being conflated in the catch-all:
+
 - EACCES (permission denied) - security/permissions issue
 - EISDIR (trying to serve directory as file) - configuration error
 - EMFILE (too many open files) - system resource issue
@@ -551,21 +562,27 @@ try {
   process.kill();
   // ...
 } catch (error) {
-  console.warn(`[Chat] Failed to cancel process for conversation ${convId}: ${getErrorMessage(error)}`);
+  console.warn(
+    `[Chat] Failed to cancel process for conversation ${convId}: ${getErrorMessage(error)}`
+  );
 }
 
 // Line 1858
 try {
   proc.kill();
 } catch (error) {
-  console.warn(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+  console.warn(
+    `[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`
+  );
 }
 
 // Line 2003
 try {
   proc.kill();
 } catch (error) {
-  console.warn(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
+  console.warn(
+    `[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`
+  );
 }
 ```
 
@@ -621,7 +638,9 @@ The validation result handling properly distinguishes validation errors from pro
 // Line 1211-1218
 const validationResult = WSMessageSchema.safeParse(rawMessage);
 if (!validationResult.success) {
-  const errorMsg = validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+  const errorMsg = validationResult.error.issues
+    .map((e) => `${e.path.join(".")}: ${e.message}`)
+    .join("; ");
   console.error("Invalid WebSocket message format:", errorMsg);
   ws.send(JSON.stringify({ error: "Invalid message format", details: errorMsg }));
   return;
@@ -629,6 +648,7 @@ if (!validationResult.success) {
 ```
 
 ✅ **Why this is good:**
+
 - Clear separation of validation errors from application logic
 - Detailed error messages sent to client
 - Distinguishes between format issues and other errors
@@ -651,6 +671,7 @@ console.warn(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(er
 ```
 
 ✅ **Why this is good:**
+
 - Removes silent failures in production
 - Uses consistent error message extraction
 - Operational visibility for debugging telemetry issues
@@ -671,6 +692,7 @@ console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
 ```
 
 ✅ **Why this is good:**
+
 - Production visibility for network failures
 - Doesn't require DEBUG/VERBOSE flags to see operational issues
 - Essential for debugging client disconnection issues
@@ -686,13 +708,14 @@ try {
 } catch (error) {
   // Only suppress expected "already closed" errors
   const errorMessage = error instanceof Error ? error.message : String(error);
-  if (!errorMessage.includes('already closed') && process.env.VERBOSE) {
+  if (!errorMessage.includes("already closed") && process.env.VERBOSE) {
     console.error(`[SERVER] Unexpected error closing WebSocket client: ${errorMessage}`);
   }
 }
 ```
 
 ✅ **Why this is good:**
+
 - Distinguishes expected errors from unexpected ones
 - Suppresses benign errors (already closed)
 - Logs unexpected errors for investigation
@@ -714,6 +737,7 @@ catch (error) {
 ```
 
 ✅ **Why this is good:**
+
 - Extracts error message safely
 - Includes stack trace for debugging
 - Non-zero exit code signals failure to CI/build systems
@@ -744,6 +768,7 @@ if (errorMsg.includes("EACCES") || errorMsg.includes("permission denied")) {
 ```
 
 ✅ **Why this is good:**
+
 - Different error types get appropriate guidance
 - Users understand what went wrong and how to fix it
 - Actionable error messages with suggestions
@@ -752,15 +777,15 @@ if (errorMsg.includes("EACCES") || errorMsg.includes("permission denied")) {
 
 ## SUMMARY TABLE
 
-| Issue | Location | Severity | Type | Status |
-|-------|----------|----------|------|--------|
-| JSON.parse() in WebSocket handler without explicit error handling | server.ts:1208 | CRITICAL | Silent failure | Needs fix |
-| JSON.parse() in schema loading without file-level error handling | server.ts:2103 | CRITICAL | Silent failure | Needs fix |
-| Unhandled promise in background stream processing | server.ts:1714, 1867, 1940, 2012 | HIGH | Silent failure | Needs fix |
-| Missing error handling in Bun.serve() startup | server.ts:2784-2788 | HIGH | Silent failure | Needs fix |
-| Incomplete file serving error categorization | server.ts:2768-2777 | HIGH | Poor diagnostics | Needs fix |
-| Chat initialization errors not exposed to clients | server.ts:129, 182-187 | MEDIUM | Hidden state | Needs fix |
-| Process kill errors poorly distinguished | server.ts:1607, 1858, 2003 | MEDIUM | Vague logging | Needs fix |
+| Issue                                                             | Location                         | Severity | Type             | Status    |
+| ----------------------------------------------------------------- | -------------------------------- | -------- | ---------------- | --------- |
+| JSON.parse() in WebSocket handler without explicit error handling | server.ts:1208                   | CRITICAL | Silent failure   | Needs fix |
+| JSON.parse() in schema loading without file-level error handling  | server.ts:2103                   | CRITICAL | Silent failure   | Needs fix |
+| Unhandled promise in background stream processing                 | server.ts:1714, 1867, 1940, 2012 | HIGH     | Silent failure   | Needs fix |
+| Missing error handling in Bun.serve() startup                     | server.ts:2784-2788              | HIGH     | Silent failure   | Needs fix |
+| Incomplete file serving error categorization                      | server.ts:2768-2777              | HIGH     | Poor diagnostics | Needs fix |
+| Chat initialization errors not exposed to clients                 | server.ts:129, 182-187           | MEDIUM   | Hidden state     | Needs fix |
+| Process kill errors poorly distinguished                          | server.ts:1607, 1858, 2003       | MEDIUM   | Vague logging    | Needs fix |
 
 ---
 
@@ -788,11 +813,13 @@ if (errorMsg.includes("EACCES") || errorMsg.includes("permission denied")) {
 ## NOTES ON PROJECT STANDARDS
 
 Per CLAUDE.md, the project explicitly forbids:
+
 - Silent failures in production code (Issues 1-4 violate this)
 - Empty catch blocks (none found, good)
 - Inadequate error logging (Issues 1-2, 4 violate this)
 
 The project uses:
+
 - `getErrorMessage()` utility for safe error extraction (consistently used)
 - `logError()` for Sentry-tracked errors (not used in new code, consider adding)
 - Error IDs from `constants/errorIds.ts` (not used, consider for structured logging)
@@ -802,6 +829,7 @@ The project uses:
 ## FILE PATHS (ABSOLUTE)
 
 All file paths are absolute and verified:
+
 - `/workspace/cli/src/server/server.ts` - Main server implementation
 - `/workspace/cli/src/server/schemas.ts` - Schema definitions (reviewed, appears sound)
 - `/workspace/cli/scripts/generate-openapi.ts` - OpenAPI generation (reviewed, good error handling)
