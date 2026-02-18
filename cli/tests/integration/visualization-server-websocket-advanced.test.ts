@@ -579,28 +579,25 @@ describe.serial("WebSocket Subscription Management", () => {
         reject(new Error(`WebSocket error: ${error}`));
       };
 
-      // Fallback: if no error response, still resolve (server handled gracefully)
+      // Timeout: if no error response received within timeout, fail the test
       setTimeout(() => {
-        if (!errorResponseReceived) {
-          ws.close();
-          resolve();
-        }
-      }, 1000);
-
-      setTimeout(() => reject(new Error("Message validation test timeout")), 5000);
+        ws.close();
+        reject(new Error("No error response received from server within timeout"));
+      }, 5000);
     });
   });
 
   it("should handle malformed JSONRPC messages gracefully", async () => {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(wsUrl);
+      let errorResponseReceived = false;
 
       ws.onopen = () => {
-        // JSONRPC request missing required 'method' field
+        // JSONRPC message missing required 'method' field (invalid as both request and response)
         ws.send(JSON.stringify({
           jsonrpc: "2.0",
           id: 1
-          // Missing 'method' field
+          // Missing 'method' field for request, missing 'result'/'error' for response
         }));
       };
 
@@ -608,7 +605,11 @@ describe.serial("WebSocket Subscription Management", () => {
         try {
           const response = JSON.parse(event.data);
           // Server should respond with error for validation failure
-          if (response.error === "Invalid message format") {
+          if (response.error === "Invalid message format" && response.details) {
+            expect(response).toHaveProperty("details");
+            // Verify error describes the validation failure
+            expect(response.details).toBeTruthy();
+            errorResponseReceived = true;
             ws.close();
             resolve();
           }
@@ -621,12 +622,11 @@ describe.serial("WebSocket Subscription Management", () => {
         reject(new Error(`WebSocket error: ${error}`));
       };
 
+      // Timeout: if no error response received within timeout, fail the test
       setTimeout(() => {
         ws.close();
-        resolve();
-      }, 1000);
-
-      setTimeout(() => reject(new Error("JSONRPC validation test timeout")), 5000);
+        reject(new Error("No error response received from server within timeout"));
+      }, 5000);
     });
   });
 });
