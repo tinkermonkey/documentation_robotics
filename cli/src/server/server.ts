@@ -221,10 +221,12 @@ export class VisualizationServer {
         const honoModule = require("hono/bun") as any;
         upgradeWebSocket = honoModule.upgradeWebSocket;
         websocket = honoModule.websocket;
-      } catch {
-        // Fallback if hono/bun is not available
-        if (process.env.VERBOSE) {
-          console.log("[Server] Could not load WebSocket adapters from hono/bun");
+      } catch (error) {
+        // Log error details for production debugging (not just VERBOSE mode)
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[Server] Could not load WebSocket adapters from hono/bun: ${message}`);
+        if (process.env.VERBOSE && error instanceof Error && error.stack) {
+          console.debug("[Server] Stack trace:", error.stack);
         }
       }
     }

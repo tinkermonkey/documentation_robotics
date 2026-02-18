@@ -57,13 +57,12 @@ async function generateOpenAPISpec() {
     }
 
     // Convert to valid YAML using the yaml package
-    // HAND-MAINTAINED: This file is hand-maintained but validated against server routes
-    const specYaml = `# HAND-MAINTAINED: This is a carefully maintained OpenAPI specification.
-# While it documents the server API, it is kept in sync with the implementation
-# via schema-first development practices (route definitions use proper Zod schemas).
-# To verify this spec matches the current implementation, run: npm run generate:openapi
-# This command validates that the specification accurately reflects all route definitions.
-# For changes: update the route schemas in server.ts, then validate with generate:openapi.
+    // Generate file header documenting how this spec is maintained
+    const specYaml = `# AUTO-GENERATED: This OpenAPI specification is programmatically generated.
+# DO NOT EDIT MANUALLY - all changes will be overwritten on next generation.
+# To update this spec, modify the route schemas in server.ts (using Zod schemas),
+# then regenerate with: npm run generate:openapi
+# This ensures the specification always matches the actual implementation.
 
 ${YAML.stringify(spec, { indent: 2 })}
 `;

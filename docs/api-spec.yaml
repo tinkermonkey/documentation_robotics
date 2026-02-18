@@ -254,7 +254,7 @@ paths:
           description: Element ID
           schema:
             type: string
-          example: business-service-payment-processing
+          example: business.service.payment-processing
       responses:
         "200":
           description: Element data successfully retrieved
