@@ -60,7 +60,7 @@ const JSONRPC_ERRORS = {
 } as const;
 
 /**
- * HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE
+ * Type Casting Note
  *
  * Type casts (`as any`) are used in this file due to @hono/zod-openapi v1.2.1
  * type inference limitations with async middleware handlers. The middleware
@@ -78,8 +78,6 @@ const JSONRPC_ERRORS = {
  * - Tag filtering (GET /api/annotations?tags=...)
  * - Statistics endpoints (GET /api/statistics/...)
  */
-const HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE =
-  "See HONO_ASYNC_HANDLER_TYPE_CASTING_NOTE constant at top of file";
 
 // WebSocket message types derived from Zod schemas for type safety and runtime validation
 type SimpleWSMessage = z.infer<typeof SimpleWSMessageSchema>;

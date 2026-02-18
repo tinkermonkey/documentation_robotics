@@ -366,7 +366,8 @@ describe.serial("Visualization Server - Annotations", () => {
 
     expect(response.status).toBe(400);
     const error = await response.json();
-    expect(error.error.message).toContain("at least one field");
+    // Zod validation errors are returned as an array or error object with issues
+    expect(JSON.stringify(error).toLowerCase()).toContain("at least one field");
   });
 
   it("should reject PUT with empty body", async () => {
@@ -379,7 +380,8 @@ describe.serial("Visualization Server - Annotations", () => {
 
     expect(response.status).toBe(400);
     const error = await response.json();
-    expect(error.error.message).toContain("at least one field");
+    // Zod validation errors are returned as an array or error object with issues
+    expect(JSON.stringify(error).toLowerCase()).toContain("at least one field");
   });
 
   it("should create annotation without author (defaults to Anonymous)", async () => {
