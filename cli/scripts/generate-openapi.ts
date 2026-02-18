@@ -20,8 +20,15 @@ async function generateOpenAPISpec() {
     console.log("🔨 Generating OpenAPI specification...");
 
     // Load model
-    console.log("📦 Loading model...");
-    const model = await Model.load(projectRoot, { lazyLoad: true });
+    let model: Model;
+    try {
+      console.log("📦 Loading model...");
+      model = await Model.load(projectRoot, { lazyLoad: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("❌ Failed to load model:", message);
+      throw error;
+    }
 
     // Create server instance
     console.log("🚀 Creating server instance...");
@@ -69,17 +76,25 @@ ${YAML.stringify(spec, { indent: 2 })}
 
     // Write spec to file (to repo root docs/, not cli/docs/)
     const outputPath = join(projectRoot, "..", "docs", "api-spec.yaml");
-    console.log(`📝 Writing OpenAPI spec to ${outputPath}...`);
-    await writeFile(outputPath, specYaml, "utf-8");
+    try {
+      console.log(`📝 Writing OpenAPI spec to ${outputPath}...`);
+      await writeFile(outputPath, specYaml, "utf-8");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("❌ Failed to write spec file:", message);
+      throw error;
+    }
 
     console.log("✅ OpenAPI specification generated successfully!");
     console.log(`📄 Spec location: ${outputPath}`);
     console.log("🌐 View spec at: http://localhost:8080/api-docs");
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("❌ Failed to generate OpenAPI specification:", message);
-    if (error instanceof Error && error.stack) {
-      console.error(error.stack);
+    if (!(error instanceof Error && error.message.includes("Failed to"))) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("❌ Failed to generate OpenAPI specification:", message);
+      if (error instanceof Error && error.stack) {
+        console.error(error.stack);
+      }
     }
     process.exit(1);
   }

@@ -161,7 +161,7 @@ export class VisualizationServer {
   private replies: Map<string, AnnotationReply[]> = new Map(); // annotationId -> replies[]
   private changesets: Map<string, Changeset> = new Map(); // changesetId -> changeset
   private authToken: string;
-  private authEnabled: boolean = true; // Enabled by default for security
+  private authEnabled: boolean = true;
   private withDanger: boolean = false; // Danger mode disabled by default
   private viewerPath?: string; // Optional custom viewer path
   private activeChatProcesses: Map<string, any> = new Map(); // conversationId -> Bun.spawn process
