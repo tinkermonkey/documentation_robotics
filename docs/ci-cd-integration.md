@@ -61,7 +61,35 @@ dr validate --strict --output json
 - `1` - Validation failed (errors found)
 - `2` - Command error (invalid arguments, etc.)
 
-### 2. Generate Documentation on Merge
+### 2. Auto-Generate OpenAPI Specification
+
+The visualization server generates an OpenAPI specification from route definitions. This ensures the API documentation always matches the implementation:
+
+```bash
+cd cli
+npm run generate:openapi
+```
+
+This command:
+
+- Loads your model from the working directory
+- Extracts OpenAPI definitions from route handlers
+- Validates schemas match the implementation
+- Outputs to `docs/api-spec.yaml` in the project root
+
+**Integration in CI/CD:**
+
+Add this step to your release workflow to regenerate the spec before publishing:
+
+```yaml
+- name: Generate OpenAPI Spec
+  run: |
+    cd cli
+    npm run generate:openapi
+    git add docs/api-spec.yaml
+```
+
+### 3. Generate Documentation on Merge
 
 Export documentation formats when code is merged to main:
 
@@ -78,7 +106,7 @@ dr export --format all --output ./exports
 - Markdown
 - GraphML
 
-### 3. Check for Broken Cross-Layer References
+### 4. Check for Broken Cross-Layer References
 
 Ensure architectural integrity by validating relationships:
 
@@ -86,13 +114,88 @@ Ensure architectural integrity by validating relationships:
 dr validate --strict
 ```
 
-### 4. Run Conformance Checks
+### 5. Run Conformance Checks
 
 Validate against industry standards:
 
 ```bash
 dr conformance --standards archimate,openapi
 ```
+
+## OpenAPI Auto-Generation Integration
+
+The visualization server provides automated OpenAPI specification generation. Use this in your CI/CD pipelines to keep API documentation synchronized with implementation changes.
+
+### Why Auto-Generate?
+
+- **Schema-First Development**: Route definitions in `server.ts` use Zod schemas as the source of truth
+- **No Manual Sync**: API docs automatically reflect any schema changes
+- **Runtime Validation**: Generated spec can be validated against actual implementation
+- **CI/CD Integration**: Validate spec changes in pull requests, regenerate on releases
+
+### Setup Steps
+
+1. **Local Development**:
+
+   ```bash
+   cd cli
+   npm run generate:openapi
+   ```
+
+2. **Before Committing**:
+
+   ```bash
+   # Verify spec matches current implementation
+   npm run generate:openapi
+   git add docs/api-spec.yaml
+   ```
+
+3. **In CI/CD Pipelines**:
+   - Validate that `docs/api-spec.yaml` has the `# AUTO-GENERATED:` marker
+   - Regenerate spec on releases
+   - Version both spec and CLI together
+
+### Example: GitHub Actions Release Workflow
+
+Add to your release preparation workflow:
+
+```yaml
+- name: Generate Updated OpenAPI Spec
+  run: |
+    cd cli
+    npm install
+    npm run build
+    npm run generate:openapi
+
+- name: Verify Spec Format
+  run: |
+    # Check that spec has validation marker
+    grep "# AUTO-GENERATED:" docs/api-spec.yaml || exit 1
+
+    # Validate YAML syntax
+    python -m yaml docs/api-spec.yaml
+
+- name: Commit Spec Updates
+  run: |
+    git config user.name "CI Bot"
+    git config user.email "ci@example.com"
+    git add docs/api-spec.yaml
+    git commit -m "Update OpenAPI spec for release" || true
+    git push
+```
+
+### Validation in CI
+
+The CI pipeline automatically validates:
+
+- ✓ `# AUTO-GENERATED:` marker is present (indicates programmatically generated spec)
+- ✓ Valid OpenAPI version (3.0.x or 3.1.x)
+- ✓ No deprecated "backward compatibility" language
+- ✓ Valid YAML syntax
+
+See `.github/workflows/cli-tests.yml` for the validation job.
+
+---
 
 ## Platform-Specific Integrations
 

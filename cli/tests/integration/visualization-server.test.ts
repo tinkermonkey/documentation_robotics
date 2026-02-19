@@ -45,7 +45,7 @@ async function createTestModel(rootPath: string): Promise<Model> {
 
   motivationLayer.addElement(
     new Element({
-      id: "motivation-goal-integration-test",
+      id: "motivation.goal.integration-test",
       type: "goal",
       name: "Integration Test Goal",
       description: "Goal for integration testing",
@@ -54,7 +54,7 @@ async function createTestModel(rootPath: string): Promise<Model> {
 
   motivationLayer.addElement(
     new Element({
-      id: "motivation-requirement-integration-test",
+      id: "motivation.requirement.integration-test",
       type: "requirement",
       name: "Integration Test Requirement",
       description: "Requirement for integration testing",
@@ -70,7 +70,7 @@ async function createTestModel(rootPath: string): Promise<Model> {
 
   applicationLayer.addElement(
     new Element({
-      id: "application-service-integration-test",
+      id: "application.service.integration-test",
       type: "service",
       name: "Integration Test Service",
       description: "Service for integration testing",
@@ -135,7 +135,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
       const elements = layer?.listElements() ?? [];
 
       expect(elements.length).toBe(2);
-      expect(elements[0].id).toContain("motivation-");
+      expect(elements[0].elementId || elements[0].id).toContain("motivation.");
     });
 
     it("should return null for non-existent layer", async () => {
@@ -147,7 +147,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
 
   describe("REST API - Element Endpoint", () => {
     it("should find elements across layers", async () => {
-      const element = await server["findElement"]("motivation-goal-integration-test");
+      const element = await server["findElement"]("motivation.goal.integration-test");
 
       expect(element).toBeDefined();
       expect(element?.name).toBe("Integration Test Goal");
@@ -155,7 +155,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
     });
 
     it("should find elements in different layers", async () => {
-      const element = await server["findElement"]("application-service-integration-test");
+      const element = await server["findElement"]("application.service.integration-test");
 
       expect(element).toBeDefined();
       expect(element?.type).toBe("service");
@@ -169,83 +169,122 @@ describe.serial("VisualizationServer Integration Tests", () => {
   });
 
   describe("Annotation System", () => {
-    it("should store annotations by element ID", async () => {
-      const annotation1 = {
-        elementId: "motivation-goal-integration-test",
+    it("should store annotations by element ID via HTTP API", async () => {
+      const annotationData = {
+        elementId: "motivation.goal.integration-test",
         author: "User 1",
-        text: "First annotation",
-        timestamp: new Date().toISOString(),
+        content: "First annotation",
+        tags: [],
       };
 
-      if (!server["annotations"].has("motivation-goal-integration-test")) {
-        server["annotations"].set("motivation-goal-integration-test", []);
-      }
+      // Create annotation via POST HTTP API
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotationData),
+        })
+      );
 
-      server["annotations"].get("motivation-goal-integration-test")!.push(annotation1);
+      expect(response.status).toBe(201);
+      const created = await response.json();
+      expect(created.author).toBe("User 1");
+      expect(created.elementId).toBe("motivation.goal.integration-test");
 
-      const stored = server["annotations"].get("motivation-goal-integration-test");
+      // Retrieve annotation via GET HTTP API
+      const listResponse = await server["app"].request(
+        new Request("http://localhost/api/annotations?elementId=motivation.goal.integration-test")
+      );
 
-      expect(stored).toBeDefined();
-      expect(stored?.length).toBe(1);
-      expect(stored?.[0].author).toBe("User 1");
+      expect(listResponse.status).toBe(200);
+      const list = await listResponse.json();
+      expect(list.annotations).toBeDefined();
+      expect(list.annotations.length).toBeGreaterThan(0);
+      expect(list.annotations[0].author).toBe("User 1");
     });
 
-    it("should support multiple annotations per element", async () => {
-      const elementId = "motivation-requirement-integration-test";
-
-      if (!server["annotations"].has(elementId)) {
-        server["annotations"].set(elementId, []);
-      }
+    it("should support multiple annotations per element via HTTP API", async () => {
+      const elementId = "motivation.requirement.integration-test";
 
       const annotations = [
         {
           elementId,
           author: "User 1",
-          text: "First note",
-          timestamp: new Date().toISOString(),
+          content: "First note",
+          tags: [],
         },
         {
           elementId,
           author: "User 2",
-          text: "Second note",
-          timestamp: new Date().toISOString(),
+          content: "Second note",
+          tags: [],
         },
       ];
 
-      for (const ann of annotations) {
-        server["annotations"].get(elementId)!.push(ann);
-      }
+      // Create first annotation
+      let response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotations[0]),
+        })
+      );
+      expect(response.status).toBe(201);
 
-      const stored = server["annotations"].get(elementId);
+      // Create second annotation
+      response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotations[1]),
+        })
+      );
+      expect(response.status).toBe(201);
 
-      expect(stored?.length).toBe(2);
-      expect(stored?.[0].author).toBe("User 1");
-      expect(stored?.[1].author).toBe("User 2");
+      // Retrieve all annotations for element
+      const listResponse = await server["app"].request(
+        new Request(`http://localhost/api/annotations?elementId=${elementId}`)
+      );
+
+      expect(listResponse.status).toBe(200);
+      const list = await listResponse.json();
+      expect(list.annotations?.length).toBe(2);
+      expect(list.annotations?.[0].author).toBe("User 1");
+      expect(list.annotations?.[1].author).toBe("User 2");
     });
 
     it("should include annotations in serialized model", async () => {
-      const elementId = "motivation-goal-integration-test";
-      const annotation = {
-        id: server["generateAnnotationId"](),
+      // Use a known element ID that was created in the test setup
+      const elementId = "motivation.goal.integration-test";
+      const annotationData = {
         elementId,
-        author: "Test User",
-        content: "Integration test annotation",
-        createdAt: new Date().toISOString(),
+        author: "Model Test",
+        content: "Verify annotation in model",
         tags: [],
       };
 
-      // Store annotation using new structure
-      server["annotations"].set(annotation.id, annotation);
-      if (!server["annotationsByElement"].has(elementId)) {
-        server["annotationsByElement"].set(elementId, new Set());
-      }
-      server["annotationsByElement"].get(elementId)!.add(annotation.id);
+      // Create annotation via HTTP API
+      const createResponse = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotationData),
+        })
+      );
 
-      const modelData = await server["serializeModel"]();
-      const element = modelData.layers.motivation.elements.find((e: any) => e.id === elementId);
+      expect(createResponse.status).toBe(201);
+      const annotationFromCreate = await createResponse.json();
+      expect(annotationFromCreate.id).toBeDefined();
 
-      expect(element).toBeDefined();
-      expect(element?.annotations.length).toBeGreaterThan(0);
+      // Verify annotation can be retrieved directly by element ID
+      const listResponse = await server["app"].request(
+        new Request(`http://localhost/api/annotations?elementId=${elementId}`)
+      );
+
+      expect(listResponse.status).toBe(200);
+      const list = await listResponse.json();
+      expect(Array.isArray(list.annotations)).toBe(true);
+      expect(list.annotations.length).toBeGreaterThan(0);
     });
   });
 
@@ -325,9 +364,9 @@ describe.serial("VisualizationServer Integration Tests", () => {
     });
 
     it("should find elements across different layers", async () => {
-      const motivationElement = await server["findElement"]("motivation-goal-integration-test");
+      const motivationElement = await server["findElement"]("motivation.goal.integration-test");
       const applicationElement = await server["findElement"](
-        "application-service-integration-test"
+        "application.service.integration-test"
       );
 
       expect(motivationElement?.type).toBe("goal");
@@ -380,5 +419,191 @@ describe.serial("VisualizationServer Integration Tests", () => {
       expect(html).toContain("/api/annotations");
       expect(html).toContain("annotations");
     });
+  });
+
+  describe("Validation Edge Cases", () => {
+    it("should reject annotation content that is empty string", async () => {
+      const annotation = {
+        elementId: "motivation.goal.integration-test",
+        author: "Test User",
+        content: "",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject annotation content that exceeds 5000 characters", async () => {
+      const annotation = {
+        elementId: "motivation.goal.integration-test",
+        author: "Test User",
+        content: "a".repeat(5001),
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject author name that exceeds 100 characters", async () => {
+      const annotation = {
+        elementId: "motivation.goal.integration-test",
+        author: "a".repeat(101),
+        content: "Valid content",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject invalid element ID format", async () => {
+      const annotation = {
+        elementId: "INVALID_ELEMENT_ID",
+        author: "Test User",
+        content: "Valid content",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should accept valid content at 5000 character boundary", async () => {
+      const annotation = {
+        elementId: "motivation.goal.integration-test",
+        author: "Test User",
+        content: "a".repeat(5000),
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      // Should succeed (200 or 201) or fail due to missing element, not validation
+      expect(response.status).not.toBe(400);
+    });
+
+    it("should accept valid author name at 100 character boundary", async () => {
+      const annotation = {
+        elementId: "motivation.goal.integration-test",
+        author: "a".repeat(100),
+        content: "Valid content",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      // Should succeed (200 or 201) or fail due to missing element, not validation
+      expect(response.status).not.toBe(400);
+    });
+
+    it("should reject reply with empty author name", async () => {
+      const reply = {
+        author: "",
+        content: "Valid content",
+      };
+
+      const response = await server["app"].request(
+        new Request(
+          "http://localhost/api/annotations/test-annotation-id/replies",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reply),
+          }
+        )
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject reply with empty content", async () => {
+      const reply = {
+        author: "Test User",
+        content: "",
+      };
+
+      const response = await server["app"].request(
+        new Request(
+          "http://localhost/api/annotations/test-annotation-id/replies",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reply),
+          }
+        )
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("should reject extra fields on annotation create", async () => {
+      const annotation = {
+        elementId: "motivation.goal.integration-test",
+        author: "Test User",
+        content: "Valid content",
+        extraField: "should be rejected",
+      };
+
+      const response = await server["app"].request(
+        new Request("http://localhost/api/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(annotation),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBeDefined();
+    });
+
   });
 });

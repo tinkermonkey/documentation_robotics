@@ -1,3 +1,9 @@
+# AUTO-GENERATED: This OpenAPI specification is programmatically generated.
+# DO NOT EDIT MANUALLY - all changes will be overwritten on next generation.
+# To update this spec, modify the route schemas in server.ts (using Zod schemas),
+# then regenerate with: npm run generate:openapi
+# This ensures the specification always matches the actual implementation.
+
 openapi: 3.0.3
 info:
   title: Documentation Robotics Visualization Server API
@@ -136,7 +142,9 @@ paths:
   /api/spec:
     get:
       summary: Get JSON Schema specifications
-      description: "Returns all JSON Schema files from `.dr/schemas/` directory.
+      description: "Returns all JSON Schema files from the configured schema directory.
+
+        The schema directory location depends on the deployment environment: typically `.dr/schemas/` for local deployments, or configured via `SCHEMA_BASE_PATH` environment variable.
 
         Includes layer schemas, relationship catalog, and link registry."
       tags:
@@ -247,7 +255,7 @@ paths:
           description: Element ID
           schema:
             type: string
-          example: business-service-payment-processing
+          example: business.service.payment-processing
       responses:
         "200":
           description: Element data successfully retrieved
@@ -673,6 +681,8 @@ paths:
 
         - `{"type": "annotation.deleted", "annotationId": "..."}` - Annotation deleted
 
+        - `{"type": "annotation.reply.added", "annotationId": "...", "replyId": "...", "timestamp": "..."}` - Reply added to annotation
+
         - `{"type": "annotation", "data": {...}}` - Annotation broadcast (legacy, from annotate message)
 
         - `{"type": "changeset.created", "changesetId": "...", "name": "...", "timestamp": "..."}` -
@@ -881,13 +891,10 @@ components:
           additionalProperties:
             type: object
           description: Map of schema filename to JSON Schema object
-        schema_count:
+        schemaCount:
           type: integer
           description: Number of schemas included
           example: 12
-        schemaCount:
-          type: integer
-          description: Alternative field name for schema count
         manifest:
           type: object
           description: Schema manifest metadata

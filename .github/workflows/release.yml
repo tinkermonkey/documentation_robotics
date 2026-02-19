@@ -118,6 +118,10 @@ jobs:
         working-directory: ./cli
         run: npm run build
 
+      - name: Generate OpenAPI specification
+        working-directory: ./cli
+        run: npm run generate:openapi
+
       - name: Run tests
         working-directory: ./cli
         run: npm test

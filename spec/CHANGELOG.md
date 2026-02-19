@@ -113,6 +113,7 @@ This is a **breaking change** for spec-aware tooling:
 **For CLI Users**: Update to CLI v0.1.0+ (no model migration required)
 
 **For Spec-Aware Tools**:
+
 - Replace `.node.json` / `.relationship.json` parsing with JSON Schema parsing
 - Read from `spec/schemas/nodes/` and `spec/schemas/relationships/` directories
 - Parse `predicates.json` for relationship semantics

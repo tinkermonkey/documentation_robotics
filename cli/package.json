@@ -19,11 +19,12 @@
     "sync-schemas": "bash scripts/sync-spec-schemas.sh",
     "copy-schemas": "cp -r src/schemas dist/",
     "generate-layer-reports": "bun run ../scripts/generate-layer-reports.ts",
+    "generate:openapi": "tsx scripts/generate-openapi.ts",
     "dev": "node dist/cli.js",
     "lint": "tsc --noEmit",
     "type-check": "tsc --noEmit",
-    "test": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts tests/unit/integrations/base-manager.test.ts",
-    "test:unit": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/unit/integrations/base-manager.test.ts",
+    "test": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts tests/unit/integrations/base-manager.test.ts",
+    "test:unit": "bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/scripts/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/unit/integrations/base-manager.test.ts",
     "test:generated": "bun test tests/unit/generators/*.test.ts",
     "test:integration": "bun test tests/integration/*.test.ts",
     "test:validators": "bun test --concurrent ./tests/unit/validators/",
@@ -60,14 +61,19 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@clack/prompts": "^0.8.0",
+    "@hono/swagger-ui": "^0.5.3",
+    "@hono/zod-openapi": "^1.2.1",
+    "@hono/zod-validator": "^0.7.6",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.0",
     "ansis": "^3.0.0",
     "commander": "^12.0.0",
     "graphology": "^0.25.4",
     "graphology-traversal": "^0.3.1",
+    "graphology-types": "^0.24.8",
     "hono": "^4.11.1",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
@@ -83,6 +89,7 @@
     "diff": "^8.0.2",
     "esbuild": "^0.24.2",
     "glob": "^11.1.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.0"
   }
 }

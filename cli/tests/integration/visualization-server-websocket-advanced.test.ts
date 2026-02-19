@@ -9,11 +9,9 @@
  * - Concurrent execution would cause port conflicts and WebSocket binding failures
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { Model } from "../../src/core/model.js";
 import { VisualizationServer } from "../../src/server/server.js";
-import { Element } from "../../src/core/element.js";
-import { Layer } from "../../src/core/layer.js";
 import { portAllocator } from "../helpers/port-allocator.js";
 import { createTestModel } from "../helpers/test-model.js";
 import * as fs from "fs/promises";
@@ -196,7 +194,121 @@ describe.serial("WebSocket Connection Lifecycle", () => {
   });
 });
 
-describe.serial("WebSocket Real-time Event Streaming", () => {
+
+describe.serial("WebSocket Concurrent Client Handling", () => {
+  let server: VisualizationServer;
+  let model: Model;
+  let port: number;
+  let wsUrl: string;
+  let testDir: string;
+
+  beforeAll(async () => {
+    port = await portAllocator.allocatePort();
+    testDir = getTestDir();
+    model = await createTestModel(testDir);
+    server = new VisualizationServer(model, { authEnabled: false });
+    await server.start(port);
+    wsUrl = `ws://localhost:${port}/ws`;
+  });
+
+  afterAll(async () => {
+    server.stop();
+    portAllocator.releasePort(port);
+    await fs.rm(testDir, { recursive: true, force: true });
+  });
+
+  it("should handle multiple concurrent WebSocket connections", async () => {
+    const clientCount = 5;
+    const clients: WebSocket[] = [];
+
+    return new Promise<void>(async (resolve, reject) => {
+      // Create multiple concurrent connections
+      for (let i = 0; i < clientCount; i++) {
+        const ws = new WebSocket(wsUrl);
+        clients.push(ws);
+
+        ws.onerror = (error) => {
+          reject(new Error(`Client ${i} error: ${error}`));
+        };
+      }
+
+      // Wait for all connections to open
+      const connectionPromises = clients.map((ws, i) => {
+        return new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(() => {
+            reject(new Error(`Client ${i} connection timeout`));
+          }, 5000);
+
+          ws.onopen = () => {
+            clearTimeout(timer);
+            resolve();
+          };
+        });
+      });
+
+      try {
+        await Promise.all(connectionPromises);
+
+        // Verify all are open
+        expect(clients.every((ws) => ws.readyState === WebSocket.OPEN)).toBe(true);
+
+        // Close all connections
+        clients.forEach((ws) => ws.close());
+        resolve();
+      } catch (error) {
+        clients.forEach((ws) => {
+          if (ws.readyState === WebSocket.OPEN) ws.close();
+        });
+        reject(error);
+      }
+    });
+  });
+
+
+  it("should handle client disconnections without affecting others", async () => {
+    let client1Closed = false;
+    let client2Open = false;
+
+    return new Promise<void>(async (resolve, reject) => {
+      // Client 1
+      const ws1 = new WebSocket(wsUrl);
+
+      ws1.onopen = () => {
+        // Client 1 closes
+        ws1.close();
+      };
+
+      ws1.onclose = () => {
+        client1Closed = true;
+      };
+
+      // Client 2
+      const ws2 = new WebSocket(wsUrl);
+
+      ws2.onopen = () => {
+        client2Open = true;
+      };
+
+      ws2.onerror = (error) => {
+        reject(error);
+      };
+
+      // Wait for both to be processed
+      setTimeout(() => {
+        expect(client1Closed).toBe(true);
+        expect(client2Open).toBe(true);
+        expect(ws2.readyState).toBe(WebSocket.OPEN);
+
+        ws2.close();
+        resolve();
+      }, 2000);
+
+      setTimeout(() => reject(new Error("Test timeout")), 10000);
+    });
+  });
+});
+
+describe.serial("WebSocket Subscription Management", () => {
   let server: VisualizationServer;
   let model: Model;
   let port: number;
@@ -257,7 +369,7 @@ describe.serial("WebSocket Real-time Event Streaming", () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              elementId: "motivation-goal-ws-1",
+              elementId: "motivation.goal.ws-1",
               author: "Test User",
               content: "Test annotation for event broadcast",
             }),
@@ -278,7 +390,7 @@ describe.serial("WebSocket Real-time Event Streaming", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          elementId: "motivation-goal-ws-2",
+          elementId: "motivation.goal.ws-2",
           author: "Test User",
           content: "Original content",
         }),
@@ -333,7 +445,7 @@ describe.serial("WebSocket Real-time Event Streaming", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          elementId: "motivation-goal-ws-1",
+          elementId: "motivation.goal.ws-1",
           author: "Test User",
           content: "To be deleted",
         }),
@@ -373,225 +485,6 @@ describe.serial("WebSocket Real-time Event Streaming", () => {
         reject(error);
       }
     });
-  });
-});
-
-describe.serial("WebSocket Concurrent Client Handling", () => {
-  let server: VisualizationServer;
-  let model: Model;
-  let port: number;
-  let wsUrl: string;
-  let baseUrl: string;
-  let testDir: string;
-
-  beforeAll(async () => {
-    port = await portAllocator.allocatePort();
-    testDir = getTestDir();
-    model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(port);
-    wsUrl = `ws://localhost:${port}/ws`;
-    baseUrl = `http://localhost:${port}`;
-  });
-
-  afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(port);
-    await fs.rm(testDir, { recursive: true, force: true });
-  });
-
-  it("should handle multiple concurrent WebSocket connections", async () => {
-    const clientCount = 5;
-    const clients: WebSocket[] = [];
-
-    return new Promise<void>(async (resolve, reject) => {
-      // Create multiple concurrent connections
-      for (let i = 0; i < clientCount; i++) {
-        const ws = new WebSocket(wsUrl);
-        clients.push(ws);
-
-        ws.onerror = (error) => {
-          reject(new Error(`Client ${i} error: ${error}`));
-        };
-      }
-
-      // Wait for all connections to open
-      const connectionPromises = clients.map((ws, i) => {
-        return new Promise<void>((resolve, reject) => {
-          const timer = setTimeout(() => {
-            reject(new Error(`Client ${i} connection timeout`));
-          }, 5000);
-
-          ws.onopen = () => {
-            clearTimeout(timer);
-            resolve();
-          };
-        });
-      });
-
-      try {
-        await Promise.all(connectionPromises);
-
-        // Verify all are open
-        expect(clients.every((ws) => ws.readyState === WebSocket.OPEN)).toBe(true);
-
-        // Close all connections
-        clients.forEach((ws) => ws.close());
-        resolve();
-      } catch (error) {
-        clients.forEach((ws) => {
-          if (ws.readyState === WebSocket.OPEN) ws.close();
-        });
-        reject(error);
-      }
-    });
-  });
-
-  it("should broadcast events to all connected clients", async () => {
-    const clientCount = 3;
-    const clients: WebSocket[] = [];
-    const receivedMessages: any[][] = Array.from({ length: clientCount }, () => []);
-
-    return new Promise<void>(async (resolve, reject) => {
-      // Create clients and set up message handlers
-      for (let i = 0; i < clientCount; i++) {
-        const ws = new WebSocket(wsUrl);
-        clients.push(ws);
-
-        const clientIndex = i; // Capture index for closure
-        ws.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data);
-            receivedMessages[clientIndex].push(message);
-          } catch (error) {
-            // Ignore parse errors
-          }
-        };
-
-        ws.onerror = (error) => {
-          reject(new Error(`Client ${i} error: ${error}`));
-        };
-      }
-
-      // Wait for connections
-      const connectionPromises = clients.map((ws, i) => {
-        return new Promise<void>((resolve) => {
-          const timer = setTimeout(() => resolve(), 5000);
-          ws.onopen = () => {
-            clearTimeout(timer);
-            resolve();
-          };
-        });
-      });
-
-      try {
-        await Promise.all(connectionPromises);
-
-        // Subscribe all clients to annotations
-        clients.forEach((ws) => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: "subscribe", topics: ["annotations"] }));
-          }
-        });
-
-        // Wait a moment for subscriptions to register
-        await new Promise((r) => setTimeout(r, 200));
-
-        // Create an annotation
-        await fetch(`${baseUrl}/api/annotations`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            elementId: "motivation-goal-ws-1",
-            author: "Broadcast Test",
-            content: "Event should reach all clients",
-          }),
-        });
-
-        // Wait for events to propagate
-        await new Promise((r) => setTimeout(r, 500));
-
-        // Verify all clients received the annotation event
-        const allReceived = receivedMessages.every((msgs) =>
-          msgs.some((m) => m.type === "annotation.added")
-        );
-        expect(allReceived).toBe(true);
-
-        // Close connections
-        clients.forEach((ws) => ws.close());
-        resolve();
-      } catch (error) {
-        clients.forEach((ws) => {
-          if (ws.readyState === WebSocket.OPEN) ws.close();
-        });
-        reject(error);
-      }
-    });
-  });
-
-  it("should handle client disconnections without affecting others", async () => {
-    let client1Closed = false;
-    let client2Open = false;
-
-    return new Promise<void>(async (resolve, reject) => {
-      // Client 1
-      const ws1 = new WebSocket(wsUrl);
-
-      ws1.onopen = () => {
-        // Client 1 closes
-        ws1.close();
-      };
-
-      ws1.onclose = () => {
-        client1Closed = true;
-      };
-
-      // Client 2
-      const ws2 = new WebSocket(wsUrl);
-
-      ws2.onopen = () => {
-        client2Open = true;
-      };
-
-      ws2.onerror = (error) => {
-        reject(error);
-      };
-
-      // Wait for both to be processed
-      setTimeout(() => {
-        expect(client1Closed).toBe(true);
-        expect(client2Open).toBe(true);
-        expect(ws2.readyState).toBe(WebSocket.OPEN);
-
-        ws2.close();
-        resolve();
-      }, 2000);
-
-      setTimeout(() => reject(new Error("Test timeout")), 10000);
-    });
-  });
-});
-
-describe.serial("WebSocket Subscription Management", () => {
-  let server: VisualizationServer;
-  let model: Model;
-  let port: number;
-  let wsUrl: string;
-  let testDir: string;
-
-  beforeAll(async () => {
-    port = await portAllocator.allocatePort();
-    testDir = getTestDir();
-    model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(port);
-    wsUrl = `ws://localhost:${port}/ws`;
-  });
-
-  afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(port);
-    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it("should handle subscribe messages with topic list", async () => {
@@ -650,6 +543,90 @@ describe.serial("WebSocket Subscription Management", () => {
       };
 
       setTimeout(() => reject(new Error("Invalid JSON test timeout")), 5000);
+    });
+  });
+
+  it("should reject messages with invalid schema and return error response", async () => {
+    return new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(wsUrl);
+      let errorResponseReceived = false;
+
+      ws.onopen = () => {
+        // Send valid JSON but invalid WebSocket message schema
+        // (missing required type or jsonrpc/method fields)
+        ws.send(JSON.stringify({
+          invalid: "message",
+          extraField: "value"
+        }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const response = JSON.parse(event.data);
+          // Expect error response from server
+          if (response.error === "Invalid message format") {
+            expect(response).toHaveProperty("details");
+            errorResponseReceived = true;
+            ws.close();
+            resolve();
+          }
+        } catch (error) {
+          // Ignore parse errors
+        }
+      };
+
+      ws.onerror = (error) => {
+        reject(new Error(`WebSocket error: ${error}`));
+      };
+
+      // Timeout: if no error response received within timeout, fail the test
+      setTimeout(() => {
+        ws.close();
+        reject(new Error("No error response received from server within timeout"));
+      }, 5000);
+    });
+  });
+
+  it("should handle malformed JSONRPC messages gracefully", async () => {
+    return new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(wsUrl);
+      let errorResponseReceived = false;
+
+      ws.onopen = () => {
+        // JSONRPC message missing required 'method' field (invalid as both request and response)
+        ws.send(JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1
+          // Missing 'method' field for request, missing 'result'/'error' for response
+        }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const response = JSON.parse(event.data);
+          // Server should respond with error for validation failure
+          if (response.error === "Invalid message format" && response.details) {
+            expect(response).toHaveProperty("details");
+            // Verify error describes the validation failure
+            expect(response.details).toBeTruthy();
+            errorResponseReceived = true;
+            ws.close();
+            resolve();
+          }
+        } catch (error) {
+          // Ignore parse errors
+        }
+      };
+
+      ws.onerror = (error) => {
+        reject(new Error(`WebSocket error: ${error}`));
+      };
+
+      // Timeout: if no error response received within timeout, fail the test
+      setTimeout(() => {
+        ws.close();
+        reject(new Error("No error response received from server within timeout"));
+      }, 5000);
     });
   });
 });

@@ -3,10 +3,50 @@
  * HTTP server with WebSocket support for real-time model updates
  */
 
-import { Hono } from "hono";
-import { upgradeWebSocket, websocket } from "hono/bun";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
-import { serve } from "bun";
+import { swaggerUI } from "@hono/swagger-ui";
+import { randomBytes } from "crypto";
+import { createRequire } from "module";
+
+// hono/bun imports are conditional - they're only available in Bun runtime
+// For Node.js/tsx environments (e.g., generating OpenAPI spec), these are lazily imported
+// These are conditionally loaded in loadBunAdapters() and remain undefined in non-Bun runtimes
+// Bun-specific WebSocket upgrade middleware from hono/bun
+// Only available in Bun runtime; undefined in Node.js/tsx
+let upgradeWebSocket: any;
+// Bun-specific WebSocket middleware from hono/bun
+// Only available in Bun runtime; undefined in Node.js/tsx
+let websocket: any;
+
+/**
+ * NOTE: Module-scoped WebSocket adapter state
+ *
+ * upgradeWebSocket and websocket are declared as module-level let variables and mutated
+ * in the constructor via loadBunAdapters(). This creates intentional coupling between
+ * VisualizationServer instances: they all share the same adapter references.
+ *
+ * DESIGN RATIONALE:
+ * - These adapters are loaded from the Bun runtime at module-load time and are immutable
+ *   after initialization. The Bun runtime itself is global state.
+ * - In practice, all VisualizationServer instances will call loadBunAdapters() with the same
+ *   inputs and will get the same results (or the same errors).
+ * - Creating separate instance-level copies would add unnecessary memory overhead without
+ *   providing benefits, since the adapters cannot be meaningfully different per instance.
+ * - The coupling is acceptable because:
+ *   1. These are runtime environment adapters, not request-specific state
+ *   2. They are immutable after initialization (set once in first constructor call)
+ *   3. Tests and production code all use a single VisualizationServer instance per process
+ *
+ * ALTERNATIVE APPROACHES (rejected):
+ * - Instance properties: Would duplicate adapter references unnecessarily
+ * - Lazy initialization in methods: Would cause per-request overhead
+ * - Singleton pattern: Would require additional infrastructure without clear benefits
+ *
+ * If future requirements demand multiple independent VisualizationServer instances
+ * with different WebSocket configurations, this design can be revisited.
+ */
+const require = createRequire(import.meta.url);
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
 import { telemetryMiddleware } from "./telemetry-middleware.js";
@@ -15,80 +55,90 @@ import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
 import { getErrorMessage } from "../utils/errors.js";
+import {
+  AnnotationCreateSchema,
+  AnnotationUpdateSchema,
+  AnnotationReplyCreateSchema,
+  LayerNameSchema,
+  IdSchema,
+  AnnotationFilterSchema,
+  ElementIdSchema,
+  ErrorResponseSchema,
+  HealthResponseSchema,
+  AnnotationSchema,
+  AnnotationReplySchema,
+  AnnotationsListSchema,
+  ChangesetsListSchema,
+  ChangesetDetailSchema,
+  ModelResponseSchema,
+  LayerResponseSchema,
+  ElementResponseSchema,
+  SpecResponseSchema,
+  AnnotationRepliesSchema,
+  WSMessageSchema,
+  SimpleWSMessageSchema,
+  JSONRPCRequestSchema,
+  JSONRPCResponseSchema,
+} from "./schemas.js";
 
-interface WSMessage {
-  type: "subscribe" | "annotate" | "ping";
-  topics?: string[];
-  annotation?: {
-    elementId: string;
-    author: string;
-    text: string;
-    timestamp: string;
-  };
-  jsonrpc?: string; // For JSON-RPC 2.0 messages
-  method?: string;
-  params?: any;
-  id?: string | number;
-  result?: any;
-  error?: {
-    code: number;
-    message: string;
-    data?: any;
-  };
-}
+/**
+ * JSON-RPC 2.0 Error Codes
+ * Subset of JSON-RPC 2.0 error codes used in this implementation.
+ * Standard JSON-RPC 2.0 also defines PARSE_ERROR (-32700) and INVALID_REQUEST (-32600)
+ * for protocol-level errors not applicable to WebSocket message handling.
+ */
+const JSONRPC_ERRORS = {
+  // Standard JSON-RPC errors
+  INVALID_PARAMS: -32602,      // Invalid method parameters
+  METHOD_NOT_FOUND: -32601,    // Method does not exist
+  INTERNAL_ERROR: -32603,      // Internal server error
 
-interface AnnotationReply {
-  id: string;
-  author: string;
-  content: string;
-  createdAt: string;
-}
+  // Custom application errors
+  NO_CLIENT_AVAILABLE: -32001, // No chat client available
+} as const;
 
-interface ClientAnnotation {
-  id: string;
-  elementId: string;
-  author: string;
-  content: string;
-  createdAt: string;
-  updatedAt?: string;
-  tags?: string[];
-  resolved?: boolean; // Track resolution status
-  replies?: AnnotationReply[]; // Include replies when serializing
-}
+/**
+ * Type Casting Note
+ *
+ * Type casts (`as any`) are used in this file due to @hono/zod-openapi v1.2.1
+ * type inference limitations with async middleware handlers. The middleware
+ * properly validates and transforms request/response data at runtime via Zod,
+ * so the type assertions are safe despite bypassing TypeScript's type checker.
+ *
+ * TODO: Remove these casts after @hono/zod-openapi improves async handler typing
+ * Upstream tracking: https://github.com/honojs/hono/issues/3524
+ * Target version: @hono/zod-openapi v2.0.0+ (when async handler typing is improved)
+ *
+ * Affected endpoints:
+ * - Annotation creation (POST /api/annotations)
+ * - Annotation retrieval (GET /api/annotations/:id)
+ * - Annotation updates (PATCH /api/annotations/:id)
+ * - Annotation replacement (PUT /api/annotations/:id)
+ * - Annotation deletion (DELETE /api/annotations/:id)
+ * - Layer retrieval (GET /api/layers/:layerName)
+ * - Element retrieval (GET /api/elements/:id)
+ * - Schema retrieval (GET /api/spec)
+ */
 
-interface Changeset {
-  metadata: {
-    id: string;
-    name: string;
-    description?: string;
-    type: "feature" | "bugfix" | "exploration";
-    status: "active" | "applied" | "abandoned";
-    created_at: string;
-    updated_at?: string;
-    workflow?: string;
-    summary: {
-      elements_added: number;
-      elements_updated: number;
-      elements_deleted: number;
-    };
-  };
-  changes: {
-    version: string;
-    changes: Array<{
-      timestamp: string;
-      operation: "add" | "update" | "delete";
-      element_id: string;
-      layer: string;
-      element_type: string;
-      data?: any;
-      before?: any;
-      after?: any;
-    }>;
-  };
-}
+// WebSocket message types derived from Zod schemas for type safety and runtime validation
+type SimpleWSMessage = z.infer<typeof SimpleWSMessageSchema>;
+type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
+type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
+type WSMessage = z.infer<typeof WSMessageSchema>;
+
+type AnnotationReply = z.infer<typeof AnnotationReplySchema>;
+
+// Derive ClientAnnotation type from AnnotationSchema with proper serialization
+type ClientAnnotation = z.infer<typeof AnnotationSchema>;
+
+type Changeset = z.infer<typeof ChangesetDetailSchema>;
 
 // Type for WebSocket context from Hono/Bun
-type HonoWSContext = any;
+// Defines the interface for WebSocket operations within the Hono/Bun environment
+interface HonoWSContext {
+  send(source: string | ArrayBuffer | Uint8Array | ArrayBufferView, options?: { compress?: boolean }): void;
+  close(code?: number, reason?: string): void;
+}
 
 export interface VisualizationServerOptions {
   authEnabled?: boolean;
@@ -101,9 +151,9 @@ export interface VisualizationServerOptions {
  * Visualization Server class
  */
 export class VisualizationServer {
-  private app: Hono;
+  private app: OpenAPIHono;
   private model: Model;
-  private _server?: ReturnType<typeof serve>;
+  private _server?: any; // Bun.serve return type, loaded dynamically
   private clients: Set<HonoWSContext> = new Set();
   private watcher?: any;
   private annotations: Map<string, ClientAnnotation> = new Map(); // annotationId -> annotation
@@ -111,22 +161,35 @@ export class VisualizationServer {
   private replies: Map<string, AnnotationReply[]> = new Map(); // annotationId -> replies[]
   private changesets: Map<string, Changeset> = new Map(); // changesetId -> changeset
   private authToken: string;
-  private authEnabled: boolean = true; // Enabled by default for security
+  private authEnabled: boolean = true;
   private withDanger: boolean = false; // Danger mode disabled by default
   private viewerPath?: string; // Optional custom viewer path
   private activeChatProcesses: Map<string, any> = new Map(); // conversationId -> Bun.spawn process
   private chatConversationCounter: number = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
+  private chatInitializationError?: Error; // Store initialization error for status endpoint
 
   constructor(model: Model, options?: VisualizationServerOptions) {
-    this.app = new Hono();
+    this.app = new OpenAPIHono();
     this.model = model;
+
+    // Load Bun-specific imports if available (for WebSocket support in Bun runtime)
+    this.loadBunAdapters();
 
     // Auth configuration (CLI options override environment variables)
     this.authEnabled = options?.authEnabled ?? process.env.DR_AUTH_ENABLED !== "false";
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
     this.withDanger = options?.withDanger || false;
     this.viewerPath = options?.viewerPath;
+
+    // Validate cross-field configuration
+    if (!this.authEnabled && options?.authToken) {
+      console.warn(
+        "[VisualizationServer] Warning: authToken provided but authEnabled is false. " +
+        "The token will be generated but not used for authentication. " +
+        "Set authEnabled: true to enable authentication."
+      );
+    }
 
     // Add CORS middleware
     this.app.use("/*", cors());
@@ -172,8 +235,38 @@ export class VisualizationServer {
 
     // Initialize chat clients asynchronously
     this.initializeChatClients().catch((error) => {
+      this.chatInitializationError = error instanceof Error ? error : new Error(String(error));
       console.error("[Chat] Failed to initialize chat clients:", error);
     });
+  }
+
+  /**
+   * Load Bun-specific WebSocket adapters if available
+   * This is called in the constructor to support WebSocket functionality in Bun runtime
+   * In Node.js/tsx environments (e.g., generating OpenAPI spec), these imports are skipped
+   */
+  private loadBunAdapters(): void {
+    // Check if we're running in Bun runtime by checking for Bun global
+    if (typeof (global as any).Bun !== "undefined") {
+      try {
+        // Use dynamic import for Bun-specific adapters
+        // This is safe to call only in Bun runtime
+        const honoModule = require("hono/bun") as any;
+        upgradeWebSocket = honoModule.upgradeWebSocket;
+        websocket = honoModule.websocket;
+      } catch (error) {
+        // Log error details for production debugging (not just VERBOSE mode)
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(
+          `[Server] WARNING: Could not load WebSocket adapters from hono/bun: ${message}. ` +
+            `WebSocket endpoints (/ws) will not be available. ` +
+            `Please ensure 'hono' is installed and the Bun runtime is properly configured.`
+        );
+        if (process.env.VERBOSE && error instanceof Error && error.stack) {
+          console.debug("[Server] Stack trace:", error.stack);
+        }
+      }
+    }
   }
 
   /**
@@ -208,7 +301,44 @@ export class VisualizationServer {
    * Generate a random auth token
    */
   private generateAuthToken(): string {
-    return `dr-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    return `dr-${randomBytes(24).toString('base64url')}`;
+  }
+
+  /**
+   * Shared annotation update logic for PUT/PATCH handlers
+   * Performs partial updates with atomic operations
+   */
+  private async updateAnnotation(
+    annotationId: string,
+    body: z.infer<typeof AnnotationUpdateSchema>
+  ): Promise<ClientAnnotation | null> {
+    const annotation = this.annotations.get(annotationId);
+
+    if (!annotation) {
+      return null;
+    }
+
+    // Create new annotation object with updates (atomic update, no direct mutation)
+    // This prevents race conditions if the annotation is read during WebSocket broadcast
+    const updatedAnnotation: ClientAnnotation = {
+      ...annotation,
+      content: body.content ?? annotation.content,
+      tags: body.tags ?? annotation.tags,
+      resolved: body.resolved ?? annotation.resolved,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Store the updated annotation atomically
+    this.annotations.set(annotationId, updatedAnnotation);
+
+    // Broadcast to all clients
+    await this.broadcastMessage({
+      type: "annotation.updated",
+      annotationId: updatedAnnotation.id,
+      timestamp: updatedAnnotation.updatedAt,
+    });
+
+    return updatedAnnotation;
   }
 
   /**
@@ -229,38 +359,90 @@ export class VisualizationServer {
     if (this.viewerPath) {
       this.app.get("/*", async (c, next) => {
         const requestPath = c.req.path;
-        console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
+        if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
 
         // Skip API routes and WebSocket - let them be handled by their specific routes
-        if (requestPath.startsWith("/api/") || requestPath === "/ws" || requestPath === "/health") {
-          console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
+        if (requestPath.startsWith("/api/") || requestPath === "/ws" || requestPath === "/health" || requestPath === "/api-spec.yaml" || requestPath === "/api-docs") {
+          if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
           return next(); // Pass to next handler instead of returning 404
         }
 
-        console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
+        if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
         return this.serveCustomViewer(requestPath.substring(1));
       });
     }
 
     // Health check endpoint
-    this.app.get("/health", (c) => {
-      return c.json({
-        status: "ok",
-        version: "0.1.0",
-      });
+    const healthRoute = createRoute({
+      method: 'get',
+      path: '/health',
+      tags: ['Health'],
+      summary: 'Health check',
+      description: 'Check if the server is running and healthy',
+      responses: {
+        200: {
+          description: 'Server is healthy',
+          content: {
+            'application/json': {
+              schema: HealthResponseSchema,
+            },
+          },
+        },
+      },
     });
 
-    // REST API endpoints
+    this.app.openapi(healthRoute, (c) => {
+      const response: any = {
+        status: this.chatInitializationError ? "degraded" : "ok",
+        version: "0.1.0",
+      };
+
+      // Include warnings if any services failed to initialize
+      if (this.chatInitializationError) {
+        response.warnings = [
+          `Chat service unavailable: ${getErrorMessage(this.chatInitializationError)}`
+        ];
+      }
+
+      return c.json(response);
+    });
 
     // Get full model
-    this.app.get("/api/model", async (c) => {
-      console.log(`[ROUTE] /api/model handler called`);
+    const getModelRoute = createRoute({
+      method: 'get',
+      path: '/api/model',
+      tags: ['Model'],
+      summary: 'Get full model',
+      description: 'Retrieve the complete architecture model across all layers',
+      responses: {
+        200: {
+          description: 'Model data retrieved successfully',
+          content: {
+            'application/json': {
+              schema: ModelResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getModelRoute, async (c) => {
+      if (process.env.VERBOSE) console.log(`[ROUTE] /api/model handler called`);
       try {
-        console.log(`[ROUTE] /api/model serializing model...`);
+        if (process.env.VERBOSE) console.log(`[ROUTE] /api/model serializing model...`);
         const modelData = await this.serializeModel();
-        console.log(
-          `[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`
-        );
+        if (process.env.VERBOSE)
+          console.log(
+            `[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`
+          );
         return c.json(modelData);
       } catch (error) {
         const message = getErrorMessage(error);
@@ -270,9 +452,47 @@ export class VisualizationServer {
     });
 
     // Get specific layer
-    this.app.get("/api/layers/:name", async (c) => {
+    const getLayerRoute = createRoute({
+      method: 'get',
+      path: '/api/layers/:layerName',
+      tags: ['Model'],
+      summary: 'Get layer',
+      description: 'Retrieve a specific layer with all its elements',
+      request: {
+        params: z.object({ layerName: LayerNameSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Layer retrieved successfully',
+          content: {
+            'application/json': {
+              schema: LayerResponseSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Layer not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getLayerRoute, (async (c: any) => {
       try {
-        const layerName = c.req.param("name");
+        const { layerName } = c.req.valid("param");
         const layer = await this.model.getLayer(layerName);
 
         if (!layer) {
@@ -290,30 +510,100 @@ export class VisualizationServer {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
-    });
+    }) as any);
 
     // Get specific element
-    this.app.get("/api/elements/:id", async (c) => {
+    const getElementRoute = createRoute({
+      method: 'get',
+      path: '/api/elements/:id',
+      tags: ['Model'],
+      summary: 'Get element',
+      description: 'Retrieve a specific architecture element with its metadata and annotations',
+      request: {
+        params: z.object({ id: ElementIdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Element retrieved successfully',
+          content: {
+            'application/json': {
+              schema: ElementResponseSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Element not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getElementRoute, (async (c: any) => {
       try {
-        const elementId = c.req.param("id");
+        const { id: elementId } = c.req.valid("param");
         const element = await this.findElement(elementId);
 
         if (!element) {
           return c.json({ error: "Element not found" }, 404);
         }
 
+        const annotationIds = this.annotationsByElement.get(elementId) || new Set();
+        const annotations = Array.from(annotationIds)
+          .map((id) => this.annotations.get(id))
+          .filter((a): a is ClientAnnotation => a !== undefined);
+
         return c.json({
           ...element.toJSON(),
-          annotations: this.annotations.get(elementId) || [],
+          annotations,
         });
       } catch (error) {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
-    });
+    }) as any);
 
     // Get JSON Schema specifications
-    this.app.get("/api/spec", async (c) => {
+    const getSpecRoute = createRoute({
+      method: 'get',
+      path: '/api/spec',
+      tags: ['Schema'],
+      summary: 'Get JSON schemas',
+      description: 'Retrieve all JSON Schema definitions used by the system',
+      responses: {
+        200: {
+          description: 'Schemas retrieved successfully',
+          content: {
+            'application/json': {
+              schema: SpecResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getSpecRoute, (async (c: any) => {
       try {
         const schemas = await this.loadSchemas();
         return c.json({
@@ -328,13 +618,36 @@ export class VisualizationServer {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
-    });
+    }) as any);
 
     // Annotations API (spec-compliant routes)
 
     // Get all annotations (optionally filtered by elementId)
-    this.app.get("/api/annotations", (c) => {
-      const elementId = c.req.query("elementId");
+    const getAnnotationsRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations',
+      tags: ['Annotations'],
+      summary: 'Get annotations',
+      description: 'Retrieve all annotations, optionally filtered by element',
+      request: {
+        query: AnnotationFilterSchema,
+      },
+      responses: {
+        200: {
+          description: 'Annotations retrieved successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationsListSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getAnnotationsRoute, (c) => {
+      const query = c.req.valid("query");
+
+      const elementId = query.elementId;
 
       if (elementId) {
         // Filter by element
@@ -352,19 +665,60 @@ export class VisualizationServer {
     });
 
     // Create annotation
-    this.app.post("/api/annotations", async (c) => {
-      try {
-        const body = await c.req.json();
-
-        // Validate required fields (author is optional)
-        if (!body.elementId || !body.content) {
-          return c.json(
-            {
-              error: "Missing required fields: elementId, content",
+    const createAnnotationRoute = createRoute({
+      method: 'post',
+      path: '/api/annotations',
+      tags: ['Annotations'],
+      summary: 'Create annotation',
+      description: 'Create a new annotation on a model element',
+      request: {
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationCreateSchema,
             },
-            400
-          );
-        }
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Annotation created successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        400: {
+          description: 'Invalid request body',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Element not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(createAnnotationRoute, async (c) => {
+      try {
+        const body = c.req.valid("json");
 
         // Verify element exists
         const element = await this.findElement(body.elementId);
@@ -375,11 +729,11 @@ export class VisualizationServer {
         // Create annotation
         const annotation: ClientAnnotation = {
           id: this.generateAnnotationId(),
-          elementId: String(body.elementId),
-          author: body.author ? String(body.author) : "Anonymous", // Default to Anonymous if not provided
-          content: String(body.content),
+          elementId: body.elementId,
+          author: body.author,
+          content: body.content,
           createdAt: new Date().toISOString(),
-          tags: body.tags || [],
+          tags: body.tags,
           resolved: false, // Default to unresolved
         };
 
@@ -405,86 +759,231 @@ export class VisualizationServer {
       }
     });
 
-    // Update annotation
-    this.app.put("/api/annotations/:annotationId", async (c) => {
+    // Get individual annotation by ID
+    const getAnnotationRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Get annotation by ID',
+      description: 'Retrieve a specific annotation by its ID',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Annotation retrieved successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getAnnotationRoute, (async (c: any) => {
       try {
-        const annotationId = c.req.param("annotationId");
+        const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
           return c.json({ error: "Annotation not found" }, 404);
         }
 
-        const body = await c.req.json();
-
-        // Update fields
-        if (body.content !== undefined) {
-          annotation.content = String(body.content);
-        }
-        if (body.tags !== undefined) {
-          annotation.tags = body.tags;
-        }
-        if (body.resolved !== undefined) {
-          annotation.resolved = Boolean(body.resolved);
-        }
-        annotation.updatedAt = new Date().toISOString();
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.updated",
-          annotationId: annotation.id,
-          timestamp: annotation.updatedAt,
-        });
-
         return c.json(annotation);
       } catch (error) {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
+    }) as any);
+
+    // Update annotation (PUT - partial update for backwards compatibility)
+    // NOTE: DESIGN RATIONALE - Non-standard PUT behavior:
+    // This endpoint performs PARTIAL updates (idempotent) like PATCH, not full replacement
+    // like standard HTTP PUT. This is a known deviation from HTTP semantics, chosen for
+    // backwards compatibility with existing API consumers. New code should prefer PATCH
+    // for partial updates. If full replacement semantics are needed in future, a new
+    // endpoint should be created rather than changing this one's behavior.
+    const putAnnotationRoute = createRoute({
+      method: 'put',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Update annotation (partial)',
+      description: 'Update an existing annotation with partial fields (NOTE: partial updates, use PATCH for recommended behavior)',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationUpdateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Annotation updated successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
     });
 
-    // PATCH annotation (partial update - recommended)
-    this.app.patch("/api/annotations/:annotationId", async (c) => {
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(putAnnotationRoute, (async (c: any) => {
       try {
-        const annotationId = c.req.param("annotationId");
-        const annotation = this.annotations.get(annotationId);
+        const { annotationId } = c.req.valid("param");
+        const body = c.req.valid("json");
 
-        if (!annotation) {
+        const updatedAnnotation = await this.updateAnnotation(annotationId, body);
+
+        if (!updatedAnnotation) {
           return c.json({ error: "Annotation not found" }, 404);
         }
 
-        const body = await c.req.json();
-
-        // Update only provided fields (partial update)
-        if (body.content !== undefined) {
-          annotation.content = String(body.content);
-        }
-        if (body.tags !== undefined) {
-          annotation.tags = body.tags;
-        }
-        if (body.resolved !== undefined) {
-          annotation.resolved = Boolean(body.resolved);
-        }
-        annotation.updatedAt = new Date().toISOString();
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: "annotation.updated",
-          annotationId: annotation.id,
-          timestamp: annotation.updatedAt,
-        });
-
-        return c.json(annotation);
+        return c.json(updatedAnnotation);
       } catch (error) {
         const message = getErrorMessage(error);
         return c.json({ error: message }, 500);
       }
+    }) as any);
+
+    // Update annotation (PATCH)
+    const patchAnnotationRoute = createRoute({
+      method: 'patch',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Partially update annotation',
+      description: 'Partially update an existing annotation (recommended over PUT)',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationUpdateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Annotation updated successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
     });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(patchAnnotationRoute, (async (c: any) => {
+      try {
+        const { annotationId } = c.req.valid("param");
+        const body = c.req.valid("json");
+
+        const updatedAnnotation = await this.updateAnnotation(annotationId, body);
+
+        if (!updatedAnnotation) {
+          return c.json({ error: "Annotation not found" }, 404);
+        }
+
+        return c.json(updatedAnnotation);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        return c.json({ error: message }, 500);
+      }
+    }) as any);
 
     // Delete annotation
-    this.app.delete("/api/annotations/:annotationId", async (c) => {
+    const deleteAnnotationRoute = createRoute({
+      method: 'delete',
+      path: '/api/annotations/:annotationId',
+      tags: ['Annotations'],
+      summary: 'Delete annotation',
+      description: 'Delete an existing annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        204: {
+          description: 'Annotation deleted successfully',
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(deleteAnnotationRoute, async (c) => {
       try {
-        const annotationId = c.req.param("annotationId");
+        const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
@@ -514,8 +1013,38 @@ export class VisualizationServer {
     });
 
     // GET annotation replies
-    this.app.get("/api/annotations/:annotationId/replies", (c) => {
-      const annotationId = c.req.param("annotationId");
+    const getAnnotationRepliesRoute = createRoute({
+      method: 'get',
+      path: '/api/annotations/:annotationId/replies',
+      tags: ['Annotations'],
+      summary: 'Get annotation replies',
+      description: 'Retrieve all replies to an annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Replies retrieved successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationRepliesSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getAnnotationRepliesRoute, ((c: any) => {
+      const { annotationId } = c.req.valid("param");
       const annotation = this.annotations.get(annotationId);
 
       if (!annotation) {
@@ -524,34 +1053,68 @@ export class VisualizationServer {
 
       const replies = this.replies.get(annotationId) || [];
       return c.json({ replies });
-    });
+    }) as any);
 
     // POST annotation reply
-    this.app.post("/api/annotations/:annotationId/replies", async (c) => {
+    const createAnnotationReplyRoute = createRoute({
+      method: 'post',
+      path: '/api/annotations/:annotationId/replies',
+      tags: ['Annotations'],
+      summary: 'Create annotation reply',
+      description: 'Add a reply to an annotation',
+      request: {
+        params: z.object({ annotationId: IdSchema }),
+        body: {
+          content: {
+            'application/json': {
+              schema: AnnotationReplyCreateSchema,
+            },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Reply created successfully',
+          content: {
+            'application/json': {
+              schema: AnnotationReplySchema,
+            },
+          },
+        },
+        404: {
+          description: 'Annotation not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+        500: {
+          description: 'Server error',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(createAnnotationReplyRoute, async (c) => {
       try {
-        const annotationId = c.req.param("annotationId");
+        const { annotationId } = c.req.valid("param");
         const annotation = this.annotations.get(annotationId);
 
         if (!annotation) {
           return c.json({ error: "Annotation not found" }, 404);
         }
 
-        const body = await c.req.json();
-
-        // Validate required fields
-        if (!body.author || !body.content) {
-          return c.json(
-            {
-              error: "Missing required fields: author, content",
-            },
-            400
-          );
-        }
+        const body = c.req.valid("json");
 
         const reply: AnnotationReply = {
           id: this.generateReplyId(),
-          author: String(body.author),
-          content: String(body.content),
+          author: body.author,
+          content: body.content,
           createdAt: new Date().toISOString(),
         };
 
@@ -579,7 +1142,25 @@ export class VisualizationServer {
     // Changesets API
 
     // Get all changesets
-    this.app.get("/api/changesets", (c) => {
+    const getChangesetsRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets',
+      tags: ['Changesets'],
+      summary: 'Get changesets',
+      description: 'Retrieve a list of all changesets',
+      responses: {
+        200: {
+          description: 'Changesets retrieved successfully',
+          content: {
+            'application/json': {
+              schema: ChangesetsListSchema,
+            },
+          },
+        },
+      },
+    });
+
+    this.app.openapi(getChangesetsRoute, (c) => {
       const changesets: Record<string, any> = {};
 
       for (const [id, changeset] of this.changesets) {
@@ -599,8 +1180,38 @@ export class VisualizationServer {
     });
 
     // Get specific changeset
-    this.app.get("/api/changesets/:changesetId", (c) => {
-      const changesetId = c.req.param("changesetId");
+    const getChangesetRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets/:changesetId',
+      tags: ['Changesets'],
+      summary: 'Get changeset',
+      description: 'Retrieve a specific changeset with all its changes',
+      request: {
+        params: z.object({ changesetId: IdSchema }),
+      },
+      responses: {
+        200: {
+          description: 'Changeset retrieved successfully',
+          content: {
+            'application/json': {
+              schema: ChangesetDetailSchema,
+            },
+          },
+        },
+        404: {
+          description: 'Changeset not found',
+          content: {
+            'application/json': {
+              schema: ErrorResponseSchema,
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getChangesetRoute, ((c: any) => {
+      const { changesetId } = c.req.valid("param");
       const changeset = this.changesets.get(changesetId);
 
       if (!changeset) {
@@ -608,65 +1219,107 @@ export class VisualizationServer {
       }
 
       return c.json(changeset);
+    }) as any);
+
+    // OpenAPI documentation endpoint
+    // Note: @hono/zod-openapi always generates 3.1.0, so we specify it here
+    // but the version is normalized to 3.0.3 in the generate-openapi.ts script
+    this.app.doc('/api-spec.yaml', {
+      openapi: '3.1.0',
+      info: {
+        title: 'Documentation Robotics Visualization Server API',
+        version: '0.1.0',
+        description: 'API specification for the DR CLI visualization server',
+        contact: {
+          name: 'Documentation Robotics',
+          url: 'https://github.com/tinkermonkey/documentation_robotics',
+        },
+        license: {
+          name: 'ISC',
+        },
+      },
+      servers: [
+        { url: 'http://localhost:8080', description: 'Local development server' },
+      ],
+      tags: [
+        { name: 'Health', description: 'Server health and status' },
+        { name: 'Schema', description: 'JSON Schema specifications' },
+        { name: 'Model', description: 'Architecture model data' },
+        { name: 'Changesets', description: 'Model changesets and history' },
+        { name: 'Annotations', description: 'User annotations on model elements' },
+        { name: 'WebSocket', description: 'Real-time updates via WebSocket' },
+      ],
     });
 
+    // Swagger UI for interactive API exploration
+    this.app.get('/api-docs', swaggerUI({ url: '/api-spec.yaml' }));
+
     // WebSocket endpoint
-    this.app.get(
-      "/ws",
-      async (c, next) => {
-        // Check WebSocket auth if enabled
-        if (this.authEnabled) {
-          // Accept token from multiple sources:
-          // 1. Query parameter: ?token=<token> (works in all browsers)
-          // 2. Sec-WebSocket-Protocol header: token, <actual-token> (browser-compatible workaround)
-          // 3. Authorization header: Bearer <token> (non-browser clients only)
+    // Only register if WebSocket adapter is available (Bun runtime)
+    if (upgradeWebSocket) {
+      this.app.get(
+        "/ws",
+        async (c, next) => {
+          // Check WebSocket auth if enabled
+          if (this.authEnabled) {
+            // Accept token from multiple sources to support diverse client environments:
+            // 1. Query parameter: ?token=<token>
+            //    Why: Works in all browsers. Simple and universally compatible.
+            // 2. Sec-WebSocket-Protocol header: token, <actual-token>
+            //    Why: Browsers cannot set custom HTTP headers during WebSocket handshake
+            //    for security reasons. The WebSocket spec allows subprotocol negotiation
+            //    as an alternative auth mechanism. Format: ["token", "YOUR_TOKEN"]
+            // 3. Authorization header: Bearer <token>
+            //    Why: Standard OAuth2/JWT pattern for non-browser clients (Node.js, cURL, etc)
+            //    that can set arbitrary headers. Browsers cannot use this for WebSocket due
+            //    to HTTP header restrictions during handshake.
 
-          const queryToken = c.req.query("token");
+            const queryToken = c.req.query("token");
 
-          // Check Sec-WebSocket-Protocol header (browser-compatible method)
-          // Format: "token, <actual-token>" or "token,<actual-token>"
-          const wsProtocol = c.req.header("Sec-WebSocket-Protocol");
-          let protocolToken: string | null = null;
-          if (wsProtocol) {
-            const protocols = wsProtocol.split(",").map((p) => p.trim());
-            // Look for protocol pair: ['token', '<actual-token>']
-            const tokenIndex = protocols.indexOf("token");
-            if (tokenIndex !== -1 && protocols.length > tokenIndex + 1) {
-              protocolToken = protocols[tokenIndex + 1];
+            // Check Sec-WebSocket-Protocol header (browser-compatible method)
+            // Format: "token, <actual-token>" or "token,<actual-token>"
+            const wsProtocol = c.req.header("Sec-WebSocket-Protocol");
+            let protocolToken: string | null = null;
+            if (wsProtocol) {
+              const protocols = wsProtocol.split(",").map((p) => p.trim());
+              // Look for protocol pair: ['token', '<actual-token>']
+              const tokenIndex = protocols.indexOf("token");
+              if (tokenIndex !== -1 && protocols.length > tokenIndex + 1) {
+                protocolToken = protocols[tokenIndex + 1];
+              }
+            }
+
+            // Check Authorization header (non-browser clients)
+            const authHeader = c.req.header("Authorization");
+            const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+
+            const token = queryToken || protocolToken || bearerToken;
+
+            if (!token) {
+              return c.json(
+                {
+                  error:
+                    'Authentication required. Provide token via: 1) Query param (?token=YOUR_TOKEN), 2) Sec-WebSocket-Protocol header (browser: new WebSocket(url, ["token", "YOUR_TOKEN"])), or 3) Authorization header (Bearer YOUR_TOKEN)',
+                },
+                401
+              );
+            }
+
+            if (token !== this.authToken) {
+              return c.json({ error: "Invalid authentication token" }, 403);
+            }
+
+            // If token came from Sec-WebSocket-Protocol, we need to respond with the protocol
+            // This is required by the WebSocket spec for subprotocol negotiation
+            if (protocolToken) {
+              c.header("Sec-WebSocket-Protocol", "token");
             }
           }
 
-          // Check Authorization header (non-browser clients)
-          const authHeader = c.req.header("Authorization");
-          const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
-
-          const token = queryToken || protocolToken || bearerToken;
-
-          if (!token) {
-            return c.json(
-              {
-                error:
-                  'Authentication required. Provide token via: 1) Query param (?token=YOUR_TOKEN), 2) Sec-WebSocket-Protocol header (browser: new WebSocket(url, ["token", "YOUR_TOKEN"])), or 3) Authorization header (Bearer YOUR_TOKEN)',
-              },
-              401
-            );
-          }
-
-          if (token !== this.authToken) {
-            return c.json({ error: "Invalid authentication token" }, 403);
-          }
-
-          // If token came from Sec-WebSocket-Protocol, we need to respond with the protocol
-          // This is required by the WebSocket spec for subprotocol negotiation
-          if (protocolToken) {
-            c.header("Sec-WebSocket-Protocol", "token");
-          }
-        }
-
-        return next();
-      },
-      upgradeWebSocket(() => ({
-        onOpen: async (_evt, ws) => {
+          return next();
+        },
+        upgradeWebSocket(() => ({
+        onOpen: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket connection
           await this.recordWebSocketEvent("ws.connection.open", {
             "ws.client_count": this.clients.size + 1,
@@ -688,7 +1341,7 @@ export class VisualizationServer {
           }
         },
 
-        onClose: async (_evt, ws) => {
+        onClose: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket disconnection
           await this.recordWebSocketEvent("ws.connection.close", {
             "ws.client_count": this.clients.size - 1,
@@ -700,7 +1353,7 @@ export class VisualizationServer {
           }
         },
 
-        onMessage: async (message, ws) => {
+        onMessage: async (message: any, ws: HonoWSContext) => {
           const messageStartTime = Date.now();
           let messageType = "unknown";
 
@@ -718,9 +1371,33 @@ export class VisualizationServer {
             } else {
               msgStr = String(rawData);
             }
-            const data = JSON.parse(msgStr) as WSMessage;
-            messageType =
-              data.jsonrpc === "2.0" ? data.method || "jsonrpc" : data.type || "unknown";
+            const rawMessage = JSON.parse(msgStr);
+
+            // Runtime validation of WebSocket message format
+            const validationResult = WSMessageSchema.safeParse(rawMessage);
+            if (!validationResult.success) {
+              const errorMsg = validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+              // Always log validation errors for production debugging
+              console.error("Invalid WebSocket message format:", errorMsg);
+              ws.send(JSON.stringify({ error: "Invalid message format", details: errorMsg }));
+              return;
+            }
+
+            const data = validationResult.data as WSMessage;
+
+            // Type-safe discriminated union handling
+            if ('jsonrpc' in data && data.jsonrpc === '2.0') {
+              // Check if it's a request (has method) or response (has result/error)
+              if ('method' in data && typeof data.method === 'string') {
+                messageType = (data as JSONRPCRequest).method;
+              } else {
+                messageType = (data as JSONRPCResponse).id?.toString() || "jsonrpc-response";
+              }
+            } else if ('type' in data) {
+              messageType = (data as SimpleWSMessage).type;
+            } else {
+              messageType = "unknown";
+            }
 
             // Telemetry: Track message processing
             await this.recordWebSocketEvent("ws.message.received", {
@@ -729,7 +1406,7 @@ export class VisualizationServer {
             });
 
             // Check if it's a JSON-RPC message
-            if (data.jsonrpc === "2.0") {
+            if ('jsonrpc' in data && data.jsonrpc === "2.0") {
               await this.handleJSONRPCMessage(ws, data);
             } else {
               await this.handleWSMessage(ws, data);
@@ -754,9 +1431,10 @@ export class VisualizationServer {
               "error.message": errorMsg,
             });
 
-            if (process.env.DEBUG) {
-              console.error(`[WebSocket] Error handling message: ${errorMsg}`);
-            }
+            // Always log message handling errors for operational visibility
+            console.warn(
+              `[WebSocket] Error handling ${messageType} message (${durationMs}ms): ${errorMsg}`
+            );
             ws.send(
               JSON.stringify({
                 type: "error",
@@ -766,7 +1444,7 @@ export class VisualizationServer {
           }
         },
 
-        onError: async (error) => {
+        onError: async (error: any) => {
           const message = getErrorMessage(error);
 
           // Telemetry: Track WebSocket error
@@ -775,10 +1453,36 @@ export class VisualizationServer {
             "error.message": message,
           });
 
-          console.error(`[WebSocket] Error: ${message}`);
+          // Always log WebSocket errors with full context including stack trace for debugging
+          console.error("[WebSocket] Error:", error);
         },
       }))
-    );
+      );
+    }
+  }
+
+  /**
+   * Get OpenAPI specification document
+   * Provides a stable public API for OpenAPI spec generation.
+   *
+   * BEHAVIOR: Returns an OpenAPI spec with the version specified in `config.openapi`.
+   * The returned document will have whatever OpenAPI version was passed in the config.
+   *
+   * NOTE: Hono's getOpenAPI31Document() passes the config directly through and
+   * uses the specified version in the output. There is no forced version conversion.
+   */
+  public getOpenAPIDocument(config: {
+    openapi: string;
+    info: {
+      title: string;
+      version: string;
+      description?: string;
+      contact?: { name?: string; url?: string };
+      license?: { name: string };
+    };
+    servers?: Array<{ url: string; description?: string }>;
+  }): any {
+    return this.app.getOpenAPI31Document(config);
   }
 
   /**
@@ -826,16 +1530,18 @@ export class VisualizationServer {
 
   /**
    * Generate unique annotation ID
+   * Uses cryptographically secure random bytes for collision-resistant IDs
    */
   private generateAnnotationId(): string {
-    return `ann-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `ann-${Date.now()}-${randomBytes(4).toString('hex')}`;
   }
 
   /**
    * Generate unique reply ID
+   * Uses cryptographically secure random bytes for collision-resistant IDs
    */
   private generateReplyId(): string {
-    return `reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `reply-${Date.now()}-${randomBytes(4).toString('hex')}`;
   }
 
   /**
@@ -853,16 +1559,23 @@ export class VisualizationServer {
     });
 
     let failureCount = 0;
+    const failedClients: HonoWSContext[] = [];
+
     for (const client of this.clients) {
       try {
         client.send(messageStr);
       } catch (error) {
         failureCount++;
+        failedClients.push(client);
         const msg = getErrorMessage(error);
-        if (process.env.VERBOSE) {
-          console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
-        }
+        // Always log broadcast failures for operational visibility in production
+        console.warn(`[WebSocket] Failed to send message to client: ${msg}`);
       }
+    }
+
+    // Remove dead clients from the active client set
+    for (const client of failedClients) {
+      this.clients.delete(client);
     }
 
     // Telemetry: Track broadcast completion
@@ -872,10 +1585,14 @@ export class VisualizationServer {
       "ws.broadcast.failure_count": failureCount,
     });
 
-    if (failureCount > 0 && process.env.VERBOSE) {
-      console.warn(
-        `[WebSocket] Failed to send message to ${failureCount}/${this.clients.size} clients`
-      );
+    // Always warn about significant broadcast failures (>10% failure rate)
+    if (failureCount > 0) {
+      const failureRate = this.clients.size > 0 ? (failureCount / this.clients.size) * 100 : 0;
+      if (failureRate >= 10 || failureCount > 5) {
+        console.warn(
+          `[WebSocket] Broadcast completed with ${failureCount}/${this.clients.size} client failures (${failureRate.toFixed(1)}% failure rate)`
+        );
+      }
     }
   }
 
@@ -905,10 +1622,9 @@ export class VisualizationServer {
       // End span immediately (WebSocket events are typically instantaneous)
       endSpan(span);
     } catch (error) {
-      // Silently fail if telemetry is not available
-      if (process.env.DEBUG) {
-        console.debug(`[Telemetry] Failed to record WebSocket event: ${error}`);
-      }
+      // Log telemetry failures to enable production debugging
+      // Always log errors (not just in DEBUG) to catch silent failures
+      console.warn(`[Telemetry] Failed to record WebSocket event: ${getErrorMessage(error)}`);
     }
   }
 
@@ -927,10 +1643,11 @@ export class VisualizationServer {
    * Handle WebSocket messages
    */
   private async handleWSMessage(ws: HonoWSContext, data: WSMessage): Promise<void> {
-    switch (data.type) {
+    const simpleMsg = data as SimpleWSMessage;
+    switch (simpleMsg.type) {
       case "subscribe":
         // Send subscribed confirmation
-        const topics = data.topics || ["model", "annotations"];
+        const topics = simpleMsg.topics || ["model", "annotations"];
         ws.send(
           JSON.stringify({
             type: "subscribed",
@@ -961,10 +1678,10 @@ export class VisualizationServer {
         break;
 
       case "annotate":
-        if (data.annotation) {
+        if (simpleMsg.annotation) {
           await this.broadcastMessage({
             type: "annotation",
-            data: data.annotation,
+            data: simpleMsg.annotation,
           });
         }
         break;
@@ -973,7 +1690,7 @@ export class VisualizationServer {
         ws.send(
           JSON.stringify({
             type: "error",
-            message: `Unknown message type: ${data.type}`,
+            message: `Unknown message type: ${simpleMsg.type}`,
           })
         );
     }
@@ -983,7 +1700,19 @@ export class VisualizationServer {
    * Handle JSON-RPC 2.0 messages for chat functionality
    */
   private async handleJSONRPCMessage(ws: HonoWSContext, data: WSMessage): Promise<void> {
-    const { method, params, id } = data;
+    // Only requests have a method; responses have result/error
+    if (!('method' in data)) {
+      // This is a response, not something we handle in this function
+      // Log unexpected protocol patterns for operational visibility
+      const responseType = ('result' in data) ? 'success' : ('error' in data) ? 'error' : 'unknown';
+      const msgId = ('id' in data) ? data.id : 'unknown';
+      console.warn(
+        `[WebSocket] Received JSON-RPC ${responseType} response from client (ID: ${msgId}), ignoring`
+      );
+      return;
+    }
+    const rpcMsg = data as JSONRPCRequest;
+    const { method, params, id } = rpcMsg;
 
     // Helper to send JSON-RPC response
     const sendResponse = (result: any) => {
@@ -1012,26 +1741,33 @@ export class VisualizationServer {
         case "chat.status":
           // Check if any chat client is available
           const hasClient = this.selectedChatClient !== undefined;
+
+          // Determine error message: initialization error takes precedence
+          let statusError: string | null = null;
+          if (this.chatInitializationError) {
+            statusError = `Chat initialization failed: ${this.chatInitializationError.message}`;
+          } else if (!hasClient) {
+            statusError = "No chat client available. Install Claude Code or GitHub Copilot.";
+          }
+
           sendResponse({
             sdk_available: hasClient,
             sdk_version: hasClient ? this.selectedChatClient!.getClientName() : null,
-            error_message: hasClient
-              ? null
-              : "No chat client available. Install Claude Code or GitHub Copilot.",
+            error_message: statusError,
           });
           break;
 
         case "chat.send":
           // Validate params
-          if (!params || !params.message) {
-            sendError(-32602, "Message cannot be empty");
+          if (!params || typeof params !== 'object' || !('message' in params) || typeof (params as any).message !== 'string' || (params as any).message.trim() === '') {
+            sendError(JSONRPC_ERRORS.INVALID_PARAMS, "Message cannot be empty");
             return;
           }
 
           // Check if chat client is available
           if (!this.selectedChatClient) {
             sendError(
-              -32001,
+              JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
               "No chat client available. Install Claude Code or GitHub Copilot to enable chat."
             );
             return;
@@ -1041,7 +1777,7 @@ export class VisualizationServer {
           const conversationId = `conv-${++this.chatConversationCounter}-${Date.now()}`;
 
           // Launch chat with selected client
-          await this.launchChat(ws, conversationId, params.message, id);
+          await this.launchChat(ws, conversationId, (params as any).message, id);
           break;
 
         case "chat.cancel":
@@ -1057,7 +1793,7 @@ export class VisualizationServer {
               cancelledConvId = convId;
               break;
             } catch (error) {
-              // Process already terminated
+              console.warn(`[Chat] Failed to cancel process for conversation ${convId}: ${getErrorMessage(error)}`);
             }
           }
 
@@ -1068,11 +1804,11 @@ export class VisualizationServer {
           break;
 
         default:
-          sendError(-32601, `Method not found: ${method}`);
+          sendError(JSONRPC_ERRORS.METHOD_NOT_FOUND, `Method not found: ${method}`);
       }
     } catch (error) {
       const errorMsg = getErrorMessage(error);
-      sendError(-32603, "Internal error", errorMsg);
+      sendError(JSONRPC_ERRORS.INTERNAL_ERROR, "Internal error", errorMsg);
     }
   }
 
@@ -1090,7 +1826,7 @@ export class VisualizationServer {
         JSON.stringify({
           jsonrpc: "2.0",
           error: {
-            code: -32001,
+            code: JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
             message: "No chat client available",
           },
           id: requestId,
@@ -1109,7 +1845,7 @@ export class VisualizationServer {
         JSON.stringify({
           jsonrpc: "2.0",
           error: {
-            code: -32001,
+            code: JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
             message: "Unknown chat client type",
           },
           id: requestId,
@@ -1229,8 +1965,11 @@ export class VisualizationServer {
                     })
                   );
                 }
-              } catch {
+              } catch (parseError) {
                 // Non-JSON line, send as raw text chunk
+                if (process.env.DEBUG) {
+                  console.debug(`[Chat] Failed to parse JSON chunk: ${getErrorMessage(parseError)}`);
+                }
                 ws.send(
                   JSON.stringify({
                     jsonrpc: "2.0",
@@ -1290,7 +2029,7 @@ export class VisualizationServer {
             JSON.stringify({
               jsonrpc: "2.0",
               error: {
-                code: -32603,
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
                 message: `Chat failed: ${errorMsg}`,
               },
               id: requestId,
@@ -1300,15 +2039,34 @@ export class VisualizationServer {
           this.activeChatProcesses.delete(conversationId);
 
           try {
-            proc.kill();
-          } catch {
-            // Process may already be terminated
+            await this.killProcessWithRetry(proc, conversationId, "Claude Code");
+          } catch (error) {
+            console.error(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
           }
         }
       };
 
       // Start streaming in background
-      streamOutput();
+      streamOutput().catch((err) => {
+        const errorMsg = getErrorMessage(err);
+        console.error(`[Claude Code] Stream error: ${errorMsg}`);
+
+        // Notify client of stream failure via WebSocket
+        try {
+          ws.send(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              error: {
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
+                message: `Stream error: ${errorMsg}`,
+              },
+              id: requestId,
+            })
+          );
+        } catch (sendError) {
+          console.error(`[Claude Code] Failed to send stream error notification: ${getErrorMessage(sendError)}`);
+        }
+      });
     } catch (error) {
       const errorMsg = getErrorMessage(error);
 
@@ -1316,7 +2074,7 @@ export class VisualizationServer {
         JSON.stringify({
           jsonrpc: "2.0",
           error: {
-            code: -32603,
+            code: JSONRPC_ERRORS.INTERNAL_ERROR,
             message: `Failed to launch Claude Code: ${errorMsg}`,
           },
           id: requestId,
@@ -1435,7 +2193,7 @@ export class VisualizationServer {
             JSON.stringify({
               jsonrpc: "2.0",
               error: {
-                code: -32603,
+                code: JSONRPC_ERRORS.INTERNAL_ERROR,
                 message: `Chat failed: ${errorMsg}`,
               },
               id: requestId,
@@ -1445,15 +2203,17 @@ export class VisualizationServer {
           this.activeChatProcesses.delete(conversationId);
 
           try {
-            proc.kill();
-          } catch {
-            // Process may already be terminated
+            await this.killProcessWithRetry(proc, conversationId, "Copilot");
+          } catch (error) {
+            console.error(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
           }
         }
       };
 
       // Start streaming in background
-      streamOutput();
+      streamOutput().catch((err) => {
+        console.error(`[Copilot] Stream error: ${getErrorMessage(err)}`);
+      });
     } catch (error) {
       const errorMsg = getErrorMessage(error);
 
@@ -1461,7 +2221,7 @@ export class VisualizationServer {
         JSON.stringify({
           jsonrpc: "2.0",
           error: {
-            code: -32603,
+            code: JSONRPC_ERRORS.INTERNAL_ERROR,
             message: `Failed to launch GitHub Copilot: ${errorMsg}`,
           },
           id: requestId,
@@ -1506,10 +2266,8 @@ export class VisualizationServer {
             try {
               client.send(message);
             } catch (error) {
-              if (process.env.DEBUG) {
-                const msg = getErrorMessage(error);
-                console.debug(`[Watcher] Failed to send update: ${msg}`);
-              }
+              const msg = getErrorMessage(error);
+              console.warn(`[Watcher] Failed to send update: ${msg}`);
             }
           }
         } catch (error) {
@@ -1521,7 +2279,8 @@ export class VisualizationServer {
   }
 
   /**
-   * Load all JSON schemas from bundled directory
+   * Load all JSON schemas from bundled directory (recursive)
+   * Loads schemas from all subdirectories: base/, nodes/, relationships/, etc.
    */
   private async loadSchemas(): Promise<Record<string, any>> {
     const schemasPath = new URL("../schemas/bundled/", import.meta.url).pathname;
@@ -1531,20 +2290,37 @@ export class VisualizationServer {
       const fs = await import("fs/promises");
       const path = await import("path");
 
-      const fileList = await fs.readdir(schemasPath);
+      // Recursive function to walk through directories
+      const walkDirectory = async (dir: string, prefix: string = ""): Promise<void> => {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
 
-      for (const file of fileList) {
-        if (file.endsWith(".schema.json") || file.endsWith(".json")) {
-          const filePath = path.join(schemasPath, file);
-          const content = await fs.readFile(filePath, "utf-8");
-          schemas[file] = JSON.parse(content);
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          const schemaKey = prefix ? `${prefix}/${entry.name}` : entry.name;
+
+          if (entry.isDirectory()) {
+            // Recursively walk subdirectories
+            await walkDirectory(fullPath, schemaKey);
+          } else if (entry.isFile() && (entry.name.endsWith(".schema.json") || entry.name.endsWith(".json"))) {
+            // Load JSON schema files
+            const content = await fs.readFile(fullPath, "utf-8");
+            try {
+              schemas[schemaKey] = JSON.parse(content);
+            } catch (parseError) {
+              const parseErrorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+              throw new Error(`Invalid JSON in schema file ${fullPath}: ${parseErrorMsg}`);
+            }
+          }
         }
-      }
+      };
+
+      await walkDirectory(schemasPath);
 
       return schemas;
     } catch (error) {
+      const errorMsg = getErrorMessage(error);
       console.error("Failed to load schemas:", error);
-      throw new Error("Failed to load schema files");
+      throw new Error(`Failed to load schema files: ${errorMsg}`);
     }
   }
 
@@ -2106,6 +2882,7 @@ export class VisualizationServer {
             <textarea placeholder="Annotation text" id="ann-text" required></textarea>
             <button type="submit">Add Annotation</button>
           </form>
+          <div id="ann-error" style="margin-top: 8px; min-height: 1.2em;"></div>
         </div>
       \`;
 
@@ -2126,14 +2903,31 @@ export class VisualizationServer {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ elementId, author, content: text })
       })
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.id) {
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok && data && data.id) {
             document.getElementById('ann-author').value = '';
             document.getElementById('ann-text').value = '';
+            const errorDiv = document.getElementById('ann-error');
+            if (errorDiv) errorDiv.textContent = '';
+          } else if (!ok) {
+            const errorMsg = (data && data.error) ? data.error : 'Failed to create annotation';
+            const errorDiv = document.getElementById('ann-error');
+            if (errorDiv) {
+              errorDiv.textContent = 'Error: ' + errorMsg;
+              errorDiv.style.color = '#d32f2f';
+              errorDiv.style.marginTop = '8px';
+            }
           }
         })
-        .catch(err => console.error('Failed to add annotation:', err));
+        .catch(err => {
+          const errorDiv = document.getElementById('ann-error');
+          if (errorDiv) {
+            errorDiv.textContent = 'Error: Failed to add annotation: ' + err.message;
+            errorDiv.style.color = '#d32f2f';
+            errorDiv.style.marginTop = '8px';
+          }
+        });
     }
   </script>
 </body>
@@ -2144,7 +2938,7 @@ export class VisualizationServer {
    * Serve a file from the custom viewer path
    */
   private async serveCustomViewer(filePath: string): Promise<Response> {
-    console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
+    if (process.env.VERBOSE) console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
 
     if (!this.viewerPath) {
       console.error(`[VIEWER] Custom viewer path not configured`);
@@ -2157,7 +2951,7 @@ export class VisualizationServer {
 
       // Resolve absolute path and prevent directory traversal
       const fullPath = path.resolve(this.viewerPath, filePath);
-      console.log(`[VIEWER] Resolved path: ${fullPath}`);
+      if (process.env.VERBOSE) console.log(`[VIEWER] Resolved path: ${fullPath}`);
 
       // Security check: ensure the resolved path is within viewerPath
       if (!fullPath.startsWith(path.resolve(this.viewerPath))) {
@@ -2166,7 +2960,7 @@ export class VisualizationServer {
       }
 
       // Read file
-      console.log(`[VIEWER] Reading file: ${fullPath}`);
+      if (process.env.VERBOSE) console.log(`[VIEWER] Reading file: ${fullPath}`);
       const content = await fs.readFile(fullPath);
 
       // Determine content type
@@ -2190,7 +2984,8 @@ export class VisualizationServer {
 
       const contentType = contentTypes[ext] || "application/octet-stream";
 
-      console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
+      if (process.env.VERBOSE)
+        console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
       return new Response(content, {
         status: 200,
         headers: {
@@ -2212,6 +3007,9 @@ export class VisualizationServer {
    */
   async start(port: number = 8080): Promise<void> {
     this.setupFileWatcher();
+
+    // Dynamically import serve from bun to allow usage with non-Bun runtimes
+    const { serve } = await import("bun");
 
     this._server = serve({
       port,
@@ -2237,6 +3035,62 @@ export class VisualizationServer {
   }
 
   /**
+   * Kill a process with retry logic and exponential backoff
+   * Attempts graceful SIGTERM first, then force SIGKILL if needed
+   */
+  private async killProcessWithRetry(
+    proc: any,
+    conversationId: string,
+    label: string
+  ): Promise<void> {
+    const maxRetries = 3;
+    let attempt = 0;
+    const baseDelay = 100; // milliseconds
+
+    while (attempt < maxRetries) {
+      try {
+        if (proc.killed) {
+          // Process already terminated
+          return;
+        }
+
+        // Try graceful termination with SIGTERM
+        proc.kill("SIGTERM");
+
+        // Wait for process to exit gracefully
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        if (proc.killed) {
+          return;
+        }
+      } catch (error) {
+        // Continue to retry
+      }
+
+      attempt++;
+      if (attempt < maxRetries) {
+        // Exponential backoff: 100ms, 200ms, 400ms
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    // Force kill if graceful shutdown failed
+    try {
+      if (!proc.killed) {
+        proc.kill("SIGKILL");
+        console.warn(
+          `[${label}] Process for conversation ${conversationId} did not respond to SIGTERM, force killed with SIGKILL`
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to kill process: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
    * Stop the server
    */
   stop(): void {
@@ -2245,7 +3099,11 @@ export class VisualizationServer {
       try {
         client.close();
       } catch (error) {
-        // Ignore errors on close
+        // Log unexpected errors regardless of VERBOSE flag for operational visibility
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!errorMessage.includes('already closed')) {
+          console.warn(`[SERVER] Unexpected error closing WebSocket client: ${errorMessage}`);
+        }
       }
     }
     this.clients.clear();

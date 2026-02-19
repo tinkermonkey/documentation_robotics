@@ -32,7 +32,7 @@ export async function createTestModel(rootPath: string): Promise<Model> {
   const motivationLayer = new Layer("motivation");
   motivationLayer.addElement(
     new Element({
-      id: "motivation-goal-ws-1",
+      id: "motivation.goal.ws-1",
       name: "WebSocket Test Goal 1",
       type: "goal",
       description: "First goal for WebSocket testing",
@@ -45,7 +45,7 @@ export async function createTestModel(rootPath: string): Promise<Model> {
 
   motivationLayer.addElement(
     new Element({
-      id: "motivation-goal-ws-2",
+      id: "motivation.goal.ws-2",
       name: "WebSocket Test Goal 2",
       type: "goal",
       description: "Second goal for WebSocket testing",
@@ -62,13 +62,13 @@ export async function createTestModel(rootPath: string): Promise<Model> {
   const businessLayer = new Layer("business");
   businessLayer.addElement(
     new Element({
-      id: "business-service-ws-1",
+      id: "business.service.ws-1",
       name: "WebSocket Test Service",
       type: "service",
       description: "Service for WebSocket testing",
       properties: {},
       relationships: [],
-      references: ["motivation-goal-ws-1"],
+      references: ["motivation.goal.ws-1"],
       layer: "business",
     })
   );
