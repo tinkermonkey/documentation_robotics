@@ -44,7 +44,7 @@ info:
 
     - **Schemas**: Bundled schemas from CLI installation
 
-    - **Model**: `.dr/` directory (JSON files)
+    - **Model**: `documentation-robotics/model/` directory (YAML/JSON files)
 
     - **Changesets**: In-memory storage (future: persistent storage)
 
