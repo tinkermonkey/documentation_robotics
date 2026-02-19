@@ -9,6 +9,8 @@ This directory contains **two guide formats** for exploring the Documentation Ro
 
 Both guides feature queries optimized for your Neo4j Browser version with clean visualizations.
 
+**Note:** When you run `./spec/neo4j/launch-neo4j.sh`, the CORS server is started automatically on port 8000, making both guides immediately available.
+
 ## Quick Start
 
 ### Recommended: Standalone Guide

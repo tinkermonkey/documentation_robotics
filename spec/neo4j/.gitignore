@@ -4,3 +4,6 @@
 # Previously ignored:
 # import.cypher
 # csv/
+
+# Runtime files
+.cors-server.pid

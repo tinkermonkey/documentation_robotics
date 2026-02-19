@@ -11,8 +11,10 @@ NEO4J_PASSWORD="password"
 NEO4J_USER="neo4j"
 HTTP_PORT=7474
 BOLT_PORT=7687
+CORS_PORT=8000
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CYPHER_SCRIPT="$SCRIPT_DIR/import.cypher"
+CORS_PID_FILE="$SCRIPT_DIR/.cors-server.pid"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -34,6 +36,21 @@ if [ ! -f "$CYPHER_SCRIPT" ]; then
     echo "❌ Error: import.cypher not found at $CYPHER_SCRIPT"
     echo "   Run: npm run export:spec-neo4j"
     exit 1
+fi
+
+# Start CORS server for browser guides
+echo "🌐 Starting CORS server for browser guides..."
+if lsof -Pi :$CORS_PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "✓ CORS server already running on port $CORS_PORT"
+    # Clear stale PID file if it exists
+    rm -f "$CORS_PID_FILE"
+else
+    cd "$SCRIPT_DIR"
+    python3 cors-server.py > /dev/null 2>&1 &
+    CORS_PID=$!
+    echo $CORS_PID > "$CORS_PID_FILE"
+    echo "✓ CORS server started on port $CORS_PORT (PID: $CORS_PID)"
+    cd - > /dev/null
 fi
 
 # Check if container already exists
@@ -101,19 +118,17 @@ echo ""
 echo -e "${YELLOW}📚 Interactive Guides Available!${NC}"
 echo ""
 echo "  ${GREEN}Option 1: Standalone Guide (Recommended)${NC}"
-echo "  Open in your browser: http://localhost:8000/guide.html"
+echo "  Open in your browser: http://localhost:$CORS_PORT/guide.html"
 echo "  • Beautiful interface with copy-to-clipboard buttons"
 echo "  • Optimized queries for clean visualizations"
 echo "  • Use alongside Neo4j Browser"
 echo ""
 echo "  ${GREEN}Option 2: Browser Guide (In Neo4j)${NC}"
-echo "  First, start the CORS server in a separate terminal:"
-echo -e "  ${GREEN}cd spec/neo4j && python3 cors-server.py${NC}"
-echo ""
-echo "  Then in Neo4j Browser, run:"
-echo -e "  ${GREEN}:play http://localhost:8000/browser-guide.html${NC}"
+echo "  In Neo4j Browser, run:"
+echo -e "  ${GREEN}:play http://localhost:$CORS_PORT/browser-guide.html${NC}"
 echo "  • 14 interactive slides with clickable queries"
 echo "  • Navigate with arrow buttons"
+echo "  • CORS server running automatically"
 echo ""
 echo "Run verification queries:"
 echo "  MATCH (n:SpecNode) RETURN COUNT(n) AS specNodes;"
@@ -127,8 +142,15 @@ echo "  WHERE l1.id <> l2.id"
 echo "  RETURN l1.name AS sourceLayer, l2.name AS targetLayer, COUNT(sr) AS relationships"
 echo "  ORDER BY relationships DESC;"
 echo ""
-echo "To stop Neo4j:"
-echo "  docker stop $CONTAINER_NAME"
+echo "To stop all services:"
+echo "  ./spec/neo4j/stop-neo4j.sh"
+echo ""
+echo "Or manually:"
+echo "  docker stop $CONTAINER_NAME              # Stop Neo4j"
+if [ -f "$CORS_PID_FILE" ]; then
+    STORED_PID=$(cat "$CORS_PID_FILE")
+    echo "  kill $STORED_PID                           # Stop CORS server"
+fi
 echo ""
 echo "To remove container and data:"
 echo "  docker rm $CONTAINER_NAME"

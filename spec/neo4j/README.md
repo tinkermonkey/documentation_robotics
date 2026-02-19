@@ -28,14 +28,22 @@ The easiest way to explore the spec in Neo4j:
 
 The launch script will:
 
-- Start a Neo4j container automatically
+- Start a CORS server for browser guides (port 8000)
+- Start a Neo4j container automatically (ports 7474, 7687)
 - Import the spec metadata (or skip if already loaded)
-- Provide a clickable URL to explore the data
+- Provide clickable URLs to explore the data
 
-**To stop Neo4j:**
+**To stop all services:**
 
 ```bash
-docker stop doc-robotics-neo4j
+./spec/neo4j/stop-neo4j.sh
+```
+
+**Or manually:**
+
+```bash
+docker stop doc-robotics-neo4j  # Stop Neo4j
+kill $(cat spec/neo4j/.cors-server.pid)  # Stop CORS server
 ```
 
 **To remove container and data:**
@@ -46,17 +54,11 @@ docker rm doc-robotics-neo4j
 
 ### Interactive Guides
 
-Two guide formats are available for exploring the spec:
+The CORS server is started automatically by `launch-neo4j.sh`, so both guides are immediately available:
 
 **Option 1: Standalone HTML Guide (Recommended)**
 
-1. Start the CORS server:
-
-   ```bash
-   cd spec/neo4j && python3 cors-server.py
-   ```
-
-2. Open in your browser: http://localhost:8000/guide.html
+Open in your browser: http://localhost:8000/guide.html
 
 Features:
 
@@ -67,9 +69,8 @@ Features:
 
 **Option 2: Neo4j Browser Guide**
 
-1. Ensure CORS server is running (see above)
-2. Open Neo4j Browser: http://localhost:7474
-3. Run this command:
+1. Open Neo4j Browser: http://localhost:7474
+2. Run this command:
 
    ```cypher
    :play http://localhost:8000/browser-guide.html
