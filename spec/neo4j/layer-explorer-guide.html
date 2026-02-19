@@ -35,7 +35,7 @@
     <div>
       <div class="paragraph"><p><strong>All Motivation nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Motivation layer nodes
-MATCH (layer:Layer {name: 'motivation'})
+MATCH (layer:Layer {id: 'motivation'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -58,7 +58,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>Motivation nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Motivation layer nodes
-MATCH (layer1:Layer {name: 'motivation'})
+MATCH (layer1:Layer {id: 'motivation'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -83,7 +83,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All Business nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Business layer nodes
-MATCH (layer:Layer {name: 'business'})
+MATCH (layer:Layer {id: 'business'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -106,7 +106,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>Business nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Business layer nodes
-MATCH (layer1:Layer {name: 'business'})
+MATCH (layer1:Layer {id: 'business'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -131,7 +131,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All Security nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Security layer nodes
-MATCH (layer:Layer {name: 'security'})
+MATCH (layer:Layer {id: 'security'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -154,7 +154,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>Security nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Security layer nodes
-MATCH (layer1:Layer {name: 'security'})
+MATCH (layer1:Layer {id: 'security'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -179,7 +179,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All Application nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Application layer nodes
-MATCH (layer:Layer {name: 'application'})
+MATCH (layer:Layer {id: 'application'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -202,7 +202,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>Application nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Application layer nodes
-MATCH (layer1:Layer {name: 'application'})
+MATCH (layer1:Layer {id: 'application'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -227,7 +227,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All Technology nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Technology layer nodes
-MATCH (layer:Layer {name: 'technology'})
+MATCH (layer:Layer {id: 'technology'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -250,7 +250,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>Technology nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Technology layer nodes
-MATCH (layer1:Layer {name: 'technology'})
+MATCH (layer1:Layer {id: 'technology'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -275,7 +275,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All API nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all API layer nodes
-MATCH (layer:Layer {name: 'api'})
+MATCH (layer:Layer {id: 'api'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -298,7 +298,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>API nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find API layer nodes
-MATCH (layer1:Layer {name: 'api'})
+MATCH (layer1:Layer {id: 'api'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -323,7 +323,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All Data Model nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Data Model layer nodes
-MATCH (layer:Layer {name: 'data-model'})
+MATCH (layer:Layer {id: 'data-model'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -346,7 +346,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>Data Model nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Data Model layer nodes
-MATCH (layer1:Layer {name: 'data-model'})
+MATCH (layer1:Layer {id: 'data-model'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -371,7 +371,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All Data Store nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Data Store layer nodes
-MATCH (layer:Layer {name: 'data-store'})
+MATCH (layer:Layer {id: 'data-store'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -394,7 +394,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>Data Store nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Data Store layer nodes
-MATCH (layer1:Layer {name: 'data-store'})
+MATCH (layer1:Layer {id: 'data-store'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -419,7 +419,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All UX nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all UX layer nodes
-MATCH (layer:Layer {name: 'ux'})
+MATCH (layer:Layer {id: 'ux'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -442,7 +442,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>UX nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find UX layer nodes
-MATCH (layer1:Layer {name: 'ux'})
+MATCH (layer1:Layer {id: 'ux'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -467,7 +467,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All Navigation nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Navigation layer nodes
-MATCH (layer:Layer {name: 'navigation'})
+MATCH (layer:Layer {id: 'navigation'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -490,7 +490,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>Navigation nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Navigation layer nodes
-MATCH (layer1:Layer {name: 'navigation'})
+MATCH (layer1:Layer {id: 'navigation'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -515,7 +515,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All APM nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all APM layer nodes
-MATCH (layer:Layer {name: 'apm'})
+MATCH (layer:Layer {id: 'apm'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -538,7 +538,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>APM nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find APM layer nodes
-MATCH (layer1:Layer {name: 'apm'})
+MATCH (layer1:Layer {id: 'apm'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
@@ -563,7 +563,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>All Testing nodes with intra-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Testing layer nodes
-MATCH (layer:Layer {name: 'testing'})
+MATCH (layer:Layer {id: 'testing'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
 
 // Find intra-layer relationships
@@ -586,7 +586,7 @@ LIMIT 100;</code></pre>
     <div>
       <div class="paragraph"><p><strong>Testing nodes with inter-layer relationships:</strong></p></div>
       <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Testing layer nodes
-MATCH (layer1:Layer {name: 'testing'})
+MATCH (layer1:Layer {id: 'testing'})
 MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
 
 // Find inter-layer relationships (both directions)
