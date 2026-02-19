@@ -72,6 +72,7 @@ else
         -p $BOLT_PORT:7687 \
         -v "$SCRIPT_DIR/spec-explorer-guide.html:/var/lib/neo4j/import/spec-explorer-guide.html" \
         -v "$SCRIPT_DIR/browser-guide.html:/var/lib/neo4j/import/browser-guide.html" \
+        -v "$SCRIPT_DIR/layer-explorer-guide.html:/var/lib/neo4j/import/layer-explorer-guide.html" \
         -e NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PASSWORD} \
         -e NEO4J_PLUGINS='["apoc"]' \
         -e NEO4J_browser_remote__content__hostname__whitelist=localhost,127.0.0.1 \
@@ -129,6 +130,13 @@ echo -e "  ${GREEN}:play http://localhost:$CORS_PORT/browser-guide.html${NC}"
 echo "  • 14 interactive slides with clickable queries"
 echo "  • Navigate with arrow buttons"
 echo "  • CORS server running automatically"
+echo ""
+echo "  ${GREEN}Option 3: Layer Explorer Guide (In Neo4j)${NC}"
+echo "  In Neo4j Browser, run:"
+echo -e "  ${GREEN}:play http://localhost:$CORS_PORT/layer-explorer-guide.html${NC}"
+echo "  • 25 slides covering all 12 layers"
+echo "  • Intra-layer relationships (within each layer)"
+echo "  • Inter-layer relationships (crossing layer boundaries)"
 echo ""
 echo "Run verification queries:"
 echo "  MATCH (n:SpecNode) RETURN COUNT(n) AS specNodes;"

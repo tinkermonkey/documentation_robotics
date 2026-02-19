@@ -1,0 +1,645 @@
+<article class="guide">
+<carousel class="deck container-fluid">
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer-by-Layer Spec Explorer</h3>
+    <p class="lead">Explore each of the 12 layers with intra-layer and inter-layer relationship views</p>
+    <br/>
+    <div>
+      <p>This guide provides two query patterns for each layer:</p>
+      <div class="ulist">
+        <ul>
+          <li><p><strong>Intra-layer view</strong> - Nodes and relationships within a single layer</p></li>
+          <li><p><strong>Inter-layer view</strong> - Nodes and relationships crossing layer boundaries</p></li>
+        </ul>
+      </div>
+      <p>Each layer gets two slides:</p>
+      <div class="ulist">
+        <ul>
+          <li><p>Slide A: Internal structure (intra-layer relationships)</p></li>
+          <li><p>Slide B: Cross-layer connections (inter-layer relationships)</p></li>
+        </ul>
+      </div>
+      <p><em>Tip: Use the arrow buttons at the bottom to navigate between layers!</em></p>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 1: Motivation -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 1: Motivation (Intra-layer)</h3>
+    <p>Internal relationships within the Motivation layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All Motivation nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Motivation layer nodes
+MATCH (layer:Layer {name: 'motivation'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Goals, stakeholders, drivers, assessments, constraints, requirements, principles</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 1: Motivation (Inter-layer)</h3>
+    <p>Cross-layer relationships for Motivation nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Motivation nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Motivation layer nodes
+MATCH (layer1:Layer {name: 'motivation'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How Motivation influences Business, Security, and other layers</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 2: Business -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 2: Business (Intra-layer)</h3>
+    <p>Internal relationships within the Business layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All Business nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Business layer nodes
+MATCH (layer:Layer {name: 'business'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Business actors, roles, processes, services, objects, events, functions</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 2: Business (Inter-layer)</h3>
+    <p>Cross-layer relationships for Business nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Business nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Business layer nodes
+MATCH (layer1:Layer {name: 'business'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How Business processes realize Motivation goals and drive Application services</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 3: Security -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 3: Security (Intra-layer)</h3>
+    <p>Internal relationships within the Security layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All Security nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Security layer nodes
+MATCH (layer:Layer {name: 'security'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Threats, controls, authentication, authorization, security policies</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 3: Security (Inter-layer)</h3>
+    <p>Cross-layer relationships for Security nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Security nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Security layer nodes
+MATCH (layer1:Layer {name: 'security'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How Security controls protect Application, API, and UX components</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 4: Application -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 4: Application (Intra-layer)</h3>
+    <p>Internal relationships within the Application layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All Application nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Application layer nodes
+MATCH (layer:Layer {name: 'application'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Application components, services, interfaces, functions, events, objects</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 4: Application (Inter-layer)</h3>
+    <p>Cross-layer relationships for Application nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Application nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Application layer nodes
+MATCH (layer1:Layer {name: 'application'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How Application realizes Business services and uses Technology infrastructure</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 5: Technology -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 5: Technology (Intra-layer)</h3>
+    <p>Internal relationships within the Technology layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All Technology nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Technology layer nodes
+MATCH (layer:Layer {name: 'technology'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Nodes, devices, networks, infrastructure, platforms, system software</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 5: Technology (Inter-layer)</h3>
+    <p>Cross-layer relationships for Technology nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Technology nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Technology layer nodes
+MATCH (layer1:Layer {name: 'technology'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How Technology infrastructure serves Application components and Data Stores</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 6: API -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 6: API (Intra-layer)</h3>
+    <p>Internal relationships within the API layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All API nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all API layer nodes
+MATCH (layer:Layer {name: 'api'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Endpoints, operations, parameters, responses, schemas, servers</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 6: API (Inter-layer)</h3>
+    <p>Cross-layer relationships for API nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>API nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find API layer nodes
+MATCH (layer1:Layer {name: 'api'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How API endpoints use Data Model entities and serve UX components</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 7: Data Model -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 7: Data Model (Intra-layer)</h3>
+    <p>Internal relationships within the Data Model layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All Data Model nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Data Model layer nodes
+MATCH (layer:Layer {name: 'data-model'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Entities, properties, relationships, enumerations, value types</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 7: Data Model (Inter-layer)</h3>
+    <p>Cross-layer relationships for Data Model nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Data Model nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Data Model layer nodes
+MATCH (layer1:Layer {name: 'data-model'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How Data Model entities map to Data Store tables and Business objects</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 8: Data Store -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 8: Data Store (Intra-layer)</h3>
+    <p>Internal relationships within the Data Store layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All Data Store nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Data Store layer nodes
+MATCH (layer:Layer {name: 'data-store'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Tables, columns, indexes, constraints, schemas, databases</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 8: Data Store (Inter-layer)</h3>
+    <p>Cross-layer relationships for Data Store nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Data Store nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Data Store layer nodes
+MATCH (layer1:Layer {name: 'data-store'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How Data Store implements Data Model and runs on Technology infrastructure</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 9: UX -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 9: UX (Intra-layer)</h3>
+    <p>Internal relationships within the UX layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All UX nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all UX layer nodes
+MATCH (layer:Layer {name: 'ux'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Screens, components, widgets, layouts, user flows, interactions</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 9: UX (Inter-layer)</h3>
+    <p>Cross-layer relationships for UX nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>UX nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find UX layer nodes
+MATCH (layer1:Layer {name: 'ux'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How UX components call API endpoints and use Navigation routes</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 10: Navigation -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 10: Navigation (Intra-layer)</h3>
+    <p>Internal relationships within the Navigation layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All Navigation nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Navigation layer nodes
+MATCH (layer:Layer {name: 'navigation'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Routes, menus, navigation groups, breadcrumbs, links</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 10: Navigation (Inter-layer)</h3>
+    <p>Cross-layer relationships for Navigation nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Navigation nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Navigation layer nodes
+MATCH (layer1:Layer {name: 'navigation'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How Navigation routes connect UX screens and Business processes</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 11: APM -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 11: APM (Intra-layer)</h3>
+    <p>Internal relationships within the APM layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All APM nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all APM layer nodes
+MATCH (layer:Layer {name: 'apm'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Metrics, traces, spans, logs, alerts, dashboards, monitors</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 11: APM (Inter-layer)</h3>
+    <p>Cross-layer relationships for APM nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>APM nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find APM layer nodes
+MATCH (layer1:Layer {name: 'apm'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How APM monitors Application components, API endpoints, and Technology infrastructure</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Layer 12: Testing -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 12: Testing (Intra-layer)</h3>
+    <p>Internal relationships within the Testing layer</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>All Testing nodes with intra-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find all Testing layer nodes
+MATCH (layer:Layer {name: 'testing'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+
+// Find intra-layer relationships
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer)
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: Test strategies, test cases, test data, test suites, test results</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Layer 12: Testing (Inter-layer)</h3>
+    <p>Cross-layer relationships for Testing nodes</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Testing nodes with inter-layer relationships:</strong></p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Find Testing layer nodes
+MATCH (layer1:Layer {name: 'testing'})
+MATCH (node:SpecNode)-[:BELONGS_TO_LAYER]->(layer1)
+
+// Find inter-layer relationships (both directions)
+OPTIONAL MATCH (sr:SpecRelationship)-[:HAS_SOURCE]->(node)
+OPTIONAL MATCH (sr)-[:HAS_TARGET]->(target:SpecNode)-[:BELONGS_TO_LAYER]->(layer2:Layer)
+WHERE layer1 <> layer2
+OPTIONAL MATCH (sr)-[:HAS_PREDICATE]->(pred:Predicate)
+
+RETURN node, sr, target, pred, layer1, layer2
+LIMIT 100;</code></pre>
+      <div class="paragraph"><p><em>Shows: How Testing validates Application, API, UX, and other layer components</em></p></div>
+    </div>
+  </div>
+</slide>
+
+<!-- Final slide with tips -->
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Query Tips</h3>
+    <p>Making the most of layer exploration</p>
+    <br/>
+    <div>
+      <div class="paragraph"><p><strong>Adjust the LIMIT:</strong></p></div>
+      <div class="paragraph"><p>All queries use <code>LIMIT 100</code> to prevent overwhelming graphs. Increase or decrease based on your needs:</p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">// Show more results
+LIMIT 200
+
+// Show fewer results for cleaner graphs
+LIMIT 25</code></pre>
+
+      <div class="paragraph"><p><strong>Filter by specific predicates:</strong></p></div>
+      <div class="paragraph"><p>Add a WHERE clause to focus on specific relationship types:</p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">WHERE pred.id = 'composes'
+// or
+WHERE pred.id IN ['realizes', 'influences', 'serves']</code></pre>
+
+      <div class="paragraph"><p><strong>Focus on specific node types:</strong></p></div>
+      <div class="paragraph"><p>Filter nodes by their type:</p></div>
+      <pre mode="cypher" class="highlight pre-scrollable code runnable standalone-example ng-binding"><code class="cypher language-cypher">WHERE node.id STARTS WITH 'motivation.goal'
+// or
+WHERE target.id CONTAINS 'endpoint'</code></pre>
+
+      <div class="paragraph"><p><strong>Use the graph browser filters:</strong></p></div>
+      <div class="ulist">
+        <ul>
+          <li><p>Click the colored circles in the right sidebar to show/hide node types</p></li>
+          <li><p>Use the search box to find specific nodes</p></li>
+          <li><p>Double-click nodes to expand their relationships</p></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</slide>
+
+</carousel>
+</article>

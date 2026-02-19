@@ -54,7 +54,7 @@ docker rm doc-robotics-neo4j
 
 ### Interactive Guides
 
-The CORS server is started automatically by `launch-neo4j.sh`, so both guides are immediately available:
+The CORS server is started automatically by `launch-neo4j.sh`, so all guides are immediately available:
 
 **Option 1: Standalone HTML Guide (Recommended)**
 
@@ -81,17 +81,35 @@ Features:
 - ✅ 14 interactive slides with clickable queries
 - ✅ Native Neo4j Browser integration
 - ✅ Navigate with arrow buttons
+- ✅ Cross-layer relationships and predicate analysis
 
-**Both guides include:**
+**Option 3: Layer Explorer Guide**
 
-- 📊 **15 interactive slides** with executable queries
+1. Open Neo4j Browser: http://localhost:7474
+2. Run this command:
+
+   ```cypher
+   :play http://localhost:8000/layer-explorer-guide.html
+   ```
+
+Features:
+
+- ✅ 25 interactive slides covering all 12 layers
+- ✅ Two query patterns per layer:
+  - **Intra-layer view**: Nodes and relationships within a single layer
+  - **Inter-layer view**: Nodes and relationships crossing layer boundaries
+- ✅ Perfect for layer-by-layer exploration
+- ✅ Shows both upstream and downstream dependencies
+
+**All guides include:**
+
+- 📊 **Interactive slides** with executable queries
 - 🔍 **Layer-by-layer exploration** of the 12-layer model
 - 🔗 **Cross-layer relationship patterns** and dependency analysis
 - 🏷️ **Predicate usage analysis** (structural, behavioral, dependency, etc.)
 - 📋 **Attribute constraint discovery** for validation rules
 - 🎯 **Common use cases**: Impact analysis, validation rule discovery, traceability
 - 📈 **Visual graph exploration** with hub analysis
-- 🎓 **ArchiMate alignment** and standards compliance
 
 Each query is runnable directly from the guide—just click to execute!
 

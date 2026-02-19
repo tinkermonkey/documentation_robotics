@@ -2,14 +2,15 @@
 
 ## Overview
 
-This directory contains **two guide formats** for exploring the Documentation Robotics specification in Neo4j:
+This directory contains **three guide formats** for exploring the Documentation Robotics specification in Neo4j:
 
 1. **Standalone HTML Guide** - Modern web interface (recommended)
-2. **Neo4j Browser Guide** - Native `:play` integration
+2. **Neo4j Browser Guide** - General spec exploration with `:play` integration
+3. **Layer Explorer Guide** - Layer-by-layer exploration with intra/inter-layer views
 
-Both guides feature queries optimized for your Neo4j Browser version with clean visualizations.
+All guides feature queries optimized for your Neo4j Browser version with clean visualizations.
 
-**Note:** When you run `./spec/neo4j/launch-neo4j.sh`, the CORS server is started automatically on port 8000, making both guides immediately available.
+**Note:** When you run `./spec/neo4j/launch-neo4j.sh`, the CORS server is started automatically on port 8000, making all guides immediately available.
 
 ## Quick Start
 
@@ -46,6 +47,31 @@ Features:
 - ✅ Clickable queries (just click to run!)
 - ✅ Navigate with arrow buttons
 - ✅ Native Neo4j Browser integration
+- ✅ General spec exploration
+
+### Layer-by-Layer: Layer Explorer Guide
+
+**In Neo4j Browser, run:**
+
+```cypher
+:play http://localhost:8000/layer-explorer-guide.html
+```
+
+Features:
+
+- ✅ 25 interactive slides covering all 12 layers
+- ✅ Two query patterns per layer:
+  - **Intra-layer view**: All nodes and relationships within a single layer
+  - **Inter-layer view**: All nodes and cross-layer relationships (both sources and sinks)
+- ✅ Perfect for systematic layer exploration
+- ✅ Shows internal structure and external dependencies for each layer
+
+**When to use this guide:**
+
+- You want to explore one specific layer in depth
+- You need to understand both internal (intra-layer) and external (inter-layer) relationships
+- You're analyzing how a layer connects to other layers
+- You want to see all nodes in a layer with their relationships
 
 ## What's Different from Generic Guides?
 
