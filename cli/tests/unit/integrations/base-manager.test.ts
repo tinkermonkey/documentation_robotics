@@ -389,6 +389,35 @@ components:
       );
       expect(deleted).toBeDefined();
     });
+
+    it("should treat missing baseline as clean upgrade, not conflict", async () => {
+      // Simulate upgrading from old version (0.7.3) that didn't track hashes
+      // Version file exists but has no hash data for this component
+      const versionContent = `
+version: "0.7.3"
+installed_at: "2024-01-01T00:00:00Z"
+components:
+  commands: {}
+`;
+
+      await writeFile(join(targetDir, ".dr-test-version"), versionContent, "utf-8");
+
+      // Install files to simulate existing installation
+      const cmdDir = join(targetDir, "commands");
+      await mkdir(cmdDir, { recursive: true });
+      await writeFile(join(cmdDir, "cmd1.md"), "Original content", "utf-8");
+
+      const versionData = validateVersionData(parseYaml(versionContent));
+      const changes = await manager.testCheckUpdates("commands", versionData);
+
+      // With no recorded hash, should detect as "modified" (clean upgrade)
+      // NOT as "conflict"
+      const conflicts = changes.filter((c) => c.changeType === "conflict");
+      const modified = changes.filter((c) => c.changeType === "modified");
+
+      expect(conflicts.length).toBe(0); // No conflicts!
+      expect(modified.length).toBeGreaterThan(0); // Just normal modifications
+    });
   });
 
   describe("installComponent", () => {

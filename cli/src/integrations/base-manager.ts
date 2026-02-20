@@ -362,9 +362,19 @@ export abstract class BaseIntegrationManager {
           sourceHash,
         });
       } else if (sourceHash !== recordedHash) {
-        // Source file changed
-        if (installedHash !== recordedHash) {
-          // User also modified the file - conflict
+        // Source file changed (or no baseline exists)
+        if (!recordedHash) {
+          // No baseline recorded (upgrading from version without hash tracking)
+          // Treat as clean upgrade - modified, not conflict
+          changes.push({
+            path: filePath,
+            component: componentName,
+            changeType: "modified",
+            sourceHash,
+            installedHash,
+          });
+        } else if (installedHash !== recordedHash) {
+          // User also modified the file - real conflict
           changes.push({
             path: filePath,
             component: componentName,
