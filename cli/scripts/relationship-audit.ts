@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env -S node --loader tsx
 
 /**
  * Standalone Relationship Audit Script

@@ -50,12 +50,12 @@ The standalone script (`scripts/relationship-audit.ts`) provides a lightweight a
 Run audit with npm:
 
 ```bash
-npm run audit                        # Text output to stdout
-npm run audit -- --format json       # JSON format
-npm run audit -- --output report.md  # Save to file
-npm run audit -- --layer api         # Audit specific layer
-npm run audit -- --verbose           # Detailed logging
-npm run audit -- --threshold         # Exit 1 if quality issues detected
+npm run audit:relationships                        # Text output to stdout
+npm run audit:relationships -- --format json       # JSON format
+npm run audit:relationships -- --output report.md  # Save to file
+npm run audit:relationships -- --layer api         # Audit specific layer
+npm run audit:relationships -- --verbose           # Detailed logging
+npm run audit:relationships -- --threshold         # Exit 1 if quality issues detected
 ```
 
 Run directly with tsx:
@@ -97,7 +97,7 @@ jobs:
         run: cd cli && npm install
 
       - name: Run audit with quality gates
-        run: cd cli && npm run audit -- --threshold --format json --output audit.json
+        run: cd cli && npm run audit:relationships -- --threshold --format json --output audit.json
 
       - name: Upload audit report
         if: always()

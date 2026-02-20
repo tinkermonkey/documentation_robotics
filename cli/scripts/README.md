@@ -58,32 +58,32 @@ Helper scripts for development and testing:
 cd cli
 
 # Text output to stdout
-npm run audit
+npm run audit:relationships
 
 # JSON format
-npm run audit -- --format json
+npm run audit:relationships -- --format json
 
 # Markdown format
-npm run audit -- --format markdown
+npm run audit:relationships -- --format markdown
 
 # Save to file
-npm run audit -- --output audit-report.md
+npm run audit:relationships -- --output audit-report.md
 ```
 
 #### Advanced Options
 
 ```bash
 # Audit specific layer
-npm run audit -- --layer api
+npm run audit:relationships -- --layer api
 
 # Verbose output (shows progress)
-npm run audit -- --verbose
+npm run audit:relationships -- --verbose
 
 # Quality gate mode (exit 1 if issues detected)
-npm run audit -- --threshold
+npm run audit:relationships -- --threshold
 
 # Combine options
-npm run audit -- --layer security --format json --output security-audit.json --verbose
+npm run audit:relationships -- --layer security --format json --output security-audit.json --verbose
 ```
 
 #### Direct Execution

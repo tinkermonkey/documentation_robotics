@@ -278,6 +278,49 @@ dr conformance [--layers layer1,layer2]          # Validate model against layer 
 
 Key files: `cli/src/commands/schema.ts`, `cli/src/commands/conformance.ts`
 
+### Relationship Audit
+
+Audit intra-layer relationships for coverage, duplicates, gaps, and balance:
+
+```bash
+# Full audit with text output
+npm run audit:relationships
+
+# JSON output for CI/CD integration
+npm run audit:relationships -- --format json --output audit.json
+
+# Quality gate mode (exit 1 if issues found)
+npm run audit:relationships -- --threshold
+
+# Layer-specific audit
+npm run audit:relationships -- --layer api --verbose
+
+# Markdown report generation
+npm run audit:relationships -- --format markdown --output report.md
+
+# Direct script execution
+cd cli
+tsx scripts/relationship-audit.ts --help
+```
+
+**Output Formats:**
+- **text** - Human-readable colored output (default)
+- **json** - Machine-parseable for automation
+- **markdown** - Documentation-ready reports
+
+**Quality Thresholds:**
+- Isolation: ≤ 20% isolated node types
+- Density: ≥ 1.5 relationships per node type
+- High-Priority Gaps: ≤ 10 gaps
+- Duplicates: ≤ 5 duplicate candidates
+
+**Exit Codes:**
+- `0` - Success (no issues or below thresholds)
+- `1` - Quality issues detected (with `--threshold` flag)
+- `2` - Script execution error
+
+Key files: `cli/scripts/relationship-audit.ts`, `cli/scripts/README.md`
+
 ### Element Migration
 
 Migrate elements to spec-node aligned format:

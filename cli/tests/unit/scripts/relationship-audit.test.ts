@@ -25,8 +25,8 @@ async function runAuditScript(
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve, reject) => {
     const cwd = workdir || CLI_DIR;
-    // Use bun for execution (which supports tsx files natively)
-    const proc = spawn("bun", [SCRIPT_PATH, ...args], {
+    // Use current runtime (Node.js or Bun) for portability
+    const proc = spawn(process.execPath, [SCRIPT_PATH, ...args], {
       cwd,
       env: { ...process.env },
     });
