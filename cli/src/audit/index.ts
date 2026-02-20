@@ -38,3 +38,16 @@ export type {
   BalanceChanges,
   ConnectivityComparison,
 } from "./differential-analyzer.js";
+
+// AI evaluation components
+export { ClaudeInvoker } from "./ai/claude-invoker.js";
+export type { ClaudeInvocation } from "./ai/claude-invoker.js";
+export { PromptTemplates } from "./ai/prompt-templates.js";
+export { ResponseParser } from "./ai/response-parser.js";
+export type {
+  RelationshipRecommendation,
+  LayerReview,
+  InterLayerValidation,
+} from "./ai/response-parser.js";
+export { AIEvaluator, InMemoryProgressTracker } from "./ai/ai-evaluator.js";
+export type { ProgressTracker, AIEvaluationConfig } from "./ai/ai-evaluator.js";
