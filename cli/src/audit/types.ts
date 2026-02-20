@@ -1,0 +1,95 @@
+/**
+ * Type definitions for relationship audit system
+ */
+
+/**
+ * Coverage metrics for a layer
+ */
+export interface CoverageMetrics {
+  layer: string;
+  nodeTypeCount: number;
+  relationshipCount: number;
+
+  // Node isolation
+  isolatedNodeTypes: string[]; // Zero relationships
+  isolationPercentage: number;
+
+  // Predicate utilization
+  availablePredicates: string[]; // Predicates applicable to this layer
+  usedPredicates: string[]; // Actually used
+  utilizationPercentage: number;
+
+  // Density
+  relationshipsPerNodeType: number;
+
+  // Standard alignment (for ArchiMate layers)
+  standardAlignment?: {
+    standard: string;
+    expectedRelationships: number;
+    missingFromStandard: string[];
+  };
+}
+
+/**
+ * Semantic duplicate candidate
+ */
+export interface DuplicateCandidate {
+  relationships: [string, string]; // IDs of duplicate pair
+  predicates: [string, string]; // Predicate names
+  sourceNodeType: string;
+  destinationNodeType: string;
+  reason: string; // Explanation of semantic overlap
+  confidence: "high" | "medium" | "low";
+}
+
+/**
+ * Missing relationship gap candidate
+ */
+export interface GapCandidate {
+  sourceNodeType: string;
+  destinationNodeType: string;
+  suggestedPredicate: string;
+  reason: string;
+  priority: "high" | "medium" | "low";
+  standardReference?: string; // e.g., "ArchiMate 3.2 §5.2"
+}
+
+/**
+ * Balance assessment for node type relationship density
+ */
+export interface BalanceAssessment {
+  nodeType: string;
+  layer: string;
+  category: "structural" | "behavioral" | "enumeration" | "reference";
+  currentCount: number;
+  targetRange: [number, number];
+  status: "under" | "balanced" | "over";
+  recommendation?: string;
+}
+
+/**
+ * Connected component in relationship graph
+ */
+export interface ConnectedComponent {
+  nodes: string[];
+  size: number;
+}
+
+/**
+ * Node degree information
+ */
+export interface NodeDegree {
+  nodeType: string;
+  inDegree: number;
+  outDegree: number;
+  totalDegree: number;
+}
+
+/**
+ * Transitive relationship chain
+ */
+export interface TransitiveChain {
+  predicate: string;
+  chain: string[]; // Node types in chain
+  length: number;
+}

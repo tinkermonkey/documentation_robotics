@@ -1,0 +1,26 @@
+/**
+ * Relationship Audit System - Public API
+ *
+ * Exports all audit analysis components and types.
+ */
+
+// Type definitions
+export type {
+  CoverageMetrics,
+  DuplicateCandidate,
+  GapCandidate,
+  BalanceAssessment,
+  ConnectedComponent,
+  NodeDegree,
+  TransitiveChain,
+} from "./types.js";
+
+// Analysis components
+export { CoverageAnalyzer } from "./analysis/coverage-analyzer.js";
+export { DuplicateDetector } from "./analysis/duplicate-detector.js";
+export { GapAnalyzer } from "./analysis/gap-analyzer.js";
+export { BalanceAssessor } from "./analysis/balance-assessor.js";
+
+// Graph components
+export { RelationshipGraph } from "./graph/relationship-graph.js";
+export { ConnectivityAnalyzer } from "./graph/connectivity.js";
