@@ -79,7 +79,7 @@ const duplicateDetector = new DuplicateDetector(catalog);
 const duplicates = await duplicateDetector.detectDuplicates();
 
 // Gap Analysis
-const gapAnalyzer = new GapAnalyzer(catalog);
+const gapAnalyzer = new GapAnalyzer();
 const gaps = await gapAnalyzer.analyzeAll();
 
 // Balance Assessment
