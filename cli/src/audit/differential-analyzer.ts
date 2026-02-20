@@ -160,7 +160,11 @@ export class DifferentialAnalyzer {
     for (const afterCoverage of after) {
       const beforeCoverage = beforeMap.get(afterCoverage.layer);
       if (!beforeCoverage) {
-        continue; // New layer, skip comparison
+        // New layer in after state - track for visibility
+        console.log(
+          `Note: Layer "${afterCoverage.layer}" appears only in after state, skipping comparison`,
+        );
+        continue;
       }
 
       const deltas = {

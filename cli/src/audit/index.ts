@@ -13,6 +13,7 @@ export type {
   ConnectedComponent,
   NodeDegree,
   TransitiveChain,
+  SummaryReport,
 } from "./types.js";
 
 // Analysis components
@@ -24,3 +25,16 @@ export { BalanceAssessor } from "./analysis/balance-assessor.js";
 // Graph components
 export { RelationshipGraph } from "./graph/relationship-graph.js";
 export { ConnectivityAnalyzer } from "./graph/connectivity.js";
+
+// Snapshot and differential analysis components
+export { SnapshotStorage } from "./snapshot-storage.js";
+export type { SnapshotMetadata, SnapshotStorageConfig } from "./snapshot-storage.js";
+export { DifferentialAnalyzer } from "./differential-analyzer.js";
+export type {
+  DifferentialAnalysis,
+  CoverageComparison,
+  GapChanges,
+  DuplicateChanges,
+  BalanceChanges,
+  ConnectivityComparison,
+} from "./differential-analyzer.js";

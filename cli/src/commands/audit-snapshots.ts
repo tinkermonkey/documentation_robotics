@@ -95,6 +95,12 @@ async function deleteSnapshot(
   storage: SnapshotStorage,
   id: string,
 ): Promise<void> {
+  // Verify snapshot exists before deletion
+  const snapshots = await storage.list();
+  if (!snapshots.some((s) => s.id === id)) {
+    throw new CLIError(`Snapshot not found: ${id}`);
+  }
+
   await storage.delete(id);
   console.log(ansis.green(`✓ Snapshot deleted: ${id}`));
 }

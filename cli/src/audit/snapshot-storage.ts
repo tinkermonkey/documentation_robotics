@@ -197,8 +197,12 @@ export class SnapshotStorage {
     const metadataPath = this.getMetadataPath(id);
 
     await Promise.all([
-      fs.unlink(snapshotPath).catch(() => {}), // Ignore if doesn't exist
-      fs.unlink(metadataPath).catch(() => {}),
+      fs.unlink(snapshotPath).catch((e) => {
+        if (e.code !== "ENOENT") throw e;
+      }),
+      fs.unlink(metadataPath).catch((e) => {
+        if (e.code !== "ENOENT") throw e;
+      }),
     ]);
   }
 

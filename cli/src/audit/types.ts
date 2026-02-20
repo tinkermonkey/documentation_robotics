@@ -129,7 +129,7 @@ export interface AuditReport {
 }
 
 /**
- * Summary report comparing before/after audit states (Phase 3)
+ * Summary report comparing before/after audit states
  */
 export interface SummaryReport {
   timestamp: string;

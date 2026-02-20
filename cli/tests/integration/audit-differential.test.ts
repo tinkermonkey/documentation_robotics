@@ -1,5 +1,5 @@
 /**
- * Integration tests for Phase 3 audit features:
+ * Integration tests for audit differential features:
  * - Snapshot storage and management
  * - Differential analysis
  * - Before/after comparison
@@ -13,7 +13,7 @@ import { createTestWorkdir } from "../helpers/golden-copy.js";
 import * as path from "path";
 import { promises as fs } from "fs";
 
-describe("Phase 3: Snapshot Storage", () => {
+describe("Snapshot Storage", () => {
   let workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
   let storage: SnapshotStorage;
 
@@ -143,7 +143,7 @@ describe("Phase 3: Snapshot Storage", () => {
   });
 });
 
-describe("Phase 3: Differential Analysis", () => {
+describe("Differential Analysis", () => {
   let analyzer: DifferentialAnalyzer;
 
   beforeEach(() => {
