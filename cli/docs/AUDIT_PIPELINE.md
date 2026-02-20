@@ -213,6 +213,7 @@ Layer: business
 - **Over** - Node type has more relationships than recommended
 
 Target ranges vary by node category:
+
 - **Structural** (entities, components): 2-4 relationships
 - **Behavioral** (processes, services): 3-5 relationships
 - **Enumeration** (states, values): 1-2 relationships
@@ -255,7 +256,7 @@ By default, snapshots are retained indefinitely. To enable automatic cleanup wit
 import { SnapshotStorage } from "./audit/snapshot-storage.js";
 
 const storage = new SnapshotStorage({
-  maxSnapshots: 10 // Keep only 10 most recent snapshots
+  maxSnapshots: 10, // Keep only 10 most recent snapshots
 });
 ```
 

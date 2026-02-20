@@ -4,7 +4,7 @@
 
 import ansis from "ansis";
 import { CLIError, getErrorMessage } from "../utils/errors.js";
-import { SnapshotStorage, SnapshotMetadata } from "../audit/snapshot-storage.js";
+import { SnapshotStorage } from "../audit/snapshot-storage.js";
 
 export interface AuditSnapshotsOptions {
   action: "list" | "delete" | "clear";
