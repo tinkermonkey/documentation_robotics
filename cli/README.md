@@ -290,6 +290,37 @@ your-project/
 
 **Legacy models**: Old projects using `.dr/` directory will auto-migrate changesets to `documentation-robotics/changesets/` on first use.
 
+### Specification Reference
+
+When you run `dr init`, the CLI installs a complete copy of the Documentation Robotics specification to `.dr/spec/`:
+
+```
+your-project/
+├── .dr/
+│   ├── spec/
+│   │   ├── layers/              # 12 layer definitions
+│   │   └── schemas/
+│   │       ├── base/            # 8 base schemas
+│   │       ├── nodes/           # 354 node type schemas
+│   │       └── relationships/   # 252 relationship schemas
+│   ├── manifest.json            # Spec version info
+│   └── README.md
+```
+
+**What this enables:**
+
+- `dr schema layers` - List all architecture layers
+- `dr schema types <layer>` - Show valid element types for a layer
+- `dr schema node <spec_node_id>` - View detailed node type schema
+- `dr schema relationship <type>` - Show valid relationships for a type
+- `dr conformance` - Validate model against layer specifications
+
+**Important:**
+
+- The `.dr/` directory is ephemeral and should be git-ignored
+- It will be recreated automatically by the CLI when needed
+- Run `dr upgrade` to update the spec reference after CLI updates
+
 ### AI Chat Setup (for Chat Features)
 
 The chat functionality supports two AI CLI tools. You need at least one installed:

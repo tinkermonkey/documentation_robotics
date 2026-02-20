@@ -8,8 +8,10 @@
 import path from "node:path";
 import { fileURLToPath } from "url";
 import fs from "node:fs/promises";
+import { existsSync } from "fs";
 import { glob } from "glob";
 import { getErrorMessage } from "../utils/errors.js";
+import { logDebug } from "../utils/globals.js";
 import {
   LayerSpec,
   NodeTypeSpec,
@@ -22,6 +24,25 @@ import {
   RelationshipTypeQueryFilter,
   AttributeSpec,
 } from "./spec-loader-types.js";
+
+/**
+ * Find project root by walking up from start directory looking for .dr/manifest.json
+ * Synchronous version needed for use in constructor
+ */
+function findProjectRootSync(startDir: string): string | null {
+  let current = startDir;
+  const root = path.parse(current).root;
+
+  while (current !== root) {
+    const manifestPath = path.join(current, ".dr", "manifest.json");
+    if (existsSync(manifestPath)) {
+      return current;
+    }
+    current = path.dirname(current);
+  }
+
+  return null;
+}
 
 /**
  * SpecDataLoader loads specification metadata from the spec/ directory
@@ -44,22 +65,41 @@ export class SpecDataLoader {
   }
 
   /**
-   * Get default path to spec directory
+   * Get default path to spec directory with intelligent fallbacks
    *
-   * IMPORTANT: This assumes the monorepo build layout where compiled JS is in cli/dist/core.
-   * The path navigation (../../../spec) depends on:
-   * - cli/dist/core/spec-loader.js compiled location
-   * - spec/ directory at repository root
-   *
-   * This will NOT work if the CLI is distributed as a standalone npm package.
-   * For package distribution, provide specDir option explicitly.
-   *
-   * TODO: Consider validating that the resolved spec directory exists to catch
-   * layout mismatches early with a clear error message.
+   * Priority:
+   * 1. .dr/spec/ in project root (works for any initialized model)
+   * 2. ../../../spec (development environment - monorepo layout)
+   * 3. Throw clear error if neither exists
    */
   private getDefaultSpecDir(): string {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
-    return path.join(currentDir, "../../../spec");
+
+    // Try 1: .dr/spec/ in project root (runtime reference)
+    const projectRoot = findProjectRootSync(currentDir);
+    if (projectRoot) {
+      const drSpecPath = path.join(projectRoot, ".dr", "spec");
+      // Validate by checking for a known file
+      if (existsSync(path.join(drSpecPath, "layers", "01-motivation.layer.json"))) {
+        logDebug(`SpecDataLoader using spec directory: ${drSpecPath}`);
+        return drSpecPath;
+      }
+    }
+
+    // Try 2: Development path (monorepo)
+    const devSpecPath = path.join(currentDir, "../../../spec");
+    if (existsSync(path.join(devSpecPath, "layers", "01-motivation.layer.json"))) {
+      logDebug(`SpecDataLoader using spec directory: ${devSpecPath}`);
+      return devSpecPath;
+    }
+
+    // Neither path worked - throw clear error
+    throw new Error(
+      "Cannot find spec directory. Tried:\n" +
+      `  1. .dr/spec/ in project root${projectRoot ? ` (${path.join(projectRoot, ".dr", "spec")})` : " (no project root found)"}\n` +
+      `  2. Development path (${devSpecPath})\n\n` +
+      "Ensure you have run 'dr init' to initialize a model, or are in a development environment."
+    );
   }
 
   /**

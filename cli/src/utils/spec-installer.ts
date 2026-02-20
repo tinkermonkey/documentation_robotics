@@ -12,6 +12,26 @@ import fs from "fs/promises";
 import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { logDebug } from "./globals.js";
+import { glob } from "glob";
+
+/**
+ * Recursively copy directory contents
+ */
+async function copyDirectoryRecursive(src: string, dest: string): Promise<void> {
+  await ensureDir(dest);
+  const entries = await fs.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = join(src, entry.name);
+    const destPath = join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDirectoryRecursive(srcPath, destPath);
+    } else {
+      await fs.copyFile(srcPath, destPath);
+    }
+  }
+}
 
 /**
  * Install or update the .dr/ spec reference folder
@@ -34,7 +54,9 @@ export async function installSpecReference(
 
   // Create .dr directory structure
   await ensureDir(drPath);
-  await ensureDir(join(drPath, "schemas"));
+  await ensureDir(join(drPath, "spec"));
+  await ensureDir(join(drPath, "spec", "layers"));
+  await ensureDir(join(drPath, "spec", "schemas"));
   await ensureDir(join(drPath, "changesets"));
 
   // Write manifest.json
@@ -86,7 +108,30 @@ export async function installSpecReference(
     );
   }
 
-  // Copy base schemas (includes common schemas moved to base/)
+  // Copy complete spec from bundled schemas
+  // Layer instances (12 files)
+  await copyDirectoryRecursive(
+    join(schemaSourceDir, "layers"),
+    join(drPath, "spec", "layers")
+  );
+
+  // All schemas (base + nodes + relationships)
+  await copyDirectoryRecursive(
+    join(schemaSourceDir, "base"),
+    join(drPath, "spec", "schemas", "base")
+  );
+
+  await copyDirectoryRecursive(
+    join(schemaSourceDir, "nodes"),
+    join(drPath, "spec", "schemas", "nodes")
+  );
+
+  await copyDirectoryRecursive(
+    join(schemaSourceDir, "relationships"),
+    join(drPath, "spec", "schemas", "relationships")
+  );
+
+  // Keep old .dr/schemas/base/ for backward compatibility (DEPRECATED)
   await ensureDir(join(drPath, "schemas", "base"));
   const baseSchemas = [
     "spec-node.schema.json",
@@ -106,8 +151,19 @@ export async function installSpecReference(
     }
   }
 
-  // Note: Common schemas and predicates are now in base/
-  // and are copied above with the base schemas
+  // Verify installation completeness
+  const layerFiles = await glob(join(drPath, "spec", "layers", "*.layer.json"));
+  const nodeSchemas = await glob(join(drPath, "spec", "schemas", "nodes", "**", "*.node.schema.json"));
+  const relSchemas = await glob(join(drPath, "spec", "schemas", "relationships", "**", "*.relationship.schema.json"));
+
+  logDebug(`Installed spec: ${layerFiles.length} layers, ${nodeSchemas.length} node types, ${relSchemas.length} relationship types`);
+
+  if (layerFiles.length !== 12 || nodeSchemas.length < 354 || relSchemas.length < 252) {
+    throw new Error(
+      `Incomplete spec installation: expected 12 layers (got ${layerFiles.length}), ` +
+      `354+ node schemas (got ${nodeSchemas.length}), 252+ relationship schemas (got ${relSchemas.length})`
+    );
+  }
 
   // Create README.md
   const readmePath = join(drPath, "README.md");
@@ -122,7 +178,12 @@ This directory contains the specification reference for Documentation Robotics.
 ## Structure
 
 - \`manifest.json\` - Spec version information
-- \`schemas/\` - JSON Schema definitions for all layers
+- \`spec/\` - Complete specification reference
+  - \`layers/\` - 12 layer instance definitions
+  - \`schemas/base/\` - 8 base schemas
+  - \`schemas/nodes/\` - ${nodeSchemas.length} node type schemas (organized by layer)
+  - \`schemas/relationships/\` - ${relSchemas.length} relationship type schemas
+- \`schemas/\` - (DEPRECATED) Legacy base schemas for backward compatibility
 - \`changesets/\` - Model changesets (active and saved)
 
 ## Important
