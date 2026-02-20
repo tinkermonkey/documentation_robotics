@@ -148,13 +148,15 @@ function formatExecutiveSummaryMarkdown(lines: string[], report: AuditReport): v
   const totalNodeTypes = report.coverage.reduce((sum, c) => sum + c.nodeTypeCount, 0);
   const totalRelationships = report.coverage.reduce((sum, c) => sum + c.relationshipCount, 0);
   const totalIsolated = report.coverage.reduce((sum, c) => sum + c.isolatedNodeTypes.length, 0);
-  const avgUtilization = report.coverage.reduce((sum, c) => sum + c.utilizationPercentage, 0) / report.coverage.length;
+  const avgUtilization = report.coverage.length > 0
+    ? report.coverage.reduce((sum, c) => sum + c.utilizationPercentage, 0) / report.coverage.length
+    : 0;
 
   lines.push("| Metric | Value |");
   lines.push("|--------|-------|");
   lines.push(`| Total Node Types | ${totalNodeTypes} |`);
   lines.push(`| Total Relationships | ${totalRelationships} |`);
-  lines.push(`| Isolated Node Types | ${totalIsolated} (${((totalIsolated / totalNodeTypes) * 100).toFixed(1)}%) |`);
+  lines.push(`| Isolated Node Types | ${totalIsolated} (${totalNodeTypes > 0 ? ((totalIsolated / totalNodeTypes) * 100).toFixed(1) : "0.0"}%) |`);
   lines.push(`| Average Predicate Utilization | ${avgUtilization.toFixed(1)}% |`);
   lines.push(`| Duplicate Candidates | ${report.duplicates.length} |`);
   lines.push(`| Gap Candidates | ${report.gaps.length} |`);
@@ -172,11 +174,13 @@ function formatCoverageTextSummary(lines: string[], coverage: CoverageMetrics[])
   const totalNodeTypes = coverage.reduce((sum, c) => sum + c.nodeTypeCount, 0);
   const totalRelationships = coverage.reduce((sum, c) => sum + c.relationshipCount, 0);
   const totalIsolated = coverage.reduce((sum, c) => sum + c.isolatedNodeTypes.length, 0);
-  const avgUtilization = coverage.reduce((sum, c) => sum + c.utilizationPercentage, 0) / coverage.length;
+  const avgUtilization = coverage.length > 0
+    ? coverage.reduce((sum, c) => sum + c.utilizationPercentage, 0) / coverage.length
+    : 0;
 
   lines.push(`  Total Node Types:          ${totalNodeTypes}`);
   lines.push(`  Total Relationships:       ${totalRelationships}`);
-  lines.push(`  Isolated Node Types:       ${totalIsolated} (${((totalIsolated / totalNodeTypes) * 100).toFixed(1)}%)`);
+  lines.push(`  Isolated Node Types:       ${totalIsolated} (${totalNodeTypes > 0 ? ((totalIsolated / totalNodeTypes) * 100).toFixed(1) : "0.0"}%)`);
   lines.push(`  Avg Predicate Utilization: ${avgUtilization.toFixed(1)}%`);
 
   // Highlight layers with zero relationships

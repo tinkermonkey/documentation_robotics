@@ -127,3 +127,32 @@ export interface AuditReport {
     stats: ConnectivityStats;
   };
 }
+
+/**
+ * Summary report comparing before/after audit states (Phase 3)
+ */
+export interface SummaryReport {
+  timestamp: string;
+  coverageChanges: {
+    layer: string;
+    before: { isolation: number; density: number };
+    after: { isolation: number; density: number };
+    delta: { isolation: number; density: number };
+  }[];
+  relationshipsAdded: number;
+  gapsResolved: number;
+  remainingGaps: number;
+  duplicatesResolved: number;
+  balanceImprovements: string[];
+}
+
+/**
+ * Layer-specific aggregated data
+ */
+export interface LayerData {
+  layer: string;
+  coverage: CoverageMetrics;
+  duplicates: DuplicateCandidate[];
+  gaps: GapCandidate[];
+  balance: BalanceAssessment[];
+}

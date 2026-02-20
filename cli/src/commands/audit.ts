@@ -3,8 +3,8 @@
  */
 
 import ansis from "ansis";
-import { writeFile, ensureDir } from "../utils/file-io.js";
-import { getErrorMessage } from "../utils/errors.js";
+import { readFile, writeFile, ensureDir } from "../utils/file-io.js";
+import { getErrorMessage, CLIError } from "../utils/errors.js";
 import { RelationshipCatalog } from "../core/relationship-catalog.js";
 import { getAllLayers } from "../generated/layer-registry.js";
 import { CoverageAnalyzer } from "../audit/analysis/coverage-analyzer.js";
@@ -16,6 +16,7 @@ import { ConnectivityAnalyzer } from "../audit/graph/connectivity.js";
 import { AuditReport, ConnectivityStats } from "../audit/types.js";
 import { formatAuditReport, AuditReportFormat } from "../export/audit-formatters.js";
 import path from "path";
+import * as yaml from "yaml";
 
 export interface AuditOptions {
   layer?: string;
@@ -61,14 +62,20 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
       console.log(ansis.dim("Running coverage analysis..."));
     }
 
+    // Helper function to find layer by ID
+    const findLayerById = (layerId: string) => {
+      const layers = getAllLayers();
+      const layer = layers.find((l) => l.id === layerId);
+      if (!layer) {
+        throw new CLIError(`Layer not found: ${layerId}`);
+      }
+      return layer;
+    };
+
     // Run coverage analysis
     let coverage;
     if (options.layer) {
-      const layers = getAllLayers();
-      const layer = layers.find((l) => l.id === options.layer);
-      if (!layer) {
-        throw new Error(`Layer not found: ${options.layer}`);
-      }
+      const layer = findLayerById(options.layer);
       coverage = [await coverageAnalyzer.analyzeLayer(layer)];
     } else {
       coverage = await coverageAnalyzer.analyzeAll();
@@ -90,11 +97,7 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
     // Run gap analysis
     let gaps;
     if (options.layer) {
-      const layers = getAllLayers();
-      const layer = layers.find((l) => l.id === options.layer);
-      if (!layer) {
-        throw new Error(`Layer not found: ${options.layer}`);
-      }
+      const layer = findLayerById(options.layer);
       gaps = gapAnalyzer.analyzeLayer(layer);
     } else {
       gaps = gapAnalyzer.analyzeAll();
@@ -107,11 +110,7 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
     // Run balance assessment
     let balance;
     if (options.layer) {
-      const layers = getAllLayers();
-      const layer = layers.find((l) => l.id === options.layer);
-      if (!layer) {
-        throw new Error(`Layer not found: ${options.layer}`);
-      }
+      const layer = findLayerById(options.layer);
       balance = balanceAssessor.assessLayer(layer);
     } else {
       balance = balanceAssessor.assessAll();
@@ -142,12 +141,37 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
       console.log(ansis.dim("Generating audit report..."));
     }
 
+    // Load model metadata from manifest (with fallback to defaults)
+    let modelName = "Documentation Robotics Model";
+    let modelVersion = "1.0.0";
+
+    try {
+      const manifestPath = path.join(
+        process.cwd(),
+        "documentation-robotics",
+        "model",
+        "manifest.yaml"
+      );
+      const manifestContent = await readFile(manifestPath);
+      const manifest = yaml.parse(manifestContent) as {
+        name: string;
+        version: string;
+      };
+      modelName = manifest.name;
+      modelVersion = manifest.version;
+    } catch (error) {
+      // Use defaults if manifest not available (e.g., in tests)
+      if (options.debug) {
+        console.log(ansis.dim("Using default model metadata (manifest not found)"));
+      }
+    }
+
     // Build audit report
     const report: AuditReport = {
       timestamp: new Date().toISOString(),
       model: {
-        name: "Documentation Robotics Model",
-        version: "1.0.0",
+        name: modelName,
+        version: modelVersion,
       },
       coverage,
       duplicates,
@@ -198,10 +222,11 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
     }
   } catch (error) {
     const message = getErrorMessage(error);
-    console.error(ansis.red(`Error: ${message}`));
     if (options.debug) {
       console.error(error);
     }
-    process.exit(1);
+    throw new CLIError(
+      `Audit failed: ${message}`
+    );
   }
 }
