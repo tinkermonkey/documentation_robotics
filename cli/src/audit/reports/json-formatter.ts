@@ -127,22 +127,25 @@ export class JsonFormatter {
   private summarizeCoverage(coverage: CoverageMetrics[]) {
     const totalLayers = coverage.length;
     const totalRelationships = coverage.reduce(
-      (sum, c) => sum + c.totalRelationships,
+      (sum, c) => sum + c.relationshipCount,
       0
     );
-    const isolatedNodes = coverage.reduce(
-      (sum, c) => sum + c.isolatedNodes,
+    const totalIsolated = coverage.reduce(
+      (sum, c) => sum + c.isolatedNodeTypes.length,
       0
     );
-    const totalNodes = coverage.reduce((sum, c) => sum + c.totalNodes, 0);
+    const totalNodeTypes = coverage.reduce(
+      (sum, c) => sum + c.nodeTypeCount,
+      0
+    );
 
     return {
       totalLayers,
       totalRelationships,
-      isolatedNodes,
-      totalNodes,
+      isolatedNodeTypes: totalIsolated,
+      totalNodeTypes,
       isolationPercentage:
-        totalNodes > 0 ? (isolatedNodes / totalNodes) * 100 : 0,
+        totalNodeTypes > 0 ? (totalIsolated / totalNodeTypes) * 100 : 0,
     };
   }
 
@@ -150,38 +153,32 @@ export class JsonFormatter {
    * Group duplicates by confidence level
    */
   private groupByConfidence(duplicates: DuplicateCandidate[]) {
-    const high = duplicates.filter((d) => d.confidence >= 0.8).length;
-    const medium = duplicates.filter(
-      (d) => d.confidence >= 0.5 && d.confidence < 0.8
-    ).length;
-    const low = duplicates.filter((d) => d.confidence < 0.5).length;
+    const high = duplicates.filter((d) => d.confidence === "high").length;
+    const medium = duplicates.filter((d) => d.confidence === "medium").length;
+    const low = duplicates.filter((d) => d.confidence === "low").length;
 
     return { high, medium, low };
   }
 
   /**
-   * Group gaps by layer
+   * Group gaps by priority
    */
   private groupGapsByLayer(gaps: GapCandidate[]) {
-    const byLayer: Record<string, number> = {};
+    const byPriority: Record<string, number> = {};
     for (const gap of gaps) {
-      byLayer[gap.layer] = (byLayer[gap.layer] || 0) + 1;
+      byPriority[gap.priority] = (byPriority[gap.priority] || 0) + 1;
     }
-    return byLayer;
+    return byPriority;
   }
 
   /**
    * Group balance assessments by status
    */
   private groupByStatus(balance: BalanceAssessment[]) {
-    const underRepresented = balance.filter(
-      (b) => b.status === "Under-represented"
-    ).length;
-    const balanced = balance.filter((b) => b.status === "Balanced").length;
-    const overRepresented = balance.filter(
-      (b) => b.status === "Over-represented"
-    ).length;
+    const under = balance.filter((b) => b.status === "under").length;
+    const balanced = balance.filter((b) => b.status === "balanced").length;
+    const over = balance.filter((b) => b.status === "over").length;
 
-    return { underRepresented, balanced, overRepresented };
+    return { under, balanced, over };
   }
 }

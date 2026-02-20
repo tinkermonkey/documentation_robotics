@@ -118,10 +118,14 @@ export class ReportGenerator {
       coverage,
       duplicates: metrics.duplicates.filter(
         (d) =>
-          d.element1.startsWith(coverage.layer) ||
-          d.element2.startsWith(coverage.layer)
+          d.relationships[0].startsWith(coverage.layer) ||
+          d.relationships[1].startsWith(coverage.layer)
       ),
-      gaps: metrics.gaps.filter((g) => g.layer === coverage.layer),
+      gaps: metrics.gaps.filter(
+        (g) =>
+          g.sourceNodeType.startsWith(coverage.layer) ||
+          g.destinationNodeType.startsWith(coverage.layer)
+      ),
       balance: metrics.balance.filter((b) => b.layer === coverage.layer),
     };
   }

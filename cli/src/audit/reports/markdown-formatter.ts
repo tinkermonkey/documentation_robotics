@@ -31,21 +31,26 @@ export class MarkdownFormatter {
     lines.push("");
     const totalLayers = coverage.length;
     const totalRelationships = coverage.reduce(
-      (sum, c) => sum + c.totalRelationships,
+      (sum, c) => sum + c.relationshipCount,
       0
     );
-    const isolatedNodes = coverage.reduce(
-      (sum, c) => sum + c.isolatedNodes,
+    const totalIsolated = coverage.reduce(
+      (sum, c) => sum + c.isolatedNodeTypes.length,
       0
     );
-    const totalNodes = coverage.reduce((sum, c) => sum + c.totalNodes, 0);
+    const totalNodeTypes = coverage.reduce(
+      (sum, c) => sum + c.nodeTypeCount,
+      0
+    );
     const isolationPct =
-      totalNodes > 0 ? ((isolatedNodes / totalNodes) * 100).toFixed(2) : "0.00";
+      totalNodeTypes > 0
+        ? ((totalIsolated / totalNodeTypes) * 100).toFixed(2)
+        : "0.00";
 
     lines.push(`- **Total Layers Analyzed**: ${totalLayers}`);
     lines.push(`- **Total Relationships**: ${totalRelationships}`);
-    lines.push(`- **Total Nodes**: ${totalNodes}`);
-    lines.push(`- **Isolated Nodes**: ${isolatedNodes}`);
+    lines.push(`- **Total Node Types**: ${totalNodeTypes}`);
+    lines.push(`- **Isolated Node Types**: ${totalIsolated}`);
     lines.push(`- **Overall Isolation**: ${isolationPct}%`);
     lines.push("");
 
@@ -56,13 +61,10 @@ export class MarkdownFormatter {
     lines.push("|:------|:----------:|:-------------:|:-------:|:-----------:|");
 
     for (const c of coverage) {
-      const density = c.density.toFixed(2);
-      const isolation =
-        c.totalNodes > 0
-          ? ((c.isolatedNodes / c.totalNodes) * 100).toFixed(2)
-          : "0.00";
+      const density = c.relationshipsPerNodeType.toFixed(2);
+      const isolation = c.isolationPercentage.toFixed(2);
       lines.push(
-        `| ${c.layer} | ${c.nodeTypeCounts.length} | ${c.totalRelationships} | ${density} | ${isolation}% |`
+        `| ${c.layer} | ${c.nodeTypeCount} | ${c.relationshipCount} | ${density} | ${isolation}% |`
       );
     }
     lines.push("");
@@ -74,7 +76,7 @@ export class MarkdownFormatter {
     lines.push("");
 
     // Zero-relationship callouts
-    const zeroRelLayers = coverage.filter((c) => c.totalRelationships === 0);
+    const zeroRelLayers = coverage.filter((c) => c.relationshipCount === 0);
     if (zeroRelLayers.length > 0) {
       lines.push("## ⚠️ Layers with Zero Relationships");
       lines.push("");
@@ -109,11 +111,9 @@ export class MarkdownFormatter {
       lines.push("");
 
       // Group by confidence
-      const high = duplicates.filter((d) => d.confidence >= 0.8);
-      const medium = duplicates.filter(
-        (d) => d.confidence >= 0.5 && d.confidence < 0.8
-      );
-      const low = duplicates.filter((d) => d.confidence < 0.5);
+      const high = duplicates.filter((d) => d.confidence === "high");
+      const medium = duplicates.filter((d) => d.confidence === "medium");
+      const low = duplicates.filter((d) => d.confidence === "low");
 
       if (high.length > 0) {
         lines.push("## High Confidence (≥80%)");
@@ -158,28 +158,29 @@ export class MarkdownFormatter {
       lines.push(`**Total Gaps**: ${gaps.length}`);
       lines.push("");
 
-      // Group by layer
-      const byLayer: Record<string, GapCandidate[]> = {};
-      for (const gap of gaps) {
-        if (!byLayer[gap.layer]) {
-          byLayer[gap.layer] = [];
-        }
-        byLayer[gap.layer].push(gap);
+      // Group by priority
+      const high = gaps.filter((g) => g.priority === "high");
+      const medium = gaps.filter((g) => g.priority === "medium");
+      const low = gaps.filter((g) => g.priority === "low");
+
+      if (high.length > 0) {
+        lines.push("## High Priority Gaps");
+        lines.push("");
+        this.addGapTable(lines, high);
+        lines.push("");
       }
 
-      for (const [layer, layerGaps] of Object.entries(byLayer)) {
-        lines.push(`## ${layer}`);
+      if (medium.length > 0) {
+        lines.push("## Medium Priority Gaps");
         lines.push("");
-        lines.push("| Source Type | Target Type | Suggested Predicate | Rationale |");
-        lines.push("|:------------|:------------|:--------------------|:----------|");
+        this.addGapTable(lines, medium);
+        lines.push("");
+      }
 
-        for (const gap of layerGaps) {
-          const predicate = gap.suggestedPredicate || "N/A";
-          const rationale = gap.rationale || "No rationale provided";
-          lines.push(
-            `| ${gap.sourceType} | ${gap.targetType} | ${predicate} | ${rationale} |`
-          );
-        }
+      if (low.length > 0) {
+        lines.push("## Low Priority Gaps");
+        lines.push("");
+        this.addGapTable(lines, low);
         lines.push("");
       }
     }
@@ -206,9 +207,9 @@ export class MarkdownFormatter {
       lines.push("");
     } else {
       // Group by status
-      const underRep = balance.filter((b) => b.status === "Under-represented");
-      const balanced = balance.filter((b) => b.status === "Balanced");
-      const overRep = balance.filter((b) => b.status === "Over-represented");
+      const underRep = balance.filter((b) => b.status === "under");
+      const balanced = balance.filter((b) => b.status === "balanced");
+      const overRep = balance.filter((b) => b.status === "over");
 
       if (underRep.length > 0) {
         lines.push("## Under-represented Node Types");
@@ -251,20 +252,16 @@ export class MarkdownFormatter {
 
     lines.push("## Summary");
     lines.push("");
-    lines.push(`- **Total Components**: ${stats.totalComponents}`);
-    lines.push(`- **Isolated Components**: ${stats.isolatedComponents}`);
+    lines.push(`- **Total Nodes**: ${stats.totalNodes}`);
+    lines.push(`- **Total Edges**: ${stats.totalEdges}`);
+    lines.push(`- **Connected Components**: ${stats.connectedComponents}`);
     lines.push(`- **Largest Component Size**: ${stats.largestComponentSize}`);
+    lines.push(`- **Isolated Nodes**: ${stats.isolatedNodes}`);
+    lines.push(`- **Average Degree**: ${stats.averageDegree.toFixed(2)}`);
     lines.push(
-      `- **Average Component Size**: ${stats.averageComponentSize.toFixed(2)}`
+      `- **Transitive Chain Count**: ${stats.transitiveChainCount}`
     );
     lines.push("");
-
-    if (stats.stronglyConnectedComponents) {
-      lines.push("## Strongly Connected Components");
-      lines.push("");
-      lines.push(`- **Total SCCs**: ${stats.stronglyConnectedComponents}`);
-      lines.push("");
-    }
 
     await fs.writeFile(outputPath, lines.join("\n"), "utf-8");
   }
@@ -280,10 +277,9 @@ export class MarkdownFormatter {
     lines.push("|:------|:---------------:|:---------------:|:-------------:|");
 
     for (const c of coverage) {
-      const used = c.predicatesUsed;
-      const total = c.availablePredicates;
-      const utilization =
-        total > 0 ? ((used / total) * 100).toFixed(2) : "0.00";
+      const used = c.usedPredicates.length;
+      const total = c.availablePredicates.length;
+      const utilization = c.utilizationPercentage.toFixed(2);
       lines.push(`| ${c.layer} | ${used} | ${total} | ${utilization}% |`);
     }
   }
@@ -295,14 +291,37 @@ export class MarkdownFormatter {
     lines: string[],
     duplicates: DuplicateCandidate[]
   ): void {
-    lines.push("| Element 1 | Element 2 | Confidence | Reason |");
+    lines.push("| Relationship 1 | Relationship 2 | Confidence | Reason |");
     lines.push("|:----------|:----------|:----------:|:-------|");
 
     for (const dup of duplicates) {
-      const confidence = (dup.confidence * 100).toFixed(0);
+      const confidence = dup.confidence;
       const reason = dup.reason || "N/A";
+      const rel1 = dup.relationships[0];
+      const rel2 = dup.relationships[1];
       lines.push(
-        `| ${dup.element1} | ${dup.element2} | ${confidence}% | ${reason} |`
+        `| ${rel1} | ${rel2} | ${confidence} | ${reason} |`
+      );
+    }
+  }
+
+  /**
+   * Add gap candidate table
+   */
+  private addGapTable(lines: string[], gaps: GapCandidate[]): void {
+    lines.push(
+      "| Source Type | Destination Type | Suggested Predicate | Reason | Standard Reference |"
+    );
+    lines.push(
+      "|:------------|:-----------------|:--------------------|:-------|:-------------------|"
+    );
+
+    for (const gap of gaps) {
+      const predicate = gap.suggestedPredicate || "N/A";
+      const reason = gap.reason || "No reason provided";
+      const stdRef = gap.standardReference || "N/A";
+      lines.push(
+        `| ${gap.sourceNodeType} | ${gap.destinationNodeType} | ${predicate} | ${reason} | ${stdRef} |`
       );
     }
   }
@@ -322,11 +341,9 @@ export class MarkdownFormatter {
     );
 
     for (const b of balance) {
-      const targetRange = b.targetRange
-        ? `${b.targetRange.min}-${b.targetRange.max}`
-        : "N/A";
+      const targetRange = `${b.targetRange[0]}-${b.targetRange[1]}`;
       lines.push(
-        `| ${b.layer} | ${b.nodeType} | ${b.classification} | ${targetRange} | ${b.currentCount} | ${b.status} |`
+        `| ${b.layer} | ${b.nodeType} | ${b.category} | ${targetRange} | ${b.currentCount} | ${b.status} |`
       );
     }
   }
