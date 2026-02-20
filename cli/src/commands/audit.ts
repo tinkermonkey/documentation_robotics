@@ -15,6 +15,7 @@ import { RelationshipGraph } from "../audit/graph/relationship-graph.js";
 import { ConnectivityAnalyzer } from "../audit/graph/connectivity.js";
 import { AuditReport, ConnectivityStats } from "../audit/types.js";
 import { formatAuditReport, AuditReportFormat } from "../export/audit-formatters.js";
+import { SnapshotStorage } from "../audit/snapshot-storage.js";
 import path from "path";
 import * as yaml from "yaml";
 
@@ -24,6 +25,7 @@ export interface AuditOptions {
   output?: string;
   verbose?: boolean;
   debug?: boolean;
+  saveSnapshot?: boolean;
 }
 
 /**
@@ -203,6 +205,21 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
       format,
       verbose: options.verbose,
     });
+
+    // Save snapshot if requested
+    if (options.saveSnapshot) {
+      if (options.debug) {
+        console.log(ansis.dim("Saving audit snapshot..."));
+      }
+
+      const storage = new SnapshotStorage();
+      const metadata = await storage.save(report);
+
+      console.log(
+        ansis.green(`✓ Snapshot saved: ${metadata.id}`),
+      );
+      console.log(ansis.dim(`  Timestamp: ${new Date(metadata.timestamp).toLocaleString()}`));
+    }
 
     // Write to file or stdout
     if (options.output) {

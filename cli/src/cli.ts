@@ -41,6 +41,8 @@ import { versionCommand } from "./commands/version.js";
 import { statsCommand } from "./commands/stats.js";
 import { reportCommand } from "./commands/report.js";
 import { auditCommand } from "./commands/audit.js";
+import { auditDiffCommand } from "./commands/audit-diff.js";
+import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { readJSON, fileExists } from "./utils/file-io.js";
@@ -516,6 +518,7 @@ program
   .option("--format <format>", "Output format: text (default), json, markdown")
   .option("--output <path>", "Output file path (auto-detects format from extension)")
   .option("--verbose", "Show detailed analysis")
+  .option("--save-snapshot", "Save audit report as snapshot for differential analysis")
   .addHelpText(
     "after",
     `
@@ -537,9 +540,50 @@ Examples:
   $ dr audit --format json             # Output as JSON
   $ dr audit --output audit.md         # Save as markdown file
   $ dr audit --verbose                 # Show detailed analysis
+  $ dr audit --save-snapshot           # Save snapshot for later comparison
   $ dr audit api --output api-audit.json  # API layer audit as JSON`
   )
   .action((layer, options) => auditCommand({ ...options, layer }));
+
+// Audit diff command - Compare snapshots
+program
+  .command("audit:diff")
+  .description("Compare before/after audit snapshots")
+  .option("--before <id>", "Before snapshot ID or timestamp")
+  .option("--after <id>", "After snapshot ID or timestamp")
+  .option("--format <format>", "Output format: text (default), json, markdown")
+  .option("--output <path>", "Output file path")
+  .option("--verbose", "Show detailed comparison")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr audit:diff                                  # Compare latest two snapshots
+  $ dr audit:diff --before 20260220-100000 --after 20260220-150000
+  $ dr audit:diff --format markdown --output diff.md
+  $ dr audit:diff --verbose                        # Show detailed changes`
+  )
+  .action((options) => auditDiffCommand(options));
+
+// Audit snapshots command - Manage snapshots
+program
+  .command("audit:snapshots <action>")
+  .description("Manage audit snapshots (list, delete, clear)")
+  .option("--id <id>", "Snapshot ID (for delete action)")
+  .addHelpText(
+    "after",
+    `
+Actions:
+  list     List all available snapshots
+  delete   Delete a specific snapshot (requires --id)
+  clear    Delete all snapshots
+
+Examples:
+  $ dr audit:snapshots list
+  $ dr audit:snapshots delete --id 20260220-100000
+  $ dr audit:snapshots clear`
+  )
+  .action((action, options) => auditSnapshotsCommand({ ...options, action }));
 
 // Element subcommands
 const elementGroup = program.command("element").description("Element operations");
