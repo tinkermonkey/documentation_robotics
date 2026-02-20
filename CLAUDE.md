@@ -304,17 +304,20 @@ tsx scripts/relationship-audit.ts --help
 ```
 
 **Output Formats:**
+
 - **text** - Human-readable colored output (default)
 - **json** - Machine-parseable for automation
 - **markdown** - Documentation-ready reports
 
 **Quality Thresholds:**
+
 - Isolation: ≤ 20% isolated node types
 - Density: ≥ 1.5 relationships per node type
 - High-Priority Gaps: ≤ 10 gaps
 - Duplicates: ≤ 5 duplicate candidates
 
 **Exit Codes:**
+
 - `0` - Success (no issues or below thresholds)
 - `1` - Quality issues detected (with `--threshold` flag)
 - `2` - Script execution error

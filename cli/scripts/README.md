@@ -96,25 +96,25 @@ tsx scripts/relationship-audit.ts --format json --threshold
 
 ### Command-Line Options
 
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| `--layer` | `-l` | Audit specific layer only | All layers |
-| `--format` | `-f` | Output format: `text`, `json`, `markdown` | `text` |
-| `--output` | `-o` | Write to file instead of stdout | stdout |
-| `--verbose` | `-v` | Show detailed progress | `false` |
-| `--threshold` | `-t` | Exit 1 if quality issues detected | `false` |
-| `--help` | `-h` | Show help message | - |
+| Option        | Short | Description                               | Default    |
+| ------------- | ----- | ----------------------------------------- | ---------- |
+| `--layer`     | `-l`  | Audit specific layer only                 | All layers |
+| `--format`    | `-f`  | Output format: `text`, `json`, `markdown` | `text`     |
+| `--output`    | `-o`  | Write to file instead of stdout           | stdout     |
+| `--verbose`   | `-v`  | Show detailed progress                    | `false`    |
+| `--threshold` | `-t`  | Exit 1 if quality issues detected         | `false`    |
+| `--help`      | `-h`  | Show help message                         | -          |
 
 ### Quality Thresholds
 
 When using `--threshold`, the script applies these quality gates:
 
-| Metric | Threshold | Description |
-|--------|-----------|-------------|
-| Isolation | ≤ 20% | Max percentage of isolated node types |
-| Density | ≥ 1.5 | Min relationships per node type |
-| High-Priority Gaps | ≤ 10 | Max high-priority missing relationships |
-| Duplicates | ≤ 5 | Max duplicate relationship candidates |
+| Metric             | Threshold | Description                             |
+| ------------------ | --------- | --------------------------------------- |
+| Isolation          | ≤ 20%     | Max percentage of isolated node types   |
+| Density            | ≥ 1.5     | Min relationships per node type         |
+| High-Priority Gaps | ≤ 10      | Max high-priority missing relationships |
+| Duplicates         | ≤ 5       | Max duplicate relationship candidates   |
 
 Exceeding any threshold triggers exit code 1.
 
@@ -179,7 +179,7 @@ Layer: motivation (5 node types, 12 relationships)
 - **Relationships:** 12
 - **Isolation:** 20.0%
 - **Density:** 2.40 relationships/node
-...
+  ...
 ```
 
 ### CI/CD Integration
@@ -200,7 +200,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install dependencies
         run: cd cli && npm install
@@ -256,23 +256,25 @@ fi
 
 ### Comparison with CLI Command
 
-| Feature | Standalone Script | CLI Command |
-|---------|------------------|-------------|
-| Basic audit | ✅ | ✅ |
-| Layer-specific | ✅ | ✅ |
-| Output formats | ✅ | ✅ |
-| Quality thresholds | ✅ | ❌ |
-| Snapshot management | ❌ | ✅ |
-| Differential analysis | ❌ | ✅ |
-| Best for | CI/CD, automation | Interactive use |
+| Feature               | Standalone Script | CLI Command     |
+| --------------------- | ----------------- | --------------- |
+| Basic audit           | ✅                | ✅              |
+| Layer-specific        | ✅                | ✅              |
+| Output formats        | ✅                | ✅              |
+| Quality thresholds    | ✅                | ❌              |
+| Snapshot management   | ❌                | ✅              |
+| Differential analysis | ❌                | ✅              |
+| Best for              | CI/CD, automation | Interactive use |
 
 **Use the standalone script when:**
+
 - Running in CI/CD pipelines
 - Enforcing quality gates
 - Automating scheduled audits
 - Integrating with external tools
 
 **Use the CLI command when:**
+
 - Working interactively
 - Comparing snapshots over time
 - Tracking improvement trends
@@ -309,6 +311,7 @@ npm run audit -- --threshold --format json --output audit.json || exit 1
 **Error: "Layer not found"**
 
 Ensure the layer name is valid. Use one of:
+
 - `motivation`, `business`, `security`, `application`, `technology`
 - `api`, `data-model`, `data-store`, `ux`, `navigation`, `apm`, `testing`
 

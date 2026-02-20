@@ -75,6 +75,7 @@ The `--threshold` flag enables quality gates for CI/CD:
 - **Duplicates**: Max 5 duplicate candidates
 
 Exit codes:
+
 - `0` - Success (no issues or below thresholds)
 - `1` - Quality issues detected (with `--threshold`)
 - `2` - Script execution error
