@@ -24,7 +24,12 @@ Temporal analysis modules:
 
 ## Usage
 
-### Basic Audit
+The audit pipeline can be invoked in two ways:
+
+1. **CLI Command** - Full-featured command with snapshot management
+2. **Standalone Script** - Lightweight script for automation and CI/CD
+
+### CLI Command
 
 Run a full audit across all layers:
 
@@ -36,6 +41,70 @@ Audit a specific layer:
 
 ```bash
 dr audit security
+```
+
+### Standalone Script
+
+The standalone script (`scripts/relationship-audit.ts`) provides a lightweight alternative for automation, CI/CD pipelines, and pre-commit hooks.
+
+Run audit with npm:
+
+```bash
+npm run audit                        # Text output to stdout
+npm run audit -- --format json       # JSON format
+npm run audit -- --output report.md  # Save to file
+npm run audit -- --layer api         # Audit specific layer
+npm run audit -- --verbose           # Detailed logging
+npm run audit -- --threshold         # Exit 1 if quality issues detected
+```
+
+Run directly with tsx:
+
+```bash
+tsx scripts/relationship-audit.ts --help
+tsx scripts/relationship-audit.ts --format json --output audit.json
+```
+
+**Quality Thresholds**
+
+The `--threshold` flag enables quality gates for CI/CD:
+
+- **Isolation**: Max 20% isolated node types
+- **Density**: Min 1.5 relationships per node type
+- **High-Priority Gaps**: Max 10 gaps
+- **Duplicates**: Max 5 duplicate candidates
+
+Exit codes:
+- `0` - Success (no issues or below thresholds)
+- `1` - Quality issues detected (with `--threshold`)
+- `2` - Script execution error
+
+**Example CI/CD Integration**
+
+```yaml
+# .github/workflows/audit.yml
+name: Relationship Quality Audit
+
+on: [pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: cd cli && npm install
+
+      - name: Run audit with quality gates
+        run: cd cli && npm run audit -- --threshold --format json --output audit.json
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: audit-report
+          path: cli/audit.json
 ```
 
 ### Saving Snapshots
