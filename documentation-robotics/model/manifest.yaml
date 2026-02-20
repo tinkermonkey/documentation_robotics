@@ -1,0 +1,71 @@
+version: 0.1.0
+schema: documentation-robotics-v1
+cli_version: 0.1.0
+spec_version: 0.8.0
+created: 2026-02-20T15:28:17.945Z
+updated: 2026-02-20T15:28:17.947Z
+project:
+  name: dr-codebase
+  version: 0.1.0
+documentation: .dr/README.md
+layers:
+  motivation:
+    order: 1
+    name: Motivation
+    path: documentation-robotics/model/01_motivation/
+    enabled: true
+  business:
+    order: 2
+    name: Business
+    path: documentation-robotics/model/02_business/
+    enabled: true
+  security:
+    order: 3
+    name: Security
+    path: documentation-robotics/model/03_security/
+    enabled: true
+  application:
+    order: 4
+    name: Application
+    path: documentation-robotics/model/04_application/
+    enabled: true
+  technology:
+    order: 5
+    name: Technology
+    path: documentation-robotics/model/05_technology/
+    enabled: true
+  api:
+    order: 6
+    name: Api
+    path: documentation-robotics/model/06_api/
+    enabled: true
+  data-model:
+    order: 7
+    name: Data model
+    path: documentation-robotics/model/07_data-model/
+    enabled: true
+  data-store:
+    order: 8
+    name: Data store
+    path: documentation-robotics/model/08_data-store/
+    enabled: true
+  ux:
+    order: 9
+    name: Ux
+    path: documentation-robotics/model/09_ux/
+    enabled: true
+  navigation:
+    order: 10
+    name: Navigation
+    path: documentation-robotics/model/10_navigation/
+    enabled: true
+  apm:
+    order: 11
+    name: Apm
+    path: documentation-robotics/model/11_apm/
+    enabled: true
+  testing:
+    order: 12
+    name: Testing
+    path: documentation-robotics/model/12_testing/
+    enabled: true
