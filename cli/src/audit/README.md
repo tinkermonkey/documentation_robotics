@@ -157,9 +157,9 @@ This module leverages existing infrastructure:
 - `LAYERS` - Generated layer metadata
 - `GraphModel` - Graph storage and traversal
 
-## Next Steps (Phase 2+)
+## Roadmap
 
-Phase 1 provides deterministic analysis. Future phases will add:
+Current implementation provides deterministic analysis. Future work will add:
 - Report generation (JSON, Markdown)
 - Pipeline orchestration
 - AI-assisted evaluation (Claude Code CLI integration)
