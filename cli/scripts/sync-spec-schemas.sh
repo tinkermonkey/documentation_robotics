@@ -83,7 +83,12 @@ else
   # Escape special regex characters in SPEC_VERSION for safe sed replacement
   ESCAPED_VERSION=$(printf '%s\n' "$SPEC_VERSION" | sed -e 's/[\/&]/\\&/g')
 
-  sed -i "s/const BUNDLED_SPEC_VERSION = \"[^\"]*\"/const BUNDLED_SPEC_VERSION = \"$ESCAPED_VERSION\"/" "$SPEC_VERSION_TS"
+  # macOS (BSD sed) requires empty backup extension, Linux (GNU sed) does not
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/const BUNDLED_SPEC_VERSION = \"[^\"]*\"/const BUNDLED_SPEC_VERSION = \"$ESCAPED_VERSION\"/" "$SPEC_VERSION_TS"
+  else
+    sed -i "s/const BUNDLED_SPEC_VERSION = \"[^\"]*\"/const BUNDLED_SPEC_VERSION = \"$ESCAPED_VERSION\"/" "$SPEC_VERSION_TS"
+  fi
 
   # Verify the replacement actually occurred
   if ! grep -q "const BUNDLED_SPEC_VERSION = \"$ESCAPED_VERSION\"" "$SPEC_VERSION_TS"; then
