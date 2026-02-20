@@ -93,3 +93,37 @@ export interface TransitiveChain {
   chain: string[]; // Node types in chain
   length: number;
 }
+
+/**
+ * Connectivity statistics summary
+ */
+export interface ConnectivityStats {
+  totalNodes: number;
+  totalEdges: number;
+  connectedComponents: number;
+  largestComponentSize: number;
+  isolatedNodes: number;
+  averageDegree: number;
+  transitiveChainCount: number;
+}
+
+/**
+ * Comprehensive audit report combining all analysis results
+ */
+export interface AuditReport {
+  timestamp: string;
+  model: {
+    name: string;
+    version: string;
+  };
+  coverage: CoverageMetrics[];
+  duplicates: DuplicateCandidate[];
+  gaps: GapCandidate[];
+  balance: BalanceAssessment[];
+  connectivity: {
+    components: ConnectedComponent[];
+    degrees: NodeDegree[];
+    transitiveChains: TransitiveChain[];
+    stats: ConnectivityStats;
+  };
+}

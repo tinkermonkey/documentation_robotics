@@ -40,6 +40,7 @@ import { copilotCommands } from "./commands/copilot.js";
 import { versionCommand } from "./commands/version.js";
 import { statsCommand } from "./commands/stats.js";
 import { reportCommand } from "./commands/report.js";
+import { auditCommand } from "./commands/audit.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { readJSON, fileExists } from "./utils/file-io.js";
@@ -507,6 +508,38 @@ Examples:
   $ dr report --verbose                            # Show detailed information`
   )
   .action((options) => reportCommand(options));
+
+// Audit command - Relationship analysis
+program
+  .command("audit [layer]")
+  .description("Analyze relationship coverage, gaps, duplicates, and balance")
+  .option("--format <format>", "Output format: text (default), json, markdown")
+  .option("--output <path>", "Output file path (auto-detects format from extension)")
+  .option("--verbose", "Show detailed analysis")
+  .addHelpText(
+    "after",
+    `
+Output formats:
+  text       Full formatted audit report (default)
+  json       JSON output for automation
+  markdown   Markdown audit report format
+
+Analysis types:
+  Coverage     Node type isolation and predicate utilization
+  Duplicates   Semantic duplicate relationship detection
+  Gaps         Missing relationship identification
+  Balance      Relationship density assessment
+  Connectivity Graph connectivity and component analysis
+
+Examples:
+  $ dr audit                           # Full audit of all layers
+  $ dr audit security                  # Audit security layer only
+  $ dr audit --format json             # Output as JSON
+  $ dr audit --output audit.md         # Save as markdown file
+  $ dr audit --verbose                 # Show detailed analysis
+  $ dr audit api --output api-audit.json  # API layer audit as JSON`
+  )
+  .action((layer, options) => auditCommand({ ...options, layer }));
 
 // Element subcommands
 const elementGroup = program.command("element").description("Element operations");
