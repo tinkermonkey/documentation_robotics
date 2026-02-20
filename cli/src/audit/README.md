@@ -101,26 +101,27 @@ const chains = await connectivityAnalyzer.findTransitiveChains();
 ### Zero-Relationship Layers
 
 Three layers have zero intra-layer relationships:
+
 - **Security** (66 node types): NIST SP 800-53 patterns not implemented
 - **UX** (53 node types): React/Component patterns not implemented
 - **Navigation** (26 node types): Router patterns not implemented
 
 ### Current State
 
-| Layer | Node Types | Relationships | Density | Isolation % |
-|-------|------------|---------------|---------|-------------|
-| motivation | 19 | 58 | 3.05 | TBD |
-| api | 29 | 52 | 1.79 | TBD |
-| testing | 29 | 54 | 1.86 | TBD |
-| apm | 35 | 43 | 1.23 | TBD |
-| data-store | 26 | 18 | 0.69 | TBD |
-| business | 15 | 15 | 1.00 | TBD |
-| data-model | 0 | 7 | N/A | N/A |
-| application | 14 | 3 | 0.21 | TBD |
-| technology | 22 | 2 | 0.09 | TBD |
-| **security** | **66** | **0** | **0.00** | **100%** |
-| **ux** | **53** | **0** | **0.00** | **100%** |
-| **navigation** | **26** | **0** | **0.00** | **100%** |
+| Layer          | Node Types | Relationships | Density  | Isolation % |
+| -------------- | ---------- | ------------- | -------- | ----------- |
+| motivation     | 19         | 58            | 3.05     | TBD         |
+| api            | 29         | 52            | 1.79     | TBD         |
+| testing        | 29         | 54            | 1.86     | TBD         |
+| apm            | 35         | 43            | 1.23     | TBD         |
+| data-store     | 26         | 18            | 0.69     | TBD         |
+| business       | 15         | 15            | 1.00     | TBD         |
+| data-model     | 0          | 7             | N/A      | N/A         |
+| application    | 14         | 3             | 0.21     | TBD         |
+| technology     | 22         | 2             | 0.09     | TBD         |
+| **security**   | **66**     | **0**         | **0.00** | **100%**    |
+| **ux**         | **53**     | **0**         | **0.00** | **100%**    |
+| **navigation** | **26**     | **0**         | **0.00** | **100%**    |
 
 ## Testing
 
@@ -131,6 +132,7 @@ npm run test:unit -- tests/unit/audit/
 ```
 
 Tests cover:
+
 - Coverage metrics calculation
 - Duplicate detection logic
 - Gap analysis templates
@@ -141,6 +143,7 @@ Tests cover:
 ## Type Definitions
 
 All audit types are defined in `types.ts`:
+
 - `CoverageMetrics`
 - `DuplicateCandidate`
 - `GapCandidate`
@@ -152,6 +155,7 @@ All audit types are defined in `types.ts`:
 ## Dependencies
 
 This module leverages existing infrastructure:
+
 - `RelationshipCatalog` - Predicate definitions and semantics
 - `RELATIONSHIPS_BY_SOURCE` - Generated relationship index (O(1) lookups)
 - `LAYERS` - Generated layer metadata
@@ -160,6 +164,7 @@ This module leverages existing infrastructure:
 ## Roadmap
 
 Current implementation provides deterministic analysis. Future work will add:
+
 - Report generation (JSON, Markdown)
 - Pipeline orchestration
 - AI-assisted evaluation (Claude Code CLI integration)
