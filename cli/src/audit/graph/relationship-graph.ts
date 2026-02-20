@@ -78,9 +78,8 @@ export class RelationshipGraph {
             required: rel.required,
           },
         });
-      } catch (error) {
-        // Skip edges where nodes don't exist
-        console.warn(`Skipping edge ${rel.id}: ${error}`);
+      } catch (_error) {
+        // Silently skip edges where nodes don't exist
       }
     }
   }

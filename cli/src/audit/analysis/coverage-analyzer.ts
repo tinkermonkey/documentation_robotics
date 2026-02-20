@@ -14,6 +14,7 @@ import {
   getAllLayers,
   type LayerMetadata,
 } from "../../generated/layer-registry.js";
+import { LAYER_TEMPLATES } from "./layer-templates.js";
 import type { CoverageMetrics } from "../types.js";
 
 /**
@@ -28,9 +29,23 @@ export class CoverageAnalyzer {
   async analyzeAll(): Promise<CoverageMetrics[]> {
     const layers = getAllLayers();
     const results: CoverageMetrics[] = [];
+    const errors: Array<{ layer: string; error: Error }> = [];
 
     for (const layer of layers) {
-      results.push(await this.analyzeLayer(layer));
+      try {
+        const metrics = await this.analyzeLayer(layer);
+        results.push(metrics);
+      } catch (error) {
+        errors.push({
+          layer: layer.id,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+    }
+
+    // If all layers failed, throw the first error
+    if (results.length === 0 && errors.length > 0) {
+      throw errors[0].error;
     }
 
     return results;
@@ -140,35 +155,13 @@ export class CoverageAnalyzer {
    * Get expected ArchiMate relationship patterns for a layer
    */
   private getArchimateExpectedPatterns(layerId: string): string[] {
-    const patterns: Record<string, string[]> = {
-      motivation: [
-        "Goal→realizes→Goal",
-        "Requirement→realizes→Goal",
-        "Goal→supports→Principle",
-        "Assessment→influences→Goal",
-        "Driver→influences→Goal",
-      ],
-      business: [
-        "Process→triggers→Process",
-        "Role→performs→Process",
-        "Actor→assigned-to→Role",
-        "Service→realizes→Process",
-        "Event→triggers→Process",
-      ],
-      application: [
-        "Component→realizes→Service",
-        "Component→uses→Component",
-        "Service→serves→Component",
-        "Interface→realizes→Service",
-      ],
-      technology: [
-        "Node→composes→Device",
-        "Artifact→realizes→Component",
-        "Device→hosts→Node",
-        "Network→connects→Device",
-      ],
-    };
+    const template = LAYER_TEMPLATES.find((t) => t.layer === layerId);
+    if (!template) {
+      return [];
+    }
 
-    return patterns[layerId] || [];
+    return template.patterns.map(
+      (p) => `${p.sourcePattern}→${p.predicate}→${p.destinationPattern}`
+    );
   }
 }

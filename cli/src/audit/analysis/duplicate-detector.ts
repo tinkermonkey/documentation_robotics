@@ -19,12 +19,18 @@ import type { DuplicateCandidate } from "../types.js";
  * Duplicate detector for semantic relationship overlap
  */
 export class DuplicateDetector {
+  private duplicateCache: DuplicateCandidate[] | null = null;
+
   constructor(private catalog: RelationshipCatalog) {}
 
   /**
    * Detect all duplicate candidates
    */
-  async detectDuplicates(): Promise<DuplicateCandidate[]> {
+  detectDuplicates(): DuplicateCandidate[] {
+    // Return cached results if available
+    if (this.duplicateCache !== null) {
+      return this.duplicateCache;
+    }
     const candidates: DuplicateCandidate[] = [];
     const relationshipsByEndpoints = new Map<
       string,
@@ -48,7 +54,7 @@ export class DuplicateDetector {
       // Check all pairs within the group
       for (let i = 0; i < group.length; i++) {
         for (let j = i + 1; j < group.length; j++) {
-          const candidate = await this.checkDuplicatePair(group[i], group[j]);
+          const candidate = this.checkDuplicatePair(group[i], group[j]);
           if (candidate) {
             candidates.push(candidate);
           }
@@ -56,16 +62,19 @@ export class DuplicateDetector {
       }
     }
 
+    // Cache the results
+    this.duplicateCache = candidates;
+
     return candidates;
   }
 
   /**
    * Check if two relationships are semantic duplicates
    */
-  private async checkDuplicatePair(
+  private checkDuplicatePair(
     rel1: RelationshipSpec,
     rel2: RelationshipSpec
-  ): Promise<DuplicateCandidate | null> {
+  ): DuplicateCandidate | null {
     const pred1 = this.catalog.getTypeByPredicate(rel1.predicate);
     const pred2 = this.catalog.getTypeByPredicate(rel2.predicate);
 
@@ -166,10 +175,8 @@ export class DuplicateDetector {
   /**
    * Get duplicate candidates by layer
    */
-  async detectDuplicatesByLayer(
-    layerId: string
-  ): Promise<DuplicateCandidate[]> {
-    const allDuplicates = await this.detectDuplicates();
+  detectDuplicatesByLayer(layerId: string): DuplicateCandidate[] {
+    const allDuplicates = this.detectDuplicates();
     return allDuplicates.filter((d) =>
       d.sourceNodeType.startsWith(`${layerId}.`)
     );
@@ -178,10 +185,10 @@ export class DuplicateDetector {
   /**
    * Get duplicate candidates by confidence level
    */
-  async detectDuplicatesByConfidence(
+  detectDuplicatesByConfidence(
     confidence: "high" | "medium" | "low"
-  ): Promise<DuplicateCandidate[]> {
-    const allDuplicates = await this.detectDuplicates();
+  ): DuplicateCandidate[] {
+    const allDuplicates = this.detectDuplicates();
     return allDuplicates.filter((d) => d.confidence === confidence);
   }
 }

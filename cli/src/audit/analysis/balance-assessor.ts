@@ -33,12 +33,12 @@ export class BalanceAssessor {
   /**
    * Assess balance for all layers
    */
-  async assessAll(): Promise<BalanceAssessment[]> {
+  assessAll(): BalanceAssessment[] {
     const layers = getAllLayers();
     const assessments: BalanceAssessment[] = [];
 
     for (const layer of layers) {
-      const layerAssessments = await this.assessLayer(layer);
+      const layerAssessments = this.assessLayer(layer);
       assessments.push(...layerAssessments);
     }
 
@@ -48,7 +48,7 @@ export class BalanceAssessor {
   /**
    * Assess balance for a single layer
    */
-  async assessLayer(layer: LayerMetadata): Promise<BalanceAssessment[]> {
+  assessLayer(layer: LayerMetadata): BalanceAssessment[] {
     const assessments: BalanceAssessment[] = [];
 
     for (const nodeType of layer.nodeTypes) {
@@ -180,15 +180,16 @@ export class BalanceAssessor {
     status: "under" | "balanced" | "over"
   ): string | undefined {
     const [min, max] = targetRange;
+    const typeName = nodeType.split(".").pop() || nodeType;
 
     if (status === "under") {
       const needed = min - currentCount;
-      return `Add ${needed} relationship${needed > 1 ? "s" : ""} to reach minimum target for ${category} types`;
+      return `Add ${needed} relationship${needed > 1 ? "s" : ""} to ${typeName} (${category} type) to reach minimum target`;
     }
 
     if (status === "over") {
       const excess = currentCount - max;
-      return `Consider removing ${excess} relationship${excess > 1 ? "s" : ""} or reviewing ${category} type classification`;
+      return `Consider removing ${excess} relationship${excess > 1 ? "s" : ""} from ${typeName} or reviewing ${category} type classification`;
     }
 
     return undefined;
@@ -197,20 +198,20 @@ export class BalanceAssessor {
   /**
    * Get assessments by status
    */
-  async assessByStatus(
+  assessByStatus(
     status: "under" | "balanced" | "over"
-  ): Promise<BalanceAssessment[]> {
-    const all = await this.assessAll();
+  ): BalanceAssessment[] {
+    const all = this.assessAll();
     return all.filter((a) => a.status === status);
   }
 
   /**
    * Get assessments by category
    */
-  async assessByCategory(
+  assessByCategory(
     category: "structural" | "behavioral" | "enumeration" | "reference"
-  ): Promise<BalanceAssessment[]> {
-    const all = await this.assessAll();
+  ): BalanceAssessment[] {
+    const all = this.assessAll();
     return all.filter((a) => a.category === category);
   }
 }
