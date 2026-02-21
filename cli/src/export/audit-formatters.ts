@@ -642,11 +642,11 @@ function formatConnectivityTextDetailed(lines: string[], connectivity: AuditRepo
   // Connected components
   if (connectivity.components.length > 1) {
     lines.push(ansis.bold("  Connected Components:"));
-    const sorted = [...connectivity.components].sort((a, b) => b.size - a.size);
+    const sorted = [...connectivity.components].sort((a, b) => b.nodes.length - a.nodes.length);
     for (let i = 0; i < Math.min(5, sorted.length); i++) {
       const comp = sorted[i];
-      lines.push(`    Component ${i + 1}: ${comp.size} nodes`);
-      if (comp.size <= 5) {
+      lines.push(`    Component ${i + 1}: ${comp.nodes.length} nodes`);
+      if (comp.nodes.length <= 5) {
         lines.push(`      ${comp.nodes.join(", ")}`);
       }
     }
@@ -666,9 +666,9 @@ function formatConnectivityTextDetailed(lines: string[], connectivity: AuditRepo
   // Transitive chains
   if (connectivity.transitiveChains.length > 0) {
     lines.push(ansis.bold("  Transitive Chains:"));
-    const sorted = [...connectivity.transitiveChains].sort((a, b) => b.length - a.length);
+    const sorted = [...connectivity.transitiveChains].sort((a, b) => b.chain.length - a.chain.length);
     for (const chain of sorted.slice(0, 5)) {
-      lines.push(`    [${chain.predicate}] ${chain.chain.join(" → ")} (${chain.length} hops)`);
+      lines.push(`    [${chain.predicate}] ${chain.chain.join(" → ")} (${chain.chain.length} hops)`);
     }
     lines.push("");
   }
@@ -702,12 +702,12 @@ function formatConnectivityMarkdown(lines: string[], connectivity: AuditReport["
     lines.push("");
     lines.push("| Component | Size | Sample Nodes |");
     lines.push("|-----------|------|--------------|");
-    const sorted = [...connectivity.components].sort((a, b) => b.size - a.size);
+    const sorted = [...connectivity.components].sort((a, b) => b.nodes.length - a.nodes.length);
     for (let i = 0; i < Math.min(10, sorted.length); i++) {
       const comp = sorted[i];
       const sample = comp.nodes.slice(0, 3).map(escapeMarkdown).join(", ");
-      const sampleText = comp.size > 3 ? `${sample}...` : sample;
-      lines.push(`| ${i + 1} | ${comp.size} | ${sampleText} |`);
+      const sampleText = comp.nodes.length > 3 ? `${sample}...` : sample;
+      lines.push(`| ${i + 1} | ${comp.nodes.length} | ${sampleText} |`);
     }
     lines.push("");
   }
@@ -731,10 +731,10 @@ function formatConnectivityMarkdown(lines: string[], connectivity: AuditReport["
     lines.push("");
     lines.push("| Predicate | Chain | Length |");
     lines.push("|-----------|-------|--------|");
-    const sorted = [...connectivity.transitiveChains].sort((a, b) => b.length - a.length);
+    const sorted = [...connectivity.transitiveChains].sort((a, b) => b.chain.length - a.chain.length);
     for (const chain of sorted.slice(0, 20)) {
       const chainStr = chain.chain.map(escapeMarkdown).join(" → ");
-      lines.push(`| ${escapeMarkdown(chain.predicate)} | ${chainStr} | ${chain.length} |`);
+      lines.push(`| ${escapeMarkdown(chain.predicate)} | ${chainStr} | ${chain.chain.length} |`);
     }
     lines.push("");
   }

@@ -80,7 +80,7 @@ async function listSnapshots(storage: SnapshotStorage): Promise<void> {
   for (const snapshot of snapshots) {
     const timestamp = formatDate(snapshot.timestamp);
     console.log(
-      antml:bold(`\n${ansis.cyan(snapshot.id)}`),
+      ansis.bold(`\n${ansis.cyan(snapshot.id)}`),
     );
     console.log(`  Timestamp: ${timestamp}`);
     console.log(`  Model:     ${snapshot.modelName} v${snapshot.modelVersion}`);

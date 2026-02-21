@@ -15,7 +15,7 @@ import { BalanceAssessor } from "./analysis/balance-assessor.js";
 import { ConnectivityAnalyzer } from "./graph/connectivity.js";
 import { RelationshipCatalog } from "../core/relationship-catalog.js";
 import { RelationshipGraph } from "./graph/relationship-graph.js";
-import { getLayerById } from "../generated/layer-registry.js";
+import { getLayerById, getAllLayers } from "../generated/layer-registry.js";
 import type {
   AuditReport,
   ConnectivityStats,
