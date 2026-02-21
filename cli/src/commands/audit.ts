@@ -23,8 +23,6 @@ export interface AuditOptions {
   pipeline?: boolean;
   /** Enable AI-assisted evaluation in pipeline mode */
   enableAI?: boolean;
-  /** Claude API key for AI evaluation */
-  claudeApiKey?: string;
   /** Output directory for pipeline results */
   outputDir?: string;
 }
@@ -118,36 +116,45 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
  * Run the full audit pipeline with before/after AI evaluation
  */
 async function runPipeline(options: AuditOptions): Promise<void> {
-  const pipeline = new PipelineOrchestrator();
+  try {
+    const pipeline = new PipelineOrchestrator();
 
-  const result = await pipeline.executePipeline({
-    outputDir: options.outputDir ?? "audit-results",
-    layer: options.layer,
-    format: options.format ?? "markdown",
-    enableAI: options.enableAI ?? false,
-    verbose: options.verbose ?? false,
-    claudeApiKey: options.claudeApiKey,
-  });
+    const result = await pipeline.executePipeline({
+      outputDir: options.outputDir ?? "audit-results",
+      layer: options.layer,
+      format: options.format ?? "markdown",
+      enableAI: options.enableAI ?? false,
+      verbose: options.verbose ?? false,
+    });
 
-  // Display summary
-  console.log(ansis.green("\n✅ Pipeline execution complete!"));
-  console.log(ansis.dim("\nGenerated Reports:"));
-  console.log(ansis.dim(`  Before:  ${result.reports.before}`));
-  if (result.reports.after) {
-    console.log(ansis.dim(`  After:   ${result.reports.after}`));
-  }
-  if (result.reports.summary) {
-    console.log(ansis.dim(`  Summary: ${result.reports.summary}`));
-  }
+    // Display summary
+    console.log(ansis.green("\n✅ Pipeline execution complete!"));
+    console.log(ansis.dim("\nGenerated Reports:"));
+    console.log(ansis.dim(`  Before:  ${result.reports.before}`));
+    if (result.reports.after) {
+      console.log(ansis.dim(`  After:   ${result.reports.after}`));
+    }
+    if (result.reports.summary) {
+      console.log(ansis.dim(`  Summary: ${result.reports.summary}`));
+    }
 
-  if (result.summary) {
-    console.log(ansis.dim("\nImpact:"));
-    console.log(ansis.dim(`  Relationships Added: ${result.summary.relationshipsAdded}`));
-    console.log(ansis.dim(`  Gaps Resolved:       ${result.summary.gapsResolved}`));
-    console.log(
-      ansis.dim(
-        `  Coverage Improvement: ${result.summary.coverageImprovement.toFixed(2)} rel/type`
-      )
+    if (result.summary) {
+      console.log(ansis.dim("\nImpact:"));
+      console.log(ansis.dim(`  Relationships Added: ${result.summary.relationshipsAdded}`));
+      console.log(ansis.dim(`  Gaps Resolved:       ${result.summary.gapsResolved}`));
+      console.log(
+        ansis.dim(
+          `  Coverage Improvement: ${result.summary.coverageImprovement.toFixed(2)} rel/type`
+        )
+      );
+    }
+  } catch (error) {
+    const message = getErrorMessage(error);
+    if (options.debug) {
+      console.error(error);
+    }
+    throw new CLIError(
+      `Pipeline execution failed: ${message}`
     );
   }
 }

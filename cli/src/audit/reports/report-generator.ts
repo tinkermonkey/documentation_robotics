@@ -84,7 +84,14 @@ export class ReportGenerator {
     }
 
     const outputPath = path.join(options.outputDir, filename);
-    await fs.writeFile(outputPath, reportContent, "utf-8");
+    try {
+      await fs.writeFile(outputPath, reportContent, "utf-8");
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Failed to write ${options.format} report to ${outputPath}: ${errorMsg}`
+      );
+    }
 
     return outputPath;
   }

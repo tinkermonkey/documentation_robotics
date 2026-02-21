@@ -18,6 +18,18 @@ import { LAYER_TEMPLATES } from "./layer-templates.js";
 import type { CoverageMetrics } from "../types.js";
 
 /**
+ * Result from coverage analysis indicating success/partial/failure status
+ */
+export interface CoverageAnalysisResult {
+  /** Metrics for successfully analyzed layers */
+  results: CoverageMetrics[];
+  /** Failures encountered during analysis (if any) */
+  failures: Array<{ layer: string; error: Error }>;
+  /** Whether analysis completed for all layers */
+  isComplete: boolean;
+}
+
+/**
  * Coverage analyzer for relationship metrics
  */
 export class CoverageAnalyzer {
@@ -25,8 +37,9 @@ export class CoverageAnalyzer {
 
   /**
    * Analyze coverage for all layers
+   * @returns Result object indicating success/partial/failure with complete flag
    */
-  async analyzeAll(): Promise<CoverageMetrics[]> {
+  async analyzeAll(): Promise<CoverageAnalysisResult> {
     const layers = getAllLayers();
     const results: CoverageMetrics[] = [];
     const errors: Array<{ layer: string; error: Error }> = [];
@@ -61,7 +74,11 @@ export class CoverageAnalyzer {
       );
     }
 
-    return results;
+    return {
+      results,
+      failures: errors,
+      isComplete: errors.length === 0,
+    };
   }
 
   /**

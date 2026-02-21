@@ -111,8 +111,11 @@ export class AIEvaluator {
       tracker = new InMemoryProgressTracker(lowCoverageTypes.length);
     }
 
-    // Sequential evaluation
+    // Sequential evaluation with fail-fast on consecutive failures
     let successCount = 0;
+    let consecutiveFailures = 0;
+    const MAX_CONSECUTIVE_FAILURES = 3;
+
     for (const { nodeType, metrics } of lowCoverageTypes) {
       // Check if already evaluated (resume support)
       if (this.config.resumable && tracker.isCompleted(nodeType)) {
@@ -150,6 +153,7 @@ export class AIEvaluator {
           `Completed: ${nodeType} (${recommendations.length} recommendations)`
         );
         successCount++;
+        consecutiveFailures = 0; // Reset counter on success
       } catch (error: unknown) {
         const errorMessage = getErrorMessage(error);
         console.error(`Failed to evaluate ${nodeType}: ${errorMessage}`);
@@ -161,7 +165,16 @@ export class AIEvaluator {
           error: errorMessage,
           timestamp: new Date().toISOString(),
         });
-        // Continue with next element
+
+        consecutiveFailures++;
+
+        // Fail fast after consecutive failures
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          throw new Error(
+            `AI evaluation aborted after ${MAX_CONSECUTIVE_FAILURES} consecutive failures. ` +
+            `Is Claude CLI installed and authenticated? Run 'claude --version' to verify.`
+          );
+        }
       }
     }
 
@@ -338,13 +351,25 @@ export class AIEvaluator {
   }
 
   /**
+   * Sanitize a string for use in file paths, removing path traversal characters
+   */
+  private sanitizeForFilePath(input: string): string {
+    // Remove path traversal characters and other invalid filename characters
+    return input
+      .replace(/\.\./g, "_")
+      .replace(/[\/\\]/g, "_")
+      .replace(/[<>:"|?*]/g, "_");
+  }
+
+  /**
    * Save element recommendations to file
    */
   private async saveElementRecommendations(
     nodeType: string,
     recommendations: RelationshipRecommendation[]
   ): Promise<void> {
-    const filename = `${nodeType}.json`;
+    const sanitizedNodeType = this.sanitizeForFilePath(nodeType);
+    const filename = `${sanitizedNodeType}.json`;
     const filepath = join(this.config.outputDir, "element-recommendations", filename);
 
     try {
@@ -373,7 +398,8 @@ export class AIEvaluator {
    * Save layer review to file
    */
   private async saveLayerReview(layer: string, review: LayerReview): Promise<void> {
-    const filename = `${layer}.review.json`;
+    const sanitizedLayer = this.sanitizeForFilePath(layer);
+    const filename = `${sanitizedLayer}.review.json`;
     const filepath = join(this.config.outputDir, "layer-reviews", filename);
 
     try {

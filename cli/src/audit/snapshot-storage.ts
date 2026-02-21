@@ -100,14 +100,32 @@ export class SnapshotStorage {
     };
 
     // Write snapshot data
-    await fs.writeFile(snapshotPath, JSON.stringify(report, null, 2), "utf-8");
+    try {
+      await fs.writeFile(snapshotPath, JSON.stringify(report, null, 2), "utf-8");
+    } catch (error) {
+      throw new Error(
+        `Failed to write snapshot file ${snapshotPath}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
 
     // Write metadata
-    await fs.writeFile(
-      metadataPath,
-      JSON.stringify(metadata, null, 2),
-      "utf-8",
-    );
+    try {
+      await fs.writeFile(
+        metadataPath,
+        JSON.stringify(metadata, null, 2),
+        "utf-8",
+      );
+    } catch (error) {
+      // If metadata write fails, clean up orphaned snapshot file
+      try {
+        await fs.unlink(snapshotPath);
+      } catch (unlinkError) {
+        // Ignore cleanup errors
+      }
+      throw new Error(
+        `Failed to write snapshot metadata ${metadataPath}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
 
     // Cleanup old snapshots if limit exceeded
     if (this.maxSnapshots > 0) {

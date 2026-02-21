@@ -109,7 +109,8 @@ export class AuditOrchestrator {
       const metrics = await this.coverageAnalyzer.analyzeLayer(layer);
       return [metrics];
     }
-    return this.coverageAnalyzer.analyzeAll();
+    const result = await this.coverageAnalyzer.analyzeAll();
+    return result.results;
   }
 
   /**

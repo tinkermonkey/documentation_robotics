@@ -33,11 +33,6 @@ export interface PipelineOptions {
    * Verbose output
    */
   verbose?: boolean;
-
-  /**
-   * Claude API key for AI evaluation
-   */
-  claudeApiKey?: string;
 }
 
 export interface PipelineResult {
@@ -143,13 +138,7 @@ export class PipelineOrchestrator {
 
     // Step 2: Run AI-assisted evaluation
     console.log("\n⏳ Step 2/4: Running AI-assisted evaluation...");
-
-    if (!options.claudeApiKey) {
-      throw new Error(
-        "AI evaluation requested (--enable-ai) but no Claude API key provided. " +
-        "Please provide --claude-api-key or set ANTHROPIC_API_KEY environment variable."
-      );
-    }
+    console.log("   (Claude CLI must be installed and authenticated)");
 
     // Run AI-assisted evaluation using the AIEvaluator
     const aiEvaluator = new AIEvaluator({
@@ -474,7 +463,7 @@ export class PipelineOrchestrator {
    * Convert DifferentialAnalysis to JSON-serializable format
    * Maps need to be converted to plain objects
    */
-  private serializeDifferential(differential: DifferentialAnalysis): any {
+  private serializeDifferential(differential: DifferentialAnalysis): Record<string, unknown> {
     return {
       ...differential,
       detailed: {
