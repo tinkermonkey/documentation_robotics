@@ -5,7 +5,7 @@
  * Reporters listen to test execution events and format results for various outputs.
  */
 
-import { TestSuite, Pipeline, PipelineStep, PipelineResult, SuiteResult, TestRunSummary } from '../pipeline';
+import { TestSuite, Pipeline, PipelineStep, PipelineResult, SuiteResult, TestRunSummary } from '../pipeline.js';
 
 /**
  * Interface for test reporter implementations

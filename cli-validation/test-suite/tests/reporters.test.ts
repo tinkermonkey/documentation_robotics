@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { ConsoleReporter } from '../reporters/console-reporter';
-import { JUnitReporter } from '../reporters/junit-reporter';
+import { ConsoleReporter } from '../reporters/console-reporter.js';
+import { JUnitReporter } from '../reporters/junit-reporter.js';
 import {
   TestRunSummary,
   SuiteResult,
@@ -14,7 +14,7 @@ import {
   StepResult,
   Pipeline,
   PipelineStep,
-} from '../pipeline';
+} from '../pipeline.js';
 
 /**
  * Create mock test data for testing reporters

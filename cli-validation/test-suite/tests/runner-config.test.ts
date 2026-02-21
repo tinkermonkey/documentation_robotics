@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { matchesFilters, RunnerOptions } from '../runner-config';
+import { matchesFilters, RunnerOptions } from '../runner-config.js';
 
 describe('matchesFilters', () => {
   it('should include tests without filters', () => {

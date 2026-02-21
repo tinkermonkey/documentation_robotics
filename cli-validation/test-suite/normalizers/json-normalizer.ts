@@ -8,7 +8,7 @@
  * - Pretty-prints with consistent spacing (2-space indent)
  */
 
-import { sortObjectKeys } from './sort-keys';
+import { sortObjectKeys } from './sort-keys.js';
 
 /**
  * Normalize JSON content for deterministic comparison

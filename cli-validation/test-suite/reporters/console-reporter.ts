@@ -5,8 +5,8 @@
  * and detailed failure information.
  */
 
-import { TestRunSummary, SuiteResult, PipelineResult, StepResult } from '../pipeline';
-import { BaseReporter } from './reporter';
+import { TestRunSummary, SuiteResult, PipelineResult, StepResult, PipelineStep } from '../pipeline.js';
+import { BaseReporter } from './reporter.js';
 
 /**
  * ANSI color codes for terminal output

@@ -11,11 +11,11 @@
  * 4. trimWhitespace - Clean up trailing spaces (most destructive)
  */
 
-import { stripTimestamps } from './timestamp-normalizer';
-import { canonicalizePaths } from './path-normalizer';
-import { normalizeYAML } from './yaml-normalizer';
-import { normalizeJSON } from './json-normalizer';
-import { trimWhitespace } from './whitespace-normalizer';
+import { stripTimestamps } from './timestamp-normalizer.js';
+import { canonicalizePaths } from './path-normalizer.js';
+import { normalizeYAML } from './yaml-normalizer.js';
+import { normalizeJSON } from './json-normalizer.js';
+import { trimWhitespace } from './whitespace-normalizer.js';
 
 /**
  * File type enumeration for content normalization
@@ -133,8 +133,8 @@ export function normalizeContent(content: string, filePath: string): string {
 }
 
 // Re-export individual normalizers for testing purposes
-export { stripTimestamps } from './timestamp-normalizer';
-export { canonicalizePaths } from './path-normalizer';
-export { normalizeYAML } from './yaml-normalizer';
-export { normalizeJSON } from './json-normalizer';
-export { trimWhitespace } from './whitespace-normalizer';
+export { stripTimestamps } from './timestamp-normalizer.js';
+export { canonicalizePaths } from './path-normalizer.js';
+export { normalizeYAML } from './yaml-normalizer.js';
+export { normalizeJSON } from './json-normalizer.js';
+export { trimWhitespace } from './whitespace-normalizer.js';

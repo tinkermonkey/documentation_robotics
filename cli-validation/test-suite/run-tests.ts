@@ -12,9 +12,9 @@ import {
   normalize,
   detectFileType,
   FileType,
-} from './normalizers/index';
+} from './normalizers/index.js';
 
-import { compareSnapshots, formatComparisonResult } from './comparator';
+import { compareSnapshots, formatComparisonResult } from './comparator.js';
 
 // ============================================================================
 // Simple test assertion framework

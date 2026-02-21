@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { FilesystemSnapshot, FileInfo, compareSnapshots, formatComparisonResult } from '../comparator';
+import { FilesystemSnapshot, FileInfo, compareSnapshots, formatComparisonResult } from '../comparator.js';
 
 // ============================================================================
 // Snapshot Comparison Tests

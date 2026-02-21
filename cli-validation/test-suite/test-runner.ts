@@ -11,9 +11,9 @@ import { dirname } from 'node:path';
 import { glob } from 'glob';
 import YAML from 'yaml';
 
-import { initializeTestEnvironment, TestPaths, CLIConfig } from './setup';
-import { captureSnapshot, compareSnapshots, formatComparisonResult } from './comparator';
-import { executeCommand, CommandOutput } from './executor';
+import { initializeTestEnvironment, TestPaths, CLIConfig } from './setup.js';
+import { captureSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
+import { executeCommand, CommandOutput } from './executor.js';
 import {
   TestSuite,
   Pipeline,
@@ -22,11 +22,11 @@ import {
   PipelineResult,
   SuiteResult,
   TestRunSummary,
-} from './pipeline';
-import { ConsoleReporter, formatConsoleReport } from './reporters/console-reporter';
-import { JUnitReporter, formatJunitReport } from './reporters/junit-reporter';
-import { Reporter } from './reporters/reporter';
-import { parseRunnerArgs, RunnerOptions, matchesFilters } from './runner-config';
+} from './pipeline.js';
+import { ConsoleReporter, formatConsoleReport } from './reporters/console-reporter.js';
+import { JUnitReporter, formatJunitReport } from './reporters/junit-reporter.js';
+import { Reporter } from './reporters/reporter.js';
+import { parseRunnerArgs, RunnerOptions, matchesFilters } from './runner-config.js';
 
 /**
  * Main test runner configuration
