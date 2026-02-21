@@ -283,6 +283,7 @@ Key files: `cli/src/commands/schema.ts`, `cli/src/commands/conformance.ts`
 Audit intra-layer relationships across all 12 layers for coverage, semantic duplicates, gaps, and balance.
 
 **Key Features:**
+
 - Deterministic coverage measurement (isolation %, density, predicate utilization)
 - Semantic duplicate detection using predicate categories
 - Gap analysis with layer-specific templates (ArchiMate, OpenAPI, NIST SP 800-53, etc.)
@@ -291,6 +292,7 @@ Audit intra-layer relationships across all 12 layers for coverage, semantic dupl
 - Before/after differential analysis
 
 **Usage:**
+
 ```bash
 # Full audit with AI assistance
 npm run audit:relationships
@@ -318,28 +320,33 @@ npm run audit:relationships -- --format markdown --output report.md
 ```
 
 **Output:**
+
 - `audit-output/{timestamp}/before/` - Pre-AI analysis
 - `audit-output/{timestamp}/after/` - Post-AI analysis
 - `audit-output/{timestamp}/summary.json` - Change summary
 - `audit-output/{timestamp}/ai-evaluation/` - AI recommendations
 
 **Output Formats:**
+
 - **text** - Human-readable colored output (default)
 - **json** - Machine-parseable for automation
 - **markdown** - Documentation-ready reports
 
 **Quality Thresholds:**
+
 - Isolation: ≤ 20% isolated node types
 - Density: ≥ 1.5 relationships per node type
 - High-Priority Gaps: ≤ 10 gaps
 - Duplicates: ≤ 5 duplicate candidates
 
 **Exit Codes:**
+
 - `0` - Success (no issues or below thresholds)
 - `1` - Quality issues detected (with `--threshold` flag)
 - `2` - Script execution error
 
 **Files:**
+
 - Pipeline: `cli/src/audit/pipeline/audit-pipeline.ts`
 - Analysis: `cli/src/audit/analysis/`
 - Reports: `cli/src/audit/reports/`
