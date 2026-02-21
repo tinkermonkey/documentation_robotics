@@ -3,7 +3,7 @@ import path from "path";
 import type { AuditReport, CoverageMetrics } from "../types.js";
 import { AuditOrchestrator, type AuditOptions } from "../audit-orchestrator.js";
 import { ReportGenerator } from "../reports/report-generator.js";
-import { DifferentialAnalyzer } from "../differential-analyzer.js";
+import { DifferentialAnalyzer, type DifferentialAnalysis } from "../differential-analyzer.js";
 import { SnapshotStorage } from "../snapshot-storage.js";
 
 export interface PipelineOptions {
@@ -186,6 +186,8 @@ export class PipelineOrchestrator {
     // Generate summary report
     const summaryReportPath = await this.generateSummaryReport(
       differential,
+      beforeResult,
+      afterResult,
       summaryDir,
       options.format ?? "markdown"
     );
@@ -240,7 +242,9 @@ export class PipelineOrchestrator {
    * Generate differential summary report with side-by-side metrics
    */
   private async generateSummaryReport(
-    differential: any,
+    differential: DifferentialAnalysis,
+    beforeResult: AuditReport,
+    afterResult: AuditReport,
     outputDir: string,
     format: "text" | "json" | "markdown"
   ): Promise<string> {
@@ -254,13 +258,13 @@ export class PipelineOrchestrator {
         break;
 
       case "markdown":
-        content = this.generateMarkdownSummary(differential);
+        content = this.generateMarkdownSummary(differential, beforeResult, afterResult);
         filename = "summary.md";
         break;
 
       case "text":
       default:
-        content = this.generateTextSummary(differential);
+        content = this.generateTextSummary(differential, beforeResult, afterResult);
         filename = "summary.txt";
         break;
     }
@@ -273,7 +277,7 @@ export class PipelineOrchestrator {
   /**
    * Generate Markdown summary with side-by-side metrics
    */
-  private generateMarkdownSummary(differential: any): string {
+  private generateMarkdownSummary(differential: DifferentialAnalysis, beforeResult: AuditReport, afterResult: AuditReport): string {
     const lines: string[] = [];
 
     lines.push("# Differential Audit Summary");
@@ -282,8 +286,8 @@ export class PipelineOrchestrator {
     lines.push("");
 
     // Calculate average metrics across all layers
-    const beforeCoverage = differential.before.coverage as CoverageMetrics[];
-    const afterCoverage = differential.after.coverage as CoverageMetrics[];
+    const beforeCoverage = beforeResult.coverage;
+    const afterCoverage = afterResult.coverage;
 
     const avgIsolationBefore =
       beforeCoverage.reduce((sum, c) => sum + c.isolationPercentage, 0) /
@@ -368,10 +372,10 @@ export class PipelineOrchestrator {
     lines.push("## Coverage Heatmap");
     lines.push("");
     lines.push("### Before");
-    lines.push(this.generateCoverageHeatmap(differential.before.coverage as CoverageMetrics[]));
+    lines.push(this.generateCoverageHeatmap(beforeResult.coverage));
     lines.push("");
     lines.push("### After");
-    lines.push(this.generateCoverageHeatmap(differential.after.coverage as CoverageMetrics[]));
+    lines.push(this.generateCoverageHeatmap(afterResult.coverage));
     lines.push("");
 
     return lines.join("\n");
@@ -380,7 +384,7 @@ export class PipelineOrchestrator {
   /**
    * Generate text summary
    */
-  private generateTextSummary(differential: any): string {
+  private generateTextSummary(differential: DifferentialAnalysis, beforeResult: AuditReport, afterResult: AuditReport): string {
     const lines: string[] = [];
 
     lines.push("=".repeat(80));
@@ -391,8 +395,8 @@ export class PipelineOrchestrator {
     lines.push("");
 
     // Calculate average metrics
-    const beforeCoverage = differential.before.coverage as CoverageMetrics[];
-    const afterCoverage = differential.after.coverage as CoverageMetrics[];
+    const beforeCoverage = beforeResult.coverage;
+    const afterCoverage = afterResult.coverage;
 
     const isolationBefore =
       beforeCoverage.reduce((sum, c) => sum + c.isolationPercentage, 0) /
