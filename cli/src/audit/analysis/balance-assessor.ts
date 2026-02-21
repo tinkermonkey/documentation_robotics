@@ -115,6 +115,12 @@ export class BalanceAssessor {
   ): "structural" | "behavioral" | "enumeration" | "reference" {
     const type = specNodeId.split(".")[1] || "";
 
+    // Warn if type extraction fails (unexpected specNodeId format)
+    if (!type) {
+      console.warn(`Warning: Could not extract type from specNodeId '${specNodeId}', defaulting to 'reference' classification`);
+      return "reference";
+    }
+
     // Enumeration patterns - checked first (most specific, uses endsWith)
     if (
       type.endsWith("level") ||

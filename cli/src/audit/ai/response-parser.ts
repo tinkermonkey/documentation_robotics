@@ -61,34 +61,56 @@ export class ResponseParser {
       }
 
       const rec = r as Record<string, unknown>;
-      if (!rec.predicate) {
+
+      // Validate and extract required fields with type guards
+      if (!rec.predicate || typeof rec.predicate !== "string") {
         throw new Error(
-          `Recommendation at index ${index} missing required field: predicate`
+          `Recommendation at index ${index} missing or invalid required field: predicate (must be string)`
         );
       }
-      if (!rec.sourceNodeType && !rec.source) {
+
+      const sourceNodeType = rec.sourceNodeType || rec.source;
+      if (!sourceNodeType || typeof sourceNodeType !== "string") {
         throw new Error(
-          `Recommendation at index ${index} missing required field: sourceNodeType or source`
+          `Recommendation at index ${index} missing or invalid required field: sourceNodeType or source (must be string)`
         );
       }
-      if (!rec.destinationNodeType && !rec.destination) {
+
+      const destinationNodeType = rec.destinationNodeType || rec.destination;
+      if (!destinationNodeType || typeof destinationNodeType !== "string") {
         throw new Error(
-          `Recommendation at index ${index} missing required field: destinationNodeType or destination`
+          `Recommendation at index ${index} missing or invalid required field: destinationNodeType or destination (must be string)`
         );
       }
-      if (!rec.justification && !rec.reason) {
+
+      const justification = rec.justification || rec.reason;
+      if (!justification || typeof justification !== "string") {
         throw new Error(
-          `Recommendation at index ${index} missing required field: justification or reason`
+          `Recommendation at index ${index} missing or invalid required field: justification or reason (must be string)`
+        );
+      }
+
+      const priority = rec.priority;
+      if (priority && typeof priority !== "string") {
+        throw new Error(
+          `Recommendation at index ${index} has invalid priority field (must be string)`
+        );
+      }
+
+      const standardReference = rec.standardReference;
+      if (standardReference !== undefined && typeof standardReference !== "string") {
+        throw new Error(
+          `Recommendation at index ${index} has invalid standardReference field (must be string)`
         );
       }
 
       return {
-        sourceNodeType: (rec.sourceNodeType || rec.source) as string,
-        predicate: rec.predicate as string,
-        destinationNodeType: (rec.destinationNodeType || rec.destination) as string,
-        justification: (rec.justification || rec.reason) as string,
-        priority: (rec.priority as "high" | "medium" | "low") || "medium",
-        standardReference: rec.standardReference as string | undefined,
+        sourceNodeType,
+        predicate: rec.predicate,
+        destinationNodeType,
+        justification,
+        priority: (priority as "high" | "medium" | "low") || "medium",
+        standardReference: typeof standardReference === "string" ? standardReference : undefined,
       };
     });
   }
@@ -122,26 +144,38 @@ export class ResponseParser {
 
     const reviewObj = review as Record<string, unknown>;
 
-    // Validate required fields
-    if (!reviewObj.coherenceIssues && !reviewObj.coherence_issues) {
-      throw new Error("Layer review missing required field: coherenceIssues");
+    // Validate and extract required fields with type guards
+    const coherenceIssues = reviewObj.coherenceIssues || reviewObj.coherence_issues;
+    if (!coherenceIssues || !Array.isArray(coherenceIssues)) {
+      throw new Error("Layer review missing or invalid required field: coherenceIssues (must be array)");
     }
-    if (!reviewObj.missingPatterns && !reviewObj.missing_patterns) {
-      throw new Error("Layer review missing required field: missingPatterns");
+    if (!coherenceIssues.every((item) => typeof item === "string")) {
+      throw new Error("Layer review coherenceIssues must contain only strings");
     }
-    if (!reviewObj.recommendations) {
-      throw new Error("Layer review missing required field: recommendations");
+
+    const missingPatterns = reviewObj.missingPatterns || reviewObj.missing_patterns;
+    if (!missingPatterns || !Array.isArray(missingPatterns)) {
+      throw new Error("Layer review missing or invalid required field: missingPatterns (must be array)");
     }
-    if (!reviewObj.balanceAssessment && !reviewObj.balance_assessment) {
-      throw new Error("Layer review missing required field: balanceAssessment");
+    if (!missingPatterns.every((item) => typeof item === "string")) {
+      throw new Error("Layer review missingPatterns must contain only strings");
+    }
+
+    const recommendations = reviewObj.recommendations;
+    if (!recommendations || !Array.isArray(recommendations)) {
+      throw new Error("Layer review missing or invalid required field: recommendations (must be array)");
+    }
+
+    const balanceAssessment = reviewObj.balanceAssessment || reviewObj.balance_assessment;
+    if (!balanceAssessment || typeof balanceAssessment !== "string") {
+      throw new Error("Layer review missing or invalid required field: balanceAssessment (must be string)");
     }
 
     return {
-      coherenceIssues: (reviewObj.coherenceIssues || reviewObj.coherence_issues || []) as string[],
-      missingPatterns: (reviewObj.missingPatterns || reviewObj.missing_patterns || []) as string[],
-      recommendations: (reviewObj.recommendations || []) as RelationshipRecommendation[],
-      balanceAssessment:
-        (reviewObj.balanceAssessment || reviewObj.balance_assessment || "") as string,
+      coherenceIssues,
+      missingPatterns,
+      recommendations: recommendations as RelationshipRecommendation[],
+      balanceAssessment,
     };
   }
 
@@ -176,21 +210,48 @@ export class ResponseParser {
 
     const validationObj = validation as Record<string, unknown>;
 
-    // Validate required fields
-    if (!validationObj.violations) {
-      throw new Error("Inter-layer validation missing required field: violations");
+    // Validate violations field
+    const violations = validationObj.violations;
+    if (!violations || !Array.isArray(violations)) {
+      throw new Error("Inter-layer validation missing or invalid required field: violations (must be array)");
     }
-    if (!validationObj.recommendations) {
-      throw new Error("Inter-layer validation missing required field: recommendations");
+
+    // Validate each violation object
+    const validatedViolations = violations.map((v: unknown, index: number) => {
+      if (typeof v !== "object" || v === null) {
+        throw new Error(`Violation at index ${index} is not a valid object`);
+      }
+      const violation = v as Record<string, unknown>;
+
+      if (!violation.sourceLayer || typeof violation.sourceLayer !== "string") {
+        throw new Error(`Violation at index ${index} missing or invalid field: sourceLayer (must be string)`);
+      }
+      if (!violation.targetLayer || typeof violation.targetLayer !== "string") {
+        throw new Error(`Violation at index ${index} missing or invalid field: targetLayer (must be string)`);
+      }
+      if (!violation.issue || typeof violation.issue !== "string") {
+        throw new Error(`Violation at index ${index} missing or invalid field: issue (must be string)`);
+      }
+
+      return {
+        sourceLayer: violation.sourceLayer,
+        targetLayer: violation.targetLayer,
+        issue: violation.issue,
+      };
+    });
+
+    // Validate recommendations field
+    const recommendations = validationObj.recommendations;
+    if (!recommendations || !Array.isArray(recommendations)) {
+      throw new Error("Inter-layer validation missing or invalid required field: recommendations (must be array)");
+    }
+    if (!recommendations.every((item) => typeof item === "string")) {
+      throw new Error("Inter-layer validation recommendations must contain only strings");
     }
 
     return {
-      violations: validationObj.violations as Array<{
-        sourceLayer: string;
-        targetLayer: string;
-        issue: string;
-      }>,
-      recommendations: validationObj.recommendations as string[],
+      violations: validatedViolations,
+      recommendations,
     };
   }
 }

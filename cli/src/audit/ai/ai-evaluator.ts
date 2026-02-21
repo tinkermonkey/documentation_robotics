@@ -80,6 +80,9 @@ export class AIEvaluator {
 
   /**
    * Evaluate all low-coverage elements sequentially
+   * @param coverage - Array of coverage metrics for all layers
+   * @param getPredicatesForLayer - Function to retrieve available predicates for a given layer
+   * @param tracker - Optional progress tracker for resume support (defaults to in-memory tracker)
    */
   async evaluateLowCoverageElements(
     coverage: CoverageMetrics[],

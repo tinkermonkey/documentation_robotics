@@ -109,22 +109,22 @@ These recommendations follow ArchiMate patterns.`;
     it("should validate required fields and throw descriptive errors", () => {
       const missingPredicate = `[{"sourceNodeType":"test","destinationNodeType":"test2","justification":"Test"}]`;
       expect(() => parser.parseElementRecommendations(missingPredicate)).toThrow(
-        "missing required field: predicate"
+        "missing or invalid required field: predicate"
       );
 
       const missingSource = `[{"predicate":"uses","destinationNodeType":"test2","justification":"Test"}]`;
       expect(() => parser.parseElementRecommendations(missingSource)).toThrow(
-        "missing required field: sourceNodeType or source"
+        "missing or invalid required field: sourceNodeType or source"
       );
 
       const missingDestination = `[{"sourceNodeType":"test","predicate":"uses","justification":"Test"}]`;
       expect(() => parser.parseElementRecommendations(missingDestination)).toThrow(
-        "missing required field: destinationNodeType or destination"
+        "missing or invalid required field: destinationNodeType or destination"
       );
 
       const missingJustification = `[{"sourceNodeType":"test","predicate":"uses","destinationNodeType":"test2"}]`;
       expect(() => parser.parseElementRecommendations(missingJustification)).toThrow(
-        "missing required field: justification or reason"
+        "missing or invalid required field: justification or reason"
       );
     });
   });
@@ -176,22 +176,22 @@ These recommendations follow ArchiMate patterns.`;
     it("should throw error for missing required fields", () => {
       const missingCoherence = `{"missing_patterns":[],"recommendations":[],"balance_assessment":"test"}`;
       expect(() => parser.parseLayerReview(missingCoherence)).toThrow(
-        "missing required field: coherenceIssues"
+        "missing or invalid required field: coherenceIssues"
       );
 
       const missingPatterns = `{"coherence_issues":[],"recommendations":[],"balance_assessment":"test"}`;
       expect(() => parser.parseLayerReview(missingPatterns)).toThrow(
-        "missing required field: missingPatterns"
+        "missing or invalid required field: missingPatterns"
       );
 
       const missingRecommendations = `{"coherence_issues":[],"missing_patterns":[],"balance_assessment":"test"}`;
       expect(() => parser.parseLayerReview(missingRecommendations)).toThrow(
-        "missing required field: recommendations"
+        "missing or invalid required field: recommendations"
       );
 
       const missingBalance = `{"coherence_issues":[],"missing_patterns":[],"recommendations":[]}`;
       expect(() => parser.parseLayerReview(missingBalance)).toThrow(
-        "missing required field: balanceAssessment"
+        "missing or invalid required field: balanceAssessment"
       );
     });
 

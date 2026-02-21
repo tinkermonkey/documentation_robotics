@@ -12,11 +12,13 @@ export interface CoverageMetrics {
 
   // Node isolation
   isolatedNodeTypes: string[]; // Zero relationships
+  /** Percentage of node types with zero relationships (0-100) */
   isolationPercentage: number;
 
   // Predicate utilization
   availablePredicates: string[]; // Predicates applicable to this layer
   usedPredicates: string[]; // Actually used
+  /** Percentage of available predicates actually used (0-100) */
   utilizationPercentage: number;
 
   // Density

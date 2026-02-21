@@ -65,7 +65,8 @@ export interface GapChanges {
   resolved: GapCandidate[]; // Gaps that disappeared
   newGaps: GapCandidate[]; // New gaps introduced
   persistent: GapCandidate[]; // Gaps still present
-  resolutionRate: number; // Percentage of gaps resolved
+  /** Percentage of gaps resolved (0-100) */
+  resolutionRate: number;
 }
 
 /**
@@ -77,7 +78,8 @@ export interface DuplicateChanges {
   resolved: DuplicateCandidate[]; // Duplicates eliminated
   newDuplicates: DuplicateCandidate[]; // New duplicates introduced
   persistent: DuplicateCandidate[]; // Still duplicated
-  eliminationRate: number; // Percentage eliminated
+  /** Percentage of duplicates eliminated (0-100) */
+  eliminationRate: number;
 }
 
 /**

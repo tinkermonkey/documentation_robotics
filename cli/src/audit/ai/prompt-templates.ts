@@ -11,7 +11,7 @@ export class PromptTemplates {
   ): string {
     const [layer, type] = nodeType.split(".");
     const standard = this.getLayerStandard(layer);
-    const targetRange = this.getTargetRange(type);
+    const targetRange = this.getTargetRange();
 
     return `Evaluate the node type '${nodeType}' for missing intra-layer relationships.
 
@@ -101,18 +101,28 @@ Report violations and recommendations as JSON.`;
 
   /**
    * Get target relationship range for a node type
+   *
+   * Returns a static range "2-5" for all types. This is intentionally
+   * simplified for AI prompts to avoid over-constraining suggestions.
+   * Type-specific refinement could be added in the future if needed,
+   * but the current approach works well for generating diverse recommendations.
    */
-  private getTargetRange(_type: string): string {
-    // Default target based on common patterns
-    // This can be refined based on specific type characteristics
+  private getTargetRange(): string {
+    // Default target based on common patterns across all types
     return "2-5";
   }
 
   /**
    * Get predicate definition/description
+   *
+   * NOTE: These predicate definitions are intentionally a curated subset
+   * rather than being loaded from the full relationship catalog. This is
+   * by design to keep AI prompts focused on the most common and important
+   * relationships. The full catalog has 252 relationship types which would
+   * overwhelm the AI context window and reduce prompt clarity.
    */
   private getPredicateDefinition(predicate: string): string {
-    // Predicate definitions from relationship catalog
+    // Curated predicate definitions (subset of relationship catalog)
     const definitions: Record<string, string> = {
       realizes: "Realization relationship - implements or fulfills",
       serves: "Serving relationship - provides service to",

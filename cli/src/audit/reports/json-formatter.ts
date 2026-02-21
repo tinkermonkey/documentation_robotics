@@ -117,8 +117,14 @@ export class JsonFormatter {
    * Write JSON data to file
    */
   private async writeJson(data: unknown, outputPath: string): Promise<void> {
-    const json = JSON.stringify(data, null, 2);
-    await fs.writeFile(outputPath, json, "utf-8");
+    try {
+      const json = JSON.stringify(data, null, 2);
+      await fs.writeFile(outputPath, json, "utf-8");
+    } catch (error: unknown) {
+      throw new Error(
+        `Failed to write JSON to file '${outputPath}': ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   /**
