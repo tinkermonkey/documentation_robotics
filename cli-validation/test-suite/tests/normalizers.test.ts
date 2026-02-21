@@ -10,6 +10,7 @@
  * - Idempotency (normalizing twice = normalizing once)
  */
 
+// @ts-expect-error - bun:test is a Bun-specific module not recognized by TypeScript
 import { describe, it, expect } from 'bun:test';
 import {
   stripTimestamps,
@@ -20,7 +21,7 @@ import {
   normalize,
   detectFileType,
   FileType,
-} from './normalizers/index';
+} from '../normalizers/index';
 
 // ============================================================================
 // Timestamp Normalizer Tests
