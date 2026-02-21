@@ -198,10 +198,14 @@ export class SnapshotStorage {
 
     await Promise.all([
       fs.unlink(snapshotPath).catch((e) => {
-        if (e.code !== "ENOENT") throw e;
+        if (e.code !== "ENOENT") {
+          throw new Error(`Failed to delete snapshot ${id}: ${e.message}`);
+        }
       }),
       fs.unlink(metadataPath).catch((e) => {
-        if (e.code !== "ENOENT") throw e;
+        if (e.code !== "ENOENT") {
+          throw new Error(`Failed to delete snapshot metadata ${id}: ${e.message}`);
+        }
       }),
     ]);
   }

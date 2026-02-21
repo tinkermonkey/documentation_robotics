@@ -21,6 +21,9 @@ describe("ClaudeInvoker", () => {
         isolatedNodeTypes: [],
         isolationPercentage: 0,
         relationshipsPerNodeType: 0.5,
+        availablePredicates: [],
+        usedPredicates: [],
+        utilizationPercentage: 0,
       };
       const predicates = ["realizes", "influences"];
 
@@ -71,6 +74,9 @@ describe("ClaudeInvoker", () => {
         isolatedNodeTypes: [],
         isolationPercentage: 0,
         relationshipsPerNodeType: 0.5,
+        availablePredicates: [],
+        usedPredicates: [],
+        utilizationPercentage: 0,
       };
       const predicates = ["realizes", "influences"];
 
@@ -94,6 +100,9 @@ describe("ClaudeInvoker", () => {
           isolatedNodeTypes: [],
           isolationPercentage: 100,
           relationshipsPerNodeType: 0,
+          availablePredicates: [],
+          usedPredicates: [],
+          utilizationPercentage: 0,
         },
       ];
 

@@ -1,10 +1,11 @@
 import fs from "fs/promises";
 import path from "path";
-import type { AuditReport, CoverageMetrics } from "../types.js";
+import type { AuditReport, CoverageMetrics, GapCandidate } from "../types.js";
 import { AuditOrchestrator, type AuditOptions } from "../audit-orchestrator.js";
 import { ReportGenerator } from "../reports/report-generator.js";
 import { DifferentialAnalyzer, type DifferentialAnalysis } from "../differential-analyzer.js";
 import { SnapshotStorage } from "../snapshot-storage.js";
+import { AIEvaluator } from "../ai/ai-evaluator.js";
 
 export interface PipelineOptions {
   /**
@@ -144,18 +145,19 @@ export class PipelineOrchestrator {
     console.log("\n⏳ Step 2/4: Running AI-assisted evaluation...");
 
     if (!options.claudeApiKey) {
-      console.warn("⚠️  Warning: No Claude API key provided, skipping AI evaluation");
-      console.log("\n📋 Pipeline complete (AI evaluation skipped)");
-      return {
-        beforeResult,
-        reports,
-      };
+      throw new Error(
+        "AI evaluation requested (--enable-ai) but no Claude API key provided. " +
+        "Please provide --claude-api-key or set ANTHROPIC_API_KEY environment variable."
+      );
     }
 
-    // Note: AI evaluation is not fully integrated yet - this is a placeholder
-    // The AIEvaluator exists but needs additional integration work
-    console.log("⚠️  AI evaluation integration is in progress");
-    console.log("    (Continuing with before/after reports only)");
+    // Run AI-assisted evaluation using the AIEvaluator
+    const aiEvaluator = new AIEvaluator({
+      claudeApiKey: options.claudeApiKey,
+      verbose: options.verbose ?? false,
+    });
+
+    await aiEvaluator.evaluateAndSuggestRelationships(beforeResult);
 
     // Step 3: Run AFTER audit
     console.log("\n⏳ Step 3/4: Running post-evaluation audit (AFTER AI evaluation)...");
@@ -253,7 +255,7 @@ export class PipelineOrchestrator {
 
     switch (format) {
       case "json":
-        content = JSON.stringify(differential, null, 2);
+        content = JSON.stringify(this.serializeDifferential(differential), null, 2);
         filename = "summary.json";
         break;
 
@@ -354,7 +356,7 @@ export class PipelineOrchestrator {
     if (differential.detailed.gapChanges.resolved.length > 0) {
       lines.push("## Resolved Gaps");
       lines.push("");
-      differential.detailed.gapChanges.resolved.forEach((gap: any) => {
+      differential.detailed.gapChanges.resolved.forEach((gap: GapCandidate) => {
         lines.push(`- ✅ **${gap.sourceNodeType}** → **${gap.destinationNodeType}**: ${gap.suggestedPredicate}`);
       });
       lines.push("");
@@ -443,7 +445,7 @@ export class PipelineOrchestrator {
       lines.push("RESOLVED GAPS");
       lines.push("-".repeat(80));
       lines.push("");
-      differential.detailed.gapChanges.resolved.forEach((gap: any, i: number) => {
+      differential.detailed.gapChanges.resolved.forEach((gap: GapCandidate, i: number) => {
         lines.push(`  ${i + 1}. ${gap.sourceNodeType} → ${gap.destinationNodeType}: ${gap.suggestedPredicate}`);
       });
       lines.push("");
@@ -462,6 +464,20 @@ export class PipelineOrchestrator {
     lines.push("=".repeat(80));
 
     return lines.join("\n");
+  }
+
+  /**
+   * Convert DifferentialAnalysis to JSON-serializable format
+   * Maps need to be converted to plain objects
+   */
+  private serializeDifferential(differential: DifferentialAnalysis): any {
+    return {
+      ...differential,
+      detailed: {
+        ...differential.detailed,
+        coverageByLayer: Object.fromEntries(differential.detailed.coverageByLayer),
+      },
+    };
   }
 
   /**
