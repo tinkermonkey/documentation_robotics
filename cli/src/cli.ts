@@ -557,9 +557,9 @@ Examples:
   $ dr audit api --output api-audit.json  # API layer audit as JSON
 
   # Pipeline mode examples
-  $ dr audit --pipeline                                    # Before/after without AI
-  $ dr audit --pipeline --enable-ai --claude-api-key $KEY  # Full AI pipeline
-  $ dr audit security --pipeline --enable-ai --claude-api-key $KEY  # Layer-specific`
+  $ dr audit --pipeline                        # Before/after without AI
+  $ dr audit --pipeline --enable-ai            # Full AI pipeline
+  $ dr audit security --pipeline --enable-ai   # Layer-specific`
   )
   .action((layer, options) => auditCommand({ ...options, layer }));
 
