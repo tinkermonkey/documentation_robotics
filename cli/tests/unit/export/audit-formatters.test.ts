@@ -81,7 +81,7 @@ describe("audit-formatters", () => {
 
       // Should contain header but handle empty coverage
       expect(textOutput).toContain("Relationship Audit Report");
-      expect(jsonOutput).toContain('"coverage":[]');
+      expect(jsonOutput).toContain('"coverage": []');
     });
 
     it("should format report with empty duplicates array", () => {
