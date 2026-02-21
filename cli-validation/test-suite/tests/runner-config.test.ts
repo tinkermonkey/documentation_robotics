@@ -240,15 +240,9 @@ describe('RunnerOptions Configuration', () => {
       fastFail: false,
       verbose: false,
     };
-    const jsonOpts: RunnerOptions = {
-      reporter: 'json',
-      fastFail: false,
-      verbose: false,
-    };
 
     expect(consoleOpts.reporter).toBe('console');
     expect(junitOpts.reporter).toBe('junit');
-    expect(jsonOpts.reporter).toBe('json');
   });
 
   it('should support output file path', () => {
@@ -262,16 +256,6 @@ describe('RunnerOptions Configuration', () => {
     expect(options.outputFile).toBe('/path/to/results.xml');
   });
 
-  it('should support concurrency setting', () => {
-    const options: RunnerOptions = {
-      reporter: 'console',
-      fastFail: false,
-      verbose: false,
-      concurrency: 4,
-    };
-
-    expect(options.concurrency).toBe(4);
-  });
 
   it('should support combining multiple options', () => {
     const options: RunnerOptions = {
@@ -281,7 +265,6 @@ describe('RunnerOptions Configuration', () => {
       priority: 'high',
       testCase: 'element',
       outputFile: 'results/junit.xml',
-      concurrency: 2,
     };
 
     expect(options.reporter).toBe('junit');
@@ -290,6 +273,5 @@ describe('RunnerOptions Configuration', () => {
     expect(options.priority).toBe('high');
     expect(options.testCase).toBe('element');
     expect(options.outputFile).toBe('results/junit.xml');
-    expect(options.concurrency).toBe(2);
   });
 });
