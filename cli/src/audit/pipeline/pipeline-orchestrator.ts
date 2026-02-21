@@ -153,10 +153,16 @@ export class PipelineOrchestrator {
 
     // Run AI-assisted evaluation using the AIEvaluator
     const aiEvaluator = new AIEvaluator({
-      outputDir: beforeOutputDir,
+      outputDir: beforeDir,
     });
 
-    await aiEvaluator.evaluateLowCoverageElements(beforeResult.coverage);
+    // Provide predicate retrieval function for AI evaluation
+    const getPredicatesForLayer = async (_layer: string): Promise<string[]> => {
+      // Return empty array as stub - predicates are embedded in gap analysis
+      return [];
+    };
+
+    await aiEvaluator.evaluateLowCoverageElements(beforeResult.coverage, getPredicatesForLayer);
 
     // Step 3: Run AFTER audit
     console.log("\n⏳ Step 3/4: Running post-evaluation audit (AFTER AI evaluation)...");
