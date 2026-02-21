@@ -133,12 +133,12 @@ Audit Snapshots:
 ────────────────────────────────────────────────────────────────────────────────
 
 20260220-150000
-  Timestamp: 2/20/2026, 3:00:00 PM
+  Timestamp: 2026-02-20 15:00:00
   Model:     Documentation Robotics Model v1.0.0
   Layers:    motivation, business, security, application, technology, api, data-model, data-store, ux, navigation, apm, testing
 
 20260220-100000
-  Timestamp: 2/20/2026, 10:00:00 AM
+  Timestamp: 2026-02-20 10:00:00
   Model:     Documentation Robotics Model v1.0.0
   Layers:    motivation, business, security, application, technology, api, data-model, data-store, ux, navigation, apm, testing
 
@@ -227,8 +227,8 @@ dr audit:diff --verbose
 ═══════════════════════════════════════════════════════════════
 
 Comparison Period:
-  Before: 2/20/2026, 10:00:00 AM
-  After:  2/20/2026, 3:00:00 PM
+  Before: 2026-02-20 10:00:00
+  After:  2026-02-20 15:00:00
 
 EXECUTIVE SUMMARY
 ────────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@
 
 import { promises as fs } from "fs";
 import * as path from "path";
-import { AuditReport } from "./types.js";
+import type { AuditReport } from "./types.js";
 
 /**
  * Metadata for a stored audit snapshot

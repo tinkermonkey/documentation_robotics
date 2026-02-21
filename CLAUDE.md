@@ -295,25 +295,25 @@ Audit intra-layer relationships across all 12 layers for coverage, semantic dupl
 
 ```bash
 # Run full audit (text output to console)
-npm run audit
+npm run audit:relationships
 
 # Audit specific layer only
-npm run audit -- --layer api
+npm run audit:relationships -- --layer api
 
 # JSON output for CI/CD integration
-npm run audit -- --format json --output audit.json
+npm run audit:relationships -- --format json --output audit.json
 
 # Quality gate mode (exit 1 if quality issues found)
-npm run audit -- --threshold
+npm run audit:relationships -- --threshold
 
 # Markdown report generation
-npm run audit -- --format markdown --output report.md
+npm run audit:relationships -- --format markdown --output report.md
 
 # Verbose output with detailed analysis
-npm run audit -- --verbose
+npm run audit:relationships -- --verbose
 
 # Combine flags
-npm run audit -- --layer security --format json --output security-audit.json --threshold
+npm run audit:relationships -- --layer security --format json --output security-audit.json --threshold
 ```
 
 **Output:**

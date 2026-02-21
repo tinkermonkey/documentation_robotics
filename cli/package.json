@@ -20,7 +20,6 @@
     "copy-schemas": "cp -r src/schemas dist/",
     "generate-layer-reports": "bun run ../scripts/generate-layer-reports.ts",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
-    "audit": "tsx scripts/relationship-audit.ts",
     "audit:relationships": "tsx scripts/relationship-audit.ts",
     "dev": "node dist/cli.js",
     "lint": "tsc --noEmit",
