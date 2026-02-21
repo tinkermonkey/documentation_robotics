@@ -121,7 +121,12 @@ export class CoverageAnalyzer {
     const availablePredicates = await this.getAvailablePredicatesForLayer(
       layer.id
     );
-    const usedPredicates = Array.from(usedPredicatesSet);
+    // Filter used predicates to only include those defined in relationship schemas for this layer
+    // This handles cases where relationship index contains predicates not yet formalized in schemas
+    const availablePredicateSet = new Set(availablePredicates);
+    const usedPredicates = Array.from(usedPredicatesSet).filter(
+      (p) => availablePredicateSet.has(p)
+    );
     const utilizationPercentage = createPercentage(
       availablePredicates.length > 0
         ? (usedPredicates.length / availablePredicates.length) * 100
