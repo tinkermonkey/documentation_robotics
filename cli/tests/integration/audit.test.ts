@@ -194,7 +194,7 @@ describe("audit command", () => {
         layer: "invalid-layer",
         output: outputPath,
       })
-    ).rejects.toThrow("Layer not found: invalid-layer");
+    ).rejects.toThrow("Audit failed: Layer not found: 'invalid-layer'");
 
     // Verify no file was created
     expect(await fileExists(outputPath)).toBe(false);
