@@ -521,7 +521,6 @@ program
   .option("--save-snapshot", "Save audit report as snapshot for differential analysis")
   .option("--pipeline", "Run full before/after AI evaluation pipeline")
   .option("--enable-ai", "Enable AI-assisted evaluation in pipeline mode")
-  .option("--claude-api-key <key>", "Claude API key for AI evaluation")
   .option("--output-dir <dir>", "Output directory for pipeline results (default: audit-results)")
   .addHelpText(
     "after",
@@ -540,8 +539,7 @@ Analysis types:
 
 Pipeline Mode:
   --pipeline              Run before/after AI evaluation workflow
-  --enable-ai             Enable AI-assisted evaluation (requires --claude-api-key)
-  --claude-api-key <key>  Claude API key for AI evaluation
+  --enable-ai             Enable AI-assisted evaluation (requires Claude CLI to be installed and authenticated)
   --output-dir <dir>      Output directory (default: audit-results)
 
   Pipeline generates:
