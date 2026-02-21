@@ -188,10 +188,14 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
     };
 
     // Determine output format
-    let format: AuditReportFormat = options.format || "text";
+    // Explicit format flag takes precedence over auto-detection
+    let format: AuditReportFormat = "text";
 
-    // Auto-detect format from output file extension
-    if (options.output) {
+    if (options.format) {
+      // User explicitly specified format - use it
+      format = options.format;
+    } else if (options.output) {
+      // No explicit format - auto-detect from file extension
       const ext = path.extname(options.output).toLowerCase();
       if (ext === ".json") {
         format = "json";

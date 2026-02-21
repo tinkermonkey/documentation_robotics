@@ -17,6 +17,20 @@ export interface AIEvaluationConfig {
   resumable: boolean;
 }
 
+export interface EvaluationFailure {
+  type: "element" | "layer" | "inter-layer";
+  key: string;
+  error: string;
+  timestamp: string;
+}
+
+export interface EvaluationSummary {
+  totalAttempted: number;
+  successful: number;
+  failed: number;
+  failures: EvaluationFailure[];
+}
+
 /**
  * In-memory progress tracker for AI evaluation
  */
@@ -51,6 +65,7 @@ export class AIEvaluator {
   private claudeInvoker: ClaudeInvoker;
   private responseParser: ResponseParser;
   private config: AIEvaluationConfig;
+  private failures: EvaluationFailure[] = [];
 
   constructor(config: Partial<AIEvaluationConfig> = {}) {
     this.claudeInvoker = new ClaudeInvoker();
@@ -96,10 +111,12 @@ export class AIEvaluator {
     }
 
     // Sequential evaluation
+    let successCount = 0;
     for (const { nodeType, metrics } of lowCoverageTypes) {
       // Check if already evaluated (resume support)
       if (this.config.resumable && tracker.isCompleted(nodeType)) {
         console.log(`Skipping already-evaluated: ${nodeType}`);
+        successCount++;
         continue;
       }
 
@@ -131,9 +148,31 @@ export class AIEvaluator {
         console.log(
           `Completed: ${nodeType} (${recommendations.length} recommendations)`
         );
+        successCount++;
       } catch (error: any) {
-        console.error(`Failed to evaluate ${nodeType}: ${error.message}`);
+        const errorMessage = error.message || String(error);
+        console.error(`Failed to evaluate ${nodeType}: ${errorMessage}`);
+
+        // Track failure
+        this.failures.push({
+          type: "element",
+          key: nodeType,
+          error: errorMessage,
+          timestamp: new Date().toISOString(),
+        });
         // Continue with next element
+      }
+    }
+
+    // Report element evaluation summary
+    if (lowCoverageTypes.length > 0) {
+      console.log(
+        `\n✓ Element evaluation complete: ${successCount}/${lowCoverageTypes.length} successful`
+      );
+      if (this.failures.filter((f) => f.type === "element").length > 0) {
+        console.error(
+          `⚠️  ${this.failures.filter((f) => f.type === "element").length} element(s) failed - see summary for details`
+        );
       }
     }
   }
@@ -157,10 +196,12 @@ export class AIEvaluator {
     }
 
     // Sequential layer review
+    let successCount = 0;
     for (const layer of layers) {
       // Check if already reviewed (resume support)
       if (this.config.resumable && tracker.isCompleted(layer)) {
         console.log(`Skipping already-reviewed layer: ${layer}`);
+        successCount++;
         continue;
       }
 
@@ -191,9 +232,29 @@ export class AIEvaluator {
         console.log(
           `Completed: ${layer} (${review.recommendations.length} recommendations)`
         );
+        successCount++;
       } catch (error: any) {
-        console.error(`Failed to review layer ${layer}: ${error.message}`);
+        const errorMessage = error.message || String(error);
+        console.error(`Failed to review layer ${layer}: ${errorMessage}`);
+
+        // Track failure
+        this.failures.push({
+          type: "layer",
+          key: layer,
+          error: errorMessage,
+          timestamp: new Date().toISOString(),
+        });
         // Continue with next layer
+      }
+    }
+
+    // Report layer review summary
+    if (layers.length > 0) {
+      console.log(`\n✓ Layer review complete: ${successCount}/${layers.length} successful`);
+      if (this.failures.filter((f) => f.type === "layer").length > 0) {
+        console.error(
+          `⚠️  ${this.failures.filter((f) => f.type === "layer").length} layer(s) failed - see summary for details`
+        );
       }
     }
   }
@@ -215,12 +276,14 @@ export class AIEvaluator {
     }
 
     // Sequential validation
+    let successCount = 0;
     for (const { source, target } of layerPairs) {
       const pairKey = `${source}->${target}`;
 
       // Check if already validated (resume support)
       if (this.config.resumable && tracker.isCompleted(pairKey)) {
         console.log(`Skipping already-validated: ${pairKey}`);
+        successCount++;
         continue;
       }
 
@@ -244,9 +307,31 @@ export class AIEvaluator {
         console.log(
           `Completed: ${pairKey} (${validation.violations.length} violations, ${validation.recommendations.length} recommendations)`
         );
+        successCount++;
       } catch (error: any) {
-        console.error(`Failed to validate ${pairKey}: ${error.message}`);
+        const errorMessage = error.message || String(error);
+        console.error(`Failed to validate ${pairKey}: ${errorMessage}`);
+
+        // Track failure
+        this.failures.push({
+          type: "inter-layer",
+          key: pairKey,
+          error: errorMessage,
+          timestamp: new Date().toISOString(),
+        });
         // Continue with next pair
+      }
+    }
+
+    // Report inter-layer validation summary
+    if (layerPairs.length > 0) {
+      console.log(
+        `\n✓ Inter-layer validation complete: ${successCount}/${layerPairs.length} successful`
+      );
+      if (this.failures.filter((f) => f.type === "inter-layer").length > 0) {
+        console.error(
+          `⚠️  ${this.failures.filter((f) => f.type === "inter-layer").length} pair(s) failed - see summary for details`
+        );
       }
     }
   }
@@ -317,6 +402,61 @@ export class AIEvaluator {
         null,
         2
       )
+    );
+  }
+
+  /**
+   * Get evaluation summary including failures
+   */
+  getEvaluationSummary(totalAttempted: number): EvaluationSummary {
+    return {
+      totalAttempted,
+      successful: totalAttempted - this.failures.length,
+      failed: this.failures.length,
+      failures: this.failures,
+    };
+  }
+
+  /**
+   * Save evaluation summary to file
+   */
+  async saveEvaluationSummary(totalAttempted: number): Promise<void> {
+    const summary = this.getEvaluationSummary(totalAttempted);
+    const filepath = join(this.config.outputDir, "evaluation-summary.json");
+
+    await writeFile(filepath, JSON.stringify(summary, null, 2));
+  }
+
+  /**
+   * Print failure summary to console
+   */
+  printFailureSummary(): void {
+    if (this.failures.length === 0) {
+      console.log("\n✓ All AI evaluations completed successfully");
+      return;
+    }
+
+    console.error(`\n⚠️  AI Evaluation Failures Summary:`);
+    console.error(`Total failures: ${this.failures.length}\n`);
+
+    const failuresByType = {
+      element: this.failures.filter((f) => f.type === "element"),
+      layer: this.failures.filter((f) => f.type === "layer"),
+      "inter-layer": this.failures.filter((f) => f.type === "inter-layer"),
+    };
+
+    for (const [type, failures] of Object.entries(failuresByType)) {
+      if (failures.length > 0) {
+        console.error(`${type} failures (${failures.length}):`);
+        for (const failure of failures) {
+          console.error(`  - ${failure.key}: ${failure.error}`);
+        }
+        console.error("");
+      }
+    }
+
+    console.error(
+      `Full details saved to: ${join(this.config.outputDir, "evaluation-summary.json")}`
     );
   }
 }

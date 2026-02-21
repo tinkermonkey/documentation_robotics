@@ -65,6 +65,13 @@ export class RelationshipGraph {
     }
 
     // Add edges (relationships as graph edges)
+    const skippedEdges: Array<{
+      relationshipId: string;
+      source: string;
+      destination: string;
+      reason: string;
+    }> = [];
+
     for (const rel of relationships) {
       try {
         this.graph.addEdge({
@@ -78,9 +85,34 @@ export class RelationshipGraph {
             required: rel.required,
           },
         });
-      } catch (_error) {
-        // Silently skip edges where nodes don't exist
+      } catch (error) {
+        // Track data integrity issues - relationships referencing non-existent node types
+        const reason = error instanceof Error ? error.message : String(error);
+        skippedEdges.push({
+          relationshipId: rel.id,
+          source: rel.sourceSpecNodeId,
+          destination: rel.destinationSpecNodeId,
+          reason,
+        });
+
+        // Log to stderr for visibility
+        console.error(
+          `⚠️  Data integrity issue: Relationship "${rel.id}" references non-existent node type. ${reason}`
+        );
       }
+    }
+
+    // Report summary if any edges were skipped
+    if (skippedEdges.length > 0) {
+      console.error(
+        `\n⚠️  Warning: ${skippedEdges.length} relationship(s) skipped due to missing node type references.`
+      );
+      console.error(
+        `This indicates data integrity issues in the relationship schemas.`
+      );
+      console.error(
+        `Run 'dr schema relationships' to validate relationship definitions.\n`
+      );
     }
   }
 

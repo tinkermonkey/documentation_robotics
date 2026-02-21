@@ -72,8 +72,14 @@ export async function auditDiffCommand(
     const analysis = analyzer.analyze(beforeReport, afterReport);
 
     // Determine output format
-    let format = options.format || "text";
-    if (options.output) {
+    // Explicit format flag takes precedence over auto-detection
+    let format = "text";
+
+    if (options.format) {
+      // User explicitly specified format - use it
+      format = options.format;
+    } else if (options.output) {
+      // No explicit format - auto-detect from file extension
       const ext = path.extname(options.output).toLowerCase();
       if (ext === ".json") {
         format = "json";

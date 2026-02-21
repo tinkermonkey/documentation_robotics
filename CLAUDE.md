@@ -294,37 +294,37 @@ Audit intra-layer relationships across all 12 layers for coverage, semantic dupl
 **Usage:**
 
 ```bash
-# Full audit with AI assistance
-npm run audit:relationships
+# Run full audit (text output to console)
+npm run audit
 
-# Analysis only (no AI)
-npm run audit:relationships -- --skip-ai
-
-# Target specific layers
-npm run audit:relationships -- --layers=security,ux,navigation
-
-# Dry run
-npm run audit:relationships -- --dry-run
-
-# Resume interrupted audit
-npm run audit:relationships -- --resume
+# Audit specific layer only
+npm run audit -- --layer api
 
 # JSON output for CI/CD integration
-npm run audit:relationships -- --format json --output audit.json
+npm run audit -- --format json --output audit.json
 
-# Quality gate mode (exit 1 if issues found)
-npm run audit:relationships -- --threshold
+# Quality gate mode (exit 1 if quality issues found)
+npm run audit -- --threshold
 
 # Markdown report generation
-npm run audit:relationships -- --format markdown --output report.md
+npm run audit -- --format markdown --output report.md
+
+# Verbose output with detailed analysis
+npm run audit -- --verbose
+
+# Combine flags
+npm run audit -- --layer security --format json --output security-audit.json --threshold
 ```
 
 **Output:**
 
-- `audit-output/{timestamp}/before/` - Pre-AI analysis
-- `audit-output/{timestamp}/after/` - Post-AI analysis
-- `audit-output/{timestamp}/summary.json` - Change summary
-- `audit-output/{timestamp}/ai-evaluation/` - AI recommendations
+The audit command outputs directly to console (text format) or to the specified file (JSON/Markdown formats). Output includes:
+
+- Coverage metrics (isolation %, density, predicate utilization)
+- Duplicate relationship candidates
+- Gap analysis (missing relationships)
+- Balance assessment (relationship density per node type)
+- Connectivity analysis (graph structure, components, chains)
 
 **Output Formats:**
 
@@ -347,9 +347,10 @@ npm run audit:relationships -- --format markdown --output report.md
 
 **Files:**
 
-- Pipeline: `cli/src/audit/pipeline/audit-pipeline.ts`
+- Entry Point: `cli/scripts/relationship-audit.ts`
 - Analysis: `cli/src/audit/analysis/`
 - Reports: `cli/src/audit/reports/`
+- Graph: `cli/src/audit/graph/`
 - AI: `cli/src/audit/ai/`
 
 ### Element Migration

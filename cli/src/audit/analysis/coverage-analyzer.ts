@@ -48,6 +48,19 @@ export class CoverageAnalyzer {
       throw errors[0].error;
     }
 
+    // Report partial failures to user
+    if (errors.length > 0 && results.length > 0) {
+      console.error(
+        `\n⚠️  Warning: Coverage analysis failed for ${errors.length} layer(s):`
+      );
+      for (const { layer, error } of errors) {
+        console.error(`  - ${layer}: ${error.message}`);
+      }
+      console.error(
+        `\nSuccessfully analyzed ${results.length}/${layers.length} layers.\n`
+      );
+    }
+
     return results;
   }
 
