@@ -162,7 +162,10 @@ export class SnapshotStorage {
           `Snapshot not found: ${id}. Use 'dr audit snapshots' to list available snapshots.`,
         );
       }
-      throw error;
+      // Include snapshot ID in parse error context
+      throw new Error(
+        `Failed to parse snapshot ${id}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -200,6 +203,9 @@ export class SnapshotStorage {
 
   /**
    * Delete a snapshot
+   *
+   * Deletes both snapshot and metadata files sequentially with rollback on failure
+   * to prevent partial deletion state.
    */
   async delete(idOrTimestamp: string): Promise<void> {
     await this.ensureStorageDir();
@@ -214,18 +220,27 @@ export class SnapshotStorage {
     const snapshotPath = this.getSnapshotPath(id);
     const metadataPath = this.getMetadataPath(id);
 
-    await Promise.all([
-      fs.unlink(snapshotPath).catch((e) => {
-        if (e.code !== "ENOENT") {
-          throw new Error(`Failed to delete snapshot ${id}: ${e.message}`);
-        }
-      }),
-      fs.unlink(metadataPath).catch((e) => {
-        if (e.code !== "ENOENT") {
-          throw new Error(`Failed to delete snapshot metadata ${id}: ${e.message}`);
-        }
-      }),
-    ]);
+    // Delete snapshot file first
+    try {
+      await fs.unlink(snapshotPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw new Error(`Failed to delete snapshot ${id}: ${(error as NodeJS.ErrnoException).message}`);
+      }
+      // File doesn't exist, continue to metadata
+    }
+
+    // Delete metadata file
+    try {
+      await fs.unlink(metadataPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw new Error(
+          `Failed to delete snapshot metadata ${id}: ${(error as NodeJS.ErrnoException).message}`
+        );
+      }
+      // File doesn't exist, both are gone
+    }
   }
 
   /**

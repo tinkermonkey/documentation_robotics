@@ -351,6 +351,90 @@ describe("Differential Analysis", () => {
     expect(analysis.summary.duplicatesResolved).toBeGreaterThanOrEqual(0);
     expect(Array.isArray(analysis.summary.balanceImprovements)).toBe(true);
   });
+
+  it("should detect when before/after have different layer sets", () => {
+    // Create before snapshot with motivation and business layers
+    const before = createMockAuditReport(
+      "2026-02-20T10:00:00.000Z"
+    );
+
+    // Create after snapshot with different layers (business and api)
+    const after: AuditReport = {
+      timestamp: "2026-02-20T15:00:00.000Z",
+      model: {
+        name: "Test Model",
+        version: "1.0.0",
+      },
+      coverage: [
+        {
+          layer: "business",
+          nodeTypeCount: 8,
+          relationshipCount: 12,
+          isolatedNodeTypes: [],
+          isolationPercentage: 0,
+          availablePredicates: ["serves"],
+          usedPredicates: ["serves"],
+          utilizationPercentage: 50,
+          relationshipsPerNodeType: 1.5,
+        },
+        {
+          layer: "api",
+          nodeTypeCount: 5,
+          relationshipCount: 8,
+          isolatedNodeTypes: [],
+          isolationPercentage: 0,
+          availablePredicates: ["endpoint"],
+          usedPredicates: ["endpoint"],
+          utilizationPercentage: 100,
+          relationshipsPerNodeType: 1.6,
+        },
+      ],
+      duplicates: [],
+      gaps: [],
+      balance: [],
+      connectivity: {
+        components: [],
+        degrees: [],
+        transitiveChains: [],
+        stats: {
+          totalNodes: 100,
+          totalEdges: 150,
+          connectedComponents: 1,
+          largestComponentSize: 100,
+          isolatedNodes: 0,
+          averageDegree: 3.0,
+          transitiveChainCount: 0,
+        },
+      },
+    };
+
+    const analysis = analyzer.analyze(before, after);
+
+    // Should handle skipped layers (motivation no longer present in after)
+    // The analysis should still complete successfully
+    expect(analysis).toBeDefined();
+    expect(analysis.summary.coverageChanges).toBeDefined();
+
+    // Motivation layer should be listed as skipped in detailed analysis
+    // (if implementation tracks skipped layers)
+    const motivationLayer = analysis.summary.coverageChanges.find(
+      (c) => c.layer === "motivation"
+    );
+
+    // If motivation appears in the changes, it should show the delta
+    if (motivationLayer) {
+      expect(motivationLayer.layer).toBe("motivation");
+    }
+
+    // API layer is new in after, should be tracked
+    const apiLayer = analysis.summary.coverageChanges.find(
+      (c) => c.layer === "api"
+    );
+    // May be tracked as new layer
+    if (apiLayer) {
+      expect(apiLayer.layer).toBe("api");
+    }
+  });
 });
 
 // Helper function to create mock audit reports

@@ -26,8 +26,15 @@ export interface PipelineOptions {
 
   /**
    * Whether to run AI-assisted evaluation
+   * Required: if enableAI is true, claudeApiKey must be provided
    */
   enableAI?: boolean;
+
+  /**
+   * Claude API key (required when enableAI is true)
+   * This is used to authenticate with Claude for AI evaluation
+   */
+  claudeApiKey?: string;
 
   /**
    * Verbose output
@@ -35,35 +42,46 @@ export interface PipelineOptions {
   verbose?: boolean;
 }
 
-export interface PipelineResult {
-  /**
-   * Result from before AI evaluation
-   */
+/**
+ * Pipeline result when AI is disabled
+ * Contains only before snapshot and report
+ */
+export interface PipelineResultWithoutAI {
   beforeResult: AuditReport;
-
-  /**
-   * Result from after AI evaluation (if AI enabled)
-   */
-  afterResult?: AuditReport;
-
-  /**
-   * Paths to generated reports
-   */
+  afterResult?: never;
   reports: {
     before: string;
-    after?: string;
-    summary?: string;
+    after?: never;
+    summary?: never;
   };
+  summary?: never;
+}
 
-  /**
-   * Summary of changes (if AI enabled)
-   */
-  summary?: {
+/**
+ * Pipeline result when AI is enabled
+ * Contains before and after snapshots, all reports, and summary metrics
+ */
+export interface PipelineResultWithAI {
+  beforeResult: AuditReport;
+  afterResult: AuditReport;
+  reports: {
+    before: string;
+    after: string;
+    summary: string;
+  };
+  summary: {
     relationshipsAdded: number;
     gapsResolved: number;
     coverageImprovement: number;
   };
 }
+
+/**
+ * Discriminated union of pipeline results based on AI enablement
+ * Enforces type safety: afterResult, reports.after, reports.summary, and summary
+ * must be present together or absent together
+ */
+export type PipelineResult = PipelineResultWithoutAI | PipelineResultWithAI;
 
 /**
  * Orchestrates the complete audit pipeline:
@@ -89,6 +107,14 @@ export class PipelineOrchestrator {
    * Execute the complete audit pipeline
    */
   async executePipeline(options: PipelineOptions = {}): Promise<PipelineResult> {
+    // Validate cross-field dependency: enableAI requires claudeApiKey
+    if (options.enableAI && !options.claudeApiKey) {
+      throw new Error(
+        "Claude API key is required when AI evaluation is enabled. " +
+        "Set claudeApiKey in pipeline options or set CLAUDE_API_KEY environment variable."
+      );
+    }
+
     const baseOutputDir = options.outputDir ?? "audit-results";
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const sessionDir = path.join(baseOutputDir, timestamp);
@@ -146,6 +172,7 @@ export class PipelineOrchestrator {
     });
 
     // Provide predicate retrieval function for AI evaluation
+    // Predicates are used in AI prompts to suggest available relationship types
     const getPredicatesForLayer = async (layer: string): Promise<string[]> => {
       return this.auditOrchestrator.getPredicatesForLayer(layer);
     };

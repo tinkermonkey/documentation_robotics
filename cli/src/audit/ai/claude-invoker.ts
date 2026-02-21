@@ -87,7 +87,7 @@ export class ClaudeInvoker {
         ? (error as { stderr?: string }).stderr
         : undefined;
       throw new Error(
-        `Claude invocation failed: ${getErrorMessage(error)}\nStderr: ${stderr || "N/A"}`
+        `Claude invocation failed (${invocation.type}: ${invocation.target}): ${getErrorMessage(error)}\nStderr: ${stderr || "N/A"}`
       );
     }
   }
@@ -111,7 +111,7 @@ export class ClaudeInvoker {
       prompt,
       context: {
         availablePredicates: predicates,
-        currentRelationships: [], // From coverage metrics
+        currentRelationships: [], // Empty placeholder - relationship context provided via prompt template
       },
     });
   }

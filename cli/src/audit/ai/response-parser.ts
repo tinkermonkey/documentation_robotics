@@ -35,8 +35,9 @@ export class ResponseParser {
       response.match(/```json\n([\s\S]*?)\n```/) || response.match(/\[[\s\S]*\]/);
 
     if (!jsonMatch) {
+      const truncated = response.substring(0, 200);
       throw new Error(
-        "Failed to extract JSON from AI response. Expected JSON array in code block or raw JSON array."
+        `Failed to extract JSON from AI response. Expected JSON array in code block or raw JSON array.\nReceived: ${truncated}${response.length > 200 ? "..." : ""}`
       );
     }
 
@@ -46,7 +47,10 @@ export class ResponseParser {
     try {
       recommendations = JSON.parse(jsonString);
     } catch (error: unknown) {
-      throw new Error(`Failed to parse JSON from AI response: ${getErrorMessage(error)}`);
+      const truncated = jsonString.substring(0, 200);
+      throw new Error(
+        `Failed to parse JSON from AI response: ${getErrorMessage(error)}\nReceived: ${truncated}${jsonString.length > 200 ? "..." : ""}`
+      );
     }
 
     if (!Array.isArray(recommendations)) {
@@ -123,8 +127,9 @@ export class ResponseParser {
       response.match(/```json\n([\s\S]*?)\n```/) || response.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
+      const truncated = response.substring(0, 200);
       throw new Error(
-        "Failed to extract JSON from layer review. Expected JSON object in code block or raw JSON object."
+        `Failed to extract JSON from layer review. Expected JSON object in code block or raw JSON object.\nReceived: ${truncated}${response.length > 200 ? "..." : ""}`
       );
     }
 
@@ -134,7 +139,10 @@ export class ResponseParser {
     try {
       review = JSON.parse(jsonString);
     } catch (error: unknown) {
-      throw new Error(`Failed to parse JSON from layer review: ${getErrorMessage(error)}`);
+      const truncated = jsonString.substring(0, 200);
+      throw new Error(
+        `Failed to parse JSON from layer review: ${getErrorMessage(error)}\nReceived: ${truncated}${jsonString.length > 200 ? "..." : ""}`
+      );
     }
 
     // Type narrowing: ensure review is an object
@@ -248,8 +256,9 @@ export class ResponseParser {
       response.match(/```json\n([\s\S]*?)\n```/) || response.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
+      const truncated = response.substring(0, 200);
       throw new Error(
-        "Failed to extract JSON from inter-layer validation. Expected JSON object in code block or raw JSON object."
+        `Failed to extract JSON from inter-layer validation. Expected JSON object in code block or raw JSON object.\nReceived: ${truncated}${response.length > 200 ? "..." : ""}`
       );
     }
 
@@ -259,8 +268,9 @@ export class ResponseParser {
     try {
       validation = JSON.parse(jsonString);
     } catch (error: unknown) {
+      const truncated = jsonString.substring(0, 200);
       throw new Error(
-        `Failed to parse JSON from inter-layer validation: ${getErrorMessage(error)}`
+        `Failed to parse JSON from inter-layer validation: ${getErrorMessage(error)}\nReceived: ${truncated}${jsonString.length > 200 ? "..." : ""}`
       );
     }
 
