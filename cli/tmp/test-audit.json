@@ -1,0 +1,417 @@
+{
+  "timestamp": "2026-02-21T01:42:42.184Z",
+  "model": {
+    "name": "Documentation Robotics Model",
+    "version": "1.0.0"
+  },
+  "coverage": [
+    {
+      "layer": "motivation",
+      "nodeTypeCount": 19,
+      "relationshipCount": 58,
+      "isolatedNodeTypes": [
+        "motivation.assessmenttype",
+        "motivation.constrainttype",
+        "motivation.drivercategory",
+        "motivation.outcomestatus",
+        "motivation.principlecategory",
+        "motivation.priority",
+        "motivation.requirementtype",
+        "motivation.stakeholdertype",
+        "motivation.valuetype"
+      ],
+      "isolationPercentage": 47.368421052631575,
+      "availablePredicates": [
+        "realizes",
+        "aggregates",
+        "associated-with",
+        "influence"
+      ],
+      "usedPredicates": [
+        "influence",
+        "aggregates",
+        "realizes",
+        "associated-with"
+      ],
+      "utilizationPercentage": 100,
+      "relationshipsPerNodeType": 3.0526315789473686,
+      "standardAlignment": {
+        "standard": "ArchiMate 3.2",
+        "expectedRelationships": 3,
+        "missingFromStandard": [
+          "goal→supports→principle",
+          "requirement→realizes→goal",
+          "constraint→restricts→requirement"
+        ]
+      }
+    }
+  ],
+  "duplicates": [
+    {
+      "relationships": [
+        "motivation.goal.aggregates.motivation.goal",
+        "motivation.goal.realizes.motivation.goal"
+      ],
+      "predicates": [
+        "aggregates",
+        "realizes"
+      ],
+      "sourceNodeType": "motivation.goal",
+      "destinationNodeType": "motivation.goal",
+      "reason": "Both predicates in \"structural\" category",
+      "confidence": "medium"
+    },
+    {
+      "relationships": [
+        "motivation.outcome.associated-with.motivation.goal",
+        "motivation.outcome.realizes.motivation.goal"
+      ],
+      "predicates": [
+        "associated-with",
+        "realizes"
+      ],
+      "sourceNodeType": "motivation.outcome",
+      "destinationNodeType": "motivation.goal",
+      "reason": "Both predicates in \"structural\" category",
+      "confidence": "medium"
+    },
+    {
+      "relationships": [
+        "motivation.outcome.associated-with.motivation.value",
+        "motivation.outcome.realizes.motivation.value"
+      ],
+      "predicates": [
+        "associated-with",
+        "realizes"
+      ],
+      "sourceNodeType": "motivation.outcome",
+      "destinationNodeType": "motivation.value",
+      "reason": "Both predicates in \"structural\" category",
+      "confidence": "medium"
+    },
+    {
+      "relationships": [
+        "motivation.requirement.aggregates.motivation.goal",
+        "motivation.requirement.associated-with.motivation.goal"
+      ],
+      "predicates": [
+        "aggregates",
+        "associated-with"
+      ],
+      "sourceNodeType": "motivation.requirement",
+      "destinationNodeType": "motivation.goal",
+      "reason": "Both predicates in \"structural\" category",
+      "confidence": "medium"
+    }
+  ],
+  "gaps": [
+    {
+      "sourceNodeType": "motivation.goal",
+      "destinationNodeType": "motivation.principle",
+      "suggestedPredicate": "supports",
+      "reason": "Goals support principles",
+      "priority": "low",
+      "standardReference": "ArchiMate 3.2"
+    },
+    {
+      "sourceNodeType": "motivation.goal",
+      "destinationNodeType": "motivation.principlecategory",
+      "suggestedPredicate": "supports",
+      "reason": "Goals support principles",
+      "priority": "low",
+      "standardReference": "ArchiMate 3.2"
+    },
+    {
+      "sourceNodeType": "motivation.requirement",
+      "destinationNodeType": "motivation.goal",
+      "suggestedPredicate": "realizes",
+      "reason": "Requirements realize goals",
+      "priority": "low",
+      "standardReference": "ArchiMate 3.2"
+    },
+    {
+      "sourceNodeType": "motivation.requirementtype",
+      "destinationNodeType": "motivation.goal",
+      "suggestedPredicate": "realizes",
+      "reason": "Requirements realize goals",
+      "priority": "low",
+      "standardReference": "ArchiMate 3.2"
+    },
+    {
+      "sourceNodeType": "motivation.constraint",
+      "destinationNodeType": "motivation.requirement",
+      "suggestedPredicate": "restricts",
+      "reason": "Constraints restrict requirements",
+      "priority": "low",
+      "standardReference": "ArchiMate 3.2"
+    },
+    {
+      "sourceNodeType": "motivation.constraint",
+      "destinationNodeType": "motivation.requirementtype",
+      "suggestedPredicate": "restricts",
+      "reason": "Constraints restrict requirements",
+      "priority": "low",
+      "standardReference": "ArchiMate 3.2"
+    },
+    {
+      "sourceNodeType": "motivation.constrainttype",
+      "destinationNodeType": "motivation.requirement",
+      "suggestedPredicate": "restricts",
+      "reason": "Constraints restrict requirements",
+      "priority": "low",
+      "standardReference": "ArchiMate 3.2"
+    },
+    {
+      "sourceNodeType": "motivation.constrainttype",
+      "destinationNodeType": "motivation.requirementtype",
+      "suggestedPredicate": "restricts",
+      "reason": "Constraints restrict requirements",
+      "priority": "low",
+      "standardReference": "ArchiMate 3.2"
+    }
+  ],
+  "balance": [
+    {
+      "nodeType": "motivation.assessment",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 4,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 3 relationships from assessment or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.assessmenttype",
+      "layer": "motivation",
+      "category": "enumeration",
+      "currentCount": 0,
+      "targetRange": [
+        1,
+        2
+      ],
+      "status": "under",
+      "recommendation": "Add 1 relationship to assessmenttype (enumeration type) to reach minimum target"
+    },
+    {
+      "nodeType": "motivation.constraint",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 4,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 3 relationships from constraint or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.constrainttype",
+      "layer": "motivation",
+      "category": "enumeration",
+      "currentCount": 0,
+      "targetRange": [
+        1,
+        2
+      ],
+      "status": "under",
+      "recommendation": "Add 1 relationship to constrainttype (enumeration type) to reach minimum target"
+    },
+    {
+      "nodeType": "motivation.driver",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 4,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 3 relationships from driver or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.drivercategory",
+      "layer": "motivation",
+      "category": "enumeration",
+      "currentCount": 0,
+      "targetRange": [
+        1,
+        2
+      ],
+      "status": "under",
+      "recommendation": "Add 1 relationship to drivercategory (enumeration type) to reach minimum target"
+    },
+    {
+      "nodeType": "motivation.goal",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 8,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 7 relationships from goal or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.meaning",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 6,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 5 relationships from meaning or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.outcome",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 8,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 7 relationships from outcome or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.outcomestatus",
+      "layer": "motivation",
+      "category": "enumeration",
+      "currentCount": 0,
+      "targetRange": [
+        1,
+        2
+      ],
+      "status": "under",
+      "recommendation": "Add 1 relationship to outcomestatus (enumeration type) to reach minimum target"
+    },
+    {
+      "nodeType": "motivation.principle",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 4,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 3 relationships from principle or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.principlecategory",
+      "layer": "motivation",
+      "category": "enumeration",
+      "currentCount": 0,
+      "targetRange": [
+        1,
+        2
+      ],
+      "status": "under",
+      "recommendation": "Add 1 relationship to principlecategory (enumeration type) to reach minimum target"
+    },
+    {
+      "nodeType": "motivation.priority",
+      "layer": "motivation",
+      "category": "enumeration",
+      "currentCount": 0,
+      "targetRange": [
+        1,
+        2
+      ],
+      "status": "under",
+      "recommendation": "Add 1 relationship to priority (enumeration type) to reach minimum target"
+    },
+    {
+      "nodeType": "motivation.requirement",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 8,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 7 relationships from requirement or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.requirementtype",
+      "layer": "motivation",
+      "category": "enumeration",
+      "currentCount": 0,
+      "targetRange": [
+        1,
+        2
+      ],
+      "status": "under",
+      "recommendation": "Add 1 relationship to requirementtype (enumeration type) to reach minimum target"
+    },
+    {
+      "nodeType": "motivation.stakeholder",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 6,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 5 relationships from stakeholder or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.stakeholdertype",
+      "layer": "motivation",
+      "category": "enumeration",
+      "currentCount": 0,
+      "targetRange": [
+        1,
+        2
+      ],
+      "status": "under",
+      "recommendation": "Add 1 relationship to stakeholdertype (enumeration type) to reach minimum target"
+    },
+    {
+      "nodeType": "motivation.value",
+      "layer": "motivation",
+      "category": "reference",
+      "currentCount": 6,
+      "targetRange": [
+        0,
+        1
+      ],
+      "status": "over",
+      "recommendation": "Consider removing 5 relationships from value or reviewing reference type classification"
+    },
+    {
+      "nodeType": "motivation.valuetype",
+      "layer": "motivation",
+      "category": "enumeration",
+      "currentCount": 0,
+      "targetRange": [
+        1,
+        2
+      ],
+      "status": "under",
+      "recommendation": "Add 1 relationship to valuetype (enumeration type) to reach minimum target"
+    }
+  ],
+  "connectivity": {
+    "components": [],
+    "degrees": [],
+    "transitiveChains": [],
+    "stats": {
+      "totalNodes": 0,
+      "totalEdges": 0,
+      "connectedComponents": 0,
+      "largestComponentSize": 0,
+      "isolatedNodes": 0,
+      "averageDegree": 0,
+      "transitiveChainCount": 0
+    }
+  }
+}

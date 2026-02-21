@@ -52,21 +52,34 @@ export interface AuditComponents {
  * Orchestrates the full audit pipeline
  */
 export class AuditOrchestrator {
+  private catalog: RelationshipCatalog;
+  private graph: RelationshipGraph;
   private coverageAnalyzer: CoverageAnalyzer;
   private duplicateDetector: DuplicateDetector;
   private gapAnalyzer: GapAnalyzer;
   private balanceAssessor: BalanceAssessor;
   private connectivityAnalyzer: ConnectivityAnalyzer;
+  private initialized = false;
 
   constructor() {
-    const catalog = new RelationshipCatalog();
-    const graph = new RelationshipGraph();
+    this.catalog = new RelationshipCatalog();
+    this.graph = new RelationshipGraph();
 
-    this.coverageAnalyzer = new CoverageAnalyzer(catalog);
-    this.duplicateDetector = new DuplicateDetector(catalog);
+    this.coverageAnalyzer = new CoverageAnalyzer(this.catalog);
+    this.duplicateDetector = new DuplicateDetector(this.catalog);
     this.gapAnalyzer = new GapAnalyzer();
     this.balanceAssessor = new BalanceAssessor();
-    this.connectivityAnalyzer = new ConnectivityAnalyzer(graph, catalog);
+    this.connectivityAnalyzer = new ConnectivityAnalyzer(this.graph, this.catalog);
+  }
+
+  /**
+   * Initialize the orchestrator (must be called before running audit)
+   */
+  async initialize(): Promise<void> {
+    if (!this.initialized) {
+      await this.catalog.load();
+      this.initialized = true;
+    }
   }
 
   /**
@@ -223,6 +236,9 @@ export class AuditOrchestrator {
    * Run complete audit and build report
    */
   async runAudit(options: AuditOptions = {}): Promise<AuditReport> {
+    // Ensure catalog is loaded before running analysis
+    await this.initialize();
+
     const coverage = await this.runCoverageAnalysis(options);
     const duplicates = await this.runDuplicateDetection(options);
     const gaps = await this.runGapAnalysis(options);
