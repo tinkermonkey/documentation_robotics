@@ -12,14 +12,16 @@ import { CoverageAnalyzer } from "./analysis/coverage-analyzer.js";
 import { DuplicateDetector } from "./analysis/duplicate-detector.js";
 import { GapAnalyzer } from "./analysis/gap-analyzer.js";
 import { BalanceAssessor } from "./analysis/balance-assessor.js";
-import { ConnectivityAnalyzer } from "./graph/connectivity-analyzer.js";
-import { findLayerById } from "../generated/layer-registry.js";
+import { ConnectivityAnalyzer } from "./graph/connectivity.js";
+import { RelationshipCatalog } from "../core/relationship-catalog.js";
+import { RelationshipGraph } from "./graph/relationship-graph.js";
+import { getLayerById } from "../generated/layer-registry.js";
 import type {
   AuditReport,
   ConnectivityStats,
   CoverageMetrics,
   DuplicateCandidate,
-  GapAnalysis,
+  GapCandidate,
   BalanceAssessment,
 } from "./types.js";
 import { getErrorMessage } from "../utils/errors.js";
@@ -34,7 +36,7 @@ export interface AuditOptions {
 export interface AuditComponents {
   coverage: CoverageMetrics[];
   duplicates: DuplicateCandidate[];
-  gaps: GapAnalysis[];
+  gaps: GapCandidate[];
   balance: BalanceAssessment[];
   connectivity: {
     components: ReturnType<ConnectivityAnalyzer["findConnectedComponents"]>;
@@ -57,11 +59,14 @@ export class AuditOrchestrator {
   private connectivityAnalyzer: ConnectivityAnalyzer;
 
   constructor() {
-    this.coverageAnalyzer = new CoverageAnalyzer();
-    this.duplicateDetector = new DuplicateDetector();
+    const catalog = new RelationshipCatalog();
+    const graph = new RelationshipGraph();
+
+    this.coverageAnalyzer = new CoverageAnalyzer(catalog);
+    this.duplicateDetector = new DuplicateDetector(catalog);
     this.gapAnalyzer = new GapAnalyzer();
     this.balanceAssessor = new BalanceAssessor();
-    this.connectivityAnalyzer = new ConnectivityAnalyzer();
+    this.connectivityAnalyzer = new ConnectivityAnalyzer(graph, catalog);
   }
 
   /**
@@ -71,8 +76,12 @@ export class AuditOrchestrator {
     this.log(options, "Running coverage analysis...");
 
     if (options.layer) {
-      const layer = findLayerById(options.layer);
-      return [this.coverageAnalyzer.analyzeLayer(layer)];
+      const layer = getLayerById(options.layer);
+      if (!layer) {
+        throw new Error(`Layer not found: ${options.layer}`);
+      }
+      const metrics = await this.coverageAnalyzer.analyzeLayer(layer);
+      return [metrics];
     }
     return this.coverageAnalyzer.analyzeAll();
   }
@@ -86,8 +95,11 @@ export class AuditOrchestrator {
     this.log(options, "Running duplicate detection...");
 
     if (options.layer) {
-      const layer = findLayerById(options.layer);
-      return this.duplicateDetector.detectDuplicatesInLayer(layer);
+      const layer = getLayerById(options.layer);
+      if (!layer) {
+        throw new Error(`Layer not found: ${options.layer}`);
+      }
+      return this.duplicateDetector.detectDuplicatesByLayer(layer.id);
     }
     return this.duplicateDetector.detectDuplicates();
   }
@@ -95,11 +107,14 @@ export class AuditOrchestrator {
   /**
    * Run gap analysis
    */
-  async runGapAnalysis(options: AuditOptions): Promise<GapAnalysis[]> {
+  async runGapAnalysis(options: AuditOptions): Promise<GapCandidate[]> {
     this.log(options, "Running gap analysis...");
 
     if (options.layer) {
-      const layer = findLayerById(options.layer);
+      const layer = getLayerById(options.layer);
+      if (!layer) {
+        throw new Error(`Layer not found: ${options.layer}`);
+      }
       return this.gapAnalyzer.analyzeLayer(layer);
     }
     return this.gapAnalyzer.analyzeAll();
@@ -112,7 +127,10 @@ export class AuditOrchestrator {
     this.log(options, "Running balance assessment...");
 
     if (options.layer) {
-      const layer = findLayerById(options.layer);
+      const layer = getLayerById(options.layer);
+      if (!layer) {
+        throw new Error(`Layer not found: ${options.layer}`);
+      }
       return this.balanceAssessor.assessLayer(layer);
     }
     return this.balanceAssessor.assessAll();
@@ -173,7 +191,7 @@ export class AuditOrchestrator {
         "model",
         "manifest.yaml"
       );
-      const manifestContent = await readFile(manifestPath);
+      const manifestContent = await readFile(manifestPath, "utf-8");
       const manifest = yaml.parse(manifestContent) as {
         name: string;
         version: string;

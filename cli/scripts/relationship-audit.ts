@@ -182,8 +182,13 @@ async function runAudit(options: ScriptOptions): Promise<void> {
     process.chdir(projectRoot);
 
     // Use orchestrator to run all analysis steps
-    const orchestrator = new AuditOrchestrator(options.verbose);
-    const report = await orchestrator.runAnalysis(options.layer);
+    const orchestrator = new AuditOrchestrator();
+    const report = await orchestrator.runAudit({
+      layer: options.layer,
+      verbose: options.verbose,
+      debug: options.verbose,
+      projectRoot,
+    });
 
     // Format output
     const output = formatAuditReport(report, {

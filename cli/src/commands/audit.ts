@@ -25,8 +25,13 @@ export interface AuditOptions {
 export async function auditCommand(options: AuditOptions): Promise<void> {
   try {
     // Use orchestrator to run all analysis steps
-    const orchestrator = new AuditOrchestrator(options.debug);
-    const report = await orchestrator.runAnalysis(options.layer);
+    const orchestrator = new AuditOrchestrator();
+    const report = await orchestrator.runAudit({
+      layer: options.layer,
+      verbose: options.verbose,
+      debug: options.debug,
+      projectRoot: process.cwd(),
+    });
 
     // Determine output format
     // Explicit format flag takes precedence over auto-detection
