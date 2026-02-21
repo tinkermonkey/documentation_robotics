@@ -345,11 +345,35 @@ The audit command outputs directly to console (text format) or to the specified 
 - `1` - Quality issues detected (with `--threshold` flag)
 - `2` - Script execution error
 
+**Pipeline Mode:**
+
+For automated before/after AI evaluation workflow, use the `--pipeline` flag:
+
+```bash
+# Run before/after pipeline without AI
+dr audit --pipeline
+
+# Run full AI-assisted pipeline
+dr audit --pipeline --enable-ai --claude-api-key $ANTHROPIC_API_KEY
+
+# Layer-specific pipeline with AI
+dr audit security --pipeline --enable-ai --claude-api-key $ANTHROPIC_API_KEY
+
+# Custom output directory
+dr audit --pipeline --output-dir my-audit-results
+```
+
+Pipeline generates structured output in `audit-results/{timestamp}/`:
+- `before/` - Initial audit report
+- `after/` - Post-AI evaluation audit report
+- `summary/` - Differential summary with side-by-side metrics
+
 **Files:**
 
 - Entry Point: `cli/scripts/relationship-audit.ts`
 - Analysis: `cli/src/audit/analysis/`
 - Reports: `cli/src/audit/reports/`
+- Pipeline: `cli/src/audit/pipeline/`
 - Graph: `cli/src/audit/graph/`
 - AI: `cli/src/audit/ai/`
 
