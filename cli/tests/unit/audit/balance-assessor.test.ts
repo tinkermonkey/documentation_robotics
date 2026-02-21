@@ -13,8 +13,8 @@ describe("BalanceAssessor", () => {
     assessor = new BalanceAssessor();
   });
 
-  it("should assess balance for all layers", async () => {
-    const assessments = await assessor.assessAll();
+  it("should assess balance for all layers", () => {
+    const assessments = assessor.assessAll();
 
     expect(assessments).toBeDefined();
     expect(Array.isArray(assessments)).toBe(true);
@@ -45,11 +45,11 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should classify enumeration types correctly", async () => {
+  it("should classify enumeration types correctly", () => {
     const motivationLayer = getLayerById("motivation");
     expect(motivationLayer).toBeDefined();
 
-    const assessments = await assessor.assessLayer(motivationLayer!);
+    const assessments = assessor.assessLayer(motivationLayer!);
 
     // Find enumeration types (priority, type, level, etc.)
     const enumerationTypes = assessments.filter(
@@ -64,11 +64,11 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should classify structural types correctly", async () => {
+  it("should classify structural types correctly", () => {
     const applicationLayer = getLayerById("application");
     expect(applicationLayer).toBeDefined();
 
-    const assessments = await assessor.assessLayer(applicationLayer!);
+    const assessments = assessor.assessLayer(applicationLayer!);
 
     // Find structural types (component, service, etc.)
     const structuralTypes = assessments.filter(
@@ -83,11 +83,11 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should classify behavioral types correctly", async () => {
+  it("should classify behavioral types correctly", () => {
     const businessLayer = getLayerById("business");
     expect(businessLayer).toBeDefined();
 
-    const assessments = await assessor.assessLayer(businessLayer!);
+    const assessments = assessor.assessLayer(businessLayer!);
 
     // Find behavioral types (process, event, etc.)
     const behavioralTypes = assessments.filter(
@@ -102,11 +102,11 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should classify reference types as default", async () => {
+  it("should classify reference types as default", () => {
     const apiLayer = getLayerById("api");
     expect(apiLayer).toBeDefined();
 
-    const assessments = await assessor.assessLayer(apiLayer!);
+    const assessments = assessor.assessLayer(apiLayer!);
 
     // Find reference types (default category)
     const referenceTypes = assessments.filter(
@@ -121,8 +121,8 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should determine status correctly", async () => {
-    const assessments = await assessor.assessAll();
+  it("should determine status correctly", () => {
+    const assessments = assessor.assessAll();
 
     // Check status determination
     for (const assessment of assessments) {
@@ -139,8 +139,8 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should provide recommendations for under status", async () => {
-    const underAssessments = await assessor.assessByStatus("under");
+  it("should provide recommendations for under status", () => {
+    const underAssessments = assessor.assessByStatus("under");
 
     for (const assessment of underAssessments) {
       expect(assessment.recommendation).toBeDefined();
@@ -149,8 +149,8 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should provide recommendations for over status", async () => {
-    const overAssessments = await assessor.assessByStatus("over");
+  it("should provide recommendations for over status", () => {
+    const overAssessments = assessor.assessByStatus("over");
 
     for (const assessment of overAssessments) {
       expect(assessment.recommendation).toBeDefined();
@@ -158,18 +158,18 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should not provide recommendations for balanced status", async () => {
-    const balancedAssessments = await assessor.assessByStatus("balanced");
+  it("should not provide recommendations for balanced status", () => {
+    const balancedAssessments = assessor.assessByStatus("balanced");
 
     for (const assessment of balancedAssessments) {
       expect(assessment.recommendation).toBeUndefined();
     }
   });
 
-  it("should filter assessments by status", async () => {
-    const underAssessments = await assessor.assessByStatus("under");
-    const balancedAssessments = await assessor.assessByStatus("balanced");
-    const overAssessments = await assessor.assessByStatus("over");
+  it("should filter assessments by status", () => {
+    const underAssessments = assessor.assessByStatus("under");
+    const balancedAssessments = assessor.assessByStatus("balanced");
+    const overAssessments = assessor.assessByStatus("over");
 
     // All should have correct status
     for (const assessment of underAssessments) {
@@ -183,13 +183,11 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should filter assessments by category", async () => {
-    const structuralAssessments = await assessor.assessByCategory("structural");
-    const behavioralAssessments = await assessor.assessByCategory("behavioral");
-    const enumerationAssessments = await assessor.assessByCategory(
-      "enumeration"
-    );
-    const referenceAssessments = await assessor.assessByCategory("reference");
+  it("should filter assessments by category", () => {
+    const structuralAssessments = assessor.assessByCategory("structural");
+    const behavioralAssessments = assessor.assessByCategory("behavioral");
+    const enumerationAssessments = assessor.assessByCategory("enumeration");
+    const referenceAssessments = assessor.assessByCategory("reference");
 
     // All should have correct category
     for (const assessment of structuralAssessments) {
@@ -206,11 +204,11 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should identify zero-relationship node types as under", async () => {
+  it("should identify zero-relationship node types as under", () => {
     const securityLayer = getLayerById("security");
     expect(securityLayer).toBeDefined();
 
-    const assessments = await assessor.assessLayer(securityLayer!);
+    const assessments = assessor.assessLayer(securityLayer!);
 
     // All security layer node types should have zero relationships
     for (const assessment of assessments) {

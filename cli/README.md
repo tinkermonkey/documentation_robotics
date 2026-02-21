@@ -566,6 +566,18 @@ bun run src/utils/export-python-annotations.ts
 
 This utility exports Python CLI annotations to a processable format, used during migrations between CLI versions.
 
+## Relationship Audit
+
+The relationship audit system provides comprehensive analysis of intra-layer relationships:
+
+- **Coverage Analysis**: Measures isolation, density, and predicate utilization
+- **Duplicate Detection**: Identifies semantic overlaps using predicate semantics
+- **Gap Analysis**: Detects missing relationships based on layer standards
+- **Balance Assessment**: Evaluates relationship density against node type targets
+- **AI Assistance**: Optional Claude Code CLI integration for recommendations
+
+See CLAUDE.md for detailed usage instructions.
+
 ## Validation
 
 ### Local Validation

@@ -14,11 +14,11 @@ describe("GapAnalyzer", () => {
   beforeAll(async () => {
     catalog = new RelationshipCatalog();
     await catalog.load();
-    analyzer = new GapAnalyzer(catalog);
+    analyzer = new GapAnalyzer();
   });
 
-  it("should analyze gaps for all layers", async () => {
-    const gaps = await analyzer.analyzeAll();
+  it("should analyze gaps for all layers", () => {
+    const gaps = analyzer.analyzeAll();
 
     expect(gaps).toBeDefined();
     expect(Array.isArray(gaps)).toBe(true);
@@ -36,7 +36,7 @@ describe("GapAnalyzer", () => {
     }
   });
 
-  it("should prioritize zero-relationship layers as high", async () => {
+  it("should prioritize zero-relationship layers as high", () => {
     const securityLayer = getLayerById("security");
     const uxLayer = getLayerById("ux");
     const navigationLayer = getLayerById("navigation");
@@ -45,9 +45,9 @@ describe("GapAnalyzer", () => {
     expect(uxLayer).toBeDefined();
     expect(navigationLayer).toBeDefined();
 
-    const securityGaps = await analyzer.analyzeLayer(securityLayer!);
-    const uxGaps = await analyzer.analyzeLayer(uxLayer!);
-    const navigationGaps = await analyzer.analyzeLayer(navigationLayer!);
+    const securityGaps = analyzer.analyzeLayer(securityLayer!);
+    const uxGaps = analyzer.analyzeLayer(uxLayer!);
+    const navigationGaps = analyzer.analyzeLayer(navigationLayer!);
 
     // Zero-relationship layers should have gaps (may be empty if no patterns match)
     expect(securityGaps).toBeDefined();
@@ -77,11 +77,11 @@ describe("GapAnalyzer", () => {
     }
   });
 
-  it("should use layer-specific templates", async () => {
+  it("should use layer-specific templates", () => {
     const motivationLayer = getLayerById("motivation");
     expect(motivationLayer).toBeDefined();
 
-    const gaps = await analyzer.analyzeLayer(motivationLayer!);
+    const gaps = analyzer.analyzeLayer(motivationLayer!);
 
     // Should find gaps based on ArchiMate patterns
     const goalPrincipleGaps = gaps.filter(
@@ -99,11 +99,11 @@ describe("GapAnalyzer", () => {
     }
   });
 
-  it("should include standard references for ArchiMate layers", async () => {
+  it("should include standard references for ArchiMate layers", () => {
     const motivationLayer = getLayerById("motivation");
     expect(motivationLayer).toBeDefined();
 
-    const gaps = await analyzer.analyzeLayer(motivationLayer!);
+    const gaps = analyzer.analyzeLayer(motivationLayer!);
 
     // Some gaps should have ArchiMate references
     const withReferences = gaps.filter((g) => g.standardReference);
@@ -114,11 +114,11 @@ describe("GapAnalyzer", () => {
     }
   });
 
-  it("should suggest NIST patterns for security layer", async () => {
+  it("should suggest NIST patterns for security layer", () => {
     const securityLayer = getLayerById("security");
     expect(securityLayer).toBeDefined();
 
-    const gaps = await analyzer.analyzeLayer(securityLayer!);
+    const gaps = analyzer.analyzeLayer(securityLayer!);
 
     // Should find countermeasure→threat gaps
     const countermeasureGaps = gaps.filter(
@@ -139,11 +139,11 @@ describe("GapAnalyzer", () => {
     expect(withNist.length).toBeGreaterThan(0);
   });
 
-  it("should suggest OpenAPI patterns for API layer", async () => {
+  it("should suggest OpenAPI patterns for API layer", () => {
     const apiLayer = getLayerById("api");
     expect(apiLayer).toBeDefined();
 
-    const gaps = await analyzer.analyzeLayer(apiLayer!);
+    const gaps = analyzer.analyzeLayer(apiLayer!);
 
     // Should find operation→schema gaps
     const operationSchemaGaps = gaps.filter(
@@ -168,8 +168,8 @@ describe("GapAnalyzer", () => {
     }
   });
 
-  it("should provide meaningful reasons", async () => {
-    const gaps = await analyzer.analyzeAll();
+  it("should provide meaningful reasons", () => {
+    const gaps = analyzer.analyzeAll();
 
     for (const gap of gaps) {
       expect(gap.reason.length).toBeGreaterThan(0);
@@ -177,22 +177,22 @@ describe("GapAnalyzer", () => {
     }
   });
 
-  it("should handle layers without templates", async () => {
+  it("should handle layers without templates", () => {
     const dataStoreLayer = getLayerById("data-store");
     expect(dataStoreLayer).toBeDefined();
 
-    const gaps = await analyzer.analyzeLayer(dataStoreLayer!);
+    const gaps = analyzer.analyzeLayer(dataStoreLayer!);
 
     // Should return empty array or handle gracefully
     expect(gaps).toBeDefined();
     expect(Array.isArray(gaps)).toBe(true);
   });
 
-  it("should prioritize container types as medium", async () => {
+  it("should prioritize container types as medium", () => {
     const applicationLayer = getLayerById("application");
     expect(applicationLayer).toBeDefined();
 
-    const gaps = await analyzer.analyzeLayer(applicationLayer!);
+    const gaps = analyzer.analyzeLayer(applicationLayer!);
 
     // Container types should have medium priority
     const componentGaps = gaps.filter((g) =>

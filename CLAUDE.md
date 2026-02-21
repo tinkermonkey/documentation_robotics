@@ -280,11 +280,32 @@ Key files: `cli/src/commands/schema.ts`, `cli/src/commands/conformance.ts`
 
 ### Relationship Audit
 
-Audit intra-layer relationships for coverage, duplicates, gaps, and balance:
+Audit intra-layer relationships across all 12 layers for coverage, semantic duplicates, gaps, and balance.
 
+**Key Features:**
+- Deterministic coverage measurement (isolation %, density, predicate utilization)
+- Semantic duplicate detection using predicate categories
+- Gap analysis with layer-specific templates (ArchiMate, OpenAPI, NIST SP 800-53, etc.)
+- Balance assessment with node type classification (structural, behavioral, enumeration, reference)
+- Optional AI-assisted evaluation for low-coverage elements
+- Before/after differential analysis
+
+**Usage:**
 ```bash
-# Full audit with text output
+# Full audit with AI assistance
 npm run audit:relationships
+
+# Analysis only (no AI)
+npm run audit:relationships -- --skip-ai
+
+# Target specific layers
+npm run audit:relationships -- --layers=security,ux,navigation
+
+# Dry run
+npm run audit:relationships -- --dry-run
+
+# Resume interrupted audit
+npm run audit:relationships -- --resume
 
 # JSON output for CI/CD integration
 npm run audit:relationships -- --format json --output audit.json
@@ -292,37 +313,37 @@ npm run audit:relationships -- --format json --output audit.json
 # Quality gate mode (exit 1 if issues found)
 npm run audit:relationships -- --threshold
 
-# Layer-specific audit
-npm run audit:relationships -- --layer api --verbose
-
 # Markdown report generation
 npm run audit:relationships -- --format markdown --output report.md
-
-# Direct script execution
-cd cli
-tsx scripts/relationship-audit.ts --help
 ```
 
-**Output Formats:**
+**Output:**
+- `audit-output/{timestamp}/before/` - Pre-AI analysis
+- `audit-output/{timestamp}/after/` - Post-AI analysis
+- `audit-output/{timestamp}/summary.json` - Change summary
+- `audit-output/{timestamp}/ai-evaluation/` - AI recommendations
 
+**Output Formats:**
 - **text** - Human-readable colored output (default)
 - **json** - Machine-parseable for automation
 - **markdown** - Documentation-ready reports
 
 **Quality Thresholds:**
-
 - Isolation: ≤ 20% isolated node types
 - Density: ≥ 1.5 relationships per node type
 - High-Priority Gaps: ≤ 10 gaps
 - Duplicates: ≤ 5 duplicate candidates
 
 **Exit Codes:**
-
 - `0` - Success (no issues or below thresholds)
 - `1` - Quality issues detected (with `--threshold` flag)
 - `2` - Script execution error
 
-Key files: `cli/scripts/relationship-audit.ts`, `cli/scripts/README.md`
+**Files:**
+- Pipeline: `cli/src/audit/pipeline/audit-pipeline.ts`
+- Analysis: `cli/src/audit/analysis/`
+- Reports: `cli/src/audit/reports/`
+- AI: `cli/src/audit/ai/`
 
 ### Element Migration
 
