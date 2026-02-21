@@ -364,6 +364,7 @@ dr audit --pipeline --output-dir my-audit-results
 ```
 
 Pipeline generates structured output in `audit-results/{timestamp}/`:
+
 - `before/` - Initial audit report
 - `after/` - Post-AI evaluation audit report
 - `summary/` - Differential summary with side-by-side metrics
