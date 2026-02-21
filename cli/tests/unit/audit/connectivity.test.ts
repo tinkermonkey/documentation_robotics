@@ -31,17 +31,15 @@ describe("ConnectivityAnalyzer", () => {
 
     // Components should be sorted by size (largest first)
     for (let i = 1; i < components.length; i++) {
-      expect(components[i - 1].size).toBeGreaterThanOrEqual(
-        components[i].size
+      expect(components[i - 1].nodes.length).toBeGreaterThanOrEqual(
+        components[i].nodes.length
       );
     }
 
     // Each component should have valid properties
     for (const component of components) {
       expect(component).toHaveProperty("nodes");
-      expect(component).toHaveProperty("size");
-      expect(component.nodes.length).toBe(component.size);
-      expect(component.size).toBeGreaterThan(0);
+      expect(component.nodes.length).toBeGreaterThan(0);
     }
   });
 
@@ -108,17 +106,15 @@ describe("ConnectivityAnalyzer", () => {
 
     // Chains should be sorted by length (longest first)
     for (let i = 1; i < chains.length; i++) {
-      expect(chains[i - 1].length).toBeGreaterThanOrEqual(chains[i].length);
+      expect(chains[i - 1].chain.length).toBeGreaterThanOrEqual(chains[i].chain.length);
     }
 
     // Each chain should have valid properties
     for (const chain of chains) {
       expect(chain).toHaveProperty("predicate");
       expect(chain).toHaveProperty("chain");
-      expect(chain).toHaveProperty("length");
 
-      expect(chain.chain.length).toBe(chain.length);
-      expect(chain.length).toBeGreaterThan(1); // At least 2 nodes
+      expect(chain.chain.length).toBeGreaterThan(1); // At least 2 nodes
 
       // Predicate should be transitive
       const predicateType = catalog.getTypeByPredicate(chain.predicate);

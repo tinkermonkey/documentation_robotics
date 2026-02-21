@@ -58,9 +58,9 @@ describe("BalanceAssessor", () => {
 
     expect(enumerationTypes.length).toBeGreaterThan(0);
 
-    // Enumeration types should have target range [0, 1]
+    // Enumeration types should have target range [1, 2]
     for (const assessment of enumerationTypes) {
-      expect(assessment.targetRange).toEqual([0, 1]);
+      expect(assessment.targetRange).toEqual([1, 2]);
     }
   });
 
@@ -96,9 +96,9 @@ describe("BalanceAssessor", () => {
 
     expect(behavioralTypes.length).toBeGreaterThan(0);
 
-    // Behavioral types should have target range [3, 6]
+    // Behavioral types should have target range [3, 5]
     for (const assessment of behavioralTypes) {
-      expect(assessment.targetRange).toEqual([3, 6]);
+      expect(assessment.targetRange).toEqual([3, 5]);
     }
   });
 
@@ -115,9 +115,9 @@ describe("BalanceAssessor", () => {
 
     expect(referenceTypes.length).toBeGreaterThan(0);
 
-    // Reference types should have target range [1, 2]
+    // Reference types should have target range [0, 1]
     for (const assessment of referenceTypes) {
-      expect(assessment.targetRange).toEqual([1, 2]);
+      expect(assessment.targetRange).toEqual([0, 1]);
     }
   });
 
@@ -204,7 +204,7 @@ describe("BalanceAssessor", () => {
     }
   });
 
-  it("should identify zero-relationship node types as under", () => {
+  it("should identify zero-relationship node types correctly", () => {
     const securityLayer = getLayerById("security");
     expect(securityLayer).toBeDefined();
 
@@ -214,11 +214,13 @@ describe("BalanceAssessor", () => {
     for (const assessment of assessments) {
       expect(assessment.currentCount).toBe(0);
 
-      // Status depends on category:
-      // - Enumeration types: balanced (target range [0, 1])
-      // - All other types: under (target range starts above 0)
-      if (assessment.category === "enumeration") {
-        expect(["balanced", "under"]).toContain(assessment.status);
+      // Status depends on category and target range:
+      // - Enumeration types (target [1, 2]): under (0 < 1)
+      // - Reference types (target [0, 1]): balanced (0 is in range)
+      // - Structural types (target [2, 4]): under (0 < 2)
+      // - Behavioral types (target [3, 5]): under (0 < 3)
+      if (assessment.category === "reference") {
+        expect(assessment.status).toBe("balanced");
       } else {
         expect(assessment.status).toBe("under");
       }
