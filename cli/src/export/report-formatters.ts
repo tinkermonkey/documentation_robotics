@@ -5,13 +5,7 @@
 
 import ansis from "ansis";
 import { ReportData, QualityMetrics } from "../core/report-data-model.js";
-
-/**
- * Format date consistently (ISO 8601 without timezone, space separator)
- */
-function formatDate(timestamp: string): string {
-  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19);
-}
+import { formatDate } from "../utils/date-utils.js";
 
 export type ReportFormat = "text" | "json" | "markdown" | "compact";
 

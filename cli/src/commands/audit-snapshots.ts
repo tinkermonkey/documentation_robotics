@@ -5,13 +5,7 @@
 import ansis from "ansis";
 import { CLIError, getErrorMessage } from "../utils/errors.js";
 import { SnapshotStorage } from "../audit/snapshot-storage.js";
-
-/**
- * Format date consistently (ISO 8601 without timezone, space separator)
- */
-function formatDate(timestamp: string): string {
-  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19);
-}
+import { formatDate } from "../utils/date-utils.js";
 
 export interface AuditSnapshotsOptions {
   action: "list" | "delete" | "clear";

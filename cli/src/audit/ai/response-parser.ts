@@ -41,7 +41,7 @@ export class ResponseParser {
     }
 
     const jsonString = jsonMatch[1] || jsonMatch[0];
-    let recommendations: any[];
+    let recommendations: unknown;
 
     try {
       recommendations = JSON.parse(jsonString);
@@ -54,35 +54,41 @@ export class ResponseParser {
     }
 
     // Validate structure and normalize field names
-    return recommendations.map((r: any, index: number) => {
-      if (!r.predicate) {
+    return recommendations.map((r: unknown, index: number) => {
+      // Type narrowing: ensure r is an object
+      if (typeof r !== "object" || r === null) {
+        throw new Error(`Recommendation at index ${index} is not a valid object`);
+      }
+
+      const rec = r as Record<string, unknown>;
+      if (!rec.predicate) {
         throw new Error(
           `Recommendation at index ${index} missing required field: predicate`
         );
       }
-      if (!r.sourceNodeType && !r.source) {
+      if (!rec.sourceNodeType && !rec.source) {
         throw new Error(
           `Recommendation at index ${index} missing required field: sourceNodeType or source`
         );
       }
-      if (!r.destinationNodeType && !r.destination) {
+      if (!rec.destinationNodeType && !rec.destination) {
         throw new Error(
           `Recommendation at index ${index} missing required field: destinationNodeType or destination`
         );
       }
-      if (!r.justification && !r.reason) {
+      if (!rec.justification && !rec.reason) {
         throw new Error(
           `Recommendation at index ${index} missing required field: justification or reason`
         );
       }
 
       return {
-        sourceNodeType: r.sourceNodeType || r.source,
-        predicate: r.predicate,
-        destinationNodeType: r.destinationNodeType || r.destination,
-        justification: r.justification || r.reason,
-        priority: r.priority || "medium",
-        standardReference: r.standardReference,
+        sourceNodeType: (rec.sourceNodeType || rec.source) as string,
+        predicate: rec.predicate as string,
+        destinationNodeType: (rec.destinationNodeType || rec.destination) as string,
+        justification: (rec.justification || rec.reason) as string,
+        priority: (rec.priority as "high" | "medium" | "low") || "medium",
+        standardReference: rec.standardReference as string | undefined,
       };
     });
   }
@@ -101,7 +107,7 @@ export class ResponseParser {
     }
 
     const jsonString = jsonMatch[1] || jsonMatch[0];
-    let review: any;
+    let review: unknown;
 
     try {
       review = JSON.parse(jsonString);
@@ -109,26 +115,33 @@ export class ResponseParser {
       throw new Error(`Failed to parse JSON from layer review: ${getErrorMessage(error)}`);
     }
 
+    // Type narrowing: ensure review is an object
+    if (typeof review !== "object" || review === null) {
+      throw new Error("Layer review response is not a valid object");
+    }
+
+    const reviewObj = review as Record<string, unknown>;
+
     // Validate required fields
-    if (!review.coherenceIssues && !review.coherence_issues) {
+    if (!reviewObj.coherenceIssues && !reviewObj.coherence_issues) {
       throw new Error("Layer review missing required field: coherenceIssues");
     }
-    if (!review.missingPatterns && !review.missing_patterns) {
+    if (!reviewObj.missingPatterns && !reviewObj.missing_patterns) {
       throw new Error("Layer review missing required field: missingPatterns");
     }
-    if (!review.recommendations) {
+    if (!reviewObj.recommendations) {
       throw new Error("Layer review missing required field: recommendations");
     }
-    if (!review.balanceAssessment && !review.balance_assessment) {
+    if (!reviewObj.balanceAssessment && !reviewObj.balance_assessment) {
       throw new Error("Layer review missing required field: balanceAssessment");
     }
 
     return {
-      coherenceIssues: review.coherenceIssues || review.coherence_issues || [],
-      missingPatterns: review.missingPatterns || review.missing_patterns || [],
-      recommendations: review.recommendations || [],
+      coherenceIssues: (reviewObj.coherenceIssues || reviewObj.coherence_issues || []) as string[],
+      missingPatterns: (reviewObj.missingPatterns || reviewObj.missing_patterns || []) as string[],
+      recommendations: (reviewObj.recommendations || []) as RelationshipRecommendation[],
       balanceAssessment:
-        review.balanceAssessment || review.balance_assessment || "",
+        (reviewObj.balanceAssessment || reviewObj.balance_assessment || "") as string,
     };
   }
 
@@ -146,7 +159,7 @@ export class ResponseParser {
     }
 
     const jsonString = jsonMatch[1] || jsonMatch[0];
-    let validation: any;
+    let validation: unknown;
 
     try {
       validation = JSON.parse(jsonString);
@@ -156,17 +169,28 @@ export class ResponseParser {
       );
     }
 
+    // Type narrowing: ensure validation is an object
+    if (typeof validation !== "object" || validation === null) {
+      throw new Error("Inter-layer validation response is not a valid object");
+    }
+
+    const validationObj = validation as Record<string, unknown>;
+
     // Validate required fields
-    if (!validation.violations) {
+    if (!validationObj.violations) {
       throw new Error("Inter-layer validation missing required field: violations");
     }
-    if (!validation.recommendations) {
+    if (!validationObj.recommendations) {
       throw new Error("Inter-layer validation missing required field: recommendations");
     }
 
     return {
-      violations: validation.violations,
-      recommendations: validation.recommendations,
+      violations: validationObj.violations as Array<{
+        sourceLayer: string;
+        targetLayer: string;
+        issue: string;
+      }>,
+      recommendations: validationObj.recommendations as string[],
     };
   }
 }

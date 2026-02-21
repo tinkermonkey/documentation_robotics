@@ -8,14 +8,8 @@ import { getErrorMessage, CLIError } from "../utils/errors.js";
 import { formatAuditReport, AuditReportFormat } from "../export/audit-formatters.js";
 import { SnapshotStorage } from "../audit/snapshot-storage.js";
 import { AuditOrchestrator } from "../audit/audit-orchestrator.js";
+import { formatDate } from "../utils/date-utils.js";
 import path from "path";
-
-/**
- * Format date consistently (ISO 8601 without timezone, space separator)
- */
-function formatDate(timestamp: string): string {
-  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19);
-}
 
 export interface AuditOptions {
   layer?: string;

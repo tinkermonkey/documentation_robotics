@@ -1,3 +1,15 @@
+/**
+ * DEPRECATED: This module is superseded by cli/src/export/audit-formatters.ts
+ *
+ * This code was an earlier implementation of audit report formatting.
+ * It is currently unused in production code but retained for potential
+ * future refactoring or specialized reporting needs.
+ *
+ * Active report formatting is handled by:
+ * - cli/src/export/audit-formatters.ts (standard audit reports)
+ * - cli/src/export/diff-formatters.ts (differential analysis)
+ */
+
 import { promises as fs } from "fs";
 import * as path from "path";
 import type {

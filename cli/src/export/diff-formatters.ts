@@ -6,13 +6,7 @@
 
 import ansis from "ansis";
 import { DifferentialAnalysis } from "../audit/differential-analyzer.js";
-
-/**
- * Format date consistently (ISO 8601 without timezone, space separator)
- */
-function formatDate(timestamp: string): string {
-  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19);
-}
+import { formatDate } from "../utils/date-utils.js";
 
 export interface DiffFormatterOptions {
   format: "text" | "json" | "markdown";

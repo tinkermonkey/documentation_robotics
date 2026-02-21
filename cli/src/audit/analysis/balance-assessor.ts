@@ -30,10 +30,16 @@ const DENSITY_TARGETS: Record<string, [number, number]> = {
  * Balance assessor for relationship density
  */
 export class BalanceAssessor {
+  private assessmentCache: BalanceAssessment[] | null = null;
+
   /**
    * Assess balance for all layers
    */
   assessAll(): BalanceAssessment[] {
+    if (this.assessmentCache !== null) {
+      return this.assessmentCache;
+    }
+
     const layers = getAllLayers();
     const assessments: BalanceAssessment[] = [];
 
@@ -42,6 +48,7 @@ export class BalanceAssessor {
       assessments.push(...layerAssessments);
     }
 
+    this.assessmentCache = assessments;
     return assessments;
   }
 
@@ -91,13 +98,24 @@ export class BalanceAssessor {
 
   /**
    * Classify node type into category
+   *
+   * IMPORTANT: Categories are checked in precedence order:
+   * 1. Enumeration (most specific - uses endsWith)
+   * 2. Structural (uses includes - may match substrings)
+   * 3. Behavioral (uses includes - may match substrings)
+   * 4. Reference (default)
+   *
+   * The ordering matters because includes() can match substrings.
+   * For example, "businessservice" contains "service" (structural)
+   * but is behavioral by nature. The current implementation favors
+   * structural classification in such cases.
    */
   private classifyNodeType(
     specNodeId: string
   ): "structural" | "behavioral" | "enumeration" | "reference" {
     const type = specNodeId.split(".")[1] || "";
 
-    // Enumeration patterns
+    // Enumeration patterns - checked first (most specific, uses endsWith)
     if (
       type.endsWith("level") ||
       type.endsWith("type") ||
@@ -111,7 +129,8 @@ export class BalanceAssessor {
       return "enumeration";
     }
 
-    // Structural patterns
+    // Structural patterns - checked second
+    // NOTE: Uses includes() which may match substrings (e.g., "businessservice" matches "service")
     if (
       type.includes("component") ||
       type.includes("container") ||
@@ -126,7 +145,7 @@ export class BalanceAssessor {
       return "structural";
     }
 
-    // Behavioral patterns
+    // Behavioral patterns - checked third
     if (
       type.includes("process") ||
       type.includes("operation") ||
@@ -139,7 +158,7 @@ export class BalanceAssessor {
       return "behavioral";
     }
 
-    // Default to reference
+    // Default to reference for unmatched types
     return "reference";
   }
 
