@@ -153,11 +153,10 @@ export class PipelineOrchestrator {
 
     // Run AI-assisted evaluation using the AIEvaluator
     const aiEvaluator = new AIEvaluator({
-      claudeApiKey: options.claudeApiKey,
-      verbose: options.verbose ?? false,
+      outputDir: beforeOutputDir,
     });
 
-    await aiEvaluator.evaluateAndSuggestRelationships(beforeResult);
+    await aiEvaluator.evaluateLowCoverageElements(beforeResult.coverage);
 
     // Step 3: Run AFTER audit
     console.log("\n⏳ Step 3/4: Running post-evaluation audit (AFTER AI evaluation)...");
