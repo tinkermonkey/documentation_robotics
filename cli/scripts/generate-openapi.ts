@@ -71,7 +71,7 @@ async function generateOpenAPISpec() {
 # then regenerate with: npm run generate:openapi
 # This ensures the specification always matches the actual implementation.
 
-${YAML.stringify(spec, { indent: 2 })}
+${YAML.stringify(spec, { indent: 2 }).trimEnd()}
 `;
 
     // Write spec to file (to repo root docs/, not cli/docs/)
