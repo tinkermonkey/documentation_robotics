@@ -4,7 +4,8 @@
  * Tests for console and JUnit reporter implementations
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it } from 'node:test';
+import { strict as assert } from 'node:assert';
 import { ConsoleReporter } from '../reporters/console-reporter.js';
 import { JUnitReporter } from '../reporters/junit-reporter.js';
 import {
@@ -15,6 +16,54 @@ import {
   Pipeline,
   PipelineStep,
 } from '../pipeline.js';
+
+/**
+ * Test assertion helpers for compatibility with Bun's expect-like syntax
+ */
+class TestAssertions {
+  value: any;
+
+  constructor(value: any) {
+    this.value = value;
+  }
+
+  toContain(substring: string): void {
+    assert(
+      String(this.value).includes(substring),
+      `Expected value to contain "${substring}"\nActual: ${String(this.value).slice(0, 200)}...`
+    );
+  }
+
+  toMatch(regex: RegExp): void {
+    assert(
+      regex.test(String(this.value)),
+      `Expected value to match regex ${regex}\nActual: ${String(this.value).slice(0, 200)}...`
+    );
+  }
+
+  toBe(expected: any): void {
+    assert.equal(this.value, expected, `Expected ${expected} but got ${this.value}`);
+  }
+
+  toBeTruthy(): void {
+    assert(this.value, `Expected value to be truthy but got: ${this.value}`);
+  }
+
+  toBeLessThan(expected: number): void {
+    assert(
+      this.value < expected,
+      `Expected value ${this.value} to be less than ${expected}`
+    );
+  }
+
+  toBeUndefined(): void {
+    assert.equal(this.value, undefined, `Expected value to be undefined but got: ${this.value}`);
+  }
+}
+
+function expect(value: any): TestAssertions {
+  return new TestAssertions(value);
+}
 
 /**
  * Create mock test data for testing reporters
