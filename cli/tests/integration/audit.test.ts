@@ -34,6 +34,7 @@ describe("audit command", () => {
       // Verify output contains expected sections
       const output = logs.join("\n");
       expect(output).toContain("Relationship Audit Report");
+      expect(output).toContain("EXECUTIVE SUMMARY");
       expect(output).toContain("Coverage Analysis Summary");
       expect(output).toContain("Duplicate Detection Summary");
       expect(output).toContain("Gap Analysis Summary");

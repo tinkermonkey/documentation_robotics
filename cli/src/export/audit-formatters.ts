@@ -52,6 +52,10 @@ function formatAuditText(report: AuditReport, options: AuditFormatterOptions): s
   lines.push(`Version: ${report.model.version}`);
   lines.push("");
 
+  // Executive Summary
+  formatExecutiveSummaryText(lines, report);
+  lines.push("");
+
   // Coverage Summary
   formatCoverageTextSummary(lines, report.coverage);
   lines.push("");
@@ -164,6 +168,32 @@ function formatExecutiveSummaryMarkdown(lines: string[], report: AuditReport): v
   lines.push(`| Balance Issues | ${report.balance.filter(b => b.status !== "balanced").length} |`);
   lines.push(`| Connected Components | ${report.connectivity.stats.connectedComponents} |`);
   lines.push("");
+}
+
+/**
+ * Format executive summary for text output
+ */
+function formatExecutiveSummaryText(lines: string[], report: AuditReport): void {
+  lines.push(ansis.bold.yellow("EXECUTIVE SUMMARY"));
+  lines.push(ansis.dim("─".repeat(60)));
+  lines.push("");
+
+  const totalNodeTypes = report.coverage.reduce((sum, c) => sum + c.nodeTypeCount, 0);
+  const totalRelationships = report.coverage.reduce((sum, c) => sum + c.relationshipCount, 0);
+  const totalIsolated = report.coverage.reduce((sum, c) => sum + c.isolatedNodeTypes.length, 0);
+  const avgUtilization = report.coverage.length > 0
+    ? report.coverage.reduce((sum, c) => sum + c.utilizationPercentage, 0) / report.coverage.length
+    : 0;
+
+  lines.push(ansis.bold("Key Metrics:"));
+  lines.push(`  Total Node Types:          ${totalNodeTypes}`);
+  lines.push(`  Total Relationships:       ${totalRelationships}`);
+  lines.push(`  Isolated Node Types:       ${totalIsolated} (${totalNodeTypes > 0 ? ((totalIsolated / totalNodeTypes) * 100).toFixed(1) : "0.0"}%)`);
+  lines.push(`  Avg Predicate Utilization: ${avgUtilization.toFixed(1)}%`);
+  lines.push(`  Duplicate Candidates:      ${report.duplicates.length}`);
+  lines.push(`  Gap Candidates:            ${report.gaps.length}`);
+  lines.push(`  Balance Issues:            ${report.balance.filter(b => b.status !== "balanced").length}`);
+  lines.push(`  Connected Components:      ${report.connectivity.stats.connectedComponents}`);
 }
 
 /**
