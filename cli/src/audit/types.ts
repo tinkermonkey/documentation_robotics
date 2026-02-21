@@ -3,32 +3,49 @@
  */
 
 /**
+ * Percentage value constrained to 0-100 range
+ * Use createPercentage() to construct safely
+ */
+export type Percentage = number & { readonly __brand: "Percentage" };
+
+/**
+ * Create a validated percentage value (0-100)
+ * @throws Error if value is not in valid range
+ */
+export function createPercentage(value: number): Percentage {
+  if (value < 0 || value > 100 || !Number.isFinite(value)) {
+    throw new Error(`Invalid percentage: ${value}. Must be a number between 0 and 100.`);
+  }
+  return value as Percentage;
+}
+
+/**
  * Coverage metrics for a layer
  */
 export interface CoverageMetrics {
-  layer: string;
-  nodeTypeCount: number;
-  relationshipCount: number;
+  readonly layer: string;
+  readonly nodeTypeCount: number;
+  readonly relationshipCount: number;
 
   // Node isolation
-  isolatedNodeTypes: string[]; // Zero relationships
+  readonly isolatedNodeTypes: readonly string[]; // Zero relationships
   /** Percentage of node types with zero relationships (0-100) */
-  isolationPercentage: number;
+  readonly isolationPercentage: Percentage;
 
   // Predicate utilization
-  availablePredicates: string[]; // Predicates applicable to this layer
-  usedPredicates: string[]; // Actually used
+  readonly availablePredicates: readonly string[]; // Predicates applicable to this layer
+  readonly usedPredicates: readonly string[]; // Actually used
   /** Percentage of available predicates actually used (0-100) */
-  utilizationPercentage: number;
+  readonly utilizationPercentage: Percentage;
 
   // Density
-  relationshipsPerNodeType: number;
+  readonly relationshipsPerNodeType: number;
 
   // Standard alignment (for ArchiMate layers)
-  standardAlignment?: {
-    standard: string;
-    expectedRelationships: number;
-    missingFromStandard: string[];
+  readonly standardAlignment?: {
+    readonly standard: string;
+    readonly expectedRelationships: number;
+    readonly missingFromStandard: readonly string[];
   };
 }
 
@@ -36,97 +53,95 @@ export interface CoverageMetrics {
  * Semantic duplicate candidate
  */
 export interface DuplicateCandidate {
-  relationships: [string, string]; // IDs of duplicate pair
-  predicates: [string, string]; // Predicate names
-  sourceNodeType: string;
-  destinationNodeType: string;
-  reason: string; // Explanation of semantic overlap
-  confidence: "high" | "medium" | "low";
+  readonly relationships: readonly [string, string]; // IDs of duplicate pair
+  readonly predicates: readonly [string, string]; // Predicate names
+  readonly sourceNodeType: string;
+  readonly destinationNodeType: string;
+  readonly reason: string; // Explanation of semantic overlap
+  readonly confidence: "high" | "medium" | "low";
 }
 
 /**
  * Missing relationship gap candidate
  */
 export interface GapCandidate {
-  sourceNodeType: string;
-  destinationNodeType: string;
-  suggestedPredicate: string;
-  reason: string;
-  priority: "high" | "medium" | "low";
-  standardReference?: string; // e.g., "ArchiMate 3.2 §5.2"
+  readonly sourceNodeType: string;
+  readonly destinationNodeType: string;
+  readonly suggestedPredicate: string;
+  readonly reason: string;
+  readonly priority: "high" | "medium" | "low";
+  readonly standardReference?: string; // e.g., "ArchiMate 3.2 §5.2"
 }
 
 /**
  * Balance assessment for node type relationship density
  */
 export interface BalanceAssessment {
-  nodeType: string;
-  layer: string;
-  category: "structural" | "behavioral" | "enumeration" | "reference";
-  currentCount: number;
-  targetRange: [number, number];
-  status: "under" | "balanced" | "over";
-  recommendation?: string;
+  readonly nodeType: string;
+  readonly layer: string;
+  readonly category: "structural" | "behavioral" | "enumeration" | "reference";
+  readonly currentCount: number;
+  readonly targetRange: readonly [number, number];
+  readonly status: "under" | "balanced" | "over";
+  readonly recommendation?: string;
 }
 
 /**
  * Connected component in relationship graph
  */
 export interface ConnectedComponent {
-  nodes: string[];
-  // Note: size is derived as nodes.length to avoid redundancy
+  readonly nodes: readonly string[];
 }
 
 /**
  * Node degree information
  */
 export interface NodeDegree {
-  nodeType: string;
-  inDegree: number;
-  outDegree: number;
-  totalDegree: number;
+  readonly nodeType: string;
+  readonly inDegree: number;
+  readonly outDegree: number;
+  readonly totalDegree: number;
 }
 
 /**
  * Transitive relationship chain
  */
 export interface TransitiveChain {
-  predicate: string;
-  chain: string[]; // Node types in chain
-  // Note: length is derived as chain.length to avoid redundancy
+  readonly predicate: string;
+  readonly chain: readonly string[]; // Node types in chain
 }
 
 /**
  * Connectivity statistics summary
  */
 export interface ConnectivityStats {
-  totalNodes: number;
-  totalEdges: number;
-  connectedComponents: number;
-  largestComponentSize: number;
-  isolatedNodes: number;
-  averageDegree: number;
-  transitiveChainCount: number;
+  readonly totalNodes: number;
+  readonly totalEdges: number;
+  readonly connectedComponents: number;
+  readonly largestComponentSize: number;
+  readonly isolatedNodes: number;
+  readonly averageDegree: number;
+  readonly transitiveChainCount: number;
 }
 
 /**
  * Comprehensive audit report combining all analysis results
  */
 export interface AuditReport {
-  timestamp: string;
-  model: {
-    name: string;
-    version: string;
+  readonly timestamp: string;
+  readonly model: {
+    readonly name: string;
+    readonly version: string;
   };
-  coverage: CoverageMetrics[];
-  duplicates: DuplicateCandidate[];
-  gaps: GapCandidate[];
-  balance: BalanceAssessment[];
-  connectivity: {
-    components: ConnectedComponent[];
-    degrees: NodeDegree[];
-    transitiveChains: TransitiveChain[];
-    stats: ConnectivityStats;
+  readonly coverage: readonly CoverageMetrics[];
+  readonly duplicates: readonly DuplicateCandidate[];
+  readonly gaps: readonly GapCandidate[];
+  readonly balance: readonly BalanceAssessment[];
+  readonly connectivity: {
+    readonly components: readonly ConnectedComponent[];
+    readonly degrees: readonly NodeDegree[];
+    readonly transitiveChains: readonly TransitiveChain[];
+    readonly stats: ConnectivityStats;
   };
 }
 
@@ -134,27 +149,27 @@ export interface AuditReport {
  * Summary report comparing before/after audit states
  */
 export interface SummaryReport {
-  timestamp: string;
-  coverageChanges: {
-    layer: string;
-    before: { isolation: number; density: number };
-    after: { isolation: number; density: number };
-    delta: { isolation: number; density: number };
+  readonly timestamp: string;
+  readonly coverageChanges: readonly {
+    readonly layer: string;
+    readonly before: { readonly isolation: number; readonly density: number };
+    readonly after: { readonly isolation: number; readonly density: number };
+    readonly delta: { readonly isolation: number; readonly density: number };
   }[];
-  relationshipsAdded: number;
-  gapsResolved: number;
-  remainingGaps: number;
-  duplicatesResolved: number;
-  balanceImprovements: string[];
+  readonly relationshipsAdded: number;
+  readonly gapsResolved: number;
+  readonly remainingGaps: number;
+  readonly duplicatesResolved: number;
+  readonly balanceImprovements: readonly string[];
 }
 
 /**
  * Layer-specific aggregated data
  */
 export interface LayerData {
-  layer: string;
-  coverage: CoverageMetrics;
-  duplicates: DuplicateCandidate[];
-  gaps: GapCandidate[];
-  balance: BalanceAssessment[];
+  readonly layer: string;
+  readonly coverage: CoverageMetrics;
+  readonly duplicates: readonly DuplicateCandidate[];
+  readonly gaps: readonly GapCandidate[];
+  readonly balance: readonly BalanceAssessment[];
 }

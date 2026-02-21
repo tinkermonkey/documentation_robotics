@@ -19,7 +19,7 @@ interface BaseInvocationContext {
  */
 export interface ElementInvocation {
   type: "element";
-  target: string; // Node type ID (e.g., "motivation.goal.customer-satisfaction")
+  target: string; // Full element ID (e.g., "motivation.goal.customer-satisfaction") uniquely identifying the node type
   prompt: string;
   context: BaseInvocationContext;
 }

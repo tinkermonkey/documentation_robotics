@@ -212,7 +212,7 @@ export class ReportGenerator {
       lines.push("## Balance Analysis");
       lines.push("");
 
-      const summary = this.summarizeBalance(result.balance);
+      const summary = this.summarizeBalance(result.balance as BalanceAssessment[]);
       lines.push(`- **Structural Node Types**: ${summary.structural}`);
       lines.push(`- **Behavioral Node Types**: ${summary.behavioral}`);
       lines.push(`- **Under-connected**: ${summary.under}`);

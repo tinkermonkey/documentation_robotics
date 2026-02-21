@@ -1,12 +1,15 @@
 /**
  * Gap Analyzer - Identifies missing relationships based on layer-specific templates
  *
- * Uses standard-based templates to identify missing architectural
+ * Uses standard-inspired templates to identify missing architectural
  * relationships that should exist based on:
- * - ArchiMate 3.2 metamodel (layers 1, 2, 4, 5)
- * - OpenAPI 3.0 patterns (layer 6)
- * - NIST SP 800-53 (layer 3)
- * - Component patterns (layers 9, 10)
+ * - ArchiMate 3.2 metamodel patterns (layers 1, 2, 4, 5)
+ * - OpenAPI 3.0 operation patterns (layer 6)
+ * - NIST SP 800-53 control framework patterns (layer 3)
+ * - React and router component patterns (layers 9, 10)
+ *
+ * Note: Gap detection is heuristic-based and patterns are inspired by these standards
+ * and frameworks, not formally compliant implementations of them.
  */
 
 import { RELATIONSHIPS_BY_SOURCE } from "../../generated/relationship-index.js";

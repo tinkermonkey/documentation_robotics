@@ -123,13 +123,13 @@ export class DifferentialAnalyzer {
    */
   analyze(before: AuditReport, after: AuditReport): DifferentialAnalysis {
     const { comparison: coverageComparison, skipped: skippedLayers } =
-      this.analyzeCoverage(before.coverage, after.coverage);
-    const gapChanges = this.analyzeGaps(before.gaps, after.gaps);
+      this.analyzeCoverage(before.coverage as CoverageMetrics[], after.coverage as CoverageMetrics[]);
+    const gapChanges = this.analyzeGaps(before.gaps as GapCandidate[], after.gaps as GapCandidate[]);
     const duplicateChanges = this.analyzeDuplicates(
-      before.duplicates,
-      after.duplicates,
+      before.duplicates as DuplicateCandidate[],
+      after.duplicates as DuplicateCandidate[],
     );
-    const balanceChanges = this.analyzeBalance(before.balance, after.balance);
+    const balanceChanges = this.analyzeBalance(before.balance as BalanceAssessment[], after.balance as BalanceAssessment[]);
     const connectivityChanges = this.analyzeConnectivity(
       before.connectivity,
       after.connectivity,

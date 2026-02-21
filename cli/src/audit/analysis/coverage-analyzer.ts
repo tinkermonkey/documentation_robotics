@@ -16,6 +16,7 @@ import {
 } from "../../generated/layer-registry.js";
 import { LAYER_TEMPLATES } from "./layer-templates.js";
 import type { CoverageMetrics } from "../types.js";
+import { createPercentage } from "../types.js";
 
 /**
  * Result from coverage analysis indicating success/partial/failure status
@@ -112,18 +113,20 @@ export class CoverageAnalyzer {
     const isolatedNodeTypes = nodeTypes.filter(
       (type) => (relationshipCounts.get(type) || 0) === 0
     );
-    const isolationPercentage =
-      nodeTypeCount > 0 ? (isolatedNodeTypes.length / nodeTypeCount) * 100 : 0;
+    const isolationPercentage = createPercentage(
+      nodeTypeCount > 0 ? (isolatedNodeTypes.length / nodeTypeCount) * 100 : 0
+    );
 
     // Get available predicates for this layer
     const availablePredicates = await this.getAvailablePredicatesForLayer(
       layer.id
     );
     const usedPredicates = Array.from(usedPredicatesSet);
-    const utilizationPercentage =
+    const utilizationPercentage = createPercentage(
       availablePredicates.length > 0
         ? (usedPredicates.length / availablePredicates.length) * 100
-        : 0;
+        : 0
+    );
 
     // Calculate density
     const relationshipsPerNodeType =

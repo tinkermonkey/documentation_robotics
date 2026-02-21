@@ -177,7 +177,7 @@ export class PipelineOrchestrator {
       return this.auditOrchestrator.getPredicatesForLayer(layer);
     };
 
-    await aiEvaluator.evaluateLowCoverageElements(beforeResult.coverage, getPredicatesForLayer);
+    await aiEvaluator.evaluateLowCoverageElements(beforeResult.coverage as CoverageMetrics[], getPredicatesForLayer);
 
     // Step 3: Run AFTER audit
     console.log("\n⏳ Step 3/4: Running post-evaluation audit (AFTER AI evaluation)...");
@@ -394,10 +394,10 @@ export class PipelineOrchestrator {
     lines.push("## Coverage Heatmap");
     lines.push("");
     lines.push("### Before");
-    lines.push(this.generateCoverageHeatmap(beforeResult.coverage));
+    lines.push(this.generateCoverageHeatmap(beforeResult.coverage as CoverageMetrics[]));
     lines.push("");
     lines.push("### After");
-    lines.push(this.generateCoverageHeatmap(afterResult.coverage));
+    lines.push(this.generateCoverageHeatmap(afterResult.coverage as CoverageMetrics[]));
     lines.push("");
 
     return lines.join("\n");

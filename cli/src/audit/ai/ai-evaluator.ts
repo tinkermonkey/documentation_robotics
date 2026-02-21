@@ -6,6 +6,11 @@ import { ResponseParser } from "./response-parser.js";
 import type { RelationshipRecommendation, LayerReview, InterLayerValidation } from "./response-parser.js";
 import { getErrorMessage } from "../../utils/errors.js";
 
+/**
+ * Tracks progress of AI evaluation operations, enabling resume support
+ * for interrupted or long-running evaluation pipelines.
+ * Implementations may persist progress to disk or store in memory.
+ */
 export interface ProgressTracker {
   isCompleted(key: string): boolean;
   markCompleted(key: string): Promise<void>;
@@ -83,6 +88,8 @@ export class AIEvaluator {
    * @param coverage - Array of coverage metrics for all layers
    * @param getPredicatesForLayer - Function to retrieve available predicates for a given layer
    * @param tracker - Optional progress tracker for resume support (defaults to in-memory tracker)
+   * @returns Promise resolving when all evaluations are complete
+   * @throws Error if consecutive invocation failures exceed threshold or if AI evaluation is misconfigured
    */
   async evaluateLowCoverageElements(
     coverage: CoverageMetrics[],

@@ -255,7 +255,10 @@ export class SnapshotStorage {
   }
 
   /**
-   * Get the two most recent snapshots for comparison
+   * Get the two most recent snapshots for comparison.
+   * Returns a tuple of [before, after] where 'before' is the older snapshot
+   * and 'after' is the more recent snapshot (for differential analysis).
+   * @returns [before, after] tuple where both are sorted chronologically, or [null, null] if fewer than 2 snapshots exist
    */
   async getLatestPair(): Promise<
     [AuditReport, AuditReport] | [null, null]

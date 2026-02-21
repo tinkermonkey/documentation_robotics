@@ -57,19 +57,19 @@ function formatAuditText(report: AuditReport, options: AuditFormatterOptions): s
   lines.push("");
 
   // Coverage Summary
-  formatCoverageTextSummary(lines, report.coverage);
+  formatCoverageTextSummary(lines, report.coverage as CoverageMetrics[]);
   lines.push("");
 
   // Duplicates Summary
-  formatDuplicatesTextSummary(lines, report.duplicates);
+  formatDuplicatesTextSummary(lines, report.duplicates as DuplicateCandidate[]);
   lines.push("");
 
   // Gaps Summary
-  formatGapsTextSummary(lines, report.gaps);
+  formatGapsTextSummary(lines, report.gaps as GapCandidate[]);
   lines.push("");
 
   // Balance Summary
-  formatBalanceTextSummary(lines, report.balance);
+  formatBalanceTextSummary(lines, report.balance as BalanceAssessment[]);
   lines.push("");
 
   // Connectivity Summary
@@ -78,13 +78,13 @@ function formatAuditText(report: AuditReport, options: AuditFormatterOptions): s
 
   // Detailed sections (verbose mode)
   if (options.verbose) {
-    formatCoverageTextDetailed(lines, report.coverage);
+    formatCoverageTextDetailed(lines, report.coverage as CoverageMetrics[]);
     lines.push("");
-    formatDuplicatesTextDetailed(lines, report.duplicates);
+    formatDuplicatesTextDetailed(lines, report.duplicates as DuplicateCandidate[]);
     lines.push("");
-    formatGapsTextDetailed(lines, report.gaps);
+    formatGapsTextDetailed(lines, report.gaps as GapCandidate[]);
     lines.push("");
-    formatBalanceTextDetailed(lines, report.balance);
+    formatBalanceTextDetailed(lines, report.balance as BalanceAssessment[]);
     lines.push("");
     formatConnectivityTextDetailed(lines, report.connectivity);
     lines.push("");
@@ -121,19 +121,19 @@ function formatAuditMarkdown(report: AuditReport, _options: AuditFormatterOption
   lines.push("");
 
   // Coverage Analysis
-  formatCoverageMarkdown(lines, report.coverage);
+  formatCoverageMarkdown(lines, report.coverage as CoverageMetrics[]);
   lines.push("");
 
   // Duplicate Detection
-  formatDuplicatesMarkdown(lines, report.duplicates);
+  formatDuplicatesMarkdown(lines, report.duplicates as DuplicateCandidate[]);
   lines.push("");
 
   // Gap Analysis
-  formatGapsMarkdown(lines, report.gaps);
+  formatGapsMarkdown(lines, report.gaps as GapCandidate[]);
   lines.push("");
 
   // Balance Assessment
-  formatBalanceMarkdown(lines, report.balance);
+  formatBalanceMarkdown(lines, report.balance as BalanceAssessment[]);
   lines.push("");
 
   // Connectivity Analysis
