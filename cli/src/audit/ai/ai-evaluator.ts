@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { CoverageMetrics } from "../types.js";
 import { ClaudeInvoker } from "./claude-invoker.js";
 import { ResponseParser } from "./response-parser.js";
-import type { RelationshipRecommendation } from "./response-parser.js";
+import type { RelationshipRecommendation, LayerReview, InterLayerValidation } from "./response-parser.js";
 
 export interface ProgressTracker {
   isCompleted(key: string): boolean;
@@ -363,7 +363,7 @@ export class AIEvaluator {
   /**
    * Save layer review to file
    */
-  private async saveLayerReview(layer: string, review: any): Promise<void> {
+  private async saveLayerReview(layer: string, review: LayerReview): Promise<void> {
     const filename = `${layer}.review.json`;
     const filepath = join(this.config.outputDir, "layer-reviews", filename);
 
@@ -386,7 +386,7 @@ export class AIEvaluator {
    */
   private async saveInterLayerValidation(
     pairKey: string,
-    validation: any
+    validation: InterLayerValidation
   ): Promise<void> {
     const filename = `${pairKey.replace("->", "_to_")}.json`;
     const filepath = join(this.config.outputDir, "inter-layer-validation", filename);

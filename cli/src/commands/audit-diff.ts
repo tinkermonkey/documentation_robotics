@@ -73,7 +73,7 @@ export async function auditDiffCommand(
 
     // Determine output format
     // Explicit format flag takes precedence over auto-detection
-    let format = "text";
+    let format: "text" | "json" | "markdown" = "text";
 
     if (options.format) {
       // User explicitly specified format - use it
