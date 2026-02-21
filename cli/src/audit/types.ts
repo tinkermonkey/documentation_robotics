@@ -72,7 +72,7 @@ export interface BalanceAssessment {
  */
 export interface ConnectedComponent {
   nodes: string[];
-  size: number;
+  // Note: size is derived as nodes.length to avoid redundancy
 }
 
 /**
@@ -91,7 +91,7 @@ export interface NodeDegree {
 export interface TransitiveChain {
   predicate: string;
   chain: string[]; // Node types in chain
-  length: number;
+  // Note: length is derived as chain.length to avoid redundancy
 }
 
 /**

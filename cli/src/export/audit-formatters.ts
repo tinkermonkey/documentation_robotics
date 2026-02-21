@@ -7,6 +7,13 @@ import ansis from "ansis";
 import { AuditReport, CoverageMetrics, DuplicateCandidate, GapCandidate, BalanceAssessment } from "../audit/types.js";
 import { escapeMarkdown } from "./markdown-utils.js";
 
+/**
+ * Format date consistently (ISO 8601 without timezone, space separator)
+ */
+function formatDate(timestamp: string): string {
+  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19);
+}
+
 export type AuditReportFormat = "text" | "json" | "markdown";
 
 export interface AuditFormatterOptions {
@@ -47,7 +54,7 @@ function formatAuditText(report: AuditReport, options: AuditFormatterOptions): s
   lines.push(ansis.bold(`🔍 Relationship Audit Report: ${ansis.cyan(report.model.name)}`));
   lines.push(ansis.dim("=".repeat(80)));
   lines.push("");
-  lines.push(`Generated: ${new Date(report.timestamp).toLocaleString()}`);
+  lines.push(`Generated: ${formatDate(report.timestamp)}`);
   lines.push(`Version: ${report.model.version}`);
   lines.push("");
 
@@ -97,7 +104,7 @@ function formatAuditMarkdown(report: AuditReport, _options: AuditFormatterOption
   // Header
   lines.push(`# Relationship Audit Report: ${escapeMarkdown(report.model.name)}`);
   lines.push("");
-  lines.push(`**Generated:** ${new Date(report.timestamp).toLocaleString()}`);
+  lines.push(`**Generated:** ${formatDate(report.timestamp)}`);
   lines.push(`**Version:** ${escapeMarkdown(report.model.version)}`);
   lines.push("");
 

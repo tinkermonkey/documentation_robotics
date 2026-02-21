@@ -10,6 +10,13 @@ import { SnapshotStorage } from "../audit/snapshot-storage.js";
 import { AuditOrchestrator } from "../audit/audit-orchestrator.js";
 import path from "path";
 
+/**
+ * Format date consistently (ISO 8601 without timezone, space separator)
+ */
+function formatDate(timestamp: string): string {
+  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19);
+}
+
 export interface AuditOptions {
   layer?: string;
   format?: AuditReportFormat;
@@ -68,7 +75,7 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
       console.log(
         ansis.green(`✓ Snapshot saved: ${metadata.id}`),
       );
-      console.log(ansis.dim(`  Timestamp: ${new Date(metadata.timestamp).toLocaleString()}`));
+      console.log(ansis.dim(`  Timestamp: ${formatDate(metadata.timestamp)}`));
     }
 
     // Write to file or stdout

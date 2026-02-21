@@ -6,6 +6,13 @@
 import ansis from "ansis";
 import { ReportData, QualityMetrics } from "../core/report-data-model.js";
 
+/**
+ * Format date consistently (ISO 8601 without timezone, space separator)
+ */
+function formatDate(timestamp: string): string {
+  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19);
+}
+
 export type ReportFormat = "text" | "json" | "markdown" | "compact";
 
 export interface ReportFormatterOptions {
@@ -44,7 +51,7 @@ function formatText(report: ReportData, options: ReportFormatterOptions): string
   lines.push(ansis.bold(`📊 Architecture Report: ${ansis.cyan(report.statistics.project.name)}`));
   lines.push(ansis.dim("=".repeat(80)));
   lines.push("");
-  lines.push(`Generated: ${new Date(report.timestamp).toLocaleString()}`);
+  lines.push(`Generated: ${formatDate(report.timestamp)}`);
   lines.push(`Version: ${report.statistics.project.version}`);
   lines.push("");
 
@@ -87,7 +94,7 @@ function formatMarkdown(report: ReportData, options: ReportFormatterOptions): st
   // Header
   lines.push(`# Architecture Report: ${report.statistics.project.name}`);
   lines.push("");
-  lines.push(`**Generated:** ${new Date(report.timestamp).toLocaleString()}`);
+  lines.push(`**Generated:** ${formatDate(report.timestamp)}`);
   lines.push(`**Version:** ${report.statistics.project.version}`);
   lines.push("");
 

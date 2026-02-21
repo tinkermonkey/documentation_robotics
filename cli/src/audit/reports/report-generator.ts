@@ -52,57 +52,125 @@ export class ReportGenerator {
     const { outputDir, phase, metrics, layerReports } = options;
     const phaseDir = path.join(outputDir, phase);
 
-    // Ensure phase directory exists
-    await fs.mkdir(phaseDir, { recursive: true });
+    try {
+      // Ensure phase directory exists
+      await fs.mkdir(phaseDir, { recursive: true });
 
-    // Generate main reports in JSON and Markdown
-    await this.jsonFormatter.formatCoverage(
-      metrics.coverage,
-      path.join(phaseDir, "coverage-report.json")
-    );
-    await this.markdownFormatter.formatCoverage(
-      metrics.coverage,
-      path.join(phaseDir, "coverage-report.md")
-    );
-
-    // Generate specialized reports (JSON only)
-    await this.jsonFormatter.formatDuplicates(
-      metrics.duplicates,
-      path.join(phaseDir, "duplicates.json")
-    );
-    await this.jsonFormatter.formatGaps(
-      metrics.gaps,
-      path.join(phaseDir, "gaps.json")
-    );
-    await this.jsonFormatter.formatBalance(
-      metrics.balance,
-      path.join(phaseDir, "balance.json")
-    );
-
-    // Generate connectivity report if data available
-    if (metrics.connectivity) {
-      await this.jsonFormatter.formatConnectivity(
-        metrics.connectivity,
-        path.join(phaseDir, "connectivity.json")
-      );
-      await this.markdownFormatter.formatConnectivity(
-        metrics.connectivity,
-        path.join(phaseDir, "connectivity.md")
-      );
-    }
-
-    // Generate layer-specific reports if requested
-    if (layerReports) {
-      const layerDir = path.join(phaseDir, "layer-reports");
-      await fs.mkdir(layerDir, { recursive: true });
-
-      for (const layerMetrics of metrics.coverage) {
-        const layerData = this.aggregateLayerData(layerMetrics, metrics);
-        await this.jsonFormatter.formatLayer(
-          layerData,
-          path.join(layerDir, `${layerMetrics.layer}.json`)
+      // Generate main reports in JSON and Markdown
+      try {
+        await this.jsonFormatter.formatCoverage(
+          metrics.coverage,
+          path.join(phaseDir, "coverage-report.json")
+        );
+      } catch (error) {
+        throw new Error(
+          `Failed to write coverage JSON report: ${error instanceof Error ? error.message : String(error)}`
         );
       }
+
+      try {
+        await this.markdownFormatter.formatCoverage(
+          metrics.coverage,
+          path.join(phaseDir, "coverage-report.md")
+        );
+      } catch (error) {
+        throw new Error(
+          `Failed to write coverage Markdown report: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
+      // Generate specialized reports (JSON only)
+      try {
+        await this.jsonFormatter.formatDuplicates(
+          metrics.duplicates,
+          path.join(phaseDir, "duplicates.json")
+        );
+      } catch (error) {
+        throw new Error(
+          `Failed to write duplicates report: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
+      try {
+        await this.jsonFormatter.formatGaps(
+          metrics.gaps,
+          path.join(phaseDir, "gaps.json")
+        );
+      } catch (error) {
+        throw new Error(
+          `Failed to write gaps report: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
+      try {
+        await this.jsonFormatter.formatBalance(
+          metrics.balance,
+          path.join(phaseDir, "balance.json")
+        );
+      } catch (error) {
+        throw new Error(
+          `Failed to write balance report: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
+      // Generate connectivity report if data available
+      if (metrics.connectivity) {
+        try {
+          await this.jsonFormatter.formatConnectivity(
+            metrics.connectivity,
+            path.join(phaseDir, "connectivity.json")
+          );
+        } catch (error) {
+          throw new Error(
+            `Failed to write connectivity JSON report: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+
+        try {
+          await this.markdownFormatter.formatConnectivity(
+            metrics.connectivity,
+            path.join(phaseDir, "connectivity.md")
+          );
+        } catch (error) {
+          throw new Error(
+            `Failed to write connectivity Markdown report: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      }
+
+      // Generate layer-specific reports if requested
+      if (layerReports) {
+        const layerDir = path.join(phaseDir, "layer-reports");
+        try {
+          await fs.mkdir(layerDir, { recursive: true });
+        } catch (error) {
+          throw new Error(
+            `Failed to create layer-reports directory: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+
+        for (const layerMetrics of metrics.coverage) {
+          try {
+            const layerData = this.aggregateLayerData(layerMetrics, metrics);
+            await this.jsonFormatter.formatLayer(
+              layerData,
+              path.join(layerDir, `${layerMetrics.layer}.json`)
+            );
+          } catch (error) {
+            throw new Error(
+              `Failed to write layer report for '${layerMetrics.layer}': ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+        }
+      }
+    } catch (error) {
+      // If any write fails, attempt cleanup (best effort)
+      try {
+        await fs.rm(phaseDir, { recursive: true, force: true });
+      } catch (cleanupError) {
+        // Ignore cleanup errors, throw original error
+      }
+      throw error;
     }
   }
 

@@ -29,6 +29,15 @@ interface RelationshipPattern {
 }
 
 /**
+ * Gap analysis result with analysis status
+ */
+export interface GapAnalysisResult {
+  analyzed: boolean; // Whether the layer was analyzed
+  gaps: GapCandidate[]; // Gap candidates (empty array if analyzed with no gaps, or if not analyzed)
+  reason?: string; // Reason for not analyzing (e.g., "No template available for layer")
+}
+
+/**
  * Gap analyzer for missing relationships
  */
 export class GapAnalyzer {
@@ -48,10 +57,20 @@ export class GapAnalyzer {
   }
 
   /**
-   * Analyze gaps for a single layer
+   * Analyze gaps for a single layer with analysis status
    */
-  analyzeLayer(layer: LayerMetadata): GapCandidate[] {
+  analyzeLayerWithStatus(layer: LayerMetadata): GapAnalysisResult {
     const patterns = this.getLayerTemplates(layer);
+
+    // Check if layer has templates
+    if (patterns.length === 0) {
+      return {
+        analyzed: false,
+        gaps: [],
+        reason: `No template available for layer '${layer.id}'`,
+      };
+    }
+
     const candidates: GapCandidate[] = [];
 
     for (const pattern of patterns) {
@@ -88,7 +107,18 @@ export class GapAnalyzer {
       }
     }
 
-    return candidates;
+    return {
+      analyzed: true,
+      gaps: candidates,
+    };
+  }
+
+  /**
+   * Analyze gaps for a single layer (legacy method for backward compatibility)
+   */
+  analyzeLayer(layer: LayerMetadata): GapCandidate[] {
+    const result = this.analyzeLayerWithStatus(layer);
+    return result.gaps;
   }
 
   /**

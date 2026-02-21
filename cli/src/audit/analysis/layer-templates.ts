@@ -206,4 +206,100 @@ export const LAYER_TEMPLATES: LayerTemplate[] = [
       },
     ],
   },
+  {
+    layer: "data-model",
+    standard: "JSON Schema Draft 7",
+    patterns: [
+      {
+        sourcePattern: "entity",
+        destinationPattern: "entity",
+        predicate: "references",
+        description: "Entities reference other entities",
+      },
+      {
+        sourcePattern: "entity",
+        destinationPattern: "property",
+        predicate: "has",
+        description: "Entities have properties",
+      },
+      {
+        sourcePattern: "property",
+        destinationPattern: "entity",
+        predicate: "references",
+        description: "Properties reference entities",
+      },
+    ],
+  },
+  {
+    layer: "data-store",
+    standard: "Database schema patterns",
+    patterns: [
+      {
+        sourcePattern: "table",
+        destinationPattern: "table",
+        predicate: "references",
+        description: "Tables reference other tables via foreign keys",
+      },
+      {
+        sourcePattern: "index",
+        destinationPattern: "table",
+        predicate: "indexes",
+        description: "Indexes apply to tables",
+      },
+      {
+        sourcePattern: "view",
+        destinationPattern: "table",
+        predicate: "derives-from",
+        description: "Views derive from tables",
+      },
+    ],
+  },
+  {
+    layer: "apm",
+    standard: "OpenTelemetry",
+    patterns: [
+      {
+        sourcePattern: "trace",
+        destinationPattern: "service",
+        predicate: "monitors",
+        description: "Traces monitor services",
+      },
+      {
+        sourcePattern: "metric",
+        destinationPattern: "component",
+        predicate: "measures",
+        description: "Metrics measure components",
+      },
+      {
+        sourcePattern: "alert",
+        destinationPattern: "metric",
+        predicate: "triggers-on",
+        description: "Alerts trigger on metrics",
+      },
+    ],
+  },
+  {
+    layer: "testing",
+    standard: "Testing best practices",
+    patterns: [
+      {
+        sourcePattern: "testcase",
+        destinationPattern: "requirement",
+        predicate: "verifies",
+        description: "Test cases verify requirements",
+      },
+      {
+        sourcePattern: "testdata",
+        destinationPattern: "testcase",
+        predicate: "supports",
+        description: "Test data supports test cases",
+      },
+      {
+        sourcePattern: "testsuite",
+        destinationPattern: "testcase",
+        predicate: "contains",
+        description: "Test suites contain test cases",
+      },
+    ],
+  },
 ];

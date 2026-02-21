@@ -7,6 +7,13 @@
 import ansis from "ansis";
 import { DifferentialAnalysis } from "../audit/differential-analyzer.js";
 
+/**
+ * Format date consistently (ISO 8601 without timezone, space separator)
+ */
+function formatDate(timestamp: string): string {
+  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19);
+}
+
 export interface DiffFormatterOptions {
   format: "text" | "json" | "markdown";
   verbose: boolean;
@@ -74,10 +81,10 @@ function formatText(
   lines.push("");
   lines.push(ansis.bold("Comparison Period:"));
   lines.push(
-    `  Before: ${ansis.dim(new Date(options.beforeTimestamp).toLocaleString())}`,
+    `  Before: ${ansis.dim(formatDate(options.beforeTimestamp))}`,
   );
   lines.push(
-    `  After:  ${ansis.dim(new Date(options.afterTimestamp).toLocaleString())}`,
+    `  After:  ${ansis.dim(formatDate(options.afterTimestamp))}`,
   );
 
   // Executive Summary
@@ -248,10 +255,10 @@ function formatMarkdown(
   lines.push("## Comparison Period");
   lines.push("");
   lines.push(
-    `- **Before:** ${new Date(options.beforeTimestamp).toLocaleString()}`,
+    `- **Before:** ${formatDate(options.beforeTimestamp)}`,
   );
   lines.push(
-    `- **After:** ${new Date(options.afterTimestamp).toLocaleString()}`,
+    `- **After:** ${formatDate(options.afterTimestamp)}`,
   );
 
   // Executive Summary

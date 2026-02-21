@@ -91,7 +91,11 @@ export class AuditOrchestrator {
     if (options.layer) {
       const layer = getLayerById(options.layer);
       if (!layer) {
-        throw new Error(`Layer not found: ${options.layer}`);
+        const allLayers = getAllLayers();
+        const validLayerNames = allLayers.map((l) => l.id).join(", ");
+        throw new Error(
+          `Layer not found: '${options.layer}'. Valid layers: ${validLayerNames}`
+        );
       }
       const metrics = await this.coverageAnalyzer.analyzeLayer(layer);
       return [metrics];

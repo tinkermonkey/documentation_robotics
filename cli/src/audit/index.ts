@@ -14,12 +14,16 @@ export type {
   NodeDegree,
   TransitiveChain,
   SummaryReport,
+  AuditReport,
+  ConnectivityStats,
+  LayerData,
 } from "./types.js";
 
 // Analysis components
 export { CoverageAnalyzer } from "./analysis/coverage-analyzer.js";
 export { DuplicateDetector } from "./analysis/duplicate-detector.js";
 export { GapAnalyzer } from "./analysis/gap-analyzer.js";
+export type { GapAnalysisResult } from "./analysis/gap-analyzer.js";
 export { BalanceAssessor } from "./analysis/balance-assessor.js";
 
 // Graph components
@@ -37,6 +41,7 @@ export type {
   DuplicateChanges,
   BalanceChanges,
   ConnectivityComparison,
+  SkippedLayer,
 } from "./differential-analyzer.js";
 
 // AI evaluation components

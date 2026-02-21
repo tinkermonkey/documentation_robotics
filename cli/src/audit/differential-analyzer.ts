@@ -25,7 +25,17 @@ export interface DifferentialAnalysis {
     duplicateChanges: DuplicateChanges;
     balanceChanges: BalanceChanges;
     connectivityChanges: ConnectivityComparison;
+    skippedLayers: SkippedLayer[]; // Layers that couldn't be compared
   };
+}
+
+/**
+ * Information about a layer that was skipped during comparison
+ */
+export interface SkippedLayer {
+  layer: string;
+  reason: "only-in-before" | "only-in-after";
+  coverage?: CoverageMetrics; // Coverage metrics if available
 }
 
 /**
@@ -110,10 +120,8 @@ export class DifferentialAnalyzer {
    * Compare two audit reports
    */
   analyze(before: AuditReport, after: AuditReport): DifferentialAnalysis {
-    const coverageComparison = this.analyzeCoverage(
-      before.coverage,
-      after.coverage,
-    );
+    const { comparison: coverageComparison, skipped: skippedLayers } =
+      this.analyzeCoverage(before.coverage, after.coverage);
     const gapChanges = this.analyzeGaps(before.gaps, after.gaps);
     const duplicateChanges = this.analyzeDuplicates(
       before.duplicates,
@@ -141,6 +149,7 @@ export class DifferentialAnalyzer {
         duplicateChanges,
         balanceChanges,
         connectivityChanges,
+        skippedLayers,
       },
     };
   }
@@ -151,19 +160,37 @@ export class DifferentialAnalyzer {
   private analyzeCoverage(
     before: CoverageMetrics[],
     after: CoverageMetrics[],
-  ): Map<string, CoverageComparison> {
+  ): {
+    comparison: Map<string, CoverageComparison>;
+    skipped: SkippedLayer[];
+  } {
     const comparison = new Map<string, CoverageComparison>();
+    const skipped: SkippedLayer[] = [];
 
-    // Create lookup map for before state
+    // Create lookup maps for before and after states
     const beforeMap = new Map(before.map((c) => [c.layer, c]));
+    const afterMap = new Map(after.map((c) => [c.layer, c]));
+
+    // Check for layers only in "before"
+    for (const beforeCoverage of before) {
+      if (!afterMap.has(beforeCoverage.layer)) {
+        skipped.push({
+          layer: beforeCoverage.layer,
+          reason: "only-in-before",
+          coverage: beforeCoverage,
+        });
+      }
+    }
 
     for (const afterCoverage of after) {
       const beforeCoverage = beforeMap.get(afterCoverage.layer);
       if (!beforeCoverage) {
-        // New layer in after state - track for visibility
-        console.log(
-          `Note: Layer "${afterCoverage.layer}" appears only in after state, skipping comparison`,
-        );
+        // New layer in after state - track as skipped
+        skipped.push({
+          layer: afterCoverage.layer,
+          reason: "only-in-after",
+          coverage: afterCoverage,
+        });
         continue;
       }
 
@@ -227,7 +254,7 @@ export class DifferentialAnalyzer {
       });
     }
 
-    return comparison;
+    return { comparison, skipped };
   }
 
   /**

@@ -20,6 +20,10 @@ import type {
  * Connectivity analyzer for relationship graphs
  */
 export class ConnectivityAnalyzer {
+  // Cache to prevent redundant computations
+  private cachedComponents: ConnectedComponent[] | null = null;
+  private cachedDegrees: NodeDegree[] | null = null;
+
   constructor(
     private graph: RelationshipGraph,
     private catalog: RelationshipCatalog
@@ -29,6 +33,10 @@ export class ConnectivityAnalyzer {
    * Find connected components using undirected traversal
    */
   findConnectedComponents(): ConnectedComponent[] {
+    if (this.cachedComponents !== null) {
+      return this.cachedComponents;
+    }
+
     const visited = new Set<string>();
     const components: ConnectedComponent[] = [];
 
@@ -42,12 +50,12 @@ export class ConnectivityAnalyzer {
       if (component.length > 0) {
         components.push({
           nodes: component,
-          size: component.length,
         });
       }
     }
 
-    return components.sort((a, b) => b.size - a.size);
+    this.cachedComponents = components.sort((a, b) => b.nodes.length - a.nodes.length);
+    return this.cachedComponents;
   }
 
   /**
@@ -83,6 +91,10 @@ export class ConnectivityAnalyzer {
    * Calculate node degree distribution
    */
   calculateDegreeDistribution(): NodeDegree[] {
+    if (this.cachedDegrees !== null) {
+      return this.cachedDegrees;
+    }
+
     const degrees: NodeDegree[] = [];
 
     for (const nodeType of this.graph.getNodeTypes()) {
@@ -97,7 +109,8 @@ export class ConnectivityAnalyzer {
       });
     }
 
-    return degrees.sort((a, b) => b.totalDegree - a.totalDegree);
+    this.cachedDegrees = degrees.sort((a, b) => b.totalDegree - a.totalDegree);
+    return this.cachedDegrees;
   }
 
   /**
@@ -128,7 +141,7 @@ export class ConnectivityAnalyzer {
       chains.push(...predicateChains);
     }
 
-    return chains.sort((a, b) => b.length - a.length);
+    return chains.sort((a, b) => b.chain.length - a.chain.length);
   }
 
   /**
@@ -149,12 +162,11 @@ export class ConnectivityAnalyzer {
         chains.push({
           predicate,
           chain,
-          length: chain.length,
         });
       }
     }
 
-    return chains;
+    return chains.sort((a, b) => b.chain.length - a.chain.length);
   }
 
   /**
@@ -227,7 +239,7 @@ export class ConnectivityAnalyzer {
       componentCount: components.length,
       isolatedNodeCount: isolated.length,
       largestComponentSize:
-        components.length > 0 ? components[0].size : 0,
+        components.length > 0 ? components[0].nodes.length : 0,
       averageDegree,
     };
   }

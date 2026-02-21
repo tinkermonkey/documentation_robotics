@@ -6,6 +6,13 @@ import ansis from "ansis";
 import { CLIError, getErrorMessage } from "../utils/errors.js";
 import { SnapshotStorage } from "../audit/snapshot-storage.js";
 
+/**
+ * Format date consistently (ISO 8601 without timezone, space separator)
+ */
+function formatDate(timestamp: string): string {
+  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19);
+}
+
 export interface AuditSnapshotsOptions {
   action: "list" | "delete" | "clear";
   id?: string; // For delete action
@@ -71,9 +78,9 @@ async function listSnapshots(storage: SnapshotStorage): Promise<void> {
   console.log(ansis.dim("─".repeat(80)));
 
   for (const snapshot of snapshots) {
-    const timestamp = new Date(snapshot.timestamp).toLocaleString();
+    const timestamp = formatDate(snapshot.timestamp);
     console.log(
-      ansis.bold(`\n${ansis.cyan(snapshot.id)}`),
+      antml:bold(`\n${ansis.cyan(snapshot.id)}`),
     );
     console.log(`  Timestamp: ${timestamp}`);
     console.log(`  Model:     ${snapshot.modelName} v${snapshot.modelVersion}`);

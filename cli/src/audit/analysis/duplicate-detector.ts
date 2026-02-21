@@ -79,6 +79,17 @@ export class DuplicateDetector {
     const pred2 = this.catalog.getTypeByPredicate(rel2.predicate);
 
     if (!pred1 || !pred2) {
+      // Log unknown predicates for debugging
+      if (!pred1) {
+        console.warn(
+          `[DuplicateDetector] Unknown predicate not found in catalog: ${rel1.predicate} (relationship: ${rel1.id})`
+        );
+      }
+      if (!pred2) {
+        console.warn(
+          `[DuplicateDetector] Unknown predicate not found in catalog: ${rel2.predicate} (relationship: ${rel2.id})`
+        );
+      }
       return null;
     }
 

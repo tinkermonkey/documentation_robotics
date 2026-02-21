@@ -6,16 +6,53 @@ import { getErrorMessage } from "../../utils/errors.js";
 
 const execFileAsync = promisify(execFile);
 
-export interface ClaudeInvocation {
-  type: "element" | "layer" | "inter-layer";
-  target: string; // Node type ID or layer name
+/**
+ * Base invocation context shared by all types
+ */
+interface BaseInvocationContext {
+  availablePredicates: string[];
+  currentRelationships: string[];
+}
+
+/**
+ * Element evaluation invocation
+ */
+export interface ElementInvocation {
+  type: "element";
+  target: string; // Node type ID (e.g., "motivation.goal.customer-satisfaction")
   prompt: string;
-  context: {
-    availablePredicates: string[];
-    currentRelationships: string[];
-    layerStandard?: string;
+  context: BaseInvocationContext;
+}
+
+/**
+ * Layer review invocation
+ */
+export interface LayerInvocation {
+  type: "layer";
+  target: string; // Layer name (e.g., "security")
+  prompt: string;
+  context: BaseInvocationContext & {
+    layerStandard: string; // Standard reference (e.g., "NIST SP 800-53")
   };
 }
+
+/**
+ * Inter-layer validation invocation
+ */
+export interface InterLayerInvocation {
+  type: "inter-layer";
+  target: string; // Layer pair (e.g., "application->technology")
+  prompt: string;
+  context: BaseInvocationContext;
+}
+
+/**
+ * Discriminated union of all invocation types
+ */
+export type ClaudeInvocation =
+  | ElementInvocation
+  | LayerInvocation
+  | InterLayerInvocation;
 
 export class ClaudeInvoker {
   private readonly RATE_LIMIT_DELAY_MS = 2000;
