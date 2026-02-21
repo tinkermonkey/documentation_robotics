@@ -166,6 +166,67 @@ export class ResponseParser {
       throw new Error("Layer review missing or invalid required field: recommendations (must be array)");
     }
 
+    // Validate each recommendation in the array with per-element structural validation
+    const validatedRecommendations = recommendations.map((r: unknown, index: number) => {
+      // Type narrowing: ensure r is an object
+      if (typeof r !== "object" || r === null) {
+        throw new Error(`Recommendation at index ${index} in layer review is not a valid object`);
+      }
+
+      const rec = r as Record<string, unknown>;
+
+      // Validate and extract required fields with type guards (matching parseElementRecommendations)
+      if (!rec.predicate || typeof rec.predicate !== "string") {
+        throw new Error(
+          `Recommendation at index ${index} in layer review missing or invalid required field: predicate (must be string)`
+        );
+      }
+
+      const sourceNodeType = rec.sourceNodeType || rec.source;
+      if (!sourceNodeType || typeof sourceNodeType !== "string") {
+        throw new Error(
+          `Recommendation at index ${index} in layer review missing or invalid required field: sourceNodeType or source (must be string)`
+        );
+      }
+
+      const destinationNodeType = rec.destinationNodeType || rec.destination;
+      if (!destinationNodeType || typeof destinationNodeType !== "string") {
+        throw new Error(
+          `Recommendation at index ${index} in layer review missing or invalid required field: destinationNodeType or destination (must be string)`
+        );
+      }
+
+      const justification = rec.justification || rec.reason;
+      if (!justification || typeof justification !== "string") {
+        throw new Error(
+          `Recommendation at index ${index} in layer review missing or invalid required field: justification or reason (must be string)`
+        );
+      }
+
+      const priority = rec.priority;
+      if (priority && typeof priority !== "string") {
+        throw new Error(
+          `Recommendation at index ${index} in layer review has invalid priority field (must be string)`
+        );
+      }
+
+      const standardReference = rec.standardReference;
+      if (standardReference !== undefined && typeof standardReference !== "string") {
+        throw new Error(
+          `Recommendation at index ${index} in layer review has invalid standardReference field (must be string)`
+        );
+      }
+
+      return {
+        sourceNodeType,
+        predicate: rec.predicate,
+        destinationNodeType,
+        justification,
+        priority: (priority as "high" | "medium" | "low") || "medium",
+        standardReference: typeof standardReference === "string" ? standardReference : undefined,
+      };
+    });
+
     const balanceAssessment = reviewObj.balanceAssessment || reviewObj.balance_assessment;
     if (!balanceAssessment || typeof balanceAssessment !== "string") {
       throw new Error("Layer review missing or invalid required field: balanceAssessment (must be string)");
@@ -174,7 +235,7 @@ export class ResponseParser {
     return {
       coherenceIssues,
       missingPatterns,
-      recommendations: recommendations as RelationshipRecommendation[],
+      recommendations: validatedRecommendations,
       balanceAssessment,
     };
   }

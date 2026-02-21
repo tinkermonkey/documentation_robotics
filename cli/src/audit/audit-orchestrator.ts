@@ -83,6 +83,15 @@ export class AuditOrchestrator {
   }
 
   /**
+   * Get predicates applicable to a specific layer
+   * Useful for AI evaluation to provide available relationship types
+   */
+  getPredicatesForLayer(layer: string): string[] {
+    const relationshipTypes = this.catalog.getTypesForLayer(layer);
+    return relationshipTypes.map((t) => t.predicate);
+  }
+
+  /**
    * Run coverage analysis
    */
   async runCoverageAnalysis(options: AuditOptions): Promise<CoverageMetrics[]> {
@@ -166,6 +175,10 @@ export class AuditOrchestrator {
   }> {
     this.log(options, "Running connectivity analysis...");
 
+    // Build the graph first if analyzing a specific layer or all relationships
+    const layerId = options.layer ? getLayerById(options.layer)?.id : undefined;
+    await this.graph.build(layerId);
+
     const components = this.connectivityAnalyzer.findConnectedComponents();
     const degrees = this.connectivityAnalyzer.calculateDegreeDistribution();
     const transitiveChains =
@@ -209,16 +222,42 @@ export class AuditOrchestrator {
         "manifest.yaml"
       );
       const manifestContent = await readFile(manifestPath, "utf-8");
-      const manifest = yaml.parse(manifestContent) as {
-        name: string;
-        version: string;
-      };
+      let manifest: { name: string; version: string };
+
+      try {
+        manifest = yaml.parse(manifestContent) as {
+          name: string;
+          version: string;
+        };
+      } catch (parseError: unknown) {
+        // YAML parsing failed - file is corrupt
+        const parseErrorMsg = getErrorMessage(parseError);
+        console.warn(
+          `⚠️  Warning: Manifest file is corrupted or has invalid YAML syntax (${parseErrorMsg}). Using default model metadata.`
+        );
+        return defaultMetadata;
+      }
+
+      // Validate parsed manifest has required fields
+      if (!manifest.name || typeof manifest.name !== "string") {
+        console.warn(
+          `⚠️  Warning: Manifest missing required field 'name'. Using default model metadata.`
+        );
+        return defaultMetadata;
+      }
+      if (!manifest.version || typeof manifest.version !== "string") {
+        console.warn(
+          `⚠️  Warning: Manifest missing required field 'version'. Using default model metadata.`
+        );
+        return defaultMetadata;
+      }
+
       return {
         name: manifest.name,
         version: manifest.version,
       };
     } catch (error: unknown) {
-      // Distinguish between file not found vs corrupt file
+      // Distinguish between file not found vs read error
       const errorMsg = getErrorMessage(error);
       if (errorMsg.includes("ENOENT") || errorMsg.includes("no such file")) {
         // File not found - expected in tests, use defaults silently
@@ -227,9 +266,9 @@ export class AuditOrchestrator {
           "Using default model metadata (manifest not found)"
         );
       } else {
-        // File exists but corrupt - warn the user
+        // File exists but cannot be read (permissions, disk error, etc)
         console.warn(
-          `Warning: Failed to read manifest (${errorMsg}), using defaults`
+          `⚠️  Warning: Cannot read manifest file (${errorMsg}). Using default model metadata.`
         );
       }
       return defaultMetadata;

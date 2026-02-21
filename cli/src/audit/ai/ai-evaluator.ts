@@ -347,18 +347,26 @@ export class AIEvaluator {
     const filename = `${nodeType}.json`;
     const filepath = join(this.config.outputDir, "element-recommendations", filename);
 
-    await writeFile(
-      filepath,
-      JSON.stringify(
-        {
-          nodeType,
-          timestamp: new Date().toISOString(),
-          recommendations,
-        },
-        null,
-        2
-      )
-    );
+    try {
+      await writeFile(
+        filepath,
+        JSON.stringify(
+          {
+            nodeType,
+            timestamp: new Date().toISOString(),
+            recommendations,
+          },
+          null,
+          2
+        )
+      );
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      throw new Error(
+        `Failed to save element recommendations for "${nodeType}" to ${filepath}: ${errorMessage}. ` +
+        `AI evaluation results were not persisted. Please ensure the output directory is writable and has sufficient disk space.`
+      );
+    }
   }
 
   /**
@@ -368,18 +376,26 @@ export class AIEvaluator {
     const filename = `${layer}.review.json`;
     const filepath = join(this.config.outputDir, "layer-reviews", filename);
 
-    await writeFile(
-      filepath,
-      JSON.stringify(
-        {
-          layer,
-          timestamp: new Date().toISOString(),
-          review,
-        },
-        null,
-        2
-      )
-    );
+    try {
+      await writeFile(
+        filepath,
+        JSON.stringify(
+          {
+            layer,
+            timestamp: new Date().toISOString(),
+            review,
+          },
+          null,
+          2
+        )
+      );
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      throw new Error(
+        `Failed to save layer review for "${layer}" to ${filepath}: ${errorMessage}. ` +
+        `AI evaluation results were not persisted. Please ensure the output directory is writable and has sufficient disk space.`
+      );
+    }
   }
 
   /**
@@ -392,18 +408,26 @@ export class AIEvaluator {
     const filename = `${pairKey.replace("->", "_to_")}.json`;
     const filepath = join(this.config.outputDir, "inter-layer-validation", filename);
 
-    await writeFile(
-      filepath,
-      JSON.stringify(
-        {
-          pair: pairKey,
-          timestamp: new Date().toISOString(),
-          validation,
-        },
-        null,
-        2
-      )
-    );
+    try {
+      await writeFile(
+        filepath,
+        JSON.stringify(
+          {
+            pair: pairKey,
+            timestamp: new Date().toISOString(),
+            validation,
+          },
+          null,
+          2
+        )
+      );
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      throw new Error(
+        `Failed to save inter-layer validation for "${pairKey}" to ${filepath}: ${errorMessage}. ` +
+        `AI evaluation results were not persisted. Please ensure the output directory is writable and has sufficient disk space.`
+      );
+    }
   }
 
   /**
@@ -425,7 +449,15 @@ export class AIEvaluator {
     const summary = this.getEvaluationSummary(totalAttempted);
     const filepath = join(this.config.outputDir, "evaluation-summary.json");
 
-    await writeFile(filepath, JSON.stringify(summary, null, 2));
+    try {
+      await writeFile(filepath, JSON.stringify(summary, null, 2));
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      throw new Error(
+        `Failed to save evaluation summary to ${filepath}: ${errorMessage}. ` +
+        `Summary of evaluation results was not persisted. Please ensure the output directory is writable and has sufficient disk space.`
+      );
+    }
   }
 
   /**

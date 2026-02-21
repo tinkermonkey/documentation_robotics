@@ -157,9 +157,8 @@ export class PipelineOrchestrator {
     });
 
     // Provide predicate retrieval function for AI evaluation
-    const getPredicatesForLayer = async (_layer: string): Promise<string[]> => {
-      // Return empty array as stub - predicates are embedded in gap analysis
-      return [];
+    const getPredicatesForLayer = async (layer: string): Promise<string[]> => {
+      return this.auditOrchestrator.getPredicatesForLayer(layer);
     };
 
     await aiEvaluator.evaluateLowCoverageElements(beforeResult.coverage, getPredicatesForLayer);
@@ -506,15 +505,22 @@ export class PipelineOrchestrator {
     // Simple bar chart visualization
     const barLength = 50;
 
+    // Helper to safely generate bar with clamped fill
+    const generateBar = (fillRatio: number): string => {
+      const filledLength = Math.max(0, Math.min(barLength, Math.floor(fillRatio * barLength)));
+      const emptyLength = barLength - filledLength;
+      return `${"█".repeat(filledLength)}${" ".repeat(emptyLength)}`;
+    };
+
     lines.push("```");
     lines.push(
-      `Isolation:  ${"█".repeat(Math.floor((avgIsolation / 100) * barLength))}${" ".repeat(barLength - Math.floor((avgIsolation / 100) * barLength))} ${avgIsolation.toFixed(1)}%`
+      `Isolation:  ${generateBar(avgIsolation / 100)} ${avgIsolation.toFixed(1)}%`
     );
     lines.push(
-      `Density:    ${"█".repeat(Math.floor((avgDensity / 5) * barLength))}${" ".repeat(barLength - Math.floor((avgDensity / 5) * barLength))} ${avgDensity.toFixed(2)}`
+      `Density:    ${generateBar(avgDensity / 5)} ${avgDensity.toFixed(2)}`
     );
     lines.push(
-      `Predicates: ${"█".repeat(Math.floor((avgPredicateUtil / 100) * barLength))}${" ".repeat(barLength - Math.floor((avgPredicateUtil / 100) * barLength))} ${avgPredicateUtil.toFixed(1)}%`
+      `Predicates: ${generateBar(avgPredicateUtil / 100)} ${avgPredicateUtil.toFixed(1)}%`
     );
     lines.push("```");
 
