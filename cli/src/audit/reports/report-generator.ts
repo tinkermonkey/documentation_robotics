@@ -49,7 +49,14 @@ export class ReportGenerator {
     options: ReportOptions
   ): Promise<string> {
     // Ensure output directory exists
-    await fs.mkdir(options.outputDir, { recursive: true });
+    try {
+      await fs.mkdir(options.outputDir, { recursive: true });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Failed to create output directory for ${options.format} report at ${options.outputDir}: ${errorMsg}`
+      );
+    }
 
     // Calculate totals from all layers
     const totalNodeTypes = result.coverage.reduce((sum, c) => sum + c.nodeTypeCount, 0);

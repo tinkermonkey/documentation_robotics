@@ -21,13 +21,15 @@ describe("CoverageAnalyzer", () => {
   });
 
   it("should analyze coverage for all layers", async () => {
-    const results = await analyzer.analyzeAll();
+    const analysisResult = await analyzer.analyzeAll();
 
-    expect(results).toBeDefined();
-    expect(results.length).toBe(12); // 12 layers
+    expect(analysisResult).toBeDefined();
+    expect(analysisResult.results).toBeDefined();
+    expect(analysisResult.results.length).toBe(12); // 12 layers
+    expect(analysisResult.isComplete).toBe(true); // No errors
 
     // Each result should have required properties
-    for (const result of results) {
+    for (const result of analysisResult.results) {
       expect(result).toHaveProperty("layer");
       expect(result).toHaveProperty("nodeTypeCount");
       expect(result).toHaveProperty("relationshipCount");
