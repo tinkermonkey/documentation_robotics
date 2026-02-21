@@ -132,7 +132,7 @@ export class PipelineOrchestrator {
     console.log(`   Output: ${sessionDir}\n`);
 
     // Step 1: Run BEFORE audit
-    console.log("⏳ Step 1/4: Running initial audit (BEFORE AI evaluation)...");
+    console.log("⏳ Step 1/5: Running initial audit (BEFORE AI evaluation)...");
     const beforeResult = await this.runAudit(options);
 
     // Save BEFORE snapshot
@@ -163,7 +163,7 @@ export class PipelineOrchestrator {
     }
 
     // Step 2: Run AI-assisted evaluation
-    console.log("\n⏳ Step 2/4: Running AI-assisted evaluation...");
+    console.log("\n⏳ Step 2/5: Running AI-assisted evaluation...");
     console.log("   (Claude CLI must be installed and authenticated)");
 
     // Run AI-assisted evaluation using the AIEvaluator
@@ -177,10 +177,29 @@ export class PipelineOrchestrator {
       return this.auditOrchestrator.getPredicatesForLayer(layer);
     };
 
+    // Step 2a: Evaluate low-coverage elements
+    console.log("   Step 2a/4: Evaluating low-coverage elements...");
     await aiEvaluator.evaluateLowCoverageElements(beforeResult.coverage as CoverageMetrics[], getPredicatesForLayer);
 
+    // Step 2b: Review layer coherence
+    console.log("   Step 2b/4: Reviewing layer coherence...");
+    const layerNames = (beforeResult.coverage as CoverageMetrics[]).map((c) => c.layer);
+    await aiEvaluator.reviewLayerCoherence(layerNames, beforeResult.coverage as CoverageMetrics[], getPredicatesForLayer);
+
+    // Step 2c: Validate inter-layer references
+    console.log("   Step 2c/4: Validating inter-layer relationships...");
+    // Build layer pairs for validation (higher layers → lower layers following the architecture)
+    const layerPairs: Array<{ source: string; target: string }> = [];
+    const layerOrder = ["motivation", "business", "security", "application", "technology", "api", "data-model", "data-store", "ux", "navigation", "apm", "testing"];
+    for (let i = 0; i < layerOrder.length; i++) {
+      for (let j = i + 1; j < layerOrder.length; j++) {
+        layerPairs.push({ source: layerOrder[i], target: layerOrder[j] });
+      }
+    }
+    await aiEvaluator.validateInterLayerReferences(layerPairs);
+
     // Step 3: Run AFTER audit
-    console.log("\n⏳ Step 3/4: Running post-evaluation audit (AFTER AI evaluation)...");
+    console.log("\n⏳ Step 3/5: Running post-evaluation audit (AFTER AI evaluation)...");
     const afterResult = await this.runAudit(options);
 
     // Save AFTER snapshot
@@ -198,7 +217,7 @@ export class PipelineOrchestrator {
     console.log(`✅ After audit complete: ${afterReportPath}`);
 
     // Step 4: Generate differential summary
-    console.log("\n⏳ Step 4/4: Generating differential summary...");
+    console.log("\n⏳ Step 4/5: Generating differential summary...");
 
     const differential = this.differentialAnalyzer.analyze(
       beforeResult,
@@ -215,6 +234,9 @@ export class PipelineOrchestrator {
     );
 
     console.log(`✅ Summary report complete: ${summaryReportPath}`);
+
+    // Step 5: Print completion summary
+    console.log("\n⏳ Step 5/5: Finalizing pipeline...");
 
     // Calculate summary metrics
     const avgDensityBefore =
