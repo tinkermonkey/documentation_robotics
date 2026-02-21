@@ -3,10 +3,10 @@
  *
  * Applies heuristics to determine if node types have appropriate
  * numbers of relationships based on their category:
- * - Structural (2-4 relationships): containers, components
- * - Behavioral (3-6 relationships): processes, operations
- * - Enumeration (0-1 relationships): status, priority types
- * - Reference (1-2 relationships): pointer types
+ * - Structural (2-4 relationships): entities, components
+ * - Behavioral (3-5 relationships): processes, services
+ * - Enumeration (1-2 relationships): states, values
+ * - Reference (0-1 relationships): metadata, tags
  */
 
 import { RELATIONSHIPS_BY_SOURCE } from "../../generated/relationship-index.js";
@@ -20,10 +20,10 @@ import type { BalanceAssessment } from "../types.js";
  * Density targets for different node type categories
  */
 const DENSITY_TARGETS: Record<string, [number, number]> = {
-  structural: [2, 4], // Container types
-  behavioral: [3, 6], // Process types
-  enumeration: [0, 1], // Status/priority types
-  reference: [1, 2], // Pointer types
+  structural: [2, 4], // Entities, components
+  behavioral: [3, 5], // Processes, services
+  enumeration: [1, 2], // States, values
+  reference: [0, 1], // Metadata, tags
 };
 
 /**

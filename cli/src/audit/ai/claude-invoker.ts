@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { CoverageMetrics } from "../types.js";
 import { PromptTemplates } from "./prompt-templates.js";
+import { getErrorMessage } from "../../utils/errors.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -44,9 +45,12 @@ export class ClaudeInvoker {
       await this.delay(this.RATE_LIMIT_DELAY_MS);
 
       return result.stdout;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const stderr = error && typeof error === "object" && "stderr" in error
+        ? (error as { stderr?: string }).stderr
+        : undefined;
       throw new Error(
-        `Claude invocation failed: ${error.message}\nStderr: ${error.stderr || "N/A"}`
+        `Claude invocation failed: ${getErrorMessage(error)}\nStderr: ${stderr || "N/A"}`
       );
     }
   }

@@ -4,6 +4,7 @@ import type { CoverageMetrics } from "../types.js";
 import { ClaudeInvoker } from "./claude-invoker.js";
 import { ResponseParser } from "./response-parser.js";
 import type { RelationshipRecommendation, LayerReview, InterLayerValidation } from "./response-parser.js";
+import { getErrorMessage } from "../../utils/errors.js";
 
 export interface ProgressTracker {
   isCompleted(key: string): boolean;
@@ -98,11 +99,8 @@ export class AIEvaluator {
         lowCoverageTypes.push({ nodeType, metrics: layerMetrics });
       }
 
-      // Also check node types with coverage below threshold
-      if (layerMetrics.relationshipsPerNodeType < this.config.lowCoverageThreshold) {
-        // This layer as a whole is low coverage - evaluate all its types
-        // (isolatedNodeTypes already includes zero-coverage types)
-      }
+      // Note: isolatedNodeTypes already includes zero-coverage types
+      // Additional low-coverage filtering could be added here if needed
     }
 
     // Create tracker if not provided
@@ -149,8 +147,8 @@ export class AIEvaluator {
           `Completed: ${nodeType} (${recommendations.length} recommendations)`
         );
         successCount++;
-      } catch (error: any) {
-        const errorMessage = error.message || String(error);
+      } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error);
         console.error(`Failed to evaluate ${nodeType}: ${errorMessage}`);
 
         // Track failure
@@ -233,8 +231,8 @@ export class AIEvaluator {
           `Completed: ${layer} (${review.recommendations.length} recommendations)`
         );
         successCount++;
-      } catch (error: any) {
-        const errorMessage = error.message || String(error);
+      } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error);
         console.error(`Failed to review layer ${layer}: ${errorMessage}`);
 
         // Track failure
@@ -308,8 +306,8 @@ export class AIEvaluator {
           `Completed: ${pairKey} (${validation.violations.length} violations, ${validation.recommendations.length} recommendations)`
         );
         successCount++;
-      } catch (error: any) {
-        const errorMessage = error.message || String(error);
+      } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error);
         console.error(`Failed to validate ${pairKey}: ${errorMessage}`);
 
         // Track failure

@@ -1,3 +1,5 @@
+import { getErrorMessage } from "../../utils/errors.js";
+
 export interface RelationshipRecommendation {
   sourceNodeType: string;
   predicate: string;
@@ -43,8 +45,8 @@ export class ResponseParser {
 
     try {
       recommendations = JSON.parse(jsonString);
-    } catch (error: any) {
-      throw new Error(`Failed to parse JSON from AI response: ${error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to parse JSON from AI response: ${getErrorMessage(error)}`);
     }
 
     if (!Array.isArray(recommendations)) {
@@ -103,8 +105,8 @@ export class ResponseParser {
 
     try {
       review = JSON.parse(jsonString);
-    } catch (error: any) {
-      throw new Error(`Failed to parse JSON from layer review: ${error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to parse JSON from layer review: ${getErrorMessage(error)}`);
     }
 
     // Validate required fields
@@ -148,15 +150,23 @@ export class ResponseParser {
 
     try {
       validation = JSON.parse(jsonString);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(
-        `Failed to parse JSON from inter-layer validation: ${error.message}`
+        `Failed to parse JSON from inter-layer validation: ${getErrorMessage(error)}`
       );
     }
 
+    // Validate required fields
+    if (!validation.violations) {
+      throw new Error("Inter-layer validation missing required field: violations");
+    }
+    if (!validation.recommendations) {
+      throw new Error("Inter-layer validation missing required field: recommendations");
+    }
+
     return {
-      violations: validation.violations || [],
-      recommendations: validation.recommendations || [],
+      violations: validation.violations,
+      recommendations: validation.recommendations,
     };
   }
 }
