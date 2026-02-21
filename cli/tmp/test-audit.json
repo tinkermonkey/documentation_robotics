@@ -21,18 +21,8 @@
         "motivation.valuetype"
       ],
       "isolationPercentage": 47.368421052631575,
-      "availablePredicates": [
-        "realizes",
-        "aggregates",
-        "associated-with",
-        "influence"
-      ],
-      "usedPredicates": [
-        "influence",
-        "aggregates",
-        "realizes",
-        "associated-with"
-      ],
+      "availablePredicates": ["realizes", "aggregates", "associated-with", "influence"],
+      "usedPredicates": ["influence", "aggregates", "realizes", "associated-with"],
       "utilizationPercentage": 100,
       "relationshipsPerNodeType": 3.0526315789473686,
       "standardAlignment": {
@@ -52,10 +42,7 @@
         "motivation.goal.aggregates.motivation.goal",
         "motivation.goal.realizes.motivation.goal"
       ],
-      "predicates": [
-        "aggregates",
-        "realizes"
-      ],
+      "predicates": ["aggregates", "realizes"],
       "sourceNodeType": "motivation.goal",
       "destinationNodeType": "motivation.goal",
       "reason": "Both predicates in \"structural\" category",
@@ -66,10 +53,7 @@
         "motivation.outcome.associated-with.motivation.goal",
         "motivation.outcome.realizes.motivation.goal"
       ],
-      "predicates": [
-        "associated-with",
-        "realizes"
-      ],
+      "predicates": ["associated-with", "realizes"],
       "sourceNodeType": "motivation.outcome",
       "destinationNodeType": "motivation.goal",
       "reason": "Both predicates in \"structural\" category",
@@ -80,10 +64,7 @@
         "motivation.outcome.associated-with.motivation.value",
         "motivation.outcome.realizes.motivation.value"
       ],
-      "predicates": [
-        "associated-with",
-        "realizes"
-      ],
+      "predicates": ["associated-with", "realizes"],
       "sourceNodeType": "motivation.outcome",
       "destinationNodeType": "motivation.value",
       "reason": "Both predicates in \"structural\" category",
@@ -94,10 +75,7 @@
         "motivation.requirement.aggregates.motivation.goal",
         "motivation.requirement.associated-with.motivation.goal"
       ],
-      "predicates": [
-        "aggregates",
-        "associated-with"
-      ],
+      "predicates": ["aggregates", "associated-with"],
       "sourceNodeType": "motivation.requirement",
       "destinationNodeType": "motivation.goal",
       "reason": "Both predicates in \"structural\" category",
@@ -176,10 +154,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 4,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 3 relationships from assessment or reviewing reference type classification"
     },
@@ -188,10 +163,7 @@
       "layer": "motivation",
       "category": "enumeration",
       "currentCount": 0,
-      "targetRange": [
-        1,
-        2
-      ],
+      "targetRange": [1, 2],
       "status": "under",
       "recommendation": "Add 1 relationship to assessmenttype (enumeration type) to reach minimum target"
     },
@@ -200,10 +172,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 4,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 3 relationships from constraint or reviewing reference type classification"
     },
@@ -212,10 +181,7 @@
       "layer": "motivation",
       "category": "enumeration",
       "currentCount": 0,
-      "targetRange": [
-        1,
-        2
-      ],
+      "targetRange": [1, 2],
       "status": "under",
       "recommendation": "Add 1 relationship to constrainttype (enumeration type) to reach minimum target"
     },
@@ -224,10 +190,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 4,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 3 relationships from driver or reviewing reference type classification"
     },
@@ -236,10 +199,7 @@
       "layer": "motivation",
       "category": "enumeration",
       "currentCount": 0,
-      "targetRange": [
-        1,
-        2
-      ],
+      "targetRange": [1, 2],
       "status": "under",
       "recommendation": "Add 1 relationship to drivercategory (enumeration type) to reach minimum target"
     },
@@ -248,10 +208,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 8,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 7 relationships from goal or reviewing reference type classification"
     },
@@ -260,10 +217,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 6,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 5 relationships from meaning or reviewing reference type classification"
     },
@@ -272,10 +226,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 8,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 7 relationships from outcome or reviewing reference type classification"
     },
@@ -284,10 +235,7 @@
       "layer": "motivation",
       "category": "enumeration",
       "currentCount": 0,
-      "targetRange": [
-        1,
-        2
-      ],
+      "targetRange": [1, 2],
       "status": "under",
       "recommendation": "Add 1 relationship to outcomestatus (enumeration type) to reach minimum target"
     },
@@ -296,10 +244,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 4,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 3 relationships from principle or reviewing reference type classification"
     },
@@ -308,10 +253,7 @@
       "layer": "motivation",
       "category": "enumeration",
       "currentCount": 0,
-      "targetRange": [
-        1,
-        2
-      ],
+      "targetRange": [1, 2],
       "status": "under",
       "recommendation": "Add 1 relationship to principlecategory (enumeration type) to reach minimum target"
     },
@@ -320,10 +262,7 @@
       "layer": "motivation",
       "category": "enumeration",
       "currentCount": 0,
-      "targetRange": [
-        1,
-        2
-      ],
+      "targetRange": [1, 2],
       "status": "under",
       "recommendation": "Add 1 relationship to priority (enumeration type) to reach minimum target"
     },
@@ -332,10 +271,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 8,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 7 relationships from requirement or reviewing reference type classification"
     },
@@ -344,10 +280,7 @@
       "layer": "motivation",
       "category": "enumeration",
       "currentCount": 0,
-      "targetRange": [
-        1,
-        2
-      ],
+      "targetRange": [1, 2],
       "status": "under",
       "recommendation": "Add 1 relationship to requirementtype (enumeration type) to reach minimum target"
     },
@@ -356,10 +289,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 6,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 5 relationships from stakeholder or reviewing reference type classification"
     },
@@ -368,10 +298,7 @@
       "layer": "motivation",
       "category": "enumeration",
       "currentCount": 0,
-      "targetRange": [
-        1,
-        2
-      ],
+      "targetRange": [1, 2],
       "status": "under",
       "recommendation": "Add 1 relationship to stakeholdertype (enumeration type) to reach minimum target"
     },
@@ -380,10 +307,7 @@
       "layer": "motivation",
       "category": "reference",
       "currentCount": 6,
-      "targetRange": [
-        0,
-        1
-      ],
+      "targetRange": [0, 1],
       "status": "over",
       "recommendation": "Consider removing 5 relationships from value or reviewing reference type classification"
     },
@@ -392,10 +316,7 @@
       "layer": "motivation",
       "category": "enumeration",
       "currentCount": 0,
-      "targetRange": [
-        1,
-        2
-      ],
+      "targetRange": [1, 2],
       "status": "under",
       "recommendation": "Add 1 relationship to valuetype (enumeration type) to reach minimum target"
     }
