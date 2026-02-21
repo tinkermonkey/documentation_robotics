@@ -57,11 +57,18 @@ describe("audit snapshots command", () => {
       try {
         process.chdir(workdir.path);
 
-        // Create a snapshot
-        await auditCommand({ format: "json" });
+        // Suppress console output during snapshot creation
+        const originalLog = console.log;
+        console.log = (..._args: any[]) => {};
+
+        try {
+          // Create a snapshot
+          await auditCommand({ format: "json", saveSnapshot: true });
+        } finally {
+          console.log = originalLog;
+        }
 
         const logs: string[] = [];
-        const originalLog = console.log;
         console.log = (...args: any[]) => {
           logs.push(args.join(" "));
         };
@@ -90,11 +97,18 @@ describe("audit snapshots command", () => {
       try {
         process.chdir(workdir.path);
 
-        // Create a single snapshot
-        await auditCommand({ format: "json" });
+        // Suppress console output during snapshot creation
+        const originalLog = console.log;
+        console.log = (..._args: any[]) => {};
+
+        try {
+          // Create a single snapshot
+          await auditCommand({ format: "json", saveSnapshot: true });
+        } finally {
+          console.log = originalLog;
+        }
 
         const logs: string[] = [];
-        const originalLog = console.log;
         console.log = (...args: any[]) => {
           logs.push(args.join(" "));
         };
@@ -170,8 +184,16 @@ describe("audit snapshots command", () => {
       try {
         process.chdir(workdir.path);
 
-        // Create a snapshot
-        await auditCommand({ format: "json" });
+        // Suppress console output during snapshot creation
+        const originalLog = console.log;
+        console.log = (..._args: any[]) => {};
+
+        try {
+          // Create a snapshot
+          await auditCommand({ format: "json", saveSnapshot: true });
+        } finally {
+          console.log = originalLog;
+        }
 
         // Get snapshot ID
         const storage = new SnapshotStorage();
@@ -182,7 +204,6 @@ describe("audit snapshots command", () => {
 
         // Delete it
         const logs: string[] = [];
-        const originalLog = console.log;
         console.log = (...args: any[]) => {
           logs.push(args.join(" "));
         };
@@ -242,19 +263,26 @@ describe("audit snapshots command", () => {
       try {
         process.chdir(workdir.path);
 
-        // Create multiple snapshots
-        await auditCommand({ format: "json" });
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        await auditCommand({ format: "json" });
+        // Suppress console output during snapshot creation
+        const originalLog = console.log;
+        console.log = (..._args: any[]) => {};
+
+        try {
+          // Create multiple snapshots (need > 1 second delay for unique IDs)
+          await auditCommand({ format: "json", saveSnapshot: true });
+          await new Promise((resolve) => setTimeout(resolve, 1100));
+          await auditCommand({ format: "json", saveSnapshot: true });
+        } finally {
+          console.log = originalLog;
+        }
 
         // Verify snapshots exist
         const storage = new SnapshotStorage();
         let snapshots = await storage.list();
-        expect(snapshots.length).toBeGreaterThan(0);
+        expect(snapshots.length).toBe(2);
 
         // Clear all
         const logs: string[] = [];
-        const originalLog = console.log;
         console.log = (...args: any[]) => {
           logs.push(args.join(" "));
         };
@@ -285,11 +313,18 @@ describe("audit snapshots command", () => {
       try {
         process.chdir(workdir.path);
 
-        // Create a single snapshot
-        await auditCommand({ format: "json" });
+        // Suppress console output during snapshot creation
+        const originalLog = console.log;
+        console.log = (..._args: any[]) => {};
+
+        try {
+          // Create a single snapshot
+          await auditCommand({ format: "json", saveSnapshot: true });
+        } finally {
+          console.log = originalLog;
+        }
 
         const logs: string[] = [];
-        const originalLog = console.log;
         console.log = (...args: any[]) => {
           logs.push(args.join(" "));
         };
