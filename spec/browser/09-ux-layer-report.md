@@ -90,23 +90,23 @@ Layer 9: UX Layer
 
 This layer contains 53 node types. To improve readability, they are organized hierarchically:
 
-| Group | Count | Types |
-|-------|-------|-------|
-| **A** | 8 | `actioncomponent`, `actioncomponenttype`, `actionpattern`, `actiontype`, `aligncontent`, `alignitems`, `animationtype`, `apiconfig` |
-| **B** | 1 | `buttonstyle` |
-| **C** | 8 | `cachestrategy`, `channeltype`, `chartseries`, `columndisplaytype`, `componentinstance`, `componentreference`, `componenttype`, `condition` |
-| **D** | 2 | `dataconfig`, `datasource` |
-| **E** | 2 | `errorconfig`, `experiencestate` |
-| **F** | 1 | `filtertype` |
-| **H** | 1 | `httpmethod` |
-| **J** | 2 | `justifycontent`, `justifyitems` |
-| **L** | 7 | `labelposition`, `layoutconfig`, `layoutstyle`, `layouttype`, `librarycomponent`, `librarysubview`, `linestyle` |
-| **N** | 1 | `notificationtype` |
-| **P** | 1 | `performancetargets` |
-| **S** | 8 | `seriestype`, `sortdirection`, `stateaction`, `stateactiontemplate`, `statepattern`, `statetransition`, `stickyposition`, `subview` |
-| **T** | 4 | `tablecolumn`, `textalign`, `transitiontemplate`, `triggertype` |
-| **U** | 3 | `uxapplication`, `uxlibrary`, `uxspec` |
-| **V** | 4 | `validationrule`, `validationtype`, `view`, `viewtype` |
+| Group | Count | Types                                                                                                                                       |
+| ----- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** | 8     | `actioncomponent`, `actioncomponenttype`, `actionpattern`, `actiontype`, `aligncontent`, `alignitems`, `animationtype`, `apiconfig`         |
+| **B** | 1     | `buttonstyle`                                                                                                                               |
+| **C** | 8     | `cachestrategy`, `channeltype`, `chartseries`, `columndisplaytype`, `componentinstance`, `componentreference`, `componenttype`, `condition` |
+| **D** | 2     | `dataconfig`, `datasource`                                                                                                                  |
+| **E** | 2     | `errorconfig`, `experiencestate`                                                                                                            |
+| **F** | 1     | `filtertype`                                                                                                                                |
+| **H** | 1     | `httpmethod`                                                                                                                                |
+| **J** | 2     | `justifycontent`, `justifyitems`                                                                                                            |
+| **L** | 7     | `labelposition`, `layoutconfig`, `layoutstyle`, `layouttype`, `librarycomponent`, `librarysubview`, `linestyle`                             |
+| **N** | 1     | `notificationtype`                                                                                                                          |
+| **P** | 1     | `performancetargets`                                                                                                                        |
+| **S** | 8     | `seriestype`, `sortdirection`, `stateaction`, `stateactiontemplate`, `statepattern`, `statetransition`, `stickyposition`, `subview`         |
+| **T** | 4     | `tablecolumn`, `textalign`, `transitiontemplate`, `triggertype`                                                                             |
+| **U** | 3     | `uxapplication`, `uxlibrary`, `uxspec`                                                                                                      |
+| **V** | 4     | `validationrule`, `validationtype`, `view`, `viewtype`                                                                                      |
 
 No intra-layer relationships are defined for this layer.
 

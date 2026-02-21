@@ -72,69 +72,69 @@ Layer 11: APM Observability Layer
 
 This layer contains 35 node types. To improve readability, they are organized hierarchically:
 
-| Group | Count | Types |
-|-------|-------|-------|
-| **A** | 4 | `aggregationtemporality`, `apmconfiguration`, `attribute`, `authtype` |
-| **C** | 1 | `compressiontype` |
-| **D** | 3 | `dataqualitymetric`, `dataqualitymetrics`, `dataqualitytype` |
-| **E** | 3 | `exporterconfig`, `exporterprotocol`, `exportertype` |
-| **I** | 4 | `instrumentationconfig`, `instrumentationscope`, `instrumentationtype`, `instrumenttype` |
-| **L** | 5 | `logconfiguration`, `loglevel`, `logprocessor`, `logprocessortype`, `logrecord` |
-| **M** | 3 | `meterconfig`, `metricconfiguration`, `metricinstrument` |
-| **P** | 1 | `propagatortype` |
-| **R** | 1 | `resource` |
-| **S** | 8 | `samplertype`, `severitynumber`, `span`, `spanevent`, `spankind`, `spanlink`, `spanstatus`, `statuscode` |
-| **T** | 2 | `traceconfiguration`, `transformoperation` |
+| Group | Count | Types                                                                                                    |
+| ----- | ----- | -------------------------------------------------------------------------------------------------------- |
+| **A** | 4     | `aggregationtemporality`, `apmconfiguration`, `attribute`, `authtype`                                    |
+| **C** | 1     | `compressiontype`                                                                                        |
+| **D** | 3     | `dataqualitymetric`, `dataqualitymetrics`, `dataqualitytype`                                             |
+| **E** | 3     | `exporterconfig`, `exporterprotocol`, `exportertype`                                                     |
+| **I** | 4     | `instrumentationconfig`, `instrumentationscope`, `instrumentationtype`, `instrumenttype`                 |
+| **L** | 5     | `logconfiguration`, `loglevel`, `logprocessor`, `logprocessortype`, `logrecord`                          |
+| **M** | 3     | `meterconfig`, `metricconfiguration`, `metricinstrument`                                                 |
+| **P** | 1     | `propagatortype`                                                                                         |
+| **R** | 1     | `resource`                                                                                               |
+| **S** | 8     | `samplertype`, `severitynumber`, `span`, `spanevent`, `spankind`, `spanlink`, `spanstatus`, `statuscode` |
+| **T** | 2     | `traceconfiguration`, `transformoperation`                                                               |
 
 ### Relationship Map
 
 Key relationships between node types:
 
-| Source Type | Predicate | Destination Type | Count |
-|-------------|-----------|------------------|-------|
-| `traceconfiguration` | aggregates | `span` | 1 |
-| `traceconfiguration` | aggregates | `metricinstrument` | 1 |
-| `traceconfiguration` | aggregates | `exporterconfig` | 1 |
-| `spanlink` | references | `span` | 1 |
-| `span` | references | `span` | 1 |
-| `span` | flows-to | `span` | 1 |
-| `span` | flows-to | `logprocessor` | 1 |
-| `span` | flows-to | `exporterconfig` | 1 |
-| `span` | depends-on | `resource` | 1 |
-| `span` | depends-on | `instrumentationscope` | 1 |
-| `span` | composes | `traceconfiguration` | 1 |
-| `span` | composes | `spanevent` | 1 |
-| `span` | composes | `metricinstrument` | 1 |
-| `resource` | aggregates | `span` | 1 |
-| `resource` | aggregates | `metricinstrument` | 1 |
-| `resource` | aggregates | `exporterconfig` | 1 |
-| `metricinstrument` | flows-to | `span` | 1 |
-| `metricinstrument` | flows-to | `logprocessor` | 1 |
-| `metricinstrument` | flows-to | `exporterconfig` | 1 |
-| `metricinstrument` | depends-on | `resource` | 1 |
-| `metricinstrument` | depends-on | `instrumentationscope` | 1 |
-| `metricinstrument` | accesses | `attribute` | 1 |
-| `meterconfig` | composes | `traceconfiguration` | 1 |
-| `meterconfig` | composes | `spanevent` | 1 |
-| `meterconfig` | composes | `metricinstrument` | 1 |
-| `logrecord` | references | `span` | 1 |
-| `logrecord` | depends-on | `resource` | 1 |
-| `logrecord` | depends-on | `instrumentationscope` | 1 |
-| `logprocessor` | flows-to | `span` | 1 |
-| `logprocessor` | flows-to | `logprocessor` | 1 |
-| `logprocessor` | flows-to | `exporterconfig` | 1 |
-| `logprocessor` | accesses | `attribute` | 1 |
-| `instrumentationscope` | aggregates | `span` | 1 |
-| `instrumentationscope` | aggregates | `metricinstrument` | 1 |
-| `instrumentationscope` | aggregates | `exporterconfig` | 1 |
-| `instrumentationconfig` | serves | `resource` | 1 |
-| `instrumentationconfig` | serves | `apmconfiguration` | 1 |
-| `exporterconfig` | serves | `resource` | 1 |
-| `exporterconfig` | serves | `apmconfiguration` | 1 |
-| `dataqualitymetric` | triggers | `logrecord` | 1 |
-| `apmconfiguration` | composes | `traceconfiguration` | 1 |
-| `apmconfiguration` | composes | `spanevent` | 1 |
-| `apmconfiguration` | composes | `metricinstrument` | 1 |
+| Source Type             | Predicate  | Destination Type       | Count |
+| ----------------------- | ---------- | ---------------------- | ----- |
+| `traceconfiguration`    | aggregates | `span`                 | 1     |
+| `traceconfiguration`    | aggregates | `metricinstrument`     | 1     |
+| `traceconfiguration`    | aggregates | `exporterconfig`       | 1     |
+| `spanlink`              | references | `span`                 | 1     |
+| `span`                  | references | `span`                 | 1     |
+| `span`                  | flows-to   | `span`                 | 1     |
+| `span`                  | flows-to   | `logprocessor`         | 1     |
+| `span`                  | flows-to   | `exporterconfig`       | 1     |
+| `span`                  | depends-on | `resource`             | 1     |
+| `span`                  | depends-on | `instrumentationscope` | 1     |
+| `span`                  | composes   | `traceconfiguration`   | 1     |
+| `span`                  | composes   | `spanevent`            | 1     |
+| `span`                  | composes   | `metricinstrument`     | 1     |
+| `resource`              | aggregates | `span`                 | 1     |
+| `resource`              | aggregates | `metricinstrument`     | 1     |
+| `resource`              | aggregates | `exporterconfig`       | 1     |
+| `metricinstrument`      | flows-to   | `span`                 | 1     |
+| `metricinstrument`      | flows-to   | `logprocessor`         | 1     |
+| `metricinstrument`      | flows-to   | `exporterconfig`       | 1     |
+| `metricinstrument`      | depends-on | `resource`             | 1     |
+| `metricinstrument`      | depends-on | `instrumentationscope` | 1     |
+| `metricinstrument`      | accesses   | `attribute`            | 1     |
+| `meterconfig`           | composes   | `traceconfiguration`   | 1     |
+| `meterconfig`           | composes   | `spanevent`            | 1     |
+| `meterconfig`           | composes   | `metricinstrument`     | 1     |
+| `logrecord`             | references | `span`                 | 1     |
+| `logrecord`             | depends-on | `resource`             | 1     |
+| `logrecord`             | depends-on | `instrumentationscope` | 1     |
+| `logprocessor`          | flows-to   | `span`                 | 1     |
+| `logprocessor`          | flows-to   | `logprocessor`         | 1     |
+| `logprocessor`          | flows-to   | `exporterconfig`       | 1     |
+| `logprocessor`          | accesses   | `attribute`            | 1     |
+| `instrumentationscope`  | aggregates | `span`                 | 1     |
+| `instrumentationscope`  | aggregates | `metricinstrument`     | 1     |
+| `instrumentationscope`  | aggregates | `exporterconfig`       | 1     |
+| `instrumentationconfig` | serves     | `resource`             | 1     |
+| `instrumentationconfig` | serves     | `apmconfiguration`     | 1     |
+| `exporterconfig`        | serves     | `resource`             | 1     |
+| `exporterconfig`        | serves     | `apmconfiguration`     | 1     |
+| `dataqualitymetric`     | triggers   | `logrecord`            | 1     |
+| `apmconfiguration`      | composes   | `traceconfiguration`   | 1     |
+| `apmconfiguration`      | composes   | `spanevent`            | 1     |
+| `apmconfiguration`      | composes   | `metricinstrument`     | 1     |
 
 ## Inter-Layer Dependencies
 
