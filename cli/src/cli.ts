@@ -40,6 +40,9 @@ import { copilotCommands } from "./commands/copilot.js";
 import { versionCommand } from "./commands/version.js";
 import { statsCommand } from "./commands/stats.js";
 import { reportCommand } from "./commands/report.js";
+import { auditCommand } from "./commands/audit.js";
+import { auditDiffCommand } from "./commands/audit-diff.js";
+import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { readJSON, fileExists } from "./utils/file-io.js";
@@ -507,6 +510,98 @@ Examples:
   $ dr report --verbose                            # Show detailed information`
   )
   .action((options) => reportCommand(options));
+
+// Audit command - Relationship analysis
+program
+  .command("audit [layer]")
+  .description("Analyze relationship coverage, gaps, duplicates, and balance")
+  .option("--format <format>", "Output format: text (default), json, markdown")
+  .option("--output <path>", "Output file path (auto-detects format from extension)")
+  .option("--verbose", "Show detailed analysis")
+  .option("--save-snapshot", "Save audit report as snapshot for differential analysis")
+  .option("--pipeline", "Run full before/after AI evaluation pipeline")
+  .option("--enable-ai", "Enable AI-assisted evaluation in pipeline mode")
+  .option("--output-dir <dir>", "Output directory for pipeline results (default: audit-results)")
+  .addHelpText(
+    "after",
+    `
+Output formats:
+  text       Full formatted audit report (default)
+  json       JSON output for automation
+  markdown   Markdown audit report format
+
+Analysis types:
+  Coverage     Node type isolation and predicate utilization
+  Duplicates   Semantic duplicate relationship detection
+  Gaps         Missing relationship identification
+  Balance      Relationship density assessment
+  Connectivity Graph connectivity and component analysis
+
+Pipeline Mode:
+  --pipeline              Run before/after AI evaluation workflow
+  --enable-ai             Enable AI-assisted evaluation (requires Claude CLI to be installed and authenticated)
+  --output-dir <dir>      Output directory (default: audit-results)
+
+  Pipeline generates:
+    audit-results/{timestamp}/before/   - Initial audit report
+    audit-results/{timestamp}/after/    - Post-AI audit report
+    audit-results/{timestamp}/summary/  - Differential summary
+
+Examples:
+  $ dr audit                           # Full audit of all layers
+  $ dr audit security                  # Audit security layer only
+  $ dr audit --format json             # Output as JSON
+  $ dr audit --output audit.md         # Save as markdown file
+  $ dr audit --verbose                 # Show detailed analysis
+  $ dr audit --save-snapshot           # Save snapshot for later comparison
+  $ dr audit api --output api-audit.json  # API layer audit as JSON
+
+  # Pipeline mode examples
+  $ dr audit --pipeline                        # Before/after without AI
+  $ dr audit --pipeline --enable-ai            # Full AI pipeline
+  $ dr audit security --pipeline --enable-ai   # Layer-specific`
+  )
+  .action((layer, options) => auditCommand({ ...options, layer }));
+
+// Audit diff command - Compare snapshots
+program
+  .command("audit:diff")
+  .description("Compare before/after audit snapshots")
+  .option("--before <id>", "Before snapshot ID or timestamp")
+  .option("--after <id>", "After snapshot ID or timestamp")
+  .option("--format <format>", "Output format: text (default), json, markdown")
+  .option("--output <path>", "Output file path")
+  .option("--verbose", "Show detailed comparison")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr audit:diff                                  # Compare latest two snapshots
+  $ dr audit:diff --before 20260220-100000 --after 20260220-150000
+  $ dr audit:diff --format markdown --output diff.md
+  $ dr audit:diff --verbose                        # Show detailed changes`
+  )
+  .action((options) => auditDiffCommand(options));
+
+// Audit snapshots command - Manage snapshots
+program
+  .command("audit:snapshots <action>")
+  .description("Manage audit snapshots (list, delete, clear)")
+  .option("--id <id>", "Snapshot ID (for delete action)")
+  .addHelpText(
+    "after",
+    `
+Actions:
+  list     List all available snapshots
+  delete   Delete a specific snapshot (requires --id)
+  clear    Delete all snapshots
+
+Examples:
+  $ dr audit:snapshots list
+  $ dr audit:snapshots delete --id 20260220-100000
+  $ dr audit:snapshots clear`
+  )
+  .action((action, options) => auditSnapshotsCommand({ ...options, action }));
 
 // Element subcommands
 const elementGroup = program.command("element").description("Element operations");

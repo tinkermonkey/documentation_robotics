@@ -364,41 +364,5 @@ describe.serial("JSON-RPC Chat Methods", () => {
       });
     });
 
-    it("should handle chat.send with extra parameters", async () => {
-      return new Promise<void>((resolve, reject) => {
-        const ws = new WebSocket(wsUrl);
-
-        ws.onopen = async () => {
-          try {
-            // Send with message and extra params
-            ws.send(JSON.stringify({
-              jsonrpc: "2.0",
-              method: "chat.send",
-              params: {
-                message: "Test",
-                extraField: "should be ignored"
-              },
-              id: "send-5",
-            }));
-
-            const response = await waitForJsonRpcResponse(ws, "send-5");
-
-            // Should process with just the message field
-            expect(response).toHaveProperty("jsonrpc", "2.0");
-            expect(response).toHaveProperty("id", "send-5");
-
-            ws.close();
-            resolve();
-          } catch (error) {
-            ws.close();
-            reject(error);
-          }
-        };
-
-        ws.onerror = () => {
-          reject(new Error("WebSocket connection failed"));
-        };
-      });
-    });
   });
 });

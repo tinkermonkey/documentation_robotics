@@ -11,8 +11,8 @@
     "test:compatibility:high": "node --import tsx runner.ts --priority=high",
     "test:compatibility:medium": "node --import tsx runner.ts --priority=medium",
     "test:compatibility:low": "node --import tsx runner.ts --priority=low",
-    "test:unit": "bun test tests/",
-    "test:all": "bun test tests/ && npm run test:compatibility"
+    "test:unit": "node --import tsx --test tests/*.test.ts",
+    "test:all": "node --import tsx --test tests/*.test.ts && npm run test:compatibility"
   },
   "dependencies": {
     "glob": "^10.4.5",

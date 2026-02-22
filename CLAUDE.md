@@ -278,6 +278,106 @@ dr conformance [--layers layer1,layer2]          # Validate model against layer 
 
 Key files: `cli/src/commands/schema.ts`, `cli/src/commands/conformance.ts`
 
+### Relationship Audit
+
+Audit intra-layer relationships across all 12 layers for coverage, semantic duplicates, gaps, and balance.
+
+**Key Features:**
+
+- Deterministic coverage measurement (isolation %, density, predicate utilization)
+- Semantic duplicate detection using predicate categories
+- Gap analysis with layer-specific templates (ArchiMate, OpenAPI, NIST SP 800-53, etc.)
+- Balance assessment with node type classification (structural, behavioral, enumeration, reference)
+- Optional AI-assisted evaluation for low-coverage elements
+- Before/after differential analysis
+
+**Usage:**
+
+```bash
+# Run full audit (text output to console)
+npm run audit:relationships
+
+# Audit specific layer only
+npm run audit:relationships -- --layer api
+
+# JSON output for CI/CD integration
+npm run audit:relationships -- --format json --output audit.json
+
+# Quality gate mode (exit 1 if quality issues found)
+npm run audit:relationships -- --threshold
+
+# Markdown report generation
+npm run audit:relationships -- --format markdown --output report.md
+
+# Verbose output with detailed analysis
+npm run audit:relationships -- --verbose
+
+# Combine flags
+npm run audit:relationships -- --layer security --format json --output security-audit.json --threshold
+```
+
+**Output:**
+
+The audit command outputs directly to console (text format) or to the specified file (JSON/Markdown formats). Output includes:
+
+- Coverage metrics (isolation %, density, predicate utilization)
+- Duplicate relationship candidates
+- Gap analysis (missing relationships)
+- Balance assessment (relationship density per node type)
+- Connectivity analysis (graph structure, components, chains)
+
+**Output Formats:**
+
+- **text** - Human-readable colored output (default)
+- **json** - Machine-parseable for automation
+- **markdown** - Documentation-ready reports
+
+**Quality Thresholds:**
+
+- Isolation: ≤ 20% isolated node types
+- Density: ≥ 1.5 relationships per node type
+- High-Priority Gaps: ≤ 10 gaps
+- Duplicates: ≤ 5 duplicate candidates
+
+**Exit Codes:**
+
+- `0` - Success (no issues or below thresholds)
+- `1` - Quality issues detected (with `--threshold` flag)
+- `2` - Script execution error
+
+**Pipeline Mode:**
+
+For automated before/after AI evaluation workflow, use the `--pipeline` flag:
+
+```bash
+# Run before/after pipeline without AI
+dr audit --pipeline
+
+# Run full AI-assisted pipeline
+dr audit --pipeline --enable-ai --claude-api-key $ANTHROPIC_API_KEY
+
+# Layer-specific pipeline with AI
+dr audit security --pipeline --enable-ai --claude-api-key $ANTHROPIC_API_KEY
+
+# Custom output directory
+dr audit --pipeline --output-dir my-audit-results
+```
+
+Pipeline generates structured output in `audit-results/{timestamp}/`:
+
+- `before/` - Initial audit report
+- `after/` - Post-AI evaluation audit report
+- `summary/` - Differential summary with side-by-side metrics
+
+**Files:**
+
+- Entry Point: `cli/scripts/relationship-audit.ts`
+- Analysis: `cli/src/audit/analysis/`
+- Reports: `cli/src/audit/reports/`
+- Pipeline: `cli/src/audit/pipeline/`
+- Graph: `cli/src/audit/graph/`
+- AI: `cli/src/audit/ai/`
+
 ### Element Migration
 
 Migrate elements to spec-node aligned format:

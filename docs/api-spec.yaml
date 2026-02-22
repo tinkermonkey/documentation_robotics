@@ -7,82 +7,8 @@
 openapi: 3.0.3
 info:
   title: Documentation Robotics Visualization Server API
-  description: "API specification for the DR CLI visualization server (`dr visualize`).
-
-
-    This server provides access to the architecture model, JSON schemas, changesets,
-
-    and annotations for the Documentation Robotics viewer application.
-
-
-    ## Authentication
-
-
-    The server uses token-based authentication for security:
-
-    - Authentication is ENABLED by default
-
-    - Disable with command flag: `dr visualize --no-auth`
-
-    - Disable with environment variable: DR_AUTH_ENABLED=false
-
-    - Token is auto-generated on server startup (displayed in console)
-
-    - Custom token can be provided via `--token <token>` flag (for testing)
-
-    - Custom token can be set via DR_AUTH_TOKEN environment variable
-
-    - Token can be provided via `Authorization: Bearer <token>` header
-
-    - Token can be provided via `?token=<token>` query parameter (for WebSocket and URLs)
-
-    - Static assets (HTML, JS, CSS, images) are always public (no auth required)
-
-
-    ## Data Sources
-
-
-    - **Schemas**: Bundled schemas from CLI installation
-
-    - **Model**: `documentation-robotics/model/` directory (YAML/JSON files)
-
-    - **Changesets**: In-memory storage (future: persistent storage)
-
-    - **Annotations**: In-memory storage with unique IDs
-
-
-    ## Custom Viewer
-
-
-    The server can serve a custom viewer application:
-
-    - Use `--viewer-path <path>` flag to specify custom viewer directory
-
-    - Custom viewer must include `index.html` at the root
-
-    - All static assets (HTML, CSS, JS, images) served from the custom viewer directory
-
-    - API routes and WebSocket connections still available at standard paths
-
-
-    ## Chat Integration
-
-
-    The server integrates with Claude Code CLI or GitHub Copilot for AI-powered chat:
-
-    - Requires `claude` command (Claude Code CLI) or `gh copilot`/`copilot` command (GitHub Copilot) in PATH
-
-    - Launches Claude Code CLI with `--agent dr-architect` for comprehensive DR expertise
-
-    - Streams events (stdout, stderr) to browser via JSON-RPC 2.0
-
-    - Supports text responses and tool invocations
-
-    - Use `--with-danger` flag to enable dangerous operations (skips permissions in Claude Code CLI, allows all tools in GitHub Copilot)
-
-
-    Generated: 2026-02-07"
   version: 0.1.0
+  description: API specification for the DR CLI visualization server
   contact:
     name: Documentation Robotics
     url: https://github.com/tinkermonkey/documentation_robotics
@@ -90,37 +16,17 @@ info:
     name: ISC
 servers:
   - url: http://localhost:8080
-    description: Local development server (default port)
-  - url: http://localhost:{port}
-    description: Configurable port server
-    variables:
-      port:
-        default: "8080"
-        description: Server port (configurable via --port flag)
-tags:
-  - name: Health
-    description: Server health and status
-  - name: Schema
-    description: JSON Schema specifications
-  - name: Model
-    description: Architecture model data
-  - name: Changesets
-    description: Model changesets and history
-  - name: Annotations
-    description: User annotations on model elements
-  - name: WebSocket
-    description: Real-time updates via WebSocket
-security:
-  - BearerAuth: []
-  - QueryAuth: []
+    description: Local development server
+components:
+  schemas: {}
+  parameters: {}
 paths:
   /health:
     get:
-      summary: Health check
-      description: Check if the server is running. No authentication required.
       tags:
         - Health
-      security: []
+      summary: Health check
+      description: Check if the server is running and healthy
       responses:
         "200":
           description: Server is healthy
@@ -131,222 +37,348 @@ paths:
                 properties:
                   status:
                     type: string
-                    enum:
-                      - ok
+                    description: Server health status
                   version:
                     type: string
-                    example: 0.1.0
-              example:
-                status: ok
-                version: 0.1.0
-  /api/spec:
-    get:
-      summary: Get JSON Schema specifications
-      description: "Returns all JSON Schema files from the configured schema directory.
-
-        The schema directory location depends on the deployment environment: typically `.dr/schemas/` for local deployments, or configured via `SCHEMA_BASE_PATH` environment variable.
-
-        Includes layer schemas, relationship catalog, and link registry."
-      tags:
-        - Schema
-      responses:
-        "200":
-          description: Schema collection successfully retrieved
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SpecDataResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                    description: API version
+                required:
+                  - status
+                  - version
   /api/model:
     get:
-      summary: Get architecture model
-      description: "Returns the current architecture model from `documentation-robotics/model/`.
-
-        Includes all layers, elements, relationships, and cross-layer references."
       tags:
         - Model
+      summary: Get full model
+      description: Retrieve the complete architecture model across all layers
       responses:
         "200":
-          description: Model successfully retrieved
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ModelResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          description: Model manifest not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: Model manifest not found. Is dr CLI initialized?
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-  /api/layers/{layerName}:
-    get:
-      summary: Get specific layer data
-      description: Returns data for a specific layer by name.
-      tags:
-        - Model
-      parameters:
-        - name: layerName
-          in: path
-          required: true
-          description: Layer name (e.g., "motivation", "business", "api")
-          schema:
-            type: string
-          example: business
-      responses:
-        "200":
-          description: Layer data successfully retrieved
+          description: Model data retrieved successfully
           content:
             application/json:
               schema:
                 type: object
+                properties:
+                  manifest:
+                    type: object
+                    additionalProperties: {}
+                    description: Model manifest metadata
+                  layers:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties: {}
+                      additionalProperties: {}
+                    description: All layers in the model (key-value pairs mapping layer names to
+                      layer objects)
+                  totalElements:
+                    type: number
+                    description: Total number of elements across all layers
                 required:
-                  - name
-                  - elements
-                  - elementCount
+                  - manifest
+                  - layers
+                  - totalElements
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/layers/:layerName:
+    get:
+      tags:
+        - Model
+      summary: Get layer
+      description: Retrieve a specific layer with all its elements
+      parameters:
+        - schema:
+            type: string
+            enum:
+              - motivation
+              - business
+              - security
+              - application
+              - technology
+              - api
+              - data-model
+              - data-store
+              - ux
+              - navigation
+              - apm
+              - testing
+          required: true
+          name: layerName
+          in: path
+      responses:
+        "200":
+          description: Layer retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
                 properties:
                   name:
                     type: string
                     description: Layer name
-                    example: business
                   elements:
                     type: array
-                    description: Array of elements in the layer
                     items:
-                      $ref: "#/components/schemas/Element"
+                      type: object
+                      properties: {}
+                      additionalProperties: {}
+                    description: Layer elements (each element is an object with id, name, type, and
+                      properties)
                   elementCount:
-                    type: integer
-                    description: Number of elements in the layer
-                    example: 5
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
+                    type: number
+                    description: Total element count
+                required:
+                  - name
+                  - elements
+                  - elementCount
         "404":
           description: Layer not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
         "500":
-          $ref: "#/components/responses/InternalServerError"
-  /api/elements/{elementId}:
-    get:
-      summary: Get specific element data
-      description: Returns data for a specific element by ID.
-      tags:
-        - Model
-      parameters:
-        - name: elementId
-          in: path
-          required: true
-          description: Element ID
-          schema:
-            type: string
-          example: business.service.payment-processing
-      responses:
-        "200":
-          description: Element data successfully retrieved
+          description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Element"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/elements/:id:
+    get:
+      tags:
+        - Model
+      summary: Get element
+      description: Retrieve a specific architecture element with its metadata and
+        annotations
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: Element retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                    description: Element ID
+                  name:
+                    type: string
+                    description: Element name
+                  type:
+                    type: string
+                    description: Element type
+                  description:
+                    type: string
+                    description: Element description
+                  properties:
+                    type: object
+                    additionalProperties: {}
+                    description: Element properties (key-value pairs with arbitrary values)
+                  annotations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Annotation ID
+                        elementId:
+                          type: string
+                          minLength: 1
+                          pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                          description: Target element ID
+                        author:
+                          type: string
+                          description: Author name
+                        content:
+                          type: string
+                          description: Annotation content
+                        createdAt:
+                          type: string
+                          description: Creation timestamp
+                        updatedAt:
+                          type: string
+                          description: Last update timestamp
+                        tags:
+                          type: array
+                          items:
+                            type: string
+                          description: Annotation tags
+                        resolved:
+                          type: boolean
+                          description: Resolution status
+                        replies:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              author:
+                                type: string
+                              content:
+                                type: string
+                              createdAt:
+                                type: string
+                            required:
+                              - id
+                              - author
+                              - content
+                              - createdAt
+                          description: Annotation replies
+                      required:
+                        - id
+                        - elementId
+                        - author
+                        - content
+                        - createdAt
+                    description: Associated annotations
+                required:
+                  - id
+                  - name
+                  - type
         "404":
           description: Element not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
         "500":
-          $ref: "#/components/responses/InternalServerError"
-  /api/changesets:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/spec:
     get:
-      summary: List all changesets
-      description: Returns a registry of all available changesets with summaries.
       tags:
-        - Changesets
+        - Schema
+      summary: Get JSON schemas
+      description: Retrieve all JSON Schema definitions used by the system
       responses:
         "200":
-          description: Changesets list successfully retrieved
+          description: Schemas retrieved successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ChangesetRegistry"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: Spec version
+                  type:
+                    type: string
+                    description: Response type
+                  description:
+                    type: string
+                    description: Response description
+                  source:
+                    type: string
+                    description: Schema source
+                  schemas:
+                    type: object
+                    additionalProperties: {}
+                    description: JSON schema definitions (each schema is a JSON Schema object)
+                  schemaCount:
+                    type: number
+                    description: Number of schemas
+                required:
+                  - version
+                  - type
+                  - description
+                  - source
+                  - schemas
+                  - schemaCount
         "500":
-          $ref: "#/components/responses/InternalServerError"
-  /api/changesets/{changesetId}:
-    get:
-      summary: Get changeset details
-      description: Returns detailed information about a specific changeset including
-        all changes.
-      tags:
-        - Changesets
-      parameters:
-        - name: changesetId
-          in: path
-          required: true
-          description: Unique identifier for the changeset
-          schema:
-            type: string
-          example: feature-add-payment-service
-      responses:
-        "200":
-          description: Changeset details successfully retrieved
+          description: Server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ChangesetDetails"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          description: Changeset not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
   /api/annotations:
     get:
-      summary: Get annotations
-      description: "Returns annotations, optionally filtered by element ID.
-
-        Used for displaying user notes and comments on model elements."
       tags:
         - Annotations
+      summary: Get annotations
+      description: Retrieve all annotations, optionally filtered by element
       parameters:
-        - name: elementId
-          in: query
-          required: false
-          description: Filter annotations by element ID
-          schema:
+        - schema:
             type: string
-          example: business.service.payment-processing
+            minLength: 1
+            pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+          required: false
+          name: elementId
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: author
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: tags
+          in: query
+        - schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+          required: false
+          name: resolved
+          in: query
       responses:
         "200":
-          description: Annotations successfully retrieved
+          description: Annotations retrieved successfully
           content:
             application/json:
               schema:
@@ -355,175 +387,590 @@ paths:
                   annotations:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Annotation"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Annotation ID
+                        elementId:
+                          type: string
+                          minLength: 1
+                          pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                          description: Target element ID
+                        author:
+                          type: string
+                          description: Author name
+                        content:
+                          type: string
+                          description: Annotation content
+                        createdAt:
+                          type: string
+                          description: Creation timestamp
+                        updatedAt:
+                          type: string
+                          description: Last update timestamp
+                        tags:
+                          type: array
+                          items:
+                            type: string
+                          description: Annotation tags
+                        resolved:
+                          type: boolean
+                          description: Resolution status
+                        replies:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              author:
+                                type: string
+                              content:
+                                type: string
+                              createdAt:
+                                type: string
+                            required:
+                              - id
+                              - author
+                              - content
+                              - createdAt
+                          description: Annotation replies
+                      required:
+                        - id
+                        - elementId
+                        - author
+                        - content
+                        - createdAt
+                    description: List of annotations
+                required:
+                  - annotations
     post:
-      summary: Create annotation
-      description: Create a new annotation on a model element.
       tags:
         - Annotations
+      summary: Create annotation
+      description: Create a new annotation on a model element
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AnnotationCreate"
+              type: object
+              properties:
+                elementId:
+                  type: string
+                  minLength: 1
+                  pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                author:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  default: Anonymous
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                    pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+                  default: []
+              required:
+                - elementId
+                - content
+              additionalProperties: false
       responses:
         "201":
           description: Annotation created successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Annotation"
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Annotation ID
+                  elementId:
+                    type: string
+                    minLength: 1
+                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                    description: Target element ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Annotation content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                  updatedAt:
+                    type: string
+                    description: Last update timestamp
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    description: Annotation tags
+                  resolved:
+                    type: boolean
+                    description: Resolution status
+                  replies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        author:
+                          type: string
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: Annotation replies
+                required:
+                  - id
+                  - elementId
+                  - author
+                  - content
+                  - createdAt
         "400":
           description: Invalid request body
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "404":
+          description: Element not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
         "500":
-          $ref: "#/components/responses/InternalServerError"
-  /api/annotations/{annotationId}:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/annotations/:annotationId:
+    get:
+      tags:
+        - Annotations
+      summary: Get annotation by ID
+      description: Retrieve a specific annotation by its ID
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
+      responses:
+        "200":
+          description: Annotation retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Annotation ID
+                  elementId:
+                    type: string
+                    minLength: 1
+                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                    description: Target element ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Annotation content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                  updatedAt:
+                    type: string
+                    description: Last update timestamp
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    description: Annotation tags
+                  resolved:
+                    type: boolean
+                    description: Resolution status
+                  replies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        author:
+                          type: string
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: Annotation replies
+                required:
+                  - id
+                  - elementId
+                  - author
+                  - content
+                  - createdAt
+        "404":
+          description: Annotation not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
     put:
-      summary: Update annotation
-      description: "Update an existing annotation. Supports both PUT (full replacement)
-        and PATCH (partial update) methods. PATCH is recommended for partial updates."
       tags:
         - Annotations
-      parameters:
-        - name: annotationId
-          in: path
-          required: true
-          description: Unique identifier for the annotation
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AnnotationUpdate"
-      responses:
-        "200":
-          description: Annotation updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Annotation"
-        "400":
-          description: Invalid request body
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          description: Annotation not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-    patch:
       summary: Update annotation (partial)
-      description: "Partially update an existing annotation. Only provided fields
-        will be updated. Preferred method for partial updates."
-      tags:
-        - Annotations
+      description: "Update an existing annotation with partial fields (NOTE: partial
+        updates, use PATCH for recommended behavior)"
       parameters:
-        - name: annotationId
-          in: path
-          required: true
-          description: Unique identifier for the annotation
-          schema:
+        - schema:
             type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AnnotationUpdate"
+              type: object
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                    pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+                resolved:
+                  type: boolean
+              additionalProperties: false
       responses:
         "200":
           description: Annotation updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Annotation"
-        "400":
-          description: Invalid request body
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Annotation ID
+                  elementId:
+                    type: string
+                    minLength: 1
+                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                    description: Target element ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Annotation content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                  updatedAt:
+                    type: string
+                    description: Last update timestamp
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    description: Annotation tags
+                  resolved:
+                    type: boolean
+                    description: Resolution status
+                  replies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        author:
+                          type: string
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: Annotation replies
+                required:
+                  - id
+                  - elementId
+                  - author
+                  - content
+                  - createdAt
         "404":
           description: Annotation not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
         "500":
-          $ref: "#/components/responses/InternalServerError"
-    delete:
-      summary: Delete annotation
-      description: Delete an existing annotation.
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+    patch:
       tags:
         - Annotations
+      summary: Partially update annotation
+      description: Partially update an existing annotation (recommended over PUT)
       parameters:
-        - name: annotationId
-          in: path
-          required: true
-          description: Unique identifier for the annotation
-          schema:
+        - schema:
             type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                    pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+                resolved:
+                  type: boolean
+              additionalProperties: false
+      responses:
+        "200":
+          description: Annotation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Annotation ID
+                  elementId:
+                    type: string
+                    minLength: 1
+                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                    description: Target element ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Annotation content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                  updatedAt:
+                    type: string
+                    description: Last update timestamp
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    description: Annotation tags
+                  resolved:
+                    type: boolean
+                    description: Resolution status
+                  replies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        author:
+                          type: string
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: Annotation replies
+                required:
+                  - id
+                  - elementId
+                  - author
+                  - content
+                  - createdAt
+        "404":
+          description: Annotation not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+    delete:
+      tags:
+        - Annotations
+      summary: Delete annotation
+      description: Delete an existing annotation
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
       responses:
         "204":
           description: Annotation deleted successfully
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
         "404":
           description: Annotation not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
         "500":
-          $ref: "#/components/responses/InternalServerError"
-  /api/annotations/{annotationId}/replies:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/annotations/:annotationId/replies:
     get:
-      summary: Get annotation replies
-      description: Returns all replies for a specific annotation.
       tags:
         - Annotations
+      summary: Get annotation replies
+      description: Retrieve all replies to an annotation
       parameters:
-        - name: annotationId
-          in: path
-          required: true
-          description: Unique identifier for the annotation
-          schema:
+        - schema:
             type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
       responses:
         "200":
-          description: Replies successfully retrieved
+          description: Replies retrieved successfully
           content:
             application/json:
               schema:
@@ -532,799 +979,289 @@ paths:
                   replies:
                     type: array
                     items:
-                      $ref: "#/components/schemas/AnnotationReply"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Reply ID
+                        author:
+                          type: string
+                          description: Author name
+                        content:
+                          type: string
+                          description: Reply content
+                        createdAt:
+                          type: string
+                          description: Creation timestamp
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: List of replies
+                required:
+                  - replies
         "404":
           description: Annotation not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
     post:
-      summary: Create annotation reply
-      description: Add a reply to an existing annotation.
       tags:
         - Annotations
+      summary: Create annotation reply
+      description: Add a reply to an annotation
       parameters:
-        - name: annotationId
-          in: path
-          required: true
-          description: Unique identifier for the annotation
-          schema:
+        - schema:
             type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - author
-                - content
               properties:
                 author:
                   type: string
-                  description: Author of the reply
+                  minLength: 1
+                  maxLength: 100
                 content:
                   type: string
-                  description: Reply text content
+                  minLength: 1
+                  maxLength: 5000
+              required:
+                - author
+                - content
+              additionalProperties: false
       responses:
         "201":
           description: Reply created successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AnnotationReply"
-        "400":
-          description: Invalid request body
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Reply ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Reply content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                required:
+                  - id
+                  - author
+                  - content
+                  - createdAt
         "404":
           description: Annotation not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-  /ws:
-    get:
-      summary: WebSocket connection for real-time updates and chat
-      description: 'WebSocket endpoint supporting two protocols:
-
-
-        1. **Legacy Protocol** - Real-time model updates
-
-        2. **JSON-RPC 2.0** - AI chat with Claude Code CLI integration
-
-
-        ## Authentication
-
-
-        Token can be provided via (in order of preference):
-
-
-        1. **Sec-WebSocket-Protocol header** (recommended for browsers):
-
-        ```javascript
-
-        const ws = new WebSocket(''ws://localhost:8080/ws'', [''token'', ''YOUR_TOKEN'']);
-
-        ```
-
-        The browser will send: `Sec-WebSocket-Protocol: token, YOUR_TOKEN`
-
-
-        2. **Query parameter** (simple, works everywhere):
-
-        ```
-
-        ws://localhost:8080/ws?token=YOUR_TOKEN
-
-        ```
-
-
-        3. **Authorization header** (non-browser clients only):
-
-        ```
-
-        Authorization: Bearer YOUR_TOKEN
-
-        ```
-
-        Note: Not supported by browser WebSocket API - use method #1 instead
-
-
-        ## Legacy Protocol - Model Updates
-
-
-        **Client → Server Messages**:
-
-        - `{"type": "subscribe", "topics": ["model", "annotations"]}`
-        - Subscribe to real-time updates (topics are optional, defaults to model and annotations)
-
-        - `{"type": "ping"}` - Heartbeat ping
-
-        - `{"type": "annotate", "annotation": {"elementId": "...", "author": "...", "text": "...", "timestamp": "..."}}`
-        - Broadcast annotation to all clients (legacy - prefer REST API)
-
-
-        **Server → Client Messages**:
-
-        - `{"type": "connected", "version": "0.1.0", "timestamp": "..."}` - Connection
-        established
-
-        - `{"type": "subscribed", "topics": [...], "timestamp": "..."}` - Subscription
-        confirmed
-
-        - `{"type": "pong", "timestamp": "..."}` - Heartbeat response
-
-        - `{"type": "model", "data": {...}, "timestamp": "..."}` - Initial model state (sent after subscribe)
-
-        - `{"type": "model.updated", "data": {...}, "timestamp": "..."}` - Model changed (file watcher)
-
-        - `{"type": "annotation.added", "annotationId": "...", "elementId": "..."}` -
-        Annotation added
-
-        - `{"type": "annotation.updated", "annotationId": "..."}` - Annotation updated
-
-        - `{"type": "annotation.deleted", "annotationId": "..."}` - Annotation deleted
-
-        - `{"type": "annotation.reply.added", "annotationId": "...", "replyId": "...", "timestamp": "..."}` - Reply added to annotation
-
-        - `{"type": "annotation", "data": {...}}` - Annotation broadcast (legacy, from annotate message)
-
-        - `{"type": "changeset.created", "changesetId": "...", "name": "...", "timestamp": "..."}` -
-        Changeset created
-
-        - `{"type": "changeset.updated", "changesetId": "...", "timestamp": "..."}` - Changeset updated
-
-        - `{"type": "changeset.applied", "changesetId": "...", "timestamp": "..."}` - Changeset applied
-
-        - `{"type": "error", "message": "..."}` - Error message
-
-
-        ## JSON-RPC 2.0 Protocol - Chat
-
-
-        **Requires**: Claude Code CLI or GitHub Copilot installed
-
-
-        ### chat.status
-
-
-        Check if a chat client (Claude Code CLI or GitHub Copilot) is available.
-
-
-        **Request**: `{"jsonrpc": "2.0", "method": "chat.status", "id": "status-1"}`
-
-
-        **Response**: `{"jsonrpc": "2.0", "result": {"sdk_available": true, "sdk_version":
-        "claude-code-cli" | "github-copilot", "error_message": null}, "id": "status-1"}`
-
-
-        ### chat.send
-
-
-        Send a message to the chat client (Claude Code CLI with dr-architect agent, or GitHub Copilot).
-
-
-        **Request**: `{"jsonrpc": "2.0", "method": "chat.send", "params": {"message":
-        "What elements are in the business layer?"}, "id": "msg-1"}`
-
-
-        **Streaming Events** (notifications):
-
-        - `{"jsonrpc": "2.0", "method": "chat.response.chunk", "params": {"conversation_id":
-        "conv-1-...", "content": "text...", "is_final": false,
-        "timestamp": "..."}}`
-
-        - `{"jsonrpc": "2.0", "method": "chat.tool.invoke", "params": {"conversation_id":
-        "conv-1-...", "tool_use_id": "toolu_...", "toolName": "Read",
-        "toolInput": {...}, "status": "executing|completed|failed",
-        "result": {...}, "error": "...", "timestamp": "..."}}`
-
-        - `{"jsonrpc": "2.0", "method": "chat.tool.result", "params": {"conversation_id":
-        "conv-1-...", "tool_use_id": "toolu_...", "result": {...},
-        "timestamp": "..."}}`
-
-        - `{"jsonrpc": "2.0", "method": "chat.thinking", "params": {"conversation_id":
-        "conv-1-...", "content": "thinking text...", "timestamp": "..."}}`
-
-        - `{"jsonrpc": "2.0", "method": "chat.usage", "params": {"conversation_id":
-        "conv-1-...", "input_tokens": 100, "output_tokens": 50,
-        "total_tokens": 150, "total_cost_usd": 0.001, "timestamp": "..."}}`
-
-        - `{"jsonrpc": "2.0", "method": "chat.error", "params": {"conversation_id":
-        "conv-1-...", "code": "ERROR_CODE", "message": "error message",
-        "timestamp": "..."}}`
-
-
-        **Completion**: `{"jsonrpc": "2.0", "result": {"conversation_id": "conv-1-...",
-        "status": "complete", "exit_code": 0, "timestamp": "..."}, "id": "msg-1"}`
-
-
-        **Error**: `{"jsonrpc": "2.0", "error": {"code": -32001, "message": "No chat
-        client available. Install Claude Code or GitHub Copilot."}, "id": "msg-1"}`
-
-
-        ### chat.cancel
-
-
-        Cancel active chat conversation.
-
-
-        **Request**: `{"jsonrpc": "2.0", "method": "chat.cancel", "params": {}, "id":
-        "cancel-1"}`
-
-
-        **Response**: `{"jsonrpc": "2.0", "result": {"cancelled": true, "conversation_id":
-        "conv-1-..."}, "id": "cancel-1"}`
-
-
-        ## Event Streaming Details
-
-
-        The server streams events from chat clients to the browser:
-
-
-        - **stdout** - Text responses, structured events (Claude Code CLI)
-
-        - **stderr** - Errors, diagnostics (Claude Code CLI)
-
-
-        Events are parsed line-by-line and classified as:
-
-        1. **Text chunks** (`chat.response.chunk`) - Any text output from the chat client
-
-        2. **Tool invocations** (`chat.tool.invoke`) - When Claude uses tools (Read, Edit, Bash, etc.) [Claude Code CLI only]
-
-        3. **Tool results** (`chat.tool.result`) - Results from tool executions [Claude Code CLI only]
-
-
-        All events include timestamps and conversation IDs for tracking.
-
-
-        **Note**: GitHub Copilot chat outputs plain text/markdown only (no structured tool events).'
-      tags:
-        - WebSocket
-      security:
-        - WebSocketProtocolAuth: []
-        - QueryAuth: []
-        - BearerAuth: []
-      responses:
-        "101":
-          description: WebSocket connection established
-        "401":
-          description: Authentication required
-        "403":
-          description: Invalid token
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: token
-      description: "Token provided in Authorization header: `Authorization: Bearer
-        <token>`. Supported for all HTTP API endpoints. Note: Not supported by browser WebSocket API - use WebSocketProtocolAuth for browsers."
-    QueryAuth:
-      type: apiKey
-      in: query
-      name: token
-      description: "Token provided as query parameter: `?token=<token>`. Supported for all HTTP API endpoints and WebSocket connections. Simple method that works everywhere."
-    WebSocketProtocolAuth:
-      type: apiKey
-      in: header
-      name: Sec-WebSocket-Protocol
-      description: "Token provided via WebSocket subprotocol header (recommended for browsers): `new WebSocket(url, ['token', 'YOUR_TOKEN'])`. The browser sends `Sec-WebSocket-Protocol: token, YOUR_TOKEN` and server responds with `Sec-WebSocket-Protocol: token`. This is the standard workaround for WebSocket authentication in browsers since the WebSocket API doesn't support custom headers."
-  responses:
-    Unauthorized:
-      description: Authentication required
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            error: Authentication required. Please provide a valid token.
-    Forbidden:
-      description: Invalid authentication token
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            error: Invalid authentication token
-    InternalServerError:
-      description: Internal server error
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-  schemas:
-    Error:
-      type: object
-      required:
-        - error
-      properties:
-        error:
-          type: string
-          description: Error message
-      example:
-        error: Failed to load model
-    SpecDataResponse:
-      type: object
-      required:
-        - version
-        - type
-        - schemas
-      properties:
-        version:
-          type: string
-          description: Specification version
-          example: 0.1.0
-        type:
-          type: string
-          enum:
-            - schema-collection
-          description: Response type identifier
-        description:
-          type: string
-          description: Human-readable description
-          example: JSON Schema definitions from dr CLI
-        source:
-          type: string
-          description: Source of the schemas
-          example: dr-cli
-        schemas:
-          type: object
-          additionalProperties:
-            type: object
-          description: Map of schema filename to JSON Schema object
-        schemaCount:
-          type: integer
-          description: Number of schemas included
-          example: 12
-        manifest:
-          type: object
-          description: Schema manifest metadata
-          properties:
-            spec_version:
-              type: string
-            source:
-              type: string
-            created_at:
-              type: string
-              format: date-time
-            created_by:
-              type: string
-            files:
-              type: object
-              additionalProperties:
                 type: object
                 properties:
-                  sha256:
+                  error:
                     type: string
-                  size:
-                    type: integer
-        relationshipCatalog:
-          $ref: "#/components/schemas/RelationshipCatalog"
-        relationship_catalog:
-          $ref: "#/components/schemas/RelationshipCatalog"
-    RelationshipCatalog:
-      type: object
-      properties:
-        version:
-          type: string
-        relationshipTypes:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-              predicate:
-                type: string
-              inversePredicate:
-                type: string
-              category:
-                type: string
-              description:
-                type: string
-    ModelResponse:
-      type: object
-      required:
-        - version
-        - metadata
-        - layers
-        - references
-      properties:
-        version:
-          type: string
-          description: Model format version
-          example: 0.1.0
-        metadata:
-          type: object
-          required:
-            - type
-            - source
-          properties:
-            type:
-              type: string
-              enum:
-                - yaml-instance
-                - schema-collection
-            description:
-              type: string
-            source:
-              type: string
-              example: dr-cli
-            project:
-              type: object
-              description: Project metadata from manifest
-            statistics:
-              type: object
-              description: Model statistics
-        layers:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/Layer"
-          description: Map of layer ID to layer data
-        references:
-          type: array
-          items:
-            $ref: "#/components/schemas/CrossLayerReference"
-          description: Cross-layer references
-    Layer:
-      type: object
-      required:
-        - id
-        - type
-        - name
-        - elements
-        - relationships
-      properties:
-        id:
-          type: string
-          description: Normalized layer ID (lowercase, underscore-separated)
-          example: business
-        type:
-          type: string
-          description: Layer type name
-          example: Business
-        name:
-          type: string
-          description: Display name
-          example: Business Layer
-        elements:
-          type: array
-          items:
-            $ref: "#/components/schemas/Element"
-        relationships:
-          type: array
-          items:
-            $ref: "#/components/schemas/Relationship"
-    Element:
-      type: object
-      required:
-        - id
-        - type
-        - name
-        - layerId
-        - properties
-      properties:
-        id:
-          type: string
-          description: Fully qualified element ID
-          example: business.service.payment-processing
-        type:
-          type: string
-          description: Element type
-          example: service
-        name:
-          type: string
-          description: Display name
-          example: Payment Processing
-        layerId:
-          type: string
-          description: Parent layer ID
-          example: business
-        properties:
-          type: object
-          description: Element-specific properties
-        visual:
-          type: object
-          description: Visual layout information
-          properties:
-            position:
-              type: object
-              properties:
-                x:
-                  type: number
-                y:
-                  type: number
-            size:
-              type: object
-              properties:
-                width:
-                  type: number
-                height:
-                  type: number
-            style:
-              type: object
-              properties:
-                backgroundColor:
-                  type: string
-                borderColor:
-                  type: string
-    Relationship:
-      type: object
-      required:
-        - source
-        - target
-        - type
-      properties:
-        id:
-          type: string
-        source:
-          type: string
-          description: Source element ID
-        target:
-          type: string
-          description: Target element ID
-        type:
-          type: string
-          description: Relationship type
-        properties:
-          type: object
-          description: Additional relationship properties
-    CrossLayerReference:
-      type: object
-      required:
-        - source
-        - target
-        - type
-      properties:
-        source:
-          type: object
-          required:
-            - layerId
-            - elementId
-          properties:
-            layerId:
-              type: string
-            elementId:
-              type: string
-        target:
-          type: object
-          required:
-            - layerId
-            - elementId
-          properties:
-            layerId:
-              type: string
-            elementId:
-              type: string
-        type:
-          type: string
-          description: Reference type (e.g., "realizes", "uses", "deployedTo")
-    ChangesetRegistry:
-      type: object
-      required:
-        - version
-        - changesets
-      properties:
-        version:
-          type: string
-          example: 1.0.0
-        changesets:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/ChangesetSummary"
-    ChangesetSummary:
-      type: object
-      properties:
-        name:
-          type: string
-        status:
-          type: string
-          enum:
-            - active
-            - applied
-            - abandoned
-        type:
-          type: string
-          enum:
-            - feature
-            - bugfix
-            - exploration
-        created_at:
-          type: string
-          format: date-time
-        elements_count:
-          type: integer
-    ChangesetDetails:
-      type: object
-      required:
-        - metadata
-        - changes
-      properties:
-        metadata:
-          $ref: "#/components/schemas/ChangesetMetadata"
-        changes:
-          type: object
-          required:
-            - version
-            - changes
-          properties:
-            version:
-              type: string
-            changes:
-              type: array
-              items:
-                $ref: "#/components/schemas/ChangesetChange"
-    ChangesetMetadata:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        type:
-          type: string
-        status:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        workflow:
-          type: string
-        summary:
-          type: object
-          properties:
-            elements_added:
-              type: integer
-            elements_updated:
-              type: integer
-            elements_deleted:
-              type: integer
-    ChangesetChange:
-      type: object
-      required:
-        - timestamp
-        - operation
-        - element_id
-        - layer
-        - element_type
-      properties:
-        timestamp:
-          type: string
-          format: date-time
-        operation:
-          type: string
-          enum:
-            - add
-            - update
-            - delete
-        element_id:
-          type: string
-        layer:
-          type: string
-        element_type:
-          type: string
-        data:
-          type: object
-          description: New element data (for add operations)
-        before:
-          type: object
-          description: Element state before change (for update operations)
-        after:
-          type: object
-          description: Element state after change (for update operations)
-    Annotation:
-      type: object
-      required:
-        - id
-        - elementId
-        - content
-        - createdAt
-        - resolved
-      properties:
-        id:
-          type: string
-          description: Unique annotation ID
-        elementId:
-          type: string
-          description: ID of the annotated element
-        content:
-          type: string
-          description: Annotation text content
-        author:
-          type: string
-          description: Author of the annotation
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        resolved:
-          type: boolean
-          description: Whether the annotation has been resolved
-          default: false
-        tags:
-          type: array
-          items:
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/changesets:
+    get:
+      tags:
+        - Changesets
+      summary: Get changesets
+      description: Retrieve a list of all changesets
+      responses:
+        "200":
+          description: Changesets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  changesets:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - active
+                            - applied
+                            - abandoned
+                        type:
+                          type: string
+                          enum:
+                            - feature
+                            - bugfix
+                            - exploration
+                        created_at:
+                          type: string
+                        elements_count:
+                          type: number
+                      required:
+                        - name
+                        - status
+                        - type
+                        - created_at
+                        - elements_count
+                required:
+                  - version
+                  - changesets
+  /api/changesets/:changesetId:
+    get:
+      tags:
+        - Changesets
+      summary: Get changeset
+      description: Retrieve a specific changeset with all its changes
+      parameters:
+        - schema:
             type: string
-          description: Optional tags for categorization
-        replies:
-          type: array
-          items:
-            $ref: "#/components/schemas/AnnotationReply"
-          description: Thread of replies to this annotation
-    AnnotationCreate:
-      type: object
-      required:
-        - elementId
-        - content
-      properties:
-        elementId:
-          type: string
-        content:
-          type: string
-        author:
-          type: string
-        tags:
-          type: array
-          items:
-            type: string
-    AnnotationReply:
-      type: object
-      required:
-        - id
-        - author
-        - content
-        - createdAt
-      properties:
-        id:
-          type: string
-          description: Unique reply ID
-        author:
-          type: string
-          description: Author of the reply
-        content:
-          type: string
-          description: Reply text content
-        createdAt:
-          type: string
-          format: date-time
-          description: When the reply was created
-    AnnotationUpdate:
-      type: object
-      properties:
-        content:
-          type: string
-          description: Updated annotation text content
-        resolved:
-          type: boolean
-          description: Whether to mark the annotation as resolved
-        tags:
-          type: array
-          items:
-            type: string
-          description: Updated tags for categorization
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+      responses:
+        "200":
+          description: Changeset retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      description:
+                        type: string
+                      type:
+                        type: string
+                        enum:
+                          - feature
+                          - bugfix
+                          - exploration
+                      status:
+                        type: string
+                        enum:
+                          - active
+                          - applied
+                          - abandoned
+                      created_at:
+                        type: string
+                      updated_at:
+                        type: string
+                      workflow:
+                        type: string
+                      summary:
+                        type: object
+                        properties:
+                          elements_added:
+                            type: number
+                          elements_updated:
+                            type: number
+                          elements_deleted:
+                            type: number
+                        required:
+                          - elements_added
+                          - elements_updated
+                          - elements_deleted
+                    required:
+                      - id
+                      - name
+                      - type
+                      - status
+                      - created_at
+                      - summary
+                  changes:
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      changes:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: string
+                            operation:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                            element_id:
+                              type: string
+                            layer:
+                              type: string
+                            element_type:
+                              type: string
+                            data:
+                              description: Element data (varies by element type)
+                            before:
+                              description: Previous element state (for update operations)
+                            after:
+                              description: New element state (for update operations)
+                          required:
+                            - timestamp
+                            - operation
+                            - element_id
+                            - layer
+                            - element_type
+                    required:
+                      - version
+                      - changes
+                required:
+                  - metadata
+                  - changes
+        "404":
+          description: Changeset not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+webhooks: {}

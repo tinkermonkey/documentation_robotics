@@ -9,7 +9,7 @@
  */
 
 import YAML from 'yaml';
-import { sortObjectKeys } from './sort-keys';
+import { sortObjectKeys } from './sort-keys.js';
 
 /**
  * Normalize YAML content for deterministic comparison

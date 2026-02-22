@@ -5,8 +5,8 @@
  * Compatible with GitHub Actions, Jenkins, and other CI/CD systems
  */
 
-import { TestRunSummary, SuiteResult, PipelineResult, StepResult, Pipeline, PipelineStep } from '../pipeline';
-import { BaseReporter } from './reporter';
+import { TestRunSummary, SuiteResult, PipelineResult, StepResult, Pipeline, PipelineStep } from '../pipeline.js';
+import { BaseReporter } from './reporter.js';
 
 /**
  * Escape XML special characters

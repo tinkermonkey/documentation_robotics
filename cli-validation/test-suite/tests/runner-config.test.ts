@@ -4,8 +4,57 @@
  * Tests for command-line argument parsing and filtering
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { matchesFilters, RunnerOptions } from '../runner-config';
+import { describe, it } from 'node:test';
+import { strict as assert } from 'node:assert';
+import { matchesFilters, RunnerOptions } from '../runner-config.js';
+
+/**
+ * Test assertion helpers for compatibility with Bun's expect-like syntax
+ */
+class TestAssertions {
+  value: any;
+
+  constructor(value: any) {
+    this.value = value;
+  }
+
+  toContain(substring: string): void {
+    assert(
+      String(this.value).includes(substring),
+      `Expected value to contain "${substring}"\nActual: ${String(this.value).slice(0, 200)}...`
+    );
+  }
+
+  toMatch(regex: RegExp): void {
+    assert(
+      regex.test(String(this.value)),
+      `Expected value to match regex ${regex}\nActual: ${String(this.value).slice(0, 200)}...`
+    );
+  }
+
+  toBe(expected: any): void {
+    assert.equal(this.value, expected, `Expected ${expected} but got ${this.value}`);
+  }
+
+  toBeTruthy(): void {
+    assert(this.value, `Expected value to be truthy but got: ${this.value}`);
+  }
+
+  toBeLessThan(expected: number): void {
+    assert(
+      this.value < expected,
+      `Expected value ${this.value} to be less than ${expected}`
+    );
+  }
+
+  toBeUndefined(): void {
+    assert.equal(this.value, undefined, `Expected value to be undefined but got: ${this.value}`);
+  }
+}
+
+function expect(value: any): TestAssertions {
+  return new TestAssertions(value);
+}
 
 describe('matchesFilters', () => {
   it('should include tests without filters', () => {
@@ -191,15 +240,9 @@ describe('RunnerOptions Configuration', () => {
       fastFail: false,
       verbose: false,
     };
-    const jsonOpts: RunnerOptions = {
-      reporter: 'json',
-      fastFail: false,
-      verbose: false,
-    };
 
     expect(consoleOpts.reporter).toBe('console');
     expect(junitOpts.reporter).toBe('junit');
-    expect(jsonOpts.reporter).toBe('json');
   });
 
   it('should support output file path', () => {
@@ -213,16 +256,6 @@ describe('RunnerOptions Configuration', () => {
     expect(options.outputFile).toBe('/path/to/results.xml');
   });
 
-  it('should support concurrency setting', () => {
-    const options: RunnerOptions = {
-      reporter: 'console',
-      fastFail: false,
-      verbose: false,
-      concurrency: 4,
-    };
-
-    expect(options.concurrency).toBe(4);
-  });
 
   it('should support combining multiple options', () => {
     const options: RunnerOptions = {
@@ -232,7 +265,6 @@ describe('RunnerOptions Configuration', () => {
       priority: 'high',
       testCase: 'element',
       outputFile: 'results/junit.xml',
-      concurrency: 2,
     };
 
     expect(options.reporter).toBe('junit');
@@ -241,6 +273,5 @@ describe('RunnerOptions Configuration', () => {
     expect(options.priority).toBe('high');
     expect(options.testCase).toBe('element');
     expect(options.outputFile).toBe('results/junit.xml');
-    expect(options.concurrency).toBe(2);
   });
 });

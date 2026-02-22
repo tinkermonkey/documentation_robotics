@@ -49,6 +49,13 @@ if (!process.env.TEST_VERBOSE) {
 // Enable test-specific configuration
 process.env.NODE_ENV = "test";
 
+// Work around broken .gitconfig directory at system level by pointing git to /dev/null
+// This prevents "unable to read configuration files (.gitconfig is a directory)" errors
+// See: https://github.com/anthropics/claude-code/issues/425
+if (!process.env.GIT_CONFIG_GLOBAL) {
+  process.env.GIT_CONFIG_GLOBAL = "/dev/null";
+}
+
 // Initialize golden copy cache asynchronously
 // This runs once per worker and provides a shared model for cloning
 const initializeGoldenCopyAsync = async () => {

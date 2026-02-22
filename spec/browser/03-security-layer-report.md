@@ -103,23 +103,23 @@ Layer 3: Security Layer
 
 This layer contains 66 node types. To improve readability, they are organized hierarchically:
 
-| Group | Count | Types |
-|-------|-------|-------|
-| **A** | 12 | `accesscondition`, `accesscontrollevel`, `accountabilityrequirement`, `actiontype`, `actor`, `actordependency`, `actorobjective`, `actortype`, `auditconfig`, `auditlevel`, `authenticationconfig`, `authprovider` |
-| **B** | 1 | `bindingofduty` |
-| **C** | 6 | `classification`, `classificationlevel`, `condition`, `conditionoperator`, `countermeasure`, `criticality` |
-| **D** | 6 | `dataclassification`, `datasource`, `delegation`, `delegationtype`, `deletionmethod`, `destinationtype` |
-| **E** | 6 | `effectiveness`, `encryptionrequirement`, `evaluationtype`, `evidence`, `evidencestrength`, `evidencetype` |
-| **F** | 1 | `fieldaccesscontrol` |
-| **I** | 3 | `impact`, `informationentity`, `informationright` |
-| **L** | 1 | `likelihood` |
-| **M** | 1 | `maskingstrategy` |
-| **N** | 1 | `needtoknow` |
-| **P** | 7 | `passwordpolicy`, `permission`, `permissionscope`, `policyaction`, `policyeffect`, `policyrule`, `policytarget` |
-| **R** | 8 | `ratelimit`, `ratelimitaction`, `ratelimitscope`, `requirementlevel`, `resourceoperation`, `resourcetype`, `retentionpolicy`, `role` |
-| **S** | 7 | `secureresource`, `securityconstraints`, `securitymodel`, `securitypolicy`, `separationofduty`, `socialdependency`, `storageclass` |
-| **T** | 2 | `threat`, `trustlevel` |
-| **V** | 4 | `validationrule`, `validationruletype`, `validationseverity`, `verificationlevel` |
+| Group | Count | Types                                                                                                                                                                                                              |
+| ----- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **A** | 12    | `accesscondition`, `accesscontrollevel`, `accountabilityrequirement`, `actiontype`, `actor`, `actordependency`, `actorobjective`, `actortype`, `auditconfig`, `auditlevel`, `authenticationconfig`, `authprovider` |
+| **B** | 1     | `bindingofduty`                                                                                                                                                                                                    |
+| **C** | 6     | `classification`, `classificationlevel`, `condition`, `conditionoperator`, `countermeasure`, `criticality`                                                                                                         |
+| **D** | 6     | `dataclassification`, `datasource`, `delegation`, `delegationtype`, `deletionmethod`, `destinationtype`                                                                                                            |
+| **E** | 6     | `effectiveness`, `encryptionrequirement`, `evaluationtype`, `evidence`, `evidencestrength`, `evidencetype`                                                                                                         |
+| **F** | 1     | `fieldaccesscontrol`                                                                                                                                                                                               |
+| **I** | 3     | `impact`, `informationentity`, `informationright`                                                                                                                                                                  |
+| **L** | 1     | `likelihood`                                                                                                                                                                                                       |
+| **M** | 1     | `maskingstrategy`                                                                                                                                                                                                  |
+| **N** | 1     | `needtoknow`                                                                                                                                                                                                       |
+| **P** | 7     | `passwordpolicy`, `permission`, `permissionscope`, `policyaction`, `policyeffect`, `policyrule`, `policytarget`                                                                                                    |
+| **R** | 8     | `ratelimit`, `ratelimitaction`, `ratelimitscope`, `requirementlevel`, `resourceoperation`, `resourcetype`, `retentionpolicy`, `role`                                                                               |
+| **S** | 7     | `secureresource`, `securityconstraints`, `securitymodel`, `securitypolicy`, `separationofduty`, `socialdependency`, `storageclass`                                                                                 |
+| **T** | 2     | `threat`, `trustlevel`                                                                                                                                                                                             |
+| **V** | 4     | `validationrule`, `validationruletype`, `validationseverity`, `verificationlevel`                                                                                                                                  |
 
 No intra-layer relationships are defined for this layer.
 
