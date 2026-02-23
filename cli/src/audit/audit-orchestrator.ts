@@ -223,13 +223,10 @@ export class AuditOrchestrator {
         "manifest.yaml"
       );
       const manifestContent = await readFile(manifestPath, "utf-8");
-      let manifest: { name: string; version: string };
+      let manifest: { name?: string; version?: string; project?: { name?: string; version?: string } };
 
       try {
-        manifest = yaml.parse(manifestContent) as {
-          name: string;
-          version: string;
-        };
+        manifest = yaml.parse(manifestContent) as typeof manifest;
       } catch (parseError: unknown) {
         // YAML parsing failed - file is corrupt
         const parseErrorMsg = getErrorMessage(parseError);
@@ -239,24 +236,26 @@ export class AuditOrchestrator {
         return defaultMetadata;
       }
 
-      // Validate parsed manifest has required fields
-      if (!manifest.name || typeof manifest.name !== "string") {
+      // Name may be at top level or nested under project.name (CLI-generated manifests)
+      const name = manifest.name || manifest.project?.name;
+      // Version may be at top level or nested under project.version; top-level version is
+      // the manifest schema version, so prefer project.version when available
+      const version = manifest.project?.version || manifest.version;
+
+      if (!name || typeof name !== "string") {
         console.warn(
           `⚠️  Warning: Manifest missing required field 'name'. Using default model metadata.`
         );
         return defaultMetadata;
       }
-      if (!manifest.version || typeof manifest.version !== "string") {
+      if (!version || typeof version !== "string") {
         console.warn(
           `⚠️  Warning: Manifest missing required field 'version'. Using default model metadata.`
         );
         return defaultMetadata;
       }
 
-      return {
-        name: manifest.name,
-        version: manifest.version,
-      };
+      return { name, version };
     } catch (error: unknown) {
       // Distinguish between file not found vs read error
       const errorMsg = getErrorMessage(error);
