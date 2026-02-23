@@ -1,10 +1,11 @@
 /**
  * Audit report formatters
- * Supports JSON and Markdown output formats for relationship audit reports
+ * Supports JSON and Markdown output formats for relationship and node audit reports
  */
 
 import ansis from "ansis";
 import { AuditReport, CoverageMetrics, DuplicateCandidate, GapCandidate, BalanceAssessment } from "../audit/types.js";
+import type { NodeAuditReport, NodeLayerSummary, NodeDefinitionQuality, SemanticOverlapCandidate, SchemaCompletenessIssue, LayerAlignmentAssessment } from "../audit/nodes/node-audit-types.js";
 import { escapeMarkdown } from "./markdown-utils.js";
 import { formatDate } from "../utils/date-utils.js";
 
@@ -762,4 +763,444 @@ function formatConnectivityMarkdown(lines: string[], connectivity: AuditReport["
     }
     lines.push("");
   }
+}
+
+// =============================================================================
+// Node Audit Formatters
+// =============================================================================
+
+/**
+ * Format a node audit report in the requested format
+ */
+export function formatNodeAuditReport(report: NodeAuditReport, options: AuditFormatterOptions): string {
+  switch (options.format) {
+    case "json":
+      return JSON.stringify(report, null, 2) + "\n";
+    case "markdown":
+      return formatNodeAuditMarkdown(report, options);
+    default:
+      return formatNodeAuditText(report, options);
+  }
+}
+
+/**
+ * Format node audit report as plain text
+ */
+function formatNodeAuditText(report: NodeAuditReport, options: AuditFormatterOptions): string {
+  const lines: string[] = [];
+
+  // Header
+  lines.push("");
+  lines.push(ansis.bold(`🔍 Node Audit Report — Spec v${ansis.cyan(report.spec.version)}`));
+  lines.push(ansis.dim("=".repeat(80)));
+  lines.push("");
+  lines.push(`Generated: ${formatDate(report.timestamp)}`);
+  lines.push(`Total Node Types: ${report.spec.totalNodeTypes}  |  Layers: ${report.spec.totalLayers}`);
+  lines.push("");
+
+  // Executive Summary
+  formatNodeExecutiveSummaryText(lines, report);
+  lines.push("");
+
+  // Layer summary table
+  formatNodeLayerSummaryText(lines, report.layerSummaries);
+  lines.push("");
+
+  // Definition quality issues (errors and warnings always shown)
+  formatNodeDefinitionIssuesText(lines, report.definitionQuality, options.verbose ?? false);
+  lines.push("");
+
+  // Semantic overlaps
+  formatNodeOverlapsText(lines, report.overlaps);
+  lines.push("");
+
+  // Completeness issues
+  formatNodeCompletenessText(lines, report.completenessIssues);
+  lines.push("");
+
+  // Layer alignment
+  formatNodeAlignmentText(lines, report.alignmentAssessments);
+  lines.push("");
+
+  // Verbose: per-node details
+  if (options.verbose) {
+    formatNodeDetailsVerboseText(lines, report.definitionQuality);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+function formatNodeExecutiveSummaryText(lines: string[], report: NodeAuditReport): void {
+  lines.push(ansis.bold.yellow("EXECUTIVE SUMMARY"));
+  lines.push(ansis.dim("─".repeat(60)));
+  lines.push("");
+
+  const totalErrors = report.layerSummaries.reduce((s, l) => s + l.errorCount, 0);
+  const totalWarnings = report.layerSummaries.reduce((s, l) => s + l.warningCount, 0);
+  const totalEmpty = report.layerSummaries.reduce((s, l) => s + l.emptyDescriptionCount, 0);
+  const totalGeneric = report.layerSummaries.reduce((s, l) => s + l.genericDescriptionCount, 0);
+  const totalGood = report.layerSummaries.reduce((s, l) => s + l.goodDescriptionCount, 0);
+  const highOverlaps = report.overlaps.filter((o) => o.confidence === "high").length;
+  const completenessErrors = report.completenessIssues.filter((i) => i.issueType === "missing_schema").length;
+  const avgScore = report.layerSummaries.length > 0
+    ? report.layerSummaries.reduce((s, l) => s + l.avgQualityScore, 0) / report.layerSummaries.length
+    : 0;
+
+  lines.push(ansis.bold("Key Metrics:"));
+  lines.push(`  Total Node Types:          ${report.spec.totalNodeTypes}`);
+  lines.push(`  Avg Quality Score:         ${avgScore.toFixed(1)}/100`);
+  lines.push(`  Empty Descriptions:        ${totalEmpty}`);
+  lines.push(`  Generic Descriptions:      ${totalGeneric}`);
+  lines.push(`  Good Descriptions:         ${totalGood}`);
+  lines.push(`  Definition Errors:         ${totalErrors}`);
+  lines.push(`  Definition Warnings:       ${totalWarnings}`);
+  lines.push(`  Semantic Overlaps:         ${report.overlaps.length} (${highOverlaps} high-confidence)`);
+  lines.push(`  Completeness Issues:       ${report.completenessIssues.length} (${completenessErrors} missing schemas)`);
+}
+
+function formatNodeLayerSummaryText(lines: string[], summaries: NodeLayerSummary[]): void {
+  lines.push(ansis.bold("Layer Summary:"));
+  lines.push("");
+
+  const header = [
+    "Layer".padEnd(14),
+    "Types".padStart(6),
+    "Avg Score".padStart(10),
+    "Empty".padStart(6),
+    "Generic".padStart(8),
+    "Good".padStart(6),
+    "Errors".padStart(7),
+    "Warns".padStart(6),
+  ].join("  ");
+  lines.push("  " + ansis.dim(header));
+  lines.push("  " + ansis.dim("─".repeat(header.length)));
+
+  for (const s of summaries) {
+    const scoreColor = s.avgQualityScore >= 80
+      ? ansis.green
+      : s.avgQualityScore >= 60
+        ? ansis.yellow
+        : ansis.red;
+
+    // Pad the plain value first, then apply color so ANSI escape sequences
+    // don't inflate the string length and break column alignment.
+    const scoreStr = s.avgQualityScore.toFixed(1).padStart(10);
+    const emptyStr = String(s.emptyDescriptionCount).padStart(6);
+    const errorStr = String(s.errorCount).padStart(7);
+    const warnStr  = String(s.warningCount).padStart(6);
+
+    const row = [
+      s.layerId.padEnd(14),
+      String(s.totalNodeTypes).padStart(6),
+      scoreColor(scoreStr),
+      s.emptyDescriptionCount > 0 ? ansis.red(emptyStr) : emptyStr,
+      String(s.genericDescriptionCount).padStart(8),
+      String(s.goodDescriptionCount).padStart(6),
+      s.errorCount > 0 ? ansis.red(errorStr) : errorStr,
+      s.warningCount > 0 ? ansis.yellow(warnStr) : warnStr,
+    ].join("  ");
+    lines.push("  " + row);
+  }
+}
+
+function formatNodeDefinitionIssuesText(
+  lines: string[],
+  quality: NodeDefinitionQuality[],
+  verbose: boolean
+): void {
+  const allIssues = quality.flatMap((q) =>
+    q.issues.map((issue) => ({ ...issue, specNodeId: q.specNodeId }))
+  );
+
+  const errors = allIssues.filter((i) => i.severity === "error");
+  const warnings = allIssues.filter((i) => i.severity === "warning");
+  const infos = allIssues.filter((i) => i.severity === "info");
+
+  lines.push(ansis.bold("Definition Quality Issues:"));
+  lines.push(`  Errors: ${errors.length}  Warnings: ${warnings.length}  Info: ${infos.length}`);
+
+  if (errors.length > 0) {
+    lines.push("");
+    lines.push(ansis.red.bold("  Errors:"));
+    for (const issue of errors.slice(0, 20)) {
+      lines.push(ansis.red(`    [ERROR] ${issue.message}`));
+    }
+    if (errors.length > 20) {
+      lines.push(ansis.dim(`    ... and ${errors.length - 20} more`));
+    }
+  }
+
+  if (warnings.length > 0) {
+    lines.push("");
+    lines.push(ansis.yellow.bold("  Warnings:"));
+    const shown = verbose ? warnings : warnings.slice(0, 10);
+    for (const issue of shown) {
+      lines.push(ansis.yellow(`    [WARN]  ${issue.message}`));
+    }
+    if (!verbose && warnings.length > 10) {
+      lines.push(ansis.dim(`    ... and ${warnings.length - 10} more (use --verbose to see all)`));
+    }
+  }
+
+  if (verbose && infos.length > 0) {
+    lines.push("");
+    lines.push(ansis.dim.bold("  Info:"));
+    for (const issue of infos) {
+      lines.push(ansis.dim(`    [INFO]  ${issue.message}`));
+    }
+  }
+}
+
+function formatNodeOverlapsText(lines: string[], overlaps: SemanticOverlapCandidate[]): void {
+  lines.push(ansis.bold("Semantic Overlap Detection:"));
+
+  const high = overlaps.filter((o) => o.confidence === "high");
+  const medium = overlaps.filter((o) => o.confidence === "medium");
+  const low = overlaps.filter((o) => o.confidence === "low");
+
+  lines.push(`  Total Candidates: ${overlaps.length}  (High: ${high.length}, Medium: ${medium.length}, Low: ${low.length})`);
+
+  if (high.length > 0) {
+    lines.push("");
+    lines.push(ansis.yellow("  High-confidence overlaps:"));
+    for (const o of high.slice(0, 10)) {
+      lines.push(ansis.yellow(`    ${o.nodeTypeA} ↔ ${o.nodeTypeB}`));
+      lines.push(ansis.dim(`      ${o.reason}`));
+    }
+    if (high.length > 10) {
+      lines.push(ansis.dim(`    ... and ${high.length - 10} more`));
+    }
+  }
+}
+
+function formatNodeCompletenessText(lines: string[], issues: SchemaCompletenessIssue[]): void {
+  lines.push(ansis.bold("Schema Completeness:"));
+
+  if (issues.length === 0) {
+    lines.push(ansis.green("  ✓ All schema files match layer.json declarations — no issues found."));
+    return;
+  }
+
+  const missing = issues.filter((i) => i.issueType === "missing_schema");
+  const orphaned = issues.filter((i) => i.issueType === "orphaned_schema");
+
+  lines.push(`  Issues: ${issues.length}  (Missing: ${missing.length}, Orphaned: ${orphaned.length})`);
+
+  for (const issue of issues.slice(0, 20)) {
+    const label = issue.issueType === "missing_schema" ? ansis.red("[MISSING]") : ansis.yellow("[ORPHANED]");
+    lines.push(`  ${label} ${issue.detail}`);
+  }
+  if (issues.length > 20) {
+    lines.push(ansis.dim(`  ... and ${issues.length - 20} more`));
+  }
+}
+
+function formatNodeAlignmentText(
+  lines: string[],
+  assessments: LayerAlignmentAssessment[]
+): void {
+  lines.push(ansis.bold("Layer Alignment:"));
+
+  if (assessments.length === 0) {
+    lines.push(ansis.dim("  No alignment assessments available."));
+    return;
+  }
+
+  const header = [
+    "Layer".padEnd(14),
+    "Standard".padEnd(22),
+    "Types".padStart(6),
+    "Aligned".padStart(8),
+    "Misaligned".padStart(11),
+    "%".padStart(5),
+  ].join("  ");
+  lines.push("  " + ansis.dim(header));
+  lines.push("  " + ansis.dim("─".repeat(header.length)));
+
+  for (const a of assessments) {
+    const pct = a.alignmentPercentage.toFixed(0);
+    const pctStr = pct.padStart(5);
+    const pctColored = a.alignmentPercentage < 70
+      ? ansis.yellow(pctStr)
+      : pctStr;
+    const misStr = String(a.misalignedTypes.length).padStart(11);
+    const misColored = a.misalignedTypes.length > 0 ? ansis.dim(misStr) : misStr;
+    const row = [
+      a.layerId.padEnd(14),
+      a.standard.padEnd(22),
+      String(a.totalNodeTypes).padStart(6),
+      String(a.alignedCount).padStart(8),
+      misColored,
+      pctColored,
+    ].join("  ");
+    lines.push("  " + row);
+  }
+}
+
+function formatNodeDetailsVerboseText(lines: string[], quality: NodeDefinitionQuality[]): void {
+  lines.push(ansis.bold("Per-Node Details (verbose):"));
+  lines.push("");
+
+  // Group by layer
+  const byLayer = new Map<string, NodeDefinitionQuality[]>();
+  for (const q of quality) {
+    const group = byLayer.get(q.layerId) ?? [];
+    group.push(q);
+    byLayer.set(q.layerId, group);
+  }
+
+  for (const [layerId, layerQuality] of byLayer) {
+    lines.push(ansis.bold(`  ${layerId}:`));
+    for (const q of layerQuality) {
+      const scoreColor = q.score >= 80 ? ansis.green : q.score >= 60 ? ansis.yellow : ansis.red;
+      lines.push(`    ${q.specNodeId.padEnd(45)} ${scoreColor(`${q.score}/100`)}`);
+    }
+    lines.push("");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Node Audit — Markdown formatter
+// ---------------------------------------------------------------------------
+
+function formatNodeAuditMarkdown(report: NodeAuditReport, _options: AuditFormatterOptions): string {
+  const lines: string[] = [];
+
+  lines.push(`# Node Audit Report — Spec v${escapeMarkdown(report.spec.version)}`);
+  lines.push("");
+  lines.push(`**Generated:** ${formatDate(report.timestamp)}`);
+  lines.push(`**Total Node Types:** ${report.spec.totalNodeTypes}  |  **Layers:** ${report.spec.totalLayers}`);
+  lines.push("");
+
+  // TOC
+  lines.push("## Contents");
+  lines.push("- [Executive Summary](#executive-summary)");
+  lines.push("- [Layer Summary](#layer-summary)");
+  lines.push("- [Definition Quality Issues](#definition-quality-issues)");
+  lines.push("- [Semantic Overlaps](#semantic-overlaps)");
+  lines.push("- [Schema Completeness](#schema-completeness)");
+  lines.push("- [Layer Alignment](#layer-alignment)");
+  lines.push("");
+
+  // Executive Summary
+  lines.push("## Executive Summary");
+  lines.push("");
+  const totalErrors = report.layerSummaries.reduce((s, l) => s + l.errorCount, 0);
+  const totalWarnings = report.layerSummaries.reduce((s, l) => s + l.warningCount, 0);
+  const totalEmpty = report.layerSummaries.reduce((s, l) => s + l.emptyDescriptionCount, 0);
+  const totalGeneric = report.layerSummaries.reduce((s, l) => s + l.genericDescriptionCount, 0);
+  const avgScore = report.layerSummaries.length > 0
+    ? report.layerSummaries.reduce((s, l) => s + l.avgQualityScore, 0) / report.layerSummaries.length
+    : 0;
+  const highOverlaps = report.overlaps.filter((o) => o.confidence === "high").length;
+
+  lines.push("| Metric | Value |");
+  lines.push("|--------|-------|");
+  lines.push(`| Total Node Types | ${report.spec.totalNodeTypes} |`);
+  lines.push(`| Avg Quality Score | ${avgScore.toFixed(1)}/100 |`);
+  lines.push(`| Empty Descriptions | ${totalEmpty} |`);
+  lines.push(`| Generic Descriptions | ${totalGeneric} |`);
+  lines.push(`| Definition Errors | ${totalErrors} |`);
+  lines.push(`| Definition Warnings | ${totalWarnings} |`);
+  lines.push(`| Semantic Overlaps | ${report.overlaps.length} (${highOverlaps} high) |`);
+  lines.push(`| Completeness Issues | ${report.completenessIssues.length} |`);
+  lines.push("");
+
+  // Layer Summary
+  lines.push("## Layer Summary");
+  lines.push("");
+  lines.push("| Layer | Types | Avg Score | Empty | Generic | Good | Errors | Warnings |");
+  lines.push("|-------|-------|-----------|-------|---------|------|--------|----------|");
+  for (const s of report.layerSummaries) {
+    lines.push(
+      `| ${escapeMarkdown(s.layerId)} | ${s.totalNodeTypes} | ${s.avgQualityScore.toFixed(1)} | ${s.emptyDescriptionCount} | ${s.genericDescriptionCount} | ${s.goodDescriptionCount} | ${s.errorCount} | ${s.warningCount} |`
+    );
+  }
+  lines.push("");
+
+  // Definition Quality Issues
+  lines.push("## Definition Quality Issues");
+  lines.push("");
+  const allIssues = report.definitionQuality.flatMap((q) =>
+    q.issues.map((issue) => ({ ...issue, specNodeId: q.specNodeId, layerId: q.layerId }))
+  );
+
+  const errors = allIssues.filter((i) => i.severity === "error");
+  const warnings = allIssues.filter((i) => i.severity === "warning");
+
+  if (errors.length === 0 && warnings.length === 0) {
+    lines.push("No definition quality issues found.");
+  } else {
+    if (errors.length > 0) {
+      lines.push("### Errors");
+      lines.push("");
+      lines.push("| Node Type | Issue |");
+      lines.push("|-----------|-------|");
+      for (const issue of errors) {
+        lines.push(`| ${escapeMarkdown(issue.specNodeId)} | ${escapeMarkdown(issue.message)} |`);
+      }
+      lines.push("");
+    }
+    if (warnings.length > 0) {
+      lines.push("### Warnings");
+      lines.push("");
+      lines.push("| Node Type | Issue |");
+      lines.push("|-----------|-------|");
+      for (const issue of warnings.slice(0, 50)) {
+        lines.push(`| ${escapeMarkdown(issue.specNodeId)} | ${escapeMarkdown(issue.message)} |`);
+      }
+      if (warnings.length > 50) {
+        lines.push("");
+        lines.push(`*... and ${warnings.length - 50} more warnings*`);
+      }
+      lines.push("");
+    }
+  }
+
+  // Semantic Overlaps
+  lines.push("## Semantic Overlaps");
+  lines.push("");
+  if (report.overlaps.length === 0) {
+    lines.push("No semantic overlap candidates detected.");
+  } else {
+    lines.push("| Node Type A | Node Type B | Layer | Confidence | Type | Reason |");
+    lines.push("|-------------|-------------|-------|------------|------|--------|");
+    for (const o of report.overlaps) {
+      lines.push(
+        `| ${escapeMarkdown(o.nodeTypeA)} | ${escapeMarkdown(o.nodeTypeB)} | ${escapeMarkdown(o.layerId)} | ${o.confidence} | ${o.overlapType} | ${escapeMarkdown(o.reason)} |`
+      );
+    }
+  }
+  lines.push("");
+
+  // Schema Completeness
+  lines.push("## Schema Completeness");
+  lines.push("");
+  if (report.completenessIssues.length === 0) {
+    lines.push("✓ All schema files match layer.json declarations.");
+  } else {
+    lines.push("| Layer | Node Type | Issue | Detail |");
+    lines.push("|-------|-----------|-------|--------|");
+    for (const issue of report.completenessIssues) {
+      lines.push(
+        `| ${escapeMarkdown(issue.layerId)} | ${escapeMarkdown(issue.specNodeId)} | ${issue.issueType} | ${escapeMarkdown(issue.detail)} |`
+      );
+    }
+  }
+  lines.push("");
+
+  // Layer Alignment
+  lines.push("## Layer Alignment");
+  lines.push("");
+  lines.push("| Layer | Standard | Node Types | Aligned | Misaligned | % |");
+  lines.push("|-------|----------|------------|---------|------------|---|");
+  for (const a of report.alignmentAssessments) {
+    lines.push(
+      `| ${escapeMarkdown(a.layerId)} | ${escapeMarkdown(a.standard)} | ${a.totalNodeTypes} | ${a.alignedCount} | ${a.misalignedTypes.length} | ${a.alignmentPercentage.toFixed(0)}% |`
+    );
+  }
+  lines.push("");
+
+  return lines.join("\n");
 }

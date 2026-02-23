@@ -1,5 +1,7 @@
 # Documentation Robotics
 
+![Documentation Robotics Header](docs/logo/page-header.png)
+
 A comprehensive toolkit for managing federated data models for modeling large software systems using industry standards.
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
