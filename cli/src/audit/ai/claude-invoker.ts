@@ -1,10 +1,7 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
 import type { CoverageMetrics } from "../types.js";
 import { PromptTemplates } from "./prompt-templates.js";
 import { getErrorMessage } from "../../utils/errors.js";
-
-const execFileAsync = promisify(execFile);
 
 /**
  * Base invocation context shared by all types
@@ -73,22 +70,47 @@ export class ClaudeInvoker {
     ];
 
     try {
-      const result = await execFileAsync("claude", args, {
-        cwd: process.cwd(),
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+      const output = await new Promise<string>((resolve, reject) => {
+        const child = spawn("claude", args, { cwd: process.cwd() });
+        const chunks: Buffer[] = [];
+        const stderrChunks: string[] = [];
+
+        child.stdout.on("data", (chunk: Buffer) => {
+          chunks.push(chunk);
+          process.stdout.write(chunk);
+        });
+
+        child.stderr.on("data", (chunk: Buffer) => {
+          stderrChunks.push(chunk.toString());
+        });
+
+        child.on("close", (code) => {
+          if (code !== 0) {
+            reject(
+              new Error(
+                `Claude invocation failed (${invocation.type}: ${invocation.target}): exited with code ${code}\nStderr: ${stderrChunks.join("") || "N/A"}`
+              )
+            );
+          } else {
+            resolve(Buffer.concat(chunks).toString("utf8"));
+          }
+        });
+
+        child.on("error", (err) => {
+          reject(
+            new Error(
+              `Claude invocation failed (${invocation.type}: ${invocation.target}): ${err.message}`
+            )
+          );
+        });
       });
 
       // Rate limiting
       await this.delay(this.RATE_LIMIT_DELAY_MS);
 
-      return result.stdout;
+      return output;
     } catch (error: unknown) {
-      const stderr = error && typeof error === "object" && "stderr" in error
-        ? (error as { stderr?: string }).stderr
-        : undefined;
-      throw new Error(
-        `Claude invocation failed (${invocation.type}: ${invocation.target}): ${getErrorMessage(error)}\nStderr: ${stderr || "N/A"}`
-      );
+      throw new Error(getErrorMessage(error));
     }
   }
 
