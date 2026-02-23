@@ -6,6 +6,7 @@
   "scripts": {
     "export:spec-neo4j": "npx tsx scripts/export-spec-to-neo4j.ts",
     "generate:layer-reports": "npx tsx scripts/generate-layer-reports.ts",
+    "audit:relationships": "npx tsx scripts/relationship-audit.ts",
     "audit:pipeline": "npx tsx scripts/relationship-audit-pipeline.ts",
     "test:fs-compatibility": "cd cli-validation/test-suite && npm run test:compatibility",
     "test:fs-compatibility:fast": "cd cli-validation/test-suite && npm run test:compatibility:fast",

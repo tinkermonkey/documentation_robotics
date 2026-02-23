@@ -4,9 +4,11 @@
  * Standalone Relationship Audit Script
  *
  * Purpose:
- *   Performs comprehensive relationship quality analysis on a Documentation Robotics model
- *   without requiring the full CLI. Useful for CI/CD pipelines, pre-commit hooks, and
- *   automated quality checks.
+ *   Performs comprehensive relationship quality analysis on the spec's relationship
+ *   schema definitions (252 generated type definitions). This is a spec maintainer
+ *   tool — it answers "is the specification's relationship type catalog well-covered?"
+ *
+ *   For auditing a project's actual model relationship instances, use `dr audit`.
  *
  * Features:
  *   - Coverage analysis (isolation, density, predicate utilization)
@@ -18,11 +20,11 @@
  *   - Exit codes for CI/CD integration
  *
  * Usage:
- *   npm run audit                        # Run audit with text output
- *   npm run audit -- --format json       # JSON output
- *   npm run audit -- --output report.md  # Save to file
- *   npm run audit -- --layer api         # Audit specific layer
- *   npm run audit -- --threshold         # Exit 1 if quality issues detected
+ *   npm run audit:relationships                        # Run audit with text output
+ *   npm run audit:relationships -- --format json       # JSON output
+ *   npm run audit:relationships -- --output report.md  # Save to file
+ *   npm run audit:relationships -- --layer api         # Audit specific layer
+ *   npm run audit:relationships -- --threshold         # Exit 1 if quality issues detected
  *
  * Exit Codes:
  *   0 - Success (no issues or issues below threshold)
@@ -33,10 +35,10 @@
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { parseArgs } from "util";
-import { AuditReport } from "../src/audit/types.js";
-import { formatAuditReport, AuditReportFormat } from "../src/export/audit-formatters.js";
-import { writeFile, ensureDir } from "../src/utils/file-io.js";
-import { AuditOrchestrator } from "../src/audit/audit-orchestrator.js";
+import { AuditReport } from "../cli/src/audit/types.js";
+import { formatAuditReport, AuditReportFormat } from "../cli/src/export/audit-formatters.js";
+import { writeFile, ensureDir } from "../cli/src/utils/file-io.js";
+import { AuditOrchestrator } from "../cli/src/audit/audit-orchestrator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -92,10 +94,10 @@ function parseArguments(): ScriptOptions {
  */
 function showHelp(): void {
   console.log(`
-Standalone Relationship Audit Script
+Standalone Relationship Audit Script (Spec Maintainer Tool)
 
 Usage:
-  npm run audit [options]
+  npm run audit:relationships [options]
   tsx scripts/relationship-audit.ts [options]
 
 Options:
@@ -107,12 +109,12 @@ Options:
   -h, --help               Show this help message
 
 Examples:
-  npm run audit                              # Run full audit
-  npm run audit -- --layer api               # Audit API layer only
-  npm run audit -- --format json             # JSON output
-  npm run audit -- --output report.md        # Save markdown report
-  npm run audit -- --threshold               # Fail if quality issues found
-  npm run audit -- --verbose --format text   # Detailed text report
+  npm run audit:relationships                              # Run full audit
+  npm run audit:relationships -- --layer api               # Audit API layer only
+  npm run audit:relationships -- --format json             # JSON output
+  npm run audit:relationships -- --output report.md        # Save markdown report
+  npm run audit:relationships -- --threshold               # Fail if quality issues found
+  npm run audit:relationships -- --verbose --format text   # Detailed text report
 
 Quality Thresholds (for --threshold flag):
   - Isolation:        Max ${QUALITY_THRESHOLDS.maxIsolationPercentage}%
