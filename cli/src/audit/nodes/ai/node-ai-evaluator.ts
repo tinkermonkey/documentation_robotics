@@ -1,14 +1,12 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
 import type { LayerDefinition, ParsedNodeSchema, LayerAIReview } from "../node-audit-types.js";
 import { NodePromptTemplates } from "./node-prompt-templates.js";
 import { NodeResponseParser } from "./node-response-parser.js";
 import { getErrorMessage } from "../../../utils/errors.js";
 
-const execFileAsync = promisify(execFile);
-
 const RATE_LIMIT_DELAY_MS = 1500;
 const MAX_CONSECUTIVE_FAILURES = 3;
+const INVOKE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes per invocation
 
 export class NodeAIEvaluator {
   private readonly promptTemplates: NodePromptTemplates;
@@ -84,24 +82,54 @@ export class NodeAIEvaluator {
   }
 
   private async invokeClaude(prompt: string, layerId: string): Promise<string> {
-    try {
-      const result = await execFileAsync(
+    return new Promise<string>((resolve, reject) => {
+      const child = spawn(
         "claude",
         ["--print", "--dangerously-skip-permissions", prompt],
-        {
-          cwd: process.cwd(),
-          maxBuffer: 10 * 1024 * 1024,
+        { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] }
+      );
+
+      const chunks: Buffer[] = [];
+      const stderrChunks: string[] = [];
+
+      child.stdout.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+        process.stdout.write(chunk);
+      });
+
+      child.stderr.on("data", (chunk: Buffer) => {
+        stderrChunks.push(chunk.toString());
+      });
+
+      const timer = setTimeout(() => {
+        child.kill();
+        reject(
+          new Error(
+            `Claude invocation timed out after ${INVOKE_TIMEOUT_MS / 1000}s (layer: ${layerId})`
+          )
+        );
+      }, INVOKE_TIMEOUT_MS);
+
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        if (code !== 0) {
+          reject(
+            new Error(
+              `Claude invocation failed (layer: ${layerId}): exited with code ${code}\nStderr: ${stderrChunks.join("") || "N/A"}`
+            )
+          );
+        } else {
+          resolve(Buffer.concat(chunks).toString("utf8"));
         }
-      );
-      return result.stdout;
-    } catch (error: unknown) {
-      const stderr = error && typeof error === "object" && "stderr" in error
-        ? (error as { stderr?: string }).stderr
-        : undefined;
-      throw new Error(
-        `Claude invocation failed (layer: ${layerId}): ${getErrorMessage(error)}\nStderr: ${stderr ?? "N/A"}`
-      );
-    }
+      });
+
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        reject(
+          new Error(`Claude invocation failed (layer: ${layerId}): ${err.message}`)
+        );
+      });
+    });
   }
 
   private delay(ms: number): Promise<void> {
