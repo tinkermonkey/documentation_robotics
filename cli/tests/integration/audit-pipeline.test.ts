@@ -272,44 +272,20 @@ describe("Audit Pipeline", () => {
       }
     });
 
-    test("should validate cross-field dependency when enableAI is true", async () => {
-      const orchestrator = new PipelineOrchestrator();
-
-      // Try to run pipeline with enableAI=true but no claudeApiKey
-      let errorThrown = false;
-      let errorMessage = "";
-
-      try {
-        await orchestrator.executePipeline({
-          outputDir: tempDir,
-          enableAI: true,
-          // Missing claudeApiKey - should fail
-        });
-      } catch (error) {
-        errorThrown = true;
-        errorMessage = error instanceof Error ? error.message : String(error);
-      }
-
-      // Should fail with clear error message about missing API key
-      expect(errorThrown).toBe(true);
-      expect(errorMessage).toMatch(/Claude API key|claudeApiKey/i);
-    });
-
-    test("should allow pipeline when enableAI is false even without claudeApiKey", async () => {
+    test("should allow pipeline when enableAI is false", async () => {
       const orchestrator = new PipelineOrchestrator();
 
       try {
         const result = await orchestrator.executePipeline({
           outputDir: tempDir,
           enableAI: false,
-          // Explicitly not providing claudeApiKey - should work when AI disabled
           format: "json",
         });
 
-        // Should succeed when AI is disabled regardless of API key
+        // Should succeed when AI is disabled
         expect(result).toBeDefined();
       } catch (error) {
-        // If error, it should not be about missing API key
+        // If error, it should not be about authentication
         const message = error instanceof Error ? error.message : String(error);
         expect(message).not.toMatch(/Claude API key|claudeApiKey/i);
       }

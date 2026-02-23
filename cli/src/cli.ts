@@ -519,9 +519,6 @@ program
   .option("--output <path>", "Output file path (auto-detects format from extension)")
   .option("--verbose", "Show detailed analysis")
   .option("--save-snapshot", "Save audit report as snapshot for differential analysis")
-  .option("--pipeline", "Run full before/after AI evaluation pipeline")
-  .option("--enable-ai", "Enable AI-assisted evaluation in pipeline mode")
-  .option("--output-dir <dir>", "Output directory for pipeline results (default: audit-results)")
   .addHelpText(
     "after",
     `
@@ -537,16 +534,6 @@ Analysis types:
   Balance      Relationship density assessment
   Connectivity Graph connectivity and component analysis
 
-Pipeline Mode:
-  --pipeline              Run before/after AI evaluation workflow
-  --enable-ai             Enable AI-assisted evaluation (requires Claude CLI to be installed and authenticated)
-  --output-dir <dir>      Output directory (default: audit-results)
-
-  Pipeline generates:
-    audit-results/{timestamp}/before/   - Initial audit report
-    audit-results/{timestamp}/after/    - Post-AI audit report
-    audit-results/{timestamp}/summary/  - Differential summary
-
 Examples:
   $ dr audit                           # Full audit of all layers
   $ dr audit security                  # Audit security layer only
@@ -554,12 +541,7 @@ Examples:
   $ dr audit --output audit.md         # Save as markdown file
   $ dr audit --verbose                 # Show detailed analysis
   $ dr audit --save-snapshot           # Save snapshot for later comparison
-  $ dr audit api --output api-audit.json  # API layer audit as JSON
-
-  # Pipeline mode examples
-  $ dr audit --pipeline                        # Before/after without AI
-  $ dr audit --pipeline --enable-ai            # Full AI pipeline
-  $ dr audit security --pipeline --enable-ai   # Layer-specific`
+  $ dr audit api --output api-audit.json  # API layer audit as JSON`
   )
   .action((layer, options) => auditCommand({ ...options, layer }));
 

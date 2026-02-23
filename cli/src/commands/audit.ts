@@ -7,8 +7,7 @@ import { writeFile, ensureDir } from "../utils/file-io.js";
 import { getErrorMessage, CLIError } from "../utils/errors.js";
 import { formatAuditReport, AuditReportFormat } from "../export/audit-formatters.js";
 import { SnapshotStorage } from "../audit/snapshot-storage.js";
-import { AuditOrchestrator } from "../audit/audit-orchestrator.js";
-import { PipelineOrchestrator } from "../audit/pipeline/index.js";
+import { ModelAuditOrchestrator } from "../audit/model/model-audit-orchestrator.js";
 import { formatDate } from "../utils/date-utils.js";
 import path from "path";
 
@@ -19,12 +18,6 @@ export interface AuditOptions {
   verbose?: boolean;
   debug?: boolean;
   saveSnapshot?: boolean;
-  /** Run the full pipeline with before/after AI evaluation */
-  pipeline?: boolean;
-  /** Enable AI-assisted evaluation in pipeline mode */
-  enableAI?: boolean;
-  /** Output directory for pipeline results */
-  outputDir?: string;
 }
 
 /**
@@ -32,14 +25,8 @@ export interface AuditOptions {
  */
 export async function auditCommand(options: AuditOptions): Promise<void> {
   try {
-    // If pipeline mode is enabled, use the PipelineOrchestrator
-    if (options.pipeline) {
-      return await runPipeline(options);
-    }
-
-    // Otherwise, run standard single-phase audit
-    // Use orchestrator to run all analysis steps
-    const orchestrator = new AuditOrchestrator();
+    // Run model audit - analyzes the project's actual relationship instances
+    const orchestrator = new ModelAuditOrchestrator();
     const report = await orchestrator.runAudit({
       layer: options.layer,
       verbose: options.verbose,
@@ -108,53 +95,6 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
     }
     throw new CLIError(
       `Audit failed: ${message}`
-    );
-  }
-}
-
-/**
- * Run the full audit pipeline with before/after AI evaluation
- */
-async function runPipeline(options: AuditOptions): Promise<void> {
-  try {
-    const pipeline = new PipelineOrchestrator();
-
-    const result = await pipeline.executePipeline({
-      outputDir: options.outputDir ?? "audit-results",
-      layer: options.layer,
-      format: options.format ?? "markdown",
-      enableAI: options.enableAI ?? false,
-      verbose: options.verbose ?? false,
-    });
-
-    // Display summary
-    console.log(ansis.green("\n✅ Pipeline execution complete!"));
-    console.log(ansis.dim("\nGenerated Reports:"));
-    console.log(ansis.dim(`  Before:  ${result.reports.before}`));
-    if (result.reports.after) {
-      console.log(ansis.dim(`  After:   ${result.reports.after}`));
-    }
-    if (result.reports.summary) {
-      console.log(ansis.dim(`  Summary: ${result.reports.summary}`));
-    }
-
-    if (result.summary) {
-      console.log(ansis.dim("\nImpact:"));
-      console.log(ansis.dim(`  Relationships Added: ${result.summary.relationshipsAdded}`));
-      console.log(ansis.dim(`  Gaps Resolved:       ${result.summary.gapsResolved}`));
-      console.log(
-        ansis.dim(
-          `  Coverage Improvement: ${result.summary.coverageImprovement.toFixed(2)} rel/type`
-        )
-      );
-    }
-  } catch (error) {
-    const message = getErrorMessage(error);
-    if (options.debug) {
-      console.error(error);
-    }
-    throw new CLIError(
-      `Pipeline execution failed: ${message}`
     );
   }
 }

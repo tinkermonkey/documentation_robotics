@@ -8,6 +8,8 @@
 import { GraphModel, type GraphEdge } from "../../core/graph-model.js";
 import { RELATIONSHIPS } from "../../generated/relationship-index.js";
 import { getAllLayers } from "../../generated/layer-registry.js";
+import type { Relationship } from "../../core/relationships.js";
+import type { Element } from "../../core/element.js";
 
 /**
  * Relationship graph for audit analysis
@@ -225,5 +227,55 @@ export class RelationshipGraph {
    */
   getGraphModel(): GraphModel {
     return this.graph;
+  }
+
+  /**
+   * Build graph from actual model relationship instances and elements.
+   * Used by ModelAuditOrchestrator to analyse the project model rather than spec schemas.
+   */
+  buildFromModel(relationships: Relationship[], elements: Element[]): void {
+    this.graph.clear();
+
+    // Index elements by ID for quick lookup
+    const elementById = new Map<string, Element>(
+      elements.map((e) => [e.id, e])
+    );
+
+    // Add one graph node per distinct spec_node_id (using spec_node_id as the node id)
+    const specNodeIds = new Set<string>(
+      elements.map((e) => e.spec_node_id).filter(Boolean)
+    );
+
+    for (const specNodeId of specNodeIds) {
+      const [layer, type] = specNodeId.split(".");
+      this.graph.addNode({
+        id: specNodeId,
+        layer: layer ?? "unknown",
+        type: type ?? "unknown",
+        name: specNodeId,
+        properties: {},
+      });
+    }
+
+    // Add edges from relationship instances, keyed by source/target spec_node_id
+    let edgeCounter = 0;
+    for (const rel of relationships) {
+      const srcEl = elementById.get(rel.source);
+      const dstEl = elementById.get(rel.target);
+      if (!srcEl?.spec_node_id || !dstEl?.spec_node_id) continue;
+
+      try {
+        this.graph.addEdge({
+          id: `model-rel-${edgeCounter++}`,
+          source: srcEl.spec_node_id,
+          destination: dstEl.spec_node_id,
+          predicate: rel.predicate,
+          properties: rel.properties as Record<string, unknown> | undefined,
+          category: rel.category,
+        });
+      } catch {
+        // Silently skip edges where the node wasn't added (shouldn't happen but be safe)
+      }
+    }
   }
 }

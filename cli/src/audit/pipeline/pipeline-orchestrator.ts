@@ -27,15 +27,9 @@ export interface PipelineOptions {
 
   /**
    * Whether to run AI-assisted evaluation
-   * Required: if enableAI is true, claudeApiKey must be provided
+   * Requires Claude Code CLI to be installed and authenticated on the system
    */
   enableAI?: boolean;
-
-  /**
-   * Claude API key (required when enableAI is true)
-   * This is used to authenticate with Claude for AI evaluation
-   */
-  claudeApiKey?: string;
 
   /**
    * Verbose output
@@ -108,14 +102,6 @@ export class PipelineOrchestrator {
    * Execute the complete audit pipeline
    */
   async executePipeline(options: PipelineOptions = {}): Promise<PipelineResult> {
-    // Validate cross-field dependency: enableAI requires claudeApiKey
-    if (options.enableAI && !options.claudeApiKey) {
-      throw new Error(
-        "Claude API key is required when AI evaluation is enabled. " +
-        "Set claudeApiKey in pipeline options or set CLAUDE_API_KEY environment variable."
-      );
-    }
-
     const baseOutputDir = options.outputDir ?? "audit-results";
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const sessionDir = path.join(baseOutputDir, timestamp);
