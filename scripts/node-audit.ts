@@ -111,7 +111,7 @@ Options:
   -o, --output <file>      Write output to file instead of stdout
   -v, --verbose            Show detailed per-node analysis
   -t, --threshold          Exit with code 1 if quality issues detected
-      --enable-ai          AI evaluation (not yet implemented)
+      --enable-ai          Enable AI-assisted layer alignment and documentation evaluation
   -h, --help               Show this help message
 
 Examples:
@@ -176,6 +176,22 @@ function checkThresholds(report: NodeAuditReport): { passed: boolean; issues: st
     );
   }
 
+  // AI score thresholds (only checked when AI evaluation was run)
+  if (report.aiReviews) {
+    for (const review of report.aiReviews) {
+      if (review.avgAlignmentScore < 65) {
+        issues.push(
+          `Layer ${review.layerId}: AI alignment score ${review.avgAlignmentScore.toFixed(1)} below threshold 65`
+        );
+      }
+      if (review.avgDocumentationScore < 60) {
+        issues.push(
+          `Layer ${review.layerId}: AI documentation score ${review.avgDocumentationScore.toFixed(1)} below threshold 60`
+        );
+      }
+    }
+  }
+
   return { passed: issues.length === 0, issues };
 }
 
@@ -184,11 +200,6 @@ function checkThresholds(report: NodeAuditReport): { passed: boolean; issues: st
  */
 async function runAudit(options: ScriptOptions): Promise<void> {
   try {
-    if (options.enableAi) {
-      console.error("❌ AI evaluation is not yet implemented for node audit.");
-      process.exit(2);
-    }
-
     // Save original working directory for output file resolution
     const originalCwd = process.cwd();
 
@@ -197,6 +208,7 @@ async function runAudit(options: ScriptOptions): Promise<void> {
       layer: options.layer,
       verbose: options.verbose,
       specDir,
+      enableAi: options.enableAi,
     });
 
     // Format output

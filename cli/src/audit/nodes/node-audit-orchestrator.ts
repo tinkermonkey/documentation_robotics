@@ -7,16 +7,19 @@ import { NodeSchemaLoader } from "./node-schema-loader.js";
 import { NodeDefinitionAnalyzer } from "./analysis/node-definition-analyzer.js";
 import { NodeOverlapDetector } from "./analysis/node-overlap-detector.js";
 import { NodeCompletenessChecker } from "./analysis/node-completeness-checker.js";
+import { NodeAIEvaluator } from "./ai/node-ai-evaluator.js";
 import type {
   NodeAuditReport,
   NodeLayerSummary,
   NodeDefinitionQuality,
+  ParsedNodeSchema,
 } from "./node-audit-types.js";
 
 export interface NodeAuditOptions {
   layer?: string;
   verbose?: boolean;
   specDir: string;
+  enableAi?: boolean;
 }
 
 export class NodeAuditOrchestrator {
@@ -57,7 +60,7 @@ export class NodeAuditOrchestrator {
       .filter((l) => !options.layer || l.id === options.layer)
       .map((layerDef) => buildLayerSummary(layerDef.id, qualityByLayer.get(layerDef.id) ?? []));
 
-    return {
+    const report: NodeAuditReport = {
       timestamp: new Date().toISOString(),
       spec: {
         version: specVersion,
@@ -69,6 +72,24 @@ export class NodeAuditOrchestrator {
       overlaps,
       completenessIssues,
     };
+
+    // 6. Optional AI step
+    if (options.enableAi) {
+      const schemasByLayer = new Map<string, ParsedNodeSchema[]>();
+      for (const schema of allSchemas) {
+        const group = schemasByLayer.get(schema.layerId) ?? [];
+        group.push(schema);
+        schemasByLayer.set(schema.layerId, group);
+      }
+      // Respect --layer filter: only evaluate the filtered layer defs
+      const filteredLayerDefs = layerDefs.filter(
+        (l) => !options.layer || l.id === options.layer
+      );
+      const evaluator = new NodeAIEvaluator();
+      report.aiReviews = await evaluator.evaluateLayers(filteredLayerDefs, schemasByLayer);
+    }
+
+    return report;
   }
 }
 

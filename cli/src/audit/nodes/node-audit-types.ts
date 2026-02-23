@@ -92,6 +92,29 @@ export interface NodeLayerSummary {
 }
 
 /**
+ * AI evaluation result for a single node type
+ */
+export interface NodeAIEvaluation {
+  specNodeId: string;
+  alignmentScore: number;           // 0-100: how well node type fits the layer's standard
+  alignmentReasoning: string;       // brief explanation
+  documentationScore: number;       // 0-100: description accuracy and usefulness
+  documentationReasoning: string;   // brief explanation
+  suggestions: string[];            // actionable improvement suggestions
+}
+
+/**
+ * AI review for an entire layer
+ */
+export interface LayerAIReview {
+  layerId: string;
+  standard: string;                 // e.g. "ArchiMate 3.2"
+  nodeEvaluations: NodeAIEvaluation[];
+  avgAlignmentScore: number;        // computed from nodeEvaluations
+  avgDocumentationScore: number;    // computed from nodeEvaluations
+}
+
+/**
  * Complete node audit report
  */
 export interface NodeAuditReport {
@@ -101,4 +124,5 @@ export interface NodeAuditReport {
   definitionQuality: NodeDefinitionQuality[];
   overlaps: SemanticOverlapCandidate[];
   completenessIssues: SchemaCompletenessIssue[];
+  aiReviews?: LayerAIReview[];      // absent when --enable-ai not used
 }

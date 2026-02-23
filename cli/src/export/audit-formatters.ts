@@ -5,7 +5,7 @@
 
 import ansis from "ansis";
 import { AuditReport, CoverageMetrics, DuplicateCandidate, GapCandidate, BalanceAssessment } from "../audit/types.js";
-import type { NodeAuditReport, NodeLayerSummary, NodeDefinitionQuality, SemanticOverlapCandidate, SchemaCompletenessIssue } from "../audit/nodes/node-audit-types.js";
+import type { NodeAuditReport, NodeLayerSummary, NodeDefinitionQuality, SemanticOverlapCandidate, SchemaCompletenessIssue, LayerAIReview } from "../audit/nodes/node-audit-types.js";
 import { escapeMarkdown } from "./markdown-utils.js";
 import { formatDate } from "../utils/date-utils.js";
 
@@ -818,6 +818,12 @@ function formatNodeAuditText(report: NodeAuditReport, options: AuditFormatterOpt
   formatNodeCompletenessText(lines, report.completenessIssues);
   lines.push("");
 
+  // AI evaluation (when present)
+  if (report.aiReviews) {
+    formatNodeAIReviewsText(lines, report.aiReviews, options.verbose ?? false);
+    lines.push("");
+  }
+
   // Verbose: per-node details
   if (options.verbose) {
     formatNodeDetailsVerboseText(lines, report.definitionQuality);
@@ -1014,6 +1020,89 @@ function formatNodeDetailsVerboseText(lines: string[], quality: NodeDefinitionQu
   }
 }
 
+function formatNodeAIReviewsText(lines: string[], reviews: LayerAIReview[], verbose: boolean): void {
+  lines.push(ansis.bold("AI Evaluation:"));
+  lines.push(ansis.dim("─".repeat(60)));
+  lines.push("");
+
+  // Summary table header
+  const header = [
+    "Layer".padEnd(14),
+    "Alignment".padStart(10),
+    "Documentation".padStart(14),
+    "Nodes".padStart(6),
+  ].join("  ");
+  lines.push("  " + ansis.dim(header));
+  lines.push("  " + ansis.dim("─".repeat(header.length)));
+
+  for (const review of reviews) {
+    const alignColor = review.avgAlignmentScore >= 70 ? ansis.green : review.avgAlignmentScore >= 50 ? ansis.yellow : ansis.red;
+    const docColor = review.avgDocumentationScore >= 65 ? ansis.green : review.avgDocumentationScore >= 45 ? ansis.yellow : ansis.red;
+
+    const row = [
+      review.layerId.padEnd(14),
+      alignColor(review.avgAlignmentScore.toFixed(1).padStart(10)),
+      docColor(review.avgDocumentationScore.toFixed(1).padStart(14)),
+      String(review.nodeEvaluations.length).padStart(6),
+    ].join("  ");
+    lines.push("  " + row);
+  }
+
+  // Verbose: per-node scores and suggestions
+  if (verbose) {
+    lines.push("");
+    lines.push(ansis.bold("  Per-node AI details:"));
+    for (const review of reviews) {
+      lines.push("");
+      lines.push(ansis.bold(`  ${review.layerId} (${review.standard}):`));
+      for (const ev of review.nodeEvaluations) {
+        const alignColor = ev.alignmentScore >= 70 ? ansis.green : ev.alignmentScore >= 50 ? ansis.yellow : ansis.red;
+        const docColor = ev.documentationScore >= 65 ? ansis.green : ev.documentationScore >= 45 ? ansis.yellow : ansis.red;
+        lines.push(
+          `    ${ev.specNodeId.padEnd(45)} align: ${alignColor(String(ev.alignmentScore).padStart(3))}  doc: ${docColor(String(ev.documentationScore).padStart(3))}`
+        );
+        if (ev.suggestions.length > 0) {
+          for (const s of ev.suggestions) {
+            lines.push(ansis.dim(`      → ${s}`));
+          }
+        }
+      }
+    }
+  }
+}
+
+function formatNodeAIReviewsMarkdown(lines: string[], reviews: LayerAIReview[]): void {
+  lines.push("## AI Evaluation");
+  lines.push("");
+  lines.push("### Summary by Layer");
+  lines.push("");
+  lines.push("| Layer | Standard | Alignment | Documentation | Nodes |");
+  lines.push("|-------|----------|-----------|---------------|-------|");
+  for (const review of reviews) {
+    lines.push(
+      `| ${escapeMarkdown(review.layerId)} | ${escapeMarkdown(review.standard)} | ${review.avgAlignmentScore.toFixed(1)} | ${review.avgDocumentationScore.toFixed(1)} | ${review.nodeEvaluations.length} |`
+    );
+  }
+  lines.push("");
+
+  for (const review of reviews) {
+    if (review.nodeEvaluations.length === 0) continue;
+    lines.push(`### ${escapeMarkdown(review.layerId)} — ${escapeMarkdown(review.standard)}`);
+    lines.push("");
+    lines.push("| Node Type | Alignment | Alignment Reasoning | Documentation | Doc Reasoning | Suggestions |");
+    lines.push("|-----------|-----------|---------------------|---------------|---------------|-------------|");
+    for (const ev of review.nodeEvaluations) {
+      const suggestions = ev.suggestions.length > 0
+        ? ev.suggestions.map(escapeMarkdown).join("; ")
+        : "-";
+      lines.push(
+        `| ${escapeMarkdown(ev.specNodeId)} | ${ev.alignmentScore} | ${escapeMarkdown(ev.alignmentReasoning)} | ${ev.documentationScore} | ${escapeMarkdown(ev.documentationReasoning)} | ${suggestions} |`
+      );
+    }
+    lines.push("");
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Node Audit — Markdown formatter
 // ---------------------------------------------------------------------------
@@ -1034,6 +1123,9 @@ function formatNodeAuditMarkdown(report: NodeAuditReport, _options: AuditFormatt
   lines.push("- [Definition Quality Issues](#definition-quality-issues)");
   lines.push("- [Semantic Overlaps](#semantic-overlaps)");
   lines.push("- [Schema Completeness](#schema-completeness)");
+  if (report.aiReviews) {
+    lines.push("- [AI Evaluation](#ai-evaluation)");
+  }
   lines.push("");
 
   // Executive Summary
@@ -1142,6 +1234,11 @@ function formatNodeAuditMarkdown(report: NodeAuditReport, _options: AuditFormatt
     }
   }
   lines.push("");
+
+  // AI Evaluation
+  if (report.aiReviews) {
+    formatNodeAIReviewsMarkdown(lines, report.aiReviews);
+  }
 
   return lines.join("\n");
 }
