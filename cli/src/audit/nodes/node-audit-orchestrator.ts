@@ -7,12 +7,10 @@ import { NodeSchemaLoader } from "./node-schema-loader.js";
 import { NodeDefinitionAnalyzer } from "./analysis/node-definition-analyzer.js";
 import { NodeOverlapDetector } from "./analysis/node-overlap-detector.js";
 import { NodeCompletenessChecker } from "./analysis/node-completeness-checker.js";
-import { NodeLayerAlignmentAssessor } from "./analysis/node-layer-alignment.js";
 import type {
   NodeAuditReport,
   NodeLayerSummary,
   NodeDefinitionQuality,
-  ParsedNodeSchema,
 } from "./node-audit-types.js";
 
 export interface NodeAuditOptions {
@@ -34,7 +32,7 @@ export class NodeAuditOrchestrator {
       loader.loadAllSchemas(),
     ]);
 
-    // Filtered view used by definition quality, overlap detection, and alignment.
+    // Filtered view used by definition quality and overlap detection.
     const schemas = options.layer
       ? allSchemas.filter((s) => s.layerId === options.layer)
       : allSchemas;
@@ -53,16 +51,7 @@ export class NodeAuditOrchestrator {
     const completenessChecker = new NodeCompletenessChecker();
     const completenessIssues = completenessChecker.check(layerDefs, allSchemas);
 
-    // 5. Layer alignment — per layer
-    const alignmentAssessor = new NodeLayerAlignmentAssessor();
-    const schemasByLayer = groupByLayer(schemas);
-    const alignmentAssessments = layerDefs
-      .filter((l) => !options.layer || l.id === options.layer)
-      .map((layerDef) =>
-        alignmentAssessor.assess(layerDef, schemasByLayer.get(layerDef.id) ?? [])
-      );
-
-    // 6. Layer summaries
+    // 5. Layer summaries
     const qualityByLayer = groupQualityByLayer(definitionQuality);
     const layerSummaries: NodeLayerSummary[] = layerDefs
       .filter((l) => !options.layer || l.id === options.layer)
@@ -79,7 +68,6 @@ export class NodeAuditOrchestrator {
       definitionQuality,
       overlaps,
       completenessIssues,
-      alignmentAssessments,
     };
   }
 }
@@ -87,16 +75,6 @@ export class NodeAuditOrchestrator {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function groupByLayer(schemas: ParsedNodeSchema[]): Map<string, ParsedNodeSchema[]> {
-  const map = new Map<string, ParsedNodeSchema[]>();
-  for (const schema of schemas) {
-    const group = map.get(schema.layerId) ?? [];
-    group.push(schema);
-    map.set(schema.layerId, group);
-  }
-  return map;
-}
 
 function groupQualityByLayer(
   quality: NodeDefinitionQuality[]

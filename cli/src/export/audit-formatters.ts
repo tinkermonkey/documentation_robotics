@@ -5,7 +5,7 @@
 
 import ansis from "ansis";
 import { AuditReport, CoverageMetrics, DuplicateCandidate, GapCandidate, BalanceAssessment } from "../audit/types.js";
-import type { NodeAuditReport, NodeLayerSummary, NodeDefinitionQuality, SemanticOverlapCandidate, SchemaCompletenessIssue, LayerAlignmentAssessment } from "../audit/nodes/node-audit-types.js";
+import type { NodeAuditReport, NodeLayerSummary, NodeDefinitionQuality, SemanticOverlapCandidate, SchemaCompletenessIssue } from "../audit/nodes/node-audit-types.js";
 import { escapeMarkdown } from "./markdown-utils.js";
 import { formatDate } from "../utils/date-utils.js";
 
@@ -818,10 +818,6 @@ function formatNodeAuditText(report: NodeAuditReport, options: AuditFormatterOpt
   formatNodeCompletenessText(lines, report.completenessIssues);
   lines.push("");
 
-  // Layer alignment
-  formatNodeAlignmentText(lines, report.alignmentAssessments);
-  lines.push("");
-
   // Verbose: per-node details
   if (options.verbose) {
     formatNodeDetailsVerboseText(lines, report.definitionQuality);
@@ -996,48 +992,6 @@ function formatNodeCompletenessText(lines: string[], issues: SchemaCompletenessI
   }
 }
 
-function formatNodeAlignmentText(
-  lines: string[],
-  assessments: LayerAlignmentAssessment[]
-): void {
-  lines.push(ansis.bold("Layer Alignment:"));
-
-  if (assessments.length === 0) {
-    lines.push(ansis.dim("  No alignment assessments available."));
-    return;
-  }
-
-  const header = [
-    "Layer".padEnd(14),
-    "Standard".padEnd(22),
-    "Types".padStart(6),
-    "Aligned".padStart(8),
-    "Misaligned".padStart(11),
-    "%".padStart(5),
-  ].join("  ");
-  lines.push("  " + ansis.dim(header));
-  lines.push("  " + ansis.dim("─".repeat(header.length)));
-
-  for (const a of assessments) {
-    const pct = a.alignmentPercentage.toFixed(0);
-    const pctStr = pct.padStart(5);
-    const pctColored = a.alignmentPercentage < 70
-      ? ansis.yellow(pctStr)
-      : pctStr;
-    const misStr = String(a.misalignedTypes.length).padStart(11);
-    const misColored = a.misalignedTypes.length > 0 ? ansis.dim(misStr) : misStr;
-    const row = [
-      a.layerId.padEnd(14),
-      a.standard.padEnd(22),
-      String(a.totalNodeTypes).padStart(6),
-      String(a.alignedCount).padStart(8),
-      misColored,
-      pctColored,
-    ].join("  ");
-    lines.push("  " + row);
-  }
-}
-
 function formatNodeDetailsVerboseText(lines: string[], quality: NodeDefinitionQuality[]): void {
   lines.push(ansis.bold("Per-Node Details (verbose):"));
   lines.push("");
@@ -1080,7 +1034,6 @@ function formatNodeAuditMarkdown(report: NodeAuditReport, _options: AuditFormatt
   lines.push("- [Definition Quality Issues](#definition-quality-issues)");
   lines.push("- [Semantic Overlaps](#semantic-overlaps)");
   lines.push("- [Schema Completeness](#schema-completeness)");
-  lines.push("- [Layer Alignment](#layer-alignment)");
   lines.push("");
 
   // Executive Summary
@@ -1187,18 +1140,6 @@ function formatNodeAuditMarkdown(report: NodeAuditReport, _options: AuditFormatt
         `| ${escapeMarkdown(issue.layerId)} | ${escapeMarkdown(issue.specNodeId)} | ${issue.issueType} | ${escapeMarkdown(issue.detail)} |`
       );
     }
-  }
-  lines.push("");
-
-  // Layer Alignment
-  lines.push("## Layer Alignment");
-  lines.push("");
-  lines.push("| Layer | Standard | Node Types | Aligned | Misaligned | % |");
-  lines.push("|-------|----------|------------|---------|------------|---|");
-  for (const a of report.alignmentAssessments) {
-    lines.push(
-      `| ${escapeMarkdown(a.layerId)} | ${escapeMarkdown(a.standard)} | ${a.totalNodeTypes} | ${a.alignedCount} | ${a.misalignedTypes.length} | ${a.alignmentPercentage.toFixed(0)}% |`
-    );
   }
   lines.push("");
 

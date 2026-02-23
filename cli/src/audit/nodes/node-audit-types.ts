@@ -92,18 +92,6 @@ export interface NodeLayerSummary {
 }
 
 /**
- * Assessment of how well a layer's node types align with its inspiring standard
- */
-export interface LayerAlignmentAssessment {
-  layerId: string;
-  standard: string;
-  totalNodeTypes: number;
-  alignedCount: number;
-  misalignedTypes: string[];
-  alignmentPercentage: number;
-}
-
-/**
  * Complete node audit report
  */
 export interface NodeAuditReport {
@@ -113,5 +101,4 @@ export interface NodeAuditReport {
   definitionQuality: NodeDefinitionQuality[];
   overlaps: SemanticOverlapCandidate[];
   completenessIssues: SchemaCompletenessIssue[];
-  alignmentAssessments: LayerAlignmentAssessment[];
 }
