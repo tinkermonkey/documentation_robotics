@@ -36,7 +36,7 @@ export async function invokeClaudeStreaming(
   );
 
   return Promise.race([
-    client.sendMessage(prompt, { withDanger: true }),
+    client.sendMessage(prompt, { withDanger: true, outputStream: process.stderr }),
     timeoutPromise,
   ]);
 }

@@ -154,7 +154,7 @@ export class ClaudeCodeClient extends BaseChatClient {
           try {
             const event: ClaudeEvent = JSON.parse(line);
             eventCount++;
-            const result = this.handleClaudeEvent(event);
+            const result = this.handleClaudeEvent(event, options?.outputStream);
             if (result.output) {
               assistantOutput += result.output;
             }
@@ -181,8 +181,13 @@ export class ClaudeCodeClient extends BaseChatClient {
               );
             }
 
-            // Non-JSON line, print as-is (expected for some CLI output)
-            process.stdout.write(line + "\n");
+            // Non-JSON line — route through the same output stream as text content
+            const outStream = options?.outputStream !== null
+              ? (options?.outputStream ?? process.stdout)
+              : null;
+            if (outStream) {
+              outStream.write(line + "\n");
+            }
             assistantOutput += line + "\n";
           }
         }
@@ -293,7 +298,7 @@ export class ClaudeCodeClient extends BaseChatClient {
           try {
             const event: ClaudeEvent = JSON.parse(buffer);
             eventCount++;
-            const result = this.handleClaudeEvent(event);
+            const result = this.handleClaudeEvent(event, options?.outputStream);
             if (result.output) {
               assistantOutput += result.output;
             }
@@ -320,7 +325,12 @@ export class ClaudeCodeClient extends BaseChatClient {
               );
             }
 
-            process.stdout.write(buffer);
+            const outStream = options?.outputStream !== null
+              ? (options?.outputStream ?? process.stdout)
+              : null;
+            if (outStream) {
+              outStream.write(buffer);
+            }
             assistantOutput += buffer;
           }
         }
@@ -370,9 +380,13 @@ export class ClaudeCodeClient extends BaseChatClient {
   /**
    * Handle a Claude Code event from the JSON stream
    * @param event The Claude event to handle
+   * @param outputStream Stream for text output. null = suppress, undefined = stdout.
    * @returns Object with output text and tool use flag
    */
-  private handleClaudeEvent(event: ClaudeEvent): { output: string; usedTool: boolean } {
+  private handleClaudeEvent(
+    event: ClaudeEvent,
+    outputStream?: NodeJS.WriteStream | null
+  ): { output: string; usedTool: boolean } {
     let output = "";
     let usedTool = false;
 
@@ -381,13 +395,15 @@ export class ClaudeCodeClient extends BaseChatClient {
       for (const block of content) {
         if (block.type === "text") {
           const text = block.text || "";
-          process.stdout.write(text);
+          if (outputStream !== null) {
+            (outputStream ?? process.stdout).write(text);
+          }
           output += text;
         } else if (block.type === "tool_use") {
           usedTool = true;
-          const toolMsg = ansis.dim(`\n[Using tool: ${block.name}]\n`);
-          process.stdout.write(toolMsg);
-          output += toolMsg;
+          // Tool notifications are always progress indicators — always stderr.
+          // Not added to output: they are display-only and would corrupt JSON parsing.
+          process.stderr.write(ansis.dim(`\n[Using tool: ${block.name}]\n`));
         }
       }
     }

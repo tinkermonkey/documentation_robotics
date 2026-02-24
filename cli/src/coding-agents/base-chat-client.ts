@@ -35,6 +35,13 @@ export interface ChatOptions {
   sessionId?: string;
   /** Enable dangerous mode (skip permissions for Claude, allow all tools for Copilot) */
   withDanger?: boolean;
+  /**
+   * Stream for real-time text output. Defaults to process.stdout.
+   * Pass process.stderr to keep stdout clean for programmatic callers.
+   * Pass null to suppress text output entirely.
+   * Tool-use notifications always go to process.stderr regardless of this setting.
+   */
+  outputStream?: NodeJS.WriteStream | null;
 }
 
 /**
