@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { PromptTemplates } from "../../../../src/audit/ai/prompt-templates.js";
+import { PromptTemplates } from "../../../../src/audit/relationships/ai/prompts.js";
 import type { CoverageMetrics } from "../../../../src/audit/types.js";
 
 describe("PromptTemplates", () => {

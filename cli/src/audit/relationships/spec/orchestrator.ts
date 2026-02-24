@@ -8,14 +8,14 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import * as yaml from "yaml";
-import { CoverageAnalyzer } from "./analysis/coverage-analyzer.js";
-import { DuplicateDetector } from "./analysis/duplicate-detector.js";
-import { GapAnalyzer } from "./analysis/gap-analyzer.js";
-import { BalanceAssessor } from "./analysis/balance-assessor.js";
-import { ConnectivityAnalyzer } from "./graph/connectivity.js";
-import { RelationshipCatalog } from "../core/relationship-catalog.js";
-import { RelationshipGraph } from "./graph/relationship-graph.js";
-import { getLayerById, getAllLayers } from "../generated/layer-registry.js";
+import { CoverageAnalyzer } from "../analysis/coverage-analyzer.js";
+import { DuplicateDetector } from "../analysis/duplicate-detector.js";
+import { GapAnalyzer } from "../analysis/gap-analyzer.js";
+import { BalanceAssessor } from "../analysis/balance-assessor.js";
+import { ConnectivityAnalyzer } from "../graph/connectivity.js";
+import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
+import { RelationshipGraph } from "../graph/relationship-graph.js";
+import { getLayerById, getAllLayers } from "../../../generated/layer-registry.js";
 import type {
   AuditReport,
   ConnectivityStats,
@@ -23,8 +23,8 @@ import type {
   DuplicateCandidate,
   GapCandidate,
   BalanceAssessment,
-} from "./types.js";
-import { getErrorMessage } from "../utils/errors.js";
+} from "../../types.js";
+import { getErrorMessage } from "../../../utils/errors.js";
 
 export interface AuditOptions {
   layer?: string;

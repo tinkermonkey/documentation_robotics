@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "bun:test";
-import { BalanceAssessor } from "../../../src/audit/analysis/balance-assessor.js";
+import { BalanceAssessor } from "../../../src/audit/relationships/analysis/balance-assessor.js";
 import { getLayerById } from "../../../src/generated/layer-registry.js";
 
 describe("BalanceAssessor", () => {

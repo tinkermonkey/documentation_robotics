@@ -7,10 +7,10 @@
  *   in the same semantic category
  */
 
-import { RelationshipCatalog } from "../../core/relationship-catalog.js";
-import type { Relationship } from "../../core/relationships.js";
-import type { Element } from "../../core/element.js";
-import type { DuplicateCandidate } from "../types.js";
+import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
+import type { Relationship } from "../../../core/relationships.js";
+import type { Element } from "../../../core/element.js";
+import type { DuplicateCandidate } from "../../types.js";
 
 /**
  * Detect duplicates within a set of model relationship instances

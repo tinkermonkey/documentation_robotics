@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "bun:test";
-import { CoverageAnalyzer } from "../../../src/audit/analysis/coverage-analyzer.js";
+import { CoverageAnalyzer } from "../../../src/audit/relationships/analysis/coverage-analyzer.js";
 import { RelationshipCatalog } from "../../../src/core/relationship-catalog.js";
 import {
   getLayerById,

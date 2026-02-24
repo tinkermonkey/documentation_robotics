@@ -1,10 +1,11 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { CoverageMetrics } from "../types.js";
-import { ClaudeInvoker } from "./claude-invoker.js";
-import { ResponseParser } from "./response-parser.js";
-import type { RelationshipRecommendation, LayerReview, InterLayerValidation } from "./response-parser.js";
-import { getErrorMessage } from "../../utils/errors.js";
+import type { CoverageMetrics } from "../../types.js";
+import { AuditAIRunner } from "../../ai/runner.js";
+import { PromptTemplates } from "./prompts.js";
+import { ResponseParser } from "./parser.js";
+import type { RelationshipRecommendation, LayerReview, InterLayerValidation } from "./parser.js";
+import { getErrorMessage } from "../../../utils/errors.js";
 
 /**
  * Tracks progress of AI evaluation operations, enabling resume support
@@ -68,13 +69,15 @@ export class InMemoryProgressTracker implements ProgressTracker {
  * AI-powered relationship evaluation orchestrator
  */
 export class AIEvaluator {
-  private claudeInvoker: ClaudeInvoker;
+  private runner: AuditAIRunner;
+  private promptTemplates: PromptTemplates;
   private responseParser: ResponseParser;
   private config: AIEvaluationConfig;
   private failures: EvaluationFailure[] = [];
 
   constructor(config: Partial<AIEvaluationConfig> = {}) {
-    this.claudeInvoker = new ClaudeInvoker();
+    this.runner = new AuditAIRunner();
+    this.promptTemplates = new PromptTemplates();
     this.responseParser = new ResponseParser();
     this.config = {
       outputDir: config.outputDir || "ai-evaluation",
@@ -108,9 +111,6 @@ export class AIEvaluator {
       for (const nodeType of layerMetrics.isolatedNodeTypes) {
         lowCoverageTypes.push({ nodeType, metrics: layerMetrics });
       }
-
-      // Note: isolatedNodeTypes already includes zero-coverage types
-      // Additional low-coverage filtering could be added here if needed
     }
 
     // Create tracker if not provided
@@ -118,10 +118,7 @@ export class AIEvaluator {
       tracker = new InMemoryProgressTracker(lowCoverageTypes.length);
     }
 
-    // Sequential evaluation with fail-fast on consecutive failures
     let successCount = 0;
-    let consecutiveFailures = 0;
-    const MAX_CONSECUTIVE_FAILURES = 3;
 
     for (const { nodeType, metrics } of lowCoverageTypes) {
       // Check if already evaluated (resume support)
@@ -136,36 +133,24 @@ export class AIEvaluator {
       );
 
       try {
-        // Get available predicates for this layer
         const predicates = await getPredicatesForLayer(metrics.layer);
+        const prompt = this.promptTemplates.elementEvaluation(nodeType, metrics, predicates);
+        const response = await this.runner.invoke(prompt, nodeType);
 
-        // Invoke Claude for evaluation
-        const response = await this.claudeInvoker.evaluateElement(
-          nodeType,
-          metrics,
-          predicates
-        );
-
-        // Parse recommendations
         const recommendations =
           this.responseParser.parseElementRecommendations(response);
 
-        // Save recommendations to file
         await this.saveElementRecommendations(nodeType, recommendations);
-
-        // Mark as completed
         await tracker.markCompleted(nodeType);
 
         console.log(
           `Completed: ${nodeType} (${recommendations.length} recommendations)`
         );
         successCount++;
-        consecutiveFailures = 0; // Reset counter on success
       } catch (error: unknown) {
         const errorMessage = getErrorMessage(error);
         console.error(`Failed to evaluate ${nodeType}: ${errorMessage}`);
 
-        // Track failure
         this.failures.push({
           type: "element",
           key: nodeType,
@@ -173,19 +158,13 @@ export class AIEvaluator {
           timestamp: new Date().toISOString(),
         });
 
-        consecutiveFailures++;
-
-        // Fail fast after consecutive failures
-        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-          throw new Error(
-            `AI evaluation aborted after ${MAX_CONSECUTIVE_FAILURES} consecutive failures. ` +
-            `Is Claude CLI installed and authenticated? Run 'claude --version' to verify.`
-          );
+        // Re-throw fail-fast errors from runner
+        if (errorMessage.includes("AI evaluation aborted")) {
+          throw error;
         }
       }
     }
 
-    // Report element evaluation summary
     if (lowCoverageTypes.length > 0) {
       console.log(
         `\n✓ Element evaluation complete: ${successCount}/${lowCoverageTypes.length} successful`
@@ -204,22 +183,17 @@ export class AIEvaluator {
   async reviewLayerCoherence(
     layers: string[],
     coverage: CoverageMetrics[],
-    getPredicatesForLayer: (layer: string) => Promise<string[]>,
     tracker?: ProgressTracker
   ): Promise<void> {
-    // Ensure output directory exists
     const layerReviewsDir = join(this.config.outputDir, "layer-reviews");
     await mkdir(layerReviewsDir, { recursive: true });
 
-    // Create tracker if not provided
     if (!tracker) {
       tracker = new InMemoryProgressTracker(layers.length);
     }
 
-    // Sequential layer review
     let successCount = 0;
     for (const layer of layers) {
-      // Check if already reviewed (resume support)
       if (this.config.resumable && tracker.isCompleted(layer)) {
         console.log(`Skipping already-reviewed layer: ${layer}`);
         successCount++;
@@ -231,23 +205,11 @@ export class AIEvaluator {
       );
 
       try {
-        // Get available predicates for this layer
-        const predicates = await getPredicatesForLayer(layer);
+        const prompt = this.promptTemplates.layerReview(layer, coverage);
+        const response = await this.runner.invoke(prompt, layer);
 
-        // Invoke Claude for layer review
-        const response = await this.claudeInvoker.reviewLayer(
-          layer,
-          coverage,
-          predicates
-        );
-
-        // Parse review
         const review = this.responseParser.parseLayerReview(response);
-
-        // Save review to file
         await this.saveLayerReview(layer, review);
-
-        // Mark as completed
         await tracker.markCompleted(layer);
 
         console.log(
@@ -258,18 +220,19 @@ export class AIEvaluator {
         const errorMessage = getErrorMessage(error);
         console.error(`Failed to review layer ${layer}: ${errorMessage}`);
 
-        // Track failure
         this.failures.push({
           type: "layer",
           key: layer,
           error: errorMessage,
           timestamp: new Date().toISOString(),
         });
-        // Continue with next layer
+
+        if (errorMessage.includes("AI evaluation aborted")) {
+          throw error;
+        }
       }
     }
 
-    // Report layer review summary
     if (layers.length > 0) {
       console.log(`\n✓ Layer review complete: ${successCount}/${layers.length} successful`);
       if (this.failures.filter((f) => f.type === "layer").length > 0) {
@@ -287,21 +250,17 @@ export class AIEvaluator {
     layerPairs: Array<{ source: string; target: string }>,
     tracker?: ProgressTracker
   ): Promise<void> {
-    // Ensure output directory exists
     const interLayerDir = join(this.config.outputDir, "inter-layer-validation");
     await mkdir(interLayerDir, { recursive: true });
 
-    // Create tracker if not provided
     if (!tracker) {
       tracker = new InMemoryProgressTracker(layerPairs.length);
     }
 
-    // Sequential validation
     let successCount = 0;
     for (const { source, target } of layerPairs) {
       const pairKey = `${source}->${target}`;
 
-      // Check if already validated (resume support)
       if (this.config.resumable && tracker.isCompleted(pairKey)) {
         console.log(`Skipping already-validated: ${pairKey}`);
         successCount++;
@@ -313,16 +272,11 @@ export class AIEvaluator {
       );
 
       try {
-        // Invoke Claude for validation
-        const response = await this.claudeInvoker.validateInterLayer(source, target);
+        const prompt = this.promptTemplates.interLayerValidation(source, target);
+        const response = await this.runner.invoke(prompt, pairKey);
 
-        // Parse validation results
         const validation = this.responseParser.parseInterLayerValidation(response);
-
-        // Save validation results
         await this.saveInterLayerValidation(pairKey, validation);
-
-        // Mark as completed
         await tracker.markCompleted(pairKey);
 
         console.log(
@@ -333,18 +287,19 @@ export class AIEvaluator {
         const errorMessage = getErrorMessage(error);
         console.error(`Failed to validate ${pairKey}: ${errorMessage}`);
 
-        // Track failure
         this.failures.push({
           type: "inter-layer",
           key: pairKey,
           error: errorMessage,
           timestamp: new Date().toISOString(),
         });
-        // Continue with next pair
+
+        if (errorMessage.includes("AI evaluation aborted")) {
+          throw error;
+        }
       }
     }
 
-    // Report inter-layer validation summary
     if (layerPairs.length > 0) {
       console.log(
         `\n✓ Inter-layer validation complete: ${successCount}/${layerPairs.length} successful`
@@ -361,16 +316,12 @@ export class AIEvaluator {
    * Sanitize a string for use in file paths, removing path traversal characters
    */
   private sanitizeForFilePath(input: string): string {
-    // Remove path traversal characters and other invalid filename characters
     return input
       .replace(/\.\./g, "_")
       .replace(/[\/\\]/g, "_")
       .replace(/[<>:"|?*]/g, "_");
   }
 
-  /**
-   * Save element recommendations to file
-   */
   private async saveElementRecommendations(
     nodeType: string,
     recommendations: RelationshipRecommendation[]
@@ -396,14 +347,11 @@ export class AIEvaluator {
       const errorMessage = getErrorMessage(error);
       throw new Error(
         `Failed to save element recommendations for "${nodeType}" to ${filepath}: ${errorMessage}. ` +
-        `AI evaluation results were not persisted. Please ensure the output directory is writable and has sufficient disk space.`
+          `AI evaluation results were not persisted. Please ensure the output directory is writable and has sufficient disk space.`
       );
     }
   }
 
-  /**
-   * Save layer review to file
-   */
   private async saveLayerReview(layer: string, review: LayerReview): Promise<void> {
     const sanitizedLayer = this.sanitizeForFilePath(layer);
     const filename = `${sanitizedLayer}.review.json`;
@@ -426,14 +374,11 @@ export class AIEvaluator {
       const errorMessage = getErrorMessage(error);
       throw new Error(
         `Failed to save layer review for "${layer}" to ${filepath}: ${errorMessage}. ` +
-        `AI evaluation results were not persisted. Please ensure the output directory is writable and has sufficient disk space.`
+          `AI evaluation results were not persisted. Please ensure the output directory is writable and has sufficient disk space.`
       );
     }
   }
 
-  /**
-   * Save inter-layer validation to file
-   */
   private async saveInterLayerValidation(
     pairKey: string,
     validation: InterLayerValidation
@@ -458,14 +403,11 @@ export class AIEvaluator {
       const errorMessage = getErrorMessage(error);
       throw new Error(
         `Failed to save inter-layer validation for "${pairKey}" to ${filepath}: ${errorMessage}. ` +
-        `AI evaluation results were not persisted. Please ensure the output directory is writable and has sufficient disk space.`
+          `AI evaluation results were not persisted. Please ensure the output directory is writable and has sufficient disk space.`
       );
     }
   }
 
-  /**
-   * Get evaluation summary including failures
-   */
   getEvaluationSummary(totalAttempted: number): EvaluationSummary {
     return {
       totalAttempted,
@@ -475,9 +417,6 @@ export class AIEvaluator {
     };
   }
 
-  /**
-   * Save evaluation summary to file
-   */
   async saveEvaluationSummary(totalAttempted: number): Promise<void> {
     const summary = this.getEvaluationSummary(totalAttempted);
     const filepath = join(this.config.outputDir, "evaluation-summary.json");
@@ -488,14 +427,11 @@ export class AIEvaluator {
       const errorMessage = getErrorMessage(error);
       throw new Error(
         `Failed to save evaluation summary to ${filepath}: ${errorMessage}. ` +
-        `Summary of evaluation results was not persisted. Please ensure the output directory is writable and has sufficient disk space.`
+          `Summary of evaluation results was not persisted. Please ensure the output directory is writable and has sufficient disk space.`
       );
     }
   }
 
-  /**
-   * Print failure summary to console
-   */
   printFailureSummary(): void {
     if (this.failures.length === 0) {
       console.log("\n✓ All AI evaluations completed successfully");

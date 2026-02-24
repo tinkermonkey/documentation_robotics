@@ -5,7 +5,7 @@
  * Compares layer.json node_types lists against actual schema files loaded from disk.
  */
 
-import type { LayerDefinition, ParsedNodeSchema, SchemaCompletenessIssue } from "../node-audit-types.js";
+import type { LayerDefinition, ParsedNodeSchema, SchemaCompletenessIssue } from "../types.js";
 
 export class NodeCompletenessChecker {
   check(

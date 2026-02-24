@@ -5,7 +5,7 @@
 
 import ansis from "ansis";
 import { AuditReport, CoverageMetrics, DuplicateCandidate, GapCandidate, BalanceAssessment } from "../audit/types.js";
-import type { NodeAuditReport, NodeLayerSummary, NodeDefinitionQuality, SemanticOverlapCandidate, SchemaCompletenessIssue, LayerAIReview } from "../audit/nodes/node-audit-types.js";
+import type { NodeAuditReport, NodeLayerSummary, NodeDefinitionQuality, SemanticOverlapCandidate, SchemaCompletenessIssue, LayerAIReview } from "../audit/nodes/types.js";
 import { escapeMarkdown } from "./markdown-utils.js";
 import { formatDate } from "../utils/date-utils.js";
 

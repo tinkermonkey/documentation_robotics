@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "bun:test";
-import { GapAnalyzer } from "../../../src/audit/analysis/gap-analyzer.js";
+import { GapAnalyzer } from "../../../src/audit/relationships/analysis/gap-analyzer.js";
 import { RelationshipCatalog } from "../../../src/core/relationship-catalog.js";
 import { getLayerById } from "../../../src/generated/layer-registry.js";
 

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "bun:test";
-import { RelationshipGraph } from "../../../../src/audit/graph/relationship-graph.js";
+import { RelationshipGraph } from "../../../../src/audit/relationships/graph/relationship-graph.js";
 
 describe("RelationshipGraph - error handling", () => {
   let graph: RelationshipGraph;

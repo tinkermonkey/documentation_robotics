@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { ResponseParser } from "../../../../src/audit/ai/response-parser.js";
+import { ResponseParser } from "../../../../src/audit/relationships/ai/parser.js";
 
 describe("ResponseParser", () => {
   const parser = new ResponseParser();

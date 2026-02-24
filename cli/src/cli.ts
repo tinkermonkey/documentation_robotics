@@ -515,6 +515,7 @@ Examples:
 program
   .command("audit [layer]")
   .description("Analyze relationship coverage, gaps, duplicates, and balance")
+  .option("--type <type>", "Audit type: relationships (default), nodes, all")
   .option("--format <format>", "Output format: text (default), json, markdown")
   .option("--output <path>", "Output file path (auto-detects format from extension)")
   .option("--verbose", "Show detailed analysis")
@@ -522,21 +523,21 @@ program
   .addHelpText(
     "after",
     `
+Audit types:
+  relationships  Relationship coverage, gaps, duplicates, balance (default)
+  nodes          Node type usage distribution across model layers
+  all            Both relationship and node audits
+
 Output formats:
   text       Full formatted audit report (default)
   json       JSON output for automation
   markdown   Markdown audit report format
 
-Analysis types:
-  Coverage     Node type isolation and predicate utilization
-  Duplicates   Semantic duplicate relationship detection
-  Gaps         Missing relationship identification
-  Balance      Relationship density assessment
-  Connectivity Graph connectivity and component analysis
-
 Examples:
-  $ dr audit                           # Full audit of all layers
+  $ dr audit                           # Full relationship audit of all layers
   $ dr audit security                  # Audit security layer only
+  $ dr audit --type nodes              # Node type distribution audit
+  $ dr audit --type all                # Combined relationship + node audit
   $ dr audit --format json             # Output as JSON
   $ dr audit --output audit.md         # Save as markdown file
   $ dr audit --verbose                 # Show detailed analysis

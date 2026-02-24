@@ -7,10 +7,10 @@
  * - → Report as a gap
  */
 
-import { RELATIONSHIPS_BY_SOURCE } from "../../generated/relationship-index.js";
-import type { Relationship } from "../../core/relationships.js";
-import type { Element } from "../../core/element.js";
-import type { GapCandidate } from "../types.js";
+import { RELATIONSHIPS_BY_SOURCE } from "../../../generated/relationship-index.js";
+import type { Relationship } from "../../../core/relationships.js";
+import type { Element } from "../../../core/element.js";
+import type { GapCandidate } from "../../types.js";
 
 /**
  * Analyze gaps for a single layer

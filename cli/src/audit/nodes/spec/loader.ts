@@ -5,7 +5,7 @@
 
 import { readdir, readFile } from "node:fs/promises";
 import { join, basename, dirname } from "node:path";
-import type { ParsedNodeSchema, LayerDefinition } from "./node-audit-types.js";
+import type { ParsedNodeSchema, LayerDefinition } from "../types.js";
 
 export class NodeSchemaLoader {
   constructor(private readonly specDir: string) {}

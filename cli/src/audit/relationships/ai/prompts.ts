@@ -1,4 +1,4 @@
-import type { CoverageMetrics } from "../types.js";
+import type { CoverageMetrics } from "../../types.js";
 
 export class PromptTemplates {
   /**

@@ -1,11 +1,11 @@
 import fs from "fs/promises";
 import path from "path";
 import type { AuditReport, CoverageMetrics, GapCandidate } from "../types.js";
-import { AuditOrchestrator, type AuditOptions } from "../audit-orchestrator.js";
+import { AuditOrchestrator, type AuditOptions } from "../relationships/spec/orchestrator.js";
 import { ReportGenerator } from "../reports/report-generator.js";
 import { DifferentialAnalyzer, type DifferentialAnalysis } from "../differential-analyzer.js";
 import { SnapshotStorage } from "../snapshot-storage.js";
-import { AIEvaluator } from "../ai/ai-evaluator.js";
+import { AIEvaluator } from "../relationships/ai/evaluator.js";
 import { CANONICAL_LAYER_NAMES } from "../../core/layers.js";
 
 export interface PipelineOptions {
@@ -176,7 +176,7 @@ export class PipelineOrchestrator {
     console.log("   Step 2b/3: Reviewing layer coherence...");
     try {
       const layerNames = (beforeResult.coverage as CoverageMetrics[]).map((c) => c.layer);
-      await aiEvaluator.reviewLayerCoherence(layerNames, beforeResult.coverage as CoverageMetrics[], getPredicatesForLayer);
+      await aiEvaluator.reviewLayerCoherence(layerNames, beforeResult.coverage as CoverageMetrics[]);
     } catch (error) {
       console.error("   ⚠️  Error reviewing layer coherence:", error instanceof Error ? error.message : String(error));
     }

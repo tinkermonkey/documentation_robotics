@@ -6,7 +6,7 @@
  * node types based on name similarity, attribute overlap, or description overlap.
  */
 
-import type { ParsedNodeSchema, SemanticOverlapCandidate } from "../node-audit-types.js";
+import type { ParsedNodeSchema, SemanticOverlapCandidate } from "../types.js";
 
 /**
  * Compute Levenshtein edit distance between two strings.

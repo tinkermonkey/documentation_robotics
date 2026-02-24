@@ -20,15 +20,15 @@ export type {
 } from "./types.js";
 
 // Analysis components
-export { CoverageAnalyzer } from "./analysis/coverage-analyzer.js";
-export { DuplicateDetector } from "./analysis/duplicate-detector.js";
-export { GapAnalyzer } from "./analysis/gap-analyzer.js";
-export type { GapAnalysisResult } from "./analysis/gap-analyzer.js";
-export { BalanceAssessor } from "./analysis/balance-assessor.js";
+export { CoverageAnalyzer } from "./relationships/analysis/coverage-analyzer.js";
+export { DuplicateDetector } from "./relationships/analysis/duplicate-detector.js";
+export { GapAnalyzer } from "./relationships/analysis/gap-analyzer.js";
+export type { GapAnalysisResult } from "./relationships/analysis/gap-analyzer.js";
+export { BalanceAssessor } from "./relationships/analysis/balance-assessor.js";
 
 // Graph components
-export { RelationshipGraph } from "./graph/relationship-graph.js";
-export { ConnectivityAnalyzer } from "./graph/connectivity.js";
+export { RelationshipGraph } from "./relationships/graph/relationship-graph.js";
+export { ConnectivityAnalyzer } from "./relationships/graph/connectivity.js";
 
 // Snapshot and differential analysis components
 export { SnapshotStorage } from "./snapshot-storage.js";
@@ -45,14 +45,21 @@ export type {
 } from "./differential-analyzer.js";
 
 // AI evaluation components
-export { ClaudeInvoker } from "./ai/claude-invoker.js";
-export type { ClaudeInvocation } from "./ai/claude-invoker.js";
-export { PromptTemplates } from "./ai/prompt-templates.js";
-export { ResponseParser } from "./ai/response-parser.js";
+export { AuditAIRunner } from "./ai/runner.js";
+export { PromptTemplates } from "./relationships/ai/prompts.js";
+export { ResponseParser } from "./relationships/ai/parser.js";
 export type {
   RelationshipRecommendation,
   LayerReview,
   InterLayerValidation,
-} from "./ai/response-parser.js";
-export { AIEvaluator, InMemoryProgressTracker } from "./ai/ai-evaluator.js";
-export type { ProgressTracker, AIEvaluationConfig } from "./ai/ai-evaluator.js";
+} from "./relationships/ai/parser.js";
+export { AIEvaluator, InMemoryProgressTracker } from "./relationships/ai/evaluator.js";
+export type { ProgressTracker, AIEvaluationConfig } from "./relationships/ai/evaluator.js";
+
+// Spec relationship orchestrator
+export { AuditOrchestrator } from "./relationships/spec/orchestrator.js";
+export type { AuditOptions, AuditComponents } from "./relationships/spec/orchestrator.js";
+
+// Model relationship orchestrator
+export { ModelAuditOrchestrator } from "./relationships/model/orchestrator.js";
+export type { ModelAuditOptions } from "./relationships/model/orchestrator.js";

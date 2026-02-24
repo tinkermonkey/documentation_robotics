@@ -38,7 +38,7 @@ import { parseArgs } from "util";
 import { AuditReport } from "../cli/src/audit/types.js";
 import { formatAuditReport, AuditReportFormat } from "../cli/src/export/audit-formatters.js";
 import { writeFile, ensureDir } from "../cli/src/utils/file-io.js";
-import { AuditOrchestrator } from "../cli/src/audit/audit-orchestrator.js";
+import { AuditOrchestrator } from "../cli/src/audit/relationships/spec/orchestrator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

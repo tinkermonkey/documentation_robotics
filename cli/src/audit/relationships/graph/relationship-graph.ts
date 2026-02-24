@@ -5,11 +5,11 @@
  * and provides audit-specific graph queries.
  */
 
-import { GraphModel, type GraphEdge } from "../../core/graph-model.js";
-import { RELATIONSHIPS } from "../../generated/relationship-index.js";
-import { getAllLayers } from "../../generated/layer-registry.js";
-import type { Relationship } from "../../core/relationships.js";
-import type { Element } from "../../core/element.js";
+import { GraphModel, type GraphEdge } from "../../../core/graph-model.js";
+import { RELATIONSHIPS } from "../../../generated/relationship-index.js";
+import { getAllLayers } from "../../../generated/layer-registry.js";
+import type { Relationship } from "../../../core/relationships.js";
+import type { Element } from "../../../core/element.js";
 
 /**
  * Relationship graph for audit analysis

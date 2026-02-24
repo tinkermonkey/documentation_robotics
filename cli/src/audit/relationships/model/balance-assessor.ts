@@ -5,9 +5,9 @@
  * the same target-range logic as the spec-based BalanceAssessor.
  */
 
-import type { Relationship } from "../../core/relationships.js";
-import type { Element } from "../../core/element.js";
-import type { BalanceAssessment } from "../types.js";
+import type { Relationship } from "../../../core/relationships.js";
+import type { Element } from "../../../core/element.js";
+import type { BalanceAssessment } from "../../types.js";
 
 /**
  * Density targets for different node type categories (matches BalanceAssessor)

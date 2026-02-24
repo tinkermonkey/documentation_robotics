@@ -8,12 +8,12 @@
  * - Source/destination endpoint matching
  */
 
-import { RelationshipCatalog } from "../../core/relationship-catalog.js";
+import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
 import {
   RELATIONSHIPS,
   type RelationshipSpec,
-} from "../../generated/relationship-index.js";
-import type { DuplicateCandidate } from "../types.js";
+} from "../../../generated/relationship-index.js";
+import type { DuplicateCandidate } from "../../types.js";
 
 /**
  * Duplicate detector for semantic relationship overlap

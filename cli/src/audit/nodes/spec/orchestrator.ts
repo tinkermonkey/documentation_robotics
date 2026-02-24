@@ -3,17 +3,17 @@
  * Wires all analysis modules and returns a NodeAuditReport.
  */
 
-import { NodeSchemaLoader } from "./node-schema-loader.js";
-import { NodeDefinitionAnalyzer } from "./analysis/node-definition-analyzer.js";
-import { NodeOverlapDetector } from "./analysis/node-overlap-detector.js";
-import { NodeCompletenessChecker } from "./analysis/node-completeness-checker.js";
-import { NodeAIEvaluator } from "./ai/node-ai-evaluator.js";
+import { NodeSchemaLoader } from "./loader.js";
+import { NodeDefinitionAnalyzer } from "../analysis/node-definition-analyzer.js";
+import { NodeOverlapDetector } from "../analysis/node-overlap-detector.js";
+import { NodeCompletenessChecker } from "../analysis/node-completeness-checker.js";
+import { NodeAIEvaluator } from "../ai/evaluator.js";
 import type {
   NodeAuditReport,
   NodeLayerSummary,
   NodeDefinitionQuality,
   ParsedNodeSchema,
-} from "./node-audit-types.js";
+} from "../types.js";
 
 export interface NodeAuditOptions {
   layer?: string;

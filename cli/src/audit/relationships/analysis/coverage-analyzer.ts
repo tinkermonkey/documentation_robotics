@@ -8,15 +8,15 @@
  * - Standard alignment validation
  */
 
-import { RelationshipCatalog } from "../../core/relationship-catalog.js";
-import { RELATIONSHIPS_BY_SOURCE } from "../../generated/relationship-index.js";
+import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
+import { RELATIONSHIPS_BY_SOURCE } from "../../../generated/relationship-index.js";
 import {
   getAllLayers,
   type LayerMetadata,
-} from "../../generated/layer-registry.js";
+} from "../../../generated/layer-registry.js";
 import { LAYER_TEMPLATES } from "./layer-templates.js";
-import type { CoverageMetrics } from "../types.js";
-import { createPercentage } from "../types.js";
+import type { CoverageMetrics } from "../../types.js";
+import { createPercentage } from "../../types.js";
 
 /**
  * Result from coverage analysis indicating success/partial/failure status

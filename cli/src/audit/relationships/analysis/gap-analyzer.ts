@@ -12,13 +12,13 @@
  * and frameworks, not formally compliant implementations of them.
  */
 
-import { RELATIONSHIPS_BY_SOURCE } from "../../generated/relationship-index.js";
+import { RELATIONSHIPS_BY_SOURCE } from "../../../generated/relationship-index.js";
 import {
   getAllLayers,
   type LayerMetadata,
-} from "../../generated/layer-registry.js";
+} from "../../../generated/layer-registry.js";
 import { LAYER_TEMPLATES } from "./layer-templates.js";
-import type { GapCandidate } from "../types.js";
+import type { GapCandidate } from "../../types.js";
 
 /**
  * Expected relationship pattern template

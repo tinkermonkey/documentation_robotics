@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, beforeAll } from "bun:test";
-import { ConnectivityAnalyzer } from "../../../src/audit/graph/connectivity.js";
-import { RelationshipGraph } from "../../../src/audit/graph/relationship-graph.js";
+import { ConnectivityAnalyzer } from "../../../src/audit/relationships/graph/connectivity.js";
+import { RelationshipGraph } from "../../../src/audit/relationships/graph/relationship-graph.js";
 import { RelationshipCatalog } from "../../../src/core/relationship-catalog.js";
 
 describe("ConnectivityAnalyzer", () => {

@@ -35,10 +35,10 @@
 import { fileURLToPath } from "url";
 import { dirname, join, relative } from "path";
 import { parseArgs } from "util";
-import type { NodeAuditReport } from "../cli/src/audit/nodes/node-audit-types.js";
+import type { NodeAuditReport } from "../cli/src/audit/nodes/types.js";
 import { formatNodeAuditReport, AuditReportFormat } from "../cli/src/export/audit-formatters.js";
 import { writeFile, ensureDir } from "../cli/src/utils/file-io.js";
-import { NodeAuditOrchestrator } from "../cli/src/audit/nodes/node-audit-orchestrator.js";
+import { NodeAuditOrchestrator } from "../cli/src/audit/nodes/spec/orchestrator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -243,12 +243,17 @@ async function runAudit(options: ScriptOptions): Promise<void> {
     await writeFile(outputPath, output);
     console.error(`✓ Node audit report written to ${relative(originalCwd, outputPath)}`);
 
-    // Optionally save raw JSON sidecar for tooling (e.g., /dr-audit-resolve)
-    if (options.saveJson) {
-      const savePath = join(originalCwd, options.saveJson);
-      await ensureDir(dirname(savePath));
-      await writeFile(savePath, JSON.stringify(report, null, 2));
-      console.error(`✓ Node audit data saved to ${options.saveJson}`);
+    // Save raw JSON sidecar for tooling (e.g., /dr-audit-resolve).
+    // Always written alongside the primary report unless the primary IS already JSON.
+    const explicitJsonPath = options.saveJson ? join(originalCwd, options.saveJson) : undefined;
+    const autoJsonPath = options.format !== "json"
+      ? getDefaultOutputPath(options.layer, "json")
+      : undefined;
+    const jsonSidecarPath = explicitJsonPath ?? autoJsonPath;
+    if (jsonSidecarPath) {
+      await ensureDir(dirname(jsonSidecarPath));
+      await writeFile(jsonSidecarPath, JSON.stringify(report, null, 2));
+      console.error(`✓ Node audit data saved to ${relative(originalCwd, jsonSidecarPath)}`);
     }
 
     // Check quality thresholds if requested

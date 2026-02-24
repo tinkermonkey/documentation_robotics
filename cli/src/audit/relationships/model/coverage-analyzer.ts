@@ -2,11 +2,11 @@
  * Model Coverage Analyzer - Coverage metrics from actual model relationship instances
  */
 
-import type { Relationship } from "../../core/relationships.js";
-import type { Element } from "../../core/element.js";
-import { RelationshipCatalog } from "../../core/relationship-catalog.js";
-import type { CoverageMetrics } from "../types.js";
-import { createPercentage } from "../types.js";
+import type { Relationship } from "../../../core/relationships.js";
+import type { Element } from "../../../core/element.js";
+import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
+import type { CoverageMetrics } from "../../types.js";
+import { createPercentage } from "../../types.js";
 
 /**
  * Analyze relationship coverage for a single layer using model instances

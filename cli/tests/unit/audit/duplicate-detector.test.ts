@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "bun:test";
-import { DuplicateDetector } from "../../../src/audit/analysis/duplicate-detector.js";
+import { DuplicateDetector } from "../../../src/audit/relationships/analysis/duplicate-detector.js";
 import { RelationshipCatalog } from "../../../src/core/relationship-catalog.js";
 
 describe("DuplicateDetector", () => {

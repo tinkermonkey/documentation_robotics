@@ -9,12 +9,12 @@
  * - Reference (0-1 relationships): metadata, tags
  */
 
-import { RELATIONSHIPS_BY_SOURCE } from "../../generated/relationship-index.js";
+import { RELATIONSHIPS_BY_SOURCE } from "../../../generated/relationship-index.js";
 import {
   getAllLayers,
   type LayerMetadata,
-} from "../../generated/layer-registry.js";
-import type { BalanceAssessment } from "../types.js";
+} from "../../../generated/layer-registry.js";
+import type { BalanceAssessment } from "../../types.js";
 
 /**
  * Density targets for different node type categories

@@ -6,17 +6,17 @@
  * AuditReport in the same format as AuditOrchestrator.
  */
 
-import { Model } from "../../core/model.js";
-import { RelationshipCatalog } from "../../core/relationship-catalog.js";
+import { Model } from "../../../core/model.js";
+import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
 import { RelationshipGraph } from "../graph/relationship-graph.js";
 import { ConnectivityAnalyzer } from "../graph/connectivity.js";
-import { analyzeLayerCoverage } from "./model-coverage-analyzer.js";
-import { analyzeLayerGaps } from "./model-gap-analyzer.js";
-import { detectModelDuplicates } from "./model-duplicate-detector.js";
-import { assessLayerBalance } from "./model-balance-assessor.js";
-import { getAllLayers, getLayerById } from "../../generated/layer-registry.js";
-import type { Element } from "../../core/element.js";
-import type { Relationship } from "../../core/relationships.js";
+import { analyzeLayerCoverage } from "./coverage-analyzer.js";
+import { analyzeLayerGaps } from "./gap-analyzer.js";
+import { detectModelDuplicates } from "./duplicate-detector.js";
+import { assessLayerBalance } from "./balance-assessor.js";
+import { getAllLayers, getLayerById } from "../../../generated/layer-registry.js";
+import type { Element } from "../../../core/element.js";
+import type { Relationship } from "../../../core/relationships.js";
 import type {
   AuditReport,
   ConnectivityStats,
@@ -24,7 +24,7 @@ import type {
   DuplicateCandidate,
   GapCandidate,
   BalanceAssessment,
-} from "../types.js";
+} from "../../types.js";
 
 export interface ModelAuditOptions {
   layer?: string;

@@ -1,4 +1,4 @@
-import type { LayerDefinition, ParsedNodeSchema } from "../node-audit-types.js";
+import type { LayerDefinition, ParsedNodeSchema } from "../types.js";
 
 export class NodePromptTemplates {
   /**

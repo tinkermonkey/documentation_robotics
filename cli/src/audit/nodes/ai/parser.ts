@@ -1,4 +1,4 @@
-import type { NodeAIEvaluation } from "../node-audit-types.js";
+import type { NodeAIEvaluation } from "../types.js";
 import { getErrorMessage } from "../../../utils/errors.js";
 
 export class NodeResponseParser {

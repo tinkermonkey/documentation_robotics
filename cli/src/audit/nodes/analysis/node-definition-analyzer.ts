@@ -3,7 +3,7 @@
  * Pure function — no I/O.
  */
 
-import type { ParsedNodeSchema, NodeDefinitionQuality, DefinitionIssue } from "../node-audit-types.js";
+import type { ParsedNodeSchema, NodeDefinitionQuality, DefinitionIssue } from "../types.js";
 
 const GENERIC_DESCRIPTION_RE = /\w+ element in \w+ layer/i;
 

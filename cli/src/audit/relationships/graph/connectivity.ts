@@ -8,13 +8,13 @@
  * - Transitive chain detection
  */
 
-import { RelationshipCatalog } from "../../core/relationship-catalog.js";
+import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
 import { RelationshipGraph } from "./relationship-graph.js";
 import type {
   ConnectedComponent,
   NodeDegree,
   TransitiveChain,
-} from "../types.js";
+} from "../../types.js";
 
 /**
  * Connectivity analyzer for relationship graphs
