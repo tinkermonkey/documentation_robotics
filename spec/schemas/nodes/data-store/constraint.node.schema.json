@@ -28,7 +28,19 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["PRIMARY_KEY", "FOREIGN_KEY", "UNIQUE", "CHECK", "NOT_NULL"],
+          "description": "SQL 2016 table constraint category (Part 2, Clause 11). PRIMARY_KEY: uniquely identifies each row. FOREIGN_KEY: enforces referential integrity to another table. UNIQUE: ensures distinct values. CHECK: validates column values against an expression. NOT_NULL: prohibits null values."
+        },
+        "onDelete": {
+          "type": "string",
+          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"],
+          "description": "SQL 2016 referential action on delete (Part 2, Clause 11.8). Applies only to FOREIGN_KEY constraints. CASCADE: delete child rows. SET_NULL: nullify foreign key. SET_DEFAULT: reset to default. RESTRICT/NO_ACTION: reject if referenced rows exist."
+        },
+        "onUpdate": {
+          "type": "string",
+          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"],
+          "description": "SQL 2016 referential action on update (Part 2, Clause 11.8). Applies only to FOREIGN_KEY constraints. Same values as onDelete, applied when the referenced primary key value is updated."
         }
       },
       "required": ["type"],

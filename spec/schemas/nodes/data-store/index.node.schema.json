@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Index",
-  "description": "Database index for query optimization",
+  "description": "A database index for query optimization. SQL 2016 does not standardize index creation syntax (it is implementation-defined); the 'unique' and 'columns' attributes represent standard concepts, while 'method', 'include', and 'where' are vendor-specific extensions.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -34,13 +34,16 @@
           "type": "boolean"
         },
         "method": {
-          "type": "string"
+          "type": "string",
+          "description": "PostgreSQL-specific index access method (e.g., BTREE, HASH, GIN, GIST, SPGIST, BRIN). Vendor extension — not part of SQL 2016."
         },
         "where": {
-          "type": "string"
+          "type": "string",
+          "description": "Partial index predicate (SQL expression). Only rows satisfying this condition are included in the index. Vendor extension supported by PostgreSQL and others."
         },
         "include": {
-          "type": "string"
+          "type": "string",
+          "description": "Covering index: additional columns included in the index leaf pages but not in the search key. Available in PostgreSQL 11+ and SQL Server. Vendor extension — not part of SQL 2016."
         }
       },
       "additionalProperties": false

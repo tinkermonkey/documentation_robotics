@@ -37,7 +37,9 @@
           "type": "string"
         },
         "generated": {
-          "type": "string"
+          "type": "string",
+          "enum": ["ALWAYS", "BY_DEFAULT", "NEVER"],
+          "description": "SQL 2016 identity column generation clause (Part 2, Clause 11.5). ALWAYS: value is always system-generated (GENERATED ALWAYS AS IDENTITY). BY_DEFAULT: system-generated unless explicitly overridden. NEVER: column is not a generated/identity column."
         },
         "x-source-reference": {
           "type": "string",

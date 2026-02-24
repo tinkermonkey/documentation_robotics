@@ -31,7 +31,9 @@
           "type": "string"
         },
         "dataType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["SMALLINT", "INTEGER", "BIGINT"],
+          "description": "Integer data type for the sequence generator values, per SQL 2016 Part 2 Clause 11.62. Determines the min/max value range of the sequence."
         },
         "startValue": {
           "type": "integer"

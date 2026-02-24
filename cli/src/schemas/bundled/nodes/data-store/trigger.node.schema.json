@@ -31,13 +31,19 @@
           "type": "string"
         },
         "timing": {
-          "type": "string"
+          "type": "string",
+          "enum": ["BEFORE", "AFTER", "INSTEAD_OF"],
+          "description": "SQL 2016 trigger activation time (Part 2, Clause 11.38). BEFORE: fires before the triggering operation. AFTER: fires after the triggering operation. INSTEAD_OF: replaces the triggering operation (used for view triggers)."
         },
         "events": {
-          "type": "string"
+          "type": "string",
+          "enum": ["INSERT", "UPDATE", "DELETE", "TRUNCATE"],
+          "description": "DML event that activates the trigger (SQL 2016 Part 2, Clause 11.38). INSERT, UPDATE, DELETE are SQL 2016 standard; TRUNCATE is a vendor extension. Multiple events can be combined by creating separate trigger entries."
         },
         "forEach": {
-          "type": "string"
+          "type": "string",
+          "enum": ["ROW", "STATEMENT"],
+          "description": "SQL 2016 triggered action granularity (Part 2, Clause 11.38). ROW: trigger fires once per affected row. STATEMENT: trigger fires once per triggering SQL statement regardless of rows affected."
         },
         "functionName": {
           "type": "string"

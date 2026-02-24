@@ -31,13 +31,17 @@
           "type": "string"
         },
         "language": {
-          "type": "string"
+          "type": "string",
+          "enum": ["SQL", "EXTERNAL", "PLPGSQL", "C", "PYTHON", "JAVASCRIPT"],
+          "description": "Implementation language for the function body. 'SQL' and 'EXTERNAL' are SQL 2016 standard values; 'PLPGSQL', 'C', 'PYTHON', 'JAVASCRIPT' are vendor-specific extensions."
         },
         "returnType": {
           "type": "string"
         },
         "volatility": {
-          "type": "string"
+          "type": "string",
+          "enum": ["VOLATILE", "STABLE", "IMMUTABLE"],
+          "description": "PostgreSQL-specific planner optimization hint. VOLATILE: function can modify database and return different results each call. STABLE: function returns consistent results within a single statement. IMMUTABLE: function cannot modify database and always returns same results for same inputs."
         },
         "parallel": {
           "type": "string"

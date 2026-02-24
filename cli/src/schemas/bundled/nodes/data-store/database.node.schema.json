@@ -28,7 +28,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["POSTGRESQL", "MYSQL", "ORACLE", "MSSQL", "SQLITE", "MARIADB"],
+          "description": "Database engine vendor. This is a deployment-configuration property outside SQL 2016 scope; it identifies which vendor's engine hosts this database instance."
         },
         "version": {
           "type": "string"
