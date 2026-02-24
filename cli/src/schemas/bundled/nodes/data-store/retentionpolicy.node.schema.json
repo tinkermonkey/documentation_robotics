@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RetentionPolicy",
+  "description": "A data lifecycle management policy that governs how long data is retained and what action is taken when the retention period expires. Applicable across paradigms: time-series downsampling, key-value TTL, search index lifecycle, relational partition pruning, and archival strategies.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.retentionpolicy"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "retentionpolicy"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "targetCollection": {
+          "type": "string",
+          "description": "The collection or namespace this policy applies to."
+        },
+        "retentionDuration": {
+          "type": "string",
+          "description": "How long data is retained, expressed as an ISO 8601 duration (e.g., 'P30D' for 30 days, 'P1Y' for 1 year, 'P6M' for 6 months)."
+        },
+        "action": {
+          "type": "string",
+          "enum": ["DELETE", "ARCHIVE", "DOWNSAMPLE", "MOVE_TIER", "COMPRESS"],
+          "description": "Action taken when data exceeds the retention period. DELETE: permanently remove. ARCHIVE: move to cold storage. DOWNSAMPLE: aggregate and reduce resolution (time-series). MOVE_TIER: transition to a different storage tier. COMPRESS: apply compression to reduce storage footprint."
+        },
+        "downsampleInterval": {
+          "type": "string",
+          "description": "For DOWNSAMPLE action, the aggregation interval (e.g., '1h', '1d'). Only applicable when action is DOWNSAMPLE."
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": ["targetCollection", "retentionDuration", "action"],
+      "additionalProperties": false
+    }
+  }
+}

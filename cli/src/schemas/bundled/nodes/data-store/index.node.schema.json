@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Index",
-  "description": "A database index for query optimization. SQL 2016 does not standardize index creation syntax (it is implementation-defined); the 'unique' and 'columns' attributes represent standard concepts, while 'method', 'include', and 'where' are vendor-specific extensions.",
+  "description": "A database index for query optimization. Paradigm-neutral: covers B-tree and hash indexes (relational), compound and multikey indexes (document stores), vector approximate nearest neighbor indexes (HNSW, IVF), inverted indexes (search engines), geospatial indexes, and secondary indexes (wide-column stores).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -27,23 +27,75 @@
         "name": {
           "type": "string"
         },
-        "columns": {
-          "type": "string"
+        "fields": {
+          "type": "string",
+          "description": "Field name(s) included in the index key."
         },
         "unique": {
           "type": "boolean"
         },
         "method": {
           "type": "string",
-          "description": "PostgreSQL-specific index access method (e.g., BTREE, HASH, GIN, GIST, SPGIST, BRIN). Vendor extension — not part of SQL 2016."
+          "enum": [
+            "BTREE",
+            "HASH",
+            "GIN",
+            "GIST",
+            "SPGIST",
+            "BRIN",
+            "HNSW",
+            "IVF_FLAT",
+            "IVF_PQ",
+            "ANNOY",
+            "LSH",
+            "INVERTED",
+            "FULLTEXT",
+            "GEOSPATIAL",
+            "COMPOUND",
+            "MULTIKEY",
+            "CUSTOM"
+          ],
+          "description": "Index access method. BTREE/HASH: traditional ordered and hash-based (relational, document). GIN/GIST/SPGIST/BRIN: PostgreSQL advanced index types. HNSW/IVF_FLAT/IVF_PQ/ANNOY/LSH: vector approximate nearest neighbor algorithms. INVERTED/FULLTEXT: search engine and full-text indexes. GEOSPATIAL: location-based spatial indexes. COMPOUND/MULTIKEY: document store compound and array indexes. CUSTOM: engine-specific method not listed."
         },
         "where": {
           "type": "string",
-          "description": "Partial index predicate (SQL expression). Only rows satisfying this condition are included in the index. Vendor extension supported by PostgreSQL and others."
+          "description": "Partial or filtered index predicate. Only entries satisfying this condition are indexed. Supported by relational (PostgreSQL, SQL Server) and document stores (MongoDB partial index filter)."
         },
         "include": {
           "type": "string",
-          "description": "Covering index: additional columns included in the index leaf pages but not in the search key. Available in PostgreSQL 11+ and SQL Server. Vendor extension — not part of SQL 2016."
+          "description": "Covering index: additional fields stored in the index but not in the search key. Reduces lookups by including frequently accessed fields in the index leaf pages."
+        },
+        "sparse": {
+          "type": "boolean",
+          "description": "Whether the index only includes entries where the indexed field exists. Relevant for document stores with flexible schemas and sparse datasets."
+        },
+        "vectorConfig": {
+          "type": "object",
+          "description": "Configuration parameters for vector indexes. Only applicable when method is HNSW, IVF_FLAT, IVF_PQ, ANNOY, or LSH.",
+          "properties": {
+            "dimensions": {
+              "type": "integer",
+              "description": "Number of dimensions in the vector space."
+            },
+            "distanceMetric": {
+              "type": "string",
+              "enum": ["COSINE", "EUCLIDEAN", "DOT_PRODUCT", "MANHATTAN"],
+              "description": "Distance metric for similarity computation."
+            },
+            "efConstruction": {
+              "type": "integer",
+              "description": "HNSW build-time parameter controlling index quality vs. build speed tradeoff."
+            },
+            "m": {
+              "type": "integer",
+              "description": "HNSW maximum number of connections per node in the graph."
+            },
+            "nlist": {
+              "type": "integer",
+              "description": "IVF number of clusters (Voronoi cells) for partitioning the vector space."
+            }
+          },
+          "additionalProperties": true
         }
       },
       "additionalProperties": false

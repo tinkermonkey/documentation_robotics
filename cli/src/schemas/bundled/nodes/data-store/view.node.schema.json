@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "View",
-  "description": "Database view",
+  "description": "A derived or virtual collection that presents data from one or more source collections. Paradigm-neutral: covers SQL views and materialized views, search engine aliases, document store views (CouchDB), time-series continuous aggregates (TimescaleDB), and named graph projections.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -28,10 +28,22 @@
           "type": "string"
         },
         "definition": {
-          "type": "string"
+          "type": "string",
+          "description": "Query or expression that defines this view. SQL query for relational, aggregation pipeline for document stores, alias definition for search engines, continuous aggregate query for time-series, Cypher projection for graph databases."
         },
         "materialized": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the view data is precomputed and stored rather than computed on each read."
+        },
+        "viewType": {
+          "type": "string",
+          "enum": ["VIRTUAL", "MATERIALIZED", "ALIAS", "CONTINUOUS_AGGREGATE", "FILTERED"],
+          "description": "Type of view. VIRTUAL: computed on every read (SQL view, CouchDB view). MATERIALIZED: precomputed and stored (SQL materialized view, Cassandra materialized view). ALIAS: pointer or routing abstraction over one or more collections (Elasticsearch alias). CONTINUOUS_AGGREGATE: incrementally maintained materialization (TimescaleDB continuous aggregate, InfluxDB continuous query). FILTERED: read-only subset of another collection."
+        },
+        "refreshPolicy": {
+          "type": "string",
+          "enum": ["ON_DEMAND", "ON_COMMIT", "PERIODIC", "CONTINUOUS"],
+          "description": "How materialized data is refreshed. ON_DEMAND: manual refresh required. ON_COMMIT: refreshed after each transaction commit. PERIODIC: refreshed on a schedule. CONTINUOUS: incrementally updated as source data changes. Only applicable when materialized is true or viewType is MATERIALIZED or CONTINUOUS_AGGREGATE."
         }
       },
       "additionalProperties": false

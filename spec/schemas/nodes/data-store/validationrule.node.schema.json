@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ValidationRule",
+  "description": "A data integrity or validation rule enforced by the data store. Paradigm-neutral: covers SQL constraints (PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK, NOT NULL), document store schema validation and required fields, graph uniqueness and existence constraints, key-value key format rules, and search engine mapping enforcement.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.validationrule"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "validationrule"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "ruleType": {
+          "type": "string",
+          "enum": [
+            "PRIMARY_KEY",
+            "FOREIGN_KEY",
+            "UNIQUE",
+            "CHECK",
+            "NOT_NULL",
+            "SCHEMA_VALIDATION",
+            "REQUIRED_FIELD",
+            "KEY_FORMAT",
+            "TTL_CONSTRAINT",
+            "UNIQUENESS_CONSTRAINT",
+            "EXISTENCE_CONSTRAINT",
+            "NODE_KEY",
+            "DIMENSION_CONSTRAINT",
+            "MAPPING_STRICT",
+            "CUSTOM"
+          ],
+          "description": "Type of validation or integrity rule. SQL-standard: PRIMARY_KEY, FOREIGN_KEY, UNIQUE, CHECK, NOT_NULL. Document store: SCHEMA_VALIDATION (JSON Schema validator), REQUIRED_FIELD. Key-value: KEY_FORMAT (key naming pattern), TTL_CONSTRAINT. Graph: UNIQUENESS_CONSTRAINT (unique node label+property), EXISTENCE_CONSTRAINT (required property), NODE_KEY (composite unique identifier). Vector: DIMENSION_CONSTRAINT (vector dimension enforcement). Search engine: MAPPING_STRICT (reject unmapped fields). CUSTOM: engine-specific rule not listed."
+        },
+        "expression": {
+          "type": "string",
+          "description": "Constraint expression or validation rule body. For CHECK constraints, the SQL expression. For SCHEMA_VALIDATION, a JSON Schema reference. For KEY_FORMAT, a key naming pattern."
+        },
+        "targetFields": {
+          "type": "string",
+          "description": "Field name(s) this rule applies to."
+        },
+        "referencedCollection": {
+          "type": "string",
+          "description": "For FOREIGN_KEY or cross-collection references, the target collection name."
+        },
+        "referencedFields": {
+          "type": "string",
+          "description": "For FOREIGN_KEY or cross-collection references, the target field name(s) in the referenced collection."
+        },
+        "onDelete": {
+          "type": "string",
+          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"],
+          "description": "Referential action on delete. CASCADE: delete dependent entries. SET_NULL: nullify the reference. SET_DEFAULT: reset to default value. RESTRICT: reject if referenced entries exist. NO_ACTION: deferred reject. Applicable to FOREIGN_KEY rules."
+        },
+        "onUpdate": {
+          "type": "string",
+          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"],
+          "description": "Referential action on update. Same values as onDelete, applied when the referenced field value is modified. Applicable to FOREIGN_KEY rules."
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["STRICT", "WARN", "LOG"],
+          "description": "How the rule is enforced. STRICT: reject violating operations (default for most SQL constraints). WARN: allow but emit a warning (supported by some document store validators). LOG: allow and log the violation for audit purposes."
+        }
+      },
+      "required": ["ruleType"],
+      "additionalProperties": false
+    }
+  }
+}

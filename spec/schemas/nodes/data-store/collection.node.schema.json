@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Collection",
+  "description": "A container for records, documents, or entries within a data store. Paradigm-neutral: maps to SQL table, document store collection, key-value bucket/hash, wide-column table/column family, vector collection, time-series measurement/hypertable, graph node label or edge type, and search engine index.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.collection"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "collection"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "collectionType": {
+          "type": "string",
+          "enum": [
+            "TABLE",
+            "COLLECTION",
+            "COLUMN_FAMILY",
+            "BUCKET",
+            "HASH",
+            "SORTED_SET",
+            "STREAM",
+            "VECTOR_COLLECTION",
+            "MEASUREMENT",
+            "HYPERTABLE",
+            "NODE_LABEL",
+            "EDGE_TYPE",
+            "SEARCH_INDEX"
+          ],
+          "description": "The paradigm-specific type of this collection. TABLE: relational table. COLLECTION: document store collection. COLUMN_FAMILY: wide-column column family. BUCKET/HASH/SORTED_SET/STREAM: key-value data structures. VECTOR_COLLECTION: vector embedding store. MEASUREMENT/HYPERTABLE: time-series data container. NODE_LABEL/EDGE_TYPE: graph database structural types. SEARCH_INDEX: search engine index."
+        },
+        "partitionKey": {
+          "type": "string",
+          "description": "Primary partition key field name(s). Used by wide-column stores (Cassandra partition key), DynamoDB (partition key), time-series (time field), and sharded relational databases."
+        },
+        "clusteringKeys": {
+          "type": "string",
+          "description": "Clustering or sort key field name(s) that determine ordering within a partition. Relevant for wide-column stores (Cassandra clustering columns) and DynamoDB sort keys."
+        },
+        "ttlDefault": {
+          "type": "integer",
+          "description": "Default time-to-live in seconds for entries in this collection. Relevant for key-value stores, wide-column stores, and time-series databases."
+        },
+        "validationSchema": {
+          "type": "string",
+          "description": "Reference to a schema definition that validates documents or records. For MongoDB this is the JSON Schema validator; for relational databases, the set of column constraints; for search engines, the mapping definition."
+        },
+        "fields": {
+          "type": "array",
+          "description": "Contains relationship to fields within this collection"
+        },
+        "constraints": {
+          "type": "array",
+          "description": "Contains relationship to validation rules on this collection"
+        },
+        "indexes": {
+          "type": "array",
+          "description": "Contains relationship to indexes on this collection"
+        },
+        "eventHandlers": {
+          "type": "array",
+          "description": "Contains relationship to event handlers (triggers, change streams) on this collection"
+        },
+        "x-source-reference": {
+          "type": "string",
+          "description": "Source code reference using OpenAPI x- extension pattern."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

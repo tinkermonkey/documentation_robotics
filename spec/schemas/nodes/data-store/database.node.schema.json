@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Database",
-  "description": "Database instance containing schemas",
+  "description": "A database instance representing a top-level data store deployment. Paradigm-neutral: covers relational databases, document stores, key-value stores, wide-column stores, vector databases, time-series databases, graph databases, search engines, and multi-model systems.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -27,10 +27,24 @@
         "name": {
           "type": "string"
         },
-        "type": {
+        "engine": {
           "type": "string",
-          "enum": ["POSTGRESQL", "MYSQL", "ORACLE", "MSSQL", "SQLITE", "MARIADB"],
-          "description": "Database engine vendor. This is a deployment-configuration property outside SQL 2016 scope; it identifies which vendor's engine hosts this database instance."
+          "description": "Database engine name (e.g., 'PostgreSQL', 'MongoDB', 'Redis', 'Cassandra', 'Pinecone', 'Neo4j', 'Elasticsearch', 'InfluxDB', 'DynamoDB'). Free-text to accommodate any engine without enumeration constraints."
+        },
+        "paradigm": {
+          "type": "string",
+          "enum": [
+            "RELATIONAL",
+            "DOCUMENT",
+            "KEY_VALUE",
+            "WIDE_COLUMN",
+            "VECTOR",
+            "TIME_SERIES",
+            "GRAPH",
+            "SEARCH_ENGINE",
+            "MULTI_MODEL"
+          ],
+          "description": "Primary data model paradigm. RELATIONAL: SQL-based tabular data (PostgreSQL, MySQL, Oracle). DOCUMENT: JSON/BSON document storage (MongoDB, CouchDB, Firestore). KEY_VALUE: simple key-to-value mapping (Redis, DynamoDB, etcd). WIDE_COLUMN: column-family storage (Cassandra, HBase, Bigtable). VECTOR: vector embedding storage and similarity search (Pinecone, Weaviate, Qdrant). TIME_SERIES: time-indexed measurements (InfluxDB, TimescaleDB). GRAPH: nodes and edges with traversal (Neo4j, Neptune). SEARCH_ENGINE: full-text search and analytics (Elasticsearch, OpenSearch). MULTI_MODEL: natively supports multiple paradigms (ArangoDB, CosmosDB, FaunaDB)."
         },
         "version": {
           "type": "string"
@@ -41,12 +55,17 @@
         "collation": {
           "type": "string"
         },
+        "deploymentModel": {
+          "type": "string",
+          "enum": ["STANDALONE", "REPLICATED", "SHARDED", "DISTRIBUTED", "SERVERLESS", "EMBEDDED"],
+          "description": "How the database is deployed. STANDALONE: single instance. REPLICATED: primary with read replicas. SHARDED: data partitioned across nodes. DISTRIBUTED: fully distributed with no single primary. SERVERLESS: cloud-managed auto-scaling. EMBEDDED: in-process database (SQLite, RocksDB)."
+        },
         "schemas": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "Contains relationship to namespaces within this database"
         }
       },
-      "required": ["type", "version"],
+      "required": ["engine", "paradigm"],
       "additionalProperties": false
     }
   }

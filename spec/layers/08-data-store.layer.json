@@ -4,20 +4,21 @@
   "name": "Data Store Layer",
   "description": "Layer 8: Data Store Layer",
   "inspired_by": {
-    "standard": "SQL 2016",
-    "version": "2016",
-    "url": "https://en.wikipedia.org/wiki/SQL:2016"
+    "standard": "ISO/IEC 9075 (SQL) + Paradigm Extensions",
+    "version": "2024",
+    "url": "https://en.wikipedia.org/wiki/Database_model"
   },
   "node_types": [
-    "data-store.column",
-    "data-store.constraint",
+    "data-store.accesspattern",
+    "data-store.collection",
     "data-store.database",
-    "data-store.databaseschema",
-    "data-store.function",
+    "data-store.eventhandler",
+    "data-store.field",
     "data-store.index",
-    "data-store.sequence",
-    "data-store.table",
-    "data-store.trigger",
+    "data-store.namespace",
+    "data-store.retentionpolicy",
+    "data-store.storedlogic",
+    "data-store.validationrule",
     "data-store.view"
   ]
 }

@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EventHandler",
+  "description": "A reactive mechanism that executes in response to data change events. Paradigm-neutral: covers SQL triggers, MongoDB change streams, DynamoDB Streams, Cassandra CDC, Redis keyspace notifications, Elasticsearch watchers, Neo4j APOC triggers, and time-series alerting rules.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "data-store.eventhandler"
+    },
+    "layer_id": {
+      "const": "data-store"
+    },
+    "type": {
+      "const": "eventhandler"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "handlerType": {
+          "type": "string",
+          "enum": [
+            "TRIGGER",
+            "CHANGE_STREAM",
+            "CDC_LISTENER",
+            "KEYSPACE_NOTIFICATION",
+            "STREAM_PROCESSOR",
+            "WATCHER",
+            "ALERT_RULE",
+            "CUSTOM"
+          ],
+          "description": "Type of event handler mechanism. TRIGGER: synchronous SQL trigger (BEFORE/AFTER DML). CHANGE_STREAM: asynchronous document change feed (MongoDB, CouchDB). CDC_LISTENER: change data capture consumer (Cassandra, Debezium). KEYSPACE_NOTIFICATION: key event notification (Redis). STREAM_PROCESSOR: stream-based event processor (Redis Streams, Kafka Connect). WATCHER: periodic condition check and alert (Elasticsearch). ALERT_RULE: threshold or anomaly alerting (time-series, monitoring). CUSTOM: engine-specific mechanism not listed."
+        },
+        "targetCollection": {
+          "type": "string",
+          "description": "The collection or database-level scope this handler is attached to."
+        },
+        "timing": {
+          "type": "string",
+          "enum": ["BEFORE", "AFTER", "INSTEAD_OF", "ON_CHANGE", "CONTINUOUS"],
+          "description": "When the handler fires relative to the event. BEFORE: fires before the operation (SQL BEFORE trigger). AFTER: fires after the operation (SQL AFTER trigger). INSTEAD_OF: replaces the operation (SQL INSTEAD OF trigger for views). ON_CHANGE: fires when a change is detected (change streams, CDC). CONTINUOUS: always-on stream processing."
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "INSERT",
+              "UPDATE",
+              "DELETE",
+              "REPLACE",
+              "TRUNCATE",
+              "DROP",
+              "INVALIDATE",
+              "EXPIRE",
+              "SET",
+              "DEL",
+              "THRESHOLD",
+              "ANOMALY",
+              "CUSTOM"
+            ]
+          },
+          "description": "Events that activate this handler. SQL: INSERT/UPDATE/DELETE/TRUNCATE. Document: INSERT/UPDATE/DELETE/REPLACE/DROP/INVALIDATE. Key-value: EXPIRE/SET/DEL. Monitoring: THRESHOLD/ANOMALY. CUSTOM: engine-specific event not listed."
+        },
+        "granularity": {
+          "type": "string",
+          "enum": ["ROW", "STATEMENT", "DOCUMENT", "KEY", "BATCH"],
+          "description": "Granularity of handler activation. ROW: fires once per affected row (SQL FOR EACH ROW). STATEMENT: fires once per SQL statement. DOCUMENT: fires per changed document (document store change streams). KEY: fires per key operation (key-value notifications). BATCH: fires per batch of changes (CDC, stream processing)."
+        },
+        "action": {
+          "type": "string",
+          "description": "Reference to the stored logic (function name, pipeline reference, or inline expression) that executes when this handler fires."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Optional filter condition. Only events matching this condition activate the handler. Maps to SQL WHEN clause, MongoDB pipeline $match stage, or Elasticsearch watcher condition."
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": ["handlerType", "events"],
+      "additionalProperties": false
+    }
+  }
+}
