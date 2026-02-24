@@ -72,7 +72,7 @@ export interface SemanticOverlapCandidate {
 export interface SchemaCompletenessIssue {
   layerId: string;
   specNodeId: string;
-  issueType: "missing_schema" | "orphaned_schema";
+  issueType: "missing_schema" | "orphaned_schema" | "malformed_element";
   detail: string;
 }
 

@@ -1,7 +1,7 @@
 import type { LayerDefinition, ParsedNodeSchema, LayerAIReview } from "../types.js";
 import { NodePromptTemplates } from "./prompts.js";
 import { NodeResponseParser } from "./parser.js";
-import { AuditAIRunner } from "../../ai/runner.js";
+import { AuditAIRunner, AIEvaluationAbortError } from "../../ai/runner.js";
 import { getErrorMessage } from "../../../utils/errors.js";
 
 const INVOKE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes per invocation
@@ -66,8 +66,7 @@ export class NodeAIEvaluator {
         const msg = getErrorMessage(error);
         process.stderr.write(`  ⚠️  Failed to evaluate layer ${layerDef.id}: ${msg}\n`);
 
-        // Re-throw fail-fast errors from runner
-        if (msg.includes("AI evaluation aborted")) {
+        if (error instanceof AIEvaluationAbortError) {
           throw error;
         }
       }

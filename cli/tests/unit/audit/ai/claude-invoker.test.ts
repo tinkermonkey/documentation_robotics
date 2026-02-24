@@ -1,14 +1,8 @@
-import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import { PromptTemplates } from "../../../../src/audit/relationships/ai/prompts.js";
-import { AuditAIRunner } from "../../../../src/audit/ai/runner.js";
+import { AuditAIRunner, AIEvaluationAbortError } from "../../../../src/audit/ai/runner.js";
 import type { CoverageMetrics } from "../../../../src/audit/types.js";
 
-/**
- * Unit tests for AuditAIRunner and PromptTemplates
- *
- * Note: These tests validate the prompt generation and argument construction.
- * Actual Claude CLI invocation is tested in integration tests with mocks.
- */
 describe("AuditAIRunner", () => {
   describe("Configuration", () => {
     it("should instantiate with default rate limit and failure threshold", () => {
@@ -23,25 +17,92 @@ describe("AuditAIRunner", () => {
   });
 
   describe("Fail-fast behavior", () => {
-    it("should throw abort error after maxConsecutiveFailures", async () => {
-      // Mock invokeClaudeStreaming to always fail
-      const invokeModule = await import("../../../../src/utils/claude-stream.js");
-      const originalFn = invokeModule.invokeClaudeStreaming;
-
-      // Use a runner with maxConsecutiveFailures=2 for fast test
-      const runner = new AuditAIRunner(0, 2); // 0ms delay for test speed
-
-      let callCount = 0;
+    it("should throw AIEvaluationAbortError after maxConsecutiveFailures", async () => {
       mock.module("../../../../src/utils/claude-stream.js", () => ({
         invokeClaudeStreaming: async () => {
-          callCount++;
           throw new Error("Claude CLI not found");
         },
       }));
 
-      // runner.invoke is tested via integration tests since module mocking
-      // requires specific setup; verify the runner exists and is configured
-      expect(runner).toBeDefined();
+      const { AuditAIRunner: FreshRunner, AIEvaluationAbortError: FreshAbortError } =
+        await import("../../../../src/audit/ai/runner.js");
+      const runner = new FreshRunner(0, 2); // 0ms delay, abort after 2 failures
+
+      // First failure: transient — original error re-thrown
+      await expect(runner.invoke("prompt", "label")).rejects.toThrow("Claude CLI not found");
+
+      // Second failure: threshold reached — AIEvaluationAbortError thrown
+      const err = await runner.invoke("prompt", "label").catch((e) => e);
+      expect(err).toBeInstanceOf(FreshAbortError);
+      expect(err.message).toContain("AI evaluation aborted after 2 consecutive failures");
+      expect(err.message).toContain("claude --version");
+    });
+
+    it("should reset consecutive failure counter after a success", async () => {
+      let callCount = 0;
+      mock.module("../../../../src/utils/claude-stream.js", () => ({
+        invokeClaudeStreaming: async () => {
+          callCount++;
+          if (callCount === 1) throw new Error("Transient failure");
+          return "OK";
+        },
+      }));
+
+      const { AuditAIRunner: FreshRunner, AIEvaluationAbortError: FreshAbortError } =
+        await import("../../../../src/audit/ai/runner.js");
+      const runner = new FreshRunner(0, 2);
+
+      // First call fails (count = 1)
+      await expect(runner.invoke("p", "l")).rejects.toThrow("Transient failure");
+      // Second call succeeds (resets counter)
+      await expect(runner.invoke("p", "l")).resolves.toBe("OK");
+      // Third call fails (count = 1 again, not 2 — should NOT abort yet)
+      mock.module("../../../../src/utils/claude-stream.js", () => ({
+        invokeClaudeStreaming: async () => {
+          throw new Error("Another failure");
+        },
+      }));
+      const { AuditAIRunner: FreshRunner2, AIEvaluationAbortError: FreshAbortError2 } =
+        await import("../../../../src/audit/ai/runner.js");
+      const runner2 = new FreshRunner2(0, 2);
+      await runner2.invoke("p", "l").catch(() => {}); // failure #1
+      const err = await runner2.invoke("p", "l").catch((e) => e); // failure #2 → abort
+      expect(err).toBeInstanceOf(FreshAbortError2);
+    });
+
+    it("should preserve the original error as cause on abort", async () => {
+      const originalError = new Error("ENOENT: claude not found");
+      mock.module("../../../../src/utils/claude-stream.js", () => ({
+        invokeClaudeStreaming: async () => {
+          throw originalError;
+        },
+      }));
+
+      const { AuditAIRunner: FreshRunner, AIEvaluationAbortError: FreshAbortError } =
+        await import("../../../../src/audit/ai/runner.js");
+      const runner = new FreshRunner(0, 1); // abort after 1 failure
+
+      const err = await runner.invoke("prompt", "label").catch((e) => e);
+      expect(err).toBeInstanceOf(FreshAbortError);
+      expect((err as Error & { cause?: unknown }).cause).toBe(originalError);
+    });
+
+    it("AIEvaluationAbortError is distinguishable via instanceof", async () => {
+      mock.module("../../../../src/utils/claude-stream.js", () => ({
+        invokeClaudeStreaming: async () => {
+          throw new Error("fail");
+        },
+      }));
+
+      const { AuditAIRunner: FreshRunner, AIEvaluationAbortError: FreshAbortError } =
+        await import("../../../../src/audit/ai/runner.js");
+      const runner = new FreshRunner(0, 1);
+      const err = await runner.invoke("p", "l").catch((e) => e);
+
+      // Verify callers can branch on type rather than message string
+      expect(err instanceof FreshAbortError).toBe(true);
+      expect(err instanceof Error).toBe(true);
+      expect(err.name).toBe("AIEvaluationAbortError");
     });
   });
 });

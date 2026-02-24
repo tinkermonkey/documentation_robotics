@@ -33,6 +33,12 @@ export interface AuditOptions {
  */
 export async function auditCommand(options: AuditOptions): Promise<void> {
   try {
+    const validAuditTypes: AuditType[] = ["relationships", "nodes", "all"];
+    if (options.type && !validAuditTypes.includes(options.type)) {
+      throw new CLIError(
+        `Invalid audit type: "${options.type}". Valid values are: ${validAuditTypes.join(", ")}.`
+      );
+    }
     const auditType: AuditType = options.type ?? "relationships";
 
     // Determine output format
@@ -61,33 +67,46 @@ export async function auditCommand(options: AuditOptions): Promise<void> {
 
       output = formatNodeAuditReport(report, { format, verbose: options.verbose });
     } else if (auditType === "all") {
-      // Combined audit - run both and concatenate
-      const [relOrchestrator, nodeOrchestrator] = [
-        new ModelAuditOrchestrator(),
-        new ModelNodeAuditOrchestrator(),
-      ];
-
-      const [relReport, nodeReport] = await Promise.all([
-        relOrchestrator.runAudit({
+      // Combined audit - run both independently; one failing does not suppress the other
+      const [relResult, nodeResult] = await Promise.allSettled([
+        new ModelAuditOrchestrator().runAudit({
           layer: options.layer,
           verbose: options.verbose,
           debug: options.debug,
           projectRoot: process.cwd(),
         }),
-        nodeOrchestrator.runAudit({
+        new ModelNodeAuditOrchestrator().runAudit({
           layer: options.layer,
           verbose: options.verbose,
           projectRoot: process.cwd(),
         }),
       ]);
 
-      const relOutput = formatAuditReport(relReport, { format, verbose: options.verbose });
-      const nodeOutput = formatNodeAuditReport(nodeReport, { format, verbose: options.verbose });
+      let relOutput: string | undefined;
+      let nodeOutput: string | undefined;
+
+      if (relResult.status === "fulfilled") {
+        relOutput = formatAuditReport(relResult.value, { format, verbose: options.verbose });
+      } else {
+        console.error(ansis.red(`⚠️  Relationship audit failed: ${getErrorMessage(relResult.reason)}`));
+      }
+      if (nodeResult.status === "fulfilled") {
+        nodeOutput = formatNodeAuditReport(nodeResult.value, { format, verbose: options.verbose });
+      } else {
+        console.error(ansis.red(`⚠️  Node audit failed: ${getErrorMessage(nodeResult.reason)}`));
+      }
+
+      if (!relOutput && !nodeOutput) {
+        throw new CLIError("Both audit types failed. See errors above.");
+      }
 
       if (format === "json") {
-        output = JSON.stringify({ relationships: JSON.parse(relOutput), nodes: JSON.parse(nodeOutput) }, null, 2);
+        const merged: Record<string, unknown> = {};
+        if (relOutput) merged.relationships = JSON.parse(relOutput);
+        if (nodeOutput) merged.nodes = JSON.parse(nodeOutput);
+        output = JSON.stringify(merged, null, 2);
       } else {
-        output = relOutput + "\n\n" + nodeOutput;
+        output = [relOutput, nodeOutput].filter(Boolean).join("\n\n");
       }
     } else {
       // Default: relationships audit - analyzes the project's actual relationship instances

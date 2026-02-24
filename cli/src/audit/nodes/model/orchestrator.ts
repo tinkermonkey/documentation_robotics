@@ -55,10 +55,25 @@ export class ModelNodeAuditOrchestrator {
 
     // Group elements by layer → type → count
     const typesByLayer = new Map<string, Map<string, number>>();
+    const completenessIssues: SchemaCompletenessIssue[] = [];
+
     for (const el of filteredElements) {
       const layerId = getElementLayer(el);
       const typeKey = getElementType(el);
-      if (!layerId || !typeKey) continue;
+      if (!layerId || !typeKey) {
+        const elId = (el as unknown as { id?: string }).id ?? "(no id)";
+        const missingField = !layerId ? "layer" : "type";
+        process.stderr.write(
+          `  ⚠️  Skipping malformed element "${elId}": missing ${missingField}\n`
+        );
+        completenessIssues.push({
+          layerId: layerId || "(unknown)",
+          specNodeId: typeKey || "(unknown)",
+          issueType: "malformed_element",
+          detail: `Element "${elId}" is missing its ${missingField} — excluded from audit report`,
+        });
+        continue;
+      }
       if (!typesByLayer.has(layerId)) typesByLayer.set(layerId, new Map());
       const typeCounts = typesByLayer.get(layerId)!;
       typeCounts.set(typeKey, (typeCounts.get(typeKey) ?? 0) + 1);
@@ -87,7 +102,6 @@ export class ModelNodeAuditOrchestrator {
 
     // Detect orphaned types: spec_node_ids in model that don't follow the
     // expected "{layer}.{type}" naming convention
-    const completenessIssues: SchemaCompletenessIssue[] = [];
     for (const [layerId, typeCounts] of typesByLayer) {
       for (const specNodeId of typeCounts.keys()) {
         // spec_node_id should start with "{layerId}."

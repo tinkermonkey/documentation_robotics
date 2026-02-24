@@ -1,6 +1,22 @@
 import { invokeClaudeStreaming } from "../../utils/claude-stream.js";
 
 /**
+ * Thrown by AuditAIRunner when consecutive failure limit is reached.
+ * Use `instanceof AIEvaluationAbortError` in catch blocks to distinguish
+ * this hard abort from transient per-item failures.
+ */
+export class AIEvaluationAbortError extends Error {
+  constructor(maxFailures: number, cause: unknown) {
+    super(
+      `AI evaluation aborted after ${maxFailures} consecutive failures. ` +
+        `Is Claude CLI installed and authenticated? Run 'claude --version' to verify.`,
+      { cause }
+    );
+    this.name = "AIEvaluationAbortError";
+  }
+}
+
+/**
  * Shared AI invocation runner for audit evaluators.
  * Wraps invokeClaudeStreaming with rate limiting and fail-fast on consecutive failures.
  */
@@ -15,7 +31,7 @@ export class AuditAIRunner {
   /**
    * Invoke Claude with a prompt, streaming output and returning the response text.
    * Adds a rate-limiting delay after each successful invocation.
-   * Fails fast after maxConsecutiveFailures consecutive failures with a helpful message.
+   * Throws AIEvaluationAbortError after maxConsecutiveFailures consecutive failures.
    */
   async invoke(prompt: string, label: string, timeoutMs?: number): Promise<string> {
     try {
@@ -29,10 +45,7 @@ export class AuditAIRunner {
     } catch (error: unknown) {
       this.consecutiveFailures++;
       if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
-        throw new Error(
-          `AI evaluation aborted after ${this.maxConsecutiveFailures} consecutive failures. ` +
-            `Is Claude CLI installed and authenticated? Run 'claude --version' to verify.`
-        );
+        throw new AIEvaluationAbortError(this.maxConsecutiveFailures, error);
       }
       throw error;
     }

@@ -6,6 +6,7 @@ import { ReportGenerator } from "../reports/report-generator.js";
 import { DifferentialAnalyzer, type DifferentialAnalysis } from "../differential-analyzer.js";
 import { SnapshotStorage } from "../snapshot-storage.js";
 import { AIEvaluator } from "../relationships/ai/evaluator.js";
+import { AIEvaluationAbortError } from "../ai/runner.js";
 import { CANONICAL_LAYER_NAMES } from "../../core/layers.js";
 
 export interface PipelineOptions {
@@ -166,34 +167,53 @@ export class PipelineOrchestrator {
 
     // Step 2a: Evaluate low-coverage elements
     console.log("   Step 2a/3: Evaluating low-coverage elements...");
+    let aiAborted = false;
     try {
       await aiEvaluator.evaluateLowCoverageElements(beforeResult.coverage as CoverageMetrics[], getPredicatesForLayer);
     } catch (error) {
-      console.error("   ⚠️  Error evaluating low-coverage elements:", error instanceof Error ? error.message : String(error));
+      if (error instanceof AIEvaluationAbortError) {
+        console.error("   ❌ AI evaluation aborted — Claude CLI unavailable. Skipping remaining AI steps.");
+        aiAborted = true;
+      } else {
+        console.error("   ⚠️  Error evaluating low-coverage elements:", error instanceof Error ? error.message : String(error));
+      }
     }
 
     // Step 2b: Review layer coherence
-    console.log("   Step 2b/3: Reviewing layer coherence...");
-    try {
-      const layerNames = (beforeResult.coverage as CoverageMetrics[]).map((c) => c.layer);
-      await aiEvaluator.reviewLayerCoherence(layerNames, beforeResult.coverage as CoverageMetrics[]);
-    } catch (error) {
-      console.error("   ⚠️  Error reviewing layer coherence:", error instanceof Error ? error.message : String(error));
+    if (!aiAborted) {
+      console.log("   Step 2b/3: Reviewing layer coherence...");
+      try {
+        const layerNames = (beforeResult.coverage as CoverageMetrics[]).map((c) => c.layer);
+        await aiEvaluator.reviewLayerCoherence(layerNames, beforeResult.coverage as CoverageMetrics[]);
+      } catch (error) {
+        if (error instanceof AIEvaluationAbortError) {
+          console.error("   ❌ AI evaluation aborted — Claude CLI unavailable. Skipping remaining AI steps.");
+          aiAborted = true;
+        } else {
+          console.error("   ⚠️  Error reviewing layer coherence:", error instanceof Error ? error.message : String(error));
+        }
+      }
     }
 
     // Step 2c: Validate inter-layer references
-    console.log("   Step 2c/3: Validating inter-layer relationships...");
-    try {
-      // Build layer pairs for validation (higher layers → lower layers following the architecture)
-      const layerPairs: Array<{ source: string; target: string }> = [];
-      for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {
-        for (let j = i + 1; j < CANONICAL_LAYER_NAMES.length; j++) {
-          layerPairs.push({ source: CANONICAL_LAYER_NAMES[i], target: CANONICAL_LAYER_NAMES[j] });
+    if (!aiAborted) {
+      console.log("   Step 2c/3: Validating inter-layer relationships...");
+      try {
+        // Build layer pairs for validation (higher layers → lower layers following the architecture)
+        const layerPairs: Array<{ source: string; target: string }> = [];
+        for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {
+          for (let j = i + 1; j < CANONICAL_LAYER_NAMES.length; j++) {
+            layerPairs.push({ source: CANONICAL_LAYER_NAMES[i], target: CANONICAL_LAYER_NAMES[j] });
+          }
+        }
+        await aiEvaluator.validateInterLayerReferences(layerPairs);
+      } catch (error) {
+        if (error instanceof AIEvaluationAbortError) {
+          console.error("   ❌ AI evaluation aborted — Claude CLI unavailable.");
+        } else {
+          console.error("   ⚠️  Error validating inter-layer relationships:", error instanceof Error ? error.message : String(error));
         }
       }
-      await aiEvaluator.validateInterLayerReferences(layerPairs);
-    } catch (error) {
-      console.error("   ⚠️  Error validating inter-layer relationships:", error instanceof Error ? error.message : String(error));
     }
 
     // Step 3: Run AFTER audit

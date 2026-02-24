@@ -1,7 +1,7 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { CoverageMetrics } from "../../types.js";
-import { AuditAIRunner } from "../../ai/runner.js";
+import { AuditAIRunner, AIEvaluationAbortError } from "../../ai/runner.js";
 import { PromptTemplates } from "./prompts.js";
 import { ResponseParser } from "./parser.js";
 import type { RelationshipRecommendation, LayerReview, InterLayerValidation } from "./parser.js";
@@ -132,8 +132,10 @@ export class AIEvaluator {
         `Evaluating element: ${nodeType} (${tracker.getProgress().completed + 1}/${tracker.getProgress().total})`
       );
 
+      // Predicate fetch is infrastructure — propagate immediately if it fails
+      const predicates = await getPredicatesForLayer(metrics.layer);
+
       try {
-        const predicates = await getPredicatesForLayer(metrics.layer);
         const prompt = this.promptTemplates.elementEvaluation(nodeType, metrics, predicates);
         const response = await this.runner.invoke(prompt, nodeType);
 
@@ -158,8 +160,7 @@ export class AIEvaluator {
           timestamp: new Date().toISOString(),
         });
 
-        // Re-throw fail-fast errors from runner
-        if (errorMessage.includes("AI evaluation aborted")) {
+        if (error instanceof AIEvaluationAbortError) {
           throw error;
         }
       }
@@ -227,7 +228,7 @@ export class AIEvaluator {
           timestamp: new Date().toISOString(),
         });
 
-        if (errorMessage.includes("AI evaluation aborted")) {
+        if (error instanceof AIEvaluationAbortError) {
           throw error;
         }
       }
@@ -294,7 +295,7 @@ export class AIEvaluator {
           timestamp: new Date().toISOString(),
         });
 
-        if (errorMessage.includes("AI evaluation aborted")) {
+        if (error instanceof AIEvaluationAbortError) {
           throw error;
         }
       }

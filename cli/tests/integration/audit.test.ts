@@ -282,4 +282,100 @@ describe("audit command", () => {
     // Clean up
     unlinkSync(outputPath);
   });
+
+  describe("--type flag", () => {
+    it("should run node audit with --type nodes", async () => {
+      const outputPath = path.join(workdir.path, "nodes-audit.json");
+
+      await auditCommand({ type: "nodes", output: outputPath, format: "json" });
+
+      expect(await fileExists(outputPath)).toBe(true);
+      const report = JSON.parse(await readFile(outputPath));
+
+      expect(report).toHaveProperty("timestamp");
+      expect(report).toHaveProperty("spec");
+      expect(report).toHaveProperty("layerSummaries");
+      expect(report).toHaveProperty("completenessIssues");
+      expect(Array.isArray(report.layerSummaries)).toBe(true);
+
+      unlinkSync(outputPath);
+    });
+
+    it("should produce text output for --type nodes", async () => {
+      const logs: string[] = [];
+      const orig = console.log;
+      console.log = (...args: any[]) => logs.push(args.join(" "));
+      try {
+        await auditCommand({ type: "nodes" });
+        const output = logs.join("\n");
+        // Should contain node-audit sections, not relationship-audit sections
+        expect(output).not.toContain("Relationship Audit Report");
+      } finally {
+        console.log = orig;
+      }
+    });
+
+    it("should run combined audit with --type all (text)", async () => {
+      const logs: string[] = [];
+      const orig = console.log;
+      console.log = (...args: any[]) => logs.push(args.join(" "));
+      try {
+        await auditCommand({ type: "all" });
+        const output = logs.join("\n");
+        // Both relationship and node audit output should be present
+        expect(output).toContain("Relationship Audit Report");
+      } finally {
+        console.log = orig;
+      }
+    });
+
+    it("should run combined audit with --type all (JSON)", async () => {
+      const outputPath = path.join(workdir.path, "all-audit.json");
+
+      await auditCommand({ type: "all", output: outputPath, format: "json" });
+
+      expect(await fileExists(outputPath)).toBe(true);
+      const merged = JSON.parse(await readFile(outputPath));
+
+      // JSON output should have both keys
+      expect(merged).toHaveProperty("relationships");
+      expect(merged).toHaveProperty("nodes");
+      expect(merged.relationships).toHaveProperty("coverage");
+      expect(merged.nodes).toHaveProperty("layerSummaries");
+
+      unlinkSync(outputPath);
+    });
+
+    it("should filter by layer with --type nodes --layer motivation", async () => {
+      const outputPath = path.join(workdir.path, "motivation-nodes.json");
+
+      await auditCommand({ type: "nodes", layer: "motivation", output: outputPath, format: "json" });
+
+      const report = JSON.parse(await readFile(outputPath));
+      expect(report.layerSummaries).toHaveLength(1);
+      expect(report.layerSummaries[0].layerId).toBe("motivation");
+
+      unlinkSync(outputPath);
+    });
+
+    it("should reject invalid --type values", async () => {
+      await expect(
+        auditCommand({ type: "invalid" as any })
+      ).rejects.toThrow('Invalid audit type: "invalid"');
+    });
+
+    it("default type should be relationships (backward compat)", async () => {
+      const outputPath = path.join(workdir.path, "default-audit.json");
+
+      // No --type specified
+      await auditCommand({ output: outputPath, format: "json" });
+
+      const report = JSON.parse(await readFile(outputPath));
+      // Relationships audit has these fields; nodes audit does not
+      expect(report).toHaveProperty("coverage");
+      expect(report).toHaveProperty("gaps");
+
+      unlinkSync(outputPath);
+    });
+  });
 });
