@@ -71,7 +71,7 @@ dist/
 **/src/generated/
 
 # Audit artifacts
-audit-results/
+audit-reports/
 
 # Test suite artifacts (cli-validation)
 cli-validation/test-suite/node_modules/

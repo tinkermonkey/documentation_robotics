@@ -3,9 +3,10 @@ schema: documentation-robotics-v1
 cli_version: 0.1.0
 spec_version: 0.8.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-02-20T15:28:17.947Z
+updated: 2026-02-24T20:28:51.984Z
 project:
   name: dr-codebase
+  description: ""
   version: 0.1.0
 documentation: .dr/README.md
 layers:
@@ -14,58 +15,81 @@ layers:
     name: Motivation
     path: documentation-robotics/model/01_motivation/
     enabled: true
+    elements: {}
   business:
     order: 2
     name: Business
     path: documentation-robotics/model/02_business/
     enabled: true
+    elements: {}
   security:
     order: 3
     name: Security
     path: documentation-robotics/model/03_security/
     enabled: true
+    elements: {}
   application:
     order: 4
     name: Application
     path: documentation-robotics/model/04_application/
     enabled: true
+    elements: {}
   technology:
     order: 5
     name: Technology
     path: documentation-robotics/model/05_technology/
     enabled: true
+    elements: {}
   api:
     order: 6
     name: Api
     path: documentation-robotics/model/06_api/
     enabled: true
+    elements: {}
   data-model:
     order: 7
     name: Data model
     path: documentation-robotics/model/07_data-model/
     enabled: true
+    elements: {}
   data-store:
     order: 8
     name: Data store
     path: documentation-robotics/model/08_data-store/
     enabled: true
+    elements: {}
   ux:
     order: 9
     name: Ux
     path: documentation-robotics/model/09_ux/
     enabled: true
+    elements: {}
   navigation:
     order: 10
     name: Navigation
     path: documentation-robotics/model/10_navigation/
     enabled: true
+    elements: {}
   apm:
     order: 11
     name: Apm
     path: documentation-robotics/model/11_apm/
     enabled: true
+    elements: {}
   testing:
     order: 12
     name: Testing
     path: documentation-robotics/model/12_testing/
     enabled: true
+    elements: {}
+statistics:
+  total_elements: 0
+  total_relationships: 0
+  completeness: 0
+  last_validation: null
+  validation_status: not_validated
+cross_references:
+  total: 0
+  by_type: {}
+upgrade_history: []
+preferred_chat_client: Claude Code
