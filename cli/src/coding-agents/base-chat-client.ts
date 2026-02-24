@@ -56,9 +56,9 @@ export abstract class BaseChatClient {
    * Send a message and stream the response
    * @param message The user's message
    * @param options Chat options including agent, working directory, and session
-   * @returns Promise that resolves when the message completes
+   * @returns Promise that resolves with the complete assistant response text
    */
-  abstract sendMessage(message: string, options?: ChatOptions): Promise<void>;
+  abstract sendMessage(message: string, options?: ChatOptions): Promise<string>;
 
   /**
    * Get the current session information

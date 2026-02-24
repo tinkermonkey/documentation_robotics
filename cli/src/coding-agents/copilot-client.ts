@@ -152,7 +152,7 @@ export class CopilotClient extends BaseChatClient {
    * @param message The user's message
    * @param options Chat options
    */
-  async sendMessage(message: string, options?: ChatOptions): Promise<void> {
+  async sendMessage(message: string, options?: ChatOptions): Promise<string> {
     const span = isTelemetryEnabled
       ? startSpan("copilot.send-message", {
           "message.length": message.length,
@@ -318,7 +318,7 @@ export class CopilotClient extends BaseChatClient {
             (span as any).setStatus({ code: 0 });
           }
           endSpan(span);
-          resolve();
+          resolve(assistantOutput);
         } else {
           const errorMsg = `Copilot process exited with code ${exitCode}`;
           if (isTelemetryEnabled && span) {

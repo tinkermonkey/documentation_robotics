@@ -86,7 +86,7 @@ export class ClaudeCodeClient extends BaseChatClient {
    * @param message The user's message
    * @param options Chat options
    */
-  async sendMessage(message: string, options?: ChatOptions): Promise<void> {
+  async sendMessage(message: string, options?: ChatOptions): Promise<string> {
     const span = isTelemetryEnabled
       ? startSpan("claude-code.send-message", {
           "message.length": message.length,
@@ -345,7 +345,7 @@ export class ClaudeCodeClient extends BaseChatClient {
             (span as any).setStatus({ code: 0 });
           }
           endSpan(span);
-          resolve();
+          resolve(assistantOutput);
         } else {
           const errorMsg = `Claude process exited with code ${exitCode}`;
           if (isTelemetryEnabled && span) {
@@ -475,9 +475,15 @@ export class ClaudeCodeClient extends BaseChatClient {
         });
       }
 
+      // Strip CLAUDECODE from the environment so Claude doesn't refuse to run
+      // inside an existing Claude Code session (nested session protection).
+      const env = { ...process.env };
+      delete env.CLAUDECODE;
+
       const proc = spawn("claude", args, {
         cwd,
         stdio: ["pipe", "pipe", "pipe"],
+        env,
       });
 
       // Send message via stdin
