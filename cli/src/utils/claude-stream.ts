@@ -46,7 +46,7 @@ export async function invokeClaudeStreaming(
   return new Promise<string>((resolve, reject) => {
     const child = spawn(
       "claude",
-      ["--print", "--output-format", "stream-json", "--dangerously-skip-permissions", prompt],
+      ["--print", "--verbose", "--output-format", "stream-json", "--dangerously-skip-permissions", prompt],
       { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] }
     );
 
