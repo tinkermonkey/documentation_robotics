@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Reference",
-  "description": "Reference to another schema",
+  "description": "A JSON Schema $ref pointer that references another schema by URI or JSON Pointer fragment. Enables schema reuse and composition without duplication.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,10 +20,9 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "on_delete": {
+        "$ref": {
           "type": "string",
-          "enum": ["CASCADE", "SET NULL", "SET DEFAULT", "RESTRICT", "NO ACTION"],
-          "description": "ReferentialAction classification"
+          "description": "URI or JSON Pointer fragment referencing another schema"
         }
       },
       "additionalProperties": false

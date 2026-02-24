@@ -21,7 +21,9 @@
       "type": "object",
       "properties": {
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
+          "description": "JSON Schema Draft 7 primitive type"
         },
         "title": {
           "type": "string"

@@ -24,23 +24,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
-        },
-        "index_type": {
           "type": "string",
-          "enum": [
-            "btree",
-            "hash",
-            "gin",
-            "gist",
-            "brin",
-            "fulltext",
-            "spatial",
-            "composite",
-            "unique",
-            "partial"
-          ],
-          "description": "IndexType classification"
+          "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
+          "description": "JSON Schema Draft 7 primitive type"
         }
       },
       "required": ["title", "type"],
