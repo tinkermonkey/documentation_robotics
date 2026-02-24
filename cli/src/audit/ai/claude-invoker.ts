@@ -1,6 +1,6 @@
-import { spawn } from "node:child_process";
 import type { CoverageMetrics } from "../types.js";
 import { PromptTemplates } from "./prompt-templates.js";
+import { invokeClaudeStreaming } from "../../utils/claude-stream.js";
 import { getErrorMessage } from "../../utils/errors.js";
 
 /**
@@ -60,50 +60,15 @@ export class ClaudeInvoker {
   }
 
   /**
-   * Invoke Claude Code CLI with a prompt
+   * Invoke Claude Code CLI with a prompt, streaming assistant output to stderr
+   * in real-time and returning the final result text for parsing.
    */
   async invoke(invocation: ClaudeInvocation): Promise<string> {
-    const args = [
-      "--print",
-      "--dangerously-skip-permissions",
-      invocation.prompt,
-    ];
-
     try {
-      const output = await new Promise<string>((resolve, reject) => {
-        const child = spawn("claude", args, { cwd: process.cwd() });
-        const chunks: Buffer[] = [];
-        const stderrChunks: string[] = [];
-
-        child.stdout.on("data", (chunk: Buffer) => {
-          chunks.push(chunk);
-          process.stdout.write(chunk);
-        });
-
-        child.stderr.on("data", (chunk: Buffer) => {
-          stderrChunks.push(chunk.toString());
-        });
-
-        child.on("close", (code) => {
-          if (code !== 0) {
-            reject(
-              new Error(
-                `Claude invocation failed (${invocation.type}: ${invocation.target}): exited with code ${code}\nStderr: ${stderrChunks.join("") || "N/A"}`
-              )
-            );
-          } else {
-            resolve(Buffer.concat(chunks).toString("utf8"));
-          }
-        });
-
-        child.on("error", (err) => {
-          reject(
-            new Error(
-              `Claude invocation failed (${invocation.type}: ${invocation.target}): ${err.message}`
-            )
-          );
-        });
-      });
+      const output = await invokeClaudeStreaming(
+        invocation.prompt,
+        `${invocation.type}: ${invocation.target}`
+      );
 
       // Rate limiting
       await this.delay(this.RATE_LIMIT_DELAY_MS);
