@@ -42,6 +42,34 @@ DOCUMENTATION SCORE — Is the description accurate, useful, and sufficient?
   30-49:  Misleading or too brief to be useful
   0-29:   Empty, missing, or actively wrong
 
+PATTERN DETECTION — In addition to scoring, identify two structural anti-patterns. When found, apply the scoring impact below and include a specific remediation suggestion.
+
+PATTERN A — Cross-layer reference annotation:
+  A node whose sole purpose is to carry metadata that belongs to another layer.
+  Indicators:
+    • Name uses x- prefix (e.g. x-database, x-ui, x-security, x-apm-*)
+    • Description says things like "links schema to...", "reference to ... in another layer",
+      "UI rendering hints", "security metadata", "database mapping information"
+    • Attributes describe properties of another layer's concepts, not this layer's
+  Scoring impact: Alignment score must be 0–29. This is a conceptual misalignment — the node
+    embeds cross-layer coupling inside a layer's type catalog instead of using relationships
+    or metadata attachments.
+  Required suggestion: Recommend moving this to a relationship property or cross-reference
+    annotation, and identify which layer it actually belongs to.
+
+PATTERN B — Enum-masquerading node type:
+  A node that enumerates a closed set of values but is modeled as a first-class node type.
+  Indicators:
+    • Has only one attribute (commonly named "value" with type string or enum)
+    • Name or description uses words like "type", "kind", "mode", "status", or implies
+      a finite set of choices (e.g. "Core JSON data types", "String type definition")
+    • Represents a primitive value constraint rather than a structural concept
+  Scoring impact: Reduce alignment score by 20–30 points. These inflate the type catalog
+    and are modeling primitives incorrectly used.
+  Required suggestion: Recommend collapsing into an \`enum\`-constrained string attribute on
+    the parent schema (or a shared \`$defs\` enum referenced via \`$ref\`), and name the
+    specific attribute and schema where it should live.
+
 Input node types:
 \`\`\`json
 ${JSON.stringify(inputItems, null, 2)}

@@ -70,10 +70,8 @@ node_modules/
 dist/
 **/src/generated/
 
-# Graph database files (regenerate from schemas)
-tools/graph-db/*.lbug/
-tools/graph-db/*.db
-lbug
+# Audit artifacts
+audit-results/
 
 # Test suite artifacts (cli-validation)
 cli-validation/test-suite/node_modules/

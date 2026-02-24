@@ -33,7 +33,7 @@
  */
 
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { dirname, join, relative } from "path";
 import { parseArgs } from "util";
 import { AuditReport } from "../cli/src/audit/types.js";
 import { formatAuditReport, AuditReportFormat } from "../cli/src/export/audit-formatters.js";
@@ -43,6 +43,17 @@ import { AuditOrchestrator } from "../cli/src/audit/audit-orchestrator.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, "..");
+const auditReportsDir = join(projectRoot, "audit-reports");
+
+/**
+ * Build the default output path for a relationship audit report.
+ * Pattern: audit-reports/{layer|all}-relationships.{ext}
+ */
+function getDefaultOutputPath(layer: string | undefined, format: AuditReportFormat): string {
+  const layerName = layer ?? "all";
+  const ext = format === "json" ? "json" : format === "markdown" ? "md" : "txt";
+  return join(auditReportsDir, `${layerName}-relationships.${ext}`);
+}
 
 interface ScriptOptions {
   layer?: string;
@@ -70,7 +81,7 @@ function parseArguments(): ScriptOptions {
   const { values } = parseArgs({
     options: {
       layer: { type: "string", short: "l" },
-      format: { type: "string", short: "f", default: "text" },
+      format: { type: "string", short: "f", default: "markdown" },
       output: { type: "string", short: "o" },
       verbose: { type: "boolean", short: "v", default: false },
       threshold: { type: "boolean", short: "t", default: false },
@@ -102,19 +113,21 @@ Usage:
 
 Options:
   -l, --layer <name>       Audit specific layer only
-  -f, --format <format>    Output format: text, json, markdown (default: text)
-  -o, --output <file>      Write output to file instead of stdout
+  -f, --format <format>    Output format: text, json, markdown (default: markdown)
+  -o, --output <file>      Override output path (default: audit-reports/{layer}-relationships.{ext})
   -v, --verbose            Show detailed analysis
   -t, --threshold          Exit with code 1 if quality issues detected
   -h, --help               Show this help message
 
+Default output: audit-reports/{layer|all}-relationships.{md|json|txt}
+
 Examples:
-  npm run audit:relationships                              # Run full audit
-  npm run audit:relationships -- --layer api               # Audit API layer only
-  npm run audit:relationships -- --format json             # JSON output
-  npm run audit:relationships -- --output report.md        # Save markdown report
-  npm run audit:relationships -- --threshold               # Fail if quality issues found
-  npm run audit:relationships -- --verbose --format text   # Detailed text report
+  npm run audit:relationships                                       # Full audit → audit-reports/all-relationships.md
+  npm run audit:relationships -- --layer api                        # API layer → audit-reports/api-relationships.md
+  npm run audit:relationships -- --format json                      # JSON → audit-reports/all-relationships.json
+  npm run audit:relationships -- --layer data-model --format json   # → audit-reports/data-model-relationships.json
+  npm run audit:relationships -- --threshold                        # Fail if quality issues found
+  npm run audit:relationships -- --verbose                          # Detailed output
 
 Quality Thresholds (for --threshold flag):
   - Isolation:        Max ${QUALITY_THRESHOLDS.maxIsolationPercentage}%
@@ -198,23 +211,13 @@ async function runAudit(options: ScriptOptions): Promise<void> {
       verbose: options.verbose,
     });
 
-    // Write to file or stdout
-    if (options.output) {
-      // Use original working directory for output path resolution
-      const outputPath = join(originalCwd, options.output);
-      const outputDir = dirname(outputPath);
-
-      // Ensure output directory exists
-      await ensureDir(outputDir);
-
-      // Write file
-      await writeFile(outputPath, output);
-
-      console.error(`✓ Audit report written to ${options.output}`);
-    } else {
-      // Print to stdout
-      console.log(output);
-    }
+    // Resolve output path: explicit override or default under audit-reports/
+    const outputPath = options.output
+      ? join(originalCwd, options.output)
+      : getDefaultOutputPath(options.layer, options.format);
+    await ensureDir(dirname(outputPath));
+    await writeFile(outputPath, output);
+    console.error(`✓ Audit report written to ${relative(originalCwd, outputPath)}`);
 
     // Check quality thresholds if requested
     if (options.threshold) {

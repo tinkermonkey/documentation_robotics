@@ -33,7 +33,7 @@
  */
 
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { dirname, join, relative } from "path";
 import { parseArgs } from "util";
 import type { NodeAuditReport } from "../cli/src/audit/nodes/node-audit-types.js";
 import { formatNodeAuditReport, AuditReportFormat } from "../cli/src/export/audit-formatters.js";
@@ -44,11 +44,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, "..");
 const specDir = join(projectRoot, "spec");
+const auditReportsDir = join(projectRoot, "audit-reports");
+
+/**
+ * Build the default output path for a node audit report.
+ * Pattern: audit-reports/{layer|all}-nodes.{ext}
+ */
+function getDefaultOutputPath(layer: string | undefined, format: AuditReportFormat): string {
+  const layerName = layer ?? "all";
+  const ext = format === "json" ? "json" : format === "markdown" ? "md" : "txt";
+  return join(auditReportsDir, `${layerName}-nodes.${ext}`);
+}
 
 interface ScriptOptions {
   layer?: string;
   format: AuditReportFormat;
   output?: string;
+  saveJson?: string;
   verbose: boolean;
   threshold: boolean;
   enableAi: boolean;
@@ -73,8 +85,9 @@ function parseArguments(): ScriptOptions {
   const { values } = parseArgs({
     options: {
       layer: { type: "string", short: "l" },
-      format: { type: "string", short: "f", default: "text" },
+      format: { type: "string", short: "f", default: "markdown" },
       output: { type: "string", short: "o" },
+      "save-json": { type: "string" },
       verbose: { type: "boolean", short: "v", default: false },
       threshold: { type: "boolean", short: "t", default: false },
       "enable-ai": { type: "boolean", default: false },
@@ -87,6 +100,7 @@ function parseArguments(): ScriptOptions {
     layer: values.layer as string | undefined,
     format: (values.format as AuditReportFormat) || "text",
     output: values.output as string | undefined,
+    saveJson: values["save-json"] as string | undefined,
     verbose: values.verbose as boolean,
     threshold: values.threshold as boolean,
     enableAi: values["enable-ai"] as boolean,
@@ -107,20 +121,24 @@ Usage:
 
 Options:
   -l, --layer <name>       Audit specific layer only
-  -f, --format <format>    Output format: text, json, markdown (default: text)
-  -o, --output <file>      Write output to file instead of stdout
+  -f, --format <format>    Output format: text, json, markdown (default: markdown)
+  -o, --output <file>      Override output path (default: audit-reports/{layer}-nodes.{ext})
+      --save-json <file>   Also save raw audit data as JSON (for /dr-audit-resolve)
   -v, --verbose            Show detailed per-node analysis
   -t, --threshold          Exit with code 1 if quality issues detected
       --enable-ai          Enable AI-assisted layer alignment and documentation evaluation
   -h, --help               Show this help message
 
+Default output: audit-reports/{layer|all}-nodes.{md|json|txt}
+
 Examples:
-  npm run audit:nodes                              # Run full audit
-  npm run audit:nodes -- --layer api               # Audit API layer only
-  npm run audit:nodes -- --format json             # JSON output
-  npm run audit:nodes -- --output report.md        # Save markdown report
-  npm run audit:nodes -- --threshold               # Fail if quality issues found
-  npm run audit:nodes -- --verbose --format text   # Detailed text report
+  npm run audit:nodes                                        # Full audit → audit-reports/all-nodes.md
+  npm run audit:nodes -- --layer api                         # API layer → audit-reports/api-nodes.md
+  npm run audit:nodes -- --format json                       # JSON → audit-reports/all-nodes.json
+  npm run audit:nodes -- --layer data-model --format json    # → audit-reports/data-model-nodes.json
+  npm run audit:nodes -- --enable-ai --save-json audit-reports/all-nodes.json  # With AI + JSON sidecar
+  npm run audit:nodes -- --threshold                         # Fail if quality issues found
+  npm run audit:nodes -- --verbose                           # Detailed output
 
 Quality Thresholds (for --threshold flag):
   - Avg Quality Score:      Min ${NODE_QUALITY_THRESHOLDS.minAvgQualityScore}/100 per layer
@@ -217,15 +235,20 @@ async function runAudit(options: ScriptOptions): Promise<void> {
       verbose: options.verbose,
     });
 
-    // Write to file or stdout
-    if (options.output) {
-      const outputPath = join(originalCwd, options.output);
-      const outputDir = dirname(outputPath);
-      await ensureDir(outputDir);
-      await writeFile(outputPath, output);
-      console.error(`✓ Node audit report written to ${options.output}`);
-    } else {
-      console.log(output);
+    // Resolve output path: explicit override or default under audit-reports/
+    const outputPath = options.output
+      ? join(originalCwd, options.output)
+      : getDefaultOutputPath(options.layer, options.format);
+    await ensureDir(dirname(outputPath));
+    await writeFile(outputPath, output);
+    console.error(`✓ Node audit report written to ${relative(originalCwd, outputPath)}`);
+
+    // Optionally save raw JSON sidecar for tooling (e.g., /dr-audit-resolve)
+    if (options.saveJson) {
+      const savePath = join(originalCwd, options.saveJson);
+      await ensureDir(dirname(savePath));
+      await writeFile(savePath, JSON.stringify(report, null, 2));
+      console.error(`✓ Node audit data saved to ${options.saveJson}`);
     }
 
     // Check quality thresholds if requested
