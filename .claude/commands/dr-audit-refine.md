@@ -220,6 +220,8 @@ Use the `AskUserQuestion` tool. Construct the question using the full context ga
 ```
 [{N}/{total}] {specNodeId}  —  alignment: {alignmentScore}/100
 
+Action item: {documentationReasoning}
+
 Summary: {alignmentReasoning}
 
 Git history: {classification}

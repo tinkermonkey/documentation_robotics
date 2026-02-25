@@ -40,7 +40,7 @@ When this command is invoked, execute the following steps precisely.
 
 ### STEP 1: Locate the Audit File
 
-1. If an argument was provided, treat it as the path to the audit JSON file. Resolve relative to the repository root (`/Users/austinsand/workspace/documentation_robotics`).
+1. If an argument was provided, treat it as the path to the audit JSON file. Resolve relative to the repository root.
 2. If no argument was provided, search for the most recent audit JSON in this order:
    - `audit-reports/all-nodes.json`
    - `audit-reports/all-relationships.json`
@@ -65,7 +65,7 @@ Then re-run: /dr-audit-resolve [path]   (or omit path to auto-discover)
 
 Inspect the top-level keys of the JSON:
 
-- **Node audit** — has keys: `layerSummaries`, `definitionQuality`, `overlaps`, `completenessIssues` (and optionally `aiReviews`)
+- **Node audit** — has keys: `layerSummaries`, `definitionQuality`, `overlaps`, `completenessIssues`, `aiReviews`
 - **Relationship audit** — has keys: `coverage`, `gaps`, `duplicates`, `balance`, `connectivity`
 
 If the type cannot be determined, tell the user and abort.
@@ -229,6 +229,8 @@ Use the `AskUserQuestion` tool. Construct the question with full context from 4a
 ```
 [{N}/{total}] {specNodeId}  —  alignment: {alignmentScore}/100
 
+Action item: {documentationReasoning}
+
 Reasoning: {alignmentReasoning}
 
 Suggestions:
@@ -255,7 +257,6 @@ Options:
 - **Follow recommendation** — describe the specific action in 1 sentence (e.g., "Move schema to {targetLayerId} layer, restructuring attributes to fit that layer's conventions")
 - **Remove this node type** — delete the schema file and update the layer instance
 - **Skip for now** — leave unchanged, move to next item
-- **Something else** — describe what you'd like to do
 
 **For a RELATIONSHIP GAP item:**
 
