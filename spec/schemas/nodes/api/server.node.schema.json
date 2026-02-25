@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Server",
-  "description": "Defines a server URL (optionally templated with {variable} placeholders) where the API is deployed. Supports multiple server entries for different environments (production, staging, dev). The 'url' field is required.",
+  "description": "Defines a server URL (optionally templated with {variable} placeholders) where the API is deployed. Supports multiple server entries for different environments (production, staging, dev). The 'url' field is required. A 'servers' array can appear at three levels: root document, PathItem, and Operation — each level overrides the previous for that scope.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -34,7 +34,8 @@
           "type": "string"
         },
         "variables": {
-          "type": "string"
+          "type": "string",
+          "description": "Map of {placeholder} names (from the url template) to api.servervariable nodes defining allowed values and defaults."
         }
       },
       "required": ["url"],

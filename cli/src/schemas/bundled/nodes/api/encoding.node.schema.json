@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Encoding",
-  "description": "Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation.",
+  "description": "Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation. Note: a Content-Type header placed in the Encoding object's 'headers' map is ignored — use the 'contentType' attribute to set the MIME type for a multipart section.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -47,7 +47,8 @@
           "type": "boolean"
         },
         "allowReserved": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Allows reserved characters in field values without percent-encoding. Only applies when style is 'form' and the content type is 'application/x-www-form-urlencoded'."
         }
       },
       "required": [],
