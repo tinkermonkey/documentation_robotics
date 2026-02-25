@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LogConfiguration",
-  "description": "Logging configuration",
+  "description": "OTel LoggerProvider configuration, covering the LogRecordProcessor pipeline, LogRecordExporter wiring, and minimum severity filtering for log emission.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -30,11 +30,13 @@
         "serviceName": {
           "type": "string"
         },
-        "logLevel": {
-          "type": "string"
+        "minimumSeverity": {
+          "type": "string",
+          "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
+          "description": "Minimum OTel SeverityText level for log records to be emitted"
         }
       },
-      "required": ["serviceName", "logLevel"],
+      "required": ["serviceName"],
       "additionalProperties": false
     }
   }

@@ -33,6 +33,18 @@
         "droppedAttributesCount": {
           "type": "string"
         },
+        "serviceName": {
+          "type": "string",
+          "description": "OTel Resource semantic convention: logical name of the service (service.name)"
+        },
+        "serviceVersion": {
+          "type": "string",
+          "description": "OTel Resource semantic convention: version of the service (service.version)"
+        },
+        "deploymentEnvironment": {
+          "type": "string",
+          "description": "OTel Resource semantic convention: deployment environment (deployment.environment)"
+        },
         "attributes": {
           "type": "array",
           "description": "Contains relationship"

@@ -40,7 +40,9 @@
           "type": "string"
         },
         "spanKind": {
-          "type": "string"
+          "type": "string",
+          "enum": ["INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER"],
+          "description": "OTel SpanKind indicating the span's relationship to the calling and receiving system"
         },
         "startTimeUnixNano": {
           "type": "string"

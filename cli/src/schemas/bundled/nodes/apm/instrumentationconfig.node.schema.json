@@ -35,6 +35,11 @@
         },
         "description": {
           "type": "string"
+        },
+        "instrumentationType": {
+          "type": "string",
+          "enum": ["automatic", "manual", "both"],
+          "description": "Whether instrumentation is applied automatically, manually, or both"
         }
       },
       "required": ["type"],

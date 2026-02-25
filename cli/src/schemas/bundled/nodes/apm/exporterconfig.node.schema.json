@@ -28,7 +28,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["otlp", "jaeger", "zipkin", "prometheus", "stdout", "logging"],
+          "description": "The type of exporter"
         },
         "enabled": {
           "type": "boolean"
@@ -38,6 +40,11 @@
         },
         "protocol": {
           "type": "string"
+        },
+        "authType": {
+          "type": "string",
+          "enum": ["none", "api_key", "bearer", "tls_client_cert", "basic"],
+          "description": "Authentication method used for the export destination"
         }
       },
       "required": ["type", "endpoint"],

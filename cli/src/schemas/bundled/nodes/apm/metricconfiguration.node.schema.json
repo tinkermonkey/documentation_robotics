@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MetricConfiguration",
-  "description": "Metrics configuration",
+  "description": "OTel MeterProvider-level (global) metrics SDK configuration, covering export intervals, cardinality limits, and exemplar filtering. Distinct from per-meter configuration in MeterConfig.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -32,6 +32,19 @@
         },
         "exportIntervalMillis": {
           "type": "integer"
+        },
+        "exportTimeoutMillis": {
+          "type": "integer",
+          "description": "Maximum time allowed for a metric export to complete"
+        },
+        "cardinalityLimit": {
+          "type": "integer",
+          "description": "Maximum number of unique metric time series per instrument"
+        },
+        "exemplarFilter": {
+          "type": "string",
+          "enum": ["always_on", "always_off", "trace_based"],
+          "description": "OTel exemplar filter controlling which exemplars are recorded"
         }
       },
       "required": ["serviceName"],

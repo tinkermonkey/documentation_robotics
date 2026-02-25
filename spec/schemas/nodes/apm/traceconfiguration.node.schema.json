@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TraceConfiguration",
-  "description": "Distributed tracing configuration",
+  "description": "OTel TracerProvider configuration covering sampler selection, context propagation formats, and span processor pipeline. Service identity attributes (serviceName, serviceVersion, deploymentEnvironment) are OTel Resource semantic conventions and belong on the Resource node.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -27,21 +27,32 @@
         "name": {
           "type": "string"
         },
-        "serviceName": {
-          "type": "string"
-        },
-        "serviceVersion": {
-          "type": "string"
-        },
-        "deploymentEnvironment": {
-          "type": "string"
-        },
         "source": {
           "type": "object",
           "description": "Source code reference for trace configuration"
+        },
+        "samplerType": {
+          "type": "string",
+          "enum": [
+            "always_on",
+            "always_off",
+            "trace_id_ratio",
+            "parent_based_always_on",
+            "parent_based_always_off",
+            "parent_based_trace_id_ratio"
+          ],
+          "description": "OTel SDK sampler type controlling which traces are recorded"
+        },
+        "propagators": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["tracecontext", "baggage", "b3", "b3multi", "xray", "jaeger"]
+          },
+          "description": "OTel context propagation formats enabled for this trace configuration"
         }
       },
-      "required": ["serviceName"],
+      "required": [],
       "additionalProperties": false
     }
   }

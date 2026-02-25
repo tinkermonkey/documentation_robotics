@@ -39,6 +39,11 @@
         "instruments": {
           "type": "array",
           "description": "Contains relationship"
+        },
+        "aggregationTemporality": {
+          "type": "string",
+          "enum": ["DELTA", "CUMULATIVE", "UNSPECIFIED"],
+          "description": "OTel aggregation temporality defining whether metric values are cumulative or reset each collection interval"
         }
       },
       "additionalProperties": false

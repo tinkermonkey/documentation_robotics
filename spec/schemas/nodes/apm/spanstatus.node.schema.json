@@ -28,7 +28,9 @@
           "type": "string"
         },
         "code": {
-          "type": "string"
+          "type": "string",
+          "enum": ["UNSET", "OK", "ERROR"],
+          "description": "OTel span status code"
         },
         "message": {
           "type": "string"

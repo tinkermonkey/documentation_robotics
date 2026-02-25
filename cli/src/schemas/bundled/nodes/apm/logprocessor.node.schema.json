@@ -28,7 +28,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["simple", "batch", "custom"],
+          "description": "OTel log record processor type (simple: synchronous, batch: asynchronous buffered)"
         },
         "order": {
           "type": "integer"
