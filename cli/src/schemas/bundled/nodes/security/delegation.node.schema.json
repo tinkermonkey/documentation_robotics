@@ -34,7 +34,9 @@
           "type": "string"
         },
         "delegationType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["full", "partial", "temporary", "conditional", "revocable"],
+          "description": "Scope and constraints of the delegation grant, per OAuth 2.0 token delegation and NIST SP 800-162 attribute delegation models."
         },
         "description": {
           "type": "string"

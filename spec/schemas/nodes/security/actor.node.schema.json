@@ -28,13 +28,17 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["human", "service", "system", "external-entity"],
+          "description": "Category of actor, per NIST AC-2 (Account Management) subject classification."
         },
         "description": {
           "type": "string"
         },
         "trustLevel": {
-          "type": "string"
+          "type": "string",
+          "enum": ["zero", "low", "medium", "high", "full"],
+          "description": "Zero-trust assurance level assigned to this actor, per NIST SP 800-207."
         },
         "objectives": {
           "type": "array",

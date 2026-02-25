@@ -30,6 +30,16 @@
         "period": {
           "type": "string"
         },
+        "destination": {
+          "type": "string",
+          "enum": ["siem", "database", "file", "cloud", "stream", "archive"],
+          "description": "Storage or forwarding target for retained security data, per NIST SP 800-53 AU-9 Protection of Audit Information."
+        },
+        "deletionMethod": {
+          "type": "string",
+          "enum": ["secure-erase", "crypto-shred", "overwrite", "logical-delete", "archive"],
+          "description": "Secure disposal technique applied when data reaches end of retention period, per NIST SP 800-88 Guidelines for Media Sanitization."
+        },
         "description": {
           "type": "string"
         }

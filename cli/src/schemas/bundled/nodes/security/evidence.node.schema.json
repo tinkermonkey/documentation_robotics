@@ -28,10 +28,14 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["log", "signature", "timestamp", "hash", "certificate", "audit-trail"],
+          "description": "Category of evidence artifact, per NIST AU-10 (Non-repudiation)."
         },
         "strength": {
-          "type": "string"
+          "type": "string",
+          "enum": ["strong", "moderate", "weak", "cryptographic"],
+          "description": "Assurance strength of the evidence, per NIST SP 800-63-3 assurance levels."
         },
         "source": {
           "type": "string"

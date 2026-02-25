@@ -30,6 +30,11 @@
         "version": {
           "type": "string"
         },
+        "encryptionRequirement": {
+          "type": "string",
+          "enum": ["none", "in-transit", "at-rest", "end-to-end", "field-level"],
+          "description": "Minimum encryption obligation for data within this classification scheme, per NIST SP 800-53 SC-28 and SC-8 controls."
+        },
         "classifications": {
           "type": "array",
           "description": "Contains relationship"

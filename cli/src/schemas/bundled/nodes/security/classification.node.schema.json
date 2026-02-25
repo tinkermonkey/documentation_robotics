@@ -21,7 +21,9 @@
       "type": "object",
       "properties": {
         "level": {
-          "type": "string"
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted", "top-secret"],
+          "description": "Data sensitivity tier, aligned with NIST FIPS 199 security categorization levels."
         },
         "label": {
           "type": "string"

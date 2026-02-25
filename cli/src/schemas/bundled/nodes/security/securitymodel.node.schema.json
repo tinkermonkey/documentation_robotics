@@ -33,6 +33,11 @@
         "application": {
           "type": "string"
         },
+        "accessControlModel": {
+          "type": "string",
+          "enum": ["dac", "mac", "rbac", "abac", "rebac"],
+          "description": "Access control paradigm in use: DAC (discretionary), MAC (mandatory), RBAC (role-based), ABAC (attribute-based), ReBAC (relationship-based). Per NIST SP 800-162 and SP 800-207."
+        },
         "authentication": {
           "type": "array",
           "description": "Contains relationship"

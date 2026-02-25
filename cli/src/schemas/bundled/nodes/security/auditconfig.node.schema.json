@@ -31,7 +31,9 @@
           "type": "boolean"
         },
         "level": {
-          "type": "string"
+          "type": "string",
+          "enum": ["none", "basic", "standard", "detailed", "verbose"],
+          "description": "Verbosity of audit event capture, from no logging to full payload-level tracing, per NIST SP 800-53 AU-2 Event Logging."
         },
         "includePayload": {
           "type": "boolean"

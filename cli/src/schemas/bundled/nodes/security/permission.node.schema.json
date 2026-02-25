@@ -31,13 +31,17 @@
           "type": "string"
         },
         "scope": {
-          "type": "string"
+          "type": "string",
+          "enum": ["read-only", "write", "admin", "delegated", "conditional"],
+          "description": "Breadth of access granted by this permission, from narrow read-only to full administrative control."
         },
         "resource": {
           "type": "string"
         },
         "action": {
-          "type": "string"
+          "type": "string",
+          "enum": ["create", "read", "update", "delete", "execute", "list"],
+          "description": "CRUD-plus operation type this permission governs, per NIST SP 800-53 AC-3 Access Enforcement."
         }
       },
       "required": ["scope", "resource", "action"],

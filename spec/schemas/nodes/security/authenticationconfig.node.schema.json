@@ -28,7 +28,14 @@
           "type": "string"
         },
         "provider": {
-          "type": "string"
+          "type": "string",
+          "enum": ["oauth2", "saml", "ldap", "openid-connect", "local", "fido2"],
+          "description": "Authentication protocol or provider type."
+        },
+        "verificationLevel": {
+          "type": "string",
+          "enum": ["ial1", "ial2", "ial3"],
+          "description": "Identity Assurance Level, per NIST SP 800-63A: IAL1 (self-asserted), IAL2 (remote identity proofing), IAL3 (in-person proofing)."
         },
         "sessionTimeout": {
           "type": "integer"

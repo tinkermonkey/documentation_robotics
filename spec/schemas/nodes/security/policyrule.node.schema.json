@@ -31,7 +31,9 @@
           "type": "string"
         },
         "effect": {
-          "type": "string"
+          "type": "string",
+          "enum": ["permit", "deny", "indeterminate", "not-applicable"],
+          "description": "Policy decision outcome, per XACML 3.0 Rule element effect values."
         },
         "message": {
           "type": "string"

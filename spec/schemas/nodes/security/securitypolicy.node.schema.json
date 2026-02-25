@@ -37,7 +37,14 @@
           "type": "integer"
         },
         "target": {
-          "type": "string"
+          "type": "string",
+          "enum": ["endpoint", "service", "data", "user", "role", "resource"],
+          "description": "The category of entity this policy governs, aligned with XACML target element semantics."
+        },
+        "requirementLevel": {
+          "type": "string",
+          "enum": ["mandatory", "recommended", "optional", "conditional"],
+          "description": "Compliance obligation of this policy, indicating whether enforcement is required by regulation, recommended best practice, or situationally applicable."
         },
         "rules": {
           "type": "array",

@@ -31,7 +31,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["api", "database", "file", "service", "ui", "stream"],
+          "description": "Category of protected resource, used to apply appropriate access control and audit policies per NIST SP 800-53 AC-3."
         },
         "description": {
           "type": "string"

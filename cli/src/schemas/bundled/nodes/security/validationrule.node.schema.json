@@ -28,7 +28,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["regex", "range", "length", "enum", "custom"],
+          "description": "Validation mechanism type, per NIST SI-10 (Information Input Validation)."
         },
         "value": {
           "type": "string"
@@ -37,7 +39,9 @@
           "type": "string"
         },
         "severity": {
-          "type": "string"
+          "type": "string",
+          "enum": ["error", "warning", "info"],
+          "description": "Severity of a validation rule violation."
         },
         "source": {
           "type": "object",

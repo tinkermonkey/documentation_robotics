@@ -33,8 +33,15 @@
         "description": {
           "type": "string"
         },
+        "operator": {
+          "type": "string",
+          "enum": ["eq", "neq", "gt", "lt", "in", "contains", "matches"],
+          "description": "Comparison operator for the condition expression, aligned with XACML MatchType values."
+        },
         "evaluationType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["static", "dynamic", "runtime", "compile-time"],
+          "description": "When the condition is evaluated: at build time, at policy load, or at runtime during access enforcement."
         },
         "source": {
           "type": "object",

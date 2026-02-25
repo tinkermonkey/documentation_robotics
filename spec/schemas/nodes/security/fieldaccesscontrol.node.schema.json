@@ -30,6 +30,11 @@
         "field": {
           "type": "string"
         },
+        "maskingStrategy": {
+          "type": "string",
+          "enum": ["redact", "hash", "tokenize", "truncate", "blur", "none"],
+          "description": "Technique used to protect sensitive field values when exposed to unauthorized principals, per NIST SP 800-53 SC-28 data-at-rest protection controls."
+        },
         "description": {
           "type": "string"
         }

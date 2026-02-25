@@ -34,7 +34,14 @@
           "type": "string"
         },
         "scope": {
-          "type": "string"
+          "type": "string",
+          "enum": ["global", "per-user", "per-ip", "per-api-key"],
+          "description": "Scope at which the rate limit is applied."
+        },
+        "action": {
+          "type": "string",
+          "enum": ["block", "throttle", "queue", "log", "challenge"],
+          "description": "Action taken when the rate limit is exceeded, per NIST SC-5 (Denial-of-Service Protection)."
         },
         "keyBy": {
           "type": "string"

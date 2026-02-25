@@ -31,7 +31,9 @@
           "type": "string"
         },
         "operator": {
-          "type": "string"
+          "type": "string",
+          "enum": ["eq", "neq", "gt", "lt", "in", "contains", "matches", "exists"],
+          "description": "Comparison operator applied to the field value, per XACML 3.0 match function semantics."
         },
         "value": {
           "type": "string"

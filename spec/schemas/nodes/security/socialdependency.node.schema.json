@@ -40,7 +40,9 @@
           "type": "string"
         },
         "criticality": {
-          "type": "string"
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "Severity of the dependency relationship; higher criticality indicates greater security risk if the dependency fails or is exploited."
         }
       },
       "required": ["depender", "dependee", "resource", "objective", "criticality"],

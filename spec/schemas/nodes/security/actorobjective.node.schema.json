@@ -31,7 +31,9 @@
           "type": "string"
         },
         "criticality": {
-          "type": "string"
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "Priority level of this actor objective; critical objectives must be satisfied for the security model to hold."
         }
       },
       "additionalProperties": false
