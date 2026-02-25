@@ -9,22 +9,18 @@
     "url": "https://opentelemetry.io/"
   },
   "node_types": [
-    "apm.attribute",
     "apm.exporterconfig",
-    "apm.flowanalytics",
     "apm.instrumentationconfig",
     "apm.instrumentationscope",
     "apm.logconfiguration",
     "apm.logprocessor",
     "apm.logrecord",
-    "apm.meterconfig",
     "apm.metricconfiguration",
     "apm.metricinstrument",
     "apm.resource",
     "apm.span",
     "apm.spanevent",
     "apm.spanlink",
-    "apm.spanstatus",
     "apm.traceconfiguration"
   ]
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InstrumentationConfig",
-  "description": "Configuration for automatic or manual instrumentation of application code, specifying which libraries, frameworks, or code paths to instrument and capture telemetry from.",
+  "description": "Configuration for OTel instrumentation of application code. Auto-instrumentation uses SDK contrib plugin libraries (e.g., opentelemetry-instrumentation-express) that hook into frameworks transparently at SDK bootstrap time. Manual instrumentation uses direct OTel API calls (Tracer.startSpan, Meter.createCounter) embedded in application code. This node controls which libraries or code paths are instrumented and whether instrumentation is enabled.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -29,6 +29,10 @@
         },
         "type": {
           "type": "string"
+        },
+        "libraryName": {
+          "type": "string",
+          "description": "OTel InstrumentationScope-compatible library name identifying the instrumented library or framework (e.g., 'io.opentelemetry.spring-webmvc-6.0'). Used to correlate this config with telemetry emitted under the matching InstrumentationScope."
         },
         "enabled": {
           "type": "boolean"

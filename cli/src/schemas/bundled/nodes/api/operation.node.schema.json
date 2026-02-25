@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Operation",
-  "description": "Defines a single HTTP method bound to a path, specifying its contract: parameters, request body, possible responses, security requirements, and tags. The primary unit of API surface area in OpenAPI 3.0.",
+  "description": "Defines a single HTTP method bound to a path, specifying its contract: parameters, request body, possible responses, security requirements, and tags. Operation-level security overrides global API security requirements; an empty security array ([]) explicitly removes all security enforcement for the operation. The primary unit of API surface area in OpenAPI 3.0.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

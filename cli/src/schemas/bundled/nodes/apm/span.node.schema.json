@@ -59,6 +59,15 @@
         "droppedLinksCount": {
           "type": "string"
         },
+        "statusCode": {
+          "type": "string",
+          "enum": ["UNSET", "OK", "ERROR"],
+          "description": "OTel span status code. UNSET = not explicitly set by instrumentation; OK = explicitly successful; ERROR = explicitly failed. Once set to OK, cannot be overridden to ERROR."
+        },
+        "statusMessage": {
+          "type": "string",
+          "description": "Optional human-readable error message, used when statusCode is ERROR."
+        },
         "attributes": {
           "type": "array",
           "description": "Contains relationship"
