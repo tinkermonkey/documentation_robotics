@@ -31,7 +31,16 @@
           "type": "string"
         },
         "category": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "market",
+            "regulatory",
+            "operational",
+            "strategic",
+            "competitive",
+            "technological"
+          ],
+          "description": "Category of the motivating condition or force"
         }
       },
       "required": ["category"],

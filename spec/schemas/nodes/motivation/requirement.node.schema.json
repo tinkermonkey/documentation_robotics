@@ -31,10 +31,14 @@
           "type": "string"
         },
         "requirementType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["functional", "non-functional", "regulatory", "business", "quality"],
+          "description": "Classification of what aspect of the system this requirement addresses"
         },
         "priority": {
-          "type": "string"
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "informational"],
+          "description": "Priority level of this requirement"
         },
         "properties": {
           "type": "object",

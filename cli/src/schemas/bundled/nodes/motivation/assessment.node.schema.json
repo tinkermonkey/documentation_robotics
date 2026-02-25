@@ -31,7 +31,9 @@
           "type": "string"
         },
         "assessmentType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["SWOT", "risk", "gap", "feasibility", "readiness", "impact"],
+          "description": "Classification of the assessment method or framework used"
         }
       },
       "required": ["assessmentType"],

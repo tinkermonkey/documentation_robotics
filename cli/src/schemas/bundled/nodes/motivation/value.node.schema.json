@@ -31,7 +31,9 @@
           "type": "string"
         },
         "valueType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["financial", "strategic", "operational", "reputational", "social"],
+          "description": "Category of worth or utility this value represents"
         },
         "properties": {
           "type": "object",

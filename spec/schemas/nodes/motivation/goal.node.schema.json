@@ -31,7 +31,9 @@
           "type": "string"
         },
         "priority": {
-          "type": "string"
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "informational"],
+          "description": "Priority level of this goal"
         },
         "properties": {
           "type": "object",

@@ -31,7 +31,9 @@
           "type": "string"
         },
         "status": {
-          "type": "string"
+          "type": "string",
+          "enum": ["planned", "in-progress", "achieved", "abandoned", "at-risk"],
+          "description": "Lifecycle state of the outcome"
         },
         "properties": {
           "type": "object",

@@ -31,7 +31,9 @@
           "type": "string"
         },
         "category": {
-          "type": "string"
+          "type": "string",
+          "enum": ["architecture", "data", "security", "operational", "financial", "integration"],
+          "description": "Domain area to which this architectural principle applies"
         },
         "properties": {
           "type": "object",

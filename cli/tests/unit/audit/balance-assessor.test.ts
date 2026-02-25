@@ -46,13 +46,12 @@ describe("BalanceAssessor", () => {
   });
 
   it("should classify enumeration types correctly", () => {
-    const motivationLayer = getLayerById("motivation");
-    expect(motivationLayer).toBeDefined();
+    // Use all assessments since motivation no longer has raw enumeration node types
+    // (they were collapsed into inline enum attributes on parent schemas)
+    const allAssessments = assessor.assessAll();
 
-    const assessments = assessor.assessLayer(motivationLayer!);
-
-    // Find enumeration types (priority, type, level, etc.)
-    const enumerationTypes = assessments.filter(
+    // Find enumeration types (types ending in "type", "status", "category", etc.)
+    const enumerationTypes = allAssessments.filter(
       (a) => a.category === "enumeration"
     );
 
