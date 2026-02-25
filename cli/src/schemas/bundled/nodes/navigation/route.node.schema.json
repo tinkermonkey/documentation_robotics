@@ -34,7 +34,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["public", "protected", "redirect", "alias", "lazy"],
+          "description": "Access and loading classification: public (no auth), protected (requires auth), redirect (auto-forwards), alias (multiple paths to same component), lazy (code-split, loaded on demand)."
         },
         "source": {
           "type": "object",

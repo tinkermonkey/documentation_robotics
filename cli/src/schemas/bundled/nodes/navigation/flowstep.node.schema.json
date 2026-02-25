@@ -38,6 +38,11 @@
         },
         "required": {
           "type": "boolean"
+        },
+        "waitBehavior": {
+          "type": "string",
+          "enum": ["blocking", "non-blocking", "timeout", "async"],
+          "description": "Execution model governing how the flow waits for this step to complete before advancing."
         }
       },
       "required": ["sequence", "route"],

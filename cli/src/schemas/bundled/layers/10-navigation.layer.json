@@ -10,30 +10,15 @@
   },
   "node_types": [
     "navigation.breadcrumbconfig",
-    "navigation.breadcrumbmode",
-    "navigation.contextscope",
     "navigation.contextvariable",
-    "navigation.datamapping",
-    "navigation.flowanalytics",
     "navigation.flowstep",
     "navigation.guardaction",
-    "navigation.guardactiontype",
     "navigation.guardcondition",
-    "navigation.guardtype",
-    "navigation.httpmethod",
     "navigation.navigationflow",
     "navigation.navigationgraph",
     "navigation.navigationguard",
     "navigation.navigationtransition",
-    "navigation.navigationtrigger",
-    "navigation.notificationaction",
-    "navigation.notificationtype",
-    "navigation.processtracking",
     "navigation.route",
-    "navigation.routemeta",
-    "navigation.routetype",
-    "navigation.storagetype",
-    "navigation.truncationtype",
-    "navigation.waittype"
+    "navigation.routemeta"
   ]
 }

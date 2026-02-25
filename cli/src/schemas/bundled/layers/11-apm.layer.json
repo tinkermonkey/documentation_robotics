@@ -11,6 +11,7 @@
   "node_types": [
     "apm.attribute",
     "apm.exporterconfig",
+    "apm.flowanalytics",
     "apm.instrumentationconfig",
     "apm.instrumentationscope",
     "apm.logconfiguration",

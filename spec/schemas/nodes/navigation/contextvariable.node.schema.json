@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ContextVariable",
-  "description": "Shared variable across flow steps (Gap #1: Cross-experience state)",
+  "description": "A typed variable shared across steps of a NavigationFlow, enabling state to persist and transfer between route transitions.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -31,7 +31,9 @@
           "type": "string"
         },
         "scope": {
-          "type": "string"
+          "type": "string",
+          "enum": ["global", "flow", "step", "session"],
+          "description": "Lifetime and visibility of the variable across navigation flow execution."
         },
         "persistedIn": {
           "type": "string"

@@ -28,7 +28,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["auth", "role", "permission", "feature-flag", "custom"],
+          "description": "Classification of the guard mechanism: auth (authentication check), role (role membership), permission (fine-grained permission), feature-flag (feature toggle), custom (arbitrary condition)."
         },
         "description": {
           "type": "string"

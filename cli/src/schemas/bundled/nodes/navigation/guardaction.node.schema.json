@@ -28,7 +28,9 @@
           "type": "string"
         },
         "action": {
-          "type": "string"
+          "type": "string",
+          "enum": ["redirect", "block", "notify", "prompt"],
+          "description": "The action taken when the guard denies access to the target route."
         },
         "target": {
           "type": "string"
