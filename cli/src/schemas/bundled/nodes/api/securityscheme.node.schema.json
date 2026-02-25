@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SecurityScheme",
-  "description": "Security mechanism for the API",
+  "description": "Defines an authentication/authorization mechanism for the API. Supports four scheme types: apiKey (name+in required), http (scheme required), oauth2 (flows required), and openIdConnect (openIdConnectUrl required). Only 'type' is universally required.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -43,9 +43,17 @@
         },
         "bearerFormat": {
           "type": "string"
+        },
+        "flows": {
+          "type": "array",
+          "description": "Contains relationship — OAuth Flows configuration, required when type is oauth2"
+        },
+        "openIdConnectUrl": {
+          "type": "string",
+          "description": "OpenID Connect discovery URL, required when type is openIdConnect"
         }
       },
-      "required": ["type", "in", "scheme", "bearerFormat"],
+      "required": ["type"],
       "additionalProperties": false
     }
   }

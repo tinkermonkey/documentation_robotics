@@ -26,6 +26,10 @@
         },
         "name": {
           "type": "string"
+        },
+        "expression": {
+          "type": "string",
+          "description": "Runtime expression (e.g., '{$url}') evaluated against server request context to construct the callback URL"
         }
       },
       "additionalProperties": false

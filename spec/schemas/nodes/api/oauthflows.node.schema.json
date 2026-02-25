@@ -26,6 +26,22 @@
         },
         "name": {
           "type": "string"
+        },
+        "implicit": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "password": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "clientCredentials": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "authorizationCode": {
+          "type": "array",
+          "description": "Contains relationship"
         }
       },
       "additionalProperties": false

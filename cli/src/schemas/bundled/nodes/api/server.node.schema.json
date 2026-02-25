@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Server",
-  "description": "Server where the API is available",
+  "description": "Defines a server URL (optionally templated with {variable} placeholders) where the API is deployed. Supports multiple server entries for different environments (production, staging, dev). The 'url' field is required.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -37,7 +37,7 @@
           "type": "string"
         }
       },
-      "required": ["url", "variables"],
+      "required": ["url"],
       "additionalProperties": false
     }
   }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "OpenAPIDocument",
-  "description": "Root of an OpenAPI specification file",
+  "description": "The root document object of an OpenAPI 3.0 specification. Required fields are openapi (semver string, e.g. '3.0.3'), info, and paths. Serves as the entry point for all tooling, gateways, and documentation generators.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -52,7 +52,7 @@
           "type": "string"
         }
       },
-      "required": ["openapi", "info", "servers", "paths", "security", "tags"],
+      "required": ["openapi", "info", "paths"],
       "additionalProperties": false
     }
   }

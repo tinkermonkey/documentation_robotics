@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PathItem",
-  "description": "Operations available on a path",
+  "description": "Groups all HTTP operations available under a single URL path pattern (e.g., /users/{userId}). Path-level parameters apply to all operations under the path. Individual HTTP methods are represented as operation references.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -34,17 +34,47 @@
           "type": "string"
         },
         "servers": {
-          "type": "string"
+          "type": "array",
+          "description": "Contains relationship"
         },
         "parameters": {
-          "type": "string"
+          "type": "array",
+          "description": "Contains relationship — path-level parameters applied to all operations"
         },
-        "x-source-reference": {
-          "type": "string",
-          "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
+        "get": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "put": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "post": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "delete": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "options": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "head": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "patch": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "trace": {
+          "type": "array",
+          "description": "Contains relationship"
         }
       },
-      "required": ["servers", "parameters"],
+      "required": [],
       "additionalProperties": false
     }
   }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Paths",
-  "description": "Available API endpoints and operations",
+  "description": "A map of URL path patterns to PathItem objects defining the API surface. Path keys use OpenAPI path templating (e.g., /users/{id}).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

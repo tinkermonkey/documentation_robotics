@@ -50,7 +50,7 @@
           "type": "boolean"
         }
       },
-      "required": ["propertyName", "contentType", "style"],
+      "required": [],
       "additionalProperties": false
     }
   }

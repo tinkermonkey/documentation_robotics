@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schema",
-  "description": "Data type definition (JSON Schema subset)",
+  "description": "Inline data type definition using a subset of JSON Schema Draft 7, used within API operations to describe request/response data shapes. For reusable canonical types, reference data-model layer entities instead.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -47,9 +47,37 @@
         },
         "nullable": {
           "type": "boolean"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Map of property names to schema definitions for object types"
+        },
+        "items": {
+          "type": "object",
+          "description": "Schema definition for array element types"
+        },
+        "required": {
+          "type": "array",
+          "description": "List of required property names for object types"
+        },
+        "allOf": {
+          "type": "array",
+          "description": "Composed schema: value must be valid against all listed schemas"
+        },
+        "oneOf": {
+          "type": "array",
+          "description": "Composed schema: value must be valid against exactly one of the listed schemas"
+        },
+        "anyOf": {
+          "type": "array",
+          "description": "Composed schema: value must be valid against one or more of the listed schemas"
+        },
+        "$ref": {
+          "type": "string",
+          "description": "JSON Reference to another schema definition"
         }
       },
-      "required": ["type", "format"],
+      "required": [],
       "additionalProperties": false
     }
   }

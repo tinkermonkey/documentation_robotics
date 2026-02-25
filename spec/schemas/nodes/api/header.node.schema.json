@@ -36,8 +36,9 @@
         "deprecated": {
           "type": "boolean"
         },
-        "allowEmptyValue": {
-          "type": "boolean"
+        "schema": {
+          "type": "object",
+          "description": "The schema defining the type and constraints for the header value"
         }
       },
       "additionalProperties": false

@@ -34,13 +34,15 @@
           "type": "string"
         },
         "value": {
-          "type": "string"
+          "type": "string",
+          "description": "Inline example value. Mutually exclusive with externalValue — only one may be set per Example."
         },
         "externalValue": {
-          "type": "string"
+          "type": "string",
+          "description": "URL pointing to an external example. Mutually exclusive with value — only one may be set per Example."
         }
       },
-      "required": ["summary", "value", "externalValue"],
+      "required": [],
       "additionalProperties": false
     }
   }

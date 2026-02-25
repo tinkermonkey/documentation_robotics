@@ -35,9 +35,17 @@
         },
         "description": {
           "type": "string"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Map of parameter names to runtime expressions or literal values passed to the linked operation"
+        },
+        "requestBody": {
+          "type": "string",
+          "description": "Runtime expression or literal value for the linked operation's request body"
         }
       },
-      "required": ["operationId", "operationRef"],
+      "required": [],
       "additionalProperties": false
     }
   }

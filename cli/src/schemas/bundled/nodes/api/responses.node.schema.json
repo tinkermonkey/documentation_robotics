@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Responses",
-  "description": "Possible responses from an operation",
+  "description": "A map of HTTP status codes (e.g., 200, 404, default) to Response objects describing each possible outcome of an operation. At least one response must be defined per OpenAPI 3.0.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

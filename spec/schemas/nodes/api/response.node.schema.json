@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Response",
-  "description": "Single response definition",
+  "description": "Defines a single HTTP response returned by an operation, including its description, body content (keyed by MIME type), response headers, and optional hypermedia links.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -29,8 +29,21 @@
         },
         "description": {
           "type": "string"
+        },
+        "content": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "headers": {
+          "type": "array",
+          "description": "Contains relationship"
+        },
+        "links": {
+          "type": "array",
+          "description": "Contains relationship"
         }
       },
+      "required": ["description"],
       "additionalProperties": false
     }
   }

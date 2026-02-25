@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "RequestBody",
-  "description": "Request payload for an operation",
+  "description": "Defines the request body for an operation as a map of MIME types to MediaType objects. The 'content' field is required per OpenAPI 3.0. The 'required' field defaults to false.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -32,6 +32,10 @@
         },
         "required": {
           "type": "boolean"
+        },
+        "content": {
+          "type": "array",
+          "description": "Contains relationship"
         }
       },
       "additionalProperties": false

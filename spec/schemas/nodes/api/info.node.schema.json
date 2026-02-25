@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Info",
-  "description": "Metadata about the API",
+  "description": "Required root-level metadata describing the API identity, version, legal terms, and maintainer contact. The 'title' and 'version' fields are required per OpenAPI 3.0. Consumed by documentation generators, API gateways, and developer portals.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -46,7 +46,7 @@
           "type": "string"
         }
       },
-      "required": ["title", "version", "termsOfService"],
+      "required": ["title", "version"],
       "additionalProperties": false
     }
   }

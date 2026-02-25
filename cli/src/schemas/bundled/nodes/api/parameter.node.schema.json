@@ -56,9 +56,13 @@
             "deepObject"
           ],
           "description": "Serialization style for the parameter value"
+        },
+        "schema": {
+          "type": "object",
+          "description": "The schema defining the type and constraints for the parameter value"
         }
       },
-      "required": ["in", "required"],
+      "required": ["name", "in"],
       "additionalProperties": false
     }
   }

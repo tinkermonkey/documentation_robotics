@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MediaType",
-  "description": "Media type and schema for request/response body",
+  "description": "Describes the schema, examples, and encoding for a specific MIME type within a request body or response content map. Keyed by media type string (e.g., application/json).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
