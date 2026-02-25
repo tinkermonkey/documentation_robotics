@@ -31,7 +31,8 @@
           "type": "string"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Supports CommonMark (Markdown) syntax per OpenAPI 3.0."
         },
         "version": {
           "type": "string"
@@ -40,10 +41,12 @@
           "type": "string"
         },
         "contact": {
-          "type": "string"
+          "type": "string",
+          "description": "Reference to an api.contact node providing maintainer contact details."
         },
         "license": {
-          "type": "string"
+          "type": "string",
+          "description": "Reference to an api.license node specifying the API's license terms."
         }
       },
       "required": ["title", "version"],

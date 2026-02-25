@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PathItem",
-  "description": "Groups all HTTP operations available under a single URL path pattern (e.g., /users/{userId}). Path-level parameters apply to all operations under the path. Individual HTTP methods are represented as operation references.",
+  "description": "Groups all HTTP operations available under a single URL path pattern (e.g., /users/{userId}). Path-level parameters apply to all operations under the path and can be overridden by matching name+in at the operation level, but cannot be removed. Individual HTTP methods are represented as operation references. Supports $ref at the PathItem level, enabling shared path definitions to be reused across multiple OpenAPI specifications.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -39,7 +39,7 @@
         },
         "parameters": {
           "type": "array",
-          "description": "Contains relationship — path-level parameters applied to all operations"
+          "description": "Contains relationship — path-level parameters inherited by all child operations; can be overridden by matching name and 'in' at the operation level but cannot be removed."
         },
         "get": {
           "type": "array",

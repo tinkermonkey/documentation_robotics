@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationFunction",
-  "description": "Automated behavior performed by application component",
+  "description": "Automated behavior performed by an application component for internal purposes, not directly exposed as a service to external consumers.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

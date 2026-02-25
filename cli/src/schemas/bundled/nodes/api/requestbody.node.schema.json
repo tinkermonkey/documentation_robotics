@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "RequestBody",
-  "description": "Defines the request body for an operation as a map of MIME types to MediaType objects. The 'content' field is required per OpenAPI 3.0. The 'required' field defaults to false.",
+  "description": "Defines the request body for an operation as a map of MIME types to MediaType objects. The 'content' field is required and must contain at least one entry per OpenAPI 3.0. The 'required' field defaults to false. Can be placed in api.components requestBodies and referenced via $ref for reuse across multiple operations.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -35,7 +35,7 @@
         },
         "content": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "Contains relationship — a map of media type strings to MediaType objects; must contain at least one entry per OpenAPI 3.0."
         }
       },
       "additionalProperties": false

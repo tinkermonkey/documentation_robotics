@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationInteraction",
-  "description": "Unit of collective application behavior",
+  "description": "Collective application behavior performed by two or more application components working in collaboration, representing their joint behavioral contribution.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

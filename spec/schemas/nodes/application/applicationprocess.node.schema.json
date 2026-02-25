@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationProcess",
-  "description": "Sequence of application behaviors",
+  "description": "An ordered sequence of application behaviors performed by an application component to achieve a specific operational result.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

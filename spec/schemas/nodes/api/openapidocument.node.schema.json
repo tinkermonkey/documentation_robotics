@@ -37,13 +37,15 @@
           "type": "string"
         },
         "paths": {
-          "type": "string"
+          "type": "string",
+          "description": "Required per OpenAPI 3.0 but may be an empty object ({}) when the document is used solely to define reusable components."
         },
         "components": {
           "type": "string"
         },
         "security": {
-          "type": "string"
+          "type": "string",
+          "description": "Defines default security requirements applied to all operations. Individual operations can override or remove it by setting their own 'security' to an empty array ([])."
         },
         "tags": {
           "type": "string"

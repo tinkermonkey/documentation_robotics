@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "DataObject",
-  "description": "Data structured for automated processing",
+  "description": "A passive application element representing data structured for automated processing by application components. Unlike behavioral elements, it is accessed, manipulated, or stored by active elements — not an actor itself. For canonical data schema definitions shared across layers, use the Data Model layer instead.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

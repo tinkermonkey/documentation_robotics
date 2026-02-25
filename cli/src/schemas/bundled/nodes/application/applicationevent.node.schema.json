@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplicationEvent",
-  "description": "Application state change notification",
+  "description": "A state change in an application element that triggers reactive application behavior.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
