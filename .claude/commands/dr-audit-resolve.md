@@ -11,8 +11,8 @@ Walks through audit findings (node or relationship) and guides the spec maintain
 
 ```bash
 # With a specific audit file:
-/dr-audit-resolve tmp/nodes-audit.json
-/dr-audit-resolve tmp/relationships-audit.json
+/dr-audit-resolve audit-report/nodes-audit.json
+/dr-audit-resolve audit-report/relationships-audit.json
 
 # Auto-discover latest audit in common locations:
 /dr-audit-resolve
@@ -76,7 +76,7 @@ For a **node audit without `aiReviews`**, print a warning and abort:
 This node audit was run without --enable-ai. Alignment scores are required.
 
 Re-run with:
-  npm run audit:nodes -- --enable-ai --save-json tmp/nodes-audit.json
+  npm run audit:nodes -- --enable-ai --save-json audit-report/nodes-audit.json
 ```
 
 ---
