@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LogRecord",
-  "description": "OpenTelemetry log entry",
+  "description": "Structured log record in the OTel data model, capturing an event with dual timestamps (timeUnixNano for event occurrence, observedTimeUnixNano for ingestion), a 1\u201324 severity scale, and an unstructured body. Supports trace context correlation to link logs to distributed traces.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

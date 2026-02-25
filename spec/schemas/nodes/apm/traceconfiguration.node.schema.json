@@ -50,6 +50,12 @@
             "enum": ["tracecontext", "baggage", "b3", "b3multi", "xray", "jaeger"]
           },
           "description": "OTel context propagation formats enabled for this trace configuration"
+        },
+        "samplerParam": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Sampling rate for ratio-based samplers (trace_id_ratio, parent_based_trace_id_ratio). Value between 0.0 (sample none) and 1.0 (sample all). Ignored for non-ratio sampler types."
         }
       },
       "required": [],

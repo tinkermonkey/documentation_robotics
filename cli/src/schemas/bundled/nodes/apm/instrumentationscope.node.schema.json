@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InstrumentationScope",
-  "description": "Logical unit of code that generates telemetry",
+  "description": "Named instrumented library or component that identifies the source of telemetry across all three OTel signal types (traces, metrics, logs), enabling attribution and filtering of signals by their origin.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

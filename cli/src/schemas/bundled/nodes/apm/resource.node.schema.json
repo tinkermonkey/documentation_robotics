@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Resource",
-  "description": "Immutable representation of entity producing telemetry",
+  "description": "Immutable set of attributes identifying the entity (service, host, process) that produces telemetry. Resource attributes are merged into all signals (traces, metrics, logs) emitted by a process at the SDK level, making accurate resource definition critical for cross-signal correlation.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

@@ -45,6 +45,10 @@
           "type": "string",
           "enum": ["always_on", "always_off", "trace_based"],
           "description": "OTel exemplar filter controlling which exemplars are recorded"
+        },
+        "exemplarReservoirSize": {
+          "type": "integer",
+          "description": "Maximum number of exemplars retained per instrument per collection cycle. Used in conjunction with exemplarFilter to control exemplar sampling volume."
         }
       },
       "required": ["serviceName"],

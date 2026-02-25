@@ -28,7 +28,17 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "Counter",
+            "UpDownCounter",
+            "Histogram",
+            "Gauge",
+            "ObservableCounter",
+            "ObservableUpDownCounter",
+            "ObservableGauge"
+          ],
+          "description": "OTel instrument type: synchronous (Counter, UpDownCounter, Histogram, Gauge) or asynchronous/observable (ObservableCounter, ObservableUpDownCounter, ObservableGauge)"
         },
         "unit": {
           "type": "string"

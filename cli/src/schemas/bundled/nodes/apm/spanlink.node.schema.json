@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SpanLink",
-  "description": "Link to related span (different trace or parent)",
+  "description": "Non-hierarchical causality link to a span in a different trace or batch context (e.g., async message consumer linking to producer spans). Distinct from parent-child relationships, which are expressed via the parentSpanId attribute on the Span.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

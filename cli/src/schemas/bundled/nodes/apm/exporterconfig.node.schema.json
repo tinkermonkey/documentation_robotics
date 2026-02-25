@@ -45,6 +45,11 @@
           "type": "string",
           "enum": ["none", "api_key", "bearer", "tls_client_cert", "basic"],
           "description": "Authentication method used for the export destination"
+        },
+        "compression": {
+          "type": "string",
+          "enum": ["none", "gzip"],
+          "description": "Compression algorithm for OTLP export payloads. Applies to OTLP exporters only."
         }
       },
       "required": ["type", "endpoint"],
