@@ -35,6 +35,19 @@
         },
         "description": {
           "type": "string"
+        },
+        "animationType": {
+          "type": "string",
+          "enum": ["fade", "slide", "scale", "bounce", "none"],
+          "description": "Motion animation category applied during this transition."
+        },
+        "duration": {
+          "type": "string",
+          "description": "CSS transition duration (e.g., '300ms', '0.5s'), per CSS Transitions specification."
+        },
+        "easing": {
+          "type": "string",
+          "description": "CSS timing function controlling the transition's acceleration curve (e.g., 'ease-in-out', 'cubic-bezier(0.4, 0, 0.2, 1)')."
         }
       },
       "required": ["to", "trigger"],

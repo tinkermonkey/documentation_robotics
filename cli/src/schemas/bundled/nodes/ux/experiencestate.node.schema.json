@@ -34,7 +34,9 @@
           "type": "string"
         },
         "channel": {
-          "type": "string"
+          "type": "string",
+          "enum": ["web", "mobile", "voice", "chat", "sms"],
+          "description": "Delivery channel context for this experience state."
         },
         "onEnter": {
           "type": "array",

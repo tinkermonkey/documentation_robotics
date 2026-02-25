@@ -31,7 +31,9 @@
           "type": "string"
         },
         "category": {
-          "type": "string"
+          "type": "string",
+          "enum": ["crud", "navigation", "confirmation", "bulk-operation"],
+          "description": "Functional taxonomy of the action pattern."
         }
       },
       "additionalProperties": false

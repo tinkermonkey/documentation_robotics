@@ -31,7 +31,13 @@
           "type": "string"
         },
         "category": {
-          "type": "string"
+          "type": "string",
+          "enum": ["navigation", "form", "data-loading", "authentication", "multi-step"],
+          "description": "Functional taxonomy of the reusable state machine pattern."
+        },
+        "states": {
+          "type": "array",
+          "description": "Contains relationship — ExperienceState IDs comprising this reusable pattern."
         }
       },
       "additionalProperties": false

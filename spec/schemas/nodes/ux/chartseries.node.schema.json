@@ -31,13 +31,20 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["line", "bar", "column", "pie", "donut", "area", "scatter", "bubble", "heatmap"],
+          "description": "Visualization type for this data series."
         },
         "dataField": {
           "type": "string"
         },
         "categoryField": {
           "type": "string"
+        },
+        "lineStyle": {
+          "type": "string",
+          "enum": ["solid", "dashed", "dotted", "double", "none"],
+          "description": "CSS border/line style applied to line chart series rendering, per CSS Border specification."
         }
       },
       "required": ["label", "dataField"],

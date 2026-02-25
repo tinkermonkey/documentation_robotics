@@ -41,6 +41,44 @@
         },
         "maxWidth": {
           "type": "string"
+        },
+        "filterType": {
+          "type": "string",
+          "enum": [
+            "equals",
+            "contains",
+            "startsWith",
+            "endsWith",
+            "range",
+            "multiselect",
+            "boolean"
+          ],
+          "description": "Filter operation type available for this column, per HTML 5.3 form input filter patterns."
+        },
+        "textAlign": {
+          "type": "string",
+          "enum": ["left", "right", "center", "justify", "start", "end"],
+          "description": "CSS text-align value for cell content, per CSS Text specification."
+        },
+        "displayType": {
+          "type": "string",
+          "enum": [
+            "text",
+            "badge",
+            "icon",
+            "link",
+            "image",
+            "boolean",
+            "date",
+            "currency",
+            "actions"
+          ],
+          "description": "Rendering type that controls how cell values are visually presented."
+        },
+        "defaultSortDirection": {
+          "type": "string",
+          "enum": ["asc", "desc", "none"],
+          "description": "Default sort direction applied to this column when first sorted."
         }
       },
       "required": ["header", "field"],

@@ -28,7 +28,18 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "form",
+            "table",
+            "chart",
+            "navigation",
+            "feedback",
+            "layout",
+            "input",
+            "display"
+          ],
+          "description": "UI component category used for library organization and component lookup."
         },
         "label": {
           "type": "string"

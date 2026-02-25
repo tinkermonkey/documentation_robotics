@@ -28,13 +28,20 @@
           "type": "string"
         },
         "source": {
-          "type": "string"
+          "type": "string",
+          "enum": ["api", "state", "local-storage", "mock", "static"],
+          "description": "Data origin for this binding configuration."
         },
         "target": {
           "type": "string"
         },
         "path": {
           "type": "string"
+        },
+        "cacheStrategy": {
+          "type": "string",
+          "enum": ["cache-first", "network-first", "stale-while-revalidate", "no-cache"],
+          "description": "Client-side data freshness policy governing how fetched data is cached and revalidated."
         }
       },
       "required": ["source", "target"],

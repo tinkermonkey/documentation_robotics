@@ -32,6 +32,10 @@
         },
         "description": {
           "type": "string"
+        },
+        "parameters": {
+          "type": "array",
+          "description": "Configurable parameters that can be supplied when instantiating this template as a StateAction."
         }
       },
       "required": ["action"],

@@ -35,6 +35,10 @@
         },
         "order": {
           "type": "integer"
+        },
+        "ref": {
+          "type": "string",
+          "description": "Reference to the ux.librarysubview definition this instance is based on."
         }
       },
       "additionalProperties": false

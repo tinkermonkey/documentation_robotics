@@ -26,6 +26,18 @@
         },
         "name": {
           "type": "string"
+        },
+        "loadTimeMs": {
+          "type": "integer",
+          "description": "Target page or component load time in milliseconds, per Google Core Web Vitals LCP threshold."
+        },
+        "interactionLatencyMs": {
+          "type": "integer",
+          "description": "Target interaction response time in milliseconds, per Google Core Web Vitals INP threshold."
+        },
+        "renderBlockingThresholdMs": {
+          "type": "integer",
+          "description": "Maximum acceptable render-blocking resource duration in milliseconds, per Core Web Vitals TBT threshold."
         }
       },
       "additionalProperties": false

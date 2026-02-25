@@ -29,6 +29,14 @@
         },
         "order": {
           "type": "integer"
+        },
+        "ref": {
+          "type": "string",
+          "description": "Reference to the ux.librarycomponent definition this instance is based on."
+        },
+        "props": {
+          "type": "object",
+          "description": "Application-specific property overrides applied to this component instance."
         }
       },
       "additionalProperties": false

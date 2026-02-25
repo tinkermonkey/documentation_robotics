@@ -28,7 +28,18 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "page",
+            "modal",
+            "dialog",
+            "drawer",
+            "panel",
+            "overlay",
+            "embedded",
+            "full-screen"
+          ],
+          "description": "View display mode, per HTML 5.3 sectioning and dialog element semantics."
         },
         "title": {
           "type": "string"

@@ -28,7 +28,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["required", "minlength", "maxlength", "pattern", "min", "max", "type", "custom"],
+          "description": "HTML 5.3 constraint validation API type, per the HTML Living Standard constraint validation specification."
         },
         "message": {
           "type": "string"

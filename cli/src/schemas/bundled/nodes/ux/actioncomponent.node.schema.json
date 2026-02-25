@@ -31,7 +31,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["button", "link", "menu", "voice-command", "icon-button"],
+          "description": "Interactive element kind, per HTML 5.3 button, anchor, and menu element semantics."
         },
         "icon": {
           "type": "string"
@@ -43,7 +45,14 @@
           "type": "string"
         },
         "channel": {
-          "type": "string"
+          "type": "string",
+          "enum": ["web", "mobile", "voice", "chat", "sms"],
+          "description": "Delivery channel for which this component is rendered."
+        },
+        "style": {
+          "type": "string",
+          "enum": ["primary", "secondary", "danger", "ghost", "link", "icon"],
+          "description": "Visual style variant of the action component, per design system button style conventions."
         },
         "children": {
           "type": "array",

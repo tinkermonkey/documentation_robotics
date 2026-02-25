@@ -31,7 +31,19 @@
           "type": "string"
         },
         "trigger": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "click",
+            "hover",
+            "focus",
+            "blur",
+            "change",
+            "submit",
+            "load",
+            "swipe",
+            "voice-command"
+          ],
+          "description": "DOM or UX event that initiates this state transition, per HTML 5.3 event model."
         },
         "description": {
           "type": "string"

@@ -29,6 +29,10 @@
         },
         "expression": {
           "type": "string"
+        },
+        "syntax": {
+          "type": "string",
+          "description": "Expression language used (e.g., 'jsonata', 'cel', 'js') to enable tooling and validation of the expression field."
         }
       },
       "additionalProperties": false

@@ -28,10 +28,17 @@
           "type": "string"
         },
         "action": {
-          "type": "string"
+          "type": "string",
+          "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
+          "description": "Operation executed during the state lifecycle."
         },
         "description": {
           "type": "string"
+        },
+        "timing": {
+          "type": "string",
+          "enum": ["immediate", "deferred", "conditional"],
+          "description": "Execution timing of the action relative to the state lifecycle event."
         }
       },
       "required": ["action"],
