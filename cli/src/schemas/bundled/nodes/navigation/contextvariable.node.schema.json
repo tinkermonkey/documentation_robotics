@@ -36,10 +36,16 @@
           "description": "Lifetime and visibility of the variable across navigation flow execution."
         },
         "persistedIn": {
-          "type": "string"
+          "type": "string",
+          "enum": ["sessionStorage", "localStorage", "memory", "url-param"],
+          "description": "Storage mechanism used to persist the variable across route transitions: sessionStorage (browser session), localStorage (cross-session), memory (in-process only), url-param (serialized into the URL query string)."
         },
         "defaultValue": {
           "type": "string"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "When true, the flow cannot proceed if this variable is unset or null. Used to enforce mandatory input collection before advancing to dependent steps."
         }
       },
       "required": ["schemaRef", "scope", "persistedIn"],

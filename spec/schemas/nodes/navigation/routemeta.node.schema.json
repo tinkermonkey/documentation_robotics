@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "RouteMeta",
-  "description": "Route metadata",
+  "description": "Per-route rendering and access configuration attached to a Route node and consumed by the SPA router at runtime. Covers layout selection, component instance caching, animation transitions, breadcrumb labeling, and access control hints. Security attributes (requiresAuth, roles, permissions) are navigation hints that should be enforced through NavigationGuard nodes in the security layer.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -28,25 +28,32 @@
           "type": "string"
         },
         "requiresAuth": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Hint indicating this route requires an authenticated session; used by NavigationGuard nodes to enforce access control."
         },
         "roles": {
-          "type": "string"
+          "type": "string",
+          "description": "Comma-separated list of roles permitted to access this route (e.g., 'admin,editor'). Enforced via NavigationGuard."
         },
         "permissions": {
-          "type": "string"
+          "type": "string",
+          "description": "Comma-separated list of permission strings required for this route (e.g., 'reports:read,users:write'). Enforced via NavigationGuard."
         },
         "layout": {
-          "type": "string"
+          "type": "string",
+          "description": "Name or reference of the layout component to wrap this route's view (e.g., 'DefaultLayout', 'AuthLayout')."
         },
         "breadcrumb": {
-          "type": "string"
+          "type": "string",
+          "description": "Breadcrumb label or reference to a BreadcrumbConfig node; used to render the route's position in the location trail."
         },
         "keepAlive": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "When true, the route's component instance is cached and reused across navigation events rather than destroyed and re-created."
         },
         "transition": {
-          "type": "string"
+          "type": "string",
+          "description": "Name of the CSS transition or animation applied when entering or leaving this route (e.g., 'fade', 'slide-left')."
         }
       },
       "required": ["roles", "permissions", "layout", "keepAlive", "transition"],

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "GuardAction",
-  "description": "Action when guard denies access",
+  "description": "Defines the response executed by a NavigationGuard when its condition evaluates to false (access denied). Specifies whether to redirect the user, block navigation in place, notify with a message, or prompt for confirmation — along with the target destination and whether to preserve the attempted route for post-authentication redirect.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -33,13 +33,16 @@
           "description": "The action taken when the guard denies access to the target route."
         },
         "target": {
-          "type": "string"
+          "type": "string",
+          "description": "Destination for redirect or replace actions — a Route ID (e.g., 'login') or an absolute URL. Ignored for block and notify actions."
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "User-facing message shown when action is 'notify' or 'prompt', explaining why access was denied."
         },
         "preserveRoute": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "When true, the originally attempted route is stored (e.g., in session state) so the user can be redirected back to it after successfully authenticating."
         }
       },
       "required": ["action", "target", "message", "preserveRoute"],
