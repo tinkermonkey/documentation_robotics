@@ -31,7 +31,9 @@
           "type": "string"
         },
         "serviceType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["synchronous", "asynchronous", "event-driven", "batch"],
+          "description": "Classification of how the service exposes its functionality to consumers."
         },
         "properties": {
           "type": "object",

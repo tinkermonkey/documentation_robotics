@@ -31,7 +31,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["generic", "external", "internal", "service-component"],
+          "description": "Classification of the application component kind."
         },
         "properties": {
           "type": "object",

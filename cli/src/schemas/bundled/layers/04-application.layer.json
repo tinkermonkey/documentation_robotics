@@ -12,16 +12,11 @@
     "application.applicationcollaboration",
     "application.applicationcomponent",
     "application.applicationevent",
-    "application.applicationeventtype",
     "application.applicationfunction",
     "application.applicationinteraction",
     "application.applicationinterface",
     "application.applicationprocess",
     "application.applicationservice",
-    "application.componenttype",
-    "application.dataobject",
-    "application.interactionpattern",
-    "application.interfaceprotocol",
-    "application.servicetype"
+    "application.dataobject"
   ]
 }

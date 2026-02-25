@@ -31,7 +31,9 @@
           "type": "string"
         },
         "eventType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["domain", "integration", "system"],
+          "description": "Classification of the application event: domain (business logic), integration (cross-system), or system (infrastructure/runtime)."
         },
         "properties": {
           "type": "object",
