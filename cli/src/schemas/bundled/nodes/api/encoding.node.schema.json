@@ -31,7 +31,17 @@
           "type": "string"
         },
         "style": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "matrix",
+            "label",
+            "form",
+            "simple",
+            "spaceDelimited",
+            "pipeDelimited",
+            "deepObject"
+          ],
+          "description": "Serialization style for the encoding (only applicable to multipart/form-data and application/x-www-form-urlencoded)"
         },
         "explode": {
           "type": "boolean"
