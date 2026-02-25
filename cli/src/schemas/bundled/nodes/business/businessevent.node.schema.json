@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessEvent",
-  "description": "Something that happens and influences behavior",
+  "description": "A behavior element that represents an organizational state change, such as a customer order placed or a contract signed, that can trigger or result from a BusinessProcess or BusinessFunction.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

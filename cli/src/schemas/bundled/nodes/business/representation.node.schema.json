@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Representation",
-  "description": "Perceptible form of business object",
+  "description": "A passive structure element representing the perceptible form in which a BusinessObject is manifested (e.g., a printed report, a digital document, or an on-screen form). Multiple representations can carry the same BusinessObject.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

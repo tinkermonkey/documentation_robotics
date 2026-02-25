@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessActor",
-  "description": "An organizational entity capable of performing behavior",
+  "description": "An active structure element representing an organizational entity (person, department, or external organization) capable of performing behavior. BusinessActors are assigned to BusinessRoles and may be associated with BusinessServices they use or provide.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

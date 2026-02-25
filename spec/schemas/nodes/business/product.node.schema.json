@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Product",
-  "description": "Coherent collection of services with a value",
+  "description": "A passive structure element representing a coherent collection of BusinessServices and Contracts offered to customers or markets. The product encapsulates the value proposition delivered to end users or business partners.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

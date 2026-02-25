@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessCollaboration",
-  "description": "Aggregate of business roles working together",
+  "description": "An active structure element representing an aggregate of two or more BusinessRoles that work together to perform collective behavior (BusinessInteraction). The collaboration is meaningful only in the context of its participating roles.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

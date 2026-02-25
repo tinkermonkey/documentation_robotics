@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessInteraction",
-  "description": "Unit of collective behavior by collaboration",
+  "description": "A behavior element representing collective behavior performed by a BusinessCollaboration. It is the interaction counterpart to BusinessProcess (performed by a role) and BusinessFunction (performed by an actor).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

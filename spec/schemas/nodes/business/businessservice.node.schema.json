@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessService",
-  "description": "Service that fulfills a business need",
+  "description": "An externally visible behavior element that fulfills a business need for a customer or stakeholder. Defined from the consumer perspective; the internal realization (via BusinessProcess or BusinessFunction) is encapsulated and not exposed.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessRole",
-  "description": "The responsibility for performing specific behavior",
+  "description": "An active structure element representing a named set of responsibilities, skills, or authorizations that can be assigned to a BusinessActor. Roles abstract away the concrete actor, enabling flexible actor-to-behavior assignment.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

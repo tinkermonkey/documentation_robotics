@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessObject",
-  "description": "Concept used within business domain",
+  "description": "A passive structure element that has relevance from a business perspective, representing information or data that active elements (actors, roles) act upon. Examples include documents, messages, contracts, and reports.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

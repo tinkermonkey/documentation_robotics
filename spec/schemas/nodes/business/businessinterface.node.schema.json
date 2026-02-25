@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessInterface",
-  "description": "Point of access where business service is available",
+  "description": "An active structure element representing a point of access at which a BusinessService is made available to the environment, used by BusinessActors or external parties.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

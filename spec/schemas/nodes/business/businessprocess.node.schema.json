@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BusinessProcess",
-  "description": "Sequence of business behaviors achieving a result",
+  "description": "A behavior element representing a sequence or set of behaviors that achieves a specific business result for a customer or stakeholder. Driven by external triggers (BusinessEvents) or internal initiations, and performed by BusinessActors or BusinessRoles.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

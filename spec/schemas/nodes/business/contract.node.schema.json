@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Contract",
-  "description": "Formal specification of agreement",
+  "description": "A passive structure element representing a formal or informal specification of an agreement between a service provider and consumer, defining obligations, rights, and terms. Often associated with a Product or BusinessService.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
