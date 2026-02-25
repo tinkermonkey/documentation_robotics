@@ -54,6 +54,10 @@
           "type": "string",
           "description": "Key or partition condition for this access (e.g., 'customer_id = :id', 'PK = USER#:userId AND SK BEGINS_WITH ORDER#')."
         },
+        "sortKey": {
+          "type": "string",
+          "description": "Sort key expression for composite key patterns (e.g., 'SK BEGINS_WITH ORDER#', 'timestamp BETWEEN :start AND :end'). Used in DynamoDB/Cassandra to define the clustering dimension of the access pattern."
+        },
         "filterCondition": {
           "type": "string",
           "description": "Additional filter condition applied after key lookup."
