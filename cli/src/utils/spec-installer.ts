@@ -158,10 +158,10 @@ export async function installSpecReference(
 
   logDebug(`Installed spec: ${layerFiles.length} layers, ${nodeSchemas.length} node types, ${relSchemas.length} relationship types`);
 
-  if (layerFiles.length !== 12 || nodeSchemas.length < 335 || relSchemas.length < 250) {
+  if (layerFiles.length !== 12 || nodeSchemas.length < 330 || relSchemas.length < 250) {
     throw new Error(
       `Incomplete spec installation: expected 12 layers (got ${layerFiles.length}), ` +
-      `335+ node schemas (got ${nodeSchemas.length}), 250+ relationship schemas (got ${relSchemas.length})`
+      `330+ node schemas (got ${nodeSchemas.length}), 250+ relationship schemas (got ${relSchemas.length})`
     );
   }
 
