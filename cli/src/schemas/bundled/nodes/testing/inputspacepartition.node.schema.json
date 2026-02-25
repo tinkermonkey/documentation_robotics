@@ -34,7 +34,9 @@
           "type": "string"
         },
         "presenceRule": {
-          "type": "string"
+          "type": "string",
+          "enum": ["required", "optional", "conditional", "forbidden", "mutually-exclusive"],
+          "description": "Whether this input field must be present in test inputs for this partition"
         },
         "partitions": {
           "type": "array",

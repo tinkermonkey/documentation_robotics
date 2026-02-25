@@ -20,8 +20,13 @@
     "attributes": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
         "targetRef": {
-          "type": "string"
+          "type": "string",
+          "description": "ID of the testing.testcoveragetarget this summary covers"
         },
         "sketchCount": {
           "type": "integer"
@@ -33,7 +38,8 @@
           "type": "integer"
         },
         "coveragePercentage": {
-          "type": "number"
+          "type": "number",
+          "description": "Percentage of coverage requirements with at least one implemented test case sketch (0–100)"
         }
       },
       "required": ["targetRef", "sketchCount", "implementedCount", "automatedCount"],

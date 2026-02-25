@@ -31,13 +31,20 @@
           "type": "string"
         },
         "outcomeType": {
-          "type": "string"
-        },
-        "httpStatusRange": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "success",
+            "validation-error",
+            "authorization-error",
+            "not-found",
+            "server-error",
+            "exception",
+            "timeout"
+          ],
+          "description": "The category of outcome this represents"
         }
       },
-      "required": ["outcomeType", "httpStatusRange"],
+      "required": ["outcomeType"],
       "additionalProperties": false
     }
   }

@@ -28,7 +28,8 @@
           "type": "string"
         },
         "fieldRef": {
-          "type": "string"
+          "type": "string",
+          "description": "ID of the referenced field element in the API layer (e.g., an API parameter) or Data Model layer (e.g., a data-model property)"
         },
         "partitionRef": {
           "type": "string"
@@ -37,7 +38,9 @@
           "type": "string"
         },
         "relevance": {
-          "type": "string"
+          "type": "string",
+          "enum": ["required", "optional", "conditional", "not-applicable"],
+          "description": "Whether this field must be included in test case input specifications"
         }
       },
       "required": ["fieldRef", "partitionRef"],

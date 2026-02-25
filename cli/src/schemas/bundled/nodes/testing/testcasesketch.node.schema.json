@@ -31,11 +31,18 @@
           "type": "string"
         },
         "status": {
-          "type": "string"
+          "type": "string",
+          "enum": ["draft", "under-review", "approved", "implemented", "automated", "deprecated"],
+          "description": "Lifecycle status of the test case sketch"
         },
         "inputSelections": {
           "type": "array",
           "description": "Contains relationship"
+        },
+        "implementationFormat": {
+          "type": "string",
+          "enum": ["manual", "automated", "semi-automated", "exploratory"],
+          "description": "How the test case will be executed"
         },
         "source": {
           "type": "object",

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CoverageSummary",
-  "description": "Summary of coverage status (can be computed or declared)",
+  "description": "Aggregated coverage status across all targets and requirements within a test coverage model, suitable for test summary reporting.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,6 +20,17 @@
     "attributes": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "modelRef": {
+          "type": "string",
+          "description": "ID of the testing.testcoveragemodel this summary aggregates"
+        },
         "generatedAt": {
           "type": "string"
         },

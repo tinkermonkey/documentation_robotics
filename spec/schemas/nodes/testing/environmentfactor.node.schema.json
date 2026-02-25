@@ -27,9 +27,6 @@
         "name": {
           "type": "string"
         },
-        "factor": {
-          "type": "string"
-        },
         "value": {
           "type": "string"
         },
@@ -37,7 +34,7 @@
           "type": "string"
         }
       },
-      "required": ["factor", "value"],
+      "required": ["value"],
       "additionalProperties": false
     }
   }

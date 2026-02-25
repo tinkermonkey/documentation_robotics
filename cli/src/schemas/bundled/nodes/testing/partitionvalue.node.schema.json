@@ -40,7 +40,16 @@
           "type": "string"
         },
         "category": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "valid",
+            "invalid",
+            "boundary-valid",
+            "boundary-invalid",
+            "null-empty",
+            "special-character"
+          ],
+          "description": "Equivalence partition category for this value"
         },
         "representativeValue": {
           "type": "string"

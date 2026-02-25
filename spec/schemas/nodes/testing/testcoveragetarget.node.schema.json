@@ -31,10 +31,21 @@
           "type": "string"
         },
         "targetType": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "api-endpoint",
+            "business-workflow",
+            "ui-component",
+            "data-migration",
+            "integration-flow",
+            "scheduled-job"
+          ],
+          "description": "The kind of artifact or functionality requiring test coverage"
         },
         "priority": {
-          "type": "string"
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "description": "Relative importance of achieving coverage for this target"
         },
         "applicableContexts": {
           "type": "array",

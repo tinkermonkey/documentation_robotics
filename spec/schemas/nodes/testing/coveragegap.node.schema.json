@@ -20,14 +20,27 @@
     "attributes": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
         "description": {
           "type": "string"
         },
         "severity": {
-          "type": "string"
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "description": "Risk level of leaving this gap unaddressed"
         },
         "affectedRequirements": {
           "type": "string"
+        },
+        "targetRef": {
+          "type": "string",
+          "description": "ID of the testing.testcoveragetarget where this gap was identified"
         }
       },
       "required": ["severity", "affectedRequirements"],

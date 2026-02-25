@@ -38,6 +38,15 @@
         },
         "approvedBy": {
           "type": "string"
+        },
+        "affectedTargetRef": {
+          "type": "string",
+          "description": "ID of the testing.testcoveragetarget or testing.coveragerequirement being excluded from coverage"
+        },
+        "dateApproved": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO date when the exclusion was formally approved, supporting audit trail requirements"
         }
       },
       "required": ["reason", "riskAccepted", "approvedBy"],

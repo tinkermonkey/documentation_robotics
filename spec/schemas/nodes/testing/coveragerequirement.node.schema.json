@@ -31,10 +31,21 @@
           "type": "string"
         },
         "coverageCriteria": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "all-partitions",
+            "boundary-values",
+            "pairwise",
+            "each-choice",
+            "MC/DC",
+            "path-coverage"
+          ],
+          "description": "The coverage strategy defining which combinations of partition values must be exercised"
         },
         "priority": {
-          "type": "string"
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "description": "Relative importance of fulfilling this coverage requirement"
         },
         "inputPartitionSelections": {
           "type": "array",

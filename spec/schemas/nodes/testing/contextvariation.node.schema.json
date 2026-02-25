@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ContextVariation",
-  "description": "Different context in which functionality can be invoked",
+  "description": "A distinct runtime or environmental context under which a coverage target may be invoked, used to parameterize test design across test environment configurations.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -31,7 +31,9 @@
           "type": "string"
         },
         "contextType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["functional", "load", "security", "regression", "smoke", "exploratory"],
+          "description": "The category of test context this variation represents"
         },
         "environmentFactors": {
           "type": "array",

@@ -28,13 +28,17 @@
           "type": "string"
         },
         "dependsOnPartition": {
-          "type": "string"
+          "type": "string",
+          "description": "ID of the testing.inputspacepartition that triggers this dependency"
         },
         "dependsOnValue": {
-          "type": "string"
+          "type": "string",
+          "description": "Label or ID of the testing.partitionvalue that activates this dependency"
         },
         "effect": {
-          "type": "string"
+          "type": "string",
+          "enum": ["excludes", "requires", "restricts-to", "modifies-range"],
+          "description": "How the dependency affects the related partition values"
         },
         "affectedValues": {
           "type": "string"
