@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SchemaComposition",
-  "description": "Combining multiple schemas",
+  "description": "Combines multiple schemas using boolean logic. allOf requires all subschemas to validate; anyOf requires at least one; oneOf requires exactly one; not inverts the result of the subschema.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -19,6 +19,27 @@
     },
     "attributes": {
       "type": "object",
+      "properties": {
+        "allOf": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "All listed subschemas must validate against the instance"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "At least one of the listed subschemas must validate against the instance"
+        },
+        "oneOf": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Exactly one of the listed subschemas must validate against the instance"
+        },
+        "not": {
+          "type": "string",
+          "description": "The instance must not validate against this subschema"
+        }
+      },
       "additionalProperties": false
     }
   }

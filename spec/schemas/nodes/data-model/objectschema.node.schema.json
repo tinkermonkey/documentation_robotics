@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ObjectSchema",
-  "description": "ObjectSchema validation rules",
+  "description": "Defines validation rules for JSON object instances, specifying named properties, required fields, and constraints on additional or dynamically named properties.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -22,6 +22,18 @@
       "properties": {
         "type": {
           "type": "string"
+        },
+        "properties": {
+          "type": "string",
+          "description": "Named property definitions for the object schema (primary mechanism for defining object structure)"
+        },
+        "patternProperties": {
+          "type": "string",
+          "description": "Pattern-matched property definitions applied to properties whose names match the given regex"
+        },
+        "propertyNames": {
+          "type": "string",
+          "description": "Schema applied to all property names of the object instance for name validation"
         },
         "required": {
           "type": "string"

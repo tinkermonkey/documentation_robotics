@@ -33,7 +33,28 @@
           "type": "string"
         },
         "format": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "date-time",
+            "date",
+            "time",
+            "duration",
+            "email",
+            "idn-email",
+            "hostname",
+            "idn-hostname",
+            "ipv4",
+            "ipv6",
+            "uri",
+            "uri-reference",
+            "iri",
+            "iri-reference",
+            "uuid",
+            "json-pointer",
+            "relative-json-pointer",
+            "regex"
+          ],
+          "description": "Semantic format hint for string values (JSON Schema Draft 7 format keyword)"
         }
       },
       "required": ["type"],

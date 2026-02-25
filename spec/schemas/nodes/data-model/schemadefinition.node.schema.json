@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SchemaDefinition",
-  "description": "A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.",
+  "description": "A reusable JSON Schema definition declared under the 'definitions' keyword and referenced via '$ref: #/definitions/{name}'. Enables DRY schema design and consistent type definitions across entities.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -27,6 +27,24 @@
           "type": "string",
           "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
           "description": "JSON Schema Draft 7 primitive type"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable explanation of this definition's purpose (JSON Schema Draft 7 annotation keyword)"
+        },
+        "format": {
+          "type": "string",
+          "description": "Semantic format hint for string-typed definitions (e.g., date-time, email, uri)"
+        },
+        "enum": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Restricts the value of this definition to a fixed set of allowed values"
+        },
+        "examples": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Sample values illustrating valid instances of this definition (JSON Schema Draft 7 annotation keyword)"
         }
       },
       "required": ["title", "type"],

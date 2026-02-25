@@ -46,24 +46,16 @@
         "writeOnly": {
           "type": "boolean"
         },
-        "deprecated": {
-          "type": "boolean"
-        },
         "examples": {
           "type": "string"
         },
-        "constraint_type": {
+        "description": {
           "type": "string",
-          "enum": [
-            "primary-key",
-            "foreign-key",
-            "unique",
-            "not-null",
-            "check",
-            "default",
-            "exclusion"
-          ],
-          "description": "ConstraintType classification"
+          "description": "Human-readable explanation of the property's purpose (JSON Schema Draft 7 annotation keyword)"
+        },
+        "$ref": {
+          "type": "string",
+          "description": "URI reference to a reusable schema definition (e.g., #/definitions/MyType)"
         }
       },
       "required": ["type", "title", "format", "default", "enum", "const", "examples"],
