@@ -61,7 +61,8 @@ export class NodeSchemaLoader {
       let json: Record<string, unknown>;
       try {
         json = JSON.parse(raw) as Record<string, unknown>;
-      } catch {
+      } catch (err) {
+        process.stderr.write(`warn: skipping malformed layer file ${filePath}: ${err}\n`);
         continue;
       }
       defs.push(this.parseLayerDefinition(json));

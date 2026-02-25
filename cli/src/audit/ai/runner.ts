@@ -33,9 +33,15 @@ export class AuditAIRunner {
    * Adds a rate-limiting delay after each successful invocation.
    * Throws AIEvaluationAbortError after maxConsecutiveFailures consecutive failures.
    */
-  async invoke(prompt: string, _label?: string, _timeoutMs?: number): Promise<string> {
+  async invoke(prompt: string, label?: string, timeoutMs?: number): Promise<string> {
     try {
-      const result = await invokeClaudeStreaming(prompt);
+      const invocation = invokeClaudeStreaming(prompt);
+      const result = timeoutMs
+        ? await Promise.race([
+            invocation,
+            this.rejectAfter(timeoutMs, label ?? "AI invocation"),
+          ])
+        : await invocation;
       this.consecutiveFailures = 0;
       await this.delay(this.rateLimitMs);
       return result;
@@ -50,5 +56,11 @@ export class AuditAIRunner {
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private rejectAfter(ms: number, label: string): Promise<never> {
+    return new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    );
   }
 }

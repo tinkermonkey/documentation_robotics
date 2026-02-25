@@ -280,45 +280,60 @@ async function runPerLayerAudit(options: ScriptOptions, originalCwd: string): Pr
   console.error(`Running node audit for ${layerDefs.length} layers individually...`);
 
   let thresholdFailures = 0;
+  const failedLayers: string[] = [];
 
   for (const layerDef of layerDefs) {
     console.error(`\n[${layerDef.number}/${layerDefs.length}] ${layerDef.id}`);
 
-    const orchestrator = new NodeAuditOrchestrator();
-    const report = await orchestrator.runAudit({
-      layer: layerDef.id,
-      verbose: options.verbose,
-      specDir,
-      enableAi: options.enableAi,
-    });
+    try {
+      const orchestrator = new NodeAuditOrchestrator();
+      const report = await orchestrator.runAudit({
+        layer: layerDef.id,
+        verbose: options.verbose,
+        specDir,
+        enableAi: options.enableAi,
+      });
 
-    const output = formatNodeAuditReport(report, {
-      format: options.format,
-      verbose: options.verbose,
-    });
+      const output = formatNodeAuditReport(report, {
+        format: options.format,
+        verbose: options.verbose,
+      });
 
-    const outputPath = getDefaultOutputPath(layerDef.id, options.format);
-    await ensureDir(dirname(outputPath));
-    await writeFile(outputPath, output);
-    console.error(`  ✓ Written to ${relative(originalCwd, outputPath)}`);
+      const outputPath = getDefaultOutputPath(layerDef.id, options.format);
+      await ensureDir(dirname(outputPath));
+      await writeFile(outputPath, output);
+      console.error(`  ✓ Written to ${relative(originalCwd, outputPath)}`);
 
-    // Always write a JSON sidecar so /dr-audit-resolve can find it
-    if (options.format !== "json") {
-      const jsonPath = getDefaultOutputPath(layerDef.id, "json");
-      await ensureDir(dirname(jsonPath));
-      await writeFile(jsonPath, JSON.stringify(report, null, 2));
-      console.error(`  ✓ JSON data: ${relative(originalCwd, jsonPath)}`);
-    }
+      // Always write a JSON sidecar so /dr-audit-resolve can find it
+      if (options.format !== "json") {
+        const jsonPath = getDefaultOutputPath(layerDef.id, "json");
+        await ensureDir(dirname(jsonPath));
+        await writeFile(jsonPath, JSON.stringify(report, null, 2));
+        console.error(`  ✓ JSON data: ${relative(originalCwd, jsonPath)}`);
+      }
 
-    if (options.threshold) {
-      const thresholdCheck = checkThresholds(report);
-      if (!thresholdCheck.passed) {
-        thresholdFailures++;
-        for (const issue of thresholdCheck.issues) {
-          console.error(`  ⚠️  ${issue}`);
+      if (options.threshold) {
+        const thresholdCheck = checkThresholds(report);
+        if (!thresholdCheck.passed) {
+          thresholdFailures++;
+          for (const issue of thresholdCheck.issues) {
+            console.error(`  ⚠️  ${issue}`);
+          }
         }
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`  ❌ Failed to audit layer ${layerDef.id}: ${message}`);
+      if (error instanceof Error && error.stack && options.verbose) {
+        console.error(error.stack);
+      }
+      failedLayers.push(layerDef.id);
     }
+  }
+
+  if (failedLayers.length > 0) {
+    console.error(`\n❌ ${failedLayers.length} layer(s) failed: ${failedLayers.join(", ")}`);
+    process.exit(2);
   }
 
   if (thresholdFailures > 0) {
