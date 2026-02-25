@@ -50,9 +50,12 @@ export class NodeAuditOrchestrator {
     const overlapDetector = new NodeOverlapDetector();
     const overlaps = overlapDetector.detectOverlaps(schemas);
 
-    // 4. Completeness check — always against all schemas vs all layer defs
+    // 4. Completeness check — always against all schemas vs all layer defs,
+    // then filter to the requested layer so per-layer reports stay scoped.
     const completenessChecker = new NodeCompletenessChecker();
-    const completenessIssues = completenessChecker.check(layerDefs, allSchemas);
+    const completenessIssues = completenessChecker
+      .check(layerDefs, allSchemas)
+      .filter((issue) => !options.layer || issue.layerId === options.layer);
 
     // 5. Layer summaries
     const qualityByLayer = groupQualityByLayer(definitionQuality);
