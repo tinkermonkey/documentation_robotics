@@ -31,7 +31,9 @@
           "type": "string"
         },
         "artifactType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["file", "container-image", "archive", "library", "script", "configuration"],
+          "description": "Physical data artifact category, per ArchiMate 3.2 Artifact element."
         },
         "properties": {
           "type": "object",

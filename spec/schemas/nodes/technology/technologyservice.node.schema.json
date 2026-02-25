@@ -31,7 +31,17 @@
           "type": "string"
         },
         "serviceType": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "compute",
+            "storage",
+            "messaging",
+            "database",
+            "cache",
+            "identity",
+            "monitoring"
+          ],
+          "description": "Infrastructure service category, aligned with cloud provider service classifications (IaaS/PaaS/SaaS) per ArchiMate 3.2 TechnologyService."
         },
         "properties": {
           "type": "object",

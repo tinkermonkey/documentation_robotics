@@ -31,7 +31,9 @@
           "type": "string"
         },
         "networkType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["lan", "wan", "vpn", "wireless", "internet", "intranet"],
+          "description": "Topology and scope classification of the network, per ArchiMate 3.2 CommunicationNetwork element."
         },
         "properties": {
           "type": "object",

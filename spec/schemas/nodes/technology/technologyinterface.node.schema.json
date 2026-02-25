@@ -31,7 +31,9 @@
           "type": "string"
         },
         "protocol": {
-          "type": "string"
+          "type": "string",
+          "enum": ["http", "https", "grpc", "amqp", "mqtt", "tcp", "udp", "websocket"],
+          "description": "Communication protocol exposed at this interface, per ArchiMate 3.2 TechnologyInterface element."
         },
         "properties": {
           "type": "object",

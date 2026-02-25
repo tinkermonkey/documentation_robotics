@@ -31,7 +31,14 @@
           "type": "string"
         },
         "pathType": {
-          "type": "string"
+          "type": "string",
+          "enum": ["point-to-point", "multicast", "broadcast", "bidirectional"],
+          "description": "Transmission topology of the path, per ArchiMate 3.2 Path element."
+        },
+        "protocol": {
+          "type": "string",
+          "enum": ["http", "https", "grpc", "amqp", "mqtt", "tcp", "udp", "websocket"],
+          "description": "Communication protocol carried by this path."
         },
         "properties": {
           "type": "object",

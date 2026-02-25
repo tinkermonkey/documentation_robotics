@@ -31,7 +31,15 @@
           "type": "string"
         },
         "nodeType": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "physical-server",
+            "virtual-machine",
+            "container",
+            "kubernetes-cluster",
+            "bare-metal"
+          ],
+          "description": "Computational resource category of the node, per ArchiMate 3.2 Node element."
         },
         "properties": {
           "type": "object",

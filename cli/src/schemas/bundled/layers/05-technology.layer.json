@@ -10,26 +10,17 @@
   },
   "node_types": [
     "technology.artifact",
-    "technology.artifacttype",
     "technology.communicationnetwork",
     "technology.device",
-    "technology.devicetype",
-    "technology.networktype",
     "technology.node",
-    "technology.nodetype",
     "technology.path",
-    "technology.pathtype",
     "technology.systemsoftware",
-    "technology.systemsoftwaretype",
-    "technology.techeventtype",
     "technology.technologycollaboration",
     "technology.technologyevent",
     "technology.technologyfunction",
     "technology.technologyinteraction",
     "technology.technologyinterface",
     "technology.technologyprocess",
-    "technology.technologyservice",
-    "technology.techprotocol",
-    "technology.techservicetype"
+    "technology.technologyservice"
   ]
 }

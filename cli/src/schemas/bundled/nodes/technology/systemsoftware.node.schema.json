@@ -31,7 +31,16 @@
           "type": "string"
         },
         "softwareType": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "operating-system",
+            "container-runtime",
+            "middleware",
+            "dbms",
+            "message-broker",
+            "cache"
+          ],
+          "description": "Platform software category, per ArchiMate 3.2 SystemSoftware element."
         },
         "properties": {
           "type": "object",
