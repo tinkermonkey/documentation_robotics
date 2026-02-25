@@ -31,7 +31,9 @@
           "type": "string"
         },
         "format": {
-          "type": "string"
+          "type": "string",
+          "enum": ["pdf", "html", "xml", "json", "plain-text", "binary"],
+          "description": "The media format of this representation"
         }
       },
       "required": ["format"],

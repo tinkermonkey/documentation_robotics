@@ -31,7 +31,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["internal", "external", "message", "timer"],
+          "description": "Classification of the business event trigger"
         },
         "properties": {
           "type": "object",

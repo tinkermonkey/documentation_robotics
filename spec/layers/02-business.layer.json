@@ -20,9 +20,7 @@
     "business.businessrole",
     "business.businessservice",
     "business.contract",
-    "business.eventtype",
     "business.product",
-    "business.representation",
-    "business.representationformat"
+    "business.representation"
   ]
 }
