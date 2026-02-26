@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SystemSoftware",
-  "description": "Software that provides platform for applications",
+  "description": "Software that provides or contributes to an environment for storing, executing, and using other software or data deployed within it, such as an operating system, container runtime, database engine, or middleware platform.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

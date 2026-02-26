@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyProcess",
-  "description": "Sequence of technology behaviors",
+  "description": "A sequence of technology behaviors that achieves a specific technology result, such as a deployment pipeline, backup job, certificate renewal workflow, or container orchestration sequence.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

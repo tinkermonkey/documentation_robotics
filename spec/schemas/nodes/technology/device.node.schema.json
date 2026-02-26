@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Device",
-  "description": "Physical IT resource with processing capability",
+  "description": "A physical IT resource upon which system software and artifacts may be stored or deployed for execution, such as a server, workstation, mobile device, or IoT sensor.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -38,6 +38,10 @@
         "properties": {
           "type": "object",
           "description": "Cross-layer properties"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference"
         }
       },
       "required": ["deviceType"],

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NeedToKnow",
-  "description": "Information access based on objective/purpose requirements",
+  "description": "Restricts access to a resource to only those actors whose stated purpose requires it, implementing the NIST SP 800-53 AC-3(3) mandatory access control principle. JustificationRequired enforces that actors must declare their purpose before access is granted.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -27,7 +27,8 @@
           "type": "string"
         },
         "objective": {
-          "type": "string"
+          "type": "string",
+          "description": "A free-text statement of the business or operational purpose that justifies access. This is a purpose declaration string, not a reference to an ActorObjective node."
         },
         "message": {
           "type": "string"

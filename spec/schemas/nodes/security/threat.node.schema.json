@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Threat",
-  "description": "Security threat and countermeasures",
+  "description": "Represents an identified security threat with assessed likelihood and impact, targeting specific resources or controls. Linked to Countermeasures that reduce exposure. Supports NIST SP 800-53 RA-3 risk assessment and enables residual risk tracking.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

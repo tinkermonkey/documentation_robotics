@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyEvent",
-  "description": "Technology state change",
+  "description": "A technology behavior element that denotes a state change in the technology layer that triggers or results from technology behavior, such as a system alert, infrastructure notification, scheduled job trigger, or deployment completion signal.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -34,6 +34,14 @@
           "type": "string",
           "enum": ["failure", "alert", "scheduled", "threshold-breach", "deployment"],
           "description": "Technology state change category, per ArchiMate 3.2 Technology Event element; aligned with OpenTelemetry event semantics."
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference"
         }
       },
       "required": ["eventType"],

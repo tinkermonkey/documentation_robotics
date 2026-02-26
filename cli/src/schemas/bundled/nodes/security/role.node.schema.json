@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Role",
-  "description": "User role definition",
+  "description": "A named collection of Permissions implementing RBAC per NIST SP 800-53 AC-2 and AC-6. Roles can inherit from parent roles (role hierarchy), accumulating permissions transitively. The level attribute defines the role privilege tier for least-privilege enforcement.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -37,7 +37,8 @@
           "type": "integer"
         },
         "inheritsFrom": {
-          "type": "string"
+          "type": "string",
+          "description": "Name of the parent role this role inherits permissions from. Supports single inheritance; the child accumulates all permissions of the referenced role in addition to its own."
         },
         "permissions": {
           "type": "array",

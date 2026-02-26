@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PolicyRule",
-  "description": "Individual policy rule",
+  "description": "An atomic policy evaluation unit consisting of a condition predicate and an enforcement effect (PERMIT or DENY), with optional obligation actions executed upon match. Multiple PolicyRules compose a SecurityPolicy evaluated in priority order.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

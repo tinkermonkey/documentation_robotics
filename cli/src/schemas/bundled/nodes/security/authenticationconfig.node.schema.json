@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AuthenticationConfig",
-  "description": "Authentication configuration",
+  "description": "Specifies how principals are verified before accessing protected resources, including the identity provider, multi-factor requirements, session lifetime, and credential policy references. Scoped per application or service. Maps to NIST SP 800-53 IA-2, IA-5, and IA-11.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

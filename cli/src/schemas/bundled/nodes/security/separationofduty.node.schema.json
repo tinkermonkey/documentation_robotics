@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SeparationOfDuty",
-  "description": "Different actors must perform related tasks",
+  "description": "Enforces NIST SP 800-53 AC-5 by requiring that sensitive tasks (e.g., request + approval, initiate + authorize) are performed by different actors or roles, preventing fraud, collusion, and undetected errors. MutuallyExclusive indicates roles that cannot be assigned to the same individual.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

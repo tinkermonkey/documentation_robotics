@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Node",
-  "description": "Computational or physical resource that hosts artifacts",
+  "description": "A computational or physical resource that hosts, manipulates, or interacts with other computational or physical resources, such as a server cluster, virtual machine host, or container runtime.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

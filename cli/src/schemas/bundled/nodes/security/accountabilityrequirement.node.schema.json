@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AccountabilityRequirement",
-  "description": "Accountability and non-repudiation requirements",
+  "description": "Expresses who is obligated to provide evidence that a specific action occurred and under what conditions that evidence can be challenged. Distinct from AuditConfig, which defines what events are captured \u2014 this node defines the obligation to prove an action took place. Implements NIST SP 800-53 AU-10 non-repudiation.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

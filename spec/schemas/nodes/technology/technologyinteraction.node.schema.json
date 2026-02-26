@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyInteraction",
-  "description": "Unit of collective technology behavior",
+  "description": "A unit of collective technology behavior performed by two or more collaborating nodes, such as a distributed transaction, inter-service handshake, or cluster failover protocol.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -29,6 +29,14 @@
         },
         "documentation": {
           "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference"
         }
       },
       "additionalProperties": false

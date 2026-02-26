@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SecureResource",
-  "description": "Protected resource definition",
+  "description": "Represents a named resource subject to security controls, defining the operations that can be performed on it and optional field-level access restrictions. Acts as the resource component in subject-action-resource access control triples per NIST SP 800-53 AC-3.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

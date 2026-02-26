@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Countermeasure",
-  "description": "Security countermeasure for a threat",
+  "description": "A security control or mitigation technique that reduces the likelihood or impact of a specific threat. Maps to NIST SP 800-53 controls by type (technical, operational, management) and tracks implementation status and residual risk.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -28,7 +28,9 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": ["technical", "operational", "management", "physical"],
+          "description": "NIST SP 800-53 control family classification: technical (hardware/software mechanisms), operational (people and procedures), management (governance), or physical (facility/environmental)."
         },
         "description": {
           "type": "string"

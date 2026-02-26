@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyCollaboration",
-  "description": "Aggregate of nodes working together",
+  "description": "An aggregate of two or more technology active structure elements that work together to perform collective technology behavior, such as a cluster of servers, a distributed cache, or a microservice mesh.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -33,6 +33,14 @@
         "nodes": {
           "type": "array",
           "description": "Contains relationship"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference"
         }
       },
       "additionalProperties": false

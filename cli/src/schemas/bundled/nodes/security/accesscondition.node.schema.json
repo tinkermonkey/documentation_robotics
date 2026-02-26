@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AccessCondition",
-  "description": "Conditional access rule",
+  "description": "Defines a single boolean predicate evaluated against a request context attribute (field), comparing the runtime value using a specified operator. Composed inside a PolicyRule condition chain to form compound access control expressions.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

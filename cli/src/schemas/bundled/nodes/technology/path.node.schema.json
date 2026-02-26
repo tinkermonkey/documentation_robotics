@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Path",
-  "description": "Link between nodes through which they exchange",
+  "description": "A link between two or more nodes through which those nodes can exchange data, representing a logical communication channel such as a network route, API connection, or message channel.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

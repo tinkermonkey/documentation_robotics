@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Artifact",
-  "description": "Physical piece of data used or produced",
+  "description": "A piece of data that is used or produced in a software development process, or by the deployment and operation of an IT system, such as a source file, executable, script, or configuration file.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -33,7 +33,7 @@
         "artifactType": {
           "type": "string",
           "enum": ["file", "container-image", "archive", "library", "script", "configuration"],
-          "description": "Physical data artifact category, per ArchiMate 3.2 Artifact element."
+          "description": "Data artifact category, per ArchiMate 3.2 Artifact element."
         },
         "properties": {
           "type": "object",
