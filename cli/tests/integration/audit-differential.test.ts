@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SnapshotStorage } from "../../src/audit/snapshot-storage.js";
 import { DifferentialAnalyzer } from "../../src/audit/differential-analyzer.js";
-import { AuditReport, CoverageMetrics, GapCandidate, DuplicateCandidate, BalanceAssessment } from "../../src/audit/types.js";
+import { AuditReport, CoverageMetrics, GapCandidate, DuplicateCandidate, BalanceAssessment, gapImpactScore, duplicateImpactScore } from "../../src/audit/types.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import * as path from "path";
 import { promises as fs } from "fs";
@@ -181,6 +181,8 @@ describe("Differential Analysis", () => {
       suggestedPredicate: "realizes",
       reason: "Goals should realize requirements",
       priority: "high",
+      impactScore: gapImpactScore("high"),
+      alignmentScore: 100 - gapImpactScore("high"),
     };
 
     const before = createMockAuditReport("2026-02-20T10:00:00.000Z", {}, [gap]);
@@ -200,6 +202,8 @@ describe("Differential Analysis", () => {
       suggestedPredicate: "serves",
       reason: "Business services should serve application components",
       priority: "medium",
+      impactScore: gapImpactScore("medium"),
+      alignmentScore: 100 - gapImpactScore("medium"),
     };
 
     const before = createMockAuditReport("2026-02-20T10:00:00.000Z", {}, []);
@@ -218,6 +222,8 @@ describe("Differential Analysis", () => {
       suggestedPredicate: "realizes",
       reason: "Test",
       priority: "high",
+      impactScore: gapImpactScore("high"),
+      alignmentScore: 100 - gapImpactScore("high"),
     };
 
     const gap2: GapCandidate = {
@@ -226,6 +232,8 @@ describe("Differential Analysis", () => {
       suggestedPredicate: "constrains",
       reason: "Test",
       priority: "medium",
+      impactScore: gapImpactScore("medium"),
+      alignmentScore: 100 - gapImpactScore("medium"),
     };
 
     const before = createMockAuditReport("2026-02-20T10:00:00.000Z", {}, [gap1, gap2]);
@@ -244,6 +252,8 @@ describe("Differential Analysis", () => {
       destinationNodeType: "Requirement",
       reason: "Semantic overlap",
       confidence: "high",
+      impactScore: duplicateImpactScore("high"),
+      alignmentScore: 100 - duplicateImpactScore("high"),
     };
 
     const before = createMockAuditReport("2026-02-20T10:00:00.000Z", {}, [], [duplicate]);
@@ -263,6 +273,8 @@ describe("Differential Analysis", () => {
       destinationNodeType: "Requirement",
       reason: "Test",
       confidence: "high",
+      impactScore: duplicateImpactScore("high"),
+      alignmentScore: 100 - duplicateImpactScore("high"),
     };
 
     const dup2: DuplicateCandidate = {
@@ -272,6 +284,8 @@ describe("Differential Analysis", () => {
       destinationNodeType: "Component",
       reason: "Test",
       confidence: "medium",
+      impactScore: duplicateImpactScore("medium"),
+      alignmentScore: 100 - duplicateImpactScore("medium"),
     };
 
     const before = createMockAuditReport("2026-02-20T10:00:00.000Z", {}, [], [dup1, dup2]);

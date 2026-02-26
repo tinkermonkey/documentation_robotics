@@ -4,6 +4,7 @@ import { ReportGenerator } from "../../src/audit/reports/report-generator.js";
 import path from "path";
 import fs from "fs/promises";
 import type { AuditReport } from "../../src/audit/types.js";
+import { gapImpactScore, duplicateImpactScore } from "../../src/audit/types.js";
 
 describe("Audit Pipeline", () => {
   let tempDir: string;
@@ -103,6 +104,8 @@ describe("Audit Pipeline", () => {
             suggestedPredicate: "depends-on",
             reason: "Missing structural relationship",
             priority: "high",
+            impactScore: gapImpactScore("high"),
+            alignmentScore: 100 - gapImpactScore("high"),
           },
         ],
         duplicates: [],
@@ -168,6 +171,8 @@ describe("Audit Pipeline", () => {
             destinationNodeType: "TypeB",
             reason: "Similar predicates",
             confidence: "high",
+            impactScore: duplicateImpactScore("high"),
+            alignmentScore: 100 - duplicateImpactScore("high"),
           },
         ],
         balance: [],

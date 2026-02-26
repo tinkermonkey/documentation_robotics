@@ -78,6 +78,22 @@ These recommendations follow ArchiMate patterns.`;
       const recommendations = parser.parseElementRecommendations(response);
 
       expect(recommendations[0].priority).toBe("medium");
+      expect(recommendations[0].impactScore).toBe(55);
+      expect(recommendations[0].alignmentScore).toBe(45);
+    });
+
+    it("should compute correct scores for medium and low priority", () => {
+      const response = `[
+        {"sourceNodeType":"a","predicate":"uses","destinationNodeType":"b","justification":"J","priority":"medium"},
+        {"sourceNodeType":"c","predicate":"uses","destinationNodeType":"d","justification":"J","priority":"low"}
+      ]`;
+
+      const recommendations = parser.parseElementRecommendations(response);
+
+      expect(recommendations[0].impactScore).toBe(55);
+      expect(recommendations[0].alignmentScore).toBe(45);
+      expect(recommendations[1].impactScore).toBe(25);
+      expect(recommendations[1].alignmentScore).toBe(75);
     });
 
     it("should throw error if no JSON found in response", () => {

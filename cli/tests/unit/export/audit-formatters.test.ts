@@ -17,6 +17,7 @@ import type {
   GapCandidate,
   BalanceAssessment,
 } from "../../../src/audit/types.js";
+import { gapImpactScore, duplicateImpactScore } from "../../../src/audit/types.js";
 
 // Helper to create minimal valid AuditReport
 function createMinimalReport(overrides?: Partial<AuditReport>): AuditReport {
@@ -158,6 +159,8 @@ describe("audit-formatters", () => {
             suggestedPredicate: "contains|special",
             reason: "Gap with `backticks` and | pipes",
             priority: "high",
+            impactScore: gapImpactScore("high"),
+            alignmentScore: 100 - gapImpactScore("high"),
           },
         ],
       });
@@ -177,6 +180,8 @@ describe("audit-formatters", () => {
             suggestedPredicate: "pred",
             reason: "Multi-line\ndescription\nwith newlines",
             priority: "medium",
+            impactScore: gapImpactScore("medium"),
+            alignmentScore: 100 - gapImpactScore("medium"),
           },
         ],
       });
@@ -218,7 +223,9 @@ describe("audit-formatters", () => {
           sourceNodeType: `source-${i}`,
           destinationNodeType: `dest-${i}`,
           reason: `Semantic overlap ${i}`,
-          confidence: "high",
+          confidence: "high" as const,
+          impactScore: duplicateImpactScore("high"),
+          alignmentScore: 100 - duplicateImpactScore("high"),
         })
       );
 
@@ -232,14 +239,19 @@ describe("audit-formatters", () => {
     });
 
     it("should handle many gap entries", () => {
-      const gaps: GapCandidate[] = Array.from({ length: 75 }, (_, i) => ({
-        sourceNodeType: `source-${i}`,
-        destinationNodeType: `dest-${i}`,
-        suggestedPredicate: `pred-${i}`,
-        reason: `Missing relationship ${i}`,
-        priority: i % 3 === 0 ? "high" : i % 3 === 1 ? "medium" : "low",
-        standardReference: i % 2 === 0 ? `Standard-${i}` : undefined,
-      }));
+      const gaps: GapCandidate[] = Array.from({ length: 75 }, (_, i) => {
+        const priority = (i % 3 === 0 ? "high" : i % 3 === 1 ? "medium" : "low") as "high" | "medium" | "low";
+        return {
+          sourceNodeType: `source-${i}`,
+          destinationNodeType: `dest-${i}`,
+          suggestedPredicate: `pred-${i}`,
+          reason: `Missing relationship ${i}`,
+          priority,
+          standardReference: i % 2 === 0 ? `Standard-${i}` : undefined,
+          impactScore: gapImpactScore(priority),
+          alignmentScore: 100 - gapImpactScore(priority),
+        };
+      });
 
       const report = createMinimalReport({ gaps });
 
@@ -305,6 +317,8 @@ describe("audit-formatters", () => {
             suggestedPredicate: "pred",
             reason: "test",
             priority: "high",
+            impactScore: gapImpactScore("high"),
+            alignmentScore: 100 - gapImpactScore("high"),
           },
         ],
       });
@@ -364,6 +378,8 @@ describe("audit-formatters", () => {
             reason: "reason",
             priority: "low",
             standardReference: undefined, // Optional field
+            impactScore: gapImpactScore("low"),
+            alignmentScore: 100 - gapImpactScore("low"),
           },
         ],
       });
