@@ -33,15 +33,12 @@
           "description": "Data origin for this binding configuration."
         },
         "target": {
-          "type": "string"
+          "type": "string",
+          "description": "SpecNodeId of the destination element receiving bound data (e.g., a data-model entity ID or API endpoint ID). Use relationships to formally link to those layers."
         },
         "path": {
-          "type": "string"
-        },
-        "cacheStrategy": {
           "type": "string",
-          "enum": ["cache-first", "network-first", "stale-while-revalidate", "no-cache"],
-          "description": "Client-side data freshness policy governing how fetched data is cached and revalidated."
+          "description": "Dot-notation or JSONPath expression selecting a field within the source data (e.g., 'user.profile.name' or '$.items[0].id')."
         }
       },
       "required": ["source", "target"],

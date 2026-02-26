@@ -14,14 +14,12 @@
     "ux.chartseries",
     "ux.componentinstance",
     "ux.componentreference",
-    "ux.condition",
     "ux.dataconfig",
     "ux.errorconfig",
     "ux.experiencestate",
     "ux.layoutconfig",
     "ux.librarycomponent",
     "ux.librarysubview",
-    "ux.performancetargets",
     "ux.stateaction",
     "ux.stateactiontemplate",
     "ux.statepattern",
@@ -32,7 +30,6 @@
     "ux.uxapplication",
     "ux.uxlibrary",
     "ux.uxspec",
-    "ux.validationrule",
     "ux.view"
   ]
 }

@@ -36,10 +36,16 @@
           "description": "Visualization type for this data series."
         },
         "dataField": {
-          "type": "string"
+          "type": "string",
+          "description": "Field name from the bound data source representing the numeric/value axis of this series (e.g., 'revenue', 'count'). For formal data-model binding, use a relationship to the corresponding data-model entity."
         },
         "categoryField": {
-          "type": "string"
+          "type": "string",
+          "description": "Field name from the bound data source representing the category/x-axis grouping (e.g., 'month', 'region'). For formal data-model binding, use a relationship to the corresponding data-model entity."
+        },
+        "color": {
+          "type": "string",
+          "description": "CSS color value for this series (e.g., '#3B82F6', 'var(--brand-primary)'). Overrides any theme-level color scheme for this specific series."
         },
         "lineStyle": {
           "type": "string",

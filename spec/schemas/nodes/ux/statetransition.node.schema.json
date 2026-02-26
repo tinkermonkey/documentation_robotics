@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "StateTransition",
-  "description": "Transition from current state to another state",
+  "description": "A directed edge in the ExperienceState machine, owned by its source ExperienceState. Specifies the trigger event, destination state, optional guard condition, and side-effect actions. The 'from' state is implicitly the ExperienceState that contains this transition via relationship.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -28,7 +28,8 @@
           "type": "string"
         },
         "to": {
-          "type": "string"
+          "type": "string",
+          "description": "SpecNodeId of the destination ExperienceState this transition leads to (e.g., 'ux.experiencestate.order-confirmed')."
         },
         "trigger": {
           "type": "string",
@@ -50,7 +51,28 @@
         },
         "actions": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of StateAction specNodeIds to execute when this transition fires, in order.",
+          "items": {
+            "type": "string",
+            "description": "SpecNodeId of a ux.stateaction node."
+          }
+        },
+        "guard": {
+          "type": "object",
+          "description": "Optional boolean guard condition that must evaluate to true for this transition to fire.",
+          "properties": {
+            "expression": {
+              "type": "string",
+              "description": "Boolean expression string evaluated against current state context."
+            },
+            "syntax": {
+              "type": "string",
+              "enum": ["javascript", "jsonpath", "cel", "jsonata"],
+              "description": "Expression language used to evaluate the guard expression. 'javascript': JS boolean expression (e.g., 'user.isLoggedIn && cart.items.length > 0'); 'jsonpath': JSONPath predicate (e.g., '$.user.role == \"admin\"'); 'cel': Common Expression Language (e.g., 'user.age >= 18'); 'jsonata': JSONata expression (e.g., '$count(items) > 0')."
+            }
+          },
+          "required": ["expression", "syntax"],
+          "additionalProperties": false
         }
       },
       "required": ["trigger"],

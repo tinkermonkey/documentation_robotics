@@ -28,15 +28,17 @@
           "type": "string"
         },
         "order": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Render order of this component instance within its parent View or SubView's component list. Lower values render first."
         },
         "ref": {
           "type": "string",
-          "description": "Reference to the ux.librarycomponent definition this instance is based on."
+          "description": "SpecNodeId of the ux.librarycomponent this instance is based on (e.g., 'ux.librarycomponent.data-table'). Determines the component type and the set of valid prop keys."
         },
         "props": {
           "type": "object",
-          "description": "Application-specific property overrides applied to this component instance."
+          "description": "Key-value map of property overrides applied to this instance. Keys must match prop names declared on the referenced LibraryComponent. Values override the component defaults for this specific usage.",
+          "additionalProperties": true
         }
       },
       "additionalProperties": false

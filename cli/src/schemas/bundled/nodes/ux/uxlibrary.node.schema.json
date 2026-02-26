@@ -41,23 +41,39 @@
         },
         "components": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of ux.librarycomponent specNodeIds exported by this library.",
+          "items": { "type": "string", "description": "SpecNodeId of a ux.librarycomponent node." }
         },
         "subViews": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of ux.librarysubview specNodeIds exported by this library.",
+          "items": { "type": "string", "description": "SpecNodeId of a ux.librarysubview node." }
         },
         "statePatterns": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of ux.statepattern specNodeIds exported by this library.",
+          "items": { "type": "string", "description": "SpecNodeId of a ux.statepattern node." }
         },
         "actionPatterns": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of ux.actionpattern specNodeIds exported by this library.",
+          "items": { "type": "string", "description": "SpecNodeId of a ux.actionpattern node." }
         },
         "source": {
           "type": "object",
-          "description": "Source code reference"
+          "description": "Distribution source for this library package.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["npm", "git", "internal-registry"],
+              "description": "Distribution mechanism: 'npm' for a published npm package, 'git' for a git repository URL, 'internal-registry' for a private artifact registry."
+            },
+            "identifier": {
+              "type": "string",
+              "description": "Package name, git URL, or registry path (e.g., '@org/design-system', 'https://github.com/org/ds', 'registry.internal/ux-lib')."
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": ["version"],

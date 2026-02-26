@@ -31,7 +31,9 @@
           "type": "string"
         },
         "experience": {
-          "type": "string"
+          "type": "string",
+          "enum": ["visual", "voice", "chat", "sms"],
+          "description": "Delivery modality this spec describes. 'visual': screen-based UI; 'voice': voice assistant interface; 'chat': conversational messaging UI; 'sms': text message-based interaction."
         },
         "title": {
           "type": "string"
@@ -41,7 +43,29 @@
         },
         "source": {
           "type": "object",
-          "description": "Source code reference"
+          "description": "Reference to the design artifact (e.g., Figma file, Storybook, or internal design system URL) that this spec is based on.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["figma", "storybook", "zeplin", "url"],
+              "description": "Design tool or artifact type."
+            },
+            "url": {
+              "type": "string",
+              "description": "URL to the design artifact."
+            }
+          },
+          "additionalProperties": false
+        },
+        "views": {
+          "type": "array",
+          "description": "List of ux.view specNodeIds that comprise the routable screens of this experience.",
+          "items": { "type": "string", "description": "SpecNodeId of a ux.view node." }
+        },
+        "states": {
+          "type": "array",
+          "description": "List of ux.experiencestate specNodeIds that represent the top-level states of this experience's state machine.",
+          "items": { "type": "string", "description": "SpecNodeId of a ux.experiencestate node." }
         }
       },
       "additionalProperties": false

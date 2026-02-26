@@ -57,6 +57,39 @@
         "children": {
           "type": "array",
           "description": "Contains relationship"
+        },
+        "validations": {
+          "type": "array",
+          "description": "Client-side validation rules applied to this component, per HTML 5.3 Constraint Validation API. Each rule specifies a constraint type, threshold value, and user-facing error message.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "required",
+                  "minlength",
+                  "maxlength",
+                  "pattern",
+                  "min",
+                  "max",
+                  "type",
+                  "custom"
+                ],
+                "description": "Constraint type. 'required': field must not be empty; 'minlength'/'maxlength': string length bounds (value = integer); 'pattern': regex the input must match (value = regex string); 'min'/'max': numeric range (value = number); 'type': expected data type; 'custom': application-defined rule."
+              },
+              "value": {
+                "type": "string",
+                "description": "Constraint threshold or parameter (e.g., '8' for minlength, '^[a-z]+$' for pattern)."
+              },
+              "message": {
+                "type": "string",
+                "description": "User-facing error message shown when this constraint is violated."
+              }
+            },
+            "required": ["type", "message"],
+            "additionalProperties": false
+          }
         }
       },
       "required": ["type"],

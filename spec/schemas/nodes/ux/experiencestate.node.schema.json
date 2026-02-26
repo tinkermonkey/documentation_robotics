@@ -28,7 +28,8 @@
           "type": "string"
         },
         "initial": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "When true, marks this as the starting state of the state machine. Only one ExperienceState per state machine should have initial: true."
         },
         "description": {
           "type": "string"
@@ -40,27 +41,33 @@
         },
         "onEnter": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of StateAction specNodeIds executed when entering this state (lifecycle: on-enter).",
+          "items": { "type": "string", "description": "SpecNodeId of a ux.stateaction node." }
         },
         "onExit": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of StateAction specNodeIds executed when leaving this state (lifecycle: on-exit).",
+          "items": { "type": "string", "description": "SpecNodeId of a ux.stateaction node." }
         },
         "transitions": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of StateTransition specNodeIds owned by this state, defining the outgoing edges of the state machine.",
+          "items": { "type": "string", "description": "SpecNodeId of a ux.statetransition node." }
         },
         "enabledComponents": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of component specNodeIds that are interactive (enabled) when this state is active. Corresponds to ARIA aria-disabled=false.",
+          "items": { "type": "string", "description": "SpecNodeId of a component node." }
         },
         "disabledComponents": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of component specNodeIds that are non-interactive (disabled) when this state is active. Corresponds to ARIA aria-disabled=true.",
+          "items": { "type": "string", "description": "SpecNodeId of a component node." }
         },
         "hiddenComponents": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "List of component specNodeIds that are not rendered when this state is active. Corresponds to ARIA aria-hidden=true or display:none.",
+          "items": { "type": "string", "description": "SpecNodeId of a component node." }
         }
       },
       "additionalProperties": false
