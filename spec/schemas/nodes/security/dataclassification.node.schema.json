@@ -35,6 +35,11 @@
           "enum": ["none", "in-transit", "at-rest", "end-to-end", "field-level"],
           "description": "Minimum encryption obligation for data within this classification scheme, per NIST SP 800-53 SC-28 and SC-8 controls."
         },
+        "classificationLevel": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted", "top-secret"],
+          "description": "Data sensitivity tier applied by this scheme, aligned with NIST FIPS 199 security categorization levels."
+        },
         "classifications": {
           "type": "array",
           "description": "Contains relationship"

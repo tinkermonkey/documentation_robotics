@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Delegation",
-  "description": "Explicit delegation of permissions or goals",
+  "description": "Explicit transfer of permissions or authority from a delegator to a delegatee, subject to scope constraints and optional time bounds. Supports least-privilege enforcement (NIST AC-6) by enabling time-limited privilege elevation rather than permanent role assignment.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -37,6 +37,10 @@
           "type": "string",
           "enum": ["full", "partial", "temporary", "conditional", "revocable"],
           "description": "Scope and constraints of the delegation grant, per OAuth 2.0 token delegation and NIST SP 800-162 attribute delegation models."
+        },
+        "validUntil": {
+          "type": "string",
+          "description": "ISO 8601 datetime after which this delegation automatically expires. Required for delegationType 'temporary' and recommended for 'conditional' to enforce time-bounded privilege grants per AC-6."
         },
         "description": {
           "type": "string"

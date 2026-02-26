@@ -9,10 +9,10 @@
   ],
   "properties": {
     "spec_node_id": {
-      "const": "security.ratelimit"
+      "const": "api.ratelimit"
     },
     "layer_id": {
-      "const": "security"
+      "const": "api"
     },
     "type": {
       "const": "ratelimit"
@@ -28,10 +28,12 @@
           "type": "string"
         },
         "requests": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Maximum number of requests permitted within the specified time window."
         },
         "window": {
-          "type": "string"
+          "type": "string",
+          "description": "Duration of the rate limit window (e.g., '1m', '1h', '24h'). Requests are counted and reset per window."
         },
         "scope": {
           "type": "string",
@@ -44,7 +46,8 @@
           "description": "Action taken when the rate limit is exceeded, per NIST SC-5 (Denial-of-Service Protection)."
         },
         "keyBy": {
-          "type": "string"
+          "type": "string",
+          "description": "Attribute used to identify and group requests for rate limit counting (e.g., 'user.id', 'request.ip', 'api-key')."
         },
         "source": {
           "type": "object",

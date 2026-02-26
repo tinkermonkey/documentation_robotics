@@ -26,6 +26,7 @@
     "api.operation",
     "api.parameter",
     "api.pathitem",
+    "api.ratelimit",
     "api.paths",
     "api.requestbody",
     "api.response",

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InformationRight",
-  "description": "Fine-grained information access rights",
+  "description": "A granular access grant specifying which operations a named actor may perform on an InformationEntity, subject to a qualifying constraint expression. Implements attribute-based access control (ABAC) at the information asset level, per NIST SP 800-162 (ABAC Guide) and NIST SP 800-53 AC-3(14).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -28,10 +28,20 @@
           "type": "string"
         },
         "actor": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of the actor (security.actor) to whom this right is granted."
         },
         "constraint": {
-          "type": "string"
+          "type": "string",
+          "description": "Boolean constraint expression that must evaluate to true for the right to apply (e.g., 'actor.department == resource.ownerDepartment')."
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["read", "write", "delete", "share", "export", "approve"]
+          },
+          "description": "Permitted operations on the information entity granted by this right."
         }
       },
       "required": ["actor", "constraint"],

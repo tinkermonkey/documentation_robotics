@@ -33,10 +33,12 @@
           "description": "Validation mechanism type, per NIST SI-10 (Information Input Validation)."
         },
         "value": {
-          "type": "string"
+          "type": "string",
+          "description": "Validation constraint value whose meaning depends on `type`: a regex pattern string, a numeric range expression (e.g. '1-100'), a maximum character count, a pipe-delimited list of allowed enum values, or a custom expression string."
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable violation message shown to the user or logged when this validation rule fails."
         },
         "severity": {
           "type": "string",

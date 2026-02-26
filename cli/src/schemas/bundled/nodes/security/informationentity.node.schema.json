@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InformationEntity",
-  "description": "Information asset with fine-grained rights",
+  "description": "Named information asset subject to fine-grained access rights and data classification. Represents a logical grouping of data (e.g., customer PII, financial records) whose access is governed by associated InformationRight grants and AccountabilityRequirements, per NIST SP 800-53 AC-3 and IP-1.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -31,11 +31,12 @@
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "description": "Sensitivity classification of this information asset. Use classificationLevel values: public, internal, confidential, restricted, or top-secret."
         },
         "authorizationRequirements": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "References InformationRight nodes defining which actors may access this entity and under what constraints."
         }
       },
       "required": ["classification"],

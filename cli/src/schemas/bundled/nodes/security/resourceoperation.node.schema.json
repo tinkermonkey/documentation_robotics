@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ResourceOperation",
-  "description": "Operation on a resource",
+  "description": "A permitted operation that an actor may perform on a secured resource, forming the verb component of a subject-verb-object access control policy. Bound to AccessConditions, RateLimits, and AuditConfig nodes via the security policy model, per NIST SP 800-53 AC-3 (Access Enforcement).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -28,22 +28,35 @@
           "type": "string"
         },
         "operation": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "create",
+            "read",
+            "update",
+            "delete",
+            "list",
+            "execute",
+            "approve",
+            "share",
+            "export",
+            "import"
+          ],
+          "description": "Permitted operation type on the secured resource."
         },
         "description": {
           "type": "string"
         },
         "conditions": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "References AccessCondition nodes that must be satisfied before this operation is authorized."
         },
         "rateLimit": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "References RateLimit nodes (api.ratelimit) applied to this operation."
         },
         "audit": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "References AuditConfig nodes specifying how this operation is logged for accountability."
         }
       },
       "required": ["operation"],

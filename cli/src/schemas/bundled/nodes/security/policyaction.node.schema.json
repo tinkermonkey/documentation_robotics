@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PolicyAction",
-  "description": "Action to take when policy rule matches",
+  "description": "The enforcement action executed when a SecurityPolicy rule condition is met. Defines the system response to a policy match (allow, deny, remediation, notification), ensuring consistent policy enforcement across the security model per NIST SP 800-53 CA-9 (Internal System Connections) and SI-3 (Malicious Code Protection).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -28,10 +28,25 @@
           "type": "string"
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "allow",
+            "deny",
+            "log",
+            "alert",
+            "redirect",
+            "rate-limit",
+            "challenge",
+            "quarantine",
+            "notify",
+            "mask",
+            "encrypt"
+          ],
+          "description": "Enforcement action type applied when the parent policy rule fires."
         },
         "parameters": {
-          "type": "object"
+          "type": "object",
+          "description": "Key-value configuration for the action (e.g., redirect URL, notification recipient, masking pattern)."
         },
         "source": {
           "type": "object",

@@ -12,11 +12,9 @@
     "security.accesscondition",
     "security.accountabilityrequirement",
     "security.actor",
-    "security.actorobjective",
     "security.auditconfig",
     "security.authenticationconfig",
     "security.bindingofduty",
-    "security.classification",
     "security.condition",
     "security.countermeasure",
     "security.dataclassification",
@@ -30,7 +28,6 @@
     "security.permission",
     "security.policyaction",
     "security.policyrule",
-    "security.ratelimit",
     "security.resourceoperation",
     "security.retentionpolicy",
     "security.role",
@@ -39,7 +36,6 @@
     "security.securitymodel",
     "security.securitypolicy",
     "security.separationofduty",
-    "security.socialdependency",
     "security.threat",
     "security.validationrule"
   ]

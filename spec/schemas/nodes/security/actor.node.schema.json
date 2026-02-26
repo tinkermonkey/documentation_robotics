@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Actor",
-  "description": "Actor in the system (beyond roles)",
+  "description": "A named principal \u2014 human user, service account, automated system, or external entity \u2014 whose identity and trust level govern what operations it may perform. Associates with Roles for permission grouping and with SeparationOfDuty and Delegation controls, per NIST SP 800-53 AC-2 (Account Management) and SP 800-207 (Zero Trust Architecture).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -42,11 +42,11 @@
         },
         "objectives": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "References nodes describing this actor's goals or intended behaviors (e.g., for threat modeling or trust analysis)."
         },
         "dependencies": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "References actor or delegation nodes this actor depends on for trust chain or access delegation analysis."
         }
       },
       "required": ["type"],
