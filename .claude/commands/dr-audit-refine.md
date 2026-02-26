@@ -348,7 +348,7 @@ Track all changes in a session log (files created, modified, deleted).
    - `attributes.properties` → restructured to fit target layer conventions
    - `title` and `description` → updated to reflect new context
 
-4. Confirm the adapted schema with the user before writing — show a diff-style summary of changes.
+4. Show a diff-style summary of the key changes (spec_node_id, layer_id, restructured attributes). If `autoMode` is active, proceed to write immediately. Otherwise, confirm with the user before writing.
 
 5. Write to `spec/schemas/nodes/{targetLayerId}/{typeName}.node.schema.json`
 
@@ -358,7 +358,7 @@ Track all changes in a session log (files created, modified, deleted).
 
 8. Update target layer instance: add `{targetLayerId}.{typeName}` in alphabetical order.
 
-9. If relationships reference the old source node ID, list them and ask:
+9. If relationships reference the old source node ID, list them. If `autoMode` is active, leave them for manual cleanup and note this in the log. Otherwise, ask:
    - **Update references** — change source/dest layer references to the new ID
    - **Delete orphaned relationships**
    - **Leave for manual cleanup**
@@ -371,8 +371,8 @@ Track all changes in a session log (files created, modified, deleted).
 
 1. If dependent relationships were found in 4c:
    - List them explicitly
-   - Ask: "Remove these relationship schemas too? (yes / leave for manual cleanup)"
-   - If yes, delete each one and log it
+   - If `autoMode` is active, delete them automatically and log each one.
+   - Otherwise, ask: "Remove these relationship schemas too? (yes / leave for manual cleanup)" and delete if confirmed.
 
 2. Double-check: is this type referenced in any layer instance `node_types`? (Grep `spec/layers/` for `"{layerId}.{typeName}"`.)
 
@@ -393,7 +393,7 @@ Track all changes in a session log (files created, modified, deleted).
    - Keep descriptions concise (1–2 sentences)
    - Do not invent details not implied by the existing schema or suggestion
 
-3. Show the user the before/after diff:
+3. Show the before/after diff:
 
    ```
    title:
@@ -405,9 +405,9 @@ Track all changes in a session log (files created, modified, deleted).
      After:  "..."
    ```
 
-4. Ask: "Apply this change? (yes / revise / skip)"
+4. If `autoMode` is active, proceed to write immediately. Otherwise, ask: "Apply this change? (yes / revise / skip)" and write only after confirmation.
 
-5. Write the updated schema only after confirmation.
+5. Write the updated schema.
 
 6. Log: `CLARIFIED {layerId}.{typeName} — updated title/description`
 
@@ -419,7 +419,7 @@ Track all changes in a session log (files created, modified, deleted).
 
 2. Draft the new attribute definition following the conventions visible in peer schemas in `spec/schemas/nodes/{layerId}/`.
 
-3. Show the draft to the user:
+3. Show the draft:
 
    ```
    Proposed new attribute: "{attributeName}"
@@ -428,9 +428,9 @@ Track all changes in a session log (files created, modified, deleted).
      required: {yes/no}
    ```
 
-4. Ask: "Add this attribute? (yes / revise / skip)"
+4. If `autoMode` is active, proceed to write immediately. Otherwise, ask: "Add this attribute? (yes / revise / skip)" and write only after confirmation.
 
-5. Write the updated schema only after confirmation.
+5. Write the updated schema.
 
 6. Log: `ADDED attribute {attributeName} to {layerId}.{typeName}`
 

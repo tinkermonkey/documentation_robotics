@@ -241,11 +241,14 @@ Read both schema files to show the user their definitions.
 
 **If `autoMode` is active:** Do not call `AskUserQuestion`. Instead, apply the default recommended action for this item type:
 
-| Item type              | Auto action                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| Node (any)             | "Follow recommendation" — execute the primary action type from the suggestion |
-| Relationship gap       | "Create this relationship" — use default cardinality `many-to-one`            |
-| Relationship duplicate | "Skip" — duplicate resolution requires judgment; skip in auto mode            |
+| Item type                | Auto action                                                         |
+| ------------------------ | ------------------------------------------------------------------- |
+| Node (MOVE)              | "Follow recommendation" — move schema to target layer               |
+| Node (ENUM_COLLAPSE)     | "Follow recommendation" — collapse into enum on parent schema       |
+| Node (REMOVE)            | "Follow recommendation" — delete schema and dependent relationships |
+| Node (OTHER action type) | "Skip" — requires manual judgment; cannot be automated              |
+| Relationship gap         | "Create this relationship" — use default cardinality `many-to-one`  |
+| Relationship duplicate   | "Skip" — duplicate resolution requires judgment; skip in auto mode  |
 
 Print a one-line summary of the chosen action (e.g., `[AUTO] data-model.x-database — following recommendation: MOVE to data-store layer`).
 
@@ -372,7 +375,7 @@ Track all changes in a session log (list of files created, modified, deleted).
    - Find it by scanning `spec/layers/` for the file whose `"id"` matches `targetLayerId`
    - If the `node_types` array is non-empty, add `"{targetLayerId}.{typeName}"` in alphabetical order
 
-8. Grep `spec/schemas/relationships/{sourceLayerId}/` for any relationship schema referencing `{sourceLayerId}.{typeName}`. If any are found, print them and ask:
+8. Grep `spec/schemas/relationships/{sourceLayerId}/` for any relationship schema referencing `{sourceLayerId}.{typeName}`. If any are found, print them. If `autoMode` is active, leave them for manual cleanup and note this in the log. Otherwise, ask:
    - **Update references** (change source/dest layer references to the new location)
    - **Delete orphaned relationships**
    - **Leave for manual cleanup**
@@ -416,6 +419,10 @@ Track all changes in a session log (list of files created, modified, deleted).
 ---
 
 **NODE — FOLLOW RECOMMENDATION: OTHER**
+
+If `autoMode` is active, log `SKIPPED {specNodeId} — OTHER action type requires manual judgment` and move to the next item.
+
+Otherwise:
 
 1. Re-read the suggestion carefully.
 2. Plan the exact edits needed and describe them to the user in plain language.
