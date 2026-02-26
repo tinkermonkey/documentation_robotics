@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "FieldAccessControl",
-  "description": "Field-level access control",
+  "description": "Defines access restrictions and transformation rules for a specific data field, controlling how sensitive values are masked or redacted when exposed to unauthorized principals. Used within SecureResource fieldAccess to enforce field-level data protection per NIST SP 800-53 AC-3 and SC-28.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

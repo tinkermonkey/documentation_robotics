@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SecurityConstraints",
-  "description": "Security patterns and constraints",
+  "description": "An aggregate container defining the procedural access control constraints for an application, grouping SeparationOfDuty, BindingOfDuty, and NeedToKnow rules. Applied within SecurityModel to enforce AC-5 and workflow integrity controls.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

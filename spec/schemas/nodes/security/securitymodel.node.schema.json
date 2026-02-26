@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SecurityModel",
-  "description": "Complete security model for application",
+  "description": "The root aggregate for an application's security posture, composing authentication, authorization (roles, permissions, resources), threat model, data classification, accountability requirements, and policies into a unified security specification. Scoped to a single application or bounded context.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -31,7 +31,8 @@
           "type": "string"
         },
         "application": {
-          "type": "string"
+          "type": "string",
+          "description": "Name or identifier of the application this security model governs. Used to scope the security posture to a single application or bounded context."
         },
         "accessControlModel": {
           "type": "string",
