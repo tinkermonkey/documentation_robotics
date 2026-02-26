@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NavigationGraph",
-  "description": "Complete navigation structure for application",
+  "description": "Root container for an application's complete routing structure, composing all Route, NavigationTransition, and NavigationGuard nodes into a unified navigation model.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -31,7 +31,8 @@
           "type": "string"
         },
         "application": {
-          "type": "string"
+          "type": "string",
+          "description": "Reference to the Layer 4 ApplicationComponent that this navigation graph belongs to, enabling cross-layer traceability from routing to application architecture."
         },
         "description": {
           "type": "string"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BreadcrumbConfig",
-  "description": "Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Provides users with location context and navigation history.",
+  "description": "Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Applied globally to define breadcrumb rendering for a navigation scope rather than attached per individual Route. Provides users with location context and navigation history.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -31,7 +31,8 @@
           "type": "string"
         },
         "labelTemplate": {
-          "type": "string"
+          "type": "string",
+          "description": "Template string for dynamic label generation using {title} placeholder syntax to interpolate route metadata. Used when breadcrumb labels need to vary by route context rather than a static label."
         },
         "showHome": {
           "type": "boolean"

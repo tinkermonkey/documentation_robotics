@@ -40,14 +40,6 @@
         },
         "defaultErrorMessage": {
           "type": "string"
-        },
-        "retryable": {
-          "type": "boolean",
-          "description": "Whether the failed operation can be retried by the user."
-        },
-        "maxRetries": {
-          "type": "integer",
-          "description": "Maximum number of retry attempts before the error is considered permanent."
         }
       },
       "additionalProperties": false
