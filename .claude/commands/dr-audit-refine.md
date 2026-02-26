@@ -1,6 +1,6 @@
 ---
 description: Critically evaluate AI recommendations for well-aligned nodes (alignmentScore >= 80) — uses git history and ROI analysis to decide if changes are worth making
-argument-hint: "[path/to/audit.json]"
+argument-hint: "[path/to/audit.json] [--auto]"
 ---
 
 # DR Audit Refine
@@ -17,6 +17,10 @@ Reviews AI recommendations for **well-aligned** node types (alignmentScore ≥ 8
 
 # Auto-discover latest audit in common locations:
 /dr-audit-refine
+
+# Non-interactive mode — automatically execute the recommended action for each item:
+/dr-audit-refine --auto
+/dr-audit-refine audit-reports/testing-nodes.json --auto
 ```
 
 **Producing audit files:**
@@ -53,6 +57,19 @@ Then re-run: /dr-audit-refine [path]   (or omit path to auto-discover)
 ```
 
 4. Read and parse the JSON file.
+
+---
+
+### STEP 1.5: Parse Flags
+
+Check the provided arguments for an `--auto` flag. If present, set `autoMode = true`.
+
+**`--auto` behavior:**
+
+- Skips all `AskUserQuestion` calls entirely.
+- For each item, automatically executes the action labeled "(Recommended)" in the options, or the action indicated by the `⚠ Recommendation:` line (e.g., "Skip — recently reworked").
+- Still performs the full analysis (steps 4a–4c) and prints it to the console so the user can see the reasoning and the chosen action.
+- Does not change what actions are considered recommended — it only removes the pause for input.
 
 ---
 
@@ -211,9 +228,17 @@ For each suggestion in `suggestions[]`:
 
 ---
 
-#### 4d. Ask the User
+#### 4d. Ask the User (or Auto-Proceed)
 
-Use the `AskUserQuestion` tool. Construct the question using the full context gathered in 4a–4c.
+**If `autoMode` is active:** Do not call `AskUserQuestion`. Instead:
+
+1. Determine the recommended action from the analysis in 4a–4c:
+   - If the `⚠ Recommendation:` line says "Skip", log `SKIPPED` with that reason and move to the next item.
+   - Otherwise, identify the option that would be labeled "(Recommended)" and execute it directly.
+2. Print a one-line summary of the chosen action (e.g., `[AUTO] testing.coveragerequirement — applying suggestion #1: expand description`).
+3. Proceed immediately to Step 5 to execute the action.
+
+**If `autoMode` is not active:** Use the `AskUserQuestion` tool. Construct the question using the full context gathered in 4a–4c.
 
 **Question structure:**
 

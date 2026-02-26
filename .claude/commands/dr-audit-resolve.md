@@ -1,6 +1,6 @@
 ---
 description: Interactively resolve node and relationship audit findings — walks through low-alignment items and applies spec updates
-argument-hint: "[path/to/audit.json]"
+argument-hint: "[path/to/audit.json] [--auto]"
 ---
 
 # DR Audit Resolve
@@ -16,6 +16,10 @@ Walks through audit findings (node or relationship) and guides the spec maintain
 
 # Auto-discover latest audit in common locations:
 /dr-audit-resolve
+
+# Non-interactive mode — automatically execute the recommended action for each item:
+/dr-audit-resolve --auto
+/dr-audit-resolve audit-reports/all-nodes.json --auto
 ```
 
 **Producing audit files:**
@@ -58,6 +62,19 @@ Then re-run: /dr-audit-resolve [path]   (or omit path to auto-discover)
 ```
 
 4. Read and parse the JSON file.
+
+---
+
+### STEP 1.5: Parse Flags
+
+Check the provided arguments for an `--auto` flag. If present, set `autoMode = true`.
+
+**`--auto` behavior:**
+
+- Skips all `AskUserQuestion` calls entirely.
+- For each item, automatically executes the default recommended action (see Step 4b for per-item defaults).
+- Still performs the full pre-evaluation (step 4a) and prints it to the console so the user can see the reasoning and the chosen action.
+- Does not change what actions are considered recommended — it only removes the pause for input.
 
 ---
 
@@ -220,9 +237,21 @@ Read both schema files to show the user their definitions.
 
 ---
 
-#### 4b. Ask the User
+#### 4b. Ask the User (or Auto-Proceed)
 
-Use the `AskUserQuestion` tool. Construct the question with full context from 4a.
+**If `autoMode` is active:** Do not call `AskUserQuestion`. Instead, apply the default recommended action for this item type:
+
+| Item type              | Auto action                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| Node (any)             | "Follow recommendation" — execute the primary action type from the suggestion |
+| Relationship gap       | "Create this relationship" — use default cardinality `many-to-one`            |
+| Relationship duplicate | "Skip" — duplicate resolution requires judgment; skip in auto mode            |
+
+Print a one-line summary of the chosen action (e.g., `[AUTO] data-model.x-database — following recommendation: MOVE to data-store layer`).
+
+Proceed immediately to step 4c to execute the action.
+
+**If `autoMode` is not active:** Use the `AskUserQuestion` tool. Construct the question with full context from 4a.
 
 **For a NODE item, the question structure:**
 
@@ -399,9 +428,10 @@ Track all changes in a session log (list of files created, modified, deleted).
 
 1. If dependent relationships were found in 4a:
    - List them explicitly
-   - Ask user: "Remove these relationship schemas too? (yes / no — I'll fix manually)"
-   - If yes, delete each one and log it
-   - If no, leave them and note they will be orphaned
+   - If `autoMode` is active, delete them automatically and log each one.
+   - Otherwise, ask user: "Remove these relationship schemas too? (yes / no — I'll fix manually)"
+     - If yes, delete each one and log it
+     - If no, leave them and note they will be orphaned
 
 2. Delete the schema file: `spec/schemas/nodes/{layerId}/{typeName}.node.schema.json`
 
@@ -419,7 +449,7 @@ Prompt the user to describe what they want to do. Read their description, plan t
 
 **RELATIONSHIP GAP — CREATE**
 
-1. Ask the user for cardinality if the gap doesn't specify it. Default: `"many-to-one"`. Options: `one-to-one`, `one-to-many`, `many-to-one`, `many-to-many`.
+1. If `autoMode` is active, use cardinality `"many-to-one"` without asking. Otherwise, ask the user for cardinality if the gap doesn't specify it. Default: `"many-to-one"`. Options: `one-to-one`, `one-to-many`, `many-to-one`, `many-to-many`.
 
 2. Build the relationship schema:
 
