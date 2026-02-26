@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ContextVariation",
-  "description": "A distinct runtime or environmental context under which a coverage target may be invoked, used to parameterize test design across test environment configurations.",
+  "description": "A distinct test type or environmental context under which a coverage target may be invoked, used to parameterize test design across different execution conditions (functional correctness, load behavior, security posture, regression state). Maps to environmental needs documented in IEEE 829-2008 test design specifications.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -37,7 +37,7 @@
         },
         "environmentFactors": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "References EnvironmentFactor nodes specifying the concrete environmental constraints (OS, locale, network, hardware, dependency versions) that define this context variation."
         }
       },
       "required": ["contextType"],

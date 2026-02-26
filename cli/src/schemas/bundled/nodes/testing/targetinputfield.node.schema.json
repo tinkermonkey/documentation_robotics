@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TargetInputField",
-  "description": "Input field associated with a coverage target",
+  "description": "An association between a TestCoverageTarget and a specific input field of the target artifact, defining which InputSpacePartition applies to that field and documenting its coverage relevance per IEEE 829-2008 test case specification.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -32,7 +32,8 @@
           "description": "ID of the referenced field element in the API layer (e.g., an API parameter) or Data Model layer (e.g., a data-model property)"
         },
         "partitionRef": {
-          "type": "string"
+          "type": "string",
+          "description": "ID of the testing.inputspacepartition that defines the equivalence classes or boundary values for this input field."
         },
         "description": {
           "type": "string"

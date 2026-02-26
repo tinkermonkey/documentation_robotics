@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "OutcomeCategory",
-  "description": "Category of expected outcomes (not specific assertions)",
+  "description": "An abstract category of observable outcomes (e.g., success, validation error, authorization error, timeout) associated with a TestCoverageTarget, used during test design to organize expected results before test case specification per IEEE 829-2008. Distinguished from specific assertions \u2014 OutcomeCategory defines the class of outcome, not the exact expected value.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -41,7 +41,7 @@
             "exception",
             "timeout"
           ],
-          "description": "The category of outcome this represents"
+          "description": "The class of observable outcome this category represents, used to group test cases by expected result type for coverage analysis and reporting."
         }
       },
       "required": ["outcomeType"],

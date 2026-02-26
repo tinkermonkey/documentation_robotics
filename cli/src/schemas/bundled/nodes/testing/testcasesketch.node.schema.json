@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TestCaseSketch",
-  "description": "Abstract test case selecting specific partition values",
+  "description": "A design-time test case specification that selects concrete input partition values for a CoverageRequirement, serving as the bridge between test design (InputPartitionSelection) and executable test case specification per IEEE 829-2008. Exists in sketch (unimplemented) or implemented status \u2014 not yet tied to a specific test runner or execution framework.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -37,7 +37,7 @@
         },
         "inputSelections": {
           "type": "array",
-          "description": "Contains relationship"
+          "description": "References InputPartitionSelection nodes specifying which partition values this sketch exercises."
         },
         "implementationFormat": {
           "type": "string",

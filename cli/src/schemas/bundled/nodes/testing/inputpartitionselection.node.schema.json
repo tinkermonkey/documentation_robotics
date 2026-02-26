@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InputPartitionSelection",
-  "description": "Selection of partition values to include in coverage",
+  "description": "A specification of which values from an InputSpacePartition must be exercised within a CoverageRequirement, supporting selective coverage of equivalence classes per IEEE 829-2008 test design specification. When coverAllCategories is true, all partition values are included except those in excludeValues; otherwise, only the values listed in coverValues are included.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -28,16 +28,20 @@
           "type": "string"
         },
         "partitionRef": {
-          "type": "string"
+          "type": "string",
+          "description": "ID of the testing.inputspacepartition from which values are being selected for coverage."
         },
         "coverValues": {
-          "type": "string"
+          "type": "string",
+          "description": "Comma-separated labels or IDs of specific partition values to include in coverage. Ignored when coverAllCategories is true."
         },
         "coverAllCategories": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "When true, all partition values are included in coverage except those listed in excludeValues. Overrides coverValues."
         },
         "excludeValues": {
-          "type": "string"
+          "type": "string",
+          "description": "Comma-separated labels or IDs of partition values to exclude from coverage. Applied when coverAllCategories is true to carve out specific values."
         }
       },
       "required": ["partitionRef", "coverValues", "coverAllCategories", "excludeValues"],

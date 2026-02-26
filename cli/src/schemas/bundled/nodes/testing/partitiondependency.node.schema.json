@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PartitionDependency",
-  "description": "Constraint between partition values across fields",
+  "description": "A constraint specifying how selection of a partition value in one field affects valid or available partition values in another field, enabling combinatorial test design to avoid invalid input combinations per IEEE 829-2008 test design specification.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -41,7 +41,8 @@
           "description": "How the dependency affects the related partition values"
         },
         "affectedValues": {
-          "type": "string"
+          "type": "string",
+          "description": "Comma-separated labels or IDs of the partition values in the dependent field whose availability is modified by this dependency (e.g., values that are excluded, required, or restricted when the trigger value is selected)."
         },
         "description": {
           "type": "string"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CoverageGap",
-  "description": "Identified gap in test coverage requiring attention",
+  "description": "An identified deficit between required and achieved test coverage for a target or requirement, typically surfaced during test summary reporting per IEEE 829-2008. Gaps require remediation, risk acceptance (CoverageExclusion), or deferral.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -36,7 +36,13 @@
           "description": "Risk level of leaving this gap unaddressed"
         },
         "affectedRequirements": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier or reference to the requirement(s) that remain uncovered due to this gap."
+        },
+        "remediationStatus": {
+          "type": "string",
+          "enum": ["open", "deferred", "resolved", "accepted-risk"],
+          "description": "Lifecycle state of this coverage gap."
         },
         "targetRef": {
           "type": "string",
