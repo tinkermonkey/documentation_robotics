@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CoverageRequirement",
-  "description": "Requirement for test coverage of a target",
+  "description": "A specification of coverage criteria that must be satisfied for a TestCoverageTarget, defining which input partitions, context variations, and outcome categories must be exercised, per test design specification requirements in IEEE 829-2008.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

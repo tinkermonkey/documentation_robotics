@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PartitionValue",
-  "description": "A specific partition within the input space",
+  "description": "An individual equivalence class within an InputSpacePartition, characterized by a label, representative value, and optional constraint expression, used to enumerate the testable categories of an input dimension per IEEE 829-2008 test design specification.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CoverageExclusion",
-  "description": "Explicit exclusion from coverage with justification",
+  "description": "A formally approved exclusion of a coverage target or requirement from the test coverage model, documenting the rationale, accepted risk, and accountable approver per test plan scope documentation in IEEE 829-2008.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

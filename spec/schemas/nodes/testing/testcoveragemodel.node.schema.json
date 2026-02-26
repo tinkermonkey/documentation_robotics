@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TestCoverageModel",
-  "description": "Complete test coverage model for application",
+  "description": "The root artifact of a testing layer coverage specification, aggregating all TestCoverageTargets, InputSpacePartitions, ContextVariations, CoverageRequirements, and TestCaseSketches for an application. Corresponds to the test plan document structure in IEEE 829-2008, providing a single point of reference for coverage governance.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -31,7 +31,8 @@
           "type": "string"
         },
         "application": {
-          "type": "string"
+          "type": "string",
+          "description": "Cross-layer reference ID to the application or API element (application layer or api layer) being covered by this model"
         },
         "description": {
           "type": "string"
@@ -58,7 +59,7 @@
         },
         "source": {
           "type": "object",
-          "description": "Source code reference"
+          "description": "Provenance information indicating the origin of this model (e.g., manually authored, imported from OpenAPI, or generated from source artifacts)"
         }
       },
       "required": ["version", "application"],

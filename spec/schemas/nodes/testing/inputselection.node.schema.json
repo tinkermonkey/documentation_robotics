@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InputSelection",
-  "description": "Specific partition value selected for a test case",
+  "description": "A concrete input value assignment for a TestCaseSketch, binding an abstract partition representative value (selectedValue) to a specific concrete test datum (concreteValue), per test case input specification in IEEE 829-2008.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -37,7 +37,9 @@
           "type": "string"
         },
         "valueSource": {
-          "type": "string"
+          "type": "string",
+          "enum": ["manual", "generated", "data-driven", "fixture"],
+          "description": "How the concrete value was obtained: manually authored, algorithmically generated, drawn from a data set, or loaded from a test fixture"
         }
       },
       "required": ["partitionRef", "selectedValue", "concreteValue", "valueSource"],

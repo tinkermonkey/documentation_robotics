@@ -29,13 +29,16 @@
           "description": "ID of the testing.testcoveragetarget this summary covers"
         },
         "sketchCount": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Total number of TestCaseSketch nodes for this target (design-time count; superset of implementedCount)"
         },
         "implementedCount": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of sketches with a concrete test case implementation (must be ≤ sketchCount; superset of automatedCount)"
         },
         "automatedCount": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of implemented test cases that are automated (must be ≤ implementedCount)"
         },
         "coveragePercentage": {
           "type": "number",

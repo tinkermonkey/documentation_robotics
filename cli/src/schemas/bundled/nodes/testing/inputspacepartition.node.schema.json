@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InputSpacePartition",
-  "description": "Partitioning of an input dimension into testable categories",
+  "description": "Partitioning of an input dimension into testable equivalence classes, where each entry in the partitions array represents a PartitionValue (an equivalence class with a label, category, and representative value), enabling structured coverage analysis per IEEE 829-2008 equivalence partitioning guidance.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
