@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Principle",
-  "description": "Normative property of all systems in a given context",
+  "description": "Normative property of all systems in a given context, or a statement governing how an organization intends to fulfill its mission and guide decision-making.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Outcome",
-  "description": "End result that has been achieved",
+  "description": "End result intended or already achieved by the organization or a system, distinct from a Goal which expresses the desired direction.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

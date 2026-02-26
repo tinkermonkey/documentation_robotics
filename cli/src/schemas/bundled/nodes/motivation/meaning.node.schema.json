@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Meaning",
-  "description": "Knowledge or expertise present in a representation",
+  "description": "Knowledge or expertise present in, or the interpretation given to, a concept in a particular context, as understood by stakeholders.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

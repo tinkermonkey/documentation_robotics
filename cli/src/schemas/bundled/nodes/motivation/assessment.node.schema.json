@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Assessment",
-  "description": "Outcome of analysis of the state of affairs",
+  "description": "Outcome of analysis of the state of affairs of the enterprise or any part of it, and its environment. Assessments commonly take the form of strengths, weaknesses, opportunities, or threats (SWOT).",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

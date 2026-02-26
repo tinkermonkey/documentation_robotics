@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Requirement",
-  "description": "Statement of need that must be realized",
+  "description": "Statement of need that must be realized by a system, component, or solution, and that can be associated with stakeholders, goals, or constraints.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
