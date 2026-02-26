@@ -18,7 +18,7 @@ import {
   type LayerMetadata,
 } from "../../../generated/layer-registry.js";
 import { LAYER_TEMPLATES } from "./layer-templates.js";
-import type { GapCandidate } from "../../types.js";
+import { gapImpactScore, type GapCandidate } from "../../types.js";
 
 /**
  * Expected relationship pattern template
@@ -97,13 +97,17 @@ export class GapAnalyzer {
           );
 
           if (!exists) {
+            const priority = this.assessPriority(layer, sourceType);
+            const impactScore = gapImpactScore(priority);
             candidates.push({
               sourceNodeType: sourceType,
               destinationNodeType: destType,
               suggestedPredicate: pattern.predicate,
               reason: pattern.reason,
-              priority: this.assessPriority(layer, sourceType),
+              priority,
               standardReference: pattern.standardReference,
+              impactScore,
+              alignmentScore: 100 - impactScore,
             });
           }
         }

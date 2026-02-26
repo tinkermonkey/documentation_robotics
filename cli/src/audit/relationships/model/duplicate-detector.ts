@@ -10,7 +10,7 @@
 import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
 import type { Relationship } from "../../../core/relationships.js";
 import type { Element } from "../../../core/element.js";
-import type { DuplicateCandidate } from "../../types.js";
+import { duplicateImpactScore, type DuplicateCandidate } from "../../types.js";
 
 /**
  * Detect duplicates within a set of model relationship instances
@@ -41,6 +41,7 @@ export function detectModelDuplicates(
     const dstEl = elementById.get(rel.target);
     // Use the composite key as both tuple elements so the differential-analyzer
     // produces a stable, unique signature for this duplicate pair.
+    const exactImpactScore = duplicateImpactScore("high");
     candidates.push({
       relationships: [compositeKey, compositeKey],
       predicates: [rel.predicate, rel.predicate],
@@ -48,6 +49,8 @@ export function detectModelDuplicates(
       destinationNodeType: dstEl?.spec_node_id ?? rel.target,
       reason: `Exact duplicate: (${rel.source}, ${rel.predicate}, ${rel.target}) appears ${group.length} times`,
       confidence: "high",
+      impactScore: exactImpactScore,
+      alignmentScore: 100 - exactImpactScore,
     });
   }
 
@@ -85,6 +88,7 @@ export function detectModelDuplicates(
         if (type1.category !== type2.category) continue;
 
         const confidence = assessSemanticConfidence(type1, type2);
+        const semImpactScore = duplicateImpactScore(confidence);
         // Use composite keys of each relationship instance so the differential-analyzer
         // can build a stable, unique signature for each semantic duplicate pair.
         const rel1Key = `${group[i].sourceId}|${p1}|${group[i].targetId}`;
@@ -96,6 +100,8 @@ export function detectModelDuplicates(
           destinationNodeType: destSpecNodeId ?? "",
           reason: `Both predicates '${p1}' and '${p2}' are in "${type1.category}" category between the same element types`,
           confidence,
+          impactScore: semImpactScore,
+          alignmentScore: 100 - semImpactScore,
         });
       }
     }

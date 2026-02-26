@@ -108,12 +108,22 @@ Sort ascending by `alignmentScore` (worst first).
 
 **For relationship audits:**
 
-Collect two groups:
+Collect all items with `alignmentScore < 80`:
 
-- `gaps[]` where `priority === "high"` — label as type `"gap"`
-- `duplicates[]` where `confidence === "high"` — label as type `"duplicate"`
+- All `gaps[]` entries (all have `alignmentScore` derived from their `priority`)
+- All `duplicates[]` entries (all have `alignmentScore` derived from their `confidence`)
 
-Process gaps first, then duplicates.
+Label each as type `"gap"` or `"duplicate"`. Merge into a single list and sort ascending by `alignmentScore` (lowest score = most urgent, first). Process gaps and duplicates interleaved in this sorted order.
+
+**Score reference:**
+
+| Gap priority | alignmentScore | Duplicate confidence | alignmentScore |
+| ------------ | -------------- | -------------------- | -------------- |
+| high         | 15             | high                 | 25             |
+| medium       | 45             | medium               | 55             |
+| low          | 75             | low                  | 80             |
+
+Items with `alignmentScore >= 80` (low-confidence duplicates) are handled by `/dr-audit-refine`.
 
 **Print the queue summary:**
 
@@ -134,14 +144,16 @@ For relationship audit:
 
 ```
 Relationship Audit — {report.timestamp}
-Found {N_gaps} high-priority gaps, {N_dupes} high-confidence duplicates.
+Found {N} items with alignment score < 80
+  ({N_high_gaps} high-priority gaps, {N_medium_gaps} medium-priority gaps,
+   {N_high_dupes} high-confidence duplicates, {N_medium_dupes} medium-confidence duplicates)
+{N_skipped} item(s) with alignmentScore >= 80 → use /dr-audit-refine for those.
 
-Items to review:
-  Gaps:
-    1. data-model.jsonschema → data-store.table  (predicate: maps-to, priority: high)
-  Duplicates:
-    2. data-model.jsonschema.apm-data-quality-metrics.data-model.dataqualitymetrics
-       ↕ data-model.jsonschema.references.data-model.dataqualitymetrics
+Items to review (lowest alignment first):
+  1. [gap]       data-model.jsonschema → data-store.table        (alignment: 15, predicate: maps-to, priority: high)
+  2. [duplicate] api.endpoint ↔ api.endpoint                     (alignment: 25, confidence: high)
+  3. [gap]       api.operation → api.endpoint                    (alignment: 45, predicate: serves, priority: medium)
+  ...
 ```
 
 ---

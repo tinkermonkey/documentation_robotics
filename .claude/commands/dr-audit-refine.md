@@ -44,14 +44,16 @@ When this command is invoked, execute the following steps precisely.
 1. If an argument was provided, treat it as the path to the audit JSON file. Resolve relative to the repository root (`/Users/austinsand/workspace/documentation_robotics`).
 2. If no argument was provided, search for the most recent audit JSON in this order:
    - `audit-reports/all-nodes.json`
+   - `audit-reports/all-relationships.json`
    - Any `audit-reports/*-nodes.json` (most recently modified first)
+   - Any `audit-reports/*-relationships.json` (most recently modified first)
    - `audit-results/*/before/*.json` (legacy pipeline output, most recently modified)
 3. If no file is found, print:
 
 ```
 No audit file found in audit-reports/. Run one of:
   npm run audit:nodes -- --enable-ai --save-json audit-reports/all-nodes.json
-  npm run audit:nodes -- --layer <layer> --enable-ai --save-json audit-reports/<layer>-nodes.json
+  npm run audit:relationships -- --format json --output audit-reports/all-relationships.json
 
 Then re-run: /dr-audit-refine [path]   (or omit path to auto-discover)
 ```
@@ -73,20 +75,16 @@ Check the provided arguments for an `--auto` flag. If present, set `autoMode = t
 
 ---
 
-### STEP 2: Validate Audit Type and AI Scores
+### STEP 2: Detect Audit Type and Validate
 
 Inspect the top-level keys of the JSON:
 
 - **Node audit** — has keys: `layerSummaries`, `definitionQuality`, `overlaps`, `completenessIssues`
+- **Relationship audit** — has keys: `coverage`, `gaps`, `duplicates`, `balance`, `connectivity`
 
-If this is a relationship audit (keys: `coverage`, `gaps`, `duplicates`, `balance`, `connectivity`), abort:
+If the type cannot be determined, tell the user and abort.
 
-```
-/dr-audit-refine only works with node audits. Relationship audits do not have alignment scores.
-Use /dr-audit-resolve for relationship audits.
-```
-
-If the node audit lacks `aiReviews`, abort:
+**Node audit:** If `aiReviews` is absent, abort:
 
 ```
 This node audit was run without --enable-ai. Alignment scores are required.
@@ -95,9 +93,13 @@ Re-run with:
   npm run audit:nodes -- --enable-ai --save-json audit-reports/all-nodes.json
 ```
 
+**Relationship audit:** Proceed — `alignmentScore` is computed from `priority`/`confidence` and is always present in the JSON.
+
 ---
 
 ### STEP 3: Build the Review Queue
+
+**For node audits:**
 
 Collect all `NodeAIEvaluation` objects from `report.aiReviews[*].nodeEvaluations[]` where `alignmentScore >= 80`.
 
@@ -119,15 +121,99 @@ Items to review (highest alignment first):
   ...
 ```
 
+**For relationship audits:**
+
+Collect all items with `alignmentScore >= 80`:
+
+- `duplicates[]` where `confidence === "low"` (alignmentScore = 80) — label as type `"duplicate"`
+- Any `gaps[]` where `priority === "low"` (alignmentScore = 75) do NOT appear here — they fall to `/dr-audit-resolve`
+
+Sort **descending** by `alignmentScore` (highest alignment = least urgent, review first since these will most often be skipped).
+
+**Score reference:**
+
+| Duplicate confidence | alignmentScore | Routed to               |
+| -------------------- | -------------- | ----------------------- |
+| high                 | 25             | /dr-audit-resolve       |
+| medium               | 55             | /dr-audit-resolve       |
+| low                  | 80             | /dr-audit-refine ← here |
+
+**Print the queue summary:**
+
+```
+Relationship Audit — {report.timestamp}
+Found {N} well-aligned items (score ≥ 80) for critical evaluation.
+(Use /dr-audit-resolve for the {M} items below 80.)
+
+Default posture: preserve stability — only remove a duplicate if there is a clear reason.
+
+Items to review (highest alignment first):
+  1. [duplicate] api.endpoint ↔ api.endpoint   (alignment: 80/100, confidence: low)
+  2. ...
+```
+
 ---
 
 ### STEP 4: For Each Item, Run the Full Evaluation Pipeline
 
-For each item in the queue, execute steps 4a → 4b → 4c → 4d in sequence. After processing an item, move to the next.
+**If this is a relationship audit**, skip directly to Step 4 — Relationship Items (below) and bypass the node-specific steps 4a–4d entirely.
+
+For node audits, execute steps 4a → 4b → 4c → 4d in sequence. After processing an item, move to the next.
 
 ---
 
-#### 4a. Read the Schema
+#### 4 — Relationship Items (duplicate candidates with alignmentScore ≥ 80)
+
+For each relationship duplicate in the queue:
+
+**4-R-a. Pre-Evaluate**
+
+Parse the two relationship IDs from `relationships[0]` and `relationships[1]`:
+
+- ID format: `{sourceLayer}.{sourceType}.{predicate}.{destLayer}.{destType}`
+- Filename: `spec/schemas/relationships/{sourceLayer}/{sourceType}.{predicate}.{destType}.relationship.schema.json`
+- Note: layer IDs can be hyphenated (e.g., `data-model`)
+
+Read both relationship schema files.
+
+Count any other relationship schemas in `spec/schemas/relationships/{sourceLayer}/` that share the same source+destination endpoint pair (different predicate). A higher count of intentional distinct relationships is evidence against this being a real duplicate.
+
+**4-R-b. Ask the User (or Auto-Proceed)**
+
+**If `autoMode` is active:** The default action is `"Skip"` — low-confidence duplicates require human judgment to confirm. Log `SKIPPED {relationships[0]} ↔ {relationships[1]} — low confidence, auto-skip`.
+
+**If `autoMode` is not active:** Use `AskUserQuestion`. Present:
+
+```
+[{N}/{total}] Possible duplicate relationship (low confidence) — alignment: 80/100
+
+  Relationship A: {relationships[0]}
+    predicate: {predicates[0]}
+  Relationship B: {relationships[1]}
+    predicate: {predicates[1]}
+
+  Source → Destination: {sourceNodeType} → {destinationNodeType}
+  Reason: {reason}
+
+  Other relationships between this endpoint pair: {count}
+
+  ⚠ Recommendation: Skip — low confidence; these predicates are likely intentionally distinct.
+```
+
+Options:
+
+- **Remove A — keep B** — delete `{fileA}` (only if you are certain it is redundant)
+- **Remove B — keep A** — delete `{fileB}` (only if you are certain it is redundant)
+- **Keep both — skip** (Recommended)
+
+**4-R-c. Execute**
+
+- **Remove A or B:** Delete the file. Log `REMOVED duplicate relationship {id}`.
+- **Skip:** Log `SKIPPED {relationships[0]} ↔ {relationships[1]} — {reason}`.
+
+---
+
+#### 4a. Read the Schema (node audits only)
 
 Parse `specNodeId` to extract `layerId` and `typeName`:
 

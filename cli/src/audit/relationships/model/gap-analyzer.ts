@@ -10,7 +10,7 @@
 import { RELATIONSHIPS_BY_SOURCE } from "../../../generated/relationship-index.js";
 import type { Relationship } from "../../../core/relationships.js";
 import type { Element } from "../../../core/element.js";
-import type { GapCandidate } from "../../types.js";
+import { gapImpactScore, type GapCandidate } from "../../types.js";
 
 /**
  * Analyze gaps for a single layer
@@ -67,12 +67,16 @@ export function analyzeLayerGaps(
         continue;
       }
 
+      const priority = mapStrengthToPriority(strength);
+      const impactScore = gapImpactScore(priority);
       candidates.push({
         sourceNodeType: sourceSpecNodeId,
         destinationNodeType: destinationSpecNodeId,
         suggestedPredicate: predicate,
         reason: `No '${predicate}' relationship instances found between ${sourceSpecNodeId} and ${destinationSpecNodeId} in the model`,
-        priority: mapStrengthToPriority(strength),
+        priority,
+        impactScore,
+        alignmentScore: 100 - impactScore,
       });
     }
   }

@@ -80,7 +80,7 @@ export class AIEvaluator {
     this.promptTemplates = new PromptTemplates();
     this.responseParser = new ResponseParser();
     this.config = {
-      outputDir: config.outputDir || "ai-evaluation",
+      outputDir: config.outputDir || "audit-reports/relationships",
       lowCoverageThreshold: config.lowCoverageThreshold ?? 1.0,
       resumable: config.resumable ?? true,
     };

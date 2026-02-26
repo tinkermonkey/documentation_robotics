@@ -154,9 +154,11 @@ export class PipelineOrchestrator {
     console.log("\n⏳ Step 2/4: Running AI-assisted evaluation...");
     console.log("   (Claude CLI must be installed and authenticated)");
 
-    // Run AI-assisted evaluation using the AIEvaluator
+    // Run AI-assisted evaluation using the AIEvaluator.
+    // Output goes to audit-reports/relationships/ so dr-audit-resolve and dr-audit-refine
+    // can discover and consume the results alongside the main relationship audit JSON.
     const aiEvaluator = new AIEvaluator({
-      outputDir: beforeDir,
+      outputDir: "audit-reports/relationships",
     });
 
     // Provide predicate retrieval function for AI evaluation

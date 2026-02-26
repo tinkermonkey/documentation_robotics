@@ -1,3 +1,4 @@
+import { recommendationImpactScore } from "../../types.js";
 import { getErrorMessage } from "../../../utils/errors.js";
 
 export interface RelationshipRecommendation {
@@ -7,6 +8,10 @@ export interface RelationshipRecommendation {
   justification: string;
   priority: "high" | "medium" | "low";
   standardReference?: string;
+  /** How necessary this recommendation is (0–100). Derived from priority. */
+  impactScore: number;
+  /** 100 - impactScore; aligns with NodeAIEvaluation.alignmentScore semantics */
+  alignmentScore: number;
 }
 
 export interface LayerReview {
@@ -108,13 +113,17 @@ export class ResponseParser {
         );
       }
 
+      const resolvedPriority = (priority as "high" | "medium" | "low") || "medium";
+      const impactScore = recommendationImpactScore(resolvedPriority);
       return {
         sourceNodeType,
         predicate: rec.predicate,
         destinationNodeType,
         justification,
-        priority: (priority as "high" | "medium" | "low") || "medium",
+        priority: resolvedPriority,
         standardReference: typeof standardReference === "string" ? standardReference : undefined,
+        impactScore,
+        alignmentScore: 100 - impactScore,
       };
     });
   }
@@ -225,13 +234,17 @@ export class ResponseParser {
         );
       }
 
+      const resolvedPriority = (priority as "high" | "medium" | "low") || "medium";
+      const impactScore = recommendationImpactScore(resolvedPriority);
       return {
         sourceNodeType,
         predicate: rec.predicate,
         destinationNodeType,
         justification,
-        priority: (priority as "high" | "medium" | "low") || "medium",
+        priority: resolvedPriority,
         standardReference: typeof standardReference === "string" ? standardReference : undefined,
+        impactScore,
+        alignmentScore: 100 - impactScore,
       };
     });
 

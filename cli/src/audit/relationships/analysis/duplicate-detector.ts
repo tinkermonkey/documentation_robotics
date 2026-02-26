@@ -13,7 +13,7 @@ import {
   RELATIONSHIPS,
   type RelationshipSpec,
 } from "../../../generated/relationship-index.js";
-import type { DuplicateCandidate } from "../../types.js";
+import { duplicateImpactScore, type DuplicateCandidate } from "../../types.js";
 
 /**
  * Duplicate detector for semantic relationship overlap
@@ -97,6 +97,7 @@ export class DuplicateDetector {
     if (pred1.category === pred2.category) {
       const confidence = this.assessConfidence(pred1, pred2);
       const reason = this.buildReason(pred1, pred2);
+      const impactScore = duplicateImpactScore(confidence);
 
       return {
         relationships: [rel1.id, rel2.id],
@@ -105,6 +106,8 @@ export class DuplicateDetector {
         destinationNodeType: rel1.destinationSpecNodeId,
         reason,
         confidence,
+        impactScore,
+        alignmentScore: 100 - impactScore,
       };
     }
 
@@ -113,6 +116,7 @@ export class DuplicateDetector {
       pred1.inversePredicate === pred2.predicate ||
       pred2.inversePredicate === pred1.predicate
     ) {
+      const impactScore = duplicateImpactScore("high");
       return {
         relationships: [rel1.id, rel2.id],
         predicates: [rel1.predicate, rel2.predicate],
@@ -120,6 +124,8 @@ export class DuplicateDetector {
         destinationNodeType: rel1.destinationSpecNodeId,
         reason: "Predicates are inverses of each other",
         confidence: "high",
+        impactScore,
+        alignmentScore: 100 - impactScore,
       };
     }
 

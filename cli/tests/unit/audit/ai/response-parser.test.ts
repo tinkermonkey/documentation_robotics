@@ -33,6 +33,8 @@ These recommendations follow ArchiMate patterns.`;
         justification: "Customer satisfaction depends on system availability",
         priority: "high",
         standardReference: "ArchiMate 3.2 Motivation Layer",
+        impactScore: 85,
+        alignmentScore: 15,
       });
     });
 

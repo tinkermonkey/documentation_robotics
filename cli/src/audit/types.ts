@@ -59,6 +59,10 @@ export interface DuplicateCandidate {
   readonly destinationNodeType: string;
   readonly reason: string; // Explanation of semantic overlap
   readonly confidence: "high" | "medium" | "low";
+  /** How necessary it is to clean up this duplicate (0–100, higher = more urgent) */
+  readonly impactScore: number;
+  /** 100 - impactScore; aligns with NodeAIEvaluation.alignmentScore semantics (lower = more action needed) */
+  readonly alignmentScore: number;
 }
 
 /**
@@ -71,6 +75,10 @@ export interface GapCandidate {
   readonly reason: string;
   readonly priority: "high" | "medium" | "low";
   readonly standardReference?: string; // e.g., "ArchiMate 3.2 §5.2"
+  /** How necessary this gap is to fill (0–100, higher = more urgent) */
+  readonly impactScore: number;
+  /** 100 - impactScore; aligns with NodeAIEvaluation.alignmentScore semantics (lower = more action needed) */
+  readonly alignmentScore: number;
 }
 
 /**
@@ -172,4 +180,34 @@ export interface LayerData {
   readonly duplicates: readonly DuplicateCandidate[];
   readonly gaps: readonly GapCandidate[];
   readonly balance: readonly BalanceAssessment[];
+}
+
+// ---------------------------------------------------------------------------
+// Score helpers — shared by all gap/duplicate analyzers
+// ---------------------------------------------------------------------------
+
+/**
+ * Impact score for a gap (missing relationship).
+ * Higher = more urgently needed. Maps directly to priority.
+ */
+export function gapImpactScore(priority: "high" | "medium" | "low"): number {
+  const scores: Record<"high" | "medium" | "low", number> = { high: 85, medium: 55, low: 25 };
+  return scores[priority];
+}
+
+/**
+ * Impact score for a duplicate candidate.
+ * Higher = more confident it should be removed. Maps directly to confidence.
+ */
+export function duplicateImpactScore(confidence: "high" | "medium" | "low"): number {
+  const scores: Record<"high" | "medium" | "low", number> = { high: 75, medium: 45, low: 20 };
+  return scores[confidence];
+}
+
+/**
+ * Impact score for an AI relationship recommendation.
+ * Same scale as gap scores — recommendations describe missing relationships.
+ */
+export function recommendationImpactScore(priority: "high" | "medium" | "low"): number {
+  return gapImpactScore(priority);
 }
