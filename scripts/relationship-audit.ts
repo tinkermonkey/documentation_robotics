@@ -35,10 +35,13 @@
 import { fileURLToPath } from "url";
 import { dirname, join, relative } from "path";
 import { parseArgs } from "util";
-import { AuditReport } from "../cli/src/audit/types.js";
+import { AuditReport, CoverageMetrics } from "../cli/src/audit/types.js";
 import { formatAuditReport, AuditReportFormat } from "../cli/src/export/audit-formatters.js";
 import { writeFile, ensureDir } from "../cli/src/utils/file-io.js";
 import { AuditOrchestrator } from "../cli/src/audit/relationships/spec/orchestrator.js";
+import { AIEvaluator } from "../cli/src/audit/relationships/ai/evaluator.js";
+import { AIEvaluationAbortError } from "../cli/src/audit/ai/runner.js";
+import { CANONICAL_LAYER_NAMES } from "../cli/src/core/layers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,6 +64,7 @@ interface ScriptOptions {
   output?: string;
   verbose: boolean;
   threshold: boolean;
+  enableAi: boolean;
   help: boolean;
 }
 
@@ -85,6 +89,7 @@ function parseArguments(): ScriptOptions {
       output: { type: "string", short: "o" },
       verbose: { type: "boolean", short: "v", default: false },
       threshold: { type: "boolean", short: "t", default: false },
+      "enable-ai": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
     allowPositionals: false,
@@ -96,6 +101,7 @@ function parseArguments(): ScriptOptions {
     output: values.output as string | undefined,
     verbose: values.verbose as boolean,
     threshold: values.threshold as boolean,
+    enableAi: values["enable-ai"] as boolean,
     help: values.help as boolean,
   };
 }
@@ -117,9 +123,11 @@ Options:
   -o, --output <file>      Override output path (default: audit-reports/{layer}-relationships.{ext})
   -v, --verbose            Show detailed analysis
   -t, --threshold          Exit with code 1 if quality issues detected
+      --enable-ai          Run AI-assisted element evaluation (requires Claude CLI)
   -h, --help               Show this help message
 
 Default output: audit-reports/{layer|all}-relationships.{md|json|txt}
+AI output:      audit-reports/relationships/{element-recommendations,layer-reviews,inter-layer}/
 
 Examples:
   npm run audit:relationships                                       # Full audit → audit-reports/all-relationships.md
@@ -128,6 +136,7 @@ Examples:
   npm run audit:relationships -- --layer data-model --format json   # → audit-reports/data-model-relationships.json
   npm run audit:relationships -- --threshold                        # Fail if quality issues found
   npm run audit:relationships -- --verbose                          # Detailed output
+  npm run audit:relationships -- --enable-ai                        # With AI element evaluation
 
 Quality Thresholds (for --threshold flag):
   - Isolation:        Max ${QUALITY_THRESHOLDS.maxIsolationPercentage}%
@@ -218,6 +227,71 @@ async function runAudit(options: ScriptOptions): Promise<void> {
     await ensureDir(dirname(outputPath));
     await writeFile(outputPath, output);
     console.error(`✓ Audit report written to ${relative(originalCwd, outputPath)}`);
+
+    // Run AI-assisted evaluation if requested
+    if (options.enableAi) {
+      console.error("\n⏳ Running AI-assisted evaluation (requires Claude CLI)...");
+      console.error("   Output: audit-reports/relationships/\n");
+
+      const aiEvaluator = new AIEvaluator({ outputDir: join(projectRoot, "audit-reports", "relationships") });
+      const getPredicatesForLayer = async (layer: string): Promise<string[]> =>
+        orchestrator.getPredicatesForLayer(layer);
+
+      let aiAborted = false;
+
+      // Step 1: Evaluate low-coverage (isolated) node types
+      console.error("   Step 1/3: Evaluating low-coverage elements...");
+      try {
+        await aiEvaluator.evaluateLowCoverageElements(report.coverage as CoverageMetrics[], getPredicatesForLayer);
+      } catch (error) {
+        if (error instanceof AIEvaluationAbortError) {
+          console.error("   ❌ AI aborted — Claude CLI unavailable. Skipping remaining AI steps.");
+          aiAborted = true;
+        } else {
+          console.error("   ⚠️  Error evaluating low-coverage elements:", error instanceof Error ? error.message : String(error));
+        }
+      }
+
+      // Step 2: Review layer coherence
+      if (!aiAborted) {
+        console.error("   Step 2/3: Reviewing layer coherence...");
+        try {
+          const layerNames = (report.coverage as CoverageMetrics[]).map((c) => c.layer);
+          await aiEvaluator.reviewLayerCoherence(layerNames, report.coverage as CoverageMetrics[]);
+        } catch (error) {
+          if (error instanceof AIEvaluationAbortError) {
+            console.error("   ❌ AI aborted — Claude CLI unavailable. Skipping remaining AI steps.");
+            aiAborted = true;
+          } else {
+            console.error("   ⚠️  Error reviewing layer coherence:", error instanceof Error ? error.message : String(error));
+          }
+        }
+      }
+
+      // Step 3: Validate inter-layer references
+      if (!aiAborted) {
+        console.error("   Step 3/3: Validating inter-layer references...");
+        try {
+          const layerPairs: Array<{ source: string; target: string }> = [];
+          for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {
+            for (let j = i + 1; j < CANONICAL_LAYER_NAMES.length; j++) {
+              layerPairs.push({ source: CANONICAL_LAYER_NAMES[i], target: CANONICAL_LAYER_NAMES[j] });
+            }
+          }
+          await aiEvaluator.validateInterLayerReferences(layerPairs);
+        } catch (error) {
+          if (error instanceof AIEvaluationAbortError) {
+            console.error("   ❌ AI aborted — Claude CLI unavailable.");
+          } else {
+            console.error("   ⚠️  Error validating inter-layer references:", error instanceof Error ? error.message : String(error));
+          }
+        }
+      }
+
+      if (!aiAborted) {
+        console.error("\n✓ AI evaluation complete. Results in audit-reports/relationships/");
+      }
+    }
 
     // Check quality thresholds if requested
     if (options.threshold) {
