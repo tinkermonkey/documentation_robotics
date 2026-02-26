@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "JSONSchema",
-  "description": "Root schema document",
+  "description": "The root JSON Schema document, identified by $schema (dialect URI) and $id (base URI for $ref resolution), containing type constraints, annotations, and reusable definitions.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -33,6 +33,10 @@
           "type": "string",
           "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
           "description": "JSON Schema Draft 7 primitive type"
+        },
+        "definitions": {
+          "type": "object",
+          "description": "Reusable subschemas keyed by name, referenced elsewhere in the schema via $ref: '#/definitions/{name}'"
         }
       },
       "required": ["$schema", "$id", "type"],

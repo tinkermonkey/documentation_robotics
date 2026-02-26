@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Reference",
-  "description": "A JSON Schema $ref pointer that references another schema by URI or JSON Pointer fragment. Enables schema reuse and composition without duplication.",
+  "description": "A JSON Schema $ref pointer that references another schema by URI or JSON Pointer fragment, enabling schema reuse without duplication. In JSON Schema Draft 7, all sibling keywords alongside $ref are ignored \u2014 use allOf to combine a $ref with additional constraints.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
