@@ -125,12 +125,18 @@ Items to review (highest alignment first):
 
 Collect all items with `alignmentScore >= 80`:
 
+- `gaps[]` where `priority === "low"` (alignmentScore = 80) — label as type `"gap"`
 - `duplicates[]` where `confidence === "low"` (alignmentScore = 80) — label as type `"duplicate"`
-- Any `gaps[]` where `priority === "low"` (alignmentScore = 75) do NOT appear here — they fall to `/dr-audit-resolve`
 
 Sort **descending** by `alignmentScore` (highest alignment = least urgent, review first since these will most often be skipped).
 
 **Score reference:**
+
+| Gap priority | alignmentScore | Routed to               |
+| ------------ | -------------- | ----------------------- |
+| high         | 15             | /dr-audit-resolve       |
+| medium       | 45             | /dr-audit-resolve       |
+| low          | 80             | /dr-audit-refine ← here |
 
 | Duplicate confidence | alignmentScore | Routed to               |
 | -------------------- | -------------- | ----------------------- |
@@ -145,11 +151,12 @@ Relationship Audit — {report.timestamp}
 Found {N} well-aligned items (score ≥ 80) for critical evaluation.
 (Use /dr-audit-resolve for the {M} items below 80.)
 
-Default posture: preserve stability — only remove a duplicate if there is a clear reason.
+Default posture: preserve stability — only create a gap relationship or remove a duplicate if there is a clear reason.
 
 Items to review (highest alignment first):
-  1. [duplicate] api.endpoint ↔ api.endpoint   (alignment: 80/100, confidence: low)
-  2. ...
+  1. [gap]       api.operation → api.schema    (alignment: 80/100, predicate: references, priority: low)
+  2. [duplicate] api.endpoint ↔ api.endpoint   (alignment: 80/100, confidence: low)
+  3. ...
 ```
 
 ---
@@ -162,11 +169,67 @@ For node audits, execute steps 4a → 4b → 4c → 4d in sequence. After proces
 
 ---
 
-#### 4 — Relationship Items (duplicate candidates with alignmentScore ≥ 80)
+#### 4 — Relationship Items (low-priority gaps and low-confidence duplicates with alignmentScore ≥ 80)
 
-For each relationship duplicate in the queue:
+For each relationship item in the queue, branch by type:
 
-**4-R-a. Pre-Evaluate**
+---
+
+**4-R-GAP: Low-Priority Gap**
+
+**4-R-GAP-a. Pre-Evaluate**
+
+Parse `sourceNodeType` and `destinationNodeType`:
+
+- `api.operation` → sourceLayer = `api`, sourceType = `operation`
+- `api.schema` → destLayer = `api`, destType = `schema`
+
+Construct the expected relationship filename:
+
+```
+spec/schemas/relationships/{sourceLayer}/{sourceType}.{suggestedPredicate}.{destType}.relationship.schema.json
+```
+
+Check whether this file already exists. If it does, note it — this gap may have already been resolved and can be skipped.
+
+Check how many relationships already exist between this source and destination endpoint pair. A rich set of existing predicates suggests the gap may not add meaningful value.
+
+**4-R-GAP-b. Ask the User (or Auto-Proceed)**
+
+**If `autoMode` is active:** The default action is `"Skip"` — low-priority gaps are nice-to-have and require human judgment to justify adding. Log `SKIPPED gap {sourceNodeType} --{predicate}--> {destinationNodeType} — low priority, auto-skip`.
+
+**If `autoMode` is not active:** Use `AskUserQuestion`. Present:
+
+```
+[{N}/{total}] Low-priority gap (nice-to-have) — alignment: 80/100
+
+  Source:      {sourceNodeType}
+  Predicate:   {suggestedPredicate}
+  Destination: {destinationNodeType}
+  Reason:      {reason}
+  Standard:    {standardReference or "none"}
+
+  File already exists? {yes/no}
+  Existing relationships between this endpoint pair: {count}
+
+  ⚠ Recommendation: Skip — low priority; only create if there is a clear modeling need.
+```
+
+Options:
+
+- **Create this relationship** — add the schema (only if you see a clear value)
+- **Skip — not needed** (Recommended)
+
+**4-R-GAP-c. Execute**
+
+- **Create:** Build and write the relationship schema per the same format as `/dr-audit-resolve`. Log `CREATED relationship {sourceNodeType} --{predicate}--> {destinationNodeType}`.
+- **Skip:** Log `SKIPPED gap {sourceNodeType} --{predicate}--> {destinationNodeType} — {reason}`.
+
+---
+
+**4-R-DUP: Low-Confidence Duplicate**
+
+**4-R-DUP-a. Pre-Evaluate**
 
 Parse the two relationship IDs from `relationships[0]` and `relationships[1]`:
 
@@ -178,7 +241,7 @@ Read both relationship schema files.
 
 Count any other relationship schemas in `spec/schemas/relationships/{sourceLayer}/` that share the same source+destination endpoint pair (different predicate). A higher count of intentional distinct relationships is evidence against this being a real duplicate.
 
-**4-R-b. Ask the User (or Auto-Proceed)**
+**4-R-DUP-b. Ask the User (or Auto-Proceed)**
 
 **If `autoMode` is active:** The default action is `"Skip"` — low-confidence duplicates require human judgment to confirm. Log `SKIPPED {relationships[0]} ↔ {relationships[1]} — low confidence, auto-skip`.
 
@@ -206,7 +269,7 @@ Options:
 - **Remove B — keep A** — delete `{fileB}` (only if you are certain it is redundant)
 - **Keep both — skip** (Recommended)
 
-**4-R-c. Execute**
+**4-R-DUP-c. Execute**
 
 - **Remove A or B:** Delete the file. Log `REMOVED duplicate relationship {id}`.
 - **Skip:** Log `SKIPPED {relationships[0]} ↔ {relationships[1]} — {reason}`.
@@ -574,7 +637,7 @@ Files changed:
   Deleted:  {list or "none"}
 
 {If no changes were made}
-No spec changes were made. The well-aligned nodes are healthy as-is.
+No spec changes were made. The well-aligned items are healthy as-is.
 ```
 
 2. If any spec files were created, modified, or deleted, sync the CLI bundled schemas and rebuild:

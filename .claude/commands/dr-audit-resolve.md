@@ -121,9 +121,9 @@ Label each as type `"gap"` or `"duplicate"`. Merge into a single list and sort a
 | ------------ | -------------- | -------------------- | -------------- |
 | high         | 15             | high                 | 25             |
 | medium       | 45             | medium               | 55             |
-| low          | 75             | low                  | 80             |
+| low          | 80             | low                  | 80             |
 
-Items with `alignmentScore >= 80` (low-confidence duplicates) are handled by `/dr-audit-refine`.
+Items with `alignmentScore >= 80` (low-priority gaps and low-confidence duplicates) are handled by `/dr-audit-refine`.
 
 **Print the queue summary:**
 
@@ -147,7 +147,7 @@ Relationship Audit — {report.timestamp}
 Found {N} items with alignment score < 80
   ({N_high_gaps} high-priority gaps, {N_medium_gaps} medium-priority gaps,
    {N_high_dupes} high-confidence duplicates, {N_medium_dupes} medium-confidence duplicates)
-{N_skipped} item(s) with alignmentScore >= 80 → use /dr-audit-refine for those.
+{N_skipped} item(s) with alignmentScore >= 80 (low-priority gaps, low-confidence duplicates) → use /dr-audit-refine for those.
 
 Items to review (lowest alignment first):
   1. [gap]       data-model.jsonschema → data-store.table        (alignment: 15, predicate: maps-to, priority: high)
