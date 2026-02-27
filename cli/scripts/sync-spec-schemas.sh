@@ -44,12 +44,14 @@ fi
 
 # Copy nodes and relationships directories if they exist
 if [ -d "$SPEC_SCHEMAS/nodes" ]; then
+  rm -rf "$BUNDLED_DIR/nodes"
   mkdir -p "$BUNDLED_DIR/nodes"
   cp -r "$SPEC_SCHEMAS/nodes/"* "$BUNDLED_DIR/nodes/"
   echo "Copied nodes directory"
 fi
 
 if [ -d "$SPEC_SCHEMAS/relationships" ]; then
+  rm -rf "$BUNDLED_DIR/relationships"
   mkdir -p "$BUNDLED_DIR/relationships"
   cp -r "$SPEC_SCHEMAS/relationships/"* "$BUNDLED_DIR/relationships/"
   echo "Copied relationships directory"

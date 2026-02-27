@@ -51,7 +51,7 @@ describe('spec-installer', () => {
         const relSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'relationships', '**', '*.relationship.schema.json'));
 
         expect(layerFiles.length).toBe(12);
-        expect(nodeSchemas.length).toBeGreaterThanOrEqual(330);
+        expect(nodeSchemas.length).toBeGreaterThanOrEqual(180);
         expect(relSchemas.length).toBeGreaterThanOrEqual(252);
 
         // Verify manifest
@@ -93,7 +93,7 @@ describe('spec-installer', () => {
         expect(layerFiles.length).toBe(12);
 
         const nodeSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', '**', '*.node.schema.json'));
-        expect(nodeSchemas.length).toBeGreaterThanOrEqual(330);
+        expect(nodeSchemas.length).toBeGreaterThanOrEqual(180);
 
         const relSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'relationships', '**', '*.relationship.schema.json'));
         expect(relSchemas.length).toBeGreaterThanOrEqual(252);

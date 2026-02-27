@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Reference References Schemadefinition",
+  "description": "Defines relationship: data-model.reference references data-model.schemadefinition",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-model.reference.references.data-model.schemadefinition"
+    },
+    "source_spec_node_id": {
+      "const": "data-model.reference"
+    },
+    "source_layer": {
+      "const": "data-model"
+    },
+    "destination_spec_node_id": {
+      "const": "data-model.schemadefinition"
+    },
+    "destination_layer": {
+      "const": "data-model"
+    },
+    "predicate": {
+      "const": "references"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}
