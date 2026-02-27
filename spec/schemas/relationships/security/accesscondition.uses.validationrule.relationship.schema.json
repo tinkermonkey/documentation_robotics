@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Accesscondition uses Validationrule",
+  "description": "Defines relationship: security.accesscondition uses security.validationrule",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "security.accesscondition.uses.security.validationrule"
+    },
+    "source_spec_node_id": {
+      "const": "security.accesscondition"
+    },
+    "source_layer": {
+      "const": "security"
+    },
+    "destination_spec_node_id": {
+      "const": "security.validationrule"
+    },
+    "destination_layer": {
+      "const": "security"
+    },
+    "predicate": {
+      "const": "uses"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

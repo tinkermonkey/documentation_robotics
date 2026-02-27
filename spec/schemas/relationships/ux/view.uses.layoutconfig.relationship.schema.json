@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "View uses Layoutconfig",
+  "description": "Defines relationship: ux.view uses ux.layoutconfig",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "ux.view.uses.ux.layoutconfig"
+    },
+    "source_spec_node_id": {
+      "const": "ux.view"
+    },
+    "source_layer": {
+      "const": "ux"
+    },
+    "destination_spec_node_id": {
+      "const": "ux.layoutconfig"
+    },
+    "destination_layer": {
+      "const": "ux"
+    },
+    "predicate": {
+      "const": "uses"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

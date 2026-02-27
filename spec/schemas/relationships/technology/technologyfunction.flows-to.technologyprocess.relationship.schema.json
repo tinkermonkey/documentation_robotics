@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Technologyfunction flows-to Technologyprocess",
+  "description": "Defines relationship: technology.technologyfunction flows-to technology.technologyprocess",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "technology.technologyfunction.flows-to.technology.technologyprocess"
+    },
+    "source_spec_node_id": {
+      "const": "technology.technologyfunction"
+    },
+    "source_layer": {
+      "const": "technology"
+    },
+    "destination_spec_node_id": {
+      "const": "technology.technologyprocess"
+    },
+    "destination_layer": {
+      "const": "technology"
+    },
+    "predicate": {
+      "const": "flows-to"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

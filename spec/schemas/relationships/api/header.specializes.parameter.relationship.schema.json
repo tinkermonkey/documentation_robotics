@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Header specializes Parameter",
+  "description": "Defines relationship: api.header specializes api.parameter",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.header.specializes.api.parameter"
+    },
+    "source_spec_node_id": {
+      "const": "api.header"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "api.parameter"
+    },
+    "destination_layer": {
+      "const": "api"
+    },
+    "predicate": {
+      "const": "specializes"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

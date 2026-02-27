@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dataclassification requires Countermeasure",
+  "description": "Defines relationship: security.dataclassification requires security.countermeasure",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "security.dataclassification.requires.security.countermeasure"
+    },
+    "source_spec_node_id": {
+      "const": "security.dataclassification"
+    },
+    "source_layer": {
+      "const": "security"
+    },
+    "destination_spec_node_id": {
+      "const": "security.countermeasure"
+    },
+    "destination_layer": {
+      "const": "security"
+    },
+    "predicate": {
+      "const": "requires"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

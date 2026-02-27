@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Oauthflows aggregates Oauthflow",
+  "description": "Defines relationship: api.oauthflows aggregates api.oauthflow",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.oauthflows.aggregates.api.oauthflow"
+    },
+    "source_spec_node_id": {
+      "const": "api.oauthflows"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "api.oauthflow"
+    },
+    "destination_layer": {
+      "const": "api"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

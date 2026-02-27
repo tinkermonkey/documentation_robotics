@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Informationentity governs Informationright",
+  "description": "Defines relationship: security.informationentity governs security.informationright",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "security.informationentity.governs.security.informationright"
+    },
+    "source_spec_node_id": {
+      "const": "security.informationentity"
+    },
+    "source_layer": {
+      "const": "security"
+    },
+    "destination_spec_node_id": {
+      "const": "security.informationright"
+    },
+    "destination_layer": {
+      "const": "security"
+    },
+    "predicate": {
+      "const": "governs"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

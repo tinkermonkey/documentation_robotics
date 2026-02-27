@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Uxspec aggregates Experiencestate",
+  "description": "Defines relationship: ux.uxspec aggregates ux.experiencestate",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "ux.uxspec.aggregates.ux.experiencestate"
+    },
+    "source_spec_node_id": {
+      "const": "ux.uxspec"
+    },
+    "source_layer": {
+      "const": "ux"
+    },
+    "destination_spec_node_id": {
+      "const": "ux.experiencestate"
+    },
+    "destination_layer": {
+      "const": "ux"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

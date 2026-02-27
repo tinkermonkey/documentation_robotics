@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Statetransition associated-with Actioncomponent",
+  "description": "Defines relationship: ux.statetransition associated-with ux.actioncomponent",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "ux.statetransition.associated-with.ux.actioncomponent"
+    },
+    "source_spec_node_id": {
+      "const": "ux.statetransition"
+    },
+    "source_layer": {
+      "const": "ux"
+    },
+    "destination_spec_node_id": {
+      "const": "ux.actioncomponent"
+    },
+    "destination_layer": {
+      "const": "ux"
+    },
+    "predicate": {
+      "const": "associated-with"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

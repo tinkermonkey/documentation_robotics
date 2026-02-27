@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Navigationtransition flows-from Route",
+  "description": "Defines relationship: navigation.navigationtransition flows-from navigation.route",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "navigation.navigationtransition.flows-from.navigation.route"
+    },
+    "source_spec_node_id": {
+      "const": "navigation.navigationtransition"
+    },
+    "source_layer": {
+      "const": "navigation"
+    },
+    "destination_spec_node_id": {
+      "const": "navigation.route"
+    },
+    "destination_layer": {
+      "const": "navigation"
+    },
+    "predicate": {
+      "const": "flows-from"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

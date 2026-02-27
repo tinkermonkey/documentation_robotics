@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Securityconstraints constrains Role",
+  "description": "Defines relationship: security.securityconstraints constrains security.role",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "security.securityconstraints.constrains.security.role"
+    },
+    "source_spec_node_id": {
+      "const": "security.securityconstraints"
+    },
+    "source_layer": {
+      "const": "security"
+    },
+    "destination_spec_node_id": {
+      "const": "security.role"
+    },
+    "destination_layer": {
+      "const": "security"
+    },
+    "predicate": {
+      "const": "constrains"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

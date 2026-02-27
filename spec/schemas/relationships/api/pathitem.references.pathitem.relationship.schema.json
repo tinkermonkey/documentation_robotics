@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pathitem references Pathitem",
+  "description": "Defines relationship: api.pathitem references api.pathitem",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.pathitem.references.api.pathitem"
+    },
+    "source_spec_node_id": {
+      "const": "api.pathitem"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "api.pathitem"
+    },
+    "destination_layer": {
+      "const": "api"
+    },
+    "predicate": {
+      "const": "references"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

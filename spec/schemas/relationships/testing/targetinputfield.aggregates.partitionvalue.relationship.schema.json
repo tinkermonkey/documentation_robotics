@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Targetinputfield aggregates Partitionvalue",
+  "description": "Defines relationship: testing.targetinputfield aggregates testing.partitionvalue",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.targetinputfield.aggregates.testing.partitionvalue"
+    },
+    "source_spec_node_id": {
+      "const": "testing.targetinputfield"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.partitionvalue"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

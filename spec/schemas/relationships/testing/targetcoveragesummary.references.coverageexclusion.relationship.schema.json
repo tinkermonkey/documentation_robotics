@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Targetcoveragesummary references Coverageexclusion",
+  "description": "Defines relationship: testing.targetcoveragesummary references testing.coverageexclusion",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.targetcoveragesummary.references.testing.coverageexclusion"
+    },
+    "source_spec_node_id": {
+      "const": "testing.targetcoveragesummary"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.coverageexclusion"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "references"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

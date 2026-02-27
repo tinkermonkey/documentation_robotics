@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Technologyevent triggers Technologyinteraction",
+  "description": "Defines relationship: technology.technologyevent triggers technology.technologyinteraction",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "technology.technologyevent.triggers.technology.technologyinteraction"
+    },
+    "source_spec_node_id": {
+      "const": "technology.technologyevent"
+    },
+    "source_layer": {
+      "const": "technology"
+    },
+    "destination_spec_node_id": {
+      "const": "technology.technologyinteraction"
+    },
+    "destination_layer": {
+      "const": "technology"
+    },
+    "predicate": {
+      "const": "triggers"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

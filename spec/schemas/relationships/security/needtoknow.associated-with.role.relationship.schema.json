@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Needtoknow associated-with Role",
+  "description": "Defines relationship: security.needtoknow associated-with security.role",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "security.needtoknow.associated-with.security.role"
+    },
+    "source_spec_node_id": {
+      "const": "security.needtoknow"
+    },
+    "source_layer": {
+      "const": "security"
+    },
+    "destination_spec_node_id": {
+      "const": "security.role"
+    },
+    "destination_layer": {
+      "const": "security"
+    },
+    "predicate": {
+      "const": "associated-with"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

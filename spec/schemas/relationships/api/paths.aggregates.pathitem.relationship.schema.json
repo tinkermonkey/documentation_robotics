@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Paths aggregates Pathitem",
+  "description": "Defines relationship: api.paths aggregates api.pathitem",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.paths.aggregates.api.pathitem"
+    },
+    "source_spec_node_id": {
+      "const": "api.paths"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "api.pathitem"
+    },
+    "destination_layer": {
+      "const": "api"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

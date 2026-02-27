@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Constraint restricts Requirement",
+  "description": "Defines relationship: motivation.constraint restricts motivation.requirement",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "motivation.constraint.restricts.motivation.requirement"
+    },
+    "source_spec_node_id": {
+      "const": "motivation.constraint"
+    },
+    "source_layer": {
+      "const": "motivation"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.requirement"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "restricts"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

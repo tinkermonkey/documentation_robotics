@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Technologyevent associated-with Technologyservice",
+  "description": "Defines relationship: technology.technologyevent associated-with technology.technologyservice",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "technology.technologyevent.associated-with.technology.technologyservice"
+    },
+    "source_spec_node_id": {
+      "const": "technology.technologyevent"
+    },
+    "source_layer": {
+      "const": "technology"
+    },
+    "destination_spec_node_id": {
+      "const": "technology.technologyservice"
+    },
+    "destination_layer": {
+      "const": "technology"
+    },
+    "predicate": {
+      "const": "associated-with"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

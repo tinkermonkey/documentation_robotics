@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Componentinstance binds-to Dataconfig",
+  "description": "Defines relationship: ux.componentinstance binds-to ux.dataconfig",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "ux.componentinstance.binds-to.ux.dataconfig"
+    },
+    "source_spec_node_id": {
+      "const": "ux.componentinstance"
+    },
+    "source_layer": {
+      "const": "ux"
+    },
+    "destination_spec_node_id": {
+      "const": "ux.dataconfig"
+    },
+    "destination_layer": {
+      "const": "ux"
+    },
+    "predicate": {
+      "const": "binds-to"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

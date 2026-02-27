@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Callback contains Pathitem",
+  "description": "Defines relationship: api.callback contains api.pathitem",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "api.callback.contains.api.pathitem"
+    },
+    "source_spec_node_id": {
+      "const": "api.callback"
+    },
+    "source_layer": {
+      "const": "api"
+    },
+    "destination_spec_node_id": {
+      "const": "api.pathitem"
+    },
+    "destination_layer": {
+      "const": "api"
+    },
+    "predicate": {
+      "const": "contains"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}
