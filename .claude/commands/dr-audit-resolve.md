@@ -32,8 +32,8 @@ npm run audit:nodes -- --enable-ai --save-json audit-reports/all-nodes.json
 # Layer-specific node audit:
 npm run audit:nodes -- --layer data-model --enable-ai --save-json audit-reports/data-model-nodes.json
 
-# Relationship audit (JSON output, for /dr-audit-resolve):
-npm run audit:relationships -- --format json
+# Relationship audit (writes both .md and .json automatically):
+npm run audit:relationships
 ```
 
 ## Instructions for Claude Code

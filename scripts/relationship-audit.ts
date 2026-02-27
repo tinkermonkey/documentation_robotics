@@ -20,9 +20,9 @@
  *   - Exit codes for CI/CD integration
  *
  * Usage:
- *   npm run audit:relationships                              # Run audit with text output
- *   npm run audit:relationships -- --format json             # JSON output
- *   npm run audit:relationships -- --output report.md        # Save to file
+ *   npm run audit:relationships                              # Run audit → both .md and .json
+ *   npm run audit:relationships -- --format json             # JSON only
+ *   npm run audit:relationships -- --output report.md        # Save to file (requires --format)
  *   npm run audit:relationships -- --layer api               # Audit specific layer
  *   npm run audit:relationships -- --threshold               # Exit 1 if quality issues detected
  *   npm run audit:relationships -- --enable-ai               # All 3 AI steps
@@ -67,7 +67,7 @@ const AI_STEPS: AiStep[] = ["elements", "layers", "inter-layer"];
 
 interface ScriptOptions {
   layer?: string;
-  format: AuditReportFormat;
+  format?: AuditReportFormat; // undefined = write both json + markdown
   output?: string;
   verbose: boolean;
   threshold: boolean;
@@ -94,7 +94,7 @@ function parseArguments(): ScriptOptions {
   const { values } = parseArgs({
     options: {
       layer: { type: "string", short: "l" },
-      format: { type: "string", short: "f", default: "markdown" },
+      format: { type: "string", short: "f" },
       output: { type: "string", short: "o" },
       verbose: { type: "boolean", short: "v", default: false },
       threshold: { type: "boolean", short: "t", default: false },
@@ -114,7 +114,7 @@ function parseArguments(): ScriptOptions {
 
   return {
     layer: values.layer as string | undefined,
-    format: (values.format as AuditReportFormat) || "text",
+    format: values.format ? (values.format as AuditReportFormat) : undefined,
     output: values.output as string | undefined,
     verbose: values.verbose as boolean,
     threshold: values.threshold as boolean,
@@ -138,8 +138,8 @@ Usage:
 
 Options:
   -l, --layer <name>       Audit specific layer only
-  -f, --format <format>    Output format: text, json, markdown (default: markdown)
-  -o, --output <file>      Override output path (default: audit-reports/{layer}-relationships.{ext})
+  -f, --format <format>    Output format: text, json, markdown (default: both json + markdown)
+  -o, --output <file>      Override output path, requires --format (default: audit-reports/{layer}-relationships.{ext})
   -v, --verbose            Show detailed analysis
   -t, --threshold          Exit with code 1 if quality issues detected
       --enable-ai          Run AI-assisted evaluation (requires Claude CLI); all 3 steps by default
@@ -147,7 +147,7 @@ Options:
       --merge-ai           Merge existing AI recommendation files into the JSON report (no AI calls)
   -h, --help               Show this help message
 
-Default output: audit-reports/{layer|all}-relationships.{md|json|txt}
+Default output: audit-reports/{layer|all}-relationships.md  AND  .json  (both written by default)
 AI output:      audit-reports/relationships/{element-recommendations,layer-reviews,inter-layer-validation}/
 
 AI Steps:
@@ -159,17 +159,17 @@ Note: --enable-ai and --merge-ai both automatically merge AI recommendations int
       output so that /dr-audit-resolve sees the complete picture in a single file.
 
 Examples:
-  npm run audit:relationships                                            # Full audit → audit-reports/all-relationships.md
-  npm run audit:relationships -- --layer api                             # API layer → audit-reports/api-relationships.md
-  npm run audit:relationships -- --format json                           # JSON → audit-reports/all-relationships.json
+  npm run audit:relationships                                            # Full audit → both audit-reports/all-relationships.{md,json}
+  npm run audit:relationships -- --layer api                             # API layer → both audit-reports/api-relationships.{md,json}
+  npm run audit:relationships -- --format json                           # JSON only → audit-reports/all-relationships.json
   npm run audit:relationships -- --layer data-model --format json        # → audit-reports/data-model-relationships.json
   npm run audit:relationships -- --threshold                             # Fail if quality issues found
   npm run audit:relationships -- --verbose                               # Detailed output
-  npm run audit:relationships -- --enable-ai --format json               # AI + merge → single JSON for /dr-audit-resolve
+  npm run audit:relationships -- --enable-ai                             # AI + merge → both .md and .json (json has merged AI gaps)
   npm run audit:relationships -- --enable-ai --ai-step elements          # Element recommendations only
   npm run audit:relationships -- --enable-ai --ai-step layers            # Layer reviews only
   npm run audit:relationships -- --enable-ai --ai-step inter-layer       # Inter-layer validation only
-  npm run audit:relationships -- --merge-ai --format json                # Merge existing AI files (no AI calls)
+  npm run audit:relationships -- --merge-ai                              # Merge existing AI files into both outputs (no AI calls)
 
 Quality Thresholds (for --threshold flag):
   - Isolation:        Max ${QUALITY_THRESHOLDS.maxIsolationPercentage}%
@@ -338,19 +338,26 @@ async function runAudit(options: ScriptOptions): Promise<void> {
       projectRoot,
     });
 
-    // Format output
-    const output = formatAuditReport(report, {
-      format: options.format,
-      verbose: options.verbose,
-    });
+    // Determine which formats to write. When --format is not specified, write
+    // both json and markdown so /dr-audit-resolve and human readers both work.
+    const formats: AuditReportFormat[] = options.format
+      ? [options.format]
+      : ["markdown", "json"];
 
-    // Resolve output path: explicit override or default under audit-reports/
-    const outputPath = options.output
-      ? join(originalCwd, options.output)
-      : getDefaultOutputPath(options.layer, options.format);
-    await ensureDir(dirname(outputPath));
-    await writeFile(outputPath, output);
-    console.error(`✓ Audit report written to ${relative(originalCwd, outputPath)}`);
+    // Track the JSON output path for the AI merge step below.
+    let jsonOutputPath: string = getDefaultOutputPath(options.layer, "json");
+
+    for (const fmt of formats) {
+      const outputPath =
+        options.output && options.format === fmt
+          ? join(originalCwd, options.output)
+          : getDefaultOutputPath(options.layer, fmt);
+      if (fmt === "json") jsonOutputPath = outputPath;
+      const output = formatAuditReport(report, { format: fmt, verbose: options.verbose });
+      await ensureDir(dirname(outputPath));
+      await writeFile(outputPath, output);
+      console.error(`✓ Audit report written to ${relative(originalCwd, outputPath)}`);
+    }
 
     // Run AI-assisted evaluation if requested
     if (options.enableAi) {
@@ -425,16 +432,18 @@ async function runAudit(options: ScriptOptions): Promise<void> {
     // Merge AI recommendations into the report and re-write the JSON output.
     // This runs after --enable-ai steps complete, and also for standalone --merge-ai
     // which reads previously saved AI files without making new AI calls.
-    if (options.format === "json" && (options.enableAi || options.mergeAi)) {
+    // Triggers whenever JSON is being written (explicit --format json, or default both).
+    const writingJson = options.format === "json" || options.format === undefined;
+    if (writingJson && (options.enableAi || options.mergeAi)) {
       const aiOutputDir = join(projectRoot, "audit-reports", "relationships");
       const aiGaps = await loadAIRecommendationsAsGaps(aiOutputDir, options.layer);
       if (aiGaps.length > 0) {
         report = mergeGapsIntoReport(report, aiGaps);
         const enrichedOutput = formatAuditReport(report, {
-          format: options.format,
+          format: "json",
           verbose: options.verbose,
         });
-        await writeFile(outputPath, enrichedOutput);
+        await writeFile(jsonOutputPath, enrichedOutput);
         const newTotal = report.gaps.length;
         console.error(
           `✓ Merged ${aiGaps.length} AI-generated gap recommendations into report (${newTotal} total gaps)`
