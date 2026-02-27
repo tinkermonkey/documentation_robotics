@@ -34,6 +34,7 @@
 
 import { fileURLToPath } from "url";
 import { dirname, join, relative } from "path";
+import { createWriteStream, mkdirSync } from "fs";
 import { parseArgs } from "util";
 import { AuditReport, CoverageMetrics } from "../cli/src/audit/types.js";
 import { formatAuditReport, AuditReportFormat } from "../cli/src/export/audit-formatters.js";
@@ -320,6 +321,45 @@ async function runAudit(options: ScriptOptions): Promise<void> {
 }
 
 /**
+ * Tee stdout and stderr to a timestamped log file.
+ *
+ * The log file captures everything written to stdout/stderr for the lifetime
+ * of the process, giving a complete record of each audit run. The original
+ * streams continue to behave normally (output still appears on the terminal).
+ *
+ * Returns the absolute path of the log file so callers can print it.
+ */
+function setupLogging(logDir: string): string {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/T/, "_")
+    .replace(/[:.]/g, "-")
+    .slice(0, 19); // "2026-02-27_14-30-00"
+  const logPath = join(logDir, `relationship-run-${timestamp}.log`);
+
+  mkdirSync(logDir, { recursive: true });
+  const logStream = createWriteStream(logPath, { flags: "w" });
+  logStream.write(`=== Relationship Audit Run: ${new Date().toISOString()} ===\n\n`);
+
+  const origStdout = process.stdout.write.bind(process.stdout) as typeof process.stdout.write;
+  const origStderr = process.stderr.write.bind(process.stderr) as typeof process.stderr.write;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (process.stdout as any).write = (chunk: string | Uint8Array, ...rest: unknown[]): boolean => {
+    logStream.write(chunk);
+    return (origStdout as (...args: unknown[]) => boolean)(chunk, ...rest);
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (process.stderr as any).write = (chunk: string | Uint8Array, ...rest: unknown[]): boolean => {
+    logStream.write(chunk);
+    return (origStderr as (...args: unknown[]) => boolean)(chunk, ...rest);
+  };
+
+  return logPath;
+}
+
+/**
  * Script entry point
  */
 async function main(): Promise<void> {
@@ -329,6 +369,10 @@ async function main(): Promise<void> {
     showHelp();
     process.exit(0);
   }
+
+  const logDir = join(projectRoot, "audit-reports", "relationships");
+  const logPath = setupLogging(logDir);
+  console.error(`📝 Logging stdout/stderr to ${relative(projectRoot, logPath)}`);
 
   await runAudit(options);
 }

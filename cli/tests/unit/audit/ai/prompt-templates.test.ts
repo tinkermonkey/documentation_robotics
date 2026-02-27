@@ -105,7 +105,9 @@ describe("PromptTemplates", () => {
       expect(prompt).toContain("from application to technology");
       expect(prompt).toContain("Higher layers → lower layers only");
       expect(prompt).toContain("No circular dependencies");
-      expect(prompt).toContain("Report violations and recommendations as JSON");
+      expect(prompt).toContain("sourceLayer");
+      expect(prompt).toContain("targetLayer");
+      expect(prompt).toContain("issue");
     });
   });
 

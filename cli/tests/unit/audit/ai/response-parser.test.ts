@@ -254,6 +254,56 @@ These recommendations follow ArchiMate patterns.`;
       expect(validation.recommendations).toEqual([]);
     });
 
+    it("should normalize violation fields: source.layer/destination.layer/violation key", () => {
+      const response = `\`\`\`json
+{
+  "violations": [
+    {
+      "id": "V-001",
+      "severity": "HIGH",
+      "source": { "layer": "application" },
+      "destination": { "layer": "apm" },
+      "violation": "application layer references apm layer incorrectly",
+      "remediation": "Reverse the reference direction"
+    }
+  ],
+  "recommendations": [{ "priority": "HIGH", "action": "Fix the layer hierarchy" }]
+}
+\`\`\``;
+
+      const validation = parser.parseInterLayerValidation(response);
+
+      expect(validation.violations).toHaveLength(1);
+      expect(validation.violations[0].sourceLayer).toBe("application");
+      expect(validation.violations[0].targetLayer).toBe("apm");
+      expect(validation.violations[0].issue).toBe("application layer references apm layer incorrectly");
+      expect(validation.recommendations).toHaveLength(1);
+      expect(validation.recommendations[0]).toBe("Fix the layer hierarchy");
+    });
+
+    it("should normalize violation fields: from/to shorthand and alternate violations key", () => {
+      const response = `\`\`\`json
+{
+  "hierarchy_violations": [
+    {
+      "from": "security",
+      "to": "motivation",
+      "description": "security should not reference motivation directly"
+    }
+  ],
+  "recommendations": ["Reorganize cross-layer dependencies"]
+}
+\`\`\``;
+
+      const validation = parser.parseInterLayerValidation(response);
+
+      expect(validation.violations).toHaveLength(1);
+      expect(validation.violations[0].sourceLayer).toBe("security");
+      expect(validation.violations[0].targetLayer).toBe("motivation");
+      expect(validation.violations[0].issue).toBe("security should not reference motivation directly");
+      expect(validation.recommendations).toEqual(["Reorganize cross-layer dependencies"]);
+    });
+
     it("should throw error if no JSON found", () => {
       expect(() => parser.parseInterLayerValidation("No JSON")).toThrow(
         "Failed to extract JSON from inter-layer validation"

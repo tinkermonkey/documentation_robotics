@@ -59,7 +59,24 @@ Evaluate:
 3. Prioritized recommendations for relationship additions
 4. Balance assessment (are we over/under-specifying?)
 
-Provide structured recommendations as JSON.`;
+Respond with ONLY the following JSON, wrapped in a json code block (no other text before or after):
+
+\`\`\`json
+{
+  "coherenceIssues": ["description of coherence issue"],
+  "missingPatterns": ["description of missing pattern from ${standard}"],
+  "recommendations": [
+    {
+      "sourceNodeType": "${layer}.nodeType",
+      "predicate": "predicate-name",
+      "destinationNodeType": "${layer}.otherNodeType",
+      "justification": "architectural justification",
+      "priority": "high"
+    }
+  ],
+  "balanceAssessment": "brief assessment of relationship density and coverage"
+}
+\`\`\``;
   }
 
   /**
@@ -68,14 +85,29 @@ Provide structured recommendations as JSON.`;
   interLayerValidation(sourceLayer: string, targetLayer: string): string {
     return `Validate cross-layer relationships from ${sourceLayer} to ${targetLayer}.
 
-Architecture Rule: Higher layers → lower layers only
+Architecture Rule: Higher layers → lower layers only (motivation=1 is highest, testing=12 is lowest).
 
 Verify:
-1. All references respect layer hierarchy
+1. All references respect layer hierarchy (lower layer number → higher layer number only)
 2. No circular dependencies
 3. Reference relationships are architecturally meaningful
 
-Report violations and recommendations as JSON.`;
+Respond with ONLY the following JSON, wrapped in a json code block (no other text before or after):
+
+\`\`\`json
+{
+  "violations": [
+    {
+      "sourceLayer": "layer-name",
+      "targetLayer": "layer-name",
+      "issue": "description of the hierarchy violation or architectural concern"
+    }
+  ],
+  "recommendations": ["recommendation 1", "recommendation 2"]
+}
+\`\`\`
+
+If there are no violations, return: { "violations": [], "recommendations": [] }`;
   }
 
   /**

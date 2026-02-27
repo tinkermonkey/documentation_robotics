@@ -294,44 +294,80 @@ export class ResponseParser {
 
     const validationObj = validation as Record<string, unknown>;
 
-    // Validate violations field
-    const violations = validationObj.violations;
+    // Normalize top-level violations key (Claude may use alternate key names)
+    const violations =
+      validationObj.violations ||
+      validationObj.hierarchy_violations ||
+      validationObj.cross_layer_violations ||
+      validationObj.layer_violations;
     if (!violations || !Array.isArray(violations)) {
       throw new Error("Inter-layer validation missing or invalid required field: violations (must be array)");
     }
 
-    // Validate each violation object
+    // Validate each violation object with field normalization
     const validatedViolations = violations.map((v: unknown, index: number) => {
       if (typeof v !== "object" || v === null) {
         throw new Error(`Violation at index ${index} is not a valid object`);
       }
       const violation = v as Record<string, unknown>;
 
-      if (!violation.sourceLayer || typeof violation.sourceLayer !== "string") {
+      // Normalize sourceLayer: accepts sourceLayer, source.layer, source_layer, from
+      const rawSource = violation.source;
+      const sourceLayer =
+        violation.sourceLayer ||
+        (typeof rawSource === "object" && rawSource !== null
+          ? (rawSource as Record<string, unknown>).layer
+          : undefined) ||
+        violation.source_layer ||
+        violation.from;
+      if (!sourceLayer || typeof sourceLayer !== "string") {
         throw new Error(`Violation at index ${index} missing or invalid field: sourceLayer (must be string)`);
       }
-      if (!violation.targetLayer || typeof violation.targetLayer !== "string") {
+
+      // Normalize targetLayer: accepts targetLayer, destination.layer, target.layer, target_layer, to
+      const rawDest = violation.destination;
+      const targetLayer =
+        violation.targetLayer ||
+        (typeof rawDest === "object" && rawDest !== null
+          ? (rawDest as Record<string, unknown>).layer
+          : undefined) ||
+        violation.target_layer ||
+        violation.to;
+      if (!targetLayer || typeof targetLayer !== "string") {
         throw new Error(`Violation at index ${index} missing or invalid field: targetLayer (must be string)`);
       }
-      if (!violation.issue || typeof violation.issue !== "string") {
+
+      // Normalize issue: accepts issue, violation, description, message, problem
+      const issue =
+        violation.issue ||
+        violation.violation ||
+        violation.description ||
+        violation.message ||
+        violation.problem;
+      if (!issue || typeof issue !== "string") {
         throw new Error(`Violation at index ${index} missing or invalid field: issue (must be string)`);
       }
 
       return {
-        sourceLayer: violation.sourceLayer,
-        targetLayer: violation.targetLayer,
-        issue: violation.issue,
+        sourceLayer: sourceLayer as string,
+        targetLayer: targetLayer as string,
+        issue: issue as string,
       };
     });
 
-    // Validate recommendations field
-    const recommendations = validationObj.recommendations;
-    if (!recommendations || !Array.isArray(recommendations)) {
+    // Normalize recommendations: accept string[] or object[]{action, description}
+    const rawRecs = validationObj.recommendations;
+    if (!rawRecs || !Array.isArray(rawRecs)) {
       throw new Error("Inter-layer validation missing or invalid required field: recommendations (must be array)");
     }
-    if (!recommendations.every((item) => typeof item === "string")) {
-      throw new Error("Inter-layer validation recommendations must contain only strings");
-    }
+    const recommendations = rawRecs.map((r: unknown) => {
+      if (typeof r === "string") return r;
+      if (typeof r === "object" && r !== null) {
+        const obj = r as Record<string, unknown>;
+        return String(obj.action || obj.description || JSON.stringify(r));
+      }
+      return String(r);
+    });
 
     return {
       violations: validatedViolations,
