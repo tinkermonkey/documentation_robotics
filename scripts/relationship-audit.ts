@@ -20,11 +20,13 @@
  *   - Exit codes for CI/CD integration
  *
  * Usage:
- *   npm run audit:relationships                        # Run audit with text output
- *   npm run audit:relationships -- --format json       # JSON output
- *   npm run audit:relationships -- --output report.md  # Save to file
- *   npm run audit:relationships -- --layer api         # Audit specific layer
- *   npm run audit:relationships -- --threshold         # Exit 1 if quality issues detected
+ *   npm run audit:relationships                              # Run audit with text output
+ *   npm run audit:relationships -- --format json             # JSON output
+ *   npm run audit:relationships -- --output report.md        # Save to file
+ *   npm run audit:relationships -- --layer api               # Audit specific layer
+ *   npm run audit:relationships -- --threshold               # Exit 1 if quality issues detected
+ *   npm run audit:relationships -- --enable-ai               # All 3 AI steps
+ *   npm run audit:relationships -- --enable-ai --ai-step layers  # Layer reviews only
  *
  * Exit Codes:
  *   0 - Success (no issues or issues below threshold)
@@ -59,6 +61,9 @@ function getDefaultOutputPath(layer: string | undefined, format: AuditReportForm
   return join(auditReportsDir, `${layerName}-relationships.${ext}`);
 }
 
+type AiStep = "elements" | "layers" | "inter-layer";
+const AI_STEPS: AiStep[] = ["elements", "layers", "inter-layer"];
+
 interface ScriptOptions {
   layer?: string;
   format: AuditReportFormat;
@@ -66,6 +71,7 @@ interface ScriptOptions {
   verbose: boolean;
   threshold: boolean;
   enableAi: boolean;
+  aiStep?: AiStep;
   help: boolean;
 }
 
@@ -91,10 +97,17 @@ function parseArguments(): ScriptOptions {
       verbose: { type: "boolean", short: "v", default: false },
       threshold: { type: "boolean", short: "t", default: false },
       "enable-ai": { type: "boolean", default: false },
+      "ai-step": { type: "string" },
       help: { type: "boolean", short: "h", default: false },
     },
     allowPositionals: false,
   });
+
+  const rawAiStep = values["ai-step"] as string | undefined;
+  if (rawAiStep !== undefined && !(AI_STEPS as string[]).includes(rawAiStep)) {
+    console.error(`❌ Invalid --ai-step value: "${rawAiStep}". Must be one of: ${AI_STEPS.join(", ")}`);
+    process.exit(2);
+  }
 
   return {
     layer: values.layer as string | undefined,
@@ -103,6 +116,7 @@ function parseArguments(): ScriptOptions {
     verbose: values.verbose as boolean,
     threshold: values.threshold as boolean,
     enableAi: values["enable-ai"] as boolean,
+    aiStep: rawAiStep as AiStep | undefined,
     help: values.help as boolean,
   };
 }
@@ -124,20 +138,29 @@ Options:
   -o, --output <file>      Override output path (default: audit-reports/{layer}-relationships.{ext})
   -v, --verbose            Show detailed analysis
   -t, --threshold          Exit with code 1 if quality issues detected
-      --enable-ai          Run AI-assisted element evaluation (requires Claude CLI)
+      --enable-ai          Run AI-assisted evaluation (requires Claude CLI); all 3 steps by default
+      --ai-step <step>     Run only one AI step: elements | layers | inter-layer
   -h, --help               Show this help message
 
 Default output: audit-reports/{layer|all}-relationships.{md|json|txt}
-AI output:      audit-reports/relationships/{element-recommendations,layer-reviews,inter-layer}/
+AI output:      audit-reports/relationships/{element-recommendations,layer-reviews,inter-layer-validation}/
+
+AI Steps:
+  elements      Evaluate low-coverage node types and suggest missing intra-layer relationships
+  layers        Review each layer's relationship coherence against its governing standard
+  inter-layer   Validate cross-layer reference direction (higher → lower only)
 
 Examples:
-  npm run audit:relationships                                       # Full audit → audit-reports/all-relationships.md
-  npm run audit:relationships -- --layer api                        # API layer → audit-reports/api-relationships.md
-  npm run audit:relationships -- --format json                      # JSON → audit-reports/all-relationships.json
-  npm run audit:relationships -- --layer data-model --format json   # → audit-reports/data-model-relationships.json
-  npm run audit:relationships -- --threshold                        # Fail if quality issues found
-  npm run audit:relationships -- --verbose                          # Detailed output
-  npm run audit:relationships -- --enable-ai                        # With AI element evaluation
+  npm run audit:relationships                                            # Full audit → audit-reports/all-relationships.md
+  npm run audit:relationships -- --layer api                             # API layer → audit-reports/api-relationships.md
+  npm run audit:relationships -- --format json                           # JSON → audit-reports/all-relationships.json
+  npm run audit:relationships -- --layer data-model --format json        # → audit-reports/data-model-relationships.json
+  npm run audit:relationships -- --threshold                             # Fail if quality issues found
+  npm run audit:relationships -- --verbose                               # Detailed output
+  npm run audit:relationships -- --enable-ai                             # All 3 AI steps
+  npm run audit:relationships -- --enable-ai --ai-step elements          # Element recommendations only
+  npm run audit:relationships -- --enable-ai --ai-step layers            # Layer reviews only
+  npm run audit:relationships -- --enable-ai --ai-step inter-layer       # Inter-layer validation only
 
 Quality Thresholds (for --threshold flag):
   - Isolation:        Max ${QUALITY_THRESHOLDS.maxIsolationPercentage}%
@@ -231,7 +254,10 @@ async function runAudit(options: ScriptOptions): Promise<void> {
 
     // Run AI-assisted evaluation if requested
     if (options.enableAi) {
-      console.error("\n⏳ Running AI-assisted evaluation (requires Claude CLI)...");
+      const stepFilter = options.aiStep;
+      const runAll = stepFilter === undefined;
+      const stepLabel = stepFilter ? `step: ${stepFilter}` : "all steps";
+      console.error(`\n⏳ Running AI-assisted evaluation (${stepLabel}, requires Claude CLI)...`);
       console.error("   Output: audit-reports/relationships/\n");
 
       const aiEvaluator = new AIEvaluator({ outputDir: join(projectRoot, "audit-reports", "relationships") });
@@ -241,21 +267,23 @@ async function runAudit(options: ScriptOptions): Promise<void> {
       let aiAborted = false;
 
       // Step 1: Evaluate low-coverage (isolated) node types
-      console.error("   Step 1/3: Evaluating low-coverage elements...");
-      try {
-        await aiEvaluator.evaluateLowCoverageElements(report.coverage as CoverageMetrics[], getPredicatesForLayer);
-      } catch (error) {
-        if (error instanceof AIEvaluationAbortError) {
-          console.error("   ❌ AI aborted — Claude CLI unavailable. Skipping remaining AI steps.");
-          aiAborted = true;
-        } else {
-          console.error("   ⚠️  Error evaluating low-coverage elements:", error instanceof Error ? error.message : String(error));
+      if (!aiAborted && (runAll || stepFilter === "elements")) {
+        console.error("   ▶ elements: Evaluating low-coverage elements...");
+        try {
+          await aiEvaluator.evaluateLowCoverageElements(report.coverage as CoverageMetrics[], getPredicatesForLayer);
+        } catch (error) {
+          if (error instanceof AIEvaluationAbortError) {
+            console.error("   ❌ AI aborted — Claude CLI unavailable. Skipping remaining AI steps.");
+            aiAborted = true;
+          } else {
+            console.error("   ⚠️  Error evaluating low-coverage elements:", error instanceof Error ? error.message : String(error));
+          }
         }
       }
 
       // Step 2: Review layer coherence
-      if (!aiAborted) {
-        console.error("   Step 2/3: Reviewing layer coherence...");
+      if (!aiAborted && (runAll || stepFilter === "layers")) {
+        console.error("   ▶ layers: Reviewing layer coherence...");
         try {
           const layerNames = (report.coverage as CoverageMetrics[]).map((c) => c.layer);
           await aiEvaluator.reviewLayerCoherence(layerNames, report.coverage as CoverageMetrics[]);
@@ -270,8 +298,8 @@ async function runAudit(options: ScriptOptions): Promise<void> {
       }
 
       // Step 3: Validate inter-layer references
-      if (!aiAborted) {
-        console.error("   Step 3/3: Validating inter-layer references...");
+      if (!aiAborted && (runAll || stepFilter === "inter-layer")) {
+        console.error("   ▶ inter-layer: Validating inter-layer references...");
         try {
           const layerPairs: Array<{ source: string; target: string }> = [];
           for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {
