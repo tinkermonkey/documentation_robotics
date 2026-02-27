@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Outcomecategory serves Coveragerequirement",
+  "description": "Defines relationship: testing.outcomecategory serves testing.coveragerequirement",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.outcomecategory.serves.testing.coveragerequirement"
+    },
+    "source_spec_node_id": {
+      "const": "testing.outcomecategory"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.coveragerequirement"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "serves"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

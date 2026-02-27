@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Contextvariable flows-to Flowstep",
+  "description": "Defines relationship: navigation.contextvariable flows-to navigation.flowstep",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "navigation.contextvariable.flows-to.navigation.flowstep"
+    },
+    "source_spec_node_id": {
+      "const": "navigation.contextvariable"
+    },
+    "source_layer": {
+      "const": "navigation"
+    },
+    "destination_spec_node_id": {
+      "const": "navigation.flowstep"
+    },
+    "destination_layer": {
+      "const": "navigation"
+    },
+    "predicate": {
+      "const": "flows-to"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

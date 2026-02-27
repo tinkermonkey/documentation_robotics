@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Routemeta serves Route",
+  "description": "Defines relationship: navigation.routemeta serves navigation.route",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "navigation.routemeta.serves.navigation.route"
+    },
+    "source_spec_node_id": {
+      "const": "navigation.routemeta"
+    },
+    "source_layer": {
+      "const": "navigation"
+    },
+    "destination_spec_node_id": {
+      "const": "navigation.route"
+    },
+    "destination_layer": {
+      "const": "navigation"
+    },
+    "predicate": {
+      "const": "serves"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

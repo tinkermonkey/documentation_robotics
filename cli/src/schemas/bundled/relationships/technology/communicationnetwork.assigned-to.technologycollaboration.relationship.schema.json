@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Communicationnetwork assigned-to Technologycollaboration",
+  "description": "Defines relationship: technology.communicationnetwork assigned-to technology.technologycollaboration",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "technology.communicationnetwork.assigned-to.technology.technologycollaboration"
+    },
+    "source_spec_node_id": {
+      "const": "technology.communicationnetwork"
+    },
+    "source_layer": {
+      "const": "technology"
+    },
+    "destination_spec_node_id": {
+      "const": "technology.technologycollaboration"
+    },
+    "destination_layer": {
+      "const": "technology"
+    },
+    "predicate": {
+      "const": "assigned-to"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

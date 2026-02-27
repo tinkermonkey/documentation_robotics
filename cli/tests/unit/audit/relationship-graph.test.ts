@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach } from "bun:test";
 import { RelationshipGraph } from "../../../src/audit/relationships/graph/relationship-graph.js";
+import type { Element } from "../../../src/types/index.js";
 
 describe("RelationshipGraph", () => {
   let graph: RelationshipGraph;
@@ -158,13 +159,20 @@ describe("RelationshipGraph", () => {
     }
   });
 
-  it("should handle zero-relationship layers", async () => {
-    const securityGraph = new RelationshipGraph();
-    await securityGraph.build("security");
+  it("should handle zero-relationship layers", () => {
+    // Use buildFromModel with mock elements but no relationships to simulate
+    // a layer that has node types but zero relationships
+    const emptyGraph = new RelationshipGraph();
+    const mockElements = [
+      { id: "el-1", spec_node_id: "mock.nodeA" },
+      { id: "el-2", spec_node_id: "mock.nodeB" },
+      { id: "el-3", spec_node_id: "mock.nodeC" },
+    ] as unknown as Element[];
+    emptyGraph.buildFromModel([], mockElements);
 
-    // Security layer should have node types but no edges
-    expect(securityGraph.getNodeCount()).toBeGreaterThan(0);
-    expect(securityGraph.getEdgeCount()).toBe(0);
+    // Graph should have node types but no edges
+    expect(emptyGraph.getNodeCount()).toBeGreaterThan(0);
+    expect(emptyGraph.getEdgeCount()).toBe(0);
   });
 
   it("should provide access to underlying graph model", () => {

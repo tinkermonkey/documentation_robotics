@@ -8,6 +8,7 @@ import { RelationshipCatalog } from "../../../src/core/relationship-catalog.js";
 import {
   getLayerById,
   getAllLayers,
+  type LayerMetadata,
 } from "../../../src/generated/layer-registry.js";
 
 describe("CoverageAnalyzer", () => {
@@ -43,38 +44,37 @@ describe("CoverageAnalyzer", () => {
   });
 
   it("should identify zero-relationship layers", async () => {
-    const securityLayer = getLayerById("security");
-    const uxLayer = getLayerById("ux");
-    const navigationLayer = getLayerById("navigation");
+    // Create mock layers with fake node type IDs that don't exist in RELATIONSHIPS_BY_SOURCE,
+    // so they will have zero relationships even though real layers now all have relationships.
+    const mockLayer1: LayerMetadata = {
+      id: "mock-layer",
+      number: 99,
+      name: "Mock Layer",
+      description: "Mock layer for testing zero-relationship behavior",
+      nodeTypes: ["mock-layer.nodetype1", "mock-layer.nodetype2", "mock-layer.nodetype3"],
+    };
+    const mockLayer2: LayerMetadata = {
+      id: "mock-layer2",
+      number: 98,
+      name: "Mock Layer 2",
+      description: "Mock layer 2 for testing zero-relationship behavior",
+      nodeTypes: ["mock-layer2.typeA", "mock-layer2.typeB"],
+    };
 
-    expect(securityLayer).toBeDefined();
-    expect(uxLayer).toBeDefined();
-    expect(navigationLayer).toBeDefined();
+    const coverage1 = await analyzer.analyzeLayer(mockLayer1);
+    const coverage2 = await analyzer.analyzeLayer(mockLayer2);
 
-    const securityCoverage = await analyzer.analyzeLayer(securityLayer!);
-    const uxCoverage = await analyzer.analyzeLayer(uxLayer!);
-    const navigationCoverage = await analyzer.analyzeLayer(navigationLayer!);
-
-    // These layers should have zero relationships
-    expect(securityCoverage.relationshipCount).toBe(0);
-    expect(uxCoverage.relationshipCount).toBe(0);
-    expect(navigationCoverage.relationshipCount).toBe(0);
+    // Mock layers have no entries in RELATIONSHIPS_BY_SOURCE
+    expect(coverage1.relationshipCount).toBe(0);
+    expect(coverage2.relationshipCount).toBe(0);
 
     // Isolation percentage should be 100%
-    expect(securityCoverage.isolationPercentage).toBe(100);
-    expect(uxCoverage.isolationPercentage).toBe(100);
-    expect(navigationCoverage.isolationPercentage).toBe(100);
+    expect(coverage1.isolationPercentage).toBe(100);
+    expect(coverage2.isolationPercentage).toBe(100);
 
     // All node types should be isolated
-    expect(securityCoverage.isolatedNodeTypes.length).toBe(
-      securityCoverage.nodeTypeCount
-    );
-    expect(uxCoverage.isolatedNodeTypes.length).toBe(
-      uxCoverage.nodeTypeCount
-    );
-    expect(navigationCoverage.isolatedNodeTypes.length).toBe(
-      navigationCoverage.nodeTypeCount
-    );
+    expect(coverage1.isolatedNodeTypes.length).toBe(coverage1.nodeTypeCount);
+    expect(coverage2.isolatedNodeTypes.length).toBe(coverage2.nodeTypeCount);
   });
 
   it("should calculate correct isolation percentage", async () => {

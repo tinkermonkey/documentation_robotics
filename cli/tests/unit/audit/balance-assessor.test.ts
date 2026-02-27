@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeAll } from "bun:test";
 import { BalanceAssessor } from "../../../src/audit/relationships/analysis/balance-assessor.js";
-import { getLayerById } from "../../../src/generated/layer-registry.js";
+import { getLayerById, type LayerMetadata } from "../../../src/generated/layer-registry.js";
 
 describe("BalanceAssessor", () => {
   let assessor: BalanceAssessor;
@@ -204,12 +204,25 @@ describe("BalanceAssessor", () => {
   });
 
   it("should identify zero-relationship node types correctly", () => {
-    const securityLayer = getLayerById("security");
-    expect(securityLayer).toBeDefined();
+    // Use a mock layer with fake node types covering each category so we can
+    // verify the zero-relationship behavior independently of the real spec.
+    // Fake IDs won't exist in RELATIONSHIPS_BY_SOURCE, so currentCount will be 0.
+    const mockLayer: LayerMetadata = {
+      id: "mock-zero",
+      number: 99,
+      name: "Mock Zero Layer",
+      description: "Mock layer for zero-relationship testing",
+      nodeTypes: [
+        "mock-zero.myreference",     // → "reference" (default, no keyword match)
+        "mock-zero.mytype",          // → "enumeration" (endsWith "type")
+        "mock-zero.myservice",       // → "structural" (includes "service")
+        "mock-zero.myprocess",       // → "behavioral" (includes "process")
+      ],
+    };
 
-    const assessments = assessor.assessLayer(securityLayer!);
+    const assessments = assessor.assessLayer(mockLayer);
 
-    // All security layer node types should have zero relationships
+    // All mock node types have zero relationships (not in RELATIONSHIPS_BY_SOURCE)
     for (const assessment of assessments) {
       expect(assessment.currentCount).toBe(0);
 

@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Route aggregates Route",
+  "description": "Defines relationship: navigation.route aggregates navigation.route",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "navigation.route.aggregates.navigation.route"
+    },
+    "source_spec_node_id": {
+      "const": "navigation.route"
+    },
+    "source_layer": {
+      "const": "navigation"
+    },
+    "destination_spec_node_id": {
+      "const": "navigation.route"
+    },
+    "destination_layer": {
+      "const": "navigation"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

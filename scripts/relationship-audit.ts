@@ -37,8 +37,9 @@
 import { fileURLToPath } from "url";
 import { dirname, join, relative } from "path";
 import { createWriteStream, mkdirSync } from "fs";
+import { readFile, readdir } from "node:fs/promises";
 import { parseArgs } from "util";
-import { AuditReport, CoverageMetrics } from "../cli/src/audit/types.js";
+import { AuditReport, CoverageMetrics, GapCandidate } from "../cli/src/audit/types.js";
 import { formatAuditReport, AuditReportFormat } from "../cli/src/export/audit-formatters.js";
 import { writeFile, ensureDir } from "../cli/src/utils/file-io.js";
 import { AuditOrchestrator } from "../cli/src/audit/relationships/spec/orchestrator.js";
@@ -72,6 +73,7 @@ interface ScriptOptions {
   threshold: boolean;
   enableAi: boolean;
   aiStep?: AiStep;
+  mergeAi: boolean;
   help: boolean;
 }
 
@@ -98,6 +100,7 @@ function parseArguments(): ScriptOptions {
       threshold: { type: "boolean", short: "t", default: false },
       "enable-ai": { type: "boolean", default: false },
       "ai-step": { type: "string" },
+      "merge-ai": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
     allowPositionals: false,
@@ -117,6 +120,7 @@ function parseArguments(): ScriptOptions {
     threshold: values.threshold as boolean,
     enableAi: values["enable-ai"] as boolean,
     aiStep: rawAiStep as AiStep | undefined,
+    mergeAi: values["merge-ai"] as boolean,
     help: values.help as boolean,
   };
 }
@@ -140,6 +144,7 @@ Options:
   -t, --threshold          Exit with code 1 if quality issues detected
       --enable-ai          Run AI-assisted evaluation (requires Claude CLI); all 3 steps by default
       --ai-step <step>     Run only one AI step: elements | layers | inter-layer
+      --merge-ai           Merge existing AI recommendation files into the JSON report (no AI calls)
   -h, --help               Show this help message
 
 Default output: audit-reports/{layer|all}-relationships.{md|json|txt}
@@ -150,6 +155,9 @@ AI Steps:
   layers        Review each layer's relationship coherence against its governing standard
   inter-layer   Validate cross-layer reference direction (higher → lower only)
 
+Note: --enable-ai and --merge-ai both automatically merge AI recommendations into the JSON
+      output so that /dr-audit-resolve sees the complete picture in a single file.
+
 Examples:
   npm run audit:relationships                                            # Full audit → audit-reports/all-relationships.md
   npm run audit:relationships -- --layer api                             # API layer → audit-reports/api-relationships.md
@@ -157,10 +165,11 @@ Examples:
   npm run audit:relationships -- --layer data-model --format json        # → audit-reports/data-model-relationships.json
   npm run audit:relationships -- --threshold                             # Fail if quality issues found
   npm run audit:relationships -- --verbose                               # Detailed output
-  npm run audit:relationships -- --enable-ai                             # All 3 AI steps
+  npm run audit:relationships -- --enable-ai --format json               # AI + merge → single JSON for /dr-audit-resolve
   npm run audit:relationships -- --enable-ai --ai-step elements          # Element recommendations only
   npm run audit:relationships -- --enable-ai --ai-step layers            # Layer reviews only
   npm run audit:relationships -- --enable-ai --ai-step inter-layer       # Inter-layer validation only
+  npm run audit:relationships -- --merge-ai --format json                # Merge existing AI files (no AI calls)
 
 Quality Thresholds (for --threshold flag):
   - Isolation:        Max ${QUALITY_THRESHOLDS.maxIsolationPercentage}%
@@ -219,6 +228,97 @@ function checkThresholds(report: AuditReport): { passed: boolean; issues: string
 }
 
 /**
+ * Load AI-generated relationship recommendations from saved files on disk and
+ * convert them to GapCandidate objects ready to merge into an AuditReport.
+ *
+ * Reads from:
+ *   {aiOutputDir}/element-recommendations/*.json  (RelationshipRecommendation[])
+ *   {aiOutputDir}/layer-reviews/*.review.json     (LayerReview.recommendations[])
+ *
+ * The field mapping from RelationshipRecommendation to GapCandidate is:
+ *   predicate    → suggestedPredicate
+ *   justification → reason
+ *   (all other fields are identical)
+ */
+async function loadAIRecommendationsAsGaps(
+  aiOutputDir: string,
+  layerFilter?: string
+): Promise<GapCandidate[]> {
+  const gaps: GapCandidate[] = [];
+
+  const toGap = (rec: Record<string, unknown>): GapCandidate | null => {
+    if (!rec.sourceNodeType || !rec.predicate || !rec.destinationNodeType) return null;
+    return {
+      sourceNodeType: rec.sourceNodeType as string,
+      destinationNodeType: rec.destinationNodeType as string,
+      suggestedPredicate: rec.predicate as string,
+      reason: (rec.justification ?? rec.reason ?? "") as string,
+      priority: (rec.priority ?? "medium") as "high" | "medium" | "low",
+      standardReference: rec.standardReference as string | undefined,
+      impactScore: (rec.impactScore ?? 55) as number,
+      alignmentScore: (rec.alignmentScore ?? 45) as number,
+    };
+  };
+
+  // Read element-recommendations/*.json
+  const elemDir = join(aiOutputDir, "element-recommendations");
+  try {
+    const files = (await readdir(elemDir)).filter((f) => f.endsWith(".json"));
+    for (const file of files) {
+      if (layerFilter && !file.startsWith(layerFilter + ".")) continue;
+      const raw = JSON.parse(await readFile(join(elemDir, file), "utf-8")) as {
+        recommendations?: Record<string, unknown>[];
+      };
+      for (const rec of raw.recommendations ?? []) {
+        const gap = toGap(rec);
+        if (gap) gaps.push(gap);
+      }
+    }
+  } catch {
+    // directory may not exist yet
+  }
+
+  // Read layer-reviews/*.review.json
+  const layerDir = join(aiOutputDir, "layer-reviews");
+  try {
+    const files = (await readdir(layerDir)).filter((f) => f.endsWith(".json"));
+    for (const file of files) {
+      if (layerFilter && !file.startsWith(layerFilter + ".")) continue;
+      const raw = JSON.parse(await readFile(join(layerDir, file), "utf-8")) as {
+        review?: { recommendations?: Record<string, unknown>[] };
+      };
+      for (const rec of raw.review?.recommendations ?? []) {
+        const gap = toGap(rec);
+        if (gap) gaps.push(gap);
+      }
+    }
+  } catch {
+    // directory may not exist yet
+  }
+
+  return gaps;
+}
+
+/**
+ * Return a new AuditReport with newGaps merged into report.gaps.
+ * Deduplicates on (sourceNodeType, suggestedPredicate, destinationNodeType).
+ */
+function mergeGapsIntoReport(report: AuditReport, newGaps: GapCandidate[]): AuditReport {
+  const seen = new Set(
+    report.gaps.map((g) => `${g.sourceNodeType}|${g.suggestedPredicate}|${g.destinationNodeType}`)
+  );
+  const merged: GapCandidate[] = [...report.gaps];
+  for (const gap of newGaps) {
+    const key = `${gap.sourceNodeType}|${gap.suggestedPredicate}|${gap.destinationNodeType}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(gap);
+    }
+  }
+  return { ...report, gaps: merged };
+}
+
+/**
  * Main audit execution
  */
 async function runAudit(options: ScriptOptions): Promise<void> {
@@ -231,7 +331,7 @@ async function runAudit(options: ScriptOptions): Promise<void> {
 
     // Use orchestrator to run all analysis steps
     const orchestrator = new AuditOrchestrator();
-    const report = await orchestrator.runAudit({
+    let report = await orchestrator.runAudit({
       layer: options.layer,
       verbose: options.verbose,
       debug: options.verbose,
@@ -319,6 +419,30 @@ async function runAudit(options: ScriptOptions): Promise<void> {
 
       if (!aiAborted) {
         console.error("\n✓ AI evaluation complete. Results in audit-reports/relationships/");
+      }
+    }
+
+    // Merge AI recommendations into the report and re-write the JSON output.
+    // This runs after --enable-ai steps complete, and also for standalone --merge-ai
+    // which reads previously saved AI files without making new AI calls.
+    if (options.format === "json" && (options.enableAi || options.mergeAi)) {
+      const aiOutputDir = join(projectRoot, "audit-reports", "relationships");
+      const aiGaps = await loadAIRecommendationsAsGaps(aiOutputDir, options.layer);
+      if (aiGaps.length > 0) {
+        report = mergeGapsIntoReport(report, aiGaps);
+        const enrichedOutput = formatAuditReport(report, {
+          format: options.format,
+          verbose: options.verbose,
+        });
+        await writeFile(outputPath, enrichedOutput);
+        const newTotal = report.gaps.length;
+        console.error(
+          `✓ Merged ${aiGaps.length} AI-generated gap recommendations into report (${newTotal} total gaps)`
+        );
+      } else if (options.mergeAi) {
+        console.error(
+          "⚠️  No AI recommendation files found in audit-reports/relationships/. Run --enable-ai first."
+        );
       }
     }
 

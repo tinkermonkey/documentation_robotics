@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Businessfunction flows-to Businessprocess",
+  "description": "Defines relationship: business.businessfunction flows-to business.businessprocess",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "business.businessfunction.flows-to.business.businessprocess"
+    },
+    "source_spec_node_id": {
+      "const": "business.businessfunction"
+    },
+    "source_layer": {
+      "const": "business"
+    },
+    "destination_spec_node_id": {
+      "const": "business.businessprocess"
+    },
+    "destination_layer": {
+      "const": "business"
+    },
+    "predicate": {
+      "const": "flows-to"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

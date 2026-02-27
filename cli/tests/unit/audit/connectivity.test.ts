@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll } from "bun:test";
 import { ConnectivityAnalyzer } from "../../../src/audit/relationships/graph/connectivity.js";
 import { RelationshipGraph } from "../../../src/audit/relationships/graph/relationship-graph.js";
 import { RelationshipCatalog } from "../../../src/core/relationship-catalog.js";
+import type { Element } from "../../../src/types/index.js";
 
 describe("ConnectivityAnalyzer", () => {
   let graph: RelationshipGraph;
@@ -85,17 +86,22 @@ describe("ConnectivityAnalyzer", () => {
     }
   });
 
-  it("should identify security layer as isolated", async () => {
-    // Build a layer-specific graph for security layer
-    const securityGraph = new RelationshipGraph();
-    await securityGraph.build("security");
+  it("should identify security layer as isolated", () => {
+    // Build a graph with mock elements but no relationships to simulate an isolated layer
+    const isolatedGraph = new RelationshipGraph();
+    const mockElements = [
+      { id: "el-1", spec_node_id: "mock.threat" },
+      { id: "el-2", spec_node_id: "mock.countermeasure" },
+      { id: "el-3", spec_node_id: "mock.policy" },
+    ] as unknown as Element[];
+    isolatedGraph.buildFromModel([], mockElements);
 
-    const securityAnalyzer = new ConnectivityAnalyzer(securityGraph, catalog);
-    const isolated = securityAnalyzer.findIsolatedNodes();
+    const isolatedAnalyzer = new ConnectivityAnalyzer(isolatedGraph, catalog);
+    const isolated = isolatedAnalyzer.findIsolatedNodes();
 
-    // Security layer has zero relationships, so all nodes should be isolated
-    expect(isolated.length).toBe(securityGraph.getNodeCount());
-    expect(securityGraph.getNodeCount()).toBeGreaterThan(0);
+    // With no relationships, all nodes should be isolated
+    expect(isolated.length).toBe(isolatedGraph.getNodeCount());
+    expect(isolatedGraph.getNodeCount()).toBeGreaterThan(0);
   });
 
   it("should find transitive chains", async () => {
@@ -149,20 +155,26 @@ describe("ConnectivityAnalyzer", () => {
     expect(stats.isolatedNodeCount).toBeLessThanOrEqual(stats.nodeCount);
   });
 
-  it("should handle layers with no relationships", async () => {
-    const uxGraph = new RelationshipGraph();
-    await uxGraph.build("ux");
+  it("should handle layers with no relationships", () => {
+    // Build a graph with mock elements but no relationships
+    const emptyGraph = new RelationshipGraph();
+    const mockElements = [
+      { id: "el-1", spec_node_id: "mock.viewA" },
+      { id: "el-2", spec_node_id: "mock.viewB" },
+      { id: "el-3", spec_node_id: "mock.viewC" },
+    ] as unknown as Element[];
+    emptyGraph.buildFromModel([], mockElements);
 
-    const uxAnalyzer = new ConnectivityAnalyzer(uxGraph, catalog);
+    const emptyAnalyzer = new ConnectivityAnalyzer(emptyGraph, catalog);
 
-    const components = uxAnalyzer.findConnectedComponents();
-    const isolated = uxAnalyzer.findIsolatedNodes();
+    const components = emptyAnalyzer.findConnectedComponents();
+    const isolated = emptyAnalyzer.findIsolatedNodes();
 
     // All nodes should be isolated
-    expect(isolated.length).toBe(uxGraph.getNodeCount());
+    expect(isolated.length).toBe(emptyGraph.getNodeCount());
 
     // Each node should be its own component
-    expect(components.length).toBe(uxGraph.getNodeCount());
+    expect(components.length).toBe(emptyGraph.getNodeCount());
   });
 
   it("should calculate correct average degree", () => {

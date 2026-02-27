@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll } from "bun:test";
 import { GapAnalyzer } from "../../../src/audit/relationships/analysis/gap-analyzer.js";
 import { RelationshipCatalog } from "../../../src/core/relationship-catalog.js";
-import { getLayerById } from "../../../src/generated/layer-registry.js";
+import { getLayerById, type LayerMetadata } from "../../../src/generated/layer-registry.js";
 
 describe("GapAnalyzer", () => {
   let catalog: RelationshipCatalog;
@@ -100,10 +100,23 @@ describe("GapAnalyzer", () => {
   });
 
   it("should include standard references for ArchiMate layers", () => {
-    const motivationLayer = getLayerById("motivation");
-    expect(motivationLayer).toBeDefined();
+    // Use a mock motivation layer with fake node type IDs that match the template patterns
+    // ("goal", "principle", "requirement", "constraint") but don't exist in RELATIONSHIPS_BY_SOURCE,
+    // so the gap analyzer will find gaps and attach ArchiMate 3.2 references.
+    const mockMotivationLayer: LayerMetadata = {
+      id: "motivation",
+      number: 1,
+      name: "Mock Motivation Layer",
+      description: "Mock layer for testing ArchiMate standard references",
+      nodeTypes: [
+        "motivation.x-goal-mock",
+        "motivation.x-principle-mock",
+        "motivation.x-requirement-mock",
+        "motivation.x-constraint-mock",
+      ],
+    };
 
-    const gaps = analyzer.analyzeLayer(motivationLayer!);
+    const gaps = analyzer.analyzeLayer(mockMotivationLayer);
 
     // Some gaps should have ArchiMate references
     const withReferences = gaps.filter((g) => g.standardReference);
@@ -115,10 +128,21 @@ describe("GapAnalyzer", () => {
   });
 
   it("should suggest NIST patterns for security layer", () => {
-    const securityLayer = getLayerById("security");
-    expect(securityLayer).toBeDefined();
+    // Use a mock security layer with fake node type IDs that match the template patterns
+    // ("countermeasure", "threat") but don't exist in RELATIONSHIPS_BY_SOURCE,
+    // so the gap analyzer will find gaps and attach NIST SP 800-53 references.
+    const mockSecurityLayer: LayerMetadata = {
+      id: "security",
+      number: 3,
+      name: "Mock Security Layer",
+      description: "Mock layer for testing NIST standard references",
+      nodeTypes: [
+        "security.x-countermeasure-mock",
+        "security.x-threat-mock",
+      ],
+    };
 
-    const gaps = analyzer.analyzeLayer(securityLayer!);
+    const gaps = analyzer.analyzeLayer(mockSecurityLayer);
 
     // Should find countermeasure→threat gaps
     const countermeasureGaps = gaps.filter(

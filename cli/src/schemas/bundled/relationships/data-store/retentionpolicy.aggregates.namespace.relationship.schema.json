@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Retentionpolicy aggregates Namespace",
+  "description": "Defines relationship: data-store.retentionpolicy aggregates data-store.namespace",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-store.retentionpolicy.aggregates.data-store.namespace"
+    },
+    "source_spec_node_id": {
+      "const": "data-store.retentionpolicy"
+    },
+    "source_layer": {
+      "const": "data-store"
+    },
+    "destination_spec_node_id": {
+      "const": "data-store.namespace"
+    },
+    "destination_layer": {
+      "const": "data-store"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}
