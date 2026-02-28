@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ActionPattern",
-  "description": "Reusable action configuration for common user interactions. Defines the trigger, feedback mechanism, and optional target for recurring UX patterns. Example: 'confirm-and-delete' pattern — trigger: click on delete button, feedback: confirmation modal then success toast, targetRef: the item being deleted.",
+  "description": "Reusable action configuration for common user interactions. Defines the trigger, feedback mechanism, and optional target for recurring UX patterns. Example: 'confirm-and-delete' pattern \u2014 trigger: click on delete button, feedback: confirmation modal then success toast, targetRef: the item being deleted.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "description": {
           "type": "string"
         },

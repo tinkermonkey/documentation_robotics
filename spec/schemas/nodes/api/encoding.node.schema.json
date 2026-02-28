@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Encoding",
-  "description": "Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation. Note: a Content-Type header placed in the Encoding object's 'headers' map is ignored — use the 'contentType' attribute to set the MIME type for a multipart section.",
+  "description": "Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation. Note: a Content-Type header placed in the Encoding object's 'headers' map is ignored \u2014 use the 'contentType' attribute to set the MIME type for a multipart section.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,10 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
         "propertyName": {
           "type": "string"
         },

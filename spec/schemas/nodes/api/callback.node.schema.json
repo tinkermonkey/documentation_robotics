@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Callback",
-  "description": "Defines a callback where the API sends asynchronous notifications to an external URL derived at runtime. A callback maps a Runtime Expression (e.g., $request.body#/callbackUrl) to a full PathItem object, meaning the callback specifies the complete HTTP interaction — method, headers, and expected response — not just a target URL. Enables event-driven integrations and async workflows.",
+  "description": "Defines a callback where the API sends asynchronous notifications to an external URL derived at runtime. A callback maps a Runtime Expression (e.g., $request.body#/callbackUrl) to a full PathItem object, meaning the callback specifies the complete HTTP interaction \u2014 method, headers, and expected response \u2014 not just a target URL. Enables event-driven integrations and async workflows.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "expression": {
           "type": "string",
           "description": "OpenAPI 3.0 Runtime Expression (e.g., $request.body#/callbackUrl) resolved at runtime against the triggering request to determine the callback target URL."

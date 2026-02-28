@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "GuardAction",
-  "description": "Defines the response executed by a NavigationGuard when its condition evaluates to false (access denied). Specifies whether to redirect the user, block navigation in place, notify with a message, or prompt for confirmation — along with the target destination and whether to preserve the attempted route for post-authentication redirect.",
+  "description": "Defines the response executed by a NavigationGuard when its condition evaluates to false (access denied). Specifies whether to redirect the user, block navigation in place, notify with a message, or prompt for confirmation \u2014 along with the target destination and whether to preserve the attempted route for post-authentication redirect.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "action": {
           "type": "string",
           "enum": ["redirect", "block", "notify", "prompt"],
@@ -34,7 +27,7 @@
         },
         "target": {
           "type": "string",
-          "description": "Destination for redirect or replace actions — a Route ID (e.g., 'login') or an absolute URL. Ignored for block and notify actions."
+          "description": "Destination for redirect or replace actions \u2014 a Route ID (e.g., 'login') or an absolute URL. Ignored for block and notify actions."
         },
         "message": {
           "type": "string",

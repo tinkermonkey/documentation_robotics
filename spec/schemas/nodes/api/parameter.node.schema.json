@@ -20,14 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string",
-          "description": "Case-sensitive for query, header, and cookie parameters. For path parameters, must exactly match the {placeholder} token in the parent path template."
-        },
         "in": {
           "type": "string",
           "enum": ["query", "header", "path", "cookie"],

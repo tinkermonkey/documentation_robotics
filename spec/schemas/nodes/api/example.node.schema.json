@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "summary": {
           "type": "string"
         },
@@ -35,11 +28,11 @@
         },
         "value": {
           "type": "string",
-          "description": "Inline example value. Mutually exclusive with externalValue — only one may be set per Example."
+          "description": "Inline example value. Mutually exclusive with externalValue \u2014 only one may be set per Example."
         },
         "externalValue": {
           "type": "string",
-          "description": "URL pointing to an external example. Mutually exclusive with value — only one may be set per Example."
+          "description": "URL pointing to an external example. Mutually exclusive with value \u2014 only one may be set per Example."
         }
       },
       "required": [],

@@ -47,13 +47,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "patternType": {
               "type": "string",
               "enum": [
@@ -132,13 +125,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "collectionType": {
               "type": "string",
               "enum": [
@@ -206,13 +192,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "engine": {
               "type": "string",
               "description": "Database engine name (e.g., 'PostgreSQL', 'MongoDB', 'Redis', 'Cassandra', 'Pinecone', 'Neo4j', 'Elasticsearch', 'InfluxDB', 'DynamoDB'). Free-text to accommodate any engine without enumeration constraints."
@@ -282,13 +261,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "handlerType": {
               "type": "string",
               "enum": [
@@ -379,13 +351,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "dataType": {
               "type": "string",
               "description": "Data type of this field. Interpretation is paradigm-specific: SQL types (VARCHAR, INTEGER, TIMESTAMP), BSON types (String, ObjectId, Document), Elasticsearch mapping types (keyword, text, dense_vector), or any engine-native type name."
@@ -466,13 +431,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "fields": {
               "type": "string",
               "description": "Field name(s) included in the index key."
@@ -571,13 +529,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "owner": {
               "type": "string"
             }
@@ -609,13 +560,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "targetCollection": {
               "type": "string",
               "description": "The collection or namespace this policy applies to."
@@ -665,13 +609,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "logicType": {
               "type": "string",
               "enum": [
@@ -769,13 +706,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "ruleType": {
               "type": "string",
               "enum": [
@@ -857,13 +787,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "definition": {
               "type": "string",
               "description": "Query or expression that defines this view. SQL query for relational, aggregation pipeline for document stores, alias definition for search engines, continuous aggregate query for time-series, Cypher projection for graph databases."

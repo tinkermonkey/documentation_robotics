@@ -47,13 +47,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "label": {
               "type": "string"
             },
@@ -99,13 +92,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "schemaRef": {
               "type": "string"
             },
@@ -155,17 +141,10 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
             "sequence": {
               "type": "integer"
             },
             "route": {
-              "type": "string"
-            },
-            "name": {
               "type": "string"
             },
             "description": {
@@ -208,13 +187,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "action": {
               "type": "string",
               "enum": ["redirect", "block", "notify", "prompt"],
@@ -261,13 +233,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "expression": {
               "type": "string",
               "description": "Boolean predicate expression to evaluate — may be a JavaScript expression, CEL expression, or logical reference to a named predicate (e.g., 'user.isAuthenticated && user.roles.includes(route.meta.roles)')."
@@ -309,13 +274,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -351,13 +309,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "version": {
               "type": "string"
             },
@@ -397,13 +348,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": ["auth", "role", "permission", "feature-flag", "custom"],
@@ -448,13 +392,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "from": {
               "type": "string"
             },
@@ -498,13 +435,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "title": {
               "type": "string"
             },
@@ -549,13 +479,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "requiresAuth": {
               "type": "boolean",
               "description": "Hint indicating this route requires an authenticated session; used by NavigationGuard nodes to enforce access control."

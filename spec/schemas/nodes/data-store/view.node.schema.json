@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "definition": {
           "type": "string",
           "description": "Query or expression that defines this view. SQL query for relational, aggregation pipeline for document stores, alias definition for search engines, continuous aggregate query for time-series, Cypher projection for graph databases."

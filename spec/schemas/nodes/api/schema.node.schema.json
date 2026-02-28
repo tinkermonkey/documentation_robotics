@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Schema",
-  "description": "Inline data type definition using a subset of JSON Schema Draft 7, used within API operations to describe request/response data shapes. For reusable canonical types, reference data-model layer entities instead. OpenAPI 3.0 restriction: a '$ref' within a Schema ignores all sibling keywords — unlike JSON Schema where $ref can be merged with other constraints.",
+  "description": "Inline data type definition using a subset of JSON Schema Draft 7, used within API operations to describe request/response data shapes. For reusable canonical types, reference data-model layer entities instead. OpenAPI 3.0 restriction: a '$ref' within a Schema ignores all sibling keywords \u2014 unlike JSON Schema where $ref can be merged with other constraints.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "type": {
           "type": "string"
         },

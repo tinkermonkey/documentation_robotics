@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "requiresAuth": {
           "type": "boolean",
           "description": "Hint indicating this route requires an authenticated session; used by NavigationGuard nodes to enforce access control."

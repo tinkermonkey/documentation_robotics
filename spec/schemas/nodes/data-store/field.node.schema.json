@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "dataType": {
           "type": "string",
           "description": "Data type of this field. Interpretation is paradigm-specific: SQL types (VARCHAR, INTEGER, TIMESTAMP), BSON types (String, ObjectId, Document), Elasticsearch mapping types (keyword, text, dense_vector), or any engine-native type name."

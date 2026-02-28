@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "modelRef": {
           "type": "string",
           "description": "ID of the testing.testcoveragemodel this summary aggregates"

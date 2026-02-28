@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "type": {
           "type": "string",
           "enum": [
@@ -73,7 +66,10 @@
           "items": {
             "type": "object",
             "properties": {
-              "name": { "type": "string", "description": "Prop identifier." },
+              "name": {
+                "type": "string",
+                "description": "Prop identifier."
+              },
               "type": {
                 "type": "string",
                 "enum": ["string", "number", "boolean", "object", "array"],

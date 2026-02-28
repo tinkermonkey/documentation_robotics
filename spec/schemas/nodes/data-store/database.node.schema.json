@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "engine": {
           "type": "string",
           "description": "Database engine name (e.g., 'PostgreSQL', 'MongoDB', 'Redis', 'Cassandra', 'Pinecone', 'Neo4j', 'Elasticsearch', 'InfluxDB', 'DynamoDB'). Free-text to accommodate any engine without enumeration constraints."

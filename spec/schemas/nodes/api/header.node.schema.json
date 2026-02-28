@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Header",
-  "description": "Defines a reusable HTTP header for responses or request components. The header name is derived from its map key — the OpenAPI 3.0 Header Object does not include a 'name' field (use the 'name' attribute as a local identifier only). The 'in' location is implicitly 'header' and must not be specified, distinguishing Header from Parameter.",
+  "description": "Defines a reusable HTTP header for responses or request components. The header name is derived from its map key \u2014 the OpenAPI 3.0 Header Object does not include a 'name' field (use the 'name' attribute as a local identifier only). The 'in' location is implicitly 'header' and must not be specified, distinguishing Header from Parameter.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,14 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string",
-          "description": "Local identifier for this header node. Not an OpenAPI field — the actual HTTP header name is the map key where this Header appears in Responses or Components."
-        },
         "description": {
           "type": "string"
         },

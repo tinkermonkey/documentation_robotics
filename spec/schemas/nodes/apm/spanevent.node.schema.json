@@ -20,14 +20,7 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
         "timeUnixNano": {
-          "type": "string"
-        },
-        "name": {
           "type": "string"
         },
         "droppedAttributesCount": {

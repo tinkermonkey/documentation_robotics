@@ -23,13 +23,6 @@
         "resource": {
           "type": "string"
         },
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "type": {
           "type": "string",
           "enum": ["api", "database", "file", "service", "ui", "stream"],

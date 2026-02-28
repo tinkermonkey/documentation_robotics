@@ -58,13 +58,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "label": {
               "type": "string"
             },
@@ -154,13 +147,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -211,13 +197,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "label": {
               "type": "string"
             },
@@ -282,13 +261,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "order": {
               "type": "integer",
               "description": "Render order of this component instance within its parent View or SubView's component list. Lower values render first."
@@ -330,13 +302,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "ref": {
               "type": "string",
               "description": "SpecNodeId of the component (ux.librarycomponent or ux.componentinstance) to render in the slot."
@@ -378,13 +343,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "source": {
               "type": "string",
               "enum": ["api", "state", "local-storage", "mock", "static"],
@@ -427,13 +385,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "showNotification": {
               "type": "boolean"
             },
@@ -476,13 +427,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "initial": {
               "type": "boolean",
               "description": "When true, marks this as the starting state of the state machine. Only one ExperienceState per state machine should have initial: true."
@@ -571,13 +515,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": ["grid", "flex", "block", "inline", "absolute", "sticky"],
@@ -685,13 +622,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": [
@@ -827,13 +757,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "title": {
               "type": "string"
             },
@@ -880,13 +803,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "action": {
               "type": "string",
               "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
@@ -934,13 +850,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "action": {
               "type": "string",
               "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
@@ -1002,13 +911,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -1053,13 +955,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "to": {
               "type": "string",
               "description": "SpecNodeId of the destination ExperienceState this transition leads to (e.g., 'ux.experiencestate.order-confirmed')."
@@ -1136,13 +1031,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "title": {
               "type": "string"
             },
@@ -1185,13 +1073,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "header": {
               "type": "string"
             },
@@ -1274,13 +1155,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "to": {
               "type": "string"
             },
@@ -1332,13 +1206,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "version": {
               "type": "string"
             },
@@ -1399,13 +1266,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "version": {
               "type": "string"
             },
@@ -1495,13 +1355,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "version": {
               "type": "string"
             },
@@ -1576,13 +1429,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": [

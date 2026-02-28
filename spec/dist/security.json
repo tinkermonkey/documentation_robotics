@@ -65,13 +65,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "field": {
               "type": "string"
             },
@@ -118,13 +111,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "action": {
               "type": "string"
             },
@@ -175,13 +161,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": ["human", "service", "system", "external-entity"],
@@ -232,13 +211,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "enabled": {
               "type": "boolean"
             },
@@ -289,13 +261,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "provider": {
               "type": "string",
               "enum": ["oauth2", "saml", "ldap", "openid-connect", "local", "fido2"],
@@ -348,9 +313,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -390,13 +352,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "expression": {
               "type": "string"
             },
@@ -446,13 +401,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": ["technical", "operational", "management", "physical"],
@@ -502,13 +450,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "version": {
               "type": "string"
             },
@@ -550,13 +491,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "delegator": {
               "type": "string"
             },
@@ -604,13 +538,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": ["log", "signature", "timestamp", "hash", "certificate", "audit-trail"],
@@ -654,13 +581,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "field": {
               "type": "string"
             },
@@ -701,13 +621,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -748,13 +661,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "actor": {
               "type": "string",
               "description": "Identifier of the actor (security.actor) to whom this right is granted."
@@ -800,9 +706,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string"
-            },
             "resource": {
               "type": "string"
             },
@@ -845,13 +748,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "minLength": {
               "type": "integer"
             },
@@ -911,13 +807,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string"
-            },
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
             "description": {
               "type": "string"
             },
@@ -963,13 +852,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": [
@@ -1024,13 +906,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "condition": {
               "type": "string"
             },
@@ -1075,13 +950,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "operation": {
               "type": "string",
               "enum": [
@@ -1142,13 +1010,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "period": {
               "type": "string"
             },
@@ -1194,13 +1055,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "displayName": {
               "type": "string"
             },
@@ -1246,13 +1100,6 @@
             "resource": {
               "type": "string"
             },
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": ["api", "database", "file", "service", "ui", "stream"],
@@ -1290,13 +1137,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "version": {
               "type": "string"
             }
@@ -1328,13 +1168,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "version": {
               "type": "string"
             },
@@ -1376,13 +1209,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -1435,9 +1261,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -1477,13 +1300,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -1538,13 +1354,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": ["regex", "range", "length", "enum", "custom"],

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "StatePattern",
-  "description": "Reusable state machine template for common UX interaction flows, composed of named ExperienceStates and transitions. Canonical examples: 'wizard' — multi-step form with back/next/submit transitions; 'optimistic-update' — loading → success/error with retry; 'tab-panel' — N peer states with tab-driven transitions; 'authenticated-route' — unauthenticated → redirect/login → authenticated.",
+  "description": "Reusable state machine template for common UX interaction flows, composed of named ExperienceStates and transitions. Canonical examples: 'wizard' \u2014 multi-step form with back/next/submit transitions; 'optimistic-update' \u2014 loading \u2192 success/error with retry; 'tab-panel' \u2014 N peer states with tab-driven transitions; 'authenticated-route' \u2014 unauthenticated \u2192 redirect/login \u2192 authenticated.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "description": {
           "type": "string"
         },

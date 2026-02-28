@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "version": {
           "type": "string"
         },
@@ -42,22 +35,34 @@
         "components": {
           "type": "array",
           "description": "List of ux.librarycomponent specNodeIds exported by this library.",
-          "items": { "type": "string", "description": "SpecNodeId of a ux.librarycomponent node." }
+          "items": {
+            "type": "string",
+            "description": "SpecNodeId of a ux.librarycomponent node."
+          }
         },
         "subViews": {
           "type": "array",
           "description": "List of ux.librarysubview specNodeIds exported by this library.",
-          "items": { "type": "string", "description": "SpecNodeId of a ux.librarysubview node." }
+          "items": {
+            "type": "string",
+            "description": "SpecNodeId of a ux.librarysubview node."
+          }
         },
         "statePatterns": {
           "type": "array",
           "description": "List of ux.statepattern specNodeIds exported by this library.",
-          "items": { "type": "string", "description": "SpecNodeId of a ux.statepattern node." }
+          "items": {
+            "type": "string",
+            "description": "SpecNodeId of a ux.statepattern node."
+          }
         },
         "actionPatterns": {
           "type": "array",
           "description": "List of ux.actionpattern specNodeIds exported by this library.",
-          "items": { "type": "string", "description": "SpecNodeId of a ux.actionpattern node." }
+          "items": {
+            "type": "string",
+            "description": "SpecNodeId of a ux.actionpattern node."
+          }
         },
         "source": {
           "type": "object",

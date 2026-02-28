@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "to": {
           "type": "string",
           "description": "SpecNodeId of the destination ExperienceState this transition leads to (e.g., 'ux.experiencestate.order-confirmed')."

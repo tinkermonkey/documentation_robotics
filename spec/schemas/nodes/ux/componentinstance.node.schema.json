@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "order": {
           "type": "integer",
           "description": "Render order of this component instance within its parent View or SubView's component list. Lower values render first."

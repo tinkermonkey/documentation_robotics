@@ -53,13 +53,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -101,13 +94,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -158,13 +144,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -215,13 +194,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -271,13 +243,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "modelRef": {
               "type": "string",
               "description": "ID of the testing.testcoveragemodel this summary aggregates"
@@ -323,13 +288,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "factorType": {
               "type": "string",
               "enum": ["os", "network", "locale", "hardware", "dependency-version"],
@@ -379,13 +337,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "partitionRef": {
               "type": "string",
               "description": "ID of the testing.inputspacepartition from which values are being selected for coverage."
@@ -431,13 +382,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "partitionRef": {
               "type": "string"
             },
@@ -481,13 +425,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -528,13 +465,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -580,13 +510,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "dependsOnPartition": {
               "type": "string",
               "description": "ID of the testing.inputspacepartition that triggers this dependency"
@@ -636,13 +559,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string"
-            },
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
             "label": {
               "type": "string"
             },
@@ -705,10 +621,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
             "targetRef": {
               "type": "string",
               "description": "ID of the testing.testcoveragetarget this summary covers"
@@ -758,13 +670,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "fieldRef": {
               "type": "string",
               "description": "ID of the referenced field element in the API layer (e.g., an API parameter) or Data Model layer (e.g., a data-model property)"
@@ -810,13 +715,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },
@@ -874,13 +772,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "version": {
               "type": "string"
             },
@@ -924,13 +815,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "description": {
               "type": "string"
             },

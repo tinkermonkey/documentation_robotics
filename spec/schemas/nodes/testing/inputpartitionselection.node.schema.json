@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "partitionRef": {
           "type": "string",
           "description": "ID of the testing.inputspacepartition from which values are being selected for coverage."

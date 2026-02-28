@@ -49,13 +49,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": ["otlp", "jaeger", "zipkin", "prometheus", "stdout", "logging"],
@@ -109,13 +102,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string"
             },
@@ -163,13 +149,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "version": {
               "type": "string"
             },
@@ -213,13 +192,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string"
-            },
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
             "serviceName": {
               "type": "string"
             },
@@ -257,13 +229,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": ["simple", "batch", "custom"],
@@ -304,13 +269,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "timeUnixNano": {
               "type": "string"
             },
@@ -373,13 +331,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "serviceName": {
               "type": "string"
             },
@@ -432,13 +383,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "type": {
               "type": "string",
               "enum": [
@@ -494,13 +438,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "schemaUrl": {
               "type": "string"
             },
@@ -553,10 +490,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
             "traceId": {
               "type": "string"
             },
@@ -567,9 +500,6 @@
               "type": "string"
             },
             "parentSpanId": {
-              "type": "string"
-            },
-            "name": {
               "type": "string"
             },
             "spanKind": {
@@ -646,14 +576,7 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
             "timeUnixNano": {
-              "type": "string"
-            },
-            "name": {
               "type": "string"
             },
             "droppedAttributesCount": {
@@ -693,13 +616,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "traceId": {
               "type": "string"
             },
@@ -746,13 +662,6 @@
         "attributes": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string"
-            },
             "source": {
               "type": "object",
               "description": "Source code reference for trace configuration"

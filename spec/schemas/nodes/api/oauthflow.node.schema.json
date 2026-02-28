@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "OAuthFlow",
-  "description": "Configuration for a single OAuth 2.0 grant type (implicit, password, clientCredentials, or authorizationCode). authorizationUrl is required for implicit and authorizationCode flows; tokenUrl is required for password, clientCredentials, and authorizationCode flows; scopes is required for all flows. The flow type is not an explicit field — it is implied by which attribute of the parent OAuthFlows object references this OAuthFlow.",
+  "description": "Configuration for a single OAuth 2.0 grant type (implicit, password, clientCredentials, or authorizationCode). authorizationUrl is required for implicit and authorizationCode flows; tokenUrl is required for password, clientCredentials, and authorizationCode flows; scopes is required for all flows. The flow type is not an explicit field \u2014 it is implied by which attribute of the parent OAuthFlows object references this OAuthFlow.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "authorizationUrl": {
           "type": "string"
         },

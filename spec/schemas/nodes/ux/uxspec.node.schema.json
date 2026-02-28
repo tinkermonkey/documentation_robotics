@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "version": {
           "type": "string"
         },
@@ -60,12 +53,18 @@
         "views": {
           "type": "array",
           "description": "List of ux.view specNodeIds that comprise the routable screens of this experience.",
-          "items": { "type": "string", "description": "SpecNodeId of a ux.view node." }
+          "items": {
+            "type": "string",
+            "description": "SpecNodeId of a ux.view node."
+          }
         },
         "states": {
           "type": "array",
           "description": "List of ux.experiencestate specNodeIds that represent the top-level states of this experience's state machine.",
-          "items": { "type": "string", "description": "SpecNodeId of a ux.experiencestate node." }
+          "items": {
+            "type": "string",
+            "description": "SpecNodeId of a ux.experiencestate node."
+          }
         }
       },
       "additionalProperties": false

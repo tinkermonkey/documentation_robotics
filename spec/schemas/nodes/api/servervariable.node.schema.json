@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "default": {
           "type": "string",
           "description": "Required default value for the variable. When 'enum' is specified, this value must be one of the listed enum values."

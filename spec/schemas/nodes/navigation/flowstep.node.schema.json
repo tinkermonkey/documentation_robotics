@@ -20,17 +20,10 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
         "sequence": {
           "type": "integer"
         },
         "route": {
-          "type": "string"
-        },
-        "name": {
           "type": "string"
         },
         "description": {

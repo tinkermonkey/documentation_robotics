@@ -20,20 +20,13 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "operationId": {
           "type": "string",
-          "description": "The operationId of the target operation within this document. Mutually exclusive with 'operationRef' — only one may be specified per Link."
+          "description": "The operationId of the target operation within this document. Mutually exclusive with 'operationRef' \u2014 only one may be specified per Link."
         },
         "operationRef": {
           "type": "string",
-          "description": "A relative or absolute URL reference to an operation. Mutually exclusive with 'operationId' — only one may be specified per Link."
+          "description": "A relative or absolute URL reference to an operation. Mutually exclusive with 'operationId' \u2014 only one may be specified per Link."
         },
         "description": {
           "type": "string"

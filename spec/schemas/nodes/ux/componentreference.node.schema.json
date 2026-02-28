@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "ref": {
           "type": "string",
           "description": "SpecNodeId of the component (ux.librarycomponent or ux.componentinstance) to render in the slot."

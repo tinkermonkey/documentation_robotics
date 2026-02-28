@@ -20,19 +20,12 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
         "type": {
           "type": "string",
           "enum": ["apiKey", "http", "oauth2", "openIdConnect"],
           "description": "Type of security scheme"
         },
         "description": {
-          "type": "string"
-        },
-        "name": {
           "type": "string"
         },
         "in": {

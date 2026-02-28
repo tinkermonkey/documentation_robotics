@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SubView",
-  "description": "A non-routable UI fragment embedded within a parent View. Two usage modes: (1) Library instance — 'ref' is populated with a ux.librarysubview specNodeId, rendering that reusable fragment; (2) Inline definition — 'ref' is absent and the SubView defines its own composition inline. SubViews are not independently routable; use View for routable pages.",
+  "description": "A non-routable UI fragment embedded within a parent View. Two usage modes: (1) Library instance \u2014 'ref' is populated with a ux.librarysubview specNodeId, rendering that reusable fragment; (2) Inline definition \u2014 'ref' is absent and the SubView defines its own composition inline. SubViews are not independently routable; use View for routable pages.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "title": {
           "type": "string"
         },

@@ -20,10 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
         "targetRef": {
           "type": "string",
           "description": "ID of the testing.testcoveragetarget this summary covers"
@@ -34,15 +30,15 @@
         },
         "implementedCount": {
           "type": "integer",
-          "description": "Number of sketches with a concrete test case implementation (must be ≤ sketchCount; superset of automatedCount)"
+          "description": "Number of sketches with a concrete test case implementation (must be \u2264 sketchCount; superset of automatedCount)"
         },
         "automatedCount": {
           "type": "integer",
-          "description": "Number of implemented test cases that are automated (must be ≤ implementedCount)"
+          "description": "Number of implemented test cases that are automated (must be \u2264 implementedCount)"
         },
         "coveragePercentage": {
           "type": "number",
-          "description": "Percentage of coverage requirements with at least one implemented test case sketch (0–100)"
+          "description": "Percentage of coverage requirements with at least one implemented test case sketch (0\u2013100)"
         }
       },
       "required": ["targetRef", "sketchCount", "implementedCount", "automatedCount"],

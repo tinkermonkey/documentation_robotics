@@ -20,13 +20,6 @@
     "attributes": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "name": {
-          "type": "string"
-        },
         "fieldRef": {
           "type": "string",
           "description": "ID of the referenced field element in the API layer (e.g., an API parameter) or Data Model layer (e.g., a data-model property)"
