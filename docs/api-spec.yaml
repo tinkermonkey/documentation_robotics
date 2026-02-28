@@ -202,8 +202,8 @@ paths:
                   id:
                     type: string
                     minLength: 1
-                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
-                    description: Element UUID
+                    description: Element ID (UUID for spec-aligned elements, semantic dot-ID for
+                      legacy elements)
                   spec_node_id:
                     type: string
                     description: Spec node type ID (e.g. motivation.goal)
@@ -226,16 +226,35 @@ paths:
                   source_reference:
                     type: object
                     properties:
-                      file:
-                        type: string
-                      symbol:
-                        type: string
                       provenance:
                         type: string
-                      repo_remote:
-                        type: string
-                      repo_commit:
-                        type: string
+                        enum:
+                          - extracted
+                          - manual
+                          - inferred
+                          - generated
+                      locations:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            file:
+                              type: string
+                            symbol:
+                              type: string
+                          required:
+                            - file
+                        minItems: 1
+                      repository:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                          commit:
+                            type: string
+                    required:
+                      - provenance
+                      - locations
                     description: Source file and symbol reference
                   metadata:
                     type: object
@@ -244,6 +263,10 @@ paths:
                         type: string
                       updated_at:
                         type: string
+                      created_by:
+                        type: string
+                      version:
+                        type: number
                     additionalProperties: {}
                     description: Element metadata
                   properties:

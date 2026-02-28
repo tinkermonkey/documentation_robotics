@@ -251,7 +251,7 @@ export const LayerResponseSchema = z.object({
 
 export const ElementResponseSchema = z.object({
   // Spec-node required fields (always present)
-  id: ElementIdSchema.describe('Element UUID'),
+  id: z.string().min(1).describe('Element ID (UUID for spec-aligned elements, semantic dot-ID for legacy elements)'),
   spec_node_id: z.string().describe('Spec node type ID (e.g. motivation.goal)'),
   type: z.string().describe('Element type (e.g. goal, endpoint)'),
   layer_id: z.string().describe('Layer this element belongs to'),
@@ -261,15 +261,21 @@ export const ElementResponseSchema = z.object({
   attributes: z.record(z.string(), z.unknown()).optional()
     .describe('Typed attribute bag per spec-node schema'),
   source_reference: z.object({
-    file: z.string().optional(),
-    symbol: z.string().optional(),
-    provenance: z.string().optional(),
-    repo_remote: z.string().optional(),
-    repo_commit: z.string().optional(),
+    provenance: z.enum(['extracted', 'manual', 'inferred', 'generated']),
+    locations: z.array(z.object({
+      file: z.string(),
+      symbol: z.string().optional(),
+    })).min(1),
+    repository: z.object({
+      url: z.string().optional(),
+      commit: z.string().optional(),
+    }).optional(),
   }).optional().describe('Source file and symbol reference'),
   metadata: z.object({
     created_at: z.string().optional(),
     updated_at: z.string().optional(),
+    created_by: z.string().optional(),
+    version: z.number().optional(),
   }).passthrough().optional().describe('Element metadata'),
   // Legacy compat fields (present on pre-migration elements)
   properties: z.record(z.string(), z.unknown()).optional()
