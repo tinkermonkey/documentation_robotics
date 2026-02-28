@@ -29,10 +29,6 @@
         "message": {
           "type": "string"
         },
-        "tasks": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "scope": {
           "type": "string",
           "description": "Organizational or operational boundary within which this binding of duty constraint applies (e.g., a project, department, or system)."

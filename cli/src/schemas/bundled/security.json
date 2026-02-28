@@ -357,10 +357,6 @@
             "message": {
               "type": "string"
             },
-            "tasks": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "scope": {
               "type": "string",
               "description": "Organizational or operational boundary within which this binding of duty constraint applies (e.g., a project, department, or system)."
@@ -525,10 +521,6 @@
               "type": "string",
               "enum": ["public", "internal", "confidential", "restricted", "top-secret"],
               "description": "Data sensitivity tier applied by this scheme, aligned with NIST FIPS 199 security categorization levels."
-            },
-            "classifications": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "additionalProperties": false
@@ -1354,10 +1346,6 @@
               "type": "string",
               "enum": ["dac", "mac", "rbac", "abac", "rebac"],
               "description": "Access control paradigm in use: DAC (discretionary), MAC (mandatory), RBAC (role-based), ABAC (attribute-based), ReBAC (relationship-based). Per NIST SP 800-162 and SP 800-207."
-            },
-            "socialDependencies": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["version", "application"],
@@ -1455,10 +1443,6 @@
             },
             "message": {
               "type": "string"
-            },
-            "tasks": {
-              "type": "array",
-              "description": "Contains relationship"
             },
             "mutuallyExclusive": {
               "type": "boolean",
