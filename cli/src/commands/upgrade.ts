@@ -10,6 +10,8 @@
 
 import ansis from "ansis";
 import { confirm } from "@clack/prompts";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { findProjectRoot, getSpecReferencePath, getModelPath } from "../utils/project-paths.js";
 import {
   getCliVersion,
@@ -92,6 +94,14 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       console.error(ansis.red("Error: No DR project found"));
       console.error(ansis.dim('Run "dr init" to create a new project'));
       process.exit(1);
+    }
+
+    // Unconditionally remove stale .dr/spec/ from old CLI installations.
+    // Schema data is now bundled inside the CLI and never expanded into .dr/.
+    try {
+      await fs.rm(path.join(projectRoot, ".dr", "spec"), { recursive: true, force: true });
+    } catch {
+      // Ignore — directory may not exist
     }
 
     const bundledSpecVersion = getCliBundledSpecVersion();
