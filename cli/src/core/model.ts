@@ -2,9 +2,9 @@ import { Layer } from "./layer.js";
 import { Manifest } from "./manifest.js";
 import { Element } from "./element.js";
 import { GraphModel, type GraphEdge } from "./graph-model.js";
-import { ProjectionEngine } from "./projection-engine.js";
 import { VirtualProjectionEngine } from "./virtual-projection.js";
 import { Relationships } from "./relationships.js";
+import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
@@ -30,7 +30,6 @@ export class Model {
   relationships: Relationships;
   lazyLoad: boolean;
   private loadedLayers: Set<string>;
-  private projectionEngine?: ProjectionEngine;
   private virtualProjectionEngine?: VirtualProjectionEngine;
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
@@ -64,16 +63,6 @@ export class Model {
       }
     }
     return undefined;
-  }
-
-  /**
-   * Get projection engine (lazily initialized)
-   */
-  getProjectionEngine(): ProjectionEngine {
-    if (!this.projectionEngine) {
-      this.projectionEngine = new ProjectionEngine(this);
-    }
-    return this.projectionEngine;
   }
 
   /**
@@ -306,21 +295,7 @@ export class Model {
       // Find the order number for this layer
       // Handle layer names with or without numeric prefix (e.g., "motivation" or "01-motivation")
       const layerNameWithoutPrefix = name.replace(/^\d{2}-/, "");
-      const layerOrder = [
-        "motivation",
-        "business",
-        "security",
-        "application",
-        "technology",
-        "api",
-        "data-model",
-        "data-store",
-        "ux",
-        "navigation",
-        "apm",
-        "testing",
-      ];
-      const index = layerOrder.indexOf(layerNameWithoutPrefix);
+      const index = CANONICAL_LAYER_NAMES.indexOf(layerNameWithoutPrefix as typeof CANONICAL_LAYER_NAMES[number]);
       if (index >= 0) {
         const orderNum = String(index + 1).padStart(2, "0");
         // Use Python CLI structure
@@ -782,24 +757,9 @@ export class Model {
     // Create model directory using Python CLI structure: documentation-robotics/model/
     await ensureDir(`${rootPath}/documentation-robotics/model`);
 
-    const layerOrder = [
-      "motivation",
-      "business",
-      "security",
-      "application",
-      "technology",
-      "api",
-      "data-model",
-      "data-store",
-      "ux",
-      "navigation",
-      "apm",
-      "testing",
-    ];
-
-    for (let i = 0; i < layerOrder.length; i++) {
+    for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {
       const orderNum = String(i + 1).padStart(2, "0");
-      const layerName = layerOrder[i];
+      const layerName = CANONICAL_LAYER_NAMES[i];
       await ensureDir(`${rootPath}/documentation-robotics/model/${orderNum}_${layerName}`);
     }
 

@@ -56,8 +56,8 @@ async function validateSpecInstallation(drSpecPath: string): Promise<boolean> {
     const relSchemas = await glob(join(drSpecPath, "schemas", "relationships", "**", "*.relationship.schema.json"));
 
     return layerFiles.length === 12 &&
-           nodeSchemas.length >= 354 &&
-           relSchemas.length >= 252;
+           nodeSchemas.length >= 184 &&
+           relSchemas.length >= 955;
   } catch {
     return false;
   }
@@ -168,8 +168,8 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
             description: "Install complete specification reference",
             toVersion: bundledSpecVersion,
             details: [
-              "Install 627+ spec files to .dr/spec/",
-              "Includes: 12 layers, 8 base schemas, 354+ node schemas, 252+ relationship schemas",
+              "Install spec files to .dr/spec/",
+              "Includes: 12 layers, 8 base schemas, 184+ node schemas, 955+ relationship schemas",
               "Existing changesets will be preserved",
             ],
           });

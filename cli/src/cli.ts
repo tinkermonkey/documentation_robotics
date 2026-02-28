@@ -19,17 +19,13 @@ import { listCommand } from "./commands/list.js";
 import { searchCommand } from "./commands/search.js";
 import { validateCommand } from "./commands/validate.js";
 import { infoCommand } from "./commands/info.js";
-import { elementCommands } from "./commands/element.js";
 import { relationshipCommands } from "./commands/relationship.js";
 import { schemaCommands } from "./commands/schema.js";
 import { catalogCommands } from "./commands/catalog.js";
 import { docsCommands } from "./commands/docs.js";
 import { traceCommand } from "./commands/trace.js";
-import { projectCommand, projectAllCommand } from "./commands/project.js";
 import { exportCommand } from "./commands/export.js";
 import { importCommand } from "./commands/import.js";
-import { graphMigrateCommand } from "./commands/graph-migrate.js";
-import { modelMigrateCommand, migrateRollbackCommand } from "./commands/model-migrate.js";
 import { migrateElementsCommand } from "./commands/migrate-elements.js";
 import { chatCommand } from "./commands/chat.js";
 import { upgradeCommand } from "./commands/upgrade.js";
@@ -389,54 +385,6 @@ Examples:
   });
 
 program
-  .command("graph-migrate <format>")
-  .description("Transform architecture model to graph database format")
-  .option("--output <path>", "Output file path")
-  .option("--model <path>", "Path to model root directory")
-  .option("--dry-run", "Preview migration without writing files")
-  .option("--validate", "Validate model before migration")
-  .option("--drop-existing", "Drop existing data in Neo4j before import")
-  .option("--batch-size <size>", "Batch size for database imports (default: 1000)")
-  .option("--include-properties", "Include element properties in migration")
-  .option("--include-metadata", "Include metadata in migration")
-  .option("--compress", "Compress output (LadybugDB only)")
-  .addHelpText(
-    "after",
-    `
-Supported formats:
-  neo4j      Neo4j Cypher script for graph database import
-  cypher     Alias for neo4j format
-  ladybug    LadybugDB JSON document format
-  gremlin    Apache Gremlin Groovy script
-  graphml    GraphML XML format (same as 'dr export graphml')
-
-Examples:
-  $ dr graph-migrate neo4j --output model.cypher
-  $ dr graph-migrate ladybug --output model.lbug.json
-  $ dr graph-migrate gremlin --output model.groovy
-  $ dr graph-migrate cypher --dry-run
-
-Graph Database Setup:
-  Neo4j:     neo4j-admin import --from-neo4j-uri=<path-to-cypher-file>
-  LadybugDB: ladybug import model.lbug.json
-  Gremlin:   bin/gremlin.sh < model.groovy`
-  )
-  .action(async (format, options) => {
-    await graphMigrateCommand({
-      format: format.toLowerCase(),
-      output: options.output,
-      model: options.model,
-      dryRun: options.dryRun,
-      validate: options.validate,
-      dropExisting: options.dropExisting,
-      batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
-      includeProperties: options.includeProperties,
-      includeMetadata: options.includeMetadata,
-      compress: options.compress,
-    } as any);
-  });
-
-program
   .command("info")
   .description("Show model information")
   .option("--layer <layer>", "Show specific layer details")
@@ -586,10 +534,6 @@ Examples:
   )
   .action((action, options) => auditSnapshotsCommand({ ...options, action }));
 
-// Element subcommands
-const elementGroup = program.command("element").description("Element operations");
-elementCommands(elementGroup);
-
 // Relationship subcommands
 const relationshipGroup = program.command("relationship").description("Relationship operations");
 relationshipCommands(relationshipGroup);
@@ -627,54 +571,6 @@ Examples:
       direction: options.direction as "up" | "down" | "both" | undefined,
       depth: options.depth ? parseInt(options.depth) : undefined,
       showMetrics: options.metrics,
-      model: options.model,
-    });
-  });
-
-program
-  .command("project <elementId> <targetLayers>")
-  .description("Project an element to other layers using projection rules")
-  .option("--rule <name>", "Specific projection rule to use")
-  .option("--dry-run", "Show what would be created without saving")
-  .option("--force", "Overwrite existing elements")
-  .option("--model <path>", "Path to model directory")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  $ dr project application.service.api-service "api,data-model"
-  $ dr project business.process.order-fulfillment application --dry-run
-  $ dr project api.endpoint.create-order data-model --rule api-to-data`
-  )
-  .action(async (elementId, targetLayers, options) => {
-    await projectCommand(elementId, targetLayers, {
-      rule: options.rule,
-      dryRun: options.dryRun,
-      force: options.force,
-      model: options.model,
-    });
-  });
-
-program
-  .command("project-all")
-  .description("Project all applicable elements based on rules")
-  .option("--from <layer>", "Source layer filter")
-  .option("--to <layer>", "Target layer filter")
-  .option("--dry-run", "Show what would be created without saving")
-  .option("--model <path>", "Path to model directory")
-  .addHelpText(
-    "after",
-    `
-Examples:
-  $ dr project-all --from application --to api
-  $ dr project-all --to data-model --dry-run
-  $ dr project-all`
-  )
-  .action(async (options) => {
-    await projectAllCommand({
-      from: options.from,
-      to: options.to,
-      dryRun: options.dryRun,
       model: options.model,
     });
   });
@@ -775,7 +671,6 @@ Install instructions:
   });
 
 // Advanced commands
-// Note: migrate command has been merged into upgrade command
 program
   .command("version")
   .description("Show CLI and embedded spec version information")
@@ -810,51 +705,6 @@ Examples:
       dryRun: options.dryRun,
       force: options.force,
     });
-  });
-
-program
-  .command("migrate-model [action]")
-  .description("Migrate model to graph format or manage model migrations")
-  .option("--source <path>", "Source model directory")
-  .option("--target <path>", "Target directory for migrated model")
-  .option("--backup <path>", "Backup directory for rollback")
-  .option("--no-backup", "Skip backup creation")
-  .option("--skip-validation", "Skip validation after migration")
-  .option("--verbose", "Verbose output")
-  .option("--dry-run", "Preview migration without making changes")
-  .addHelpText(
-    "after",
-    `
-Actions:
-  (default)  Migrate model to graph format
-  rollback   Restore model from backup
-
-Examples:
-  $ dr migrate-model --source ./model --target ./model-v2
-  $ dr migrate-model --dry-run --verbose
-  $ dr migrate-model rollback --backup ./model.backup-1234567890`
-  )
-  .action(async (action, options) => {
-    if (action === "rollback") {
-      if (!options.backup) {
-        console.error("Error: --backup is required for rollback");
-        process.exit(1);
-      }
-      await migrateRollbackCommand({
-        backup: options.backup,
-        target: options.target,
-        verbose: options.verbose,
-      });
-    } else {
-      await modelMigrateCommand({
-        source: options.source,
-        target: options.target,
-        noBackup: options.noBackup,
-        skipValidation: options.skipValidation,
-        verbose: options.verbose,
-        dryRun: options.dryRun,
-      });
-    }
   });
 
 program
