@@ -186,28 +186,28 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add datastore table with update"
+  - name: "Add datastore collection with update"
     steps:
-      - command: "add data-store table test-table --name 'test_table' --description 'Test table'"
+      - command: "add data-store collection test-table --name 'test_collection' --description 'Test collection'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/tables.yaml
+          - 08_data-store/collections.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
           - "test-table"
 
-      - command: "update data-store.table.test-table --name 'updated_table'"
+      - command: "update data-store.collection.test-table --name 'updated_collection'"
         files_to_compare:
-          - 08_data-store/tables.yaml
+          - 08_data-store/collections.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
 
-      - command: "delete data-store.table.test-table --force"
+      - command: "delete data-store.collection.test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/tables.yaml
+          - 08_data-store/collections.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"

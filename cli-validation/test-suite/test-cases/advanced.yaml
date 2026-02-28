@@ -19,40 +19,40 @@ pipelines:
 
   - name: "Trace dependencies for element"
     steps:
-      - command: "add data-store table trace-test-table --name 'trace_table' --description 'Table for tracing'"
+      - command: "add data-store collection trace-test-table --name 'trace_collection' --description 'Collection for tracing'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/tables.yaml
+          - 08_data-store/collections.yaml
         expect_exit_code: 0
 
-      - command: "add data-store column trace-test-column --name 'trace_col' --description 'Column for tracing'"
+      - command: "add data-store field trace-test-column --name 'trace_field' --description 'Field for tracing'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/columns.yaml
+          - 08_data-store/fields.yaml
         expect_exit_code: 0
 
-      - command: "relationship add data-store.table.trace-test-table data-store.column.trace-test-column --predicate composes"
+      - command: "relationship add data-store.collection.trace-test-table data-store.field.trace-test-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "trace data-store.table.trace-test-table"
+      - command: "trace data-store.collection.trace-test-table"
         files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
-          - "data-store.table.trace-test-table"
+          - "data-store.collection.trace-test-table"
 
-      - command: "delete data-store.table.trace-test-table --force"
+      - command: "delete data-store.collection.trace-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/tables.yaml
+          - 08_data-store/collections.yaml
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete data-store.column.trace-test-column --force"
+      - command: "delete data-store.field.trace-test-column --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/columns.yaml
+          - 08_data-store/fields.yaml
         expect_exit_code: 0
 
   - name: "Model information and statistics"
@@ -84,19 +84,19 @@ pipelines:
 
   - name: "Element operations via element command"
     steps:
-      - command: "element add motivation goal element-cmd-test --name 'Element Command Test' --description 'Test via element command'"
+      - command: "add motivation goal element-cmd-test --name 'Element Command Test' --description 'Test via element command'"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
         expect_exit_code: 0
 
-      - command: "element show motivation.goal.element-cmd-test"
+      - command: "show motivation.goal.element-cmd-test"
         files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
           - "motivation.goal.element-cmd-test"
 
-      - command: "element delete motivation.goal.element-cmd-test --force"
+      - command: "delete motivation.goal.element-cmd-test --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
@@ -104,40 +104,40 @@ pipelines:
 
   - name: "Relationship operations via relationship command"
     steps:
-      - command: "add data-store table rel-cmd-table --name 'rel_table' --description 'Table for relationship command test'"
+      - command: "add data-store collection rel-cmd-table --name 'rel_collection' --description 'Collection for relationship command test'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/tables.yaml
+          - 08_data-store/collections.yaml
         expect_exit_code: 0
 
-      - command: "add data-store column rel-cmd-column --name 'rel_col' --description 'Column for relationship command test'"
+      - command: "add data-store field rel-cmd-column --name 'rel_field' --description 'Field for relationship command test'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/columns.yaml
+          - 08_data-store/fields.yaml
         expect_exit_code: 0
 
-      - command: "relationship add data-store.table.rel-cmd-table data-store.column.rel-cmd-column --predicate composes"
+      - command: "relationship add data-store.collection.rel-cmd-table data-store.field.rel-cmd-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "relationship show data-store.table.rel-cmd-table data-store.column.rel-cmd-column"
+      - command: "relationship show data-store.collection.rel-cmd-table data-store.field.rel-cmd-column"
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "relationship delete data-store.table.rel-cmd-table data-store.column.rel-cmd-column --predicate composes"
+      - command: "relationship delete data-store.collection.rel-cmd-table data-store.field.rel-cmd-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete data-store.table.rel-cmd-table --force"
+      - command: "delete data-store.collection.rel-cmd-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/tables.yaml
+          - 08_data-store/collections.yaml
         expect_exit_code: 0
 
-      - command: "delete data-store.column.rel-cmd-column --force"
+      - command: "delete data-store.field.rel-cmd-column --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/columns.yaml
+          - 08_data-store/fields.yaml
         expect_exit_code: 0

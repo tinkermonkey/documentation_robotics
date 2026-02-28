@@ -306,7 +306,7 @@ export class OpenAPIExporter implements Exporter {
         (span as any).setAttribute("export.pathCount", pathGroups.size);
         (span as any).setAttribute(
           "export.schemaCount",
-          Object.keys(spec.components.schemas || {}).length
+          Object.keys(spec.components?.schemas || {}).length
         );
         (span as any).setAttribute("export.size", result.length);
         (span as any).setStatus({ code: 0 });

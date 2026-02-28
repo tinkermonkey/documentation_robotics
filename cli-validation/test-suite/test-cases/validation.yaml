@@ -139,22 +139,22 @@ pipelines:
   - name: "Reference to non-existent element"
     description: "Verify validation when referencing non-existent elements"
     steps:
-      - command: "add data-store table ref-test-table --name 'test_table' --description 'Table for reference test'"
+      - command: "add data-store collection ref-test-table --name 'test_collection' --description 'Collection for reference test'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/tables.yaml
+          - 08_data-store/collections.yaml
         expect_exit_code: 0
 
-      - command: "relationship add data-store.table.ref-test-table nonexistent-element --predicate composes"
+      - command: "relationship add data-store.collection.ref-test-table nonexistent-element --predicate composes"
         files_to_compare: []
         expect_exit_code: 1
         expect_stderr_contains:
           - "not found"
 
-      - command: "delete data-store.table.ref-test-table --force"
+      - command: "delete data-store.collection.ref-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/tables.yaml
+          - 08_data-store/collections.yaml
         expect_exit_code: 0
 
   - name: "Invalid layer name"

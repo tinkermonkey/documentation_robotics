@@ -32,12 +32,24 @@ pipelines:
 
   - name: "Export to OpenAPI specification"
     steps:
+      - command: "add api operation export-test-operation --name 'Export Test Operation' --description 'Temporary operation for export test'"
+        files_to_compare:
+          - manifest.yaml
+          - 06_api/operations.yaml
+        expect_exit_code: 0
+
       - command: "export openapi --output export-api.json"
         files_to_compare:
           - export-api.json
         expect_exit_code: 0
         expect_stdout_contains:
           - "Exported"
+
+      - command: "delete api.operation.export-test-operation --force"
+        files_to_compare:
+          - manifest.yaml
+          - 06_api/operations.yaml
+        expect_exit_code: 0
 
   - name: "Export to JSON Schema"
     steps:
