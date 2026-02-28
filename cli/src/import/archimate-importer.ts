@@ -3,6 +3,7 @@ import type { Importer, ImportOptions, ImportResult } from "./types.js";
 import type { Span } from "@opentelemetry/api";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { DOMParser } from "@xmldom/xmldom";
 
 /**
  * ArchiMate XML Importer for layers 1, 2, 4, 5
@@ -32,7 +33,7 @@ export class ArchiMateImporter implements Importer {
         return result;
       }
 
-      // Parse XML using Bun's global DOMParser
+      // Parse XML using @xmldom/xmldom (server-side DOM parser)
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(data, "application/xml");
 

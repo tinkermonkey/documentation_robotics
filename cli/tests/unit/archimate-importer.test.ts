@@ -97,7 +97,7 @@ describe("ArchiMateImporter", () => {
     expect(result.nodesAdded).toBe(2);
     expect(result.edgesAdded).toBe(1);
 
-    const edge = model.graph.getEdge("rel-1");
+    const edge = model.graph.getAllEdges().find((e) => e.id === "rel-1");
     expect(edge).toBeDefined();
     expect(edge?.source).toBe("goal-1");
     expect(edge?.destination).toBe("goal-2");

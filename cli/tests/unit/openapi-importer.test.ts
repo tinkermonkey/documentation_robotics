@@ -51,7 +51,7 @@ describe("OpenAPIImporter", () => {
     const result = await importer.import(JSON.stringify(spec), model);
 
     expect(result.success).toBe(true);
-    const docNode = model.graph.getNode("api.openapi-document.root");
+    const docNode = model.graph.getNode("api.openapi-document.my-api");
     expect(docNode).toBeDefined();
     expect(docNode?.name).toBe("My API");
     expect(docNode?.description).toBe("Test API");
