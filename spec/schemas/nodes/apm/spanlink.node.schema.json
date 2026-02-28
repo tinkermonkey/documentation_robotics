@@ -40,8 +40,9 @@
           "type": "string"
         },
         "attributes": {
-          "type": "array",
-          "description": "Contains relationship"
+          "type": "object",
+          "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+          "additionalProperties": true
         }
       },
       "required": ["traceId", "spanId", "droppedAttributesCount"],

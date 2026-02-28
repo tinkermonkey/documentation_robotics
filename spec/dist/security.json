@@ -362,8 +362,8 @@
               "description": "Contains relationship"
             },
             "scope": {
-              "type": "array",
-              "description": "Contains relationship"
+              "type": "string",
+              "description": "Organizational or operational boundary within which this binding of duty constraint applies (e.g., a project, department, or system)."
             }
           },
           "required": ["message"],
@@ -1461,8 +1461,8 @@
               "description": "Contains relationship"
             },
             "mutuallyExclusive": {
-              "type": "array",
-              "description": "Contains relationship"
+              "type": "boolean",
+              "description": "When true, the roles in this constraint cannot be held simultaneously by the same subject. Enforces strict role exclusivity within the separation of duty rule."
             }
           },
           "required": ["message"],

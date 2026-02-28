@@ -180,8 +180,9 @@
               "type": "string"
             },
             "attributes": {
-              "type": "array",
-              "description": "Contains relationship"
+              "type": "object",
+              "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+              "additionalProperties": true
             }
           },
           "required": ["droppedAttributesCount"],
@@ -332,8 +333,9 @@
               "type": "string"
             },
             "attributes": {
-              "type": "array",
-              "description": "Contains relationship"
+              "type": "object",
+              "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+              "additionalProperties": true
             }
           },
           "required": [
@@ -518,8 +520,9 @@
               "description": "OTel Resource semantic convention: deployment environment (deployment.environment)"
             },
             "attributes": {
-              "type": "array",
-              "description": "Contains relationship"
+              "type": "object",
+              "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+              "additionalProperties": true
             }
           },
           "required": ["droppedAttributesCount"],
@@ -599,8 +602,9 @@
               "description": "Optional human-readable error message, used when statusCode is ERROR."
             },
             "attributes": {
-              "type": "array",
-              "description": "Contains relationship"
+              "type": "object",
+              "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+              "additionalProperties": true
             }
           },
           "required": [
@@ -656,8 +660,9 @@
               "type": "string"
             },
             "attributes": {
-              "type": "array",
-              "description": "Contains relationship"
+              "type": "object",
+              "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+              "additionalProperties": true
             }
           },
           "required": ["timeUnixNano", "droppedAttributesCount"],
@@ -708,8 +713,9 @@
               "type": "string"
             },
             "attributes": {
-              "type": "array",
-              "description": "Contains relationship"
+              "type": "object",
+              "description": "Key-value pairs of observability metadata attached to this signal, per the OpenTelemetry attribute specification. Keys are strings; values may be strings, booleans, integers, floats, or arrays thereof.",
+              "additionalProperties": true
             }
           },
           "required": ["traceId", "spanId", "droppedAttributesCount"],

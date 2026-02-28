@@ -34,8 +34,8 @@
           "description": "Contains relationship"
         },
         "mutuallyExclusive": {
-          "type": "array",
-          "description": "Contains relationship"
+          "type": "boolean",
+          "description": "When true, the roles in this constraint cannot be held simultaneously by the same subject. Enforces strict role exclusivity within the separation of duty rule."
         }
       },
       "required": ["message"],
