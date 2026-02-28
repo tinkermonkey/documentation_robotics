@@ -319,10 +319,6 @@
             "description": {
               "type": "string"
             },
-            "steps": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "source": {
               "type": "object",
               "description": "Source code reference"
@@ -371,18 +367,6 @@
             },
             "description": {
               "type": "string"
-            },
-            "routes": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "transitions": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "guards": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["version", "application"],
@@ -484,10 +468,6 @@
             },
             "description": {
               "type": "string"
-            },
-            "guards": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["from", "to", "trigger"],

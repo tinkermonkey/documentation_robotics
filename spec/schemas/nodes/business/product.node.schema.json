@@ -29,14 +29,6 @@
         },
         "documentation": {
           "type": "string"
-        },
-        "services": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "contracts": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "additionalProperties": false

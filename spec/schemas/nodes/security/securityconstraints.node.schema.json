@@ -29,18 +29,6 @@
         },
         "version": {
           "type": "string"
-        },
-        "separationOfDuty": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "bindingOfDuty": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "needToKnow": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "additionalProperties": false

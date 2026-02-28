@@ -37,19 +37,11 @@
         "description": {
           "type": "string"
         },
-        "coverageTargets": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "inputSpacePartitions": {
           "type": "array",
           "description": "Contains relationship"
         },
         "contextVariations": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "coverageRequirements": {
           "type": "array",
           "description": "Contains relationship"
         },

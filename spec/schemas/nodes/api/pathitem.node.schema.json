@@ -33,14 +33,6 @@
         "description": {
           "type": "string"
         },
-        "servers": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "parameters": {
-          "type": "array",
-          "description": "Contains relationship — path-level parameters inherited by all child operations; can be overridden by matching name and 'in' at the operation level but cannot be removed."
-        },
         "get": {
           "type": "array",
           "description": "Contains relationship"

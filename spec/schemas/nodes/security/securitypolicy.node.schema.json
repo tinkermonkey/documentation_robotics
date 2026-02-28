@@ -46,10 +46,6 @@
           "enum": ["mandatory", "recommended", "optional", "conditional"],
           "description": "Compliance obligation of this policy, indicating whether enforcement is required by regulation, recommended best practice, or situationally applicable."
         },
-        "rules": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "source": {
           "type": "object",
           "description": "Source code reference"

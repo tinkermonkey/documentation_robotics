@@ -385,10 +385,6 @@
             "documentation": {
               "type": "string"
             },
-            "nodes": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "properties": {
               "type": "object",
               "description": "Cross-layer properties"

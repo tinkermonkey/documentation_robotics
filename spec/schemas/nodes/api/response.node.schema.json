@@ -33,14 +33,6 @@
         "content": {
           "type": "array",
           "description": "Contains relationship"
-        },
-        "headers": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "links": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["description"],

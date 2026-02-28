@@ -42,26 +42,6 @@
         },
         "deprecated": {
           "type": "boolean"
-        },
-        "parameters": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "requestBody": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "responses": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "callbacks": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "security": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["operationId", "summary", "tags"],

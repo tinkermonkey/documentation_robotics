@@ -40,10 +40,6 @@
         },
         "description": {
           "type": "string"
-        },
-        "guards": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["from", "to", "trigger"],

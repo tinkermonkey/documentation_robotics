@@ -38,10 +38,6 @@
         "message": {
           "type": "string"
         },
-        "actions": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "source": {
           "type": "object",
           "description": "Source code reference"

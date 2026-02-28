@@ -37,14 +37,6 @@
         },
         "description": {
           "type": "string"
-        },
-        "operations": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "fieldAccess": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["resource", "type"],

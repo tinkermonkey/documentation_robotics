@@ -51,10 +51,6 @@
           "type": "array",
           "description": "Contains relationship"
         },
-        "inputFields": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "outcomeCategories": {
           "type": "array",
           "description": "Contains relationship"

@@ -36,18 +36,6 @@
         },
         "description": {
           "type": "string"
-        },
-        "routes": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "transitions": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "guards": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["version", "application"],

@@ -109,31 +109,7 @@
             "name": {
               "type": "string"
             },
-            "schemas": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "responses": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "parameters": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "examples": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "requestBodies": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "headers": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "securitySchemes": {
               "type": "array",
               "description": "Contains relationship"
             },
@@ -608,18 +584,6 @@
             "example": {
               "type": "string",
               "description": "An inline example value. Mutually exclusive with 'examples' — only one may be specified per MediaType."
-            },
-            "schema": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "examples": {
-              "type": "array",
-              "description": "Contains relationship — named Example objects. Mutually exclusive with 'example'."
-            },
-            "encoding": {
-              "type": "array",
-              "description": "Contains relationship — encoding rules for individual form fields. Only applies when contentType is 'multipart/form-data' or 'application/x-www-form-urlencoded'."
             }
           },
           "required": ["contentType"],
@@ -834,26 +798,6 @@
             },
             "deprecated": {
               "type": "boolean"
-            },
-            "parameters": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "requestBody": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "responses": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "callbacks": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "security": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["operationId", "summary", "tags"],
@@ -987,14 +931,6 @@
             "description": {
               "type": "string"
             },
-            "servers": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "parameters": {
-              "type": "array",
-              "description": "Contains relationship — path-level parameters inherited by all child operations; can be overridden by matching name and 'in' at the operation level but cannot be removed."
-            },
             "get": {
               "type": "array",
               "description": "Contains relationship"
@@ -1062,10 +998,6 @@
             },
             "name": {
               "type": "string"
-            },
-            "pathItems": {
-              "type": "array",
-              "description": "Contains relationship — the PathItem nodes that define operations for each path template in this Paths map."
             }
           },
           "additionalProperties": false
@@ -1215,14 +1147,6 @@
             "content": {
               "type": "array",
               "description": "Contains relationship"
-            },
-            "headers": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "links": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["description"],
@@ -1259,10 +1183,6 @@
             },
             "name": {
               "type": "string"
-            },
-            "responses": {
-              "type": "array",
-              "description": "Contains relationship — the Response nodes mapped to HTTP status codes or 'default' in this Responses object."
             }
           },
           "additionalProperties": false
@@ -1564,10 +1484,6 @@
             },
             "description": {
               "type": "string"
-            },
-            "externalDocs": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "additionalProperties": false

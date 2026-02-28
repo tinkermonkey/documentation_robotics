@@ -47,19 +47,11 @@
           "enum": ["critical", "high", "medium", "low"],
           "description": "Relative importance of fulfilling this coverage requirement"
         },
-        "inputPartitionSelections": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "contextSelections": {
           "type": "array",
           "description": "Contains relationship"
         },
         "outcomeSelections": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "exclusions": {
           "type": "array",
           "description": "Contains relationship"
         }

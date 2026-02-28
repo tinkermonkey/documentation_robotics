@@ -46,10 +46,6 @@
         "targetSummaries": {
           "type": "array",
           "description": "Contains relationship"
-        },
-        "gaps": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["totalTargets", "totalRequirements", "totalSketches"],

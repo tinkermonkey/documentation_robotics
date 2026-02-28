@@ -242,19 +242,11 @@
               "enum": ["critical", "high", "medium", "low"],
               "description": "Relative importance of fulfilling this coverage requirement"
             },
-            "inputPartitionSelections": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "contextSelections": {
               "type": "array",
               "description": "Contains relationship"
             },
             "outcomeSelections": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "exclusions": {
               "type": "array",
               "description": "Contains relationship"
             }
@@ -311,10 +303,6 @@
               "type": "integer"
             },
             "targetSummaries": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "gaps": {
               "type": "array",
               "description": "Contains relationship"
             }
@@ -923,19 +911,11 @@
             "description": {
               "type": "string"
             },
-            "coverageTargets": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "inputSpacePartitions": {
               "type": "array",
               "description": "Contains relationship"
             },
             "contextVariations": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "coverageRequirements": {
               "type": "array",
               "description": "Contains relationship"
             },
@@ -1004,10 +984,6 @@
               "description": "Relative importance of achieving coverage for this target"
             },
             "applicableContexts": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "inputFields": {
               "type": "array",
               "description": "Contains relationship"
             },

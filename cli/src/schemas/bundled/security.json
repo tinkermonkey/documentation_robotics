@@ -1050,10 +1050,6 @@
             "message": {
               "type": "string"
             },
-            "actions": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "source": {
               "type": "object",
               "description": "Source code reference"
@@ -1225,10 +1221,6 @@
             "inheritsFrom": {
               "type": "string",
               "description": "Name of the parent role this role inherits permissions from. Supports single inheritance; the child accumulates all permissions of the referenced role in addition to its own."
-            },
-            "permissions": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["displayName", "level", "inheritsFrom"],
@@ -1276,14 +1268,6 @@
             },
             "description": {
               "type": "string"
-            },
-            "operations": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "fieldAccess": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["resource", "type"],
@@ -1323,18 +1307,6 @@
             },
             "version": {
               "type": "string"
-            },
-            "separationOfDuty": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "bindingOfDuty": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "needToKnow": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "additionalProperties": false
@@ -1383,10 +1355,6 @@
               "enum": ["dac", "mac", "rbac", "abac", "rebac"],
               "description": "Access control paradigm in use: DAC (discretionary), MAC (mandatory), RBAC (role-based), ABAC (attribute-based), ReBAC (relationship-based). Per NIST SP 800-162 and SP 800-207."
             },
-            "authentication": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "actors": {
               "type": "array",
               "description": "Contains relationship"
@@ -1411,27 +1379,11 @@
               "type": "array",
               "description": "Contains relationship"
             },
-            "securityConstraints": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "policies": {
               "type": "array",
               "description": "Contains relationship"
             },
-            "dataClassification": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "socialDependencies": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "accountability": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "threats": {
               "type": "array",
               "description": "Contains relationship"
             }
@@ -1490,10 +1442,6 @@
               "enum": ["mandatory", "recommended", "optional", "conditional"],
               "description": "Compliance obligation of this policy, indicating whether enforcement is required by regulation, recommended best practice, or situationally applicable."
             },
-            "rules": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "source": {
               "type": "object",
               "description": "Source code reference"
@@ -1537,10 +1485,6 @@
               "type": "string"
             },
             "tasks": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "roles": {
               "type": "array",
               "description": "Contains relationship"
             },

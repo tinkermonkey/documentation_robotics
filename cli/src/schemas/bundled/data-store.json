@@ -174,21 +174,9 @@
               "type": "string",
               "description": "Reference to a schema definition that validates documents or records. For MongoDB this is the JSON Schema validator; for relational databases, the set of column constraints; for search engines, the mapping definition."
             },
-            "fields": {
-              "type": "array",
-              "description": "Contains relationship to fields within this collection"
-            },
             "constraints": {
               "type": "array",
               "description": "Contains relationship to validation rules on this collection"
-            },
-            "indexes": {
-              "type": "array",
-              "description": "Contains relationship to indexes on this collection"
-            },
-            "eventHandlers": {
-              "type": "array",
-              "description": "Contains relationship to event handlers (triggers, change streams) on this collection"
             },
             "x-source-reference": {
               "type": "string",
@@ -268,10 +256,6 @@
                 "EMBEDDED"
               ],
               "description": "How the database is deployed. STANDALONE: single instance. REPLICATED: primary with read replicas. SHARDED: data partitioned across nodes. DISTRIBUTED: fully distributed with no single primary. SERVERLESS: cloud-managed auto-scaling. EMBEDDED: in-process database (SQLite, RocksDB)."
-            },
-            "namespaces": {
-              "type": "array",
-              "description": "Contains relationship to namespaces within this database"
             }
           },
           "required": ["engine", "paradigm"],
@@ -600,10 +584,6 @@
             },
             "owner": {
               "type": "string"
-            },
-            "collections": {
-              "type": "array",
-              "description": "Contains relationship to collections within this namespace"
             },
             "storedLogic": {
               "type": "array",

@@ -39,10 +39,6 @@
         "inheritsFrom": {
           "type": "string",
           "description": "Name of the parent role this role inherits permissions from. Supports single inheritance; the child accumulates all permissions of the referenced role in addition to its own."
-        },
-        "permissions": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["displayName", "level", "inheritsFrom"],

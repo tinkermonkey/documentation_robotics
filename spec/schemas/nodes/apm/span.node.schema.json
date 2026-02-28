@@ -72,10 +72,6 @@
           "type": "array",
           "description": "Contains relationship"
         },
-        "events": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "links": {
           "type": "array",
           "description": "Contains relationship"

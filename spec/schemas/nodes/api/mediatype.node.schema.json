@@ -32,19 +32,7 @@
         },
         "example": {
           "type": "string",
-          "description": "An inline example value. Mutually exclusive with 'examples' — only one may be specified per MediaType."
-        },
-        "schema": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "examples": {
-          "type": "array",
-          "description": "Contains relationship — named Example objects. Mutually exclusive with 'example'."
-        },
-        "encoding": {
-          "type": "array",
-          "description": "Contains relationship — encoding rules for individual form fields. Only applies when contentType is 'multipart/form-data' or 'application/x-www-form-urlencoded'."
+          "description": "An inline example value. Mutually exclusive with 'examples' \u2014 only one may be specified per MediaType."
         }
       },
       "required": ["contentType"],

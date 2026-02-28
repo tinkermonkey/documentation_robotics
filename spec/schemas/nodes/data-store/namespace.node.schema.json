@@ -30,10 +30,6 @@
         "owner": {
           "type": "string"
         },
-        "collections": {
-          "type": "array",
-          "description": "Contains relationship to collections within this namespace"
-        },
         "storedLogic": {
           "type": "array",
           "description": "Contains relationship to stored logic (functions, procedures, pipelines) within this namespace"

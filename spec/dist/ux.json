@@ -1613,14 +1613,6 @@
             "layout": {
               "type": "string"
             },
-            "subViews": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "components": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "actions": {
               "type": "array",
               "description": "Contains relationship"
