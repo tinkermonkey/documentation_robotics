@@ -18,6 +18,12 @@ servers:
   - url: http://localhost:8080
     description: Local development server
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "API token (shown at server startup, pass as Authorization: Bearer
+        <token>)"
   schemas: {}
   parameters: {}
 paths:
@@ -50,6 +56,8 @@ paths:
         - Model
       summary: Get full model
       description: Retrieve the complete architecture model across all layers
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: Model data retrieved successfully
@@ -95,6 +103,8 @@ paths:
         - Model
       summary: Get layer
       description: Retrieve a specific layer with all its elements
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string
@@ -171,6 +181,8 @@ paths:
       summary: Get element
       description: Retrieve a specific architecture element with its metadata and
         annotations
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string
@@ -191,20 +203,64 @@ paths:
                     type: string
                     minLength: 1
                     pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
-                    description: Element ID
-                  name:
+                    description: Element UUID
+                  spec_node_id:
                     type: string
-                    description: Element name
+                    description: Spec node type ID (e.g. motivation.goal)
                   type:
                     type: string
-                    description: Element type
+                    description: Element type (e.g. goal, endpoint)
+                  layer_id:
+                    type: string
+                    description: Layer this element belongs to
+                  name:
+                    type: string
+                    description: Element display name
                   description:
                     type: string
                     description: Element description
+                  attributes:
+                    type: object
+                    additionalProperties: {}
+                    description: Typed attribute bag per spec-node schema
+                  source_reference:
+                    type: object
+                    properties:
+                      file:
+                        type: string
+                      symbol:
+                        type: string
+                      provenance:
+                        type: string
+                      repo_remote:
+                        type: string
+                      repo_commit:
+                        type: string
+                    description: Source file and symbol reference
+                  metadata:
+                    type: object
+                    properties:
+                      created_at:
+                        type: string
+                      updated_at:
+                        type: string
+                    additionalProperties: {}
+                    description: Element metadata
                   properties:
                     type: object
                     additionalProperties: {}
-                    description: Element properties (key-value pairs with arbitrary values)
+                    description: Legacy flat properties (deprecated, use attributes)
+                  elementId:
+                    type: string
+                    description: Legacy semantic ID (deprecated, use id)
+                  references:
+                    type: array
+                    items: {}
+                    description: Cross-layer references
+                  relationships:
+                    type: array
+                    items: {}
+                    description: Intra-layer relationships
                   annotations:
                     type: array
                     items:
@@ -266,8 +322,10 @@ paths:
                     description: Associated annotations
                 required:
                   - id
-                  - name
+                  - spec_node_id
                   - type
+                  - layer_id
+                  - name
         "404":
           description: Element not found
           content:
@@ -298,6 +356,8 @@ paths:
         - Schema
       summary: Get JSON schemas
       description: Retrieve all JSON Schema definitions used by the system
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: Schemas retrieved successfully
@@ -350,6 +410,8 @@ paths:
         - Annotations
       summary: Get annotations
       description: Retrieve all annotations, optionally filtered by element
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string
@@ -450,6 +512,8 @@ paths:
         - Annotations
       summary: Create annotation
       description: Create a new annotation on a model element
+      security:
+        - bearerAuth: []
       requestBody:
         content:
           application/json:
@@ -584,6 +648,8 @@ paths:
         - Annotations
       summary: Get annotation by ID
       description: Retrieve a specific annotation by its ID
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string
@@ -683,6 +749,8 @@ paths:
       summary: Update annotation (partial)
       description: "Update an existing annotation with partial fields (NOTE: partial
         updates, use PATCH for recommended behavior)"
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string
@@ -801,6 +869,8 @@ paths:
         - Annotations
       summary: Partially update annotation
       description: Partially update an existing annotation (recommended over PUT)
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string
@@ -919,6 +989,8 @@ paths:
         - Annotations
       summary: Delete annotation
       description: Delete an existing annotation
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string
@@ -960,6 +1032,8 @@ paths:
         - Annotations
       summary: Get annotation replies
       description: Retrieve all replies to an annotation
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string
@@ -1018,6 +1092,8 @@ paths:
         - Annotations
       summary: Create annotation reply
       description: Add a reply to an annotation
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string
@@ -1099,6 +1175,8 @@ paths:
         - Changesets
       summary: Get changesets
       description: Retrieve a list of all changesets
+      security:
+        - bearerAuth: []
       responses:
         "200":
           description: Changesets retrieved successfully
@@ -1147,6 +1225,8 @@ paths:
         - Changesets
       summary: Get changeset
       description: Retrieve a specific changeset with all its changes
+      security:
+        - bearerAuth: []
       parameters:
         - schema:
             type: string

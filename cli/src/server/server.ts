@@ -345,6 +345,13 @@ export class VisualizationServer {
    * Setup HTTP routes and WebSocket handler
    */
   private setupRoutes(): void {
+    // Register bearerAuth security scheme for protected /api/* routes
+    this.app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+      type: 'http',
+      scheme: 'bearer',
+      description: 'API token (shown at server startup, pass as Authorization: Bearer <token>)',
+    });
+
     // Static viewer HTML at root
     this.app.get("/", (c) => {
       if (this.viewerPath) {
@@ -414,6 +421,7 @@ export class VisualizationServer {
       tags: ['Model'],
       summary: 'Get full model',
       description: 'Retrieve the complete architecture model across all layers',
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
           description: 'Model data retrieved successfully',
@@ -458,6 +466,7 @@ export class VisualizationServer {
       tags: ['Model'],
       summary: 'Get layer',
       description: 'Retrieve a specific layer with all its elements',
+      security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ layerName: LayerNameSchema }),
       },
@@ -519,6 +528,7 @@ export class VisualizationServer {
       tags: ['Model'],
       summary: 'Get element',
       description: 'Retrieve a specific architecture element with its metadata and annotations',
+      security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ id: ElementIdSchema }),
       },
@@ -582,6 +592,7 @@ export class VisualizationServer {
       tags: ['Schema'],
       summary: 'Get JSON schemas',
       description: 'Retrieve all JSON Schema definitions used by the system',
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
           description: 'Schemas retrieved successfully',
@@ -629,6 +640,7 @@ export class VisualizationServer {
       tags: ['Annotations'],
       summary: 'Get annotations',
       description: 'Retrieve all annotations, optionally filtered by element',
+      security: [{ bearerAuth: [] }],
       request: {
         query: AnnotationFilterSchema,
       },
@@ -671,6 +683,7 @@ export class VisualizationServer {
       tags: ['Annotations'],
       summary: 'Create annotation',
       description: 'Create a new annotation on a model element',
+      security: [{ bearerAuth: [] }],
       request: {
         body: {
           content: {
@@ -766,6 +779,7 @@ export class VisualizationServer {
       tags: ['Annotations'],
       summary: 'Get annotation by ID',
       description: 'Retrieve a specific annotation by its ID',
+      security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ annotationId: IdSchema }),
       },
@@ -827,6 +841,7 @@ export class VisualizationServer {
       tags: ['Annotations'],
       summary: 'Update annotation (partial)',
       description: 'Update an existing annotation with partial fields (NOTE: partial updates, use PATCH for recommended behavior)',
+      security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ annotationId: IdSchema }),
         body: {
@@ -891,6 +906,7 @@ export class VisualizationServer {
       tags: ['Annotations'],
       summary: 'Partially update annotation',
       description: 'Partially update an existing annotation (recommended over PUT)',
+      security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ annotationId: IdSchema }),
         body: {
@@ -955,6 +971,7 @@ export class VisualizationServer {
       tags: ['Annotations'],
       summary: 'Delete annotation',
       description: 'Delete an existing annotation',
+      security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ annotationId: IdSchema }),
       },
@@ -1019,6 +1036,7 @@ export class VisualizationServer {
       tags: ['Annotations'],
       summary: 'Get annotation replies',
       description: 'Retrieve all replies to an annotation',
+      security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ annotationId: IdSchema }),
       },
@@ -1062,6 +1080,7 @@ export class VisualizationServer {
       tags: ['Annotations'],
       summary: 'Create annotation reply',
       description: 'Add a reply to an annotation',
+      security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ annotationId: IdSchema }),
         body: {
@@ -1148,6 +1167,7 @@ export class VisualizationServer {
       tags: ['Changesets'],
       summary: 'Get changesets',
       description: 'Retrieve a list of all changesets',
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
           description: 'Changesets retrieved successfully',
@@ -1186,6 +1206,7 @@ export class VisualizationServer {
       tags: ['Changesets'],
       summary: 'Get changeset',
       description: 'Retrieve a specific changeset with all its changes',
+      security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ changesetId: IdSchema }),
       },

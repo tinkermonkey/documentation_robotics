@@ -250,11 +250,35 @@ export const LayerResponseSchema = z.object({
 });
 
 export const ElementResponseSchema = z.object({
-  id: ElementIdSchema.describe('Element ID'),
-  name: z.string().describe('Element name'),
-  type: z.string().describe('Element type'),
+  // Spec-node required fields (always present)
+  id: ElementIdSchema.describe('Element UUID'),
+  spec_node_id: z.string().describe('Spec node type ID (e.g. motivation.goal)'),
+  type: z.string().describe('Element type (e.g. goal, endpoint)'),
+  layer_id: z.string().describe('Layer this element belongs to'),
+  name: z.string().describe('Element display name'),
+  // Optional spec-node fields
   description: z.string().optional().describe('Element description'),
-  properties: z.record(z.string(), z.unknown()).optional().describe('Element properties (key-value pairs with arbitrary values)'),
+  attributes: z.record(z.string(), z.unknown()).optional()
+    .describe('Typed attribute bag per spec-node schema'),
+  source_reference: z.object({
+    file: z.string().optional(),
+    symbol: z.string().optional(),
+    provenance: z.string().optional(),
+    repo_remote: z.string().optional(),
+    repo_commit: z.string().optional(),
+  }).optional().describe('Source file and symbol reference'),
+  metadata: z.object({
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+  }).passthrough().optional().describe('Element metadata'),
+  // Legacy compat fields (present on pre-migration elements)
+  properties: z.record(z.string(), z.unknown()).optional()
+    .describe('Legacy flat properties (deprecated, use attributes)'),
+  elementId: z.string().optional()
+    .describe('Legacy semantic ID (deprecated, use id)'),
+  references: z.array(z.unknown()).optional().describe('Cross-layer references'),
+  relationships: z.array(z.unknown()).optional().describe('Intra-layer relationships'),
+  // Server-added field
   annotations: z.array(AnnotationSchema).optional().describe('Associated annotations'),
 });
 
