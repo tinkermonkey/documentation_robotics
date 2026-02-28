@@ -37,6 +37,15 @@ export async function installSpecReference(
   await ensureDir(drPath);
   await ensureDir(join(drPath, "changesets"));
 
+  // Remove stale .dr/spec/ directory from old installations that expanded
+  // the compiled schema files into hundreds of individual files. Schema data
+  // is now read directly from the CLI's bundled compiled format.
+  try {
+    await fs.rm(join(drPath, "spec"), { recursive: true, force: true });
+  } catch {
+    // Ignore — directory may not exist
+  }
+
   // Write manifest.json
   const manifest = {
     specVersion: specVersion,

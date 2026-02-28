@@ -135,6 +135,38 @@ describe('spec-installer', () => {
       }
     });
 
+    it('should remove stale .dr/spec/ directory from old installations', async () => {
+      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+      await mkdir(tempDir, { recursive: true });
+
+      try {
+        // Simulate old-style installation with expanded schema files in .dr/spec/
+        await mkdir(path.join(tempDir, '.dr', 'spec', 'layers'), { recursive: true });
+        await writeFile(
+          path.join(tempDir, '.dr', 'spec', 'layers', '01-motivation.layer.json'),
+          JSON.stringify({ id: 'motivation', number: 1 })
+        );
+        await mkdir(path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', 'motivation'), { recursive: true });
+        await writeFile(
+          path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', 'motivation', 'goal.node.schema.json'),
+          JSON.stringify({ title: 'Goal' })
+        );
+
+        expect(existsSync(path.join(tempDir, '.dr', 'spec'))).toBe(true);
+
+        // Install with new CLI removes the stale directory
+        await installSpecReference(tempDir, true);
+
+        expect(existsSync(path.join(tempDir, '.dr', 'spec'))).toBe(false);
+
+        // But manifest and changesets are still written correctly
+        expect(existsSync(path.join(tempDir, '.dr', 'manifest.json'))).toBe(true);
+        expect(existsSync(path.join(tempDir, '.dr', 'changesets'))).toBe(true);
+      } finally {
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
+    });
+
     it('should update manifest version on reinstall', async () => {
       const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
       await mkdir(tempDir, { recursive: true });

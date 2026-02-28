@@ -53,6 +53,8 @@ export async function versionCommand(): Promise<void> {
   console.log(`Spec Version: ${ansis.cyan(specVersion)}`);
   console.log(`Git Hash:     ${ansis.cyan(gitHash)}`);
   console.log(`Telemetry:    ${telemetryStatus}`);
-  console.log(`Spec path:    ${ansis.cyan((path.join(await getSpecReferencePath() || '', "spec")) || "Not found")}`);
+  console.log(`Spec source:  ${ansis.cyan("bundled with CLI")}`);
+  const drFolder = await getSpecReferencePath();
+  console.log(`DR folder:    ${ansis.cyan(drFolder || "Not found")}`);
   console.log(`Model path:   ${ansis.cyan((await getModelPath()) || "Not found")}`);
 }

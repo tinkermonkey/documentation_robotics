@@ -5,7 +5,7 @@
 import ansis from "ansis"
 import { spawn } from "child_process"
 import { fileURLToPath } from "node:url"
-import { dirname, join } from "node:path"
+import { dirname } from "node:path"
 import { Model } from "../core/model.js"
 import { logVerbose, logDebug } from "../utils/globals.js"
 import { CLIError } from "../utils/errors.js"
@@ -206,9 +206,9 @@ export async function visualizeCommand(
           }
 
           console.log(ansis.blueBright(`Model name: ${model.manifest.name}`))
-          const specPath = await getSpecReferencePath()
+          const drFolder = await getSpecReferencePath()
           console.log(
-            `Spec path:    ${ansis.cyan(specPath ? join(specPath, "spec") : "Not found")}`
+            `DR folder:    ${ansis.cyan(drFolder || "Not found")}`
           )
           console.log(`Model path:   ${ansis.cyan((await getModelPath()) || "Not found")}`)
 
