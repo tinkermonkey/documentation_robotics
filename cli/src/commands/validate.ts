@@ -67,7 +67,9 @@ async function validateSchemaSynchronization(): Promise<void> {
 
   // Resolve paths relative to project root
   const projectRoot = path.resolve(__dirname, "../../..");
-  const specSchemaDir = path.join(projectRoot, "spec", "schemas");
+  // Compare spec/dist/ (14 compiled flat files) vs dist/schemas/bundled/ (same 14 files)
+  // spec/schemas/ contains individual source files; spec/dist/ is the compiled distribution
+  const specSchemaDir = path.join(projectRoot, "spec", "dist");
   const bundledSchemaDir = path.join(__dirname, "../schemas/bundled");
 
   // Find all JSON files recursively
@@ -138,7 +140,7 @@ async function validateSchemaSynchronization(): Promise<void> {
     }
     console.log("");
     console.log(
-      ansis.dim("To fix: Ensure spec/schemas/*.json matches cli/src/schemas/bundled/*.json")
+      ansis.dim("To fix: Run 'npm run build:spec' at repo root, then 'npm run build' in cli/ to sync spec/dist/ → cli/src/schemas/bundled/")
     );
     console.log("");
     throw new Error(`Schema synchronization failed with ${mismatches.length} issue(s)`);
