@@ -7,6 +7,55 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-02-28
+
+### Added
+
+- **733 Relationship Schemas**: AI-assisted generation of relationship schemas across all
+  12 layers, dramatically expanding inter-layer relationship coverage; normalized to
+  catalog predicates and validated against spec-node-relationship schema
+- **`build:spec` pipeline enhancements**: Script now auto-generates browser layer reports
+  (`spec/browser/`) and Neo4j CSV/Cypher exports (`spec/neo4j/`) as part of the standard
+  spec build
+- **20 missing relationship schemas** added to fill gaps identified in relationship audit
+
+### Changed
+
+- **Node type improvements (all 12 layers)**: Improved descriptions and attribute
+  consistency across all 12 layers aligned to industry standards:
+  - Motivation: ArchiMate 3.2 alignment
+  - Business: ArchiMate 3.2 precision
+  - API: OpenAPI 3.0 precision; corrected required fields and missing attributes
+  - Application: ArchiMate-aligned descriptions
+  - Technology: Attribute consistency improvements
+  - Security: NIST SP 800-53 alignment
+  - Data Model: JSON Schema Draft 7 alignment
+  - Data Store: Generalized to cover all database paradigms (SQL, NoSQL, graph,
+    document, key-value); renamed `schemas` → `namespaces` on `data-store.database`
+  - UX: HTML 5.3 alignment; anti-pattern resolution
+  - Navigation: Attribute documentation improvements
+  - APM: Missing OpenTelemetry attributes added
+  - Testing: IEEE 829-2008 alignment
+- **Enum-masquerader consolidation**: Collapsed redundant enum-masquerader node types
+  into parent node attributes across all 12 layers, reducing node type count and
+  simplifying the model
+- **Removed `id` and `name` from `attributes.properties`** in 175 node schemas — these
+  are universal top-level properties in `spec-node.schema.json`, not type-specific
+  attributes
+- **41 relationship stubs removed** (deferred/redundant stubs cleaned up in 3 phases)
+- **Spec dist format**: Compiled distribution files now use pretty-printed JSON for
+  better readability and diffs
+
+### Fixed
+
+- Removed 58 redundant "Contains relationship" attribute stubs from node schemas
+- Removed 4 deferred "Contains relationship" relationship stubs
+- Fixed 8 mislabeled inline/primitive attribute stubs (type corrections)
+- Normalized 118 relationship schemas to use catalog predicates
+- Removed redundant `associated-with` relationships on `motivation.outcome`
+- Removed cross-layer annotation node types from `data-model` layer
+- Added `sortKey` attribute to `data-store.accesspattern`
+
 ## [0.8.0] - 2026-02-09
 
 ### Breaking Changes

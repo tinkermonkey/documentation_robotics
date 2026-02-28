@@ -17,7 +17,8 @@ const gitHash = typeof GIT_HASH !== "undefined" ? GIT_HASH : "unknown";
  * Read CLI version from package.json
  */
 async function getPackageVersion(): Promise<string> {
-  const packagePath = path.join(import.meta.url.replace("file://", "").split("/src/")[0], "package.json");
+  const __dirname = path.dirname(import.meta.url.replace("file://", ""));
+  const packagePath = path.join(__dirname, "../package.json");
 
   if (await fileExists(packagePath)) {
     try {
@@ -28,7 +29,7 @@ async function getPackageVersion(): Promise<string> {
     }
   }
 
-  return "0.1.0";
+  return "0.1.1";
 }
 
 export async function versionCommand(): Promise<void> {

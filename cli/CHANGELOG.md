@@ -71,6 +71,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New system uses `relationship-catalog.json` v2.1.0+
   - Migration: Use `dr catalog types` instead of `dr links types`
 
+## [0.1.1] - 2026-02-28
+
+**Specification Support:** v0.8.1
+
+### Added
+
+- **Relationship Audit** (`dr audit`): Comprehensive analysis of relationship coverage,
+  semantic duplicates, gap analysis, and balance across all 12 layers. Features:
+  - Text, JSON, and Markdown output formats
+  - Quality gate mode (`--threshold`, exits 1 if below thresholds)
+  - AI-assisted evaluation (`--enable-ai`) for low-coverage elements
+  - Before/after differential pipeline (`--pipeline`)
+  - Per-layer filtering (`--layer <name>`)
+  - Writes both JSON and Markdown reports by default
+- **Node Audit**: Per-layer spec node type quality analysis (AI-assisted evaluation
+  for alignment scoring)
+- **Spec Reference Installation**: `dr init` now installs the complete specification
+  reference to `.dr/spec/` for offline validation and introspection
+- **Visualization Server OpenAPI spec**: Auto-generated via `npm run generate:openapi`;
+  includes full bearer auth security scheme on all 13 protected `/api/*` routes
+
+### Fixed
+
+- **OpenAPI Exporter**: Fixed `TypeError: Cannot read properties of undefined (reading
+  'schemas')` crash when exporting models with no schema definitions
+- **Visualization Server API**: Aligned `ElementResponseSchema` with full
+  `IElement.toJSON()` shape — added `spec_node_id`, `layer_id`, `attributes`,
+  `source_reference`, `metadata`, `references`, and `relationships` fields; corrected
+  `source_reference` nested structure and `id` field validator
+- **Bundled schemas**: Pruned 148 stale node schemas from `cli/src/schemas/bundled/`
+- **Upgrade conflicts**: Fixed missing baseline handling in integration upgrade conflict
+  detection
+- **Compatibility suite**: Updated test cases for renamed `data-store` node types
+  (`table`→`collection`, `column`→`field`); all 141 steps pass
+
+### Changed
+
+- **Spec bundle format**: CLI now bundles spec as 14 compiled JSON files
+  (manifest.json + base.json + 12 layer files) instead of individual schema files;
+  schema validator, relationship schema validator, and relationship catalog updated
+  to read the new flat format
+- **Removed dead commands**: Deleted `migrate`, `chat-logs`, `graph-migrate`,
+  `model-migrate`, `project`, and `element` subcommands; removed `ProjectionEngine`,
+  `graph-migration`, `neo4j-migration`, `ladybug-migration`, `graph-mapping`
+- **Predicate validation now active**: Semantic validator loads predicates from
+  `base.json` (previously referenced a non-existent `relationship-catalog.json`)
+- **Audit output**: `dr audit` writes both JSON and Markdown reports by default
+
 ## [0.1.0] - 2026-01-11
 
 ### 🎉 Initial Release
