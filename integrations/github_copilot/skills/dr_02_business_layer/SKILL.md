@@ -12,13 +12,13 @@ triggers:
     "business layer",
     "archimate business",
   ]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # Business Layer Skill
 
 **Layer Number:** 02
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Represents business services, processes, actors, and objects that define the organization's operational structure and capabilities.
 
 ---
@@ -37,6 +37,9 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types business` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 | Entity Type               | Description                                          | Key Attributes                                                        |
 | ------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |

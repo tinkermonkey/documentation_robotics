@@ -3,13 +3,13 @@ name: LAYER_10_NAVIGATION
 description: Expert knowledge for Navigation Layer modeling in Documentation Robotics
 triggers:
   ["navigation", "routing", "route", "flow", "navigation guard", "redirect", "navigation flow"]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # Navigation Layer Skill
 
 **Layer Number:** 10
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Defines multi-modal navigation flows, routes, guards, and transitions between views.
 
 ---
@@ -33,6 +33,9 @@ This layer uses **Multi-Modal Navigation** supporting web, mobile, voice, and ot
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types navigation` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 ### Core Navigation Entities (10 entities)
 

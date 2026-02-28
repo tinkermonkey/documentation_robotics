@@ -13,13 +13,13 @@ triggers:
     "request",
     "response",
   ]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # API Layer Skill
 
 **Layer Number:** 06
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Defines REST API contracts using OpenAPI 3.0, specifying endpoints, operations, request/response schemas, and security requirements.
 
 ---
@@ -41,6 +41,9 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types api` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 ### Core OpenAPI Entities (13 entities)
 

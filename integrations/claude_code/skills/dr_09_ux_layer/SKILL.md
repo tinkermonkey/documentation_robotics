@@ -13,13 +13,13 @@ triggers:
     "user experience",
     "state machine",
   ]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # UX Layer Skill
 
 **Layer Number:** 09
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Defines user experience using Three-Tier Architecture, specifying views, components, state machines, and interactions.
 
 ---
@@ -46,6 +46,9 @@ This layer uses **Three-Tier Architecture** (v0.5.0+):
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types ux` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 ### Three-Tier Architecture (26 entities)
 

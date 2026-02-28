@@ -11,13 +11,13 @@ triggers:
     "microservice",
     "archimate application",
   ]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # Application Layer Skill
 
 **Layer Number:** 04
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Describes application services, components, and interfaces that support business processes and bridge requirements with technical implementation.
 
 ---
@@ -37,6 +37,9 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types application` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 | Entity Type                  | Description                                            | Key Attributes                                                                   |
 | ---------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |

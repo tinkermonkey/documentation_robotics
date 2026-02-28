@@ -15,13 +15,13 @@ triggers:
     "terraform",
     "archimate technology",
   ]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # Technology Layer Skill
 
 **Layer Number:** 05
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Describes the technology infrastructure including hardware, software, networks, and facilities that support applications.
 
 ---
@@ -41,6 +41,9 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types technology` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 | Entity Type                 | Description                                             | Key Attributes                                                                               |
 | --------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |

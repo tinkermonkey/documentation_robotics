@@ -44,7 +44,7 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 
 **Note**: The DR CLI is implemented in TypeScript and should be invoked using bash commands.
 
-## Knowledge Base: DR Specification v0.7.0
+## Knowledge Base: DR Specification v0.8.1
 
 ### The 12-Layer Architecture
 
@@ -75,7 +75,7 @@ Documentation Robotics models systems across 12 distinct architectural layers:
 
 ### Cross-Layer Relationships (62+ patterns, 34 intra-layer types)
 
-**Schema Structure (v0.7.0+):**
+**Schema Structure (v0.8.1+):**
 
 Layer schemas include relationship metadata:
 
@@ -311,6 +311,7 @@ Your first task is always to **understand what the user wants** and route to the
 | Explore idea      | "What if we add caching?", "Try GraphQL"         | **Ideation**        |
 | Learn/understand  | "How do I model X?", "What are links?"           | **Education**       |
 | Add/modify        | "Add a service", "Update element"                | **Modeling**        |
+| Audit coverage    | "Check relationships", "Coverage gaps", "Audit"  | **Audit**           |
 
 ### Intent Detection Process
 
@@ -974,6 +975,75 @@ Would you like me to:
 - Add monitoring metrics for auth operations?
 ```
 
+## Workflow: Audit
+
+**When**: User asks about relationship coverage, "coverage gaps", "audit my model", or after significant additions to a layer
+
+**Goal**: Measure intra-layer relationship coverage, detect semantic duplicates, identify structural gaps, and assess overall balance
+
+### When to Proactively Suggest
+
+Proactively suggest `dr audit` when:
+
+- A layer has many elements but the user hasn't added intra-layer relationships
+- After adding 5+ elements to a layer without mentioning relationships
+- When the user asks about model completeness or quality
+- After a major extraction session
+
+### Process
+
+1. **Run audit for specific layer:**
+
+   ```bash
+   dr audit --layer <layer-name>
+   ```
+
+2. **Run full model audit:**
+
+   ```bash
+   dr audit
+   ```
+
+3. **Audit with quality threshold enforcement:**
+
+   ```bash
+   dr audit --threshold
+   ```
+
+4. **Generate markdown report:**
+
+   ```bash
+   dr audit --format markdown --output audit-report.md
+   ```
+
+5. **Interpret results:**
+   - **Isolation %**: % of node types with no relationships (target: ≤20%)
+   - **Density**: Avg relationships per node type (target: ≥1.5)
+   - **High-Priority Gaps**: Missing relationships (target: ≤10)
+   - **Duplicates**: Semantically redundant relationships (target: ≤5)
+
+6. **Respond to gaps** by suggesting specific relationships:
+
+   ```text
+   Audit found 3 isolated node types in the security layer.
+   Common relationships for SecurityPolicy:
+   - SecurityPolicy enforces AuthenticationScheme
+   - SecurityPolicy governs ApplicationService
+
+   Should I add these relationships now?
+   ```
+
+### Audit Output Summary
+
+```text
+Layer Audit: security
+Coverage: 65% (13/20 node types connected)
+Isolation: 15% (3 isolated types) ✓
+Density: 2.1 relationships/type ✓
+Gaps: 8 high-priority ✓
+Duplicates: 2 candidates ✓
+```
+
 ## CLI Command Quick Reference
 
 Use this reference when executing DR operations. All model modifications MUST use these CLI commands.
@@ -992,13 +1062,18 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Validation Operations
 
-| Task                   | Command                         | Example                            |
-| ---------------------- | ------------------------------- | ---------------------------------- |
-| Basic validation       | `dr validate`                   | `dr validate`                      |
-| Strict validation      | `dr validate --strict`          | `dr validate --strict`             |
-| Validate relationships | `dr validate --relationships`   | `dr validate --relationships`      |
-| Layer-specific         | `dr validate --layers <layers>` | `dr validate --layers application` |
-| JSON output            | `dr validate --output <path>`   | `dr validate --output report.json` |
+| Task                   | Command                               | Example                                  |
+| ---------------------- | ------------------------------------- | ---------------------------------------- |
+| Basic validation       | `dr validate`                         | `dr validate`                            |
+| Strict validation      | `dr validate --strict`                | `dr validate --strict`                   |
+| Validate relationships | `dr validate --relationships`         | `dr validate --relationships`            |
+| Layer-specific         | `dr validate --layers <layers>`       | `dr validate --layers application`       |
+| JSON output            | `dr validate --output <path>`         | `dr validate --output report.json`       |
+| Relationship audit     | `dr audit [--layer <name>]`           | `dr audit --layer security`              |
+| Audit with threshold   | `dr audit --threshold`                | `dr audit --threshold`                   |
+| Audit JSON output      | `dr audit --format json --output <p>` | `dr audit --format json --output a.json` |
+| Schema introspection   | `dr schema types <layer>`             | `dr schema types data-store`             |
+| Node schema details    | `dr schema node <type-id>`            | `dr schema node data-store.collection`   |
 
 ### Relationship Operations
 

@@ -11,13 +11,13 @@ triggers:
     "test strategy",
     "coverage model",
   ]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # Testing Layer Skill
 
 **Layer Number:** 12
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Defines test coverage using ISP (Input Space Partitioning) Coverage Model, specifying coverage requirements, test cases, and input partitions.
 
 ---
@@ -40,6 +40,9 @@ This layer uses **ISP Coverage Model** (systematic input space partitioning).
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types testing` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 ### Core Testing Entities (17 entities)
 

@@ -15,13 +15,13 @@ triggers:
     "actor objective",
     "STS-ml",
   ]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # Security Layer Skill
 
 **Layer Number:** 03
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.
 
 ---
@@ -43,6 +43,9 @@ This layer uses a **custom YAML specification** designed to cover authentication
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types security` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 ### Authentication & Authorization (14 entities)
 

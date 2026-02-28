@@ -530,9 +530,66 @@ You: Running comprehensive validation...
      3. Create a fix plan for batch processing
 ```
 
+## Relationship Quality Audit
+
+Beyond schema and reference validation, use `dr audit` to measure **intra-layer relationship coverage** — whether node types are connected to each other in a meaningful way.
+
+### When to Run an Audit
+
+Run `dr audit` after:
+
+- Adding many elements to a layer without explicit relationships
+- Completing a major extraction session
+- When the user asks about model completeness or coverage
+
+### Audit Commands
+
+```bash
+# Full model audit (all layers)
+dr audit
+
+# Layer-specific audit
+dr audit --layer <layer-name>
+
+# Enforce quality thresholds (exits 1 if issues found)
+dr audit --threshold
+
+# Generate detailed markdown report
+dr audit --format markdown --output audit-report.md
+
+# JSON output for programmatic use
+dr audit --format json --output audit.json
+```
+
+### Quality Thresholds
+
+| Metric               | Target | Description                                    |
+| -------------------- | ------ | ---------------------------------------------- |
+| Isolation            | ≤ 20%  | % of node types with no relationships          |
+| Density              | ≥ 1.5  | Average relationships per node type            |
+| High-Priority Gaps   | ≤ 10   | Missing high-value relationships               |
+| Duplicate Candidates | ≤ 5    | Semantically redundant relationship candidates |
+
+### Audit + Validate Workflow
+
+```bash
+# Step 1: Schema and reference validation
+dr validate --strict
+
+# Step 2: Relationship quality audit
+dr audit --layer <layer-name>
+
+# Step 3: Review and address gaps
+# [Add relationships based on audit recommendations]
+
+# Step 4: Re-validate
+dr validate
+```
+
 ## Related Commands
 
 - `/dr-init` - Initialize new model
 - `/dr-model` - Add/update elements
 - `/dr-project` - Cross-layer projection
 - `dr validate --help` - CLI validation options
+- `dr audit --help` - Relationship audit options

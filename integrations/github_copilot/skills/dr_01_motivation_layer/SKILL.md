@@ -14,13 +14,13 @@ triggers:
     "motivation",
     "archimate motivation",
   ]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # Motivation Layer Skill
 
 **Layer Number:** 01
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Captures stakeholder concerns, goals, requirements, and constraints that drive architectural decisions using ArchiMate motivation elements.
 
 ---
@@ -39,6 +39,9 @@ This layer uses **ArchiMate 3.2 Motivation Layer** standard without custom exten
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types motivation` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 | Entity Type     | Description                                                     | Key Attributes                                                                     |
 | --------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |

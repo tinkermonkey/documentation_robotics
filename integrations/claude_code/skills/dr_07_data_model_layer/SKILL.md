@@ -12,13 +12,13 @@ triggers:
     "validation",
     "data type",
   ]
-version: 0.7.0
+version: 0.8.1
 ---
 
 # Data Model Layer Skill
 
 **Layer Number:** 07
-**Specification:** Metadata Model Spec v0.7.0
+**Specification:** Metadata Model Spec v0.8.1
 **Purpose:** Defines logical data structures using JSON Schema Draft 7, specifying entities, properties, validation rules, and data governance.
 
 ---
@@ -40,6 +40,9 @@ This layer uses **JSON Schema Draft 7** (industry standard) with custom extensio
 ---
 
 ## Entity Types
+
+> **CLI Introspection:** Run `dr schema types data-model` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
 
 ### Core JSON Schema Entities (17 entities)
 
