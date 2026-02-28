@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.8.0",
+  "specVersion": "0.8.1",
   "schemas": {
     "spec-node": {
       "$schema": "http://json-schema.org/draft-07/schema#",
