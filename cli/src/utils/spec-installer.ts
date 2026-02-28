@@ -151,11 +151,11 @@ async function expandCompiledSpec(bundledDir: string, destDir: string): Promise<
  * - .dr/README.md
  *
  * @param projectRoot - Path to project root
- * @param _force - If true, overwrite existing files (reserved for future use)
+ * @param force - If true, wipe spec content dirs before expanding to remove stale files
  */
 export async function installSpecReference(
   projectRoot: string,
-  _force: boolean = false
+  force: boolean = false
 ): Promise<void> {
   const drPath = join(projectRoot, ".dr");
   const specVersion = getCliBundledSpecVersion();
@@ -163,6 +163,21 @@ export async function installSpecReference(
   // Create .dr directory structure
   await ensureDir(drPath);
   await ensureDir(join(drPath, "spec"));
+
+  // On forced upgrade, delete and recreate spec content directories to eliminate
+  // ghost files left behind from types removed or renamed in the new spec version.
+  // .dr/changesets/ and .dr/manifest.json are intentionally NOT touched.
+  if (force) {
+    for (const dir of [
+      join(drPath, "spec", "layers"),
+      join(drPath, "spec", "schemas", "nodes"),
+      join(drPath, "spec", "schemas", "relationships"),
+    ]) {
+      await fs.rm(dir, { recursive: true, force: true });
+      await ensureDir(dir);
+    }
+  }
+
   await ensureDir(join(drPath, "spec", "layers"));
   await ensureDir(join(drPath, "spec", "schemas"));
   await ensureDir(join(drPath, "changesets"));
@@ -248,10 +263,10 @@ export async function installSpecReference(
 
   logDebug(`Installed spec: ${layerFiles.length} layers, ${nodeSchemas.length} node types, ${relSchemas.length} relationship types`);
 
-  if (layerFiles.length !== 12 || nodeSchemas.length < 180 || relSchemas.length < 250) {
+  if (layerFiles.length !== 12 || nodeSchemas.length < 184 || relSchemas.length < 955) {
     throw new Error(
       `Incomplete spec installation: expected 12 layers (got ${layerFiles.length}), ` +
-      `180+ node schemas (got ${nodeSchemas.length}), 250+ relationship schemas (got ${relSchemas.length})`
+      `184+ node schemas (got ${nodeSchemas.length}), 955+ relationship schemas (got ${relSchemas.length})`
     );
   }
 
@@ -289,6 +304,9 @@ Do not manually edit files in this directory.
 /**
  * Check if spec reference needs to be installed or updated
  *
+ * Returns true if the .dr/manifest.json is missing, unreadable, or records a
+ * specVersion that doesn't match the CLI's bundled spec version.
+ *
  * @param projectRoot - Path to project root
  * @returns True if installation/update is needed
  */
@@ -296,10 +314,10 @@ export async function needsSpecReferenceInstall(projectRoot: string): Promise<bo
   const manifestPath = join(projectRoot, ".dr", "manifest.json");
 
   try {
-    const fs = await import("fs/promises");
-    await fs.access(manifestPath);
-    return false;
+    const content = await fs.readFile(manifestPath, "utf-8");
+    const manifest = JSON.parse(content) as { specVersion?: string };
+    return manifest.specVersion !== getCliBundledSpecVersion();
   } catch {
-    return true;
+    return true; // manifest missing or unreadable
   }
 }

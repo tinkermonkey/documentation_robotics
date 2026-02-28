@@ -4,11 +4,11 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { glob } from 'glob';
 import { installSpecReference, needsSpecReferenceInstall } from '../../../src/utils/spec-installer.js';
+import { getCliBundledSpecVersion } from '../../../src/utils/spec-version.js';
 
 describe('spec-installer', () => {
   describe('needsSpecReferenceInstall', () => {
     it('should return true if .dr/manifest.json does not exist', async () => {
-      // Create a unique test directory for this test
       const testDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
       await mkdir(testDir, { recursive: true });
 
@@ -28,6 +28,46 @@ describe('spec-installer', () => {
       const nonExistentDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`, 'does-not-exist');
       const result = await needsSpecReferenceInstall(nonExistentDir);
       expect(result).toBe(true);
+    });
+
+    it('should return true if manifest specVersion does not match bundled version', async () => {
+      const testDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+      await mkdir(path.join(testDir, '.dr'), { recursive: true });
+      await writeFile(
+        path.join(testDir, '.dr', 'manifest.json'),
+        JSON.stringify({ specVersion: '0.0.0' })
+      );
+
+      try {
+        const result = await needsSpecReferenceInstall(testDir);
+        expect(result).toBe(true);
+      } finally {
+        try {
+          await rm(testDir, { recursive: true, force: true });
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    });
+
+    it('should return false if manifest specVersion matches bundled version', async () => {
+      const testDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+      await mkdir(path.join(testDir, '.dr'), { recursive: true });
+      await writeFile(
+        path.join(testDir, '.dr', 'manifest.json'),
+        JSON.stringify({ specVersion: getCliBundledSpecVersion() })
+      );
+
+      try {
+        const result = await needsSpecReferenceInstall(testDir);
+        expect(result).toBe(false);
+      } finally {
+        try {
+          await rm(testDir, { recursive: true, force: true });
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
     });
   });
 
@@ -51,8 +91,8 @@ describe('spec-installer', () => {
         const relSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'relationships', '**', '*.relationship.schema.json'));
 
         expect(layerFiles.length).toBe(12);
-        expect(nodeSchemas.length).toBeGreaterThanOrEqual(180);
-        expect(relSchemas.length).toBeGreaterThanOrEqual(252);
+        expect(nodeSchemas.length).toBeGreaterThanOrEqual(184);
+        expect(relSchemas.length).toBeGreaterThanOrEqual(955);
 
         // Verify manifest
         const manifestContent = await readFile(path.join(tempDir, '.dr', 'manifest.json'), 'utf-8');
@@ -93,13 +133,77 @@ describe('spec-installer', () => {
         expect(layerFiles.length).toBe(12);
 
         const nodeSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', '**', '*.node.schema.json'));
-        expect(nodeSchemas.length).toBeGreaterThanOrEqual(180);
+        expect(nodeSchemas.length).toBeGreaterThanOrEqual(184);
 
         const relSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'relationships', '**', '*.relationship.schema.json'));
-        expect(relSchemas.length).toBeGreaterThanOrEqual(252);
+        expect(relSchemas.length).toBeGreaterThanOrEqual(955);
 
         // Verify backward compatibility - old schemas directory still exists
         expect(existsSync(path.join(tempDir, '.dr', 'schemas', 'base'))).toBe(true);
+      } finally {
+        try {
+          await rm(tempDir, { recursive: true, force: true });
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    });
+
+    it('should remove stale spec files when force=true', async () => {
+      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+      await mkdir(tempDir, { recursive: true });
+
+      try {
+        // Initial install
+        await installSpecReference(tempDir);
+
+        // Plant a stale file that no longer exists in the current spec
+        const staleFile = path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', 'motivation', 'stale-ghost-type.node.schema.json');
+        await writeFile(staleFile, JSON.stringify({ stale: true }));
+        expect(existsSync(staleFile)).toBe(true);
+
+        // Force reinstall (simulates upgrade path)
+        await installSpecReference(tempDir, true);
+
+        // Stale file must be gone
+        expect(existsSync(staleFile)).toBe(false);
+
+        // Real schemas should still be present
+        const nodeSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', '**', '*.node.schema.json'));
+        expect(nodeSchemas.length).toBeGreaterThanOrEqual(184);
+      } finally {
+        try {
+          await rm(tempDir, { recursive: true, force: true });
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    });
+
+    it('should preserve existing changesets during force upgrade', async () => {
+      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+      await mkdir(tempDir, { recursive: true });
+
+      try {
+        // First install
+        await installSpecReference(tempDir);
+
+        // Add a changeset
+        await mkdir(path.join(tempDir, '.dr', 'changesets', 'my-feature'), { recursive: true });
+        await writeFile(
+          path.join(tempDir, '.dr', 'changesets', 'my-feature', 'metadata.yaml'),
+          'id: my-feature\nstatus: active'
+        );
+
+        // Force reinstall
+        await installSpecReference(tempDir, true);
+
+        // Changeset must survive
+        const changesetContent = await readFile(
+          path.join(tempDir, '.dr', 'changesets', 'my-feature', 'metadata.yaml'),
+          'utf-8'
+        );
+        expect(changesetContent).toContain('my-feature');
       } finally {
         try {
           await rm(tempDir, { recursive: true, force: true });

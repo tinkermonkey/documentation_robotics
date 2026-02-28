@@ -76,7 +76,12 @@ export class SpecDataLoader {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
     // Try 1: .dr/spec/ in project root (runtime reference)
-    const projectRoot = findProjectRootSync(currentDir);
+    // Walk up from process.cwd() first so that a globally installed CLI
+    // can locate the user's .dr/ folder; fall back to the CLI binary
+    // directory for dev-environment / monorepo layouts.
+    const projectRoot =
+      findProjectRootSync(process.cwd()) ??
+      findProjectRootSync(currentDir);
     if (projectRoot) {
       const drSpecPath = path.join(projectRoot, ".dr", "spec");
       // Validate by checking for a known file
