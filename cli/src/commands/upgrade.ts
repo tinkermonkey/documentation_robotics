@@ -10,8 +10,6 @@
 
 import ansis from "ansis";
 import { confirm } from "@clack/prompts";
-import { join } from "path";
-import { glob } from "glob";
 import { findProjectRoot, getSpecReferencePath, getModelPath } from "../utils/project-paths.js";
 import {
   getCliVersion,
@@ -33,7 +31,7 @@ export interface UpgradeOptions {
 }
 
 interface UpgradeAction {
-  type: "spec" | "model" | "spec-reference";
+  type: "spec" | "model";
   description: string;
   fromVersion?: string;
   toVersion: string;
@@ -44,23 +42,6 @@ interface IntegrationStatus {
   claudeOutdated: boolean;
   copilotOutdated: boolean;
   messages: string[];
-}
-
-/**
- * Validate that spec installation is complete
- */
-async function validateSpecInstallation(drSpecPath: string): Promise<boolean> {
-  try {
-    const layerFiles = await glob(join(drSpecPath, "layers", "*.layer.json"));
-    const nodeSchemas = await glob(join(drSpecPath, "schemas", "nodes", "**", "*.node.schema.json"));
-    const relSchemas = await glob(join(drSpecPath, "schemas", "relationships", "**", "*.relationship.schema.json"));
-
-    return layerFiles.length === 12 &&
-           nodeSchemas.length >= 184 &&
-           relSchemas.length >= 955;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -157,23 +138,6 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
           toVersion: bundledSpecVersion,
           details: ["Update schema files", "Update .dr/manifest.json"],
         });
-      } else {
-        // Check if spec installation is complete (even if version matches)
-        const drSpecPath = join(drPath, "spec");
-        const hasCompleteSpec = await validateSpecInstallation(drSpecPath);
-
-        if (!hasCompleteSpec) {
-          actions.push({
-            type: "spec-reference",
-            description: "Install complete specification reference",
-            toVersion: bundledSpecVersion,
-            details: [
-              "Install spec files to .dr/spec/",
-              "Includes: 12 layers, 8 base schemas, 184+ node schemas, 955+ relationship schemas",
-              "Existing changesets will be preserved",
-            ],
-          });
-        }
       }
     }
 
@@ -348,8 +312,6 @@ async function handleUpgrade(
   // Execute actions in order: spec first, then model
   for (const action of actions) {
     if (action.type === "spec") {
-      await executeSpecUpgrade(projectRoot, action);
-    } else if (action.type === "spec-reference") {
       await executeSpecUpgrade(projectRoot, action);
     } else if (action.type === "model") {
       await executeModelMigration(action, options);

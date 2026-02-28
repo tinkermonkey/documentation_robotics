@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdir, rm, writeFile, access, readFile } from 'fs/promises';
+import { describe, it, expect } from 'bun:test';
+import { mkdir, rm, writeFile, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { glob } from 'glob';
 import { installSpecReference, needsSpecReferenceInstall } from '../../../src/utils/spec-installer.js';
 import { getCliBundledSpecVersion } from '../../../src/utils/spec-version.js';
 
@@ -16,11 +15,7 @@ describe('spec-installer', () => {
         const result = await needsSpecReferenceInstall(testDir);
         expect(result).toBe(true);
       } finally {
-        try {
-          await rm(testDir, { recursive: true, force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
+        await rm(testDir, { recursive: true, force: true }).catch(() => {});
       }
     });
 
@@ -42,11 +37,7 @@ describe('spec-installer', () => {
         const result = await needsSpecReferenceInstall(testDir);
         expect(result).toBe(true);
       } finally {
-        try {
-          await rm(testDir, { recursive: true, force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
+        await rm(testDir, { recursive: true, force: true }).catch(() => {});
       }
     });
 
@@ -62,158 +53,40 @@ describe('spec-installer', () => {
         const result = await needsSpecReferenceInstall(testDir);
         expect(result).toBe(false);
       } finally {
-        try {
-          await rm(testDir, { recursive: true, force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
+        await rm(testDir, { recursive: true, force: true }).catch(() => {});
       }
     });
   });
 
   describe('installSpecReference', () => {
-    it('should install complete spec directory structure', async () => {
+    it('should create .dr directory with manifest, changesets, and README', async () => {
       const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
       await mkdir(tempDir, { recursive: true });
 
       try {
         await installSpecReference(tempDir);
 
-        // Verify structure
-        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'layers'))).toBe(true);
-        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'schemas', 'base'))).toBe(true);
-        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes'))).toBe(true);
-        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'schemas', 'relationships'))).toBe(true);
+        // Core structure
+        expect(existsSync(path.join(tempDir, '.dr'))).toBe(true);
+        expect(existsSync(path.join(tempDir, '.dr', 'manifest.json'))).toBe(true);
+        expect(existsSync(path.join(tempDir, '.dr', 'changesets'))).toBe(true);
+        expect(existsSync(path.join(tempDir, '.dr', 'README.md'))).toBe(true);
 
-        // Verify counts
-        const layerFiles = await glob(path.join(tempDir, '.dr', 'spec', 'layers', '*.layer.json'));
-        const nodeSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', '**', '*.node.schema.json'));
-        const relSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'relationships', '**', '*.relationship.schema.json'));
+        // Schema files are NOT copied — CLI reads from bundled schemas directly
+        expect(existsSync(path.join(tempDir, '.dr', 'spec'))).toBe(false);
 
-        expect(layerFiles.length).toBe(12);
-        expect(nodeSchemas.length).toBeGreaterThanOrEqual(184);
-        expect(relSchemas.length).toBeGreaterThanOrEqual(955);
-
-        // Verify manifest
+        // Verify manifest content
         const manifestContent = await readFile(path.join(tempDir, '.dr', 'manifest.json'), 'utf-8');
         const manifest = JSON.parse(manifestContent);
         expect(manifest).toHaveProperty('specVersion');
+        expect(manifest.specVersion).toBe(getCliBundledSpecVersion());
         expect(manifest).toHaveProperty('installedAt');
-
-        // Verify README
-        const readmeContent = await readFile(path.join(tempDir, '.dr', 'README.md'), 'utf-8');
-        expect(readmeContent).toContain('Complete specification reference');
-        expect(readmeContent).toContain('12 layer instance definitions');
       } finally {
-        try {
-          await rm(tempDir, { recursive: true, force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
       }
     });
 
-    it('should handle upgrade from incomplete installation', async () => {
-      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
-      await mkdir(tempDir, { recursive: true });
-
-      try {
-        // Create old-style installation (only base schemas)
-        await mkdir(path.join(tempDir, '.dr', 'schemas', 'base'), { recursive: true });
-        await writeFile(
-          path.join(tempDir, '.dr', 'manifest.json'),
-          JSON.stringify({ specVersion: '0.7.0' })
-        );
-
-        // Upgrade
-        await installSpecReference(tempDir, true);
-
-        // Verify complete installation
-        const layerFiles = await glob(path.join(tempDir, '.dr', 'spec', 'layers', '*.layer.json'));
-        expect(layerFiles.length).toBe(12);
-
-        const nodeSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', '**', '*.node.schema.json'));
-        expect(nodeSchemas.length).toBeGreaterThanOrEqual(184);
-
-        const relSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'relationships', '**', '*.relationship.schema.json'));
-        expect(relSchemas.length).toBeGreaterThanOrEqual(955);
-
-        // Verify backward compatibility - old schemas directory still exists
-        expect(existsSync(path.join(tempDir, '.dr', 'schemas', 'base'))).toBe(true);
-      } finally {
-        try {
-          await rm(tempDir, { recursive: true, force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
-    });
-
-    it('should remove stale spec files when force=true', async () => {
-      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
-      await mkdir(tempDir, { recursive: true });
-
-      try {
-        // Initial install
-        await installSpecReference(tempDir);
-
-        // Plant a stale file that no longer exists in the current spec
-        const staleFile = path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', 'motivation', 'stale-ghost-type.node.schema.json');
-        await writeFile(staleFile, JSON.stringify({ stale: true }));
-        expect(existsSync(staleFile)).toBe(true);
-
-        // Force reinstall (simulates upgrade path)
-        await installSpecReference(tempDir, true);
-
-        // Stale file must be gone
-        expect(existsSync(staleFile)).toBe(false);
-
-        // Real schemas should still be present
-        const nodeSchemas = await glob(path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', '**', '*.node.schema.json'));
-        expect(nodeSchemas.length).toBeGreaterThanOrEqual(184);
-      } finally {
-        try {
-          await rm(tempDir, { recursive: true, force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
-    });
-
-    it('should preserve existing changesets during force upgrade', async () => {
-      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
-      await mkdir(tempDir, { recursive: true });
-
-      try {
-        // First install
-        await installSpecReference(tempDir);
-
-        // Add a changeset
-        await mkdir(path.join(tempDir, '.dr', 'changesets', 'my-feature'), { recursive: true });
-        await writeFile(
-          path.join(tempDir, '.dr', 'changesets', 'my-feature', 'metadata.yaml'),
-          'id: my-feature\nstatus: active'
-        );
-
-        // Force reinstall
-        await installSpecReference(tempDir, true);
-
-        // Changeset must survive
-        const changesetContent = await readFile(
-          path.join(tempDir, '.dr', 'changesets', 'my-feature', 'metadata.yaml'),
-          'utf-8'
-        );
-        expect(changesetContent).toContain('my-feature');
-      } finally {
-        try {
-          await rm(tempDir, { recursive: true, force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
-    });
-
-    it('should preserve existing changesets during upgrade', async () => {
+    it('should preserve existing changesets during install', async () => {
       const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
       await mkdir(tempDir, { recursive: true });
 
@@ -225,21 +98,62 @@ describe('spec-installer', () => {
           'id: test-changeset\nstatus: active'
         );
 
-        // Install spec reference
         await installSpecReference(tempDir);
 
-        // Verify changesets are preserved
         const changesetMetadata = await readFile(
           path.join(tempDir, '.dr', 'changesets', 'test-changeset', 'metadata.yaml'),
           'utf-8'
         );
         expect(changesetMetadata).toContain('test-changeset');
       } finally {
-        try {
-          await rm(tempDir, { recursive: true, force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
+    });
+
+    it('should preserve existing changesets during force upgrade', async () => {
+      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+      await mkdir(tempDir, { recursive: true });
+
+      try {
+        await installSpecReference(tempDir);
+
+        await mkdir(path.join(tempDir, '.dr', 'changesets', 'my-feature'), { recursive: true });
+        await writeFile(
+          path.join(tempDir, '.dr', 'changesets', 'my-feature', 'metadata.yaml'),
+          'id: my-feature\nstatus: active'
+        );
+
+        await installSpecReference(tempDir, true);
+
+        const changesetContent = await readFile(
+          path.join(tempDir, '.dr', 'changesets', 'my-feature', 'metadata.yaml'),
+          'utf-8'
+        );
+        expect(changesetContent).toContain('my-feature');
+      } finally {
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
+    });
+
+    it('should update manifest version on reinstall', async () => {
+      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+      await mkdir(tempDir, { recursive: true });
+
+      try {
+        // Plant old version
+        await mkdir(path.join(tempDir, '.dr'), { recursive: true });
+        await writeFile(
+          path.join(tempDir, '.dr', 'manifest.json'),
+          JSON.stringify({ specVersion: '0.7.0', installedAt: '2024-01-01T00:00:00.000Z' })
+        );
+
+        await installSpecReference(tempDir, true);
+
+        const manifestContent = await readFile(path.join(tempDir, '.dr', 'manifest.json'), 'utf-8');
+        const manifest = JSON.parse(manifestContent);
+        expect(manifest.specVersion).toBe(getCliBundledSpecVersion());
+      } finally {
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
       }
     });
   });

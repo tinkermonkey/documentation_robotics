@@ -18,8 +18,8 @@ import {
 
 describe("Node Type Index", () => {
   describe("NODE_TYPES Map", () => {
-    it("should contain all 354 node types", () => {
-      expect(NODE_TYPES.size).toBe(354);
+    it("should contain all 184 node types", () => {
+      expect(NODE_TYPES.size).toBe(184);
     });
 
     it("should have NodeTypeInfo for each entry", () => {
@@ -91,10 +91,10 @@ describe("Node Type Index", () => {
       expect(typeNames).toContain("operation");
     });
 
-    it("data-store layer should have table type", () => {
+    it("data-store layer should have database type", () => {
       const types = getNodeTypesForLayer("data-store");
       const typeNames = types.map((t) => t.type);
-      expect(typeNames).toContain("table");
+      expect(typeNames).toContain("database");
     });
   });
 
@@ -102,7 +102,7 @@ describe("Node Type Index", () => {
     it("should return true for valid layer and type combination", () => {
       expect(isValidNodeType("motivation", "goal")).toBe(true);
       expect(isValidNodeType("api", "operation")).toBe(true);
-      expect(isValidNodeType("data-store", "table")).toBe(true);
+      expect(isValidNodeType("data-store", "database")).toBe(true);
     });
 
     it("should return false for invalid layer", () => {
@@ -145,7 +145,7 @@ describe("Node Type Index", () => {
     it("should accept valid spec node IDs", () => {
       expect(isValidSpecNodeId("motivation.goal")).toBe(true);
       expect(isValidSpecNodeId("api.operation")).toBe(true);
-      expect(isValidSpecNodeId("data-store.table")).toBe(true);
+      expect(isValidSpecNodeId("data-store.database")).toBe(true);
     });
 
     it("should reject invalid spec node IDs", () => {

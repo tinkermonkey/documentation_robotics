@@ -107,9 +107,10 @@ export interface SpecStatistics {
  */
 export interface SpecLoaderOptions {
   /**
-   * Path to spec directory (defaults to spec/ relative to package root)
+   * Path to compiled bundled dist directory (14 JSON files).
+   * Defaults to cli/src/schemas/bundled/ or spec/dist/ in dev monorepo.
    */
-  specDir?: string;
+  bundledDir?: string;
 
   /**
    * Whether to include full JSON schemas in loaded data (default: false)

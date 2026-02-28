@@ -93,11 +93,11 @@ describe("Generator: generate-registry", () => {
       expect(typeof nodeTypes.isValidSpecNodeId).toBe("function");
     });
 
-    it("should have 354+ node types", async () => {
+    it("should have 184+ node types", async () => {
       const nodeTypes = await import("../../../src/generated/node-types.js");
 
       const allNodeTypes = Array.from(nodeTypes.NODE_TYPES.values());
-      expect(allNodeTypes.length).toBeGreaterThanOrEqual(354);
+      expect(allNodeTypes.length).toBeGreaterThanOrEqual(184);
     });
 
     it("should have correct NodeTypeInfo structure", async () => {
@@ -430,21 +430,19 @@ describe("Generator: generate-registry", () => {
     });
 
     it("should have proper data structure for duplicate ID tracking in generate-registry", () => {
-      // Verify the generator script has the duplicate detection logic
+      // Verify the generator script reads from bundled compiled format
+      // (deduplication happens at build:spec time, not here)
       const scriptPath = path.join(import.meta.dir, "../../../scripts/generate-registry.ts");
 
       if (fs.existsSync(scriptPath)) {
         const content = fs.readFileSync(scriptPath, "utf-8");
 
-        // Should have strict mode parameter
+        // Should have strict mode parameter (for build-time validation)
         expect(content).toContain("strictMode");
 
-        // Should have duplicate tracking
-        expect(content).toContain("duplicateIds");
-        expect(content).toContain("duplicates");
-
-        // Should exit on duplicates in strict mode
-        expect(content).toContain('if (strictMode && duplicates.length > 0)');
+        // Should read from bundled compiled format (not individual schema files)
+        expect(content).toContain("BUNDLED_DIR");
+        expect(content).toContain("manifest.json");
       }
     });
   });

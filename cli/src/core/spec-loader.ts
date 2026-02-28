@@ -1,15 +1,16 @@
 /**
- * SpecDataLoader - Loads specification metadata from spec directory
+ * SpecDataLoader - Loads specification metadata from compiled bundled dist files
  *
- * Loads layer definitions, node type schemas, relationship schemas, and predicates
- * from the spec/ directory for use by CLI commands and analysis tools.
+ * Reads directly from the 14 compiled JSON files in cli/src/schemas/bundled/:
+ *   manifest.json, base.json, {layer}.json (x12)
+ *
+ * Never reads from .dr/ or expanded individual schema files.
  */
 
 import path from "node:path";
 import { fileURLToPath } from "url";
 import fs from "node:fs/promises";
 import { existsSync } from "fs";
-import { glob } from "glob";
 import { getErrorMessage } from "../utils/errors.js";
 import { logDebug } from "../utils/globals.js";
 import {
@@ -25,30 +26,42 @@ import {
   AttributeSpec,
 } from "./spec-loader-types.js";
 
-/**
- * Find project root by walking up from start directory looking for .dr/manifest.json
- * Synchronous version needed for use in constructor
- */
-function findProjectRootSync(startDir: string): string | null {
-  let current = startDir;
-  const root = path.parse(current).root;
+// Bundled dist format types (matches spec/dist/ output)
+interface CompiledManifest {
+  specVersion: string;
+  builtAt: string;
+  layers: Array<{ id: string; number: number; name: string; nodeTypeCount: number; relationshipCount: number }>;
+}
 
-  while (current !== root) {
-    const manifestPath = path.join(current, ".dr", "manifest.json");
-    if (existsSync(manifestPath)) {
-      return current;
-    }
-    current = path.dirname(current);
-  }
+interface CompiledBase {
+  specVersion: string;
+  schemas: Record<string, unknown>;
+  predicates: Record<string, unknown>;
+}
 
-  return null;
+interface CompiledRelationshipFlat {
+  id: string;
+  source_spec_node_id: string;
+  source_layer: string;
+  destination_spec_node_id: string;
+  destination_layer: string;
+  predicate: string;
+  cardinality?: string;
+  strength?: string;
+  required?: boolean;
+}
+
+interface CompiledLayer {
+  layer: Record<string, unknown>;
+  nodeSchemas: Record<string, Record<string, unknown>>;
+  relationshipSchemas: Record<string, CompiledRelationshipFlat>;
 }
 
 /**
- * SpecDataLoader loads specification metadata from the spec/ directory
+ * SpecDataLoader loads specification metadata from the compiled bundled dist files
  */
 export class SpecDataLoader {
-  private specDir: string;
+  private bundledDir: string;
   private options: SpecLoaderOptions;
   private cachedData: SpecData | null = null;
   private loadedAt: Date | null = null;
@@ -60,50 +73,39 @@ export class SpecDataLoader {
       ...options,
     };
 
-    // Resolve spec directory path
-    this.specDir = this.options.specDir || this.getDefaultSpecDir();
+    this.bundledDir = this.options.bundledDir || this.getDefaultBundledDir();
   }
 
   /**
-   * Get default path to spec directory with intelligent fallbacks
+   * Resolve the bundled dist directory.
    *
    * Priority:
-   * 1. .dr/spec/ in project root (works for any initialized model)
-   * 2. ../../../spec (development environment - monorepo layout)
-   * 3. Throw clear error if neither exists
+   * 1. Explicit override via options.bundledDir
+   * 2. CLI installation: schemas/bundled/ next to compiled source
+   * 3. Development monorepo: spec/dist/
    */
-  private getDefaultSpecDir(): string {
+  private getDefaultBundledDir(): string {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
-    // Try 1: .dr/spec/ in project root (runtime reference)
-    // Walk up from process.cwd() first so that a globally installed CLI
-    // can locate the user's .dr/ folder; fall back to the CLI binary
-    // directory for dev-environment / monorepo layouts.
-    const projectRoot =
-      findProjectRootSync(process.cwd()) ??
-      findProjectRootSync(currentDir);
-    if (projectRoot) {
-      const drSpecPath = path.join(projectRoot, ".dr", "spec");
-      // Validate by checking for a known file
-      if (existsSync(path.join(drSpecPath, "layers", "01-motivation.layer.json"))) {
-        logDebug(`SpecDataLoader using spec directory: ${drSpecPath}`);
-        return drSpecPath;
-      }
+    // Try 1: CLI installation (dist/core → dist/schemas/bundled)
+    const installPath = path.join(currentDir, "..", "schemas", "bundled");
+    if (existsSync(path.join(installPath, "manifest.json"))) {
+      logDebug(`SpecDataLoader using bundled schemas: ${installPath}`);
+      return installPath;
     }
 
-    // Try 2: Development path (monorepo)
-    const devSpecPath = path.join(currentDir, "../../../spec");
-    if (existsSync(path.join(devSpecPath, "layers", "01-motivation.layer.json"))) {
-      logDebug(`SpecDataLoader using spec directory: ${devSpecPath}`);
-      return devSpecPath;
+    // Try 2: Development path — spec/dist/ in monorepo
+    const devDistPath = path.join(currentDir, "../../../spec/dist");
+    if (existsSync(path.join(devDistPath, "manifest.json"))) {
+      logDebug(`SpecDataLoader using bundled schemas: ${devDistPath}`);
+      return devDistPath;
     }
 
-    // Neither path worked - throw clear error
     throw new Error(
-      "Cannot find spec directory. Tried:\n" +
-      `  1. .dr/spec/ in project root${projectRoot ? ` (${path.join(projectRoot, ".dr", "spec")})` : " (no project root found)"}\n` +
-      `  2. Development path (${devSpecPath})\n\n` +
-      "Ensure you have run 'dr init' to initialize a model, or are in a development environment."
+      "Cannot find compiled spec schemas. Tried:\n" +
+      `  1. CLI installation: ${installPath}\n` +
+      `  2. Development monorepo: ${devDistPath}\n\n` +
+      "Ensure you have built the spec (npm run build:spec) or installed the CLI."
     );
   }
 
@@ -111,7 +113,6 @@ export class SpecDataLoader {
    * Load all specification data
    */
   async load(): Promise<SpecData> {
-    // Return cached data if available and caching is enabled
     if (this.options.cache && this.cachedData) {
       return this.cachedData;
     }
@@ -124,14 +125,8 @@ export class SpecDataLoader {
         this.loadPredicates(),
       ]);
 
-      const data: SpecData = {
-        layers,
-        nodeTypes,
-        relationshipTypes,
-        predicates,
-      };
+      const data: SpecData = { layers, nodeTypes, relationshipTypes, predicates };
 
-      // Cache the data if caching is enabled
       if (this.options.cache) {
         this.cachedData = data;
         this.loadedAt = new Date();
@@ -140,80 +135,63 @@ export class SpecDataLoader {
       return data;
     } catch (error) {
       throw new Error(
-        `Failed to load specification data from ${this.specDir}: ${getErrorMessage(error)}`
+        `Failed to load specification data from ${this.bundledDir}: ${getErrorMessage(error)}`
       );
     }
   }
 
   /**
-   * Load layer specifications
+   * Load layer specifications from manifest.json + per-layer files
    */
   private async loadLayers(): Promise<LayerSpec[]> {
-    const pattern = path.join(this.specDir, "layers", "*.layer.json");
-    const files = await glob(pattern);
+    const manifest = await this.readManifest();
+    const layers: LayerSpec[] = [];
 
-    if (files.length === 0) {
-      throw new Error(`No layer files found at ${pattern}`);
+    for (const entry of manifest.layers) {
+      const layerFile = path.join(this.bundledDir, `${entry.id}.json`);
+      const content = await fs.readFile(layerFile, "utf-8");
+      const layerData = JSON.parse(content) as CompiledLayer;
+      const layer = layerData.layer as unknown as LayerSpec;
+      layers.push(layer);
     }
 
-    const layers = await Promise.all(
-      files.map(async (f) => {
-        const content = await fs.readFile(f, "utf-8");
-        try {
-          return JSON.parse(content) as LayerSpec;
-        } catch (error) {
-          throw new Error(`Failed to parse layer file ${f}: ${getErrorMessage(error)}`);
-        }
-      })
-    );
-
-    // Sort by layer number
     return layers.sort((a, b) => a.number - b.number);
   }
 
   /**
-   * Load node type specifications
+   * Load node type specifications from nodeSchemas in each layer file
    */
   private async loadNodeTypes(): Promise<NodeTypeSpec[]> {
-    const pattern = path.join(this.specDir, "schemas", "nodes", "**", "*.node.schema.json");
-    const files = await glob(pattern);
+    const manifest = await this.readManifest();
+    const nodeTypes: NodeTypeSpec[] = [];
 
-    if (files.length === 0) {
-      throw new Error(`No node schema files found at ${pattern}`);
-    }
+    for (const entry of manifest.layers) {
+      const layerFile = path.join(this.bundledDir, `${entry.id}.json`);
+      const content = await fs.readFile(layerFile, "utf-8");
+      const layerData = JSON.parse(content) as CompiledLayer;
 
-    const nodeTypes = await Promise.all(
-      files.map(async (f) => {
-        const content = await fs.readFile(f, "utf-8");
-        let schema;
-        try {
-          schema = JSON.parse(content);
-        } catch (error) {
-          throw new Error(`Failed to parse node schema file ${f}: ${getErrorMessage(error)}`);
-        }
-
-        // Extract const values from schema properties
-        const spec_node_id = schema.properties?.spec_node_id?.const;
-        const layer_id = schema.properties?.layer_id?.const;
-        const type = schema.properties?.type?.const;
+      for (const [, schema] of Object.entries(layerData.nodeSchemas)) {
+        const spec_node_id = (schema.properties as Record<string, Record<string, unknown>>)?.spec_node_id?.const as string;
+        const layer_id = (schema.properties as Record<string, Record<string, unknown>>)?.layer_id?.const as string;
+        const type = (schema.properties as Record<string, Record<string, unknown>>)?.type?.const as string;
 
         if (!spec_node_id || !layer_id || !type) {
           throw new Error(
-            `Schema ${f} missing required const values: spec_node_id=${spec_node_id}, layer_id=${layer_id}, type=${type}`
+            `Node schema in ${entry.id}.json missing required const values: spec_node_id=${spec_node_id}, layer_id=${layer_id}, type=${type}`
           );
         }
 
-        return {
+        nodeTypes.push({
           spec_node_id,
           layer_id,
           type,
-          title: schema.title || "",
-          description: schema.description || "",
-          attributes: this.extractAttributes(schema.properties?.attributes),
-          ...(this.options.includeSchemas && { schema }),
-        };
-      })
-    );
+          title: (schema.title as string) || "",
+          description: (schema.description as string) || "",
+          attributes: this.extractAttributes((schema.properties as Record<string, unknown>)?.attributes as Record<string, unknown>),
+          ...(this.options.includeSchemas && { schema: schema as Record<string, unknown> }),
+        });
+      }
+    }
 
     return nodeTypes;
   }
@@ -227,9 +205,9 @@ export class SpecDataLoader {
     }
 
     const props = attributesSchema.properties as Record<string, Record<string, unknown>>;
-    const required = new Set(attributesSchema.required as string[] || []);
+    const required = new Set((attributesSchema.required as string[]) || []);
 
-    return Object.entries(props).map(([name, schema]: [string, Record<string, unknown>]) => ({
+    return Object.entries(props).map(([name, schema]) => ({
       name,
       type: (schema.type as string) || "unknown",
       format: schema.format as string | undefined,
@@ -239,75 +217,57 @@ export class SpecDataLoader {
   }
 
   /**
-   * Load relationship type specifications
+   * Load relationship type specifications from relationshipSchemas in each layer file
+   *
+   * The bundled format stores flat data directly (not wrapped in JSON Schema),
+   * so we read the fields directly rather than extracting from .const values.
    */
   private async loadRelationshipTypes(): Promise<RelationshipTypeSpec[]> {
-    const pattern = path.join(
-      this.specDir,
-      "schemas",
-      "relationships",
-      "**",
-      "*.relationship.schema.json"
-    );
-    const files = await glob(pattern);
+    const manifest = await this.readManifest();
+    const relationshipTypes: RelationshipTypeSpec[] = [];
 
-    if (files.length === 0) {
-      throw new Error(`No relationship schema files found at ${pattern}`);
-    }
+    for (const entry of manifest.layers) {
+      const layerFile = path.join(this.bundledDir, `${entry.id}.json`);
+      const content = await fs.readFile(layerFile, "utf-8");
+      const layerData = JSON.parse(content) as CompiledLayer;
 
-    const relationshipTypes = await Promise.all(
-      files.map(async (f) => {
-        const content = await fs.readFile(f, "utf-8");
-        let schema;
-        try {
-          schema = JSON.parse(content);
-        } catch (error) {
-          throw new Error(`Failed to parse relationship schema file ${f}: ${getErrorMessage(error)}`);
-        }
-
-        const id = schema.properties?.id?.const;
-        const source_spec_node_id = schema.properties?.source_spec_node_id?.const;
-        const source_layer = schema.properties?.source_layer?.const;
-        const destination_spec_node_id = schema.properties?.destination_spec_node_id?.const;
-        const destination_layer = schema.properties?.destination_layer?.const;
-        const predicate = schema.properties?.predicate?.const;
-
-        if (!id || !source_spec_node_id || !source_layer) {
+      for (const rel of Object.values(layerData.relationshipSchemas)) {
+        if (!rel.id || !rel.source_spec_node_id || !rel.source_layer) {
           throw new Error(
-            `Relationship schema ${f} missing required const values: id=${id}, source_spec_node_id=${source_spec_node_id}, source_layer=${source_layer}`
+            `Relationship schema in ${entry.id}.json missing required fields: id=${rel.id}`
           );
         }
 
-        return {
-          id,
-          source_spec_node_id,
-          source_layer,
-          destination_spec_node_id: destination_spec_node_id || "",
-          destination_layer: destination_layer || "",
-          predicate: predicate || "",
-          cardinality: schema.properties?.cardinality?.const || "many-to-many",
-          strength: schema.properties?.strength?.const || "medium",
-          required: schema.properties?.required?.const,
-        };
-      })
-    );
+        relationshipTypes.push({
+          id: rel.id,
+          source_spec_node_id: rel.source_spec_node_id,
+          source_layer: rel.source_layer,
+          destination_spec_node_id: rel.destination_spec_node_id || "",
+          destination_layer: rel.destination_layer || "",
+          predicate: rel.predicate || "",
+          cardinality: rel.cardinality || "many-to-many",
+          strength: rel.strength || "medium",
+          required: rel.required,
+        });
+      }
+    }
 
     return relationshipTypes;
   }
 
   /**
-   * Load predicate definitions
+   * Load predicate definitions from base.json
    */
   private async loadPredicates(): Promise<Map<string, PredicateSpec>> {
-    const predicatesPath = path.join(this.specDir, "schemas", "base", "predicates.json");
+    const basePath = path.join(this.bundledDir, "base.json");
 
     try {
-      const content = await fs.readFile(predicatesPath, "utf-8");
-      let data;
+      const content = await fs.readFile(basePath, "utf-8");
+      let data: CompiledBase;
       try {
-        data = JSON.parse(content) as { predicates: Record<string, Record<string, unknown>> };
+        data = JSON.parse(content) as CompiledBase;
       } catch (parseError) {
-        throw new Error(`Failed to parse predicates file ${predicatesPath}: ${getErrorMessage(parseError)}`);
+        throw new Error(`Failed to parse base.json at ${basePath}: ${getErrorMessage(parseError)}`);
       }
 
       const predicates = new Map<string, PredicateSpec>();
@@ -326,9 +286,18 @@ export class SpecDataLoader {
       return predicates;
     } catch (error) {
       throw new Error(
-        `Failed to load predicates from ${predicatesPath}: ${getErrorMessage(error)}`
+        `Failed to load predicates from ${basePath}: ${getErrorMessage(error)}`
       );
     }
+  }
+
+  /**
+   * Read and parse the bundled manifest.json
+   */
+  private async readManifest(): Promise<CompiledManifest> {
+    const manifestPath = path.join(this.bundledDir, "manifest.json");
+    const content = await fs.readFile(manifestPath, "utf-8");
+    return JSON.parse(content) as CompiledManifest;
   }
 
   /**
@@ -342,16 +311,10 @@ export class SpecDataLoader {
     return this.cachedData;
   }
 
-  /**
-   * Check if data has been loaded
-   */
   isLoaded(): boolean {
     return this.cachedData !== null;
   }
 
-  /**
-   * Get statistics about loaded specification
-   */
   getStatistics(): SpecStatistics {
     const data = this.getSpecData();
     return {
@@ -364,17 +327,11 @@ export class SpecDataLoader {
     };
   }
 
-  /**
-   * Clear cached data
-   */
   clear(): void {
     this.cachedData = null;
     this.loadedAt = null;
   }
 
-  /**
-   * Find node types by query filter
-   */
   findNodeTypes(filter: NodeTypeQueryFilter = {}): NodeTypeSpec[] {
     const data = this.getSpecData();
 
@@ -388,9 +345,6 @@ export class SpecDataLoader {
     });
   }
 
-  /**
-   * Find relationship types by query filter
-   */
   findRelationshipTypes(filter: RelationshipTypeQueryFilter = {}): RelationshipTypeSpec[] {
     const data = this.getSpecData();
 
@@ -407,16 +361,10 @@ export class SpecDataLoader {
     });
   }
 
-  /**
-   * Get node types for a specific layer
-   */
   getNodeTypesForLayer(layerId: string): NodeTypeSpec[] {
     return this.findNodeTypes({ layer: layerId });
   }
 
-  /**
-   * Get relationship types for a specific layer pair
-   */
   getRelationshipTypesForLayerPair(sourceLayer: string, destLayer?: string): RelationshipTypeSpec[] {
     const filter: RelationshipTypeQueryFilter = { sourceLayer };
     if (destLayer) {
@@ -425,54 +373,33 @@ export class SpecDataLoader {
     return this.findRelationshipTypes(filter);
   }
 
-  /**
-   * Get predicate by name
-   */
   getPredicate(predicateName: string): PredicateSpec | undefined {
     return this.getSpecData().predicates.get(predicateName);
   }
 
-  /**
-   * Get all predicates
-   */
   getAllPredicates(): PredicateSpec[] {
     const data = this.getSpecData();
     return Array.from(data.predicates.values());
   }
 
-  /**
-   * Get layer by ID
-   */
   getLayer(layerId: string): LayerSpec | undefined {
     const data = this.getSpecData();
     return data.layers.find((l) => l.id === layerId);
   }
 
-  /**
-   * Get all layers
-   */
   getAllLayers(): LayerSpec[] {
     return this.getSpecData().layers;
   }
 
-  /**
-   * Get node type by spec_node_id
-   */
   getNodeType(specNodeId: string): NodeTypeSpec | undefined {
     const data = this.getSpecData();
     return data.nodeTypes.find((nt) => nt.spec_node_id === specNodeId);
   }
 
-  /**
-   * Get node types that reference another node type (incoming relationships)
-   */
   getNodeTypesReferencingType(specNodeId: string): RelationshipTypeSpec[] {
     return this.findRelationshipTypes({ destinationSpecNodeId: specNodeId });
   }
 
-  /**
-   * Get node types referenced by another node type (outgoing relationships)
-   */
   getNodeTypesReferencedByType(specNodeId: string): RelationshipTypeSpec[] {
     return this.findRelationshipTypes({ sourceSpecNodeId: specNodeId });
   }

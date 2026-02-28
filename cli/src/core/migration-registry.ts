@@ -96,6 +96,44 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.7.1 to v0.8.0: JSON Schema-Only Spec Architecture
+    this.migrations.push({
+      fromVersion: "0.7.1",
+      toVersion: "0.8.0",
+      description: "JSON Schema-Only Spec Architecture (Spec v0.8.0)",
+      apply: async () => {
+        // Spec architecture refactored to JSON Schema-only model:
+        // - Node type definitions moved to spec/schemas/nodes/{layer}/*.node.schema.json
+        // - Relationship definitions moved to spec/schemas/relationships/{layer}/*.relationship.schema.json
+        // - Predicates relocated to spec/schemas/base/predicates.json
+        // This is a spec architecture change only - model data files are fully backward compatible
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: "Spec version updated to 0.8.0 (JSON Schema-Only Spec Architecture)",
+        };
+      },
+    });
+
+    // Migration from v0.8.0 to v0.8.1: Expanded Relationship Coverage and Node Improvements
+    this.migrations.push({
+      fromVersion: "0.8.0",
+      toVersion: "0.8.1",
+      description: "Expanded Relationship Coverage and Node Improvements (Spec v0.8.1)",
+      apply: async () => {
+        // Spec enhancements only - no model data format changes:
+        // - 733 new relationship schemas added across all 12 layers
+        // - Node type descriptions improved for all 12 layers
+        // - Enum-masquerader node types consolidated into parent attributes
+        // - Existing models continue to work without modification
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: "Spec version updated to 0.8.1 (Expanded Relationship Coverage and Node Improvements)",
+        };
+      },
+    });
   }
 
   /**
