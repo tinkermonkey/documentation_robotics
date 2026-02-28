@@ -10,8 +10,6 @@
 
 import ansis from "ansis";
 import { confirm } from "@clack/prompts";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { findProjectRoot, getSpecReferencePath, getModelPath } from "../utils/project-paths.js";
 import {
   getCliVersion,
@@ -96,14 +94,6 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       process.exit(1);
     }
 
-    // Unconditionally remove stale .dr/spec/ from old CLI installations.
-    // Schema data is now bundled inside the CLI and never expanded into .dr/.
-    try {
-      await fs.rm(path.join(projectRoot, ".dr", "spec"), { recursive: true, force: true });
-    } catch {
-      // Ignore — directory may not exist
-    }
-
     const bundledSpecVersion = getCliBundledSpecVersion();
     const actions: UpgradeAction[] = [];
 
@@ -140,10 +130,12 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
             `Set spec version to ${bundledSpecVersion}`,
           ],
         });
-      } else if (installedSpecVersion !== bundledSpecVersion) {
+      } else if (installedSpecVersion !== bundledSpecVersion || options.force) {
         actions.push({
           type: "spec",
-          description: "Upgrade spec reference",
+          description: installedSpecVersion !== bundledSpecVersion
+            ? "Upgrade spec reference"
+            : "Reinstall spec reference (forced)",
           fromVersion: installedSpecVersion,
           toVersion: bundledSpecVersion,
           details: ["Update schema files", "Update .dr/manifest.json"],

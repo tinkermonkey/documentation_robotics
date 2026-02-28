@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { mkdir, rm, writeFile, readFile } from 'fs/promises';
+import { mkdir, rm, writeFile, readFile, readdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { installSpecReference, needsSpecReferenceInstall } from '../../../src/utils/spec-installer.js';
@@ -59,7 +59,7 @@ describe('spec-installer', () => {
   });
 
   describe('installSpecReference', () => {
-    it('should create .dr directory with manifest, changesets, and README', async () => {
+    it('should create .dr directory with manifest, changesets, README, and spec files', async () => {
       const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
       await mkdir(tempDir, { recursive: true });
 
@@ -72,8 +72,16 @@ describe('spec-installer', () => {
         expect(existsSync(path.join(tempDir, '.dr', 'changesets'))).toBe(true);
         expect(existsSync(path.join(tempDir, '.dr', 'README.md'))).toBe(true);
 
-        // Schema files are NOT copied — CLI reads from bundled schemas directly
-        expect(existsSync(path.join(tempDir, '.dr', 'spec'))).toBe(false);
+        // Spec files are copied to .dr/spec/
+        expect(existsSync(path.join(tempDir, '.dr', 'spec'))).toBe(true);
+        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'manifest.json'))).toBe(true);
+        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'base.json'))).toBe(true);
+        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'motivation.json'))).toBe(true);
+
+        // All 14 compiled files are present (manifest, base, 12 layers)
+        const specFiles = await readdir(path.join(tempDir, '.dr', 'spec'));
+        const jsonFiles = specFiles.filter(f => f.endsWith('.json'));
+        expect(jsonFiles.length).toBe(14);
 
         // Verify manifest content
         const manifestContent = await readFile(path.join(tempDir, '.dr', 'manifest.json'), 'utf-8');
@@ -81,6 +89,36 @@ describe('spec-installer', () => {
         expect(manifest).toHaveProperty('specVersion');
         expect(manifest.specVersion).toBe(getCliBundledSpecVersion());
         expect(manifest).toHaveProperty('installedAt');
+
+        // Verify a layer file has full compiled content (not just layer instance)
+        const motivationContent = await readFile(path.join(tempDir, '.dr', 'spec', 'motivation.json'), 'utf-8');
+        const motivation = JSON.parse(motivationContent);
+        expect(motivation).toHaveProperty('layer');
+        expect(motivation).toHaveProperty('nodeSchemas');
+        expect(motivation).toHaveProperty('relationshipSchemas');
+      } finally {
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
+    });
+
+    it('should overwrite stale .dr/spec/ files from old-format installations', async () => {
+      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+      await mkdir(tempDir, { recursive: true });
+
+      try {
+        // Simulate old-style installation with stale individual schema files
+        await mkdir(path.join(tempDir, '.dr', 'spec', 'layers'), { recursive: true });
+        await writeFile(
+          path.join(tempDir, '.dr', 'spec', 'layers', '01-motivation.layer.json'),
+          JSON.stringify({ id: 'motivation', number: 1 })
+        );
+
+        await installSpecReference(tempDir, true);
+
+        // Old subdirectories are gone, replaced by flat compiled files
+        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'layers'))).toBe(false);
+        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'manifest.json'))).toBe(true);
+        expect(existsSync(path.join(tempDir, '.dr', 'spec', 'motivation.json'))).toBe(true);
       } finally {
         await rm(tempDir, { recursive: true, force: true }).catch(() => {});
       }
@@ -91,7 +129,6 @@ describe('spec-installer', () => {
       await mkdir(tempDir, { recursive: true });
 
       try {
-        // Create old installation with changesets
         await mkdir(path.join(tempDir, '.dr', 'changesets', 'test-changeset'), { recursive: true });
         await writeFile(
           path.join(tempDir, '.dr', 'changesets', 'test-changeset', 'metadata.yaml'),
@@ -135,44 +172,11 @@ describe('spec-installer', () => {
       }
     });
 
-    it('should remove stale .dr/spec/ directory from old installations', async () => {
-      const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
-      await mkdir(tempDir, { recursive: true });
-
-      try {
-        // Simulate old-style installation with expanded schema files in .dr/spec/
-        await mkdir(path.join(tempDir, '.dr', 'spec', 'layers'), { recursive: true });
-        await writeFile(
-          path.join(tempDir, '.dr', 'spec', 'layers', '01-motivation.layer.json'),
-          JSON.stringify({ id: 'motivation', number: 1 })
-        );
-        await mkdir(path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', 'motivation'), { recursive: true });
-        await writeFile(
-          path.join(tempDir, '.dr', 'spec', 'schemas', 'nodes', 'motivation', 'goal.node.schema.json'),
-          JSON.stringify({ title: 'Goal' })
-        );
-
-        expect(existsSync(path.join(tempDir, '.dr', 'spec'))).toBe(true);
-
-        // Install with new CLI removes the stale directory
-        await installSpecReference(tempDir, true);
-
-        expect(existsSync(path.join(tempDir, '.dr', 'spec'))).toBe(false);
-
-        // But manifest and changesets are still written correctly
-        expect(existsSync(path.join(tempDir, '.dr', 'manifest.json'))).toBe(true);
-        expect(existsSync(path.join(tempDir, '.dr', 'changesets'))).toBe(true);
-      } finally {
-        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
-      }
-    });
-
     it('should update manifest version on reinstall', async () => {
       const tempDir = path.join('/tmp', `spec-installer-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
       await mkdir(tempDir, { recursive: true });
 
       try {
-        // Plant old version
         await mkdir(path.join(tempDir, '.dr'), { recursive: true });
         await writeFile(
           path.join(tempDir, '.dr', 'manifest.json'),
