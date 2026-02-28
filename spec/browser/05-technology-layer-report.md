@@ -8,18 +8,11 @@
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Artifact](#artifact)
-  - [Artifacttype](#artifacttype)
   - [Communicationnetwork](#communicationnetwork)
   - [Device](#device)
-  - [Devicetype](#devicetype)
-  - [Networktype](#networktype)
   - [Node](#node)
-  - [Nodetype](#nodetype)
   - [Path](#path)
-  - [Pathtype](#pathtype)
   - [Systemsoftware](#systemsoftware)
-  - [Systemsoftwaretype](#systemsoftwaretype)
-  - [Techeventtype](#techeventtype)
   - [Technologycollaboration](#technologycollaboration)
   - [Technologyevent](#technologyevent)
   - [Technologyfunction](#technologyfunction)
@@ -27,8 +20,6 @@
   - [Technologyinterface](#technologyinterface)
   - [Technologyprocess](#technologyprocess)
   - [Technologyservice](#technologyservice)
-  - [Techprotocol](#techprotocol)
-  - [Techservicetype](#techservicetype)
 
 ## Layer Introduction
 
@@ -41,21 +32,123 @@ Layer 5: Technology Layer
 
 | Metric                    | Count |
 | ------------------------- | ----- |
-| Node Types                | 22    |
-| Intra-Layer Relationships | 0     |
-| Inter-Layer Relationships | 2     |
+| Node Types                | 13    |
+| Intra-Layer Relationships | 85    |
+| Inter-Layer Relationships | 0     |
 | Inbound Relationships     | 0     |
-| Outbound Relationships    | 2     |
+| Outbound Relationships    | 0     |
 
 ### Layer Dependencies
 
 **Depends On**: None
 
-**Depended On By**: [Security](./03-security-layer-report.md)
+**Depended On By**: None
 
 ## Intra-Layer Relationships
 
-No intra-layer relationships defined.
+```mermaid
+flowchart LR
+  subgraph technology
+    artifact["artifact"]
+    communicationnetwork["communicationnetwork"]
+    device["device"]
+    node["node"]
+    path["path"]
+    systemsoftware["systemsoftware"]
+    technologycollaboration["technologycollaboration"]
+    technologyevent["technologyevent"]
+    technologyfunction["technologyfunction"]
+    technologyinteraction["technologyinteraction"]
+    technologyinterface["technologyinterface"]
+    technologyprocess["technologyprocess"]
+    technologyservice["technologyservice"]
+    communicationnetwork -->|aggregates| communicationnetwork
+    communicationnetwork -->|aggregates| path
+    communicationnetwork -->|assigned-to| technologycollaboration
+    communicationnetwork -->|associated-with| systemsoftware
+    communicationnetwork -->|provides| technologyinterface
+    communicationnetwork -->|serves| device
+    communicationnetwork -->|serves| node
+    communicationnetwork -->|supports| technologyservice
+    device -->|composes| node
+    node -->|assigned-to| technologyfunction
+    node -->|composes| artifact
+    node -->|composes| device
+    node -->|composes| systemsoftware
+    node -->|composes| technologyinterface
+    path -->|assigned-to| technologyinterface
+    path -->|composes| path
+    path -->|flows-to| technologyservice
+    path -->|realizes| technologyservice
+    path -->|serves| device
+    path -->|serves| node
+    path -->|triggers| technologyevent
+    systemsoftware -->|accesses| artifact
+    systemsoftware -->|assigned-to| technologyfunction
+    systemsoftware -->|composes| artifact
+    systemsoftware -->|depends-on| device
+    systemsoftware -->|depends-on| systemsoftware
+    systemsoftware -->|provides| technologyinterface
+    systemsoftware -->|realizes| technologyservice
+    systemsoftware -->|serves| technologyfunction
+    systemsoftware -->|triggers| technologyevent
+    systemsoftware -->|uses| communicationnetwork
+    systemsoftware -->|uses| path
+    technologycollaboration -->|accesses| artifact
+    technologycollaboration -->|aggregates| node
+    technologycollaboration -->|aggregates| technologyinterface
+    technologycollaboration -->|associated-with| technologycollaboration
+    technologycollaboration -->|performs| technologyinteraction
+    technologycollaboration -->|realizes| technologyservice
+    technologycollaboration -->|triggers| technologyevent
+    technologycollaboration -->|uses| communicationnetwork
+    technologycollaboration -->|uses| path
+    technologyevent -->|associated-with| technologyservice
+    technologyevent -->|flows-to| artifact
+    technologyevent -->|flows-to| technologyprocess
+    technologyevent -->|triggers| technologyfunction
+    technologyevent -->|triggers| technologyinteraction
+    technologyevent -->|triggers| technologyprocess
+    technologyfunction -->|accesses| artifact
+    technologyfunction -->|composes| technologyfunction
+    technologyfunction -->|flows-to| technologyprocess
+    technologyfunction -->|realizes| technologyservice
+    technologyfunction -->|serves| technologyinteraction
+    technologyfunction -->|triggers| technologyevent
+    technologyfunction -->|triggers| technologyprocess
+    technologyfunction -->|uses| technologyinterface
+    technologyinteraction -->|accesses| artifact
+    technologyinteraction -->|composes| technologyfunction
+    technologyinteraction -->|flows-to| technologyinteraction
+    technologyinteraction -->|realizes| technologycollaboration
+    technologyinteraction -->|realizes| technologyservice
+    technologyinteraction -->|triggers| technologyevent
+    technologyinteraction -->|triggers| technologyprocess
+    technologyinteraction -->|uses| technologyinterface
+    technologyinterface -->|assigned-to| node
+    technologyinterface -->|assigned-to| systemsoftware
+    technologyinterface -->|assigned-to| technologyservice
+    technologyinterface -->|serves| technologycollaboration
+    technologyinterface -->|serves| technologyfunction
+    technologyinterface -->|serves| technologyprocess
+    technologyinterface -->|uses| communicationnetwork
+    technologyinterface -->|uses| path
+    technologyprocess -->|realizes| technologyservice
+    technologyprocess -->|triggers| technologyevent
+    technologyprocess -->|uses| path
+    technologyservice -->|aggregates| technologyfunction
+    technologyservice -->|associated-with| technologycollaboration
+    technologyservice -->|consumes| artifact
+    technologyservice -->|depends-on| communicationnetwork
+    technologyservice -->|depends-on| node
+    technologyservice -->|flows-to| technologyservice
+    technologyservice -->|provides| technologyinterface
+    technologyservice -->|serves| technologyinterface
+    technologyservice -->|serves| technologyservice
+    technologyservice -->|triggers| technologyevent
+    technologyservice -->|uses| systemsoftware
+  end
+```
 
 ## Inter-Layer Dependencies
 
@@ -80,24 +173,20 @@ flowchart TB
   api --> data_store
   api --> security
   application --> apm
+  application --> business
   application --> motivation
   business --> application
-  business --> data_model
   business --> motivation
   business --> security
   data_model --> application
   data_model --> business
-  technology --> security
   testing --> motivation
   class technology current
 ```
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                            | Source Node                                          | Dest Node                                                      | Dest Layer                                | Predicate      | Cardinality | Strength |
-| ---------------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------- | -------------- | ----------- | -------- |
-| technology.artifact.classification.security.classification | [artifact](./05-technology-layer-report.md#artifact) | [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | classification | many-to-one | low      |
-| technology.artifact.referenced-by.security.classification  | [artifact](./05-technology-layer-report.md#artifact) | [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | referenced-by  | many-to-one | medium   |
+No inter-layer relationships defined.
 
 ## Node Reference
 
@@ -105,32 +194,25 @@ flowchart TB
 
 **Spec Node ID**: `technology.artifact`
 
-Physical piece of data used or produced
+A piece of data that is used or produced in a software development process, or by the deployment and operation of an IT system, such as a source file, executable, script, or configuration file.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 2
-
-#### Inter-Layer Relationships
-
-| Related Node                                                   | Layer                                     | Predicate      | Direction | Cardinality |
-| -------------------------------------------------------------- | ----------------------------------------- | -------------- | --------- | ----------- |
-| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | classification | outbound  | many-to-one |
-| [classification](./03-security-layer-report.md#classification) | [Security](./03-security-layer-report.md) | referenced-by  | outbound  | many-to-one |
-
-[Back to Index](#report-index)
-
-### Artifacttype {#artifacttype}
-
-**Spec Node ID**: `technology.artifacttype`
-
-ArtifactType element in Technology Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 8 | Outbound: 0
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                                        | Predicate | Direction | Cardinality |
+| --------------------------------------------------- | --------- | --------- | ----------- |
+| [node](#node)                                       | composes  | inbound   | many-to-one |
+| [systemsoftware](#systemsoftware)                   | accesses  | inbound   | many-to-one |
+| [systemsoftware](#systemsoftware)                   | composes  | inbound   | many-to-one |
+| [technologycollaboration](#technologycollaboration) | accesses  | inbound   | many-to-one |
+| [technologyevent](#technologyevent)                 | flows-to  | inbound   | many-to-one |
+| [technologyfunction](#technologyfunction)           | accesses  | inbound   | many-to-one |
+| [technologyinteraction](#technologyinteraction)     | accesses  | inbound   | many-to-one |
+| [technologyservice](#technologyservice)             | consumes  | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -138,12 +220,29 @@ ArtifactType element in Technology Layer
 
 **Spec Node ID**: `technology.communicationnetwork`
 
-Set of structures that connects nodes
+A set of structures that connects nodes for the purpose of transmission, routing, and reception of data, such as a LAN, WAN, or VPN.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 5 | Outbound: 8
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                                        | Predicate       | Direction | Cardinality |
+| --------------------------------------------------- | --------------- | --------- | ----------- |
+| [communicationnetwork](#communicationnetwork)       | aggregates      | outbound  | many-to-one |
+| [path](#path)                                       | aggregates      | outbound  | many-to-one |
+| [technologycollaboration](#technologycollaboration) | assigned-to     | outbound  | many-to-one |
+| [systemsoftware](#systemsoftware)                   | associated-with | outbound  | many-to-one |
+| [technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-one |
+| [device](#device)                                   | serves          | outbound  | many-to-one |
+| [node](#node)                                       | serves          | outbound  | many-to-one |
+| [technologyservice](#technologyservice)             | supports        | outbound  | many-to-one |
+| [systemsoftware](#systemsoftware)                   | uses            | inbound   | many-to-one |
+| [technologycollaboration](#technologycollaboration) | uses            | inbound   | many-to-one |
+| [technologyinterface](#technologyinterface)         | uses            | inbound   | many-to-one |
+| [technologyservice](#technologyservice)             | depends-on      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -151,38 +250,22 @@ Set of structures that connects nodes
 
 **Spec Node ID**: `technology.device`
 
-Physical IT resource with processing capability
+A physical IT resource upon which system software and artifacts may be stored or deployed for execution, such as a server, workstation, mobile device, or IoT sensor.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 4 | Outbound: 1
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Devicetype {#devicetype}
-
-**Spec Node ID**: `technology.devicetype`
-
-DeviceType element in Technology Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Networktype {#networktype}
-
-**Spec Node ID**: `technology.networktype`
-
-NetworkType element in Technology Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                  | Predicate  | Direction | Cardinality |
+| --------------------------------------------- | ---------- | --------- | ----------- |
+| [communicationnetwork](#communicationnetwork) | serves     | inbound   | many-to-one |
+| [node](#node)                                 | composes   | outbound  | many-to-one |
+| [node](#node)                                 | composes   | inbound   | many-to-one |
+| [path](#path)                                 | serves     | inbound   | many-to-one |
+| [systemsoftware](#systemsoftware)             | depends-on | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -190,25 +273,28 @@ NetworkType element in Technology Layer
 
 **Spec Node ID**: `technology.node`
 
-Computational or physical resource that hosts artifacts
+A computational or physical resource that hosts, manipulates, or interacts with other computational or physical resources, such as a server cluster, virtual machine host, or container runtime.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 6 | Outbound: 5
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Nodetype {#nodetype}
-
-**Spec Node ID**: `technology.nodetype`
-
-NodeType element in Technology Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                        | Predicate   | Direction | Cardinality |
+| --------------------------------------------------- | ----------- | --------- | ----------- |
+| [communicationnetwork](#communicationnetwork)       | serves      | inbound   | many-to-one |
+| [device](#device)                                   | composes    | inbound   | many-to-one |
+| [technologyfunction](#technologyfunction)           | assigned-to | outbound  | many-to-one |
+| [artifact](#artifact)                               | composes    | outbound  | many-to-one |
+| [device](#device)                                   | composes    | outbound  | many-to-one |
+| [systemsoftware](#systemsoftware)                   | composes    | outbound  | many-to-one |
+| [technologyinterface](#technologyinterface)         | composes    | outbound  | many-to-one |
+| [path](#path)                                       | serves      | inbound   | many-to-one |
+| [technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-one |
+| [technologyinterface](#technologyinterface)         | assigned-to | inbound   | many-to-one |
+| [technologyservice](#technologyservice)             | depends-on  | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -216,25 +302,29 @@ NodeType element in Technology Layer
 
 **Spec Node ID**: `technology.path`
 
-Link between nodes through which they exchange
+A link between two or more nodes through which those nodes can exchange data, representing a logical communication channel such as a network route, API connection, or message channel.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 6 | Outbound: 7
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Pathtype {#pathtype}
-
-**Spec Node ID**: `technology.pathtype`
-
-PathType element in Technology Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                        | Predicate   | Direction | Cardinality |
+| --------------------------------------------------- | ----------- | --------- | ----------- |
+| [communicationnetwork](#communicationnetwork)       | aggregates  | inbound   | many-to-one |
+| [technologyinterface](#technologyinterface)         | assigned-to | outbound  | many-to-one |
+| [path](#path)                                       | composes    | outbound  | many-to-one |
+| [technologyservice](#technologyservice)             | flows-to    | outbound  | many-to-one |
+| [technologyservice](#technologyservice)             | realizes    | outbound  | many-to-one |
+| [device](#device)                                   | serves      | outbound  | many-to-one |
+| [node](#node)                                       | serves      | outbound  | many-to-one |
+| [technologyevent](#technologyevent)                 | triggers    | outbound  | many-to-one |
+| [systemsoftware](#systemsoftware)                   | uses        | inbound   | many-to-one |
+| [technologycollaboration](#technologycollaboration) | uses        | inbound   | many-to-one |
+| [technologyinterface](#technologyinterface)         | uses        | inbound   | many-to-one |
+| [technologyprocess](#technologyprocess)             | uses        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -242,38 +332,32 @@ PathType element in Technology Layer
 
 **Spec Node ID**: `technology.systemsoftware`
 
-Software that provides platform for applications
+Software that provides or contributes to an environment for storing, executing, and using other software or data deployed within it, such as an operating system, container runtime, database engine, or middleware platform.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 5 | Outbound: 11
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Systemsoftwaretype {#systemsoftwaretype}
-
-**Spec Node ID**: `technology.systemsoftwaretype`
-
-SystemSoftwareType element in Technology Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Techeventtype {#techeventtype}
-
-**Spec Node ID**: `technology.techeventtype`
-
-TechEventType element in Technology Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                  | Predicate       | Direction | Cardinality |
+| --------------------------------------------- | --------------- | --------- | ----------- |
+| [communicationnetwork](#communicationnetwork) | associated-with | inbound   | many-to-one |
+| [node](#node)                                 | composes        | inbound   | many-to-one |
+| [artifact](#artifact)                         | accesses        | outbound  | many-to-one |
+| [technologyfunction](#technologyfunction)     | assigned-to     | outbound  | many-to-one |
+| [artifact](#artifact)                         | composes        | outbound  | many-to-one |
+| [device](#device)                             | depends-on      | outbound  | many-to-one |
+| [systemsoftware](#systemsoftware)             | depends-on      | outbound  | many-to-one |
+| [technologyinterface](#technologyinterface)   | provides        | outbound  | many-to-one |
+| [technologyservice](#technologyservice)       | realizes        | outbound  | many-to-one |
+| [technologyfunction](#technologyfunction)     | serves          | outbound  | many-to-one |
+| [technologyevent](#technologyevent)           | triggers        | outbound  | many-to-one |
+| [communicationnetwork](#communicationnetwork) | uses            | outbound  | many-to-one |
+| [path](#path)                                 | uses            | outbound  | many-to-one |
+| [technologyinterface](#technologyinterface)   | assigned-to     | inbound   | many-to-one |
+| [technologyservice](#technologyservice)       | uses            | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -281,12 +365,30 @@ TechEventType element in Technology Layer
 
 **Spec Node ID**: `technology.technologycollaboration`
 
-Aggregate of nodes working together
+An aggregate of two or more technology active structure elements that work together to perform collective technology behavior, such as a cluster of servers, a distributed cache, or a microservice mesh.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 5 | Outbound: 9
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                                        | Predicate       | Direction | Cardinality |
+| --------------------------------------------------- | --------------- | --------- | ----------- |
+| [communicationnetwork](#communicationnetwork)       | assigned-to     | inbound   | many-to-one |
+| [artifact](#artifact)                               | accesses        | outbound  | many-to-one |
+| [node](#node)                                       | aggregates      | outbound  | many-to-one |
+| [technologyinterface](#technologyinterface)         | aggregates      | outbound  | many-to-one |
+| [technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-one |
+| [technologyinteraction](#technologyinteraction)     | performs        | outbound  | many-to-one |
+| [technologyservice](#technologyservice)             | realizes        | outbound  | many-to-one |
+| [technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-one |
+| [communicationnetwork](#communicationnetwork)       | uses            | outbound  | many-to-one |
+| [path](#path)                                       | uses            | outbound  | many-to-one |
+| [technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-one |
+| [technologyinterface](#technologyinterface)         | serves          | inbound   | many-to-one |
+| [technologyservice](#technologyservice)             | associated-with | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -294,12 +396,30 @@ Aggregate of nodes working together
 
 **Spec Node ID**: `technology.technologyevent`
 
-Technology state change
+A technology behavior element that denotes a state change in the technology layer that triggers or results from technology behavior, such as a system alert, infrastructure notification, scheduled job trigger, or deployment completion signal.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 7 | Outbound: 6
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                                        | Predicate       | Direction | Cardinality |
+| --------------------------------------------------- | --------------- | --------- | ----------- |
+| [path](#path)                                       | triggers        | inbound   | many-to-one |
+| [systemsoftware](#systemsoftware)                   | triggers        | inbound   | many-to-one |
+| [technologycollaboration](#technologycollaboration) | triggers        | inbound   | many-to-one |
+| [technologyservice](#technologyservice)             | associated-with | outbound  | many-to-one |
+| [artifact](#artifact)                               | flows-to        | outbound  | many-to-one |
+| [technologyprocess](#technologyprocess)             | flows-to        | outbound  | many-to-one |
+| [technologyfunction](#technologyfunction)           | triggers        | outbound  | many-to-one |
+| [technologyinteraction](#technologyinteraction)     | triggers        | outbound  | many-to-one |
+| [technologyprocess](#technologyprocess)             | triggers        | outbound  | many-to-one |
+| [technologyfunction](#technologyfunction)           | triggers        | inbound   | many-to-one |
+| [technologyinteraction](#technologyinteraction)     | triggers        | inbound   | many-to-one |
+| [technologyprocess](#technologyprocess)             | triggers        | inbound   | many-to-one |
+| [technologyservice](#technologyservice)             | triggers        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -307,12 +427,32 @@ Technology state change
 
 **Spec Node ID**: `technology.technologyfunction`
 
-Collection of technology behavior
+A collection of technology behavior that can be performed by a node, representing an internal automated capability such as data replication, load balancing, or log rotation.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 8 | Outbound: 8
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                                    | Predicate   | Direction | Cardinality |
+| ----------------------------------------------- | ----------- | --------- | ----------- |
+| [node](#node)                                   | assigned-to | inbound   | many-to-one |
+| [systemsoftware](#systemsoftware)               | assigned-to | inbound   | many-to-one |
+| [systemsoftware](#systemsoftware)               | serves      | inbound   | many-to-one |
+| [technologyevent](#technologyevent)             | triggers    | inbound   | many-to-one |
+| [artifact](#artifact)                           | accesses    | outbound  | many-to-one |
+| [technologyfunction](#technologyfunction)       | composes    | outbound  | many-to-one |
+| [technologyprocess](#technologyprocess)         | flows-to    | outbound  | many-to-one |
+| [technologyservice](#technologyservice)         | realizes    | outbound  | many-to-one |
+| [technologyinteraction](#technologyinteraction) | serves      | outbound  | many-to-one |
+| [technologyevent](#technologyevent)             | triggers    | outbound  | many-to-one |
+| [technologyprocess](#technologyprocess)         | triggers    | outbound  | many-to-one |
+| [technologyinterface](#technologyinterface)     | uses        | outbound  | many-to-one |
+| [technologyinteraction](#technologyinteraction) | composes    | inbound   | many-to-one |
+| [technologyinterface](#technologyinterface)     | serves      | inbound   | many-to-one |
+| [technologyservice](#technologyservice)         | aggregates  | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -320,12 +460,28 @@ Collection of technology behavior
 
 **Spec Node ID**: `technology.technologyinteraction`
 
-Unit of collective technology behavior
+A unit of collective technology behavior performed by two or more collaborating nodes, such as a distributed transaction, inter-service handshake, or cluster failover protocol.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 4 | Outbound: 8
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                                        | Predicate | Direction | Cardinality |
+| --------------------------------------------------- | --------- | --------- | ----------- |
+| [technologycollaboration](#technologycollaboration) | performs  | inbound   | many-to-one |
+| [technologyevent](#technologyevent)                 | triggers  | inbound   | many-to-one |
+| [technologyfunction](#technologyfunction)           | serves    | inbound   | many-to-one |
+| [artifact](#artifact)                               | accesses  | outbound  | many-to-one |
+| [technologyfunction](#technologyfunction)           | composes  | outbound  | many-to-one |
+| [technologyinteraction](#technologyinteraction)     | flows-to  | outbound  | many-to-one |
+| [technologycollaboration](#technologycollaboration) | realizes  | outbound  | many-to-one |
+| [technologyservice](#technologyservice)             | realizes  | outbound  | many-to-one |
+| [technologyevent](#technologyevent)                 | triggers  | outbound  | many-to-one |
+| [technologyprocess](#technologyprocess)             | triggers  | outbound  | many-to-one |
+| [technologyinterface](#technologyinterface)         | uses      | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -337,8 +493,30 @@ Point of access where technology services are available
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 9 | Outbound: 8
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                                        | Predicate   | Direction | Cardinality |
+| --------------------------------------------------- | ----------- | --------- | ----------- |
+| [communicationnetwork](#communicationnetwork)       | provides    | inbound   | many-to-one |
+| [node](#node)                                       | composes    | inbound   | many-to-one |
+| [path](#path)                                       | assigned-to | inbound   | many-to-one |
+| [systemsoftware](#systemsoftware)                   | provides    | inbound   | many-to-one |
+| [technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-one |
+| [technologyfunction](#technologyfunction)           | uses        | inbound   | many-to-one |
+| [technologyinteraction](#technologyinteraction)     | uses        | inbound   | many-to-one |
+| [node](#node)                                       | assigned-to | outbound  | many-to-one |
+| [systemsoftware](#systemsoftware)                   | assigned-to | outbound  | many-to-one |
+| [technologyservice](#technologyservice)             | assigned-to | outbound  | many-to-one |
+| [technologycollaboration](#technologycollaboration) | serves      | outbound  | many-to-one |
+| [technologyfunction](#technologyfunction)           | serves      | outbound  | many-to-one |
+| [technologyprocess](#technologyprocess)             | serves      | outbound  | many-to-one |
+| [communicationnetwork](#communicationnetwork)       | uses        | outbound  | many-to-one |
+| [path](#path)                                       | uses        | outbound  | many-to-one |
+| [technologyservice](#technologyservice)             | provides    | inbound   | many-to-one |
+| [technologyservice](#technologyservice)             | serves      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -346,12 +524,26 @@ Point of access where technology services are available
 
 **Spec Node ID**: `technology.technologyprocess`
 
-Sequence of technology behaviors
+A sequence of technology behaviors that achieves a specific technology result, such as a deployment pipeline, backup job, certificate renewal workflow, or container orchestration sequence.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 6 | Outbound: 3
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                                    | Predicate | Direction | Cardinality |
+| ----------------------------------------------- | --------- | --------- | ----------- |
+| [technologyevent](#technologyevent)             | flows-to  | inbound   | many-to-one |
+| [technologyevent](#technologyevent)             | triggers  | inbound   | many-to-one |
+| [technologyfunction](#technologyfunction)       | flows-to  | inbound   | many-to-one |
+| [technologyfunction](#technologyfunction)       | triggers  | inbound   | many-to-one |
+| [technologyinteraction](#technologyinteraction) | triggers  | inbound   | many-to-one |
+| [technologyinterface](#technologyinterface)     | serves    | inbound   | many-to-one |
+| [technologyservice](#technologyservice)         | realizes  | outbound  | many-to-one |
+| [technologyevent](#technologyevent)             | triggers  | outbound  | many-to-one |
+| [path](#path)                                   | uses      | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -363,37 +555,37 @@ Externally visible unit of technology functionality
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 12 | Outbound: 11
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Techprotocol {#techprotocol}
-
-**Spec Node ID**: `technology.techprotocol`
-
-TechProtocol element in Technology Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Techservicetype {#techservicetype}
-
-**Spec Node ID**: `technology.techservicetype`
-
-TechServiceType element in Technology Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                        | Predicate       | Direction | Cardinality |
+| --------------------------------------------------- | --------------- | --------- | ----------- |
+| [communicationnetwork](#communicationnetwork)       | supports        | inbound   | many-to-one |
+| [path](#path)                                       | flows-to        | inbound   | many-to-one |
+| [path](#path)                                       | realizes        | inbound   | many-to-one |
+| [systemsoftware](#systemsoftware)                   | realizes        | inbound   | many-to-one |
+| [technologycollaboration](#technologycollaboration) | realizes        | inbound   | many-to-one |
+| [technologyevent](#technologyevent)                 | associated-with | inbound   | many-to-one |
+| [technologyfunction](#technologyfunction)           | realizes        | inbound   | many-to-one |
+| [technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-one |
+| [technologyinterface](#technologyinterface)         | assigned-to     | inbound   | many-to-one |
+| [technologyprocess](#technologyprocess)             | realizes        | inbound   | many-to-one |
+| [technologyfunction](#technologyfunction)           | aggregates      | outbound  | many-to-one |
+| [technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-one |
+| [artifact](#artifact)                               | consumes        | outbound  | many-to-one |
+| [communicationnetwork](#communicationnetwork)       | depends-on      | outbound  | many-to-one |
+| [node](#node)                                       | depends-on      | outbound  | many-to-one |
+| [technologyservice](#technologyservice)             | flows-to        | outbound  | many-to-one |
+| [technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-one |
+| [technologyinterface](#technologyinterface)         | serves          | outbound  | many-to-one |
+| [technologyservice](#technologyservice)             | serves          | outbound  | many-to-one |
+| [technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-one |
+| [systemsoftware](#systemsoftware)                   | uses            | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-13T12:27:12.854Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-28T10:53:05.782Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_

@@ -18,11 +18,13 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { execSync } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SPEC_DIR = path.join(__dirname, "..");
+const REPO_ROOT = path.join(__dirname, "../..");
 const SCHEMAS_DIR = path.join(SPEC_DIR, "schemas");
 const LAYERS_DIR = path.join(SPEC_DIR, "layers");
 const DIST_DIR = path.join(SPEC_DIR, "dist");
@@ -460,6 +462,21 @@ function build(validate: boolean = false): void {
     console.log("Running validation...");
     validateOutput();
   }
+
+  // Phase 6: Generate downstream artifacts from compiled dist
+  console.log("");
+  console.log("Generating browser reports (spec/browser/)...");
+  execSync(`npx tsx ${path.join(REPO_ROOT, "scripts/generate-layer-reports.ts")}`, {
+    cwd: REPO_ROOT,
+    stdio: "inherit",
+  });
+
+  console.log("");
+  console.log("Generating Neo4j export (spec/neo4j/)...");
+  execSync(`npx tsx ${path.join(REPO_ROOT, "scripts/export-spec-to-neo4j.ts")}`, {
+    cwd: REPO_ROOT,
+    stdio: "inherit",
+  });
 }
 
 function validateOutput(): void {

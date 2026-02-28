@@ -8,24 +8,15 @@
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Assessment](#assessment)
-  - [Assessmenttype](#assessmenttype)
   - [Constraint](#constraint)
-  - [Constrainttype](#constrainttype)
   - [Driver](#driver)
-  - [Drivercategory](#drivercategory)
   - [Goal](#goal)
   - [Meaning](#meaning)
   - [Outcome](#outcome)
-  - [Outcomestatus](#outcomestatus)
   - [Principle](#principle)
-  - [Principlecategory](#principlecategory)
-  - [Priority](#priority)
   - [Requirement](#requirement)
-  - [Requirementtype](#requirementtype)
   - [Stakeholder](#stakeholder)
-  - [Stakeholdertype](#stakeholdertype)
   - [Value](#value)
-  - [Valuetype](#valuetype)
 
 ## Layer Introduction
 
@@ -38,8 +29,8 @@ Layer 1: Motivation Layer
 
 | Metric                    | Count |
 | ------------------------- | ----- |
-| Node Types                | 19    |
-| Intra-Layer Relationships | 58    |
+| Node Types                | 10    |
+| Intra-Layer Relationships | 70    |
 | Inter-Layer Relationships | 10    |
 | Inbound Relationships     | 10    |
 | Outbound Relationships    | 0     |
@@ -56,44 +47,43 @@ Layer 1: Motivation Layer
 flowchart LR
   subgraph motivation
     assessment["assessment"]
-    assessmenttype["assessmenttype"]
     constraint["constraint"]
-    constrainttype["constrainttype"]
     driver["driver"]
-    drivercategory["drivercategory"]
     goal["goal"]
     meaning["meaning"]
     outcome["outcome"]
-    outcomestatus["outcomestatus"]
     principle["principle"]
-    principlecategory["principlecategory"]
-    priority["priority"]
     requirement["requirement"]
-    requirementtype["requirementtype"]
     stakeholder["stakeholder"]
-    stakeholdertype["stakeholdertype"]
     value["value"]
-    valuetype["valuetype"]
     assessment -->|influence| assessment
+    assessment -->|influence| driver
     assessment -->|influence| goal
     assessment -->|influence| principle
     assessment -->|influence| requirement
+    constraint -->|constrains| requirement
     constraint -->|influence| assessment
     constraint -->|influence| goal
+    constraint -->|influence| outcome
     constraint -->|influence| principle
     constraint -->|influence| requirement
     driver -->|influence| assessment
+    driver -->|influence| driver
     driver -->|influence| goal
+    driver -->|influence| outcome
     driver -->|influence| principle
     driver -->|influence| requirement
     goal -->|aggregates| goal
     goal -->|aggregates| requirement
     goal -->|influence| assessment
     goal -->|influence| goal
+    goal -->|influence| outcome
     goal -->|influence| principle
     goal -->|influence| requirement
     goal -->|realizes| goal
     goal -->|realizes| value
+    goal -->|specializes| goal
+    goal -->|supports| principle
     meaning -->|associated-with| constraint
     meaning -->|associated-with| driver
     meaning -->|associated-with| goal
@@ -102,16 +92,16 @@ flowchart LR
     meaning -->|associated-with| value
     outcome -->|associated-with| constraint
     outcome -->|associated-with| driver
-    outcome -->|associated-with| goal
     outcome -->|associated-with| outcome
     outcome -->|associated-with| stakeholder
-    outcome -->|associated-with| value
+    outcome -->|influence| goal
     outcome -->|realizes| goal
     outcome -->|realizes| value
     principle -->|influence| assessment
     principle -->|influence| goal
     principle -->|influence| principle
     principle -->|influence| requirement
+    principle -->|realizes| goal
     requirement -->|aggregates| goal
     requirement -->|aggregates| requirement
     requirement -->|associated-with| constraint
@@ -120,12 +110,16 @@ flowchart LR
     requirement -->|associated-with| outcome
     requirement -->|associated-with| stakeholder
     requirement -->|associated-with| value
+    requirement -->|realizes| goal
+    requirement -->|specializes| requirement
     stakeholder -->|associated-with| constraint
     stakeholder -->|associated-with| driver
     stakeholder -->|associated-with| goal
     stakeholder -->|associated-with| outcome
     stakeholder -->|associated-with| stakeholder
     stakeholder -->|associated-with| value
+    stakeholder -->|influence| driver
+    stakeholder -->|influence| goal
     value -->|associated-with| constraint
     value -->|associated-with| driver
     value -->|associated-with| goal
@@ -158,14 +152,13 @@ flowchart TB
   api --> data_store
   api --> security
   application --> apm
+  application --> business
   application --> motivation
   business --> application
-  business --> data_model
   business --> motivation
   business --> security
   data_model --> application
   data_model --> business
-  technology --> security
   testing --> motivation
   class motivation current
 ```
@@ -191,11 +184,11 @@ flowchart TB
 
 **Spec Node ID**: `motivation.assessment`
 
-Outcome of analysis of the state of affairs
+Outcome of analysis of the state of affairs of the enterprise or any part of it, and its environment. Assessments commonly take the form of strengths, weaknesses, opportunities, or threats (SWOT).
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 4
+- **Intra-Layer**: Inbound: 5 | Outbound: 5
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
@@ -203,6 +196,7 @@ Outcome of analysis of the state of affairs
 | Related Node                | Predicate | Direction | Cardinality  |
 | --------------------------- | --------- | --------- | ------------ |
 | [assessment](#assessment)   | influence | outbound  | many-to-many |
+| [driver](#driver)           | influence | outbound  | many-to-one  |
 | [goal](#goal)               | influence | outbound  | many-to-many |
 | [principle](#principle)     | influence | outbound  | many-to-many |
 | [requirement](#requirement) | influence | outbound  | many-to-many |
@@ -213,36 +207,25 @@ Outcome of analysis of the state of affairs
 
 [Back to Index](#report-index)
 
-### Assessmenttype {#assessmenttype}
-
-**Spec Node ID**: `motivation.assessmenttype`
-
-AssessmentType element in Motivation Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
 ### Constraint {#constraint}
 
 **Spec Node ID**: `motivation.constraint`
 
-Restriction on the way in which a system is realized
+Restriction on the freedom of design and implementation choices available when realizing a system, as opposed to requirements which must be satisfied.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 4
+- **Intra-Layer**: Inbound: 5 | Outbound: 6
 - **Inter-Layer**: Inbound: 2 | Outbound: 0
 
 #### Intra-Layer Relationships
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
+| [requirement](#requirement) | constrains      | outbound  | many-to-one  |
 | [assessment](#assessment)   | influence       | outbound  | many-to-many |
 | [goal](#goal)               | influence       | outbound  | many-to-many |
+| [outcome](#outcome)         | influence       | outbound  | many-to-one  |
 | [principle](#principle)     | influence       | outbound  | many-to-many |
 | [requirement](#requirement) | influence       | outbound  | many-to-many |
 | [meaning](#meaning)         | associated-with | inbound   | many-to-many |
@@ -260,56 +243,34 @@ Restriction on the way in which a system is realized
 
 [Back to Index](#report-index)
 
-### Constrainttype {#constrainttype}
-
-**Spec Node ID**: `motivation.constrainttype`
-
-ConstraintType element in Motivation Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
 ### Driver {#driver}
 
 **Spec Node ID**: `motivation.driver`
 
-External or internal condition that motivates an organization
+External or internal condition that motivates an organization to change its goals, strategy, or architecture.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 4
+- **Intra-Layer**: Inbound: 8 | Outbound: 6
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
+| [assessment](#assessment)   | influence       | inbound   | many-to-one  |
 | [assessment](#assessment)   | influence       | outbound  | many-to-many |
+| [driver](#driver)           | influence       | outbound  | many-to-one  |
 | [goal](#goal)               | influence       | outbound  | many-to-many |
+| [outcome](#outcome)         | influence       | outbound  | many-to-one  |
 | [principle](#principle)     | influence       | outbound  | many-to-many |
 | [requirement](#requirement) | influence       | outbound  | many-to-many |
 | [meaning](#meaning)         | associated-with | inbound   | many-to-many |
 | [outcome](#outcome)         | associated-with | inbound   | many-to-many |
 | [requirement](#requirement) | associated-with | inbound   | many-to-many |
 | [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
+| [stakeholder](#stakeholder) | influence       | inbound   | many-to-one  |
 | [value](#value)             | associated-with | inbound   | many-to-many |
-
-[Back to Index](#report-index)
-
-### Drivercategory {#drivercategory}
-
-**Spec Node ID**: `motivation.drivercategory`
-
-DriverCategory element in Motivation Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 [Back to Index](#report-index)
 
@@ -321,7 +282,7 @@ High-level statement of intent, direction, or desired end state
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 14 | Outbound: 8
+- **Intra-Layer**: Inbound: 18 | Outbound: 11
 - **Inter-Layer**: Inbound: 2 | Outbound: 0
 
 #### Intra-Layer Relationships
@@ -335,17 +296,23 @@ High-level statement of intent, direction, or desired end state
 | [requirement](#requirement) | aggregates      | outbound  | many-to-many |
 | [assessment](#assessment)   | influence       | outbound  | many-to-many |
 | [goal](#goal)               | influence       | outbound  | many-to-many |
+| [outcome](#outcome)         | influence       | outbound  | many-to-one  |
 | [principle](#principle)     | influence       | outbound  | many-to-many |
 | [requirement](#requirement) | influence       | outbound  | many-to-many |
 | [goal](#goal)               | realizes        | outbound  | many-to-many |
 | [value](#value)             | realizes        | outbound  | many-to-many |
+| [goal](#goal)               | specializes     | outbound  | many-to-one  |
+| [principle](#principle)     | supports        | outbound  | many-to-one  |
 | [meaning](#meaning)         | associated-with | inbound   | many-to-many |
-| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
+| [outcome](#outcome)         | influence       | inbound   | many-to-one  |
 | [outcome](#outcome)         | realizes        | inbound   | many-to-many |
 | [principle](#principle)     | influence       | inbound   | many-to-many |
+| [principle](#principle)     | realizes        | inbound   | many-to-one  |
 | [requirement](#requirement) | aggregates      | inbound   | many-to-many |
 | [requirement](#requirement) | associated-with | inbound   | many-to-many |
+| [requirement](#requirement) | realizes        | inbound   | many-to-one  |
 | [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
+| [stakeholder](#stakeholder) | influence       | inbound   | many-to-one  |
 | [value](#value)             | associated-with | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
@@ -361,7 +328,7 @@ High-level statement of intent, direction, or desired end state
 
 **Spec Node ID**: `motivation.meaning`
 
-Knowledge or expertise present in a representation
+Knowledge or expertise present in, or the interpretation given to, a concept in a particular context, as understood by stakeholders.
 
 #### Relationship Metrics
 
@@ -385,24 +352,26 @@ Knowledge or expertise present in a representation
 
 **Spec Node ID**: `motivation.outcome`
 
-End result that has been achieved
+End result intended or already achieved by the organization or a system, distinct from a Goal which expresses the desired direction.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 8
+- **Intra-Layer**: Inbound: 8 | Outbound: 7
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
+| [constraint](#constraint)   | influence       | inbound   | many-to-one  |
+| [driver](#driver)           | influence       | inbound   | many-to-one  |
+| [goal](#goal)               | influence       | inbound   | many-to-one  |
 | [meaning](#meaning)         | associated-with | inbound   | many-to-many |
 | [constraint](#constraint)   | associated-with | outbound  | many-to-many |
 | [driver](#driver)           | associated-with | outbound  | many-to-many |
-| [goal](#goal)               | associated-with | outbound  | many-to-many |
 | [outcome](#outcome)         | associated-with | outbound  | many-to-many |
 | [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
-| [value](#value)             | associated-with | outbound  | many-to-many |
+| [goal](#goal)               | influence       | outbound  | many-to-one  |
 | [goal](#goal)               | realizes        | outbound  | many-to-many |
 | [value](#value)             | realizes        | outbound  | many-to-many |
 | [requirement](#requirement) | associated-with | inbound   | many-to-many |
@@ -411,28 +380,15 @@ End result that has been achieved
 
 [Back to Index](#report-index)
 
-### Outcomestatus {#outcomestatus}
-
-**Spec Node ID**: `motivation.outcomestatus`
-
-OutcomeStatus element in Motivation Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
 ### Principle {#principle}
 
 **Spec Node ID**: `motivation.principle`
 
-Normative property of all systems in a given context
+Normative property of all systems in a given context, or a statement governing how an organization intends to fulfill its mission and guide decision-making.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 4
+- **Intra-Layer**: Inbound: 6 | Outbound: 5
 - **Inter-Layer**: Inbound: 1 | Outbound: 0
 
 #### Intra-Layer Relationships
@@ -443,10 +399,12 @@ Normative property of all systems in a given context
 | [constraint](#constraint)   | influence | inbound   | many-to-many |
 | [driver](#driver)           | influence | inbound   | many-to-many |
 | [goal](#goal)               | influence | inbound   | many-to-many |
+| [goal](#goal)               | supports  | inbound   | many-to-one  |
 | [assessment](#assessment)   | influence | outbound  | many-to-many |
 | [goal](#goal)               | influence | outbound  | many-to-many |
 | [principle](#principle)     | influence | outbound  | many-to-many |
 | [requirement](#requirement) | influence | outbound  | many-to-many |
+| [goal](#goal)               | realizes  | outbound  | many-to-one  |
 
 #### Inter-Layer Relationships
 
@@ -456,41 +414,15 @@ Normative property of all systems in a given context
 
 [Back to Index](#report-index)
 
-### Principlecategory {#principlecategory}
-
-**Spec Node ID**: `motivation.principlecategory`
-
-PrincipleCategory element in Motivation Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Priority {#priority}
-
-**Spec Node ID**: `motivation.priority`
-
-Priority element in Motivation Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
 ### Requirement {#requirement}
 
 **Spec Node ID**: `motivation.requirement`
 
-Statement of need that must be realized
+Statement of need that must be realized by a system, component, or solution, and that can be associated with stakeholders, goals, or constraints.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 7 | Outbound: 8
+- **Intra-Layer**: Inbound: 9 | Outbound: 10
 - **Inter-Layer**: Inbound: 3 | Outbound: 0
 
 #### Intra-Layer Relationships
@@ -498,6 +430,7 @@ Statement of need that must be realized
 | Related Node                | Predicate       | Direction | Cardinality  |
 | --------------------------- | --------------- | --------- | ------------ |
 | [assessment](#assessment)   | influence       | inbound   | many-to-many |
+| [constraint](#constraint)   | constrains      | inbound   | many-to-one  |
 | [constraint](#constraint)   | influence       | inbound   | many-to-many |
 | [driver](#driver)           | influence       | inbound   | many-to-many |
 | [goal](#goal)               | aggregates      | inbound   | many-to-many |
@@ -511,6 +444,8 @@ Statement of need that must be realized
 | [outcome](#outcome)         | associated-with | outbound  | many-to-many |
 | [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
 | [value](#value)             | associated-with | outbound  | many-to-many |
+| [goal](#goal)               | realizes        | outbound  | many-to-one  |
+| [requirement](#requirement) | specializes     | outbound  | many-to-one  |
 
 #### Inter-Layer Relationships
 
@@ -522,28 +457,15 @@ Statement of need that must be realized
 
 [Back to Index](#report-index)
 
-### Requirementtype {#requirementtype}
-
-**Spec Node ID**: `motivation.requirementtype`
-
-RequirementType element in Motivation Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
 ### Stakeholder {#stakeholder}
 
 **Spec Node ID**: `motivation.stakeholder`
 
-Individual, team, or organization with interest in the outcome
+Individual, team, or organization that has an interest in, or is affected by, the effects of the architecture.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 6
+- **Intra-Layer**: Inbound: 5 | Outbound: 8
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
@@ -559,20 +481,9 @@ Individual, team, or organization with interest in the outcome
 | [outcome](#outcome)         | associated-with | outbound  | many-to-many |
 | [stakeholder](#stakeholder) | associated-with | outbound  | many-to-many |
 | [value](#value)             | associated-with | outbound  | many-to-many |
+| [driver](#driver)           | influence       | outbound  | many-to-one  |
+| [goal](#goal)               | influence       | outbound  | many-to-one  |
 | [value](#value)             | associated-with | inbound   | many-to-many |
-
-[Back to Index](#report-index)
-
-### Stakeholdertype {#stakeholdertype}
-
-**Spec Node ID**: `motivation.stakeholdertype`
-
-StakeholderType element in Motivation Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 [Back to Index](#report-index)
 
@@ -580,11 +491,11 @@ StakeholderType element in Motivation Layer
 
 **Spec Node ID**: `motivation.value`
 
-Relative worth, utility, or importance of something
+Relative worth, utility, or importance of a concept, phenomenon, or outcome to one or more stakeholders.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 7 | Outbound: 6
+- **Intra-Layer**: Inbound: 6 | Outbound: 6
 - **Inter-Layer**: Inbound: 2 | Outbound: 0
 
 #### Intra-Layer Relationships
@@ -593,7 +504,6 @@ Relative worth, utility, or importance of something
 | --------------------------- | --------------- | --------- | ------------ |
 | [goal](#goal)               | realizes        | inbound   | many-to-many |
 | [meaning](#meaning)         | associated-with | inbound   | many-to-many |
-| [outcome](#outcome)         | associated-with | inbound   | many-to-many |
 | [outcome](#outcome)         | realizes        | inbound   | many-to-many |
 | [requirement](#requirement) | associated-with | inbound   | many-to-many |
 | [stakeholder](#stakeholder) | associated-with | inbound   | many-to-many |
@@ -613,19 +523,6 @@ Relative worth, utility, or importance of something
 
 [Back to Index](#report-index)
 
-### Valuetype {#valuetype}
-
-**Spec Node ID**: `motivation.valuetype`
-
-ValueType element in Motivation Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
 ---
 
-_Generated: 2026-02-13T12:27:12.850Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-28T10:53:05.779Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_

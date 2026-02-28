@@ -7,32 +7,20 @@
 - [Inter-Layer Dependencies](#inter-layer-dependencies)
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
-  - [Contexttype](#contexttype)
   - [Contextvariation](#contextvariation)
-  - [Coveragecriteria](#coveragecriteria)
   - [Coverageexclusion](#coverageexclusion)
   - [Coveragegap](#coveragegap)
   - [Coveragerequirement](#coveragerequirement)
   - [Coveragesummary](#coveragesummary)
-  - [Dependencyeffect](#dependencyeffect)
   - [Environmentfactor](#environmentfactor)
-  - [Fieldrelevance](#fieldrelevance)
-  - [Gapseverity](#gapseverity)
-  - [Implementationformat](#implementationformat)
   - [Inputpartitionselection](#inputpartitionselection)
   - [Inputselection](#inputselection)
   - [Inputspacepartition](#inputspacepartition)
   - [Outcomecategory](#outcomecategory)
-  - [Outcometype](#outcometype)
-  - [Partitioncategory](#partitioncategory)
   - [Partitiondependency](#partitiondependency)
   - [Partitionvalue](#partitionvalue)
-  - [Presencerule](#presencerule)
-  - [Priority](#priority)
-  - [Sketchstatus](#sketchstatus)
   - [Targetcoveragesummary](#targetcoveragesummary)
   - [Targetinputfield](#targetinputfield)
-  - [Targettype](#targettype)
   - [Testcasesketch](#testcasesketch)
   - [Testcoveragemodel](#testcoveragemodel)
   - [Testcoveragetarget](#testcoveragetarget)
@@ -48,8 +36,8 @@ Layer 12: Testing Layer
 
 | Metric                    | Count |
 | ------------------------- | ----- |
-| Node Types                | 29    |
-| Intra-Layer Relationships | 46    |
+| Node Types                | 17    |
+| Intra-Layer Relationships | 100   |
 | Inter-Layer Relationships | 8     |
 | Inbound Relationships     | 0     |
 | Outbound Relationships    | 8     |
@@ -65,41 +53,35 @@ Layer 12: Testing Layer
 ```mermaid
 flowchart LR
   subgraph testing
-    contexttype["contexttype"]
     contextvariation["contextvariation"]
-    coveragecriteria["coveragecriteria"]
     coverageexclusion["coverageexclusion"]
     coveragegap["coveragegap"]
     coveragerequirement["coveragerequirement"]
     coveragesummary["coveragesummary"]
-    dependencyeffect["dependencyeffect"]
     environmentfactor["environmentfactor"]
-    fieldrelevance["fieldrelevance"]
-    gapseverity["gapseverity"]
-    implementationformat["implementationformat"]
     inputpartitionselection["inputpartitionselection"]
     inputselection["inputselection"]
     inputspacepartition["inputspacepartition"]
     outcomecategory["outcomecategory"]
-    outcometype["outcometype"]
-    partitioncategory["partitioncategory"]
     partitiondependency["partitiondependency"]
     partitionvalue["partitionvalue"]
-    presencerule["presencerule"]
-    priority["priority"]
-    sketchstatus["sketchstatus"]
     targetcoveragesummary["targetcoveragesummary"]
     targetinputfield["targetinputfield"]
-    targettype["targettype"]
     testcasesketch["testcasesketch"]
     testcoveragemodel["testcoveragemodel"]
     testcoveragetarget["testcoveragetarget"]
+    contextvariation -->|references| environmentfactor
     contextvariation -->|serves| testcoveragetarget
+    coverageexclusion -->|references| coveragerequirement
+    coverageexclusion -->|references| testcoveragetarget
+    coveragegap -->|flows-to| coverageexclusion
+    coveragegap -->|references| testcoveragetarget
     coveragegap -->|triggers| coveragerequirement
     coveragegap -->|triggers| partitionvalue
     coveragerequirement -->|accesses| inputpartitionselection
     coveragerequirement -->|accesses| inputselection
     coveragerequirement -->|aggregates| contextvariation
+    coveragerequirement -->|aggregates| coverageexclusion
     coveragerequirement -->|aggregates| partitionvalue
     coveragerequirement -->|composes| inputpartitionselection
     coveragerequirement -->|composes| outcomecategory
@@ -112,16 +94,55 @@ flowchart LR
     coveragerequirement -->|references| coveragerequirement
     coveragerequirement -->|references| partitionvalue
     coveragerequirement -->|references| testcoveragetarget
+    coveragesummary -->|aggregates| coveragerequirement
+    coveragesummary -->|aggregates| targetcoveragesummary
+    coveragesummary -->|aggregates| testcasesketch
+    coveragesummary -->|aggregates| testcoveragemodel
+    coveragesummary -->|depends-on| testcoveragetarget
+    coveragesummary -->|references| coverageexclusion
+    coveragesummary -->|references| coveragegap
+    coveragesummary -->|references| testcoveragemodel
+    coveragesummary -->|serves| testcoveragemodel
+    coveragesummary -->|validates| coveragerequirement
+    environmentfactor -->|composes| contextvariation
+    environmentfactor -->|composes| inputspacepartition
+    environmentfactor -->|flows-to| coveragesummary
+    environmentfactor -->|references| partitionvalue
+    environmentfactor -->|serves| coveragerequirement
+    environmentfactor -->|serves| testcasesketch
+    environmentfactor -->|serves| testcoveragemodel
     inputpartitionselection -->|aggregates| contextvariation
     inputpartitionselection -->|aggregates| partitionvalue
     inputselection -->|references| coveragerequirement
     inputselection -->|references| partitionvalue
     inputselection -->|references| testcoveragetarget
+    inputspacepartition -->|composes| partitionvalue
+    inputspacepartition -->|depends-on| inputspacepartition
     inputspacepartition -->|serves| testcoveragetarget
+    outcomecategory -->|aggregates| testcasesketch
+    outcomecategory -->|constrained-by| environmentfactor
+    outcomecategory -->|flows-to| coveragesummary
+    outcomecategory -->|references| targetinputfield
+    outcomecategory -->|serves| coveragerequirement
+    partitiondependency -->|references| inputspacepartition
     partitiondependency -->|triggers| coveragerequirement
     partitiondependency -->|triggers| partitionvalue
+    partitionvalue -->|composes| inputspacepartition
+    partitionvalue -->|constrained-by| coveragerequirement
+    partitionvalue -->|depends-on| environmentfactor
+    partitionvalue -->|flows-to| outcomecategory
+    partitionvalue -->|references| coverageexclusion
+    partitionvalue -->|triggers| coveragegap
+    targetcoveragesummary -->|references| coverageexclusion
+    targetcoveragesummary -->|references| coveragegap
     targetcoveragesummary -->|validates| coveragerequirement
     targetcoveragesummary -->|validates| testcoveragetarget
+    targetinputfield -->|aggregates| partitionvalue
+    targetinputfield -->|constrained-by| coveragerequirement
+    targetinputfield -->|depends-on| contextvariation
+    targetinputfield -->|flows-to| inputpartitionselection
+    targetinputfield -->|references| inputspacepartition
+    targetinputfield -->|references| testcoveragetarget
     testcasesketch -->|accesses| inputpartitionselection
     testcasesketch -->|accesses| inputselection
     testcasesketch -->|depends-on| contextvariation
@@ -130,13 +151,22 @@ flowchart LR
     testcasesketch -->|references| coveragerequirement
     testcasesketch -->|references| partitionvalue
     testcasesketch -->|references| testcoveragetarget
+    testcasesketch -->|tests| coveragerequirement
     testcasesketch -->|validates| coveragerequirement
     testcasesketch -->|validates| testcoveragetarget
+    testcoveragemodel -->|aggregates| contextvariation
+    testcoveragemodel -->|aggregates| inputspacepartition
+    testcoveragemodel -->|aggregates| testcasesketch
+    testcoveragemodel -->|composes| coverageexclusion
+    testcoveragemodel -->|composes| coveragerequirement
+    testcoveragemodel -->|composes| coveragesummary
     testcoveragemodel -->|composes| inputpartitionselection
     testcoveragemodel -->|composes| outcomecategory
     testcoveragemodel -->|composes| testcoveragetarget
+    testcoveragetarget -->|aggregates| contextvariation
     testcoveragetarget -->|composes| inputpartitionselection
     testcoveragetarget -->|composes| outcomecategory
+    testcoveragetarget -->|composes| targetinputfield
     testcoveragetarget -->|composes| testcoveragetarget
     testcoveragetarget -->|flows-to| coveragerequirement
     testcoveragetarget -->|flows-to| testcasesketch
@@ -166,14 +196,13 @@ flowchart TB
   api --> data_store
   api --> security
   application --> apm
+  application --> business
   application --> motivation
   business --> application
-  business --> data_model
   business --> motivation
   business --> security
   data_model --> application
   data_model --> business
-  technology --> security
   testing --> motivation
   class testing current
 ```
@@ -193,52 +222,31 @@ flowchart TB
 
 ## Node Reference
 
-### Contexttype {#contexttype}
-
-**Spec Node ID**: `testing.contexttype`
-
-ContextType element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
 ### Contextvariation {#contextvariation}
 
 **Spec Node ID**: `testing.contextvariation`
 
-Different context in which functionality can be invoked
+A distinct test type or environmental context under which a coverage target may be invoked, used to parameterize test design across different execution conditions (functional correctness, load behavior, security posture, regression state). Maps to environmental needs documented in IEEE 829-2008 test design specifications.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 4 | Outbound: 1
+- **Intra-Layer**: Inbound: 8 | Outbound: 2
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
 | Related Node                                        | Predicate  | Direction | Cardinality  |
 | --------------------------------------------------- | ---------- | --------- | ------------ |
+| [environmentfactor](#environmentfactor)             | references | outbound  | many-to-one  |
 | [testcoveragetarget](#testcoveragetarget)           | serves     | outbound  | many-to-many |
 | [coveragerequirement](#coveragerequirement)         | aggregates | inbound   | many-to-many |
 | [coveragerequirement](#coveragerequirement)         | depends-on | inbound   | many-to-many |
+| [environmentfactor](#environmentfactor)             | composes   | inbound   | many-to-one  |
 | [inputpartitionselection](#inputpartitionselection) | aggregates | inbound   | many-to-many |
+| [targetinputfield](#targetinputfield)               | depends-on | inbound   | many-to-one  |
 | [testcasesketch](#testcasesketch)                   | depends-on | inbound   | many-to-many |
-
-[Back to Index](#report-index)
-
-### Coveragecriteria {#coveragecriteria}
-
-**Spec Node ID**: `testing.coveragecriteria`
-
-CoverageCriteria element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| [testcoveragemodel](#testcoveragemodel)             | aggregates | inbound   | one-to-many  |
+| [testcoveragetarget](#testcoveragetarget)           | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -246,12 +254,25 @@ CoverageCriteria element in Testing Layer
 
 **Spec Node ID**: `testing.coverageexclusion`
 
-Explicit exclusion from coverage with justification
+A formally approved exclusion of a coverage target or requirement from the test coverage model, documenting the rationale, accepted risk, and accountable approver per test plan scope documentation in IEEE 829-2008.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 6 | Outbound: 2
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                                    | Predicate  | Direction | Cardinality |
+| ----------------------------------------------- | ---------- | --------- | ----------- |
+| [coveragerequirement](#coveragerequirement)     | references | outbound  | many-to-one |
+| [testcoveragetarget](#testcoveragetarget)       | references | outbound  | many-to-one |
+| [coveragegap](#coveragegap)                     | flows-to   | inbound   | many-to-one |
+| [coveragerequirement](#coveragerequirement)     | aggregates | inbound   | many-to-one |
+| [coveragesummary](#coveragesummary)             | references | inbound   | many-to-one |
+| [partitionvalue](#partitionvalue)               | references | inbound   | many-to-one |
+| [targetcoveragesummary](#targetcoveragesummary) | references | inbound   | many-to-one |
+| [testcoveragemodel](#testcoveragemodel)         | composes   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -259,19 +280,24 @@ Explicit exclusion from coverage with justification
 
 **Spec Node ID**: `testing.coveragegap`
 
-Identified gap in test coverage requiring attention
+An identified deficit between required and achieved test coverage for a target or requirement, typically surfaced during test summary reporting per IEEE 829-2008. Gaps require remediation, risk acceptance (CoverageExclusion), or deferral.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 2
+- **Intra-Layer**: Inbound: 3 | Outbound: 4
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                                | Predicate | Direction | Cardinality  |
-| ------------------------------------------- | --------- | --------- | ------------ |
-| [coveragerequirement](#coveragerequirement) | triggers  | outbound  | many-to-many |
-| [partitionvalue](#partitionvalue)           | triggers  | outbound  | many-to-many |
+| Related Node                                    | Predicate  | Direction | Cardinality  |
+| ----------------------------------------------- | ---------- | --------- | ------------ |
+| [coverageexclusion](#coverageexclusion)         | flows-to   | outbound  | many-to-one  |
+| [testcoveragetarget](#testcoveragetarget)       | references | outbound  | many-to-one  |
+| [coveragerequirement](#coveragerequirement)     | triggers   | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)               | triggers   | outbound  | many-to-many |
+| [coveragesummary](#coveragesummary)             | references | inbound   | many-to-one  |
+| [partitionvalue](#partitionvalue)               | triggers   | inbound   | many-to-one  |
+| [targetcoveragesummary](#targetcoveragesummary) | references | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -279,39 +305,49 @@ Identified gap in test coverage requiring attention
 
 **Spec Node ID**: `testing.coveragerequirement`
 
-Requirement for test coverage of a target
+A specification of coverage criteria that must be satisfied for a TestCoverageTarget, defining which input partitions, context variations, and outcome categories must be exercised, per test design specification requirements in IEEE 829-2008.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 9 | Outbound: 15
+- **Intra-Layer**: Inbound: 18 | Outbound: 16
 - **Inter-Layer**: Inbound: 0 | Outbound: 2
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate  | Direction | Cardinality  |
-| --------------------------------------------------- | ---------- | --------- | ------------ |
-| [coveragegap](#coveragegap)                         | triggers   | inbound   | many-to-many |
-| [inputpartitionselection](#inputpartitionselection) | accesses   | outbound  | many-to-many |
-| [inputselection](#inputselection)                   | accesses   | outbound  | many-to-many |
-| [contextvariation](#contextvariation)               | aggregates | outbound  | many-to-many |
-| [partitionvalue](#partitionvalue)                   | aggregates | outbound  | many-to-many |
-| [inputpartitionselection](#inputpartitionselection) | composes   | outbound  | many-to-many |
-| [outcomecategory](#outcomecategory)                 | composes   | outbound  | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)           | composes   | outbound  | many-to-many |
-| [contextvariation](#contextvariation)               | depends-on | outbound  | many-to-many |
-| [inputspacepartition](#inputspacepartition)         | depends-on | outbound  | many-to-many |
-| [outcomecategory](#outcomecategory)                 | depends-on | outbound  | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | flows-to   | outbound  | many-to-many |
-| [testcasesketch](#testcasesketch)                   | flows-to   | outbound  | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | references | outbound  | many-to-many |
-| [partitionvalue](#partitionvalue)                   | references | outbound  | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)           | references | outbound  | many-to-many |
-| [inputselection](#inputselection)                   | references | inbound   | many-to-many |
-| [partitiondependency](#partitiondependency)         | triggers   | inbound   | many-to-many |
-| [targetcoveragesummary](#targetcoveragesummary)     | validates  | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)                   | references | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)                   | validates  | inbound   | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)           | flows-to   | inbound   | many-to-many |
+| Related Node                                        | Predicate      | Direction | Cardinality  |
+| --------------------------------------------------- | -------------- | --------- | ------------ |
+| [coverageexclusion](#coverageexclusion)             | references     | inbound   | many-to-one  |
+| [coveragegap](#coveragegap)                         | triggers       | inbound   | many-to-many |
+| [inputpartitionselection](#inputpartitionselection) | accesses       | outbound  | many-to-many |
+| [inputselection](#inputselection)                   | accesses       | outbound  | many-to-many |
+| [contextvariation](#contextvariation)               | aggregates     | outbound  | many-to-many |
+| [coverageexclusion](#coverageexclusion)             | aggregates     | outbound  | many-to-one  |
+| [partitionvalue](#partitionvalue)                   | aggregates     | outbound  | many-to-many |
+| [inputpartitionselection](#inputpartitionselection) | composes       | outbound  | many-to-many |
+| [outcomecategory](#outcomecategory)                 | composes       | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | composes       | outbound  | many-to-many |
+| [contextvariation](#contextvariation)               | depends-on     | outbound  | many-to-many |
+| [inputspacepartition](#inputspacepartition)         | depends-on     | outbound  | many-to-many |
+| [outcomecategory](#outcomecategory)                 | depends-on     | outbound  | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | flows-to       | outbound  | many-to-many |
+| [testcasesketch](#testcasesketch)                   | flows-to       | outbound  | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | references     | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)                   | references     | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | references     | outbound  | many-to-many |
+| [coveragesummary](#coveragesummary)                 | aggregates     | inbound   | many-to-one  |
+| [coveragesummary](#coveragesummary)                 | validates      | inbound   | many-to-one  |
+| [environmentfactor](#environmentfactor)             | serves         | inbound   | many-to-one  |
+| [inputselection](#inputselection)                   | references     | inbound   | many-to-many |
+| [outcomecategory](#outcomecategory)                 | serves         | inbound   | many-to-one  |
+| [partitiondependency](#partitiondependency)         | triggers       | inbound   | many-to-many |
+| [partitionvalue](#partitionvalue)                   | constrained-by | inbound   | many-to-one  |
+| [targetcoveragesummary](#targetcoveragesummary)     | validates      | inbound   | many-to-many |
+| [targetinputfield](#targetinputfield)               | constrained-by | inbound   | many-to-one  |
+| [testcasesketch](#testcasesketch)                   | references     | inbound   | many-to-many |
+| [testcasesketch](#testcasesketch)                   | tests          | inbound   | many-to-one  |
+| [testcasesketch](#testcasesketch)                   | validates      | inbound   | many-to-many |
+| [testcoveragemodel](#testcoveragemodel)             | composes       | inbound   | many-to-one  |
+| [testcoveragetarget](#testcoveragetarget)           | flows-to       | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -326,25 +362,30 @@ Requirement for test coverage of a target
 
 **Spec Node ID**: `testing.coveragesummary`
 
-Summary of coverage status (can be computed or declared)
+Aggregated coverage status across all targets and requirements within a test coverage model, suitable for test summary reporting.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 3 | Outbound: 10
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Dependencyeffect {#dependencyeffect}
-
-**Spec Node ID**: `testing.dependencyeffect`
-
-DependencyEffect element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                    | Predicate  | Direction | Cardinality |
+| ----------------------------------------------- | ---------- | --------- | ----------- |
+| [coveragerequirement](#coveragerequirement)     | aggregates | outbound  | many-to-one |
+| [targetcoveragesummary](#targetcoveragesummary) | aggregates | outbound  | many-to-one |
+| [testcasesketch](#testcasesketch)               | aggregates | outbound  | many-to-one |
+| [testcoveragemodel](#testcoveragemodel)         | aggregates | outbound  | many-to-one |
+| [testcoveragetarget](#testcoveragetarget)       | depends-on | outbound  | many-to-one |
+| [coverageexclusion](#coverageexclusion)         | references | outbound  | many-to-one |
+| [coveragegap](#coveragegap)                     | references | outbound  | many-to-one |
+| [testcoveragemodel](#testcoveragemodel)         | references | outbound  | many-to-one |
+| [testcoveragemodel](#testcoveragemodel)         | serves     | outbound  | many-to-one |
+| [coveragerequirement](#coveragerequirement)     | validates  | outbound  | many-to-one |
+| [environmentfactor](#environmentfactor)         | flows-to   | inbound   | many-to-one |
+| [outcomecategory](#outcomecategory)             | flows-to   | inbound   | many-to-one |
+| [testcoveragemodel](#testcoveragemodel)         | composes   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -352,51 +393,27 @@ DependencyEffect element in Testing Layer
 
 **Spec Node ID**: `testing.environmentfactor`
 
-Environmental condition that may affect behavior
+A specific environmental variable (OS version, network latency, locale setting, hardware configuration, dependency version) documented as affecting test behavior. Used to parameterize ContextVariation instances with concrete environmental constraints per IEEE 829-2008 environmental needs specification.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 3 | Outbound: 7
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Fieldrelevance {#fieldrelevance}
-
-**Spec Node ID**: `testing.fieldrelevance`
-
-FieldRelevance element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Gapseverity {#gapseverity}
-
-**Spec Node ID**: `testing.gapseverity`
-
-GapSeverity element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Implementationformat {#implementationformat}
-
-**Spec Node ID**: `testing.implementationformat`
-
-ImplementationFormat element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                | Predicate      | Direction | Cardinality |
+| ------------------------------------------- | -------------- | --------- | ----------- |
+| [contextvariation](#contextvariation)       | references     | inbound   | many-to-one |
+| [contextvariation](#contextvariation)       | composes       | outbound  | many-to-one |
+| [inputspacepartition](#inputspacepartition) | composes       | outbound  | many-to-one |
+| [coveragesummary](#coveragesummary)         | flows-to       | outbound  | many-to-one |
+| [partitionvalue](#partitionvalue)           | references     | outbound  | many-to-one |
+| [coveragerequirement](#coveragerequirement) | serves         | outbound  | many-to-one |
+| [testcasesketch](#testcasesketch)           | serves         | outbound  | many-to-one |
+| [testcoveragemodel](#testcoveragemodel)     | serves         | outbound  | many-to-one |
+| [outcomecategory](#outcomecategory)         | constrained-by | inbound   | many-to-one |
+| [partitionvalue](#partitionvalue)           | depends-on     | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -404,11 +421,11 @@ ImplementationFormat element in Testing Layer
 
 **Spec Node ID**: `testing.inputpartitionselection`
 
-Selection of partition values to include in coverage
+A specification of which values from an InputSpacePartition must be exercised within a CoverageRequirement, supporting selective coverage of equivalence classes per IEEE 829-2008 test design specification. When coverAllCategories is true, all partition values are included except those in excludeValues; otherwise, only the values listed in coverValues are included.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 2
+- **Intra-Layer**: Inbound: 6 | Outbound: 2
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
@@ -419,6 +436,7 @@ Selection of partition values to include in coverage
 | [coveragerequirement](#coveragerequirement) | composes   | inbound   | many-to-many |
 | [contextvariation](#contextvariation)       | aggregates | outbound  | many-to-many |
 | [partitionvalue](#partitionvalue)           | aggregates | outbound  | many-to-many |
+| [targetinputfield](#targetinputfield)       | flows-to   | inbound   | many-to-one  |
 | [testcasesketch](#testcasesketch)           | accesses   | inbound   | many-to-many |
 | [testcoveragemodel](#testcoveragemodel)     | composes   | inbound   | many-to-many |
 | [testcoveragetarget](#testcoveragetarget)   | composes   | inbound   | many-to-many |
@@ -429,7 +447,7 @@ Selection of partition values to include in coverage
 
 **Spec Node ID**: `testing.inputselection`
 
-Specific partition value selected for a test case
+A concrete input value assignment for a TestCaseSketch, binding an abstract partition representative value (selectedValue) to a specific concrete test datum (concreteValue), per test case input specification in IEEE 829-2008.
 
 #### Relationship Metrics
 
@@ -452,11 +470,11 @@ Specific partition value selected for a test case
 
 **Spec Node ID**: `testing.inputspacepartition`
 
-Partitioning of an input dimension into testable categories
+Partitioning of an input dimension into testable equivalence classes, where each entry in the partitions array represents a PartitionValue (an equivalence class with a label, category, and representative value), enabling structured coverage analysis per IEEE 829-2008 equivalence partitioning guidance.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 2 | Outbound: 1
+- **Intra-Layer**: Inbound: 8 | Outbound: 3
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
@@ -464,8 +482,15 @@ Partitioning of an input dimension into testable categories
 | Related Node                                | Predicate  | Direction | Cardinality  |
 | ------------------------------------------- | ---------- | --------- | ------------ |
 | [coveragerequirement](#coveragerequirement) | depends-on | inbound   | many-to-many |
+| [environmentfactor](#environmentfactor)     | composes   | inbound   | many-to-one  |
+| [partitionvalue](#partitionvalue)           | composes   | outbound  | one-to-many  |
+| [inputspacepartition](#inputspacepartition) | depends-on | outbound  | many-to-many |
 | [testcoveragetarget](#testcoveragetarget)   | serves     | outbound  | many-to-many |
+| [partitiondependency](#partitiondependency) | references | inbound   | many-to-one  |
+| [partitionvalue](#partitionvalue)           | composes   | inbound   | many-to-one  |
+| [targetinputfield](#targetinputfield)       | references | inbound   | many-to-one  |
 | [testcasesketch](#testcasesketch)           | depends-on | inbound   | many-to-many |
+| [testcoveragemodel](#testcoveragemodel)     | aggregates | inbound   | one-to-many  |
 
 [Back to Index](#report-index)
 
@@ -473,48 +498,28 @@ Partitioning of an input dimension into testable categories
 
 **Spec Node ID**: `testing.outcomecategory`
 
-Category of expected outcomes (not specific assertions)
+An abstract category of observable outcomes (e.g., success, validation error, authorization error, timeout) associated with a TestCoverageTarget, used during test design to organize expected results before test case specification per IEEE 829-2008. Distinguished from specific assertions — OutcomeCategory defines the class of outcome, not the exact expected value.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 0
+- **Intra-Layer**: Inbound: 6 | Outbound: 5
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                                | Predicate  | Direction | Cardinality  |
-| ------------------------------------------- | ---------- | --------- | ------------ |
-| [coveragerequirement](#coveragerequirement) | composes   | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement) | depends-on | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)           | depends-on | inbound   | many-to-many |
-| [testcoveragemodel](#testcoveragemodel)     | composes   | inbound   | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)   | composes   | inbound   | many-to-many |
-
-[Back to Index](#report-index)
-
-### Outcometype {#outcometype}
-
-**Spec Node ID**: `testing.outcometype`
-
-OutcomeType element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Partitioncategory {#partitioncategory}
-
-**Spec Node ID**: `testing.partitioncategory`
-
-PartitionCategory element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                | Predicate      | Direction | Cardinality  |
+| ------------------------------------------- | -------------- | --------- | ------------ |
+| [coveragerequirement](#coveragerequirement) | composes       | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement) | depends-on     | inbound   | many-to-many |
+| [testcasesketch](#testcasesketch)           | aggregates     | outbound  | many-to-one  |
+| [environmentfactor](#environmentfactor)     | constrained-by | outbound  | many-to-one  |
+| [coveragesummary](#coveragesummary)         | flows-to       | outbound  | many-to-one  |
+| [targetinputfield](#targetinputfield)       | references     | outbound  | many-to-one  |
+| [coveragerequirement](#coveragerequirement) | serves         | outbound  | many-to-one  |
+| [partitionvalue](#partitionvalue)           | flows-to       | inbound   | many-to-one  |
+| [testcasesketch](#testcasesketch)           | depends-on     | inbound   | many-to-many |
+| [testcoveragemodel](#testcoveragemodel)     | composes       | inbound   | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)   | composes       | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -522,19 +527,20 @@ PartitionCategory element in Testing Layer
 
 **Spec Node ID**: `testing.partitiondependency`
 
-Constraint between partition values across fields
+A constraint specifying how selection of a partition value in one field affects valid or available partition values in another field, enabling combinatorial test design to avoid invalid input combinations per IEEE 829-2008 test design specification.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 2
+- **Intra-Layer**: Inbound: 0 | Outbound: 3
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                                | Predicate | Direction | Cardinality  |
-| ------------------------------------------- | --------- | --------- | ------------ |
-| [coveragerequirement](#coveragerequirement) | triggers  | outbound  | many-to-many |
-| [partitionvalue](#partitionvalue)           | triggers  | outbound  | many-to-many |
+| Related Node                                | Predicate  | Direction | Cardinality  |
+| ------------------------------------------- | ---------- | --------- | ------------ |
+| [inputspacepartition](#inputspacepartition) | references | outbound  | many-to-one  |
+| [coveragerequirement](#coveragerequirement) | triggers   | outbound  | many-to-many |
+| [partitionvalue](#partitionvalue)           | triggers   | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -542,63 +548,33 @@ Constraint between partition values across fields
 
 **Spec Node ID**: `testing.partitionvalue`
 
-A specific partition within the input space
+An individual equivalence class within an InputSpacePartition, characterized by a label, representative value, and optional constraint expression, used to enumerate the testable categories of an input dimension per IEEE 829-2008 test design specification.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 7 | Outbound: 0
+- **Intra-Layer**: Inbound: 10 | Outbound: 6
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate  | Direction | Cardinality  |
-| --------------------------------------------------- | ---------- | --------- | ------------ |
-| [coveragegap](#coveragegap)                         | triggers   | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | aggregates | inbound   | many-to-many |
-| [coveragerequirement](#coveragerequirement)         | references | inbound   | many-to-many |
-| [inputpartitionselection](#inputpartitionselection) | aggregates | inbound   | many-to-many |
-| [inputselection](#inputselection)                   | references | inbound   | many-to-many |
-| [partitiondependency](#partitiondependency)         | triggers   | inbound   | many-to-many |
-| [testcasesketch](#testcasesketch)                   | references | inbound   | many-to-many |
-
-[Back to Index](#report-index)
-
-### Presencerule {#presencerule}
-
-**Spec Node ID**: `testing.presencerule`
-
-PresenceRule element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Priority {#priority}
-
-**Spec Node ID**: `testing.priority`
-
-Priority element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Sketchstatus {#sketchstatus}
-
-**Spec Node ID**: `testing.sketchstatus`
-
-SketchStatus element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                        | Predicate      | Direction | Cardinality  |
+| --------------------------------------------------- | -------------- | --------- | ------------ |
+| [coveragegap](#coveragegap)                         | triggers       | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | aggregates     | inbound   | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | references     | inbound   | many-to-many |
+| [environmentfactor](#environmentfactor)             | references     | inbound   | many-to-one  |
+| [inputpartitionselection](#inputpartitionselection) | aggregates     | inbound   | many-to-many |
+| [inputselection](#inputselection)                   | references     | inbound   | many-to-many |
+| [inputspacepartition](#inputspacepartition)         | composes       | inbound   | one-to-many  |
+| [partitiondependency](#partitiondependency)         | triggers       | inbound   | many-to-many |
+| [inputspacepartition](#inputspacepartition)         | composes       | outbound  | many-to-one  |
+| [coveragerequirement](#coveragerequirement)         | constrained-by | outbound  | many-to-one  |
+| [environmentfactor](#environmentfactor)             | depends-on     | outbound  | many-to-one  |
+| [outcomecategory](#outcomecategory)                 | flows-to       | outbound  | many-to-one  |
+| [coverageexclusion](#coverageexclusion)             | references     | outbound  | many-to-one  |
+| [coveragegap](#coveragegap)                         | triggers       | outbound  | many-to-one  |
+| [targetinputfield](#targetinputfield)               | aggregates     | inbound   | many-to-one  |
+| [testcasesketch](#testcasesketch)                   | references     | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -610,15 +586,18 @@ Coverage metrics summary for a single test coverage target
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 2
+- **Intra-Layer**: Inbound: 1 | Outbound: 4
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                                | Predicate | Direction | Cardinality  |
-| ------------------------------------------- | --------- | --------- | ------------ |
-| [coveragerequirement](#coveragerequirement) | validates | outbound  | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)   | validates | outbound  | many-to-many |
+| Related Node                                | Predicate  | Direction | Cardinality  |
+| ------------------------------------------- | ---------- | --------- | ------------ |
+| [coveragesummary](#coveragesummary)         | aggregates | inbound   | many-to-one  |
+| [coverageexclusion](#coverageexclusion)     | references | outbound  | many-to-one  |
+| [coveragegap](#coveragegap)                 | references | outbound  | many-to-one  |
+| [coveragerequirement](#coveragerequirement) | validates  | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)   | validates  | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -626,25 +605,25 @@ Coverage metrics summary for a single test coverage target
 
 **Spec Node ID**: `testing.targetinputfield`
 
-Input field associated with a coverage target
+An association between a TestCoverageTarget and a specific input field of the target artifact, defining which InputSpacePartition applies to that field and documenting its coverage relevance per IEEE 829-2008 test case specification.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 2 | Outbound: 6
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### Targettype {#targettype}
-
-**Spec Node ID**: `testing.targettype`
-
-TargetType element in Testing Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                        | Predicate      | Direction | Cardinality |
+| --------------------------------------------------- | -------------- | --------- | ----------- |
+| [outcomecategory](#outcomecategory)                 | references     | inbound   | many-to-one |
+| [partitionvalue](#partitionvalue)                   | aggregates     | outbound  | many-to-one |
+| [coveragerequirement](#coveragerequirement)         | constrained-by | outbound  | many-to-one |
+| [contextvariation](#contextvariation)               | depends-on     | outbound  | many-to-one |
+| [inputpartitionselection](#inputpartitionselection) | flows-to       | outbound  | many-to-one |
+| [inputspacepartition](#inputspacepartition)         | references     | outbound  | many-to-one |
+| [testcoveragetarget](#testcoveragetarget)           | references     | outbound  | many-to-one |
+| [testcoveragetarget](#testcoveragetarget)           | composes       | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -652,11 +631,11 @@ TargetType element in Testing Layer
 
 **Spec Node ID**: `testing.testcasesketch`
 
-Abstract test case selecting specific partition values
+A design-time test case specification that selects concrete input partition values for a CoverageRequirement, serving as the bridge between test design (InputPartitionSelection) and executable test case specification per IEEE 829-2008. Exists in sketch (unimplemented) or implemented status — not yet tied to a specific test runner or execution framework.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 2 | Outbound: 10
+- **Intra-Layer**: Inbound: 6 | Outbound: 11
 - **Inter-Layer**: Inbound: 0 | Outbound: 2
 
 #### Intra-Layer Relationships
@@ -664,6 +643,9 @@ Abstract test case selecting specific partition values
 | Related Node                                        | Predicate  | Direction | Cardinality  |
 | --------------------------------------------------- | ---------- | --------- | ------------ |
 | [coveragerequirement](#coveragerequirement)         | flows-to   | inbound   | many-to-many |
+| [coveragesummary](#coveragesummary)                 | aggregates | inbound   | many-to-one  |
+| [environmentfactor](#environmentfactor)             | serves     | inbound   | many-to-one  |
+| [outcomecategory](#outcomecategory)                 | aggregates | inbound   | many-to-one  |
 | [inputpartitionselection](#inputpartitionselection) | accesses   | outbound  | many-to-many |
 | [inputselection](#inputselection)                   | accesses   | outbound  | many-to-many |
 | [contextvariation](#contextvariation)               | depends-on | outbound  | many-to-many |
@@ -672,8 +654,10 @@ Abstract test case selecting specific partition values
 | [coveragerequirement](#coveragerequirement)         | references | outbound  | many-to-many |
 | [partitionvalue](#partitionvalue)                   | references | outbound  | many-to-many |
 | [testcoveragetarget](#testcoveragetarget)           | references | outbound  | many-to-many |
+| [coveragerequirement](#coveragerequirement)         | tests      | outbound  | many-to-one  |
 | [coveragerequirement](#coveragerequirement)         | validates  | outbound  | many-to-many |
 | [testcoveragetarget](#testcoveragetarget)           | validates  | outbound  | many-to-many |
+| [testcoveragemodel](#testcoveragemodel)             | aggregates | inbound   | one-to-many  |
 | [testcoveragetarget](#testcoveragetarget)           | flows-to   | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
@@ -689,20 +673,30 @@ Abstract test case selecting specific partition values
 
 **Spec Node ID**: `testing.testcoveragemodel`
 
-Complete test coverage model for application
+The root artifact of a testing layer coverage specification, aggregating all TestCoverageTargets, InputSpacePartitions, ContextVariations, CoverageRequirements, and TestCaseSketches for an application. Corresponds to the test plan document structure in IEEE 829-2008, providing a single point of reference for coverage governance.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 3
+- **Intra-Layer**: Inbound: 4 | Outbound: 9
 - **Inter-Layer**: Inbound: 0 | Outbound: 4
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate | Direction | Cardinality  |
-| --------------------------------------------------- | --------- | --------- | ------------ |
-| [inputpartitionselection](#inputpartitionselection) | composes  | outbound  | many-to-many |
-| [outcomecategory](#outcomecategory)                 | composes  | outbound  | many-to-many |
-| [testcoveragetarget](#testcoveragetarget)           | composes  | outbound  | many-to-many |
+| Related Node                                        | Predicate  | Direction | Cardinality  |
+| --------------------------------------------------- | ---------- | --------- | ------------ |
+| [coveragesummary](#coveragesummary)                 | aggregates | inbound   | many-to-one  |
+| [coveragesummary](#coveragesummary)                 | references | inbound   | many-to-one  |
+| [coveragesummary](#coveragesummary)                 | serves     | inbound   | many-to-one  |
+| [environmentfactor](#environmentfactor)             | serves     | inbound   | many-to-one  |
+| [contextvariation](#contextvariation)               | aggregates | outbound  | one-to-many  |
+| [inputspacepartition](#inputspacepartition)         | aggregates | outbound  | one-to-many  |
+| [testcasesketch](#testcasesketch)                   | aggregates | outbound  | one-to-many  |
+| [coverageexclusion](#coverageexclusion)             | composes   | outbound  | many-to-one  |
+| [coveragerequirement](#coveragerequirement)         | composes   | outbound  | many-to-one  |
+| [coveragesummary](#coveragesummary)                 | composes   | outbound  | many-to-one  |
+| [inputpartitionselection](#inputpartitionselection) | composes   | outbound  | many-to-many |
+| [outcomecategory](#outcomecategory)                 | composes   | outbound  | many-to-many |
+| [testcoveragetarget](#testcoveragetarget)           | composes   | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
@@ -723,7 +717,7 @@ An artifact or functionality that requires test coverage
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 10 | Outbound: 5
+- **Intra-Layer**: Inbound: 14 | Outbound: 7
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
@@ -731,16 +725,22 @@ An artifact or functionality that requires test coverage
 | Related Node                                        | Predicate  | Direction | Cardinality  |
 | --------------------------------------------------- | ---------- | --------- | ------------ |
 | [contextvariation](#contextvariation)               | serves     | inbound   | many-to-many |
+| [coverageexclusion](#coverageexclusion)             | references | inbound   | many-to-one  |
+| [coveragegap](#coveragegap)                         | references | inbound   | many-to-one  |
 | [coveragerequirement](#coveragerequirement)         | composes   | inbound   | many-to-many |
 | [coveragerequirement](#coveragerequirement)         | references | inbound   | many-to-many |
+| [coveragesummary](#coveragesummary)                 | depends-on | inbound   | many-to-one  |
 | [inputselection](#inputselection)                   | references | inbound   | many-to-many |
 | [inputspacepartition](#inputspacepartition)         | serves     | inbound   | many-to-many |
 | [targetcoveragesummary](#targetcoveragesummary)     | validates  | inbound   | many-to-many |
+| [targetinputfield](#targetinputfield)               | references | inbound   | many-to-one  |
 | [testcasesketch](#testcasesketch)                   | references | inbound   | many-to-many |
 | [testcasesketch](#testcasesketch)                   | validates  | inbound   | many-to-many |
 | [testcoveragemodel](#testcoveragemodel)             | composes   | inbound   | many-to-many |
+| [contextvariation](#contextvariation)               | aggregates | outbound  | many-to-many |
 | [inputpartitionselection](#inputpartitionselection) | composes   | outbound  | many-to-many |
 | [outcomecategory](#outcomecategory)                 | composes   | outbound  | many-to-many |
+| [targetinputfield](#targetinputfield)               | composes   | outbound  | many-to-one  |
 | [testcoveragetarget](#testcoveragetarget)           | composes   | outbound  | many-to-many |
 | [coveragerequirement](#coveragerequirement)         | flows-to   | outbound  | many-to-many |
 | [testcasesketch](#testcasesketch)                   | flows-to   | outbound  | many-to-many |
@@ -749,4 +749,4 @@ An artifact or functionality that requires test coverage
 
 ---
 
-_Generated: 2026-02-13T12:27:12.861Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-28T10:53:05.789Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_

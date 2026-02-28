@@ -8,25 +8,14 @@
 - [Inter-Layer Relationships Table](#inter-layer-relationships-table)
 - [Node Reference](#node-reference)
   - [Arrayschema](#arrayschema)
-  - [Databasemapping](#databasemapping)
-  - [Datagovernance](#datagovernance)
-  - [Dataqualitymetrics](#dataqualitymetrics)
   - [Jsonschema](#jsonschema)
-  - [Jsontype](#jsontype)
   - [Numericschema](#numericschema)
   - [Objectschema](#objectschema)
   - [Reference](#reference)
   - [Schemacomposition](#schemacomposition)
   - [Schemadefinition](#schemadefinition)
   - [Schemaproperty](#schemaproperty)
-  - [String](#string)
   - [Stringschema](#stringschema)
-  - [X-apm-data-quality-metrics](#x-apm-data-quality-metrics)
-  - [X-business-object-ref](#x-business-object-ref)
-  - [X-data-governance](#x-data-governance)
-  - [X-database](#x-database)
-  - [X-security](#x-security)
-  - [X-ui](#x-ui)
 
 ## Layer Introduction
 
@@ -39,15 +28,15 @@ Layer 7: Data Model Layer
 
 | Metric                    | Count |
 | ------------------------- | ----- |
-| Node Types                | 20    |
-| Intra-Layer Relationships | 4     |
-| Inter-Layer Relationships | 4     |
-| Inbound Relationships     | 1     |
-| Outbound Relationships    | 3     |
+| Node Types                | 9     |
+| Intra-Layer Relationships | 13    |
+| Inter-Layer Relationships | 2     |
+| Inbound Relationships     | 0     |
+| Outbound Relationships    | 2     |
 
 ### Layer Dependencies
 
-**Depends On**: [Business](./02-business-layer-report.md)
+**Depends On**: None
 
 **Depended On By**: [Business](./02-business-layer-report.md), [Application](./04-application-layer-report.md)
 
@@ -57,29 +46,27 @@ Layer 7: Data Model Layer
 flowchart LR
   subgraph data-model
     arrayschema["arrayschema"]
-    databasemapping["databasemapping"]
-    datagovernance["datagovernance"]
-    dataqualitymetrics["dataqualitymetrics"]
     jsonschema["jsonschema"]
-    jsontype["jsontype"]
     numericschema["numericschema"]
     objectschema["objectschema"]
     reference["reference"]
     schemacomposition["schemacomposition"]
     schemadefinition["schemadefinition"]
     schemaproperty["schemaproperty"]
-    string["string"]
     stringschema["stringschema"]
-    x_apm_data_quality_metrics["x-apm-data-quality-metrics"]
-    x_business_object_ref["x-business-object-ref"]
-    x_data_governance["x-data-governance"]
-    x_database["x-database"]
-    x_security["x-security"]
-    x_ui["x-ui"]
-    jsonschema -->|apm-data-quality-metrics| dataqualitymetrics
-    jsonschema -->|data-governance| datagovernance
-    jsonschema -->|database-mapping| databasemapping
-    schemaproperty -->|database-mapping| databasemapping
+    arrayschema -->|aggregates| objectschema
+    arrayschema -->|aggregates| reference
+    jsonschema -->|aggregates| objectschema
+    jsonschema -->|aggregates| schemadefinition
+    objectschema -->|aggregates| schemaproperty
+    reference -->|references| schemadefinition
+    schemacomposition -->|composes| objectschema
+    schemacomposition -->|composes| schemadefinition
+    schemadefinition -->|specializes| schemadefinition
+    schemaproperty -->|references| arrayschema
+    schemaproperty -->|references| numericschema
+    schemaproperty -->|references| objectschema
+    schemaproperty -->|references| stringschema
   end
 ```
 
@@ -106,26 +93,23 @@ flowchart TB
   api --> data_store
   api --> security
   application --> apm
+  application --> business
   application --> motivation
   business --> application
-  business --> data_model
   business --> motivation
   business --> security
   data_model --> application
   data_model --> business
-  technology --> security
   testing --> motivation
   class data_model current
 ```
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                                    | Source Node                                                    | Dest Node                                                                 | Dest Layer                                      | Predicate           | Cardinality | Strength |
-| ------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | ----------- | -------- |
-| business.businessobject.governance-owner.data-model.datagovernance | [businessobject](./02-business-layer-report.md#businessobject) | [datagovernance](./07-data-model-layer-report.md#datagovernance)          | [Data Model](./07-data-model-layer-report.md)   | governance-owner    | many-to-one | medium   |
-| data-model.jsonschema.archimate-ref.application.applicationservice | [jsonschema](./07-data-model-layer-report.md#jsonschema)       | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref       | many-to-one | medium   |
-| data-model.jsonschema.business-object-ref.business.businessobject  | [jsonschema](./07-data-model-layer-report.md#jsonschema)       | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref | many-to-one | medium   |
-| data-model.jsonschema.referenced-by.business.businessobject        | [jsonschema](./07-data-model-layer-report.md#jsonschema)       | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by       | many-to-one | medium   |
+| Relationship ID                                                 | Source Node                                              | Dest Node                                                                 | Dest Layer                                      | Predicate  | Cardinality | Strength |
+| --------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | ----------- | -------- |
+| data-model.jsonschema.references.application.applicationservice | [jsonschema](./07-data-model-layer-report.md#jsonschema) | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | many-to-one | medium   |
+| data-model.jsonschema.references.business.businessobject        | [jsonschema](./07-data-model-layer-report.md#jsonschema) | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
 
 ## Node Reference
 
@@ -133,76 +117,20 @@ flowchart TB
 
 **Spec Node ID**: `data-model.arrayschema`
 
-ArraySchema validation rules
+Defines validation rules for JSON array instances, constraining item schemas, cardinality bounds (minItems/maxItems), uniqueness requirements, and contains-subschema matching.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### Databasemapping {#databasemapping}
-
-**Spec Node ID**: `data-model.databasemapping`
-
-Specifies how a logical data model entity maps to physical database storage, including table names, column mappings, and storage optimizations. Bridges logical and physical data layers.
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 2 | Outbound: 0
+- **Intra-Layer**: Inbound: 1 | Outbound: 2
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                      | Predicate        | Direction | Cardinality |
-| --------------------------------- | ---------------- | --------- | ----------- |
-| [jsonschema](#jsonschema)         | database-mapping | inbound   | many-to-one |
-| [schemaproperty](#schemaproperty) | database-mapping | inbound   | many-to-one |
-
-[Back to Index](#report-index)
-
-### Datagovernance {#datagovernance}
-
-**Spec Node ID**: `data-model.datagovernance`
-
-Metadata about data ownership, classification, sensitivity level, and handling requirements. Ensures data is managed according to organizational policies and regulations.
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 1 | Outbound: 0
-- **Inter-Layer**: Inbound: 1 | Outbound: 0
-
-#### Intra-Layer Relationships
-
-| Related Node              | Predicate       | Direction | Cardinality |
-| ------------------------- | --------------- | --------- | ----------- |
-| [jsonschema](#jsonschema) | data-governance | inbound   | many-to-one |
-
-#### Inter-Layer Relationships
-
-| Related Node                                                   | Layer                                     | Predicate        | Direction | Cardinality |
-| -------------------------------------------------------------- | ----------------------------------------- | ---------------- | --------- | ----------- |
-| [businessobject](./02-business-layer-report.md#businessobject) | [Business](./02-business-layer-report.md) | governance-owner | inbound   | many-to-one |
-
-[Back to Index](#report-index)
-
-### Dataqualitymetrics {#dataqualitymetrics}
-
-**Spec Node ID**: `data-model.dataqualitymetrics`
-
-Defines measurable quality attributes for data elements such as completeness, accuracy, consistency, and timeliness. Enables data quality monitoring and SLA enforcement.
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 1 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-#### Intra-Layer Relationships
-
-| Related Node              | Predicate                | Direction | Cardinality |
-| ------------------------- | ------------------------ | --------- | ----------- |
-| [jsonschema](#jsonschema) | apm-data-quality-metrics | inbound   | many-to-one |
+| Related Node                      | Predicate  | Direction | Cardinality |
+| --------------------------------- | ---------- | --------- | ----------- |
+| [objectschema](#objectschema)     | aggregates | outbound  | many-to-one |
+| [reference](#reference)           | aggregates | outbound  | many-to-one |
+| [schemaproperty](#schemaproperty) | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -210,41 +138,26 @@ Defines measurable quality attributes for data elements such as completeness, ac
 
 **Spec Node ID**: `data-model.jsonschema`
 
-Root schema document
+The root JSON Schema document, identified by $schema (dialect URI) and $id (base URI for $ref resolution), containing type constraints, annotations, and reusable definitions.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 3
-- **Inter-Layer**: Inbound: 0 | Outbound: 3
+- **Intra-Layer**: Inbound: 0 | Outbound: 2
+- **Inter-Layer**: Inbound: 0 | Outbound: 2
 
 #### Intra-Layer Relationships
 
-| Related Node                              | Predicate                | Direction | Cardinality |
-| ----------------------------------------- | ------------------------ | --------- | ----------- |
-| [dataqualitymetrics](#dataqualitymetrics) | apm-data-quality-metrics | outbound  | many-to-one |
-| [datagovernance](#datagovernance)         | data-governance          | outbound  | many-to-one |
-| [databasemapping](#databasemapping)       | database-mapping         | outbound  | many-to-one |
+| Related Node                          | Predicate  | Direction | Cardinality |
+| ------------------------------------- | ---------- | --------- | ----------- |
+| [objectschema](#objectschema)         | aggregates | outbound  | many-to-one |
+| [schemadefinition](#schemadefinition) | aggregates | outbound  | many-to-one |
 
 #### Inter-Layer Relationships
 
-| Related Node                                                              | Layer                                           | Predicate           | Direction | Cardinality |
-| ------------------------------------------------------------------------- | ----------------------------------------------- | ------------------- | --------- | ----------- |
-| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | archimate-ref       | outbound  | many-to-one |
-| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | business-object-ref | outbound  | many-to-one |
-| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | referenced-by       | outbound  | many-to-one |
-
-[Back to Index](#report-index)
-
-### Jsontype {#jsontype}
-
-**Spec Node ID**: `data-model.jsontype`
-
-Core JSON data types
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                                                              | Layer                                           | Predicate  | Direction | Cardinality |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
+| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | outbound  | many-to-one |
+| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -252,12 +165,18 @@ Core JSON data types
 
 **Spec Node ID**: `data-model.numericschema`
 
-NumericSchema validation rules
+Defines validation rules for JSON numeric instances (number or integer types), including inclusive/exclusive bounds and divisibility constraints. Note: in JSON Schema Draft 7, exclusiveMinimum and exclusiveMaximum are numeric boundary values (e.g., exclusiveMinimum: 0), not the boolean flags used in Draft 4.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 1 | Outbound: 0
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                      | Predicate  | Direction | Cardinality |
+| --------------------------------- | ---------- | --------- | ----------- |
+| [schemaproperty](#schemaproperty) | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -265,12 +184,22 @@ NumericSchema validation rules
 
 **Spec Node ID**: `data-model.objectschema`
 
-ObjectSchema validation rules
+Defines validation rules for JSON object instances, specifying named properties, required fields, and constraints on additional or dynamically named properties.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 4 | Outbound: 1
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                            | Predicate  | Direction | Cardinality |
+| --------------------------------------- | ---------- | --------- | ----------- |
+| [arrayschema](#arrayschema)             | aggregates | inbound   | many-to-one |
+| [jsonschema](#jsonschema)               | aggregates | inbound   | many-to-one |
+| [schemaproperty](#schemaproperty)       | aggregates | outbound  | many-to-one |
+| [schemacomposition](#schemacomposition) | composes   | inbound   | many-to-one |
+| [schemaproperty](#schemaproperty)       | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -278,12 +207,19 @@ ObjectSchema validation rules
 
 **Spec Node ID**: `data-model.reference`
 
-Reference to another schema
+A JSON Schema $ref pointer that references another schema by URI or JSON Pointer fragment, enabling schema reuse without duplication. In JSON Schema Draft 7, all sibling keywords alongside $ref are ignored — use allOf to combine a $ref with additional constraints.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 1 | Outbound: 1
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                          | Predicate  | Direction | Cardinality |
+| ------------------------------------- | ---------- | --------- | ----------- |
+| [arrayschema](#arrayschema)           | aggregates | inbound   | many-to-one |
+| [schemadefinition](#schemadefinition) | references | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -291,12 +227,19 @@ Reference to another schema
 
 **Spec Node ID**: `data-model.schemacomposition`
 
-Combining multiple schemas
+Combines multiple schemas using boolean logic. allOf requires all subschemas to validate; anyOf requires at least one; oneOf requires exactly one; not inverts the result of the subschema.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 0 | Outbound: 2
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                          | Predicate | Direction | Cardinality |
+| ------------------------------------- | --------- | --------- | ----------- |
+| [objectschema](#objectschema)         | composes  | outbound  | many-to-one |
+| [schemadefinition](#schemadefinition) | composes  | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -304,12 +247,21 @@ Combining multiple schemas
 
 **Spec Node ID**: `data-model.schemadefinition`
 
-A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.
+A reusable JSON Schema definition declared under the 'definitions' keyword and referenced via '$ref: #/definitions/{name}'. Enables DRY schema design and consistent type definitions across entities.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 4 | Outbound: 1
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
+
+#### Intra-Layer Relationships
+
+| Related Node                            | Predicate   | Direction | Cardinality |
+| --------------------------------------- | ----------- | --------- | ----------- |
+| [jsonschema](#jsonschema)               | aggregates  | inbound   | many-to-one |
+| [reference](#reference)                 | references  | inbound   | many-to-one |
+| [schemacomposition](#schemacomposition) | composes    | inbound   | many-to-one |
+| [schemadefinition](#schemadefinition)   | specializes | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -321,27 +273,18 @@ Defines a single property within a schema, including its type, constraints, vali
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 1
+- **Intra-Layer**: Inbound: 1 | Outbound: 4
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                        | Predicate        | Direction | Cardinality |
-| ----------------------------------- | ---------------- | --------- | ----------- |
-| [databasemapping](#databasemapping) | database-mapping | outbound  | many-to-one |
-
-[Back to Index](#report-index)
-
-### String {#string}
-
-**Spec Node ID**: `data-model.string`
-
-String type definition for data model properties
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                    | Predicate  | Direction | Cardinality |
+| ------------------------------- | ---------- | --------- | ----------- |
+| [objectschema](#objectschema)   | aggregates | inbound   | many-to-one |
+| [arrayschema](#arrayschema)     | references | outbound  | many-to-one |
+| [numericschema](#numericschema) | references | outbound  | many-to-one |
+| [objectschema](#objectschema)   | references | outbound  | many-to-one |
+| [stringschema](#stringschema)   | references | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -349,93 +292,21 @@ String type definition for data model properties
 
 **Spec Node ID**: `data-model.stringschema`
 
-StringSchema validation rules
+Defines validation rules for JSON string instances, including length bounds (minLength/maxLength), regular expression patterns, and semantic format hints (e.g., date-time, email, uri). The canonical node type for string type constraints in the data model.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
+- **Intra-Layer**: Inbound: 1 | Outbound: 0
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
-[Back to Index](#report-index)
+#### Intra-Layer Relationships
 
-### X-apm-data-quality-metrics {#x-apm-data-quality-metrics}
-
-**Spec Node ID**: `data-model.x-apm-data-quality-metrics`
-
-Links schema to data quality metrics in APM/Observability Layer
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### X-business-object-ref {#x-business-object-ref}
-
-**Spec Node ID**: `data-model.x-business-object-ref`
-
-Reference to BusinessObject this schema implements
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### X-data-governance {#x-data-governance}
-
-**Spec Node ID**: `data-model.x-data-governance`
-
-Data model governance metadata (root-level)
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### X-database {#x-database}
-
-**Spec Node ID**: `data-model.x-database`
-
-Database mapping information
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### X-security {#x-security}
-
-**Spec Node ID**: `data-model.x-security`
-
-Security and privacy metadata
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
-
-[Back to Index](#report-index)
-
-### X-ui {#x-ui}
-
-**Spec Node ID**: `data-model.x-ui`
-
-UI rendering hints
-
-#### Relationship Metrics
-
-- **Intra-Layer**: Inbound: 0 | Outbound: 0
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+| Related Node                      | Predicate  | Direction | Cardinality |
+| --------------------------------- | ---------- | --------- | ----------- |
+| [schemaproperty](#schemaproperty) | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-13T12:27:12.856Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-28T10:53:05.785Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_
