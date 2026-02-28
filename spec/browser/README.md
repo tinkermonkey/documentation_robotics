@@ -182,4 +182,4 @@ The Documentation Robotics specification defines a federated 12-layer architectu
 
 ---
 
-_Generated: 2026-02-28T10:53:05.775Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_
+_Generated: 2026-02-28T12:48:58.597Z | Spec Version: 0.8.0 | Generator: generate-layer-reports.ts_
