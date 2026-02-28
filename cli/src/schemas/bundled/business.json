@@ -1,0 +1,1191 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "business",
+    "number": 2,
+    "name": "Business Layer",
+    "description": "Layer 2: Business Layer",
+    "inspired_by": {
+      "standard": "ArchiMate 3.2",
+      "version": "3.2",
+      "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
+    },
+    "node_types": [
+      "business.businessactor",
+      "business.businesscollaboration",
+      "business.businessevent",
+      "business.businessfunction",
+      "business.businessinteraction",
+      "business.businessinterface",
+      "business.businessobject",
+      "business.businessprocess",
+      "business.businessrole",
+      "business.businessservice",
+      "business.contract",
+      "business.product",
+      "business.representation"
+    ]
+  },
+  "nodeSchemas": {
+    "businessactor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessActor",
+      "description": "An active structure element representing an organizational entity (person, department, or external organization) capable of performing behavior. BusinessActors are assigned to BusinessRoles and may be associated with BusinessServices they use or provide.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businessactor"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businessactor"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businessactor"
+    },
+    "businesscollaboration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessCollaboration",
+      "description": "An active structure element representing an aggregate of two or more BusinessRoles that work together to perform collective behavior (BusinessInteraction). The collaboration is meaningful only in the context of its participating roles.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businesscollaboration"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businesscollaboration"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businesscollaboration"
+    },
+    "businessevent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessEvent",
+      "description": "A behavior element that represents an organizational state change, such as a customer order placed or a contract signed, that can trigger or result from a BusinessProcess or BusinessFunction.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businessevent"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businessevent"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["internal", "external", "message", "timer"],
+              "description": "Classification of the business event trigger"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businessevent"
+    },
+    "businessfunction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessFunction",
+      "description": "A behavior element that groups behavior based on required capabilities, skills, or resources (e.g., HR management, financial reporting). Unlike BusinessProcess, it is not goal-oriented but competency-oriented.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businessfunction"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businessfunction"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businessfunction"
+    },
+    "businessinteraction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessInteraction",
+      "description": "A behavior element representing collective behavior performed by a BusinessCollaboration. It is the interaction counterpart to BusinessProcess (performed by a role) and BusinessFunction (performed by an actor).",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businessinteraction"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businessinteraction"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businessinteraction"
+    },
+    "businessinterface": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessInterface",
+      "description": "An active structure element representing a point of access at which a BusinessService is made available to the environment, used by BusinessActors or external parties.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businessinterface"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businessinterface"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businessinterface"
+    },
+    "businessobject": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessObject",
+      "description": "A passive structure element that has relevance from a business perspective, representing information or data that active elements (actors, roles) act upon. Examples include documents, messages, contracts, and reports.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businessobject"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businessobject"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businessobject"
+    },
+    "businessprocess": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessProcess",
+      "description": "A behavior element representing a sequence or set of behaviors that achieves a specific business result for a customer or stakeholder. Driven by external triggers (BusinessEvents) or internal initiations, and performed by BusinessActors or BusinessRoles.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businessprocess"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businessprocess"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businessprocess"
+    },
+    "businessrole": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessRole",
+      "description": "An active structure element representing a named set of responsibilities, skills, or authorizations that can be assigned to a BusinessActor. Roles abstract away the concrete actor, enabling flexible actor-to-behavior assignment.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businessrole"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businessrole"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businessrole"
+    },
+    "businessservice": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessService",
+      "description": "An externally visible behavior element that fulfills a business need for a customer or stakeholder. Defined from the consumer perspective; the internal realization (via BusinessProcess or BusinessFunction) is encapsulated and not exposed.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.businessservice"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "businessservice"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.businessservice"
+    },
+    "contract": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contract",
+      "description": "A passive structure element representing a formal or informal specification of an agreement between a service provider and consumer, defining obligations, rights, and terms. Often associated with a Product or BusinessService.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.contract"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "contract"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.contract"
+    },
+    "product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "description": "A passive structure element representing a coherent collection of BusinessServices and Contracts offered to customers or markets. The product encapsulates the value proposition delivered to end users or business partners.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.product"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "product"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "services": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "contracts": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.product"
+    },
+    "representation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Representation",
+      "description": "A passive structure element representing the perceptible form in which a BusinessObject is manifested (e.g., a printed report, a digital document, or an on-screen form). Multiple representations can carry the same BusinessObject.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "business.representation"
+        },
+        "layer_id": {
+          "const": "business"
+        },
+        "type": {
+          "const": "representation"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "format": {
+              "type": "string",
+              "enum": ["pdf", "html", "xml", "json", "plain-text", "binary"],
+              "description": "The media format of this representation"
+            }
+          },
+          "required": ["format"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:business.representation"
+    }
+  },
+  "relationshipSchemas": {
+    "business.businessactor.accesses.business.contract": {
+      "id": "business.businessactor.accesses.business.contract",
+      "source_spec_node_id": "business.businessactor",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.contract",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessactor.assigned-to.business.businessrole": {
+      "id": "business.businessactor.assigned-to.business.businessrole",
+      "source_spec_node_id": "business.businessactor",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businesscollaboration.composes.business.businessrole": {
+      "id": "business.businesscollaboration.composes.business.businessrole",
+      "source_spec_node_id": "business.businesscollaboration",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businesscollaboration.performs.business.businessinteraction": {
+      "id": "business.businesscollaboration.performs.business.businessinteraction",
+      "source_spec_node_id": "business.businesscollaboration",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessinteraction",
+      "destination_layer": "business",
+      "predicate": "performs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessevent.triggers.business.businessprocess": {
+      "id": "business.businessevent.triggers.business.businessprocess",
+      "source_spec_node_id": "business.businessevent",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessfunction.accesses.business.businessobject": {
+      "id": "business.businessfunction.accesses.business.businessobject",
+      "source_spec_node_id": "business.businessfunction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessfunction.composes.business.businessfunction": {
+      "id": "business.businessfunction.composes.business.businessfunction",
+      "source_spec_node_id": "business.businessfunction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessfunction.flows-to.business.businessfunction": {
+      "id": "business.businessfunction.flows-to.business.businessfunction",
+      "source_spec_node_id": "business.businessfunction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessfunction.flows-to.business.businessprocess": {
+      "id": "business.businessfunction.flows-to.business.businessprocess",
+      "source_spec_node_id": "business.businessfunction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessfunction.realizes.business.businessservice": {
+      "id": "business.businessfunction.realizes.business.businessservice",
+      "source_spec_node_id": "business.businessfunction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessfunction.serves.business.businessrole": {
+      "id": "business.businessfunction.serves.business.businessrole",
+      "source_spec_node_id": "business.businessfunction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessfunction.triggers.business.businessevent": {
+      "id": "business.businessfunction.triggers.business.businessevent",
+      "source_spec_node_id": "business.businessfunction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessevent",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinteraction.accesses.business.businessobject": {
+      "id": "business.businessinteraction.accesses.business.businessobject",
+      "source_spec_node_id": "business.businessinteraction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinteraction.flows-to.business.businessinteraction": {
+      "id": "business.businessinteraction.flows-to.business.businessinteraction",
+      "source_spec_node_id": "business.businessinteraction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessinteraction",
+      "destination_layer": "business",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinteraction.flows-to.business.businessprocess": {
+      "id": "business.businessinteraction.flows-to.business.businessprocess",
+      "source_spec_node_id": "business.businessinteraction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinteraction.serves.business.businessservice": {
+      "id": "business.businessinteraction.serves.business.businessservice",
+      "source_spec_node_id": "business.businessinteraction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinteraction.triggers.business.businessevent": {
+      "id": "business.businessinteraction.triggers.business.businessevent",
+      "source_spec_node_id": "business.businessinteraction",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessevent",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinterface.accesses.business.businessobject": {
+      "id": "business.businessinterface.accesses.business.businessobject",
+      "source_spec_node_id": "business.businessinterface",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinterface.flows-to.business.businessobject": {
+      "id": "business.businessinterface.flows-to.business.businessobject",
+      "source_spec_node_id": "business.businessinterface",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinterface.provides.business.businessservice": {
+      "id": "business.businessinterface.provides.business.businessservice",
+      "source_spec_node_id": "business.businessinterface",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinterface.serves.business.businessactor": {
+      "id": "business.businessinterface.serves.business.businessactor",
+      "source_spec_node_id": "business.businessinterface",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessactor",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinterface.serves.business.businessrole": {
+      "id": "business.businessinterface.serves.business.businessrole",
+      "source_spec_node_id": "business.businessinterface",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinterface.triggers.business.businessfunction": {
+      "id": "business.businessinterface.triggers.business.businessfunction",
+      "source_spec_node_id": "business.businessinterface",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessinterface.triggers.business.businessprocess": {
+      "id": "business.businessinterface.triggers.business.businessprocess",
+      "source_spec_node_id": "business.businessinterface",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessobject.references.application.dataobject": {
+      "id": "business.businessobject.references.application.dataobject",
+      "source_spec_node_id": "business.businessobject",
+      "source_layer": "business",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.accesses.business.businessobject": {
+      "id": "business.businessprocess.accesses.business.businessobject",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.accesses.business.contract": {
+      "id": "business.businessprocess.accesses.business.contract",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.contract",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.aggregates.application.applicationprocess": {
+      "id": "business.businessprocess.aggregates.application.applicationprocess",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "application.applicationprocess",
+      "destination_layer": "application",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.constrained-by.security.securityconstraints": {
+      "id": "business.businessprocess.constrained-by.security.securityconstraints",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "security.securityconstraints",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.constrained-by.security.separationofduty": {
+      "id": "business.businessprocess.constrained-by.security.separationofduty",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "security.separationofduty",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.delivers.business.businessobject": {
+      "id": "business.businessprocess.delivers.business.businessobject",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "delivers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.flows-to.business.businessprocess": {
+      "id": "business.businessprocess.flows-to.business.businessprocess",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.realizes.business.businessservice": {
+      "id": "business.businessprocess.realizes.business.businessservice",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.triggers.business.businessevent": {
+      "id": "business.businessprocess.triggers.business.businessevent",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessevent",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.triggers.business.businessprocess": {
+      "id": "business.businessprocess.triggers.business.businessprocess",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.accesses.business.businessobject": {
+      "id": "business.businessrole.accesses.business.businessobject",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.accesses.business.contract": {
+      "id": "business.businessrole.accesses.business.contract",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.contract",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.assigned-to.business.businessfunction": {
+      "id": "business.businessrole.assigned-to.business.businessfunction",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.assigned-to.business.businessinteraction": {
+      "id": "business.businessrole.assigned-to.business.businessinteraction",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessinteraction",
+      "destination_layer": "business",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.assigned-to.business.businessinterface": {
+      "id": "business.businessrole.assigned-to.business.businessinterface",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessinterface",
+      "destination_layer": "business",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.assigned-to.business.businessprocess": {
+      "id": "business.businessrole.assigned-to.business.businessprocess",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.performs.business.businessfunction": {
+      "id": "business.businessrole.performs.business.businessfunction",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "performs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.performs.business.businessprocess": {
+      "id": "business.businessrole.performs.business.businessprocess",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "performs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.serves.business.businessactor": {
+      "id": "business.businessrole.serves.business.businessactor",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessactor",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.triggers.business.businessevent": {
+      "id": "business.businessrole.triggers.business.businessevent",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessevent",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessservice.accesses.business.contract": {
+      "id": "business.businessservice.accesses.business.contract",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.contract",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessservice.delivers-value.motivation.value": {
+      "id": "business.businessservice.delivers-value.motivation.value",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessservice.realizes.business.businessprocess": {
+      "id": "business.businessservice.realizes.business.businessprocess",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessservice.serves.business.businessactor": {
+      "id": "business.businessservice.serves.business.businessactor",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessactor",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "business.contract.accesses.business.businessobject": {
+      "id": "business.contract.accesses.business.businessobject",
+      "source_spec_node_id": "business.contract",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.contract.governs.business.businessservice": {
+      "id": "business.contract.governs.business.businessservice",
+      "source_spec_node_id": "business.contract",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.contract.serves.business.businessrole": {
+      "id": "business.contract.serves.business.businessrole",
+      "source_spec_node_id": "business.contract",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.contract.triggers.business.businessprocess": {
+      "id": "business.contract.triggers.business.businessprocess",
+      "source_spec_node_id": "business.contract",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.product.aggregates.business.businessservice": {
+      "id": "business.product.aggregates.business.businessservice",
+      "source_spec_node_id": "business.product",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.product.composes.business.contract": {
+      "id": "business.product.composes.business.contract",
+      "source_spec_node_id": "business.product",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.contract",
+      "destination_layer": "business",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.representation.realizes.business.businessobject": {
+      "id": "business.representation.realizes.business.businessobject",
+      "source_spec_node_id": "business.representation",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

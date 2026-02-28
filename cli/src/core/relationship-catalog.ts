@@ -76,37 +76,37 @@ export class RelationshipCatalog {
   }
 
   /**
-   * Get default path to predicates.json
+   * Get default path to base.json (contains predicates under .predicates key)
    */
   private getDefaultPredicatesPath(): string {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
-
-    // Try bundled schemas first
-    const bundledPath = path.join(currentDir, "../schemas/bundled/base/predicates.json");
-    return bundledPath;
+    return path.join(currentDir, "../schemas/bundled/base.json");
   }
 
   /**
-   * Get default path to relationship schemas directory
+   * Get default path to bundled schemas directory (contains manifest.json + per-layer JSON files)
    */
   private getDefaultRelationshipSchemasPath(): string {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
-
-    // Try bundled schemas first
-    const bundledPath = path.join(currentDir, "../schemas/bundled/relationships");
-    return bundledPath;
+    return path.join(currentDir, "../schemas/bundled");
   }
 
   /**
    * Load predicates and compute derived metadata
    */
   async load(): Promise<void> {
-    // Load predicates.json
+    // Load predicates — supports both base.json format (has .predicates key) and direct predicates.json
     try {
       const content = await fs.readFile(this.predicatesPath, "utf-8");
-      this.predicatesData = JSON.parse(content);
+      const parsed = JSON.parse(content);
+      // base.json has { specVersion, schemas, predicates } — extract .predicates key
+      // predicates.json has { predicates } directly
+      // In both cases, .predicates is the dict of PredicateDefinition objects
+      this.predicatesData = parsed.predicates !== undefined
+        ? { predicates: parsed.predicates }
+        : parsed;
     } catch (error) {
-      // Try fallback path
+      // Try fallback path (direct predicates.json in spec source tree)
       try {
         const fallbackPath = path.join(
           path.dirname(fileURLToPath(import.meta.url)),
@@ -141,64 +141,72 @@ export class RelationshipCatalog {
   }
 
   /**
-   * Compute which layers each predicate is used in by scanning relationship schemas
+   * Compute which layers each predicate is used in by reading compiled layer dist files
    */
   private async computeApplicableLayers(): Promise<Record<string, string[]>> {
     const layersByPredicate: Record<string, Set<string>> = {};
 
     try {
-      // Try to find relationship schemas
-      let relationshipFiles: string[] = [];
+      // Try compiled bundled format (manifest.json + per-layer JSON files)
+      const manifestPath = path.join(this.relationshipSchemasPath, "manifest.json");
+      await fs.access(manifestPath);
 
-      // Try bundled path
-      try {
-        await fs.access(this.relationshipSchemasPath);
-        relationshipFiles = await glob(`${this.relationshipSchemasPath}/**/*.relationship.schema.json`);
-      } catch {
-        // Try fallback to spec path
-        const fallbackPath = path.join(
-          path.dirname(fileURLToPath(import.meta.url)),
-          "../../../spec/schemas/relationships"
-        );
+      const manifestContent = await fs.readFile(manifestPath, "utf-8");
+      const manifest = JSON.parse(manifestContent) as { layers: Array<{ id: string }> };
+
+      for (const { id: layerId } of manifest.layers) {
+        const layerPath = path.join(this.relationshipSchemasPath, `${layerId}.json`);
         try {
-          await fs.access(fallbackPath);
-          relationshipFiles = await glob(`${fallbackPath}/**/*.relationship.schema.json`);
-        } catch {
-          // No relationship schemas found, return empty
-          return {};
-        }
-      }
+          await fs.access(layerPath);
+          const layerContent = await fs.readFile(layerPath, "utf-8");
+          const layerData = JSON.parse(layerContent) as {
+            relationshipSchemas: Record<string, { predicate: string; source_layer: string }>;
+          };
 
-      // Scan each relationship schema
-      for (const file of relationshipFiles) {
-        try {
-          const content = await fs.readFile(file, "utf-8");
-          const schema = JSON.parse(content);
-
-          // Extract predicate and layer from schema
-          const predicate = schema.properties?.predicate?.const;
-          const sourceLayer = schema.properties?.source_layer?.const;
-
-          if (predicate && sourceLayer) {
-            if (!layersByPredicate[predicate]) {
-              layersByPredicate[predicate] = new Set();
+          for (const relSchema of Object.values(layerData.relationshipSchemas || {})) {
+            const { predicate, source_layer } = relSchema;
+            if (predicate && source_layer) {
+              if (!layersByPredicate[predicate]) {
+                layersByPredicate[predicate] = new Set();
+              }
+              layersByPredicate[predicate].add(source_layer);
             }
-            // Add layer from schema (format: "01-motivation", "02-business", etc.)
-            layersByPredicate[predicate].add(sourceLayer);
           }
-        } catch (error) {
-          // Separate JSON parse errors (expected/recoverable) from file read errors (unexpected)
-          if (error instanceof SyntaxError) {
-            console.warn(`Malformed JSON in relationship schema ${file}: ${error.message}`);
-          } else {
-            console.warn(`Could not parse relationship schema ${file}:`, error);
-          }
-          continue;
+        } catch {
+          // Skip missing or malformed layer files
         }
       }
-    } catch (error) {
-      // If scanning fails, return empty (predicates will have no applicable layers)
-      console.warn("Could not scan relationship schemas:", error);
+    } catch {
+      // Fall back to spec source tree (development environment)
+      const fallbackPath = path.join(
+        path.dirname(fileURLToPath(import.meta.url)),
+        "../../../spec/schemas/relationships"
+      );
+      try {
+        await fs.access(fallbackPath);
+        const relationshipFiles = await glob(`${fallbackPath}/**/*.relationship.schema.json`);
+
+        for (const file of relationshipFiles) {
+          try {
+            const content = await fs.readFile(file, "utf-8");
+            const schema = JSON.parse(content);
+            const predicate = schema.properties?.predicate?.const;
+            const sourceLayer = schema.properties?.source_layer?.const;
+
+            if (predicate && sourceLayer) {
+              if (!layersByPredicate[predicate]) {
+                layersByPredicate[predicate] = new Set();
+              }
+              layersByPredicate[predicate].add(sourceLayer);
+            }
+          } catch {
+            continue;
+          }
+        }
+      } catch {
+        // No relationship schemas found, return empty
+        return {};
+      }
     }
 
     // Convert Sets to sorted arrays

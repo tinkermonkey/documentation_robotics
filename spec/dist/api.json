@@ -1,0 +1,3121 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "api",
+    "number": 6,
+    "name": "API Layer",
+    "description": "Layer 6: API Layer",
+    "inspired_by": {
+      "standard": "OpenAPI 3.0",
+      "version": "3.0",
+      "url": "https://spec.openapis.org/oas/v3.0.0"
+    },
+    "node_types": [
+      "api.callback",
+      "api.components",
+      "api.contact",
+      "api.encoding",
+      "api.example",
+      "api.externaldocumentation",
+      "api.header",
+      "api.info",
+      "api.license",
+      "api.link",
+      "api.mediatype",
+      "api.oauthflow",
+      "api.oauthflows",
+      "api.openapidocument",
+      "api.operation",
+      "api.parameter",
+      "api.pathitem",
+      "api.ratelimit",
+      "api.paths",
+      "api.requestbody",
+      "api.response",
+      "api.responses",
+      "api.schema",
+      "api.securityscheme",
+      "api.server",
+      "api.servervariable",
+      "api.tag"
+    ]
+  },
+  "nodeSchemas": {
+    "callback": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Callback",
+      "description": "Defines a callback where the API sends asynchronous notifications to an external URL derived at runtime. A callback maps a Runtime Expression (e.g., $request.body#/callbackUrl) to a full PathItem object, meaning the callback specifies the complete HTTP interaction — method, headers, and expected response — not just a target URL. Enables event-driven integrations and async workflows.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.callback"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "callback"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "expression": {
+              "type": "string",
+              "description": "OpenAPI 3.0 Runtime Expression (e.g., $request.body#/callbackUrl) resolved at runtime against the triggering request to determine the callback target URL."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.callback"
+    },
+    "components": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Components",
+      "description": "A named registry for reusable API definition objects (schemas, responses, parameters, examples, requestBodies, headers, securitySchemes, links, callbacks) that enables $ref referencing throughout the specification. Component entries are not rendered directly — they must be referenced by operations, parameters, or schemas to take effect. Component name keys must match the pattern ^[a-zA-Z0-9.\\-_]+$ per OpenAPI 3.0 — arbitrary strings are not valid component identifiers.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.components"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "components"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "schemas": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "responses": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "parameters": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "examples": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "requestBodies": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "headers": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "securitySchemes": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "links": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "callbacks": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.components"
+    },
+    "contact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contact",
+      "description": "Contact information for the API owner or maintainer, including name, email, and URL. Enables consumers to reach out for support or collaboration.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.contact"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "contact"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.contact"
+    },
+    "encoding": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Encoding",
+      "description": "Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation. Note: a Content-Type header placed in the Encoding object's 'headers' map is ignored — use the 'contentType' attribute to set the MIME type for a multipart section.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.encoding"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "encoding"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "propertyName": {
+              "type": "string"
+            },
+            "contentType": {
+              "type": "string"
+            },
+            "style": {
+              "type": "string",
+              "enum": [
+                "matrix",
+                "label",
+                "form",
+                "simple",
+                "spaceDelimited",
+                "pipeDelimited",
+                "deepObject"
+              ],
+              "description": "Serialization style for the encoding (only applicable to multipart/form-data and application/x-www-form-urlencoded)"
+            },
+            "explode": {
+              "type": "boolean"
+            },
+            "allowReserved": {
+              "type": "boolean",
+              "description": "Allows reserved characters in field values without percent-encoding. Only applies when style is 'form' and the content type is 'application/x-www-form-urlencoded'."
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.encoding"
+    },
+    "example": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Example",
+      "description": "Provides sample values for request bodies, responses, or parameters. Improves documentation clarity and enables automated testing or mocking.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.example"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "example"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "value": {
+              "type": "string",
+              "description": "Inline example value. Mutually exclusive with externalValue — only one may be set per Example."
+            },
+            "externalValue": {
+              "type": "string",
+              "description": "URL pointing to an external example. Mutually exclusive with value — only one may be set per Example."
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.example"
+    },
+    "externaldocumentation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExternalDocumentation",
+      "description": "A reference to external documentation resources (URLs, wikis, guides) that provide additional context beyond the inline API specification. Can be attached to the root OpenAPI document, individual Tags, Operations, and Schema objects.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.externaldocumentation"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "externaldocumentation"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": ["url"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.externaldocumentation"
+    },
+    "header": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Header",
+      "description": "Defines a reusable HTTP header for responses or request components. The header name is derived from its map key — the OpenAPI 3.0 Header Object does not include a 'name' field (use the 'name' attribute as a local identifier only). The 'in' location is implicitly 'header' and must not be specified, distinguishing Header from Parameter.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.header"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "header"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string",
+              "description": "Local identifier for this header node. Not an OpenAPI field — the actual HTTP header name is the map key where this Header appears in Responses or Components."
+            },
+            "description": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "schema": {
+              "type": "object",
+              "description": "The schema defining the type and constraints for the header value"
+            },
+            "style": {
+              "type": "string",
+              "enum": [
+                "matrix",
+                "label",
+                "form",
+                "simple",
+                "spaceDelimited",
+                "pipeDelimited",
+                "deepObject"
+              ],
+              "description": "Serialization style for the header value. Default is 'simple' for header parameters."
+            },
+            "explode": {
+              "type": "boolean",
+              "description": "When true, array/object values generate separate header instances for each element. Default: false."
+            },
+            "allowEmptyValue": {
+              "type": "boolean",
+              "description": "Allows the header to be sent with an empty value."
+            },
+            "allowReserved": {
+              "type": "boolean",
+              "description": "Allows reserved characters in the header value without percent-encoding."
+            },
+            "example": {
+              "description": "An example value for the header. Mutually exclusive with 'examples'."
+            },
+            "examples": {
+              "type": "object",
+              "description": "Map of named Example objects for the header. Mutually exclusive with 'example'."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.header"
+    },
+    "info": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Info",
+      "description": "Required root-level metadata describing the API identity, version, legal terms, and maintainer contact. The 'title' and 'version' fields are required per OpenAPI 3.0. Consumed by documentation generators, API gateways, and developer portals.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.info"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "info"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string",
+              "description": "Supports CommonMark (Markdown) syntax per OpenAPI 3.0."
+            },
+            "version": {
+              "type": "string"
+            },
+            "termsOfService": {
+              "type": "string"
+            },
+            "contact": {
+              "type": "string",
+              "description": "Reference to an api.contact node providing maintainer contact details."
+            },
+            "license": {
+              "type": "string",
+              "description": "Reference to an api.license node specifying the API's license terms."
+            }
+          },
+          "required": ["title", "version"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.info"
+    },
+    "license": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "License",
+      "description": "Specifies the legal license under which the API is provided, including license name and URL to full terms. Clarifies usage rights for API consumers.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.license"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "license"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": ["name"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.license"
+    },
+    "link": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Link",
+      "description": "Describes a relationship between API responses and subsequent operations, enabling hypermedia-driven API navigation. Supports HATEOAS design patterns.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.link"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "link"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "operationId": {
+              "type": "string",
+              "description": "The operationId of the target operation within this document. Mutually exclusive with 'operationRef' — only one may be specified per Link."
+            },
+            "operationRef": {
+              "type": "string",
+              "description": "A relative or absolute URL reference to an operation. Mutually exclusive with 'operationId' — only one may be specified per Link."
+            },
+            "description": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Map of parameter names to runtime expressions or literal values passed to the linked operation"
+            },
+            "requestBody": {
+              "type": "string",
+              "description": "Runtime expression or literal value for the linked operation's request body"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.link"
+    },
+    "mediatype": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MediaType",
+      "description": "Describes the schema, examples, and encoding for a specific MIME type within a request body or response content map. Keyed by media type string (e.g., application/json).",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.mediatype"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "mediatype"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "contentType": {
+              "type": "string"
+            },
+            "example": {
+              "type": "string",
+              "description": "An inline example value. Mutually exclusive with 'examples' — only one may be specified per MediaType."
+            },
+            "schema": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "examples": {
+              "type": "array",
+              "description": "Contains relationship — named Example objects. Mutually exclusive with 'example'."
+            },
+            "encoding": {
+              "type": "array",
+              "description": "Contains relationship — encoding rules for individual form fields. Only applies when contentType is 'multipart/form-data' or 'application/x-www-form-urlencoded'."
+            }
+          },
+          "required": ["contentType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.mediatype"
+    },
+    "oauthflow": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OAuthFlow",
+      "description": "Configuration for a single OAuth 2.0 grant type (implicit, password, clientCredentials, or authorizationCode). authorizationUrl is required for implicit and authorizationCode flows; tokenUrl is required for password, clientCredentials, and authorizationCode flows; scopes is required for all flows. The flow type is not an explicit field — it is implied by which attribute of the parent OAuthFlows object references this OAuthFlow.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.oauthflow"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "oauthflow"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "authorizationUrl": {
+              "type": "string"
+            },
+            "tokenUrl": {
+              "type": "string"
+            },
+            "refreshUrl": {
+              "type": "string"
+            },
+            "scopes": {
+              "type": "object",
+              "description": "Map of scope name to human-readable description string"
+            }
+          },
+          "required": ["scopes"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.oauthflow"
+    },
+    "oauthflows": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OAuthFlows",
+      "description": "Configuration for OAuth 2.0 authentication flows (implicit, password, clientCredentials, authorizationCode), specifying authorization URLs, token URLs, and scopes. At least one flow attribute must be specified. Always nested within a SecurityScheme where type is 'oauth2' — cannot be used independently.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.oauthflows"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "oauthflows"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "implicit": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "password": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "clientCredentials": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "authorizationCode": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.oauthflows"
+    },
+    "openapidocument": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OpenAPIDocument",
+      "description": "The root document object of an OpenAPI 3.0 specification. Required fields are openapi (semver string, e.g. '3.0.3'), info, and paths. Serves as the entry point for all tooling, gateways, and documentation generators.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.openapidocument"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "openapidocument"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "openapi": {
+              "type": "string"
+            },
+            "info": {
+              "type": "string"
+            },
+            "servers": {
+              "type": "string"
+            },
+            "paths": {
+              "type": "string",
+              "description": "Required per OpenAPI 3.0 but may be an empty object ({}) when the document is used solely to define reusable components."
+            },
+            "components": {
+              "type": "string"
+            },
+            "security": {
+              "type": "string",
+              "description": "Defines default security requirements applied to all operations. Individual operations can override or remove it by setting their own 'security' to an empty array ([])."
+            },
+            "tags": {
+              "type": "string"
+            },
+            "externalDocs": {
+              "type": "string"
+            }
+          },
+          "required": ["openapi", "info", "paths"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.openapidocument"
+    },
+    "operation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Operation",
+      "description": "Defines a single HTTP method bound to a path, specifying its contract: parameters, request body, possible responses, security requirements, and tags. Operation-level security overrides global API security requirements; an empty security array ([]) explicitly removes all security enforcement for the operation. The primary unit of API surface area in OpenAPI 3.0.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.operation"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "operation"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "operationId": {
+              "type": "string",
+              "description": "Unique identifier for this operation across the entire API document"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "parameters": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "requestBody": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "responses": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "callbacks": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "security": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["operationId", "summary", "tags"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.operation"
+    },
+    "parameter": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Parameter",
+      "description": "Defines an input to an API operation by location, name, and schema. Parameters can appear in four locations: 'path' (always required, name must match the {placeholder} in the path template), 'query' (case-sensitive name, appended to the URL), 'header' (case-insensitive name), and 'cookie'. The 'schema' and 'content' attributes are mutually exclusive; 'content' requires exactly one map entry.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.parameter"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "parameter"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string",
+              "description": "Case-sensitive for query, header, and cookie parameters. For path parameters, must exactly match the {placeholder} token in the parent path template."
+            },
+            "in": {
+              "type": "string",
+              "enum": ["query", "header", "path", "cookie"],
+              "description": "Location of the parameter. Path parameters must always have required: true. Default serialization style: 'form' for query/cookie, 'simple' for path/header."
+            },
+            "description": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "allowEmptyValue": {
+              "type": "boolean"
+            },
+            "style": {
+              "type": "string",
+              "enum": [
+                "matrix",
+                "label",
+                "form",
+                "simple",
+                "spaceDelimited",
+                "pipeDelimited",
+                "deepObject"
+              ],
+              "description": "Serialization style for the parameter value. Defaults: 'form' for query and cookie, 'simple' for path and header."
+            },
+            "schema": {
+              "type": "object",
+              "description": "The schema defining the type and constraints for the parameter value"
+            },
+            "explode": {
+              "type": "boolean",
+              "description": "When true, array/object values generate separate parameters for each element. Default: true when style is 'form', false otherwise."
+            },
+            "allowReserved": {
+              "type": "boolean",
+              "description": "Allows reserved characters in query parameter values without percent-encoding. Only applies to 'query' parameters."
+            },
+            "example": {
+              "description": "An example value for the parameter. Mutually exclusive with 'examples'."
+            },
+            "examples": {
+              "type": "object",
+              "description": "Map of named Example objects for the parameter. Mutually exclusive with 'example'."
+            },
+            "content": {
+              "type": "object",
+              "description": "Alternative to 'schema' for complex serialization. Mutually exclusive with 'schema'; must contain exactly one map entry keyed by media type string."
+            }
+          },
+          "required": ["name", "in"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.parameter"
+    },
+    "pathitem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PathItem",
+      "description": "Groups all HTTP operations available under a single URL path pattern (e.g., /users/{userId}). Path-level parameters apply to all operations under the path and can be overridden by matching name+in at the operation level, but cannot be removed. Individual HTTP methods are represented as operation references. Supports $ref at the PathItem level, enabling shared path definitions to be reused across multiple OpenAPI specifications.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.pathitem"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "pathitem"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "servers": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "parameters": {
+              "type": "array",
+              "description": "Contains relationship — path-level parameters inherited by all child operations; can be overridden by matching name and 'in' at the operation level but cannot be removed."
+            },
+            "get": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "put": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "post": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "delete": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "options": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "head": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "patch": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "trace": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.pathitem"
+    },
+    "paths": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Paths",
+      "description": "A map of URL path patterns to PathItem objects defining the API surface. Path keys use OpenAPI path templating (e.g., /users/{id}) and must begin with '/'. Individual path entries are modeled as relationships to api.pathitem nodes.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.paths"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "paths"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "pathItems": {
+              "type": "array",
+              "description": "Contains relationship — the PathItem nodes that define operations for each path template in this Paths map."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.paths"
+    },
+    "ratelimit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RateLimit",
+      "description": "Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair usage across consumers.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.ratelimit"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "ratelimit"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "requests": {
+              "type": "integer",
+              "description": "Maximum number of requests permitted within the specified time window."
+            },
+            "window": {
+              "type": "string",
+              "description": "Duration of the rate limit window (e.g., '1m', '1h', '24h'). Requests are counted and reset per window."
+            },
+            "scope": {
+              "type": "string",
+              "enum": ["global", "per-user", "per-ip", "per-api-key"],
+              "description": "Scope at which the rate limit is applied."
+            },
+            "action": {
+              "type": "string",
+              "enum": ["block", "throttle", "queue", "log", "challenge"],
+              "description": "Action taken when the rate limit is exceeded, per NIST SC-5 (Denial-of-Service Protection)."
+            },
+            "keyBy": {
+              "type": "string",
+              "description": "Attribute used to identify and group requests for rate limit counting (e.g., 'user.id', 'request.ip', 'api-key')."
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["requests", "window", "keyBy"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.ratelimit"
+    },
+    "requestbody": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RequestBody",
+      "description": "Defines the request body for an operation as a map of MIME types to MediaType objects. The 'content' field is required and must contain at least one entry per OpenAPI 3.0. The 'required' field defaults to false. Can be placed in api.components requestBodies and referenced via $ref for reuse across multiple operations.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.requestbody"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "requestbody"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "content": {
+              "type": "array",
+              "description": "Contains relationship — a map of media type strings to MediaType objects; must contain at least one entry per OpenAPI 3.0."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.requestbody"
+    },
+    "response": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Response",
+      "description": "Defines a single HTTP response returned by an operation, including its description, body content (keyed by MIME type), response headers, and optional hypermedia links. The 'content' field may be omitted entirely for responses with no body (e.g., 204 No Content). Header map keys are case-insensitive per the HTTP specification.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.response"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "response"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "content": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "headers": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "links": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["description"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.response"
+    },
+    "responses": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Responses",
+      "description": "A map of HTTP status codes (e.g., 200, 404, default) to Response objects describing each possible outcome of an operation. At least one response must be defined per OpenAPI 3.0. Status code ranges (e.g., 2XX) are not supported — only specific numeric codes and 'default' are valid keys.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.responses"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "responses"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "responses": {
+              "type": "array",
+              "description": "Contains relationship — the Response nodes mapped to HTTP status codes or 'default' in this Responses object."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.responses"
+    },
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Schema",
+      "description": "Inline data type definition using a subset of JSON Schema Draft 7, used within API operations to describe request/response data shapes. For reusable canonical types, reference data-model layer entities instead. OpenAPI 3.0 restriction: a '$ref' within a Schema ignores all sibling keywords — unlike JSON Schema where $ref can be merged with other constraints.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.schema"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "schema"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "format": {
+              "type": "string"
+            },
+            "default": {
+              "type": "string"
+            },
+            "enum": {
+              "type": "string"
+            },
+            "nullable": {
+              "type": "boolean"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Map of property names to schema definitions for object types"
+            },
+            "items": {
+              "type": "object",
+              "description": "Schema definition for array element types"
+            },
+            "required": {
+              "type": "array",
+              "description": "List of required property names for object types"
+            },
+            "allOf": {
+              "type": "array",
+              "description": "Composed schema: value must be valid against all listed schemas"
+            },
+            "oneOf": {
+              "type": "array",
+              "description": "Composed schema: value must be valid against exactly one of the listed schemas"
+            },
+            "anyOf": {
+              "type": "array",
+              "description": "Composed schema: value must be valid against one or more of the listed schemas"
+            },
+            "$ref": {
+              "type": "string",
+              "description": "JSON Reference to another schema definition. In OpenAPI 3.0, sibling keywords are ignored when $ref is present."
+            },
+            "readOnly": {
+              "type": "boolean",
+              "description": "Indicates the property is read-only and should not be sent in request bodies."
+            },
+            "writeOnly": {
+              "type": "boolean",
+              "description": "Indicates the property is write-only and should not be included in response bodies."
+            },
+            "deprecated": {
+              "type": "boolean",
+              "description": "Marks the schema as deprecated. Consumers should migrate away from using it."
+            },
+            "discriminator": {
+              "type": "object",
+              "description": "Adds support for polymorphism by specifying the property name that determines the subtype (propertyName) and an optional mapping of values to schema references."
+            },
+            "xml": {
+              "type": "object",
+              "description": "XML serialization metadata for this schema when producing XML representations."
+            },
+            "externalDocs": {
+              "type": "object",
+              "description": "Reference to an api.externaldocumentation node providing additional documentation for this schema."
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.schema"
+    },
+    "securityscheme": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SecurityScheme",
+      "description": "Defines an authentication/authorization mechanism for the API. Supports four scheme types: apiKey (name+in required), http (scheme required), oauth2 (flows required), and openIdConnect (openIdConnectUrl required). Only 'type' is universally required. Note: SecurityScheme defines the mechanism; it is referenced by name string key in Operation.security or the root security array — those references are security requirement objects, not SecurityScheme instances.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.securityscheme"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "securityscheme"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["apiKey", "http", "oauth2", "openIdConnect"],
+              "description": "Type of security scheme"
+            },
+            "description": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "in": {
+              "type": "string"
+            },
+            "scheme": {
+              "type": "string"
+            },
+            "bearerFormat": {
+              "type": "string"
+            },
+            "flows": {
+              "type": "array",
+              "description": "Contains relationship — OAuth Flows configuration, required when type is oauth2"
+            },
+            "openIdConnectUrl": {
+              "type": "string",
+              "description": "OpenID Connect discovery URL, required when type is openIdConnect"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.securityscheme"
+    },
+    "server": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Server",
+      "description": "Defines a server URL (optionally templated with {variable} placeholders) where the API is deployed. Supports multiple server entries for different environments (production, staging, dev). The 'url' field is required. A 'servers' array can appear at three levels: root document, PathItem, and Operation — each level overrides the previous for that scope.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.server"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "server"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "variables": {
+              "type": "string",
+              "description": "Map of {placeholder} names (from the url template) to api.servervariable nodes defining allowed values and defaults."
+            }
+          },
+          "required": ["url"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.server"
+    },
+    "servervariable": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServerVariable",
+      "description": "A variable placeholder in server URL templates that can be substituted at runtime. Enables dynamic server addressing for different environments or tenants.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.servervariable"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "servervariable"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "default": {
+              "type": "string",
+              "description": "Required default value for the variable. When 'enum' is specified, this value must be one of the listed enum values."
+            },
+            "enum": {
+              "type": "string",
+              "description": "Restricts the variable to a specific set of allowed values. The 'default' value must be one of these values when enum is present. The variable name (the map key in Server.variables) must exactly match a {placeholder} token in the parent server's URL string."
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": ["default"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.servervariable"
+    },
+    "tag": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Tag",
+      "description": "A metadata label used to group and categorize API operations for documentation organization. Root-level Tag objects provide supplementary metadata (description, externalDocs) for tag names referenced in operations — they do not control which tags are permitted. Tags used in operations but not declared at root level are implicitly valid in OpenAPI 3.0 but will lack descriptions and externalDocs. Duplicate tag names at root level are invalid per OpenAPI 3.0.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "api.tag"
+        },
+        "layer_id": {
+          "const": "api"
+        },
+        "type": {
+          "const": "tag"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "externalDocs": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:api.tag"
+    }
+  },
+  "relationshipSchemas": {
+    "api.callback.aggregates.api.pathitem": {
+      "id": "api.callback.aggregates.api.pathitem",
+      "source_spec_node_id": "api.callback",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.aggregates.api.example": {
+      "id": "api.components.aggregates.api.example",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.example",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.aggregates.api.response": {
+      "id": "api.components.aggregates.api.response",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.composes.api.header": {
+      "id": "api.components.composes.api.header",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.header",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.composes.api.parameter": {
+      "id": "api.components.composes.api.parameter",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.composes.api.paths": {
+      "id": "api.components.composes.api.paths",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.paths",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.composes.api.response": {
+      "id": "api.components.composes.api.response",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.composes.api.responses": {
+      "id": "api.components.composes.api.responses",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.responses",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.composes.api.schema": {
+      "id": "api.components.composes.api.schema",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.composes.api.securityscheme": {
+      "id": "api.components.composes.api.securityscheme",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.contact.associated-with.api.openapidocument": {
+      "id": "api.contact.associated-with.api.openapidocument",
+      "source_spec_node_id": "api.contact",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.openapidocument",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.encoding.associated-with.api.mediatype": {
+      "id": "api.encoding.associated-with.api.mediatype",
+      "source_spec_node_id": "api.encoding",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.mediatype",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.encoding.associated-with.api.parameter": {
+      "id": "api.encoding.associated-with.api.parameter",
+      "source_spec_node_id": "api.encoding",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.encoding.composes.api.header": {
+      "id": "api.encoding.composes.api.header",
+      "source_spec_node_id": "api.encoding",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.header",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.encoding.references.api.header": {
+      "id": "api.encoding.references.api.header",
+      "source_spec_node_id": "api.encoding",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.header",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.encoding.references.api.schema": {
+      "id": "api.encoding.references.api.schema",
+      "source_spec_node_id": "api.encoding",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.example.associated-with.api.operation": {
+      "id": "api.example.associated-with.api.operation",
+      "source_spec_node_id": "api.example",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.example.references.api.schema": {
+      "id": "api.example.references.api.schema",
+      "source_spec_node_id": "api.example",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.header.associated-with.api.securityscheme": {
+      "id": "api.header.associated-with.api.securityscheme",
+      "source_spec_node_id": "api.header",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.header.references.api.example": {
+      "id": "api.header.references.api.example",
+      "source_spec_node_id": "api.header",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.example",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.header.references.api.schema": {
+      "id": "api.header.references.api.schema",
+      "source_spec_node_id": "api.header",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.header.specializes.api.parameter": {
+      "id": "api.header.specializes.api.parameter",
+      "source_spec_node_id": "api.header",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.info.aggregates.api.contact": {
+      "id": "api.info.aggregates.api.contact",
+      "source_spec_node_id": "api.info",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.contact",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.info.aggregates.api.license": {
+      "id": "api.info.aggregates.api.license",
+      "source_spec_node_id": "api.info",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.license",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.info.associated-with.api.openapidocument": {
+      "id": "api.info.associated-with.api.openapidocument",
+      "source_spec_node_id": "api.info",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.openapidocument",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.license.associated-with.api.openapidocument": {
+      "id": "api.license.associated-with.api.openapidocument",
+      "source_spec_node_id": "api.license",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.openapidocument",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.link.references.api.operation": {
+      "id": "api.link.references.api.operation",
+      "source_spec_node_id": "api.link",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.link.references.api.schema": {
+      "id": "api.link.references.api.schema",
+      "source_spec_node_id": "api.link",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.link.references.api.tag": {
+      "id": "api.link.references.api.tag",
+      "source_spec_node_id": "api.link",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.tag",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.mediatype.aggregates.api.encoding": {
+      "id": "api.mediatype.aggregates.api.encoding",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.encoding",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.mediatype.aggregates.api.example": {
+      "id": "api.mediatype.aggregates.api.example",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.example",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.mediatype.associated-with.api.header": {
+      "id": "api.mediatype.associated-with.api.header",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.header",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.mediatype.composes.api.encoding": {
+      "id": "api.mediatype.composes.api.encoding",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.encoding",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.mediatype.composes.api.schema": {
+      "id": "api.mediatype.composes.api.schema",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.mediatype.references.api.example": {
+      "id": "api.mediatype.references.api.example",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.example",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.mediatype.references.api.schema": {
+      "id": "api.mediatype.references.api.schema",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.mediatype.serves.api.requestbody": {
+      "id": "api.mediatype.serves.api.requestbody",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.requestbody",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.mediatype.serves.api.response": {
+      "id": "api.mediatype.serves.api.response",
+      "source_spec_node_id": "api.mediatype",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflow.aggregates.api.tag": {
+      "id": "api.oauthflow.aggregates.api.tag",
+      "source_spec_node_id": "api.oauthflow",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.tag",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflow.associated-with.api.oauthflows": {
+      "id": "api.oauthflow.associated-with.api.oauthflows",
+      "source_spec_node_id": "api.oauthflow",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.oauthflows",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflow.associated-with.api.ratelimit": {
+      "id": "api.oauthflow.associated-with.api.ratelimit",
+      "source_spec_node_id": "api.oauthflow",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.ratelimit",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflow.references.api.server": {
+      "id": "api.oauthflow.references.api.server",
+      "source_spec_node_id": "api.oauthflow",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflow.serves.api.operation": {
+      "id": "api.oauthflow.serves.api.operation",
+      "source_spec_node_id": "api.oauthflow",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflow.serves.api.securityscheme": {
+      "id": "api.oauthflow.serves.api.securityscheme",
+      "source_spec_node_id": "api.oauthflow",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflows.aggregates.api.oauthflow": {
+      "id": "api.oauthflows.aggregates.api.oauthflow",
+      "source_spec_node_id": "api.oauthflows",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.oauthflow",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflows.associated-with.api.components": {
+      "id": "api.oauthflows.associated-with.api.components",
+      "source_spec_node_id": "api.oauthflows",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.components",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflows.associated-with.api.operation": {
+      "id": "api.oauthflows.associated-with.api.operation",
+      "source_spec_node_id": "api.oauthflows",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflows.composes.api.oauthflow": {
+      "id": "api.oauthflows.composes.api.oauthflow",
+      "source_spec_node_id": "api.oauthflows",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.oauthflow",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.oauthflows.serves.api.securityscheme": {
+      "id": "api.oauthflows.serves.api.securityscheme",
+      "source_spec_node_id": "api.oauthflows",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.aggregates.api.server": {
+      "id": "api.openapidocument.aggregates.api.server",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.aggregates.api.tag": {
+      "id": "api.openapidocument.aggregates.api.tag",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.tag",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.composes.api.components": {
+      "id": "api.openapidocument.composes.api.components",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.components",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.composes.api.info": {
+      "id": "api.openapidocument.composes.api.info",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.info",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.composes.api.paths": {
+      "id": "api.openapidocument.composes.api.paths",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.paths",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.composes.api.responses": {
+      "id": "api.openapidocument.composes.api.responses",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.responses",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.composes.api.schema": {
+      "id": "api.openapidocument.composes.api.schema",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.aggregates.api.parameter": {
+      "id": "api.operation.aggregates.api.parameter",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.aggregates.api.requestbody": {
+      "id": "api.operation.aggregates.api.requestbody",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.requestbody",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.aggregates.api.server": {
+      "id": "api.operation.aggregates.api.server",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.aggregates.api.tag": {
+      "id": "api.operation.aggregates.api.tag",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.tag",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.composes.api.paths": {
+      "id": "api.operation.composes.api.paths",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.paths",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.composes.api.responses": {
+      "id": "api.operation.composes.api.responses",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.responses",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.composes.api.schema": {
+      "id": "api.operation.composes.api.schema",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.delivers.api.response": {
+      "id": "api.operation.delivers.api.response",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "delivers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.references.application.applicationservice": {
+      "id": "api.operation.references.application.applicationservice",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.references.business.businessinterface": {
+      "id": "api.operation.references.business.businessinterface",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessinterface",
+      "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.references.business.businessservice": {
+      "id": "api.operation.references.business.businessservice",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.references.api.operation": {
+      "id": "api.operation.references.api.operation",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.references.api.schema": {
+      "id": "api.operation.references.api.schema",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.references.security.secureresource": {
+      "id": "api.operation.references.security.secureresource",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.references.api.tag": {
+      "id": "api.operation.references.api.tag",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.tag",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.references.apm.traceconfiguration": {
+      "id": "api.operation.references.apm.traceconfiguration",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "apm.traceconfiguration",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.requires.security.permission": {
+      "id": "api.operation.requires.security.permission",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.triggers.api.callback": {
+      "id": "api.operation.triggers.api.callback",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.callback",
+      "destination_layer": "api",
+      "predicate": "triggers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.uses.api.securityscheme": {
+      "id": "api.operation.uses.api.securityscheme",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.parameter.references.api.example": {
+      "id": "api.parameter.references.api.example",
+      "source_spec_node_id": "api.parameter",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.example",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.parameter.references.api.operation": {
+      "id": "api.parameter.references.api.operation",
+      "source_spec_node_id": "api.parameter",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.parameter.references.api.schema": {
+      "id": "api.parameter.references.api.schema",
+      "source_spec_node_id": "api.parameter",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.parameter.references.api.tag": {
+      "id": "api.parameter.references.api.tag",
+      "source_spec_node_id": "api.parameter",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.tag",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.pathitem.aggregates.api.parameter": {
+      "id": "api.pathitem.aggregates.api.parameter",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.pathitem.aggregates.api.server": {
+      "id": "api.pathitem.aggregates.api.server",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.pathitem.composes.api.operation": {
+      "id": "api.pathitem.composes.api.operation",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.pathitem.references.api.externaldocumentation": {
+      "id": "api.pathitem.references.api.externaldocumentation",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.externaldocumentation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.pathitem.references.api.pathitem": {
+      "id": "api.pathitem.references.api.pathitem",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.paths.aggregates.api.pathitem": {
+      "id": "api.paths.aggregates.api.pathitem",
+      "source_spec_node_id": "api.paths",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.paths.aggregates.api.server": {
+      "id": "api.paths.aggregates.api.server",
+      "source_spec_node_id": "api.paths",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.paths.associated-with.api.ratelimit": {
+      "id": "api.paths.associated-with.api.ratelimit",
+      "source_spec_node_id": "api.paths",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.ratelimit",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.paths.composes.api.pathitem": {
+      "id": "api.paths.composes.api.pathitem",
+      "source_spec_node_id": "api.paths",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.paths.references.api.externaldocumentation": {
+      "id": "api.paths.references.api.externaldocumentation",
+      "source_spec_node_id": "api.paths",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.externaldocumentation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.paths.references.api.tag": {
+      "id": "api.paths.references.api.tag",
+      "source_spec_node_id": "api.paths",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.tag",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.paths.serves.api.operation": {
+      "id": "api.paths.serves.api.operation",
+      "source_spec_node_id": "api.paths",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.ratelimit.associated-with.api.header": {
+      "id": "api.ratelimit.associated-with.api.header",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.header",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.ratelimit.associated-with.api.securityscheme": {
+      "id": "api.ratelimit.associated-with.api.securityscheme",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.ratelimit.governs.api.operation": {
+      "id": "api.ratelimit.governs.api.operation",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.ratelimit.serves.api.operation": {
+      "id": "api.ratelimit.serves.api.operation",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.ratelimit.serves.api.pathitem": {
+      "id": "api.ratelimit.serves.api.pathitem",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.ratelimit.specializes.api.ratelimit": {
+      "id": "api.ratelimit.specializes.api.ratelimit",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.ratelimit",
+      "destination_layer": "api",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.ratelimit.triggers.api.response": {
+      "id": "api.ratelimit.triggers.api.response",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.requestbody.aggregates.api.example": {
+      "id": "api.requestbody.aggregates.api.example",
+      "source_spec_node_id": "api.requestbody",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.example",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.requestbody.aggregates.api.mediatype": {
+      "id": "api.requestbody.aggregates.api.mediatype",
+      "source_spec_node_id": "api.requestbody",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.mediatype",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.requestbody.associated-with.api.encoding": {
+      "id": "api.requestbody.associated-with.api.encoding",
+      "source_spec_node_id": "api.requestbody",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.encoding",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.requestbody.composes.api.mediatype": {
+      "id": "api.requestbody.composes.api.mediatype",
+      "source_spec_node_id": "api.requestbody",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.mediatype",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.requestbody.references.api.schema": {
+      "id": "api.requestbody.references.api.schema",
+      "source_spec_node_id": "api.requestbody",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.requestbody.serves.api.operation": {
+      "id": "api.requestbody.serves.api.operation",
+      "source_spec_node_id": "api.requestbody",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.response.aggregates.api.header": {
+      "id": "api.response.aggregates.api.header",
+      "source_spec_node_id": "api.response",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.header",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.response.aggregates.api.mediatype": {
+      "id": "api.response.aggregates.api.mediatype",
+      "source_spec_node_id": "api.response",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.mediatype",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.response.aggregates.api.schema": {
+      "id": "api.response.aggregates.api.schema",
+      "source_spec_node_id": "api.response",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.response.composes.api.header": {
+      "id": "api.response.composes.api.header",
+      "source_spec_node_id": "api.response",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.header",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.response.composes.api.link": {
+      "id": "api.response.composes.api.link",
+      "source_spec_node_id": "api.response",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.link",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.response.composes.api.mediatype": {
+      "id": "api.response.composes.api.mediatype",
+      "source_spec_node_id": "api.response",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.mediatype",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.response.references.api.example": {
+      "id": "api.response.references.api.example",
+      "source_spec_node_id": "api.response",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.example",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.response.references.api.schema": {
+      "id": "api.response.references.api.schema",
+      "source_spec_node_id": "api.response",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.responses.aggregates.api.header": {
+      "id": "api.responses.aggregates.api.header",
+      "source_spec_node_id": "api.responses",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.header",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.responses.aggregates.api.schema": {
+      "id": "api.responses.aggregates.api.schema",
+      "source_spec_node_id": "api.responses",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.responses.associated-with.api.ratelimit": {
+      "id": "api.responses.associated-with.api.ratelimit",
+      "source_spec_node_id": "api.responses",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.ratelimit",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.responses.composes.api.response": {
+      "id": "api.responses.composes.api.response",
+      "source_spec_node_id": "api.responses",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.responses.references.api.link": {
+      "id": "api.responses.references.api.link",
+      "source_spec_node_id": "api.responses",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.link",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.responses.references.api.schema": {
+      "id": "api.responses.references.api.schema",
+      "source_spec_node_id": "api.responses",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.schema.maps-to.data-store.collection": {
+      "id": "api.schema.maps-to.data-store.collection",
+      "source_spec_node_id": "api.schema",
+      "source_layer": "api",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.schema.maps-to.data-store.field": {
+      "id": "api.schema.maps-to.data-store.field",
+      "source_spec_node_id": "api.schema",
+      "source_layer": "api",
+      "destination_spec_node_id": "data-store.field",
+      "destination_layer": "data-store",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.schema.references.api.operation": {
+      "id": "api.schema.references.api.operation",
+      "source_spec_node_id": "api.schema",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.schema.references.api.schema": {
+      "id": "api.schema.references.api.schema",
+      "source_spec_node_id": "api.schema",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.schema.references.api.tag": {
+      "id": "api.schema.references.api.tag",
+      "source_spec_node_id": "api.schema",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.tag",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.schema.specializes.api.schema": {
+      "id": "api.schema.specializes.api.schema",
+      "source_spec_node_id": "api.schema",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "specializes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.maps-to.data-store.collection": {
+      "id": "api.securityscheme.maps-to.data-store.collection",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.references.application.applicationservice": {
+      "id": "api.securityscheme.references.application.applicationservice",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.references.business.businessinterface": {
+      "id": "api.securityscheme.references.business.businessinterface",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessinterface",
+      "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.references.business.businessservice": {
+      "id": "api.securityscheme.references.business.businessservice",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.references.security.secureresource": {
+      "id": "api.securityscheme.references.security.secureresource",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.requires.security.permission": {
+      "id": "api.securityscheme.requires.security.permission",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.serves.api.operation": {
+      "id": "api.securityscheme.serves.api.operation",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.server.aggregates.api.servervariable": {
+      "id": "api.server.aggregates.api.servervariable",
+      "source_spec_node_id": "api.server",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.servervariable",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.server.associated-with.api.ratelimit": {
+      "id": "api.server.associated-with.api.ratelimit",
+      "source_spec_node_id": "api.server",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.ratelimit",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.server.references.api.securityscheme": {
+      "id": "api.server.references.api.securityscheme",
+      "source_spec_node_id": "api.server",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.server.serves.api.pathitem": {
+      "id": "api.server.serves.api.pathitem",
+      "source_spec_node_id": "api.server",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.tag.aggregates.api.operation": {
+      "id": "api.tag.aggregates.api.operation",
+      "source_spec_node_id": "api.tag",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.tag.associated-with.api.schema": {
+      "id": "api.tag.associated-with.api.schema",
+      "source_spec_node_id": "api.tag",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.tag.associated-with.api.securityscheme": {
+      "id": "api.tag.associated-with.api.securityscheme",
+      "source_spec_node_id": "api.tag",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.tag.references.api.externaldocumentation": {
+      "id": "api.tag.references.api.externaldocumentation",
+      "source_spec_node_id": "api.tag",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.externaldocumentation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.tag.serves.api.operation": {
+      "id": "api.tag.serves.api.operation",
+      "source_spec_node_id": "api.tag",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

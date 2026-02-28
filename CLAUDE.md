@@ -18,17 +18,24 @@ documentation_robotics/
 ├── spec/                        # SPECIFICATION (source of truth)
 │   ├── VERSION                  # Spec version number
 │   ├── layers/                  # 12 SpecLayer instance files (.layer.json)
-│   └── schemas/                 # All JSON Schema definitions
+│   ├── scripts/                 # Spec build tooling
+│   │   └── build-spec.ts        #   Compiles spec source → spec/dist/ (run: npm run build:spec)
+│   ├── dist/                    # COMPILED SPEC (committed, auto-generated)
+│   │   ├── manifest.json        #   Index of all layers
+│   │   ├── base.json            #   All base schemas + predicates consolidated
+│   │   └── {layer}.json         #   One per layer (12 files): nodeSchemas + relationshipSchemas
+│   └── schemas/                 # All JSON Schema definitions (hand-maintained)
 │       ├── base/                #   Core schemas: spec-node, spec-layer, spec-node-relationship,
 │       │                        #   attribute-spec, source-references, predicates.json
-│       ├── nodes/               #   354 per-type node schemas (.node.schema.json)
+│       ├── nodes/               #   Per-type node schemas (.node.schema.json)
 │       │   ├── motivation/      #     Organized by layer
-│       │   ├── business/        #     Defines valid model element types
-│       │   └── ...              #     Hand-maintained
-│       ├── relationships/       #   252 per-type relationship schemas
+│       │   └── ...
+│       ├── relationships/       #   Per-type relationship schemas
 │       │   ├── motivation/      #     (.relationship.schema.json)
-│       │   └── ...              #     Hand-maintained
+│       │   └── ...
 │       └── relationship-catalog.json  # Semantic relationship type catalog
+│
+├── package.json                 # Root scripts: npm run build:spec
 │
 └── cli/                         # TYPESCRIPT CLI
     ├── src/
@@ -36,9 +43,10 @@ documentation_robotics/
     │   ├── core/               # Domain models & registries
     │   ├── validators/         # Validation pipeline (uses spec node schemas)
     │   ├── export/             # Export handlers
-    │   └── schemas/bundled/    # Bundled schemas (synced from spec/)
-    │       ├── base/           #   Base and common schemas
-    │       └── nodes/          #   354 spec node schemas for validation
+    │   └── schemas/bundled/    # Compiled spec dist files (synced from spec/dist/)
+    │       ├── manifest.json   #   Index of all layers
+    │       ├── base.json       #   All base schemas + predicates
+    │       └── {layer}.json    #   14 total flat JSON files (no subdirectories)
     └── tests/                  # Unit & integration tests (~114 test files)
 ```
 
@@ -60,15 +68,16 @@ See `cli/README.md` for complete setup and usage documentation.
 ### 1. Spec vs. CLI Separation
 
 - **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli/package.json`)
-- **Schema synchronization**: Schema changes require updating BOTH locations:
-  - Base schemas: `spec/schemas/base/` → `cli/src/schemas/bundled/base/`
-  - Base schemas: `spec/schemas/base/` → `cli/src/schemas/bundled/base/`
-  - Node schemas: `spec/schemas/nodes/` → `cli/src/schemas/bundled/nodes/`
-  - Run `npm run build` in CLI (triggers `scripts/sync-spec-schemas.sh`)
+- **Schema synchronization workflow**:
+  1. Edit hand-maintained spec source files in `spec/schemas/` and `spec/layers/`
+  2. Run `npm run build:spec` at repo root → compiles to `spec/dist/` (14 JSON files)
+  3. Commit `spec/dist/` alongside your spec edits
+  4. Run `npm run build` in `cli/` → syncs `spec/dist/` → `cli/src/schemas/bundled/`
 - **Sources of truth (hand-maintained)**:
   - Spec node schemas: `spec/schemas/nodes/{layer}/*.node.schema.json` (extend `spec-node.schema.json` via `allOf`)
   - Spec relationship schemas: `spec/schemas/relationships/{layer}/*.relationship.schema.json` (extend `spec-node-relationship.schema.json` via `allOf`)
   - Layer instances: `spec/layers/*.layer.json`
+- **Compiled distribution (`spec/dist/`)**: Committed to repo as the spec's distribution artifact. CLI developers can run `npm run build` without running `npm run build:spec`. Update `spec/dist/` any time spec sources change.
 
 ### 2. When to Ask First
 
@@ -191,14 +200,21 @@ Federated architecture model spanning 12 interconnected layers:
 
 ### 1. Schema Synchronization
 
-**CRITICAL**: Schema changes require updating BOTH `spec/schemas/` and `cli/src/schemas/bundled/`.
+**CRITICAL**: After editing any hand-maintained spec file, run the full two-step sync:
 
-This applies to:
+```bash
+npm run build:spec      # Recompile spec/schemas/ → spec/dist/ (at repo root)
+cd cli && npm run build # Sync spec/dist/ → cli/src/schemas/bundled/
+```
 
-- **Base schemas** in `base/` (e.g., `spec-node.schema.json`)
-- **Common schemas** in `common/` (e.g., `attribute-spec.schema.json`, `source-references.schema.json`)
-- **Layer schemas** (e.g., `01-motivation-layer.schema.json`)
-- **Relationship catalog** (`relationship-catalog.json`)
+This applies to any change in:
+
+- `spec/schemas/base/` — base schemas
+- `spec/schemas/nodes/{layer}/` — node type schemas
+- `spec/schemas/relationships/{layer}/` — relationship schemas
+- `spec/layers/` — layer instances
+
+Do NOT manually edit files in `spec/dist/` or `cli/src/schemas/bundled/` — they are auto-generated.
 
 ### 2. Cross-Layer References
 
@@ -246,9 +262,11 @@ This applies to:
 1. **ASK FIRST** - Layer changes affect spec
 2. Update `spec/layers/{NN}-{layer}.layer.json`
 3. Update node schemas in `spec/schemas/nodes/{layer}/*.node.schema.json` if adding/changing types
-4. Update `spec/schemas/{NN}-{layer}-layer.schema.json` if schema structure changes
-5. Sync changed schemas to `cli/src/schemas/bundled/`
-6. Update validators and tests as needed
+4. Update relationship schemas in `spec/schemas/relationships/{layer}/` if needed
+5. Run `npm run build:spec` at repo root to recompile `spec/dist/`
+6. Run `cd cli && npm run build` to sync to `cli/src/schemas/bundled/`
+7. Commit both `spec/dist/` and the edited spec source files
+8. Update validators and tests as needed
 
 ### Key Files
 

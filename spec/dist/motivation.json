@@ -1,0 +1,1277 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "motivation",
+    "number": 1,
+    "name": "Motivation Layer",
+    "description": "Layer 1: Motivation Layer",
+    "inspired_by": {
+      "standard": "ArchiMate 3.2",
+      "version": "3.2",
+      "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
+    },
+    "node_types": [
+      "motivation.assessment",
+      "motivation.constraint",
+      "motivation.driver",
+      "motivation.goal",
+      "motivation.meaning",
+      "motivation.outcome",
+      "motivation.principle",
+      "motivation.requirement",
+      "motivation.stakeholder",
+      "motivation.value"
+    ]
+  },
+  "nodeSchemas": {
+    "assessment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Assessment",
+      "description": "Outcome of analysis of the state of affairs of the enterprise or any part of it, and its environment. Assessments commonly take the form of strengths, weaknesses, opportunities, or threats (SWOT).",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.assessment"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "assessment"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "assessmentType": {
+              "type": "string",
+              "enum": ["SWOT", "risk", "gap", "feasibility", "readiness", "impact"],
+              "description": "Classification of the assessment method or framework used"
+            }
+          },
+          "required": ["assessmentType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.assessment"
+    },
+    "constraint": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Constraint",
+      "description": "Restriction on the freedom of design and implementation choices available when realizing a system, as opposed to requirements which must be satisfied.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.constraint"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "constraint"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "constraintType": {
+              "type": "string",
+              "enum": ["regulatory", "technical", "organizational", "time-based", "financial"],
+              "description": "Category of constraint restricting the solution space"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["constraintType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.constraint"
+    },
+    "driver": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Driver",
+      "description": "External or internal condition that motivates an organization to change its goals, strategy, or architecture.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.driver"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "driver"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "market",
+                "regulatory",
+                "operational",
+                "strategic",
+                "competitive",
+                "technological"
+              ],
+              "description": "Category of the motivating condition or force"
+            }
+          },
+          "required": ["category"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.driver"
+    },
+    "goal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Goal",
+      "description": "High-level statement of intent, direction, or desired end state",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.goal"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "goal"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low", "informational"],
+              "description": "Priority level of this goal"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["priority"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.goal"
+    },
+    "meaning": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Meaning",
+      "description": "Knowledge or expertise present in, or the interpretation given to, a concept in a particular context, as understood by stakeholders.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.meaning"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "meaning"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.meaning"
+    },
+    "outcome": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Outcome",
+      "description": "End result intended or already achieved by the organization or a system, distinct from a Goal which expresses the desired direction.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.outcome"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "outcome"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["planned", "in-progress", "achieved", "abandoned", "at-risk"],
+              "description": "Lifecycle state of the outcome"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["status"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.outcome"
+    },
+    "principle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Principle",
+      "description": "Normative property of all systems in a given context, or a statement governing how an organization intends to fulfill its mission and guide decision-making.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.principle"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "principle"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "architecture",
+                "data",
+                "security",
+                "operational",
+                "financial",
+                "integration"
+              ],
+              "description": "Domain area to which this architectural principle applies"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["category"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.principle"
+    },
+    "requirement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Requirement",
+      "description": "Statement of need that must be realized by a system, component, or solution, and that can be associated with stakeholders, goals, or constraints.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.requirement"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "requirement"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "requirementType": {
+              "type": "string",
+              "enum": ["functional", "non-functional", "regulatory", "business", "quality"],
+              "description": "Classification of what aspect of the system this requirement addresses"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low", "informational"],
+              "description": "Priority level of this requirement"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["requirementType", "priority"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.requirement"
+    },
+    "stakeholder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Stakeholder",
+      "description": "Individual, team, or organization that has an interest in, or is affected by, the effects of the architecture.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.stakeholder"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "stakeholder"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["internal", "external", "regulatory", "customer", "sponsor", "end-user"],
+              "description": "Classification of the stakeholder's relationship to the organization"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.stakeholder"
+    },
+    "value": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Value",
+      "description": "Relative worth, utility, or importance of a concept, phenomenon, or outcome to one or more stakeholders.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "motivation.value"
+        },
+        "layer_id": {
+          "const": "motivation"
+        },
+        "type": {
+          "const": "value"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "valueType": {
+              "type": "string",
+              "enum": ["financial", "strategic", "operational", "reputational", "social"],
+              "description": "Category of worth or utility this value represents"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["valueType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:motivation.value"
+    }
+  },
+  "relationshipSchemas": {
+    "motivation.assessment.influence.motivation.assessment": {
+      "id": "motivation.assessment.influence.motivation.assessment",
+      "source_spec_node_id": "motivation.assessment",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.assessment",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.assessment.influence.motivation.driver": {
+      "id": "motivation.assessment.influence.motivation.driver",
+      "source_spec_node_id": "motivation.assessment",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.assessment.influence.motivation.goal": {
+      "id": "motivation.assessment.influence.motivation.goal",
+      "source_spec_node_id": "motivation.assessment",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.assessment.influence.motivation.principle": {
+      "id": "motivation.assessment.influence.motivation.principle",
+      "source_spec_node_id": "motivation.assessment",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.assessment.influence.motivation.requirement": {
+      "id": "motivation.assessment.influence.motivation.requirement",
+      "source_spec_node_id": "motivation.assessment",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.constraint.constrains.motivation.requirement": {
+      "id": "motivation.constraint.constrains.motivation.requirement",
+      "source_spec_node_id": "motivation.constraint",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.constraint.influence.motivation.assessment": {
+      "id": "motivation.constraint.influence.motivation.assessment",
+      "source_spec_node_id": "motivation.constraint",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.assessment",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.constraint.influence.motivation.goal": {
+      "id": "motivation.constraint.influence.motivation.goal",
+      "source_spec_node_id": "motivation.constraint",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.constraint.influence.motivation.outcome": {
+      "id": "motivation.constraint.influence.motivation.outcome",
+      "source_spec_node_id": "motivation.constraint",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.constraint.influence.motivation.principle": {
+      "id": "motivation.constraint.influence.motivation.principle",
+      "source_spec_node_id": "motivation.constraint",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.constraint.influence.motivation.requirement": {
+      "id": "motivation.constraint.influence.motivation.requirement",
+      "source_spec_node_id": "motivation.constraint",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.driver.influence.motivation.assessment": {
+      "id": "motivation.driver.influence.motivation.assessment",
+      "source_spec_node_id": "motivation.driver",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.assessment",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.driver.influence.motivation.driver": {
+      "id": "motivation.driver.influence.motivation.driver",
+      "source_spec_node_id": "motivation.driver",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.driver.influence.motivation.goal": {
+      "id": "motivation.driver.influence.motivation.goal",
+      "source_spec_node_id": "motivation.driver",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.driver.influence.motivation.outcome": {
+      "id": "motivation.driver.influence.motivation.outcome",
+      "source_spec_node_id": "motivation.driver",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.driver.influence.motivation.principle": {
+      "id": "motivation.driver.influence.motivation.principle",
+      "source_spec_node_id": "motivation.driver",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.driver.influence.motivation.requirement": {
+      "id": "motivation.driver.influence.motivation.requirement",
+      "source_spec_node_id": "motivation.driver",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.aggregates.motivation.goal": {
+      "id": "motivation.goal.aggregates.motivation.goal",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.aggregates.motivation.requirement": {
+      "id": "motivation.goal.aggregates.motivation.requirement",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.influence.motivation.assessment": {
+      "id": "motivation.goal.influence.motivation.assessment",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.assessment",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.influence.motivation.goal": {
+      "id": "motivation.goal.influence.motivation.goal",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.influence.motivation.outcome": {
+      "id": "motivation.goal.influence.motivation.outcome",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.influence.motivation.principle": {
+      "id": "motivation.goal.influence.motivation.principle",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.influence.motivation.requirement": {
+      "id": "motivation.goal.influence.motivation.requirement",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.realizes.motivation.goal": {
+      "id": "motivation.goal.realizes.motivation.goal",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.realizes.motivation.value": {
+      "id": "motivation.goal.realizes.motivation.value",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.specializes.motivation.goal": {
+      "id": "motivation.goal.specializes.motivation.goal",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.supports.motivation.principle": {
+      "id": "motivation.goal.supports.motivation.principle",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "supports",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.meaning.associated-with.motivation.constraint": {
+      "id": "motivation.meaning.associated-with.motivation.constraint",
+      "source_spec_node_id": "motivation.meaning",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.meaning.associated-with.motivation.driver": {
+      "id": "motivation.meaning.associated-with.motivation.driver",
+      "source_spec_node_id": "motivation.meaning",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.meaning.associated-with.motivation.goal": {
+      "id": "motivation.meaning.associated-with.motivation.goal",
+      "source_spec_node_id": "motivation.meaning",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.meaning.associated-with.motivation.outcome": {
+      "id": "motivation.meaning.associated-with.motivation.outcome",
+      "source_spec_node_id": "motivation.meaning",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.meaning.associated-with.motivation.stakeholder": {
+      "id": "motivation.meaning.associated-with.motivation.stakeholder",
+      "source_spec_node_id": "motivation.meaning",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.meaning.associated-with.motivation.value": {
+      "id": "motivation.meaning.associated-with.motivation.value",
+      "source_spec_node_id": "motivation.meaning",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.outcome.associated-with.motivation.constraint": {
+      "id": "motivation.outcome.associated-with.motivation.constraint",
+      "source_spec_node_id": "motivation.outcome",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.outcome.associated-with.motivation.driver": {
+      "id": "motivation.outcome.associated-with.motivation.driver",
+      "source_spec_node_id": "motivation.outcome",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.outcome.associated-with.motivation.outcome": {
+      "id": "motivation.outcome.associated-with.motivation.outcome",
+      "source_spec_node_id": "motivation.outcome",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.outcome.associated-with.motivation.stakeholder": {
+      "id": "motivation.outcome.associated-with.motivation.stakeholder",
+      "source_spec_node_id": "motivation.outcome",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.outcome.influence.motivation.goal": {
+      "id": "motivation.outcome.influence.motivation.goal",
+      "source_spec_node_id": "motivation.outcome",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.outcome.realizes.motivation.goal": {
+      "id": "motivation.outcome.realizes.motivation.goal",
+      "source_spec_node_id": "motivation.outcome",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.outcome.realizes.motivation.value": {
+      "id": "motivation.outcome.realizes.motivation.value",
+      "source_spec_node_id": "motivation.outcome",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.principle.influence.motivation.assessment": {
+      "id": "motivation.principle.influence.motivation.assessment",
+      "source_spec_node_id": "motivation.principle",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.assessment",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.principle.influence.motivation.goal": {
+      "id": "motivation.principle.influence.motivation.goal",
+      "source_spec_node_id": "motivation.principle",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.principle.influence.motivation.principle": {
+      "id": "motivation.principle.influence.motivation.principle",
+      "source_spec_node_id": "motivation.principle",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.principle.influence.motivation.requirement": {
+      "id": "motivation.principle.influence.motivation.requirement",
+      "source_spec_node_id": "motivation.principle",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.principle.realizes.motivation.goal": {
+      "id": "motivation.principle.realizes.motivation.goal",
+      "source_spec_node_id": "motivation.principle",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.aggregates.motivation.goal": {
+      "id": "motivation.requirement.aggregates.motivation.goal",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.aggregates.motivation.requirement": {
+      "id": "motivation.requirement.aggregates.motivation.requirement",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.associated-with.motivation.constraint": {
+      "id": "motivation.requirement.associated-with.motivation.constraint",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.associated-with.motivation.driver": {
+      "id": "motivation.requirement.associated-with.motivation.driver",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.associated-with.motivation.goal": {
+      "id": "motivation.requirement.associated-with.motivation.goal",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.associated-with.motivation.outcome": {
+      "id": "motivation.requirement.associated-with.motivation.outcome",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.associated-with.motivation.stakeholder": {
+      "id": "motivation.requirement.associated-with.motivation.stakeholder",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.associated-with.motivation.value": {
+      "id": "motivation.requirement.associated-with.motivation.value",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.realizes.motivation.goal": {
+      "id": "motivation.requirement.realizes.motivation.goal",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.requirement.specializes.motivation.requirement": {
+      "id": "motivation.requirement.specializes.motivation.requirement",
+      "source_spec_node_id": "motivation.requirement",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.associated-with.motivation.constraint": {
+      "id": "motivation.stakeholder.associated-with.motivation.constraint",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.associated-with.motivation.driver": {
+      "id": "motivation.stakeholder.associated-with.motivation.driver",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.associated-with.motivation.goal": {
+      "id": "motivation.stakeholder.associated-with.motivation.goal",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.associated-with.motivation.outcome": {
+      "id": "motivation.stakeholder.associated-with.motivation.outcome",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.associated-with.motivation.stakeholder": {
+      "id": "motivation.stakeholder.associated-with.motivation.stakeholder",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.associated-with.motivation.value": {
+      "id": "motivation.stakeholder.associated-with.motivation.value",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.influence.motivation.driver": {
+      "id": "motivation.stakeholder.influence.motivation.driver",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.influence.motivation.goal": {
+      "id": "motivation.stakeholder.influence.motivation.goal",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.value.associated-with.motivation.constraint": {
+      "id": "motivation.value.associated-with.motivation.constraint",
+      "source_spec_node_id": "motivation.value",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.value.associated-with.motivation.driver": {
+      "id": "motivation.value.associated-with.motivation.driver",
+      "source_spec_node_id": "motivation.value",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.value.associated-with.motivation.goal": {
+      "id": "motivation.value.associated-with.motivation.goal",
+      "source_spec_node_id": "motivation.value",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.value.associated-with.motivation.outcome": {
+      "id": "motivation.value.associated-with.motivation.outcome",
+      "source_spec_node_id": "motivation.value",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.value.associated-with.motivation.stakeholder": {
+      "id": "motivation.value.associated-with.motivation.stakeholder",
+      "source_spec_node_id": "motivation.value",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.value.associated-with.motivation.value": {
+      "id": "motivation.value.associated-with.motivation.value",
+      "source_spec_node_id": "motivation.value",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

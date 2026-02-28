@@ -1,0 +1,1646 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "technology",
+    "number": 5,
+    "name": "Technology Layer",
+    "description": "Layer 5: Technology Layer",
+    "inspired_by": {
+      "standard": "ArchiMate 3.2",
+      "version": "3.2",
+      "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
+    },
+    "node_types": [
+      "technology.artifact",
+      "technology.communicationnetwork",
+      "technology.device",
+      "technology.node",
+      "technology.path",
+      "technology.systemsoftware",
+      "technology.technologycollaboration",
+      "technology.technologyevent",
+      "technology.technologyfunction",
+      "technology.technologyinteraction",
+      "technology.technologyinterface",
+      "technology.technologyprocess",
+      "technology.technologyservice"
+    ]
+  },
+  "nodeSchemas": {
+    "artifact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Artifact",
+      "description": "A piece of data that is used or produced in a software development process, or by the deployment and operation of an IT system, such as a source file, executable, script, or configuration file.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.artifact"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "artifact"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "artifactType": {
+              "type": "string",
+              "enum": ["file", "container-image", "archive", "library", "script", "configuration"],
+              "description": "Data artifact category, per ArchiMate 3.2 Artifact element."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["artifactType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.artifact"
+    },
+    "communicationnetwork": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CommunicationNetwork",
+      "description": "A set of structures that connects nodes for the purpose of transmission, routing, and reception of data, such as a LAN, WAN, or VPN.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.communicationnetwork"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "communicationnetwork"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "networkType": {
+              "type": "string",
+              "enum": ["lan", "wan", "vpn", "wireless", "internet", "intranet"],
+              "description": "Topology and scope classification of the network, per ArchiMate 3.2 CommunicationNetwork element."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["networkType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.communicationnetwork"
+    },
+    "device": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Device",
+      "description": "A physical IT resource upon which system software and artifacts may be stored or deployed for execution, such as a server, workstation, mobile device, or IoT sensor.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.device"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "device"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "deviceType": {
+              "type": "string",
+              "enum": ["server", "workstation", "network-device", "storage", "mobile", "embedded"],
+              "description": "Physical hardware category of the device, per ArchiMate 3.2 Technology Layer device classification."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["deviceType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.device"
+    },
+    "node": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Node",
+      "description": "A computational or physical resource that hosts, manipulates, or interacts with other computational or physical resources, such as a server cluster, virtual machine host, or container runtime.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.node"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "node"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "nodeType": {
+              "type": "string",
+              "enum": [
+                "physical-server",
+                "virtual-machine",
+                "container",
+                "kubernetes-cluster",
+                "bare-metal"
+              ],
+              "description": "Computational resource category of the node, per ArchiMate 3.2 Node element."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["nodeType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.node"
+    },
+    "path": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Path",
+      "description": "A link between two or more nodes through which those nodes can exchange data, representing a logical communication channel such as a network route, API connection, or message channel.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.path"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "path"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "pathType": {
+              "type": "string",
+              "enum": ["point-to-point", "multicast", "broadcast", "bidirectional"],
+              "description": "Transmission topology of the path, per ArchiMate 3.2 Path element."
+            },
+            "protocol": {
+              "type": "string",
+              "enum": ["http", "https", "grpc", "amqp", "mqtt", "tcp", "udp", "websocket"],
+              "description": "Communication protocol carried by this path."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["pathType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.path"
+    },
+    "systemsoftware": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SystemSoftware",
+      "description": "Software that provides or contributes to an environment for storing, executing, and using other software or data deployed within it, such as an operating system, container runtime, database engine, or middleware platform.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.systemsoftware"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "systemsoftware"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "softwareType": {
+              "type": "string",
+              "enum": [
+                "operating-system",
+                "container-runtime",
+                "middleware",
+                "dbms",
+                "message-broker",
+                "cache"
+              ],
+              "description": "Platform software category, per ArchiMate 3.2 SystemSoftware element."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["softwareType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.systemsoftware"
+    },
+    "technologycollaboration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TechnologyCollaboration",
+      "description": "An aggregate of two or more technology active structure elements that work together to perform collective technology behavior, such as a cluster of servers, a distributed cache, or a microservice mesh.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.technologycollaboration"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "technologycollaboration"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "nodes": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.technologycollaboration"
+    },
+    "technologyevent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TechnologyEvent",
+      "description": "A technology behavior element that denotes a state change in the technology layer that triggers or results from technology behavior, such as a system alert, infrastructure notification, scheduled job trigger, or deployment completion signal.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.technologyevent"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "technologyevent"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "eventType": {
+              "type": "string",
+              "enum": ["failure", "alert", "scheduled", "threshold-breach", "deployment"],
+              "description": "Technology state change category, per ArchiMate 3.2 Technology Event element; aligned with OpenTelemetry event semantics."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["eventType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.technologyevent"
+    },
+    "technologyfunction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TechnologyFunction",
+      "description": "A collection of technology behavior that can be performed by a node, representing an internal automated capability such as data replication, load balancing, or log rotation.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.technologyfunction"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "technologyfunction"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.technologyfunction"
+    },
+    "technologyinteraction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TechnologyInteraction",
+      "description": "A unit of collective technology behavior performed by two or more collaborating nodes, such as a distributed transaction, inter-service handshake, or cluster failover protocol.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.technologyinteraction"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "technologyinteraction"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.technologyinteraction"
+    },
+    "technologyinterface": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TechnologyInterface",
+      "description": "Point of access where technology services are available",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.technologyinterface"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "technologyinterface"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "protocol": {
+              "type": "string",
+              "enum": ["http", "https", "grpc", "amqp", "mqtt", "tcp", "udp", "websocket"],
+              "description": "Communication protocol exposed at this interface, per ArchiMate 3.2 TechnologyInterface element."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["protocol"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.technologyinterface"
+    },
+    "technologyprocess": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TechnologyProcess",
+      "description": "A sequence of technology behaviors that achieves a specific technology result, such as a deployment pipeline, backup job, certificate renewal workflow, or container orchestration sequence.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.technologyprocess"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "technologyprocess"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.technologyprocess"
+    },
+    "technologyservice": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TechnologyService",
+      "description": "Externally visible unit of technology functionality",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "technology.technologyservice"
+        },
+        "layer_id": {
+          "const": "technology"
+        },
+        "type": {
+          "const": "technologyservice"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "serviceType": {
+              "type": "string",
+              "enum": [
+                "compute",
+                "storage",
+                "messaging",
+                "database",
+                "cache",
+                "identity",
+                "monitoring"
+              ],
+              "description": "Infrastructure service category, aligned with cloud provider service classifications (IaaS/PaaS/SaaS) per ArchiMate 3.2 TechnologyService."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["serviceType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:technology.technologyservice"
+    }
+  },
+  "relationshipSchemas": {
+    "technology.communicationnetwork.aggregates.technology.communicationnetwork": {
+      "id": "technology.communicationnetwork.aggregates.technology.communicationnetwork",
+      "source_spec_node_id": "technology.communicationnetwork",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.communicationnetwork",
+      "destination_layer": "technology",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.communicationnetwork.aggregates.technology.path": {
+      "id": "technology.communicationnetwork.aggregates.technology.path",
+      "source_spec_node_id": "technology.communicationnetwork",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.path",
+      "destination_layer": "technology",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.communicationnetwork.assigned-to.technology.technologycollaboration": {
+      "id": "technology.communicationnetwork.assigned-to.technology.technologycollaboration",
+      "source_spec_node_id": "technology.communicationnetwork",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologycollaboration",
+      "destination_layer": "technology",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.communicationnetwork.associated-with.technology.systemsoftware": {
+      "id": "technology.communicationnetwork.associated-with.technology.systemsoftware",
+      "source_spec_node_id": "technology.communicationnetwork",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.communicationnetwork.provides.technology.technologyinterface": {
+      "id": "technology.communicationnetwork.provides.technology.technologyinterface",
+      "source_spec_node_id": "technology.communicationnetwork",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.communicationnetwork.serves.technology.device": {
+      "id": "technology.communicationnetwork.serves.technology.device",
+      "source_spec_node_id": "technology.communicationnetwork",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.device",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.communicationnetwork.serves.technology.node": {
+      "id": "technology.communicationnetwork.serves.technology.node",
+      "source_spec_node_id": "technology.communicationnetwork",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.communicationnetwork.supports.technology.technologyservice": {
+      "id": "technology.communicationnetwork.supports.technology.technologyservice",
+      "source_spec_node_id": "technology.communicationnetwork",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "supports",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.device.composes.technology.node": {
+      "id": "technology.device.composes.technology.node",
+      "source_spec_node_id": "technology.device",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.assigned-to.technology.technologyfunction": {
+      "id": "technology.node.assigned-to.technology.technologyfunction",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.composes.technology.artifact": {
+      "id": "technology.node.composes.technology.artifact",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.composes.technology.device": {
+      "id": "technology.node.composes.technology.device",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.device",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.composes.technology.systemsoftware": {
+      "id": "technology.node.composes.technology.systemsoftware",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.composes.technology.technologyinterface": {
+      "id": "technology.node.composes.technology.technologyinterface",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.path.assigned-to.technology.technologyinterface": {
+      "id": "technology.path.assigned-to.technology.technologyinterface",
+      "source_spec_node_id": "technology.path",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.path.composes.technology.path": {
+      "id": "technology.path.composes.technology.path",
+      "source_spec_node_id": "technology.path",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.path",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.path.flows-to.technology.technologyservice": {
+      "id": "technology.path.flows-to.technology.technologyservice",
+      "source_spec_node_id": "technology.path",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.path.realizes.technology.technologyservice": {
+      "id": "technology.path.realizes.technology.technologyservice",
+      "source_spec_node_id": "technology.path",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.path.serves.technology.device": {
+      "id": "technology.path.serves.technology.device",
+      "source_spec_node_id": "technology.path",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.device",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.path.serves.technology.node": {
+      "id": "technology.path.serves.technology.node",
+      "source_spec_node_id": "technology.path",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.path.triggers.technology.technologyevent": {
+      "id": "technology.path.triggers.technology.technologyevent",
+      "source_spec_node_id": "technology.path",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyevent",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.accesses.technology.artifact": {
+      "id": "technology.systemsoftware.accesses.technology.artifact",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.assigned-to.technology.technologyfunction": {
+      "id": "technology.systemsoftware.assigned-to.technology.technologyfunction",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.composes.technology.artifact": {
+      "id": "technology.systemsoftware.composes.technology.artifact",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.depends-on.technology.device": {
+      "id": "technology.systemsoftware.depends-on.technology.device",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.device",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.depends-on.technology.systemsoftware": {
+      "id": "technology.systemsoftware.depends-on.technology.systemsoftware",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.provides.technology.technologyinterface": {
+      "id": "technology.systemsoftware.provides.technology.technologyinterface",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.realizes.technology.technologyservice": {
+      "id": "technology.systemsoftware.realizes.technology.technologyservice",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.serves.technology.technologyfunction": {
+      "id": "technology.systemsoftware.serves.technology.technologyfunction",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.triggers.technology.technologyevent": {
+      "id": "technology.systemsoftware.triggers.technology.technologyevent",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyevent",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.uses.technology.communicationnetwork": {
+      "id": "technology.systemsoftware.uses.technology.communicationnetwork",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.communicationnetwork",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.uses.technology.path": {
+      "id": "technology.systemsoftware.uses.technology.path",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.path",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologycollaboration.accesses.technology.artifact": {
+      "id": "technology.technologycollaboration.accesses.technology.artifact",
+      "source_spec_node_id": "technology.technologycollaboration",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologycollaboration.aggregates.technology.node": {
+      "id": "technology.technologycollaboration.aggregates.technology.node",
+      "source_spec_node_id": "technology.technologycollaboration",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologycollaboration.aggregates.technology.technologyinterface": {
+      "id": "technology.technologycollaboration.aggregates.technology.technologyinterface",
+      "source_spec_node_id": "technology.technologycollaboration",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologycollaboration.associated-with.technology.technologycollaboration": {
+      "id": "technology.technologycollaboration.associated-with.technology.technologycollaboration",
+      "source_spec_node_id": "technology.technologycollaboration",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologycollaboration",
+      "destination_layer": "technology",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologycollaboration.performs.technology.technologyinteraction": {
+      "id": "technology.technologycollaboration.performs.technology.technologyinteraction",
+      "source_spec_node_id": "technology.technologycollaboration",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinteraction",
+      "destination_layer": "technology",
+      "predicate": "performs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologycollaboration.realizes.technology.technologyservice": {
+      "id": "technology.technologycollaboration.realizes.technology.technologyservice",
+      "source_spec_node_id": "technology.technologycollaboration",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologycollaboration.triggers.technology.technologyevent": {
+      "id": "technology.technologycollaboration.triggers.technology.technologyevent",
+      "source_spec_node_id": "technology.technologycollaboration",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyevent",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologycollaboration.uses.technology.communicationnetwork": {
+      "id": "technology.technologycollaboration.uses.technology.communicationnetwork",
+      "source_spec_node_id": "technology.technologycollaboration",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.communicationnetwork",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologycollaboration.uses.technology.path": {
+      "id": "technology.technologycollaboration.uses.technology.path",
+      "source_spec_node_id": "technology.technologycollaboration",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.path",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyevent.associated-with.technology.technologyservice": {
+      "id": "technology.technologyevent.associated-with.technology.technologyservice",
+      "source_spec_node_id": "technology.technologyevent",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyevent.flows-to.technology.artifact": {
+      "id": "technology.technologyevent.flows-to.technology.artifact",
+      "source_spec_node_id": "technology.technologyevent",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyevent.flows-to.technology.technologyprocess": {
+      "id": "technology.technologyevent.flows-to.technology.technologyprocess",
+      "source_spec_node_id": "technology.technologyevent",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
+      "destination_layer": "technology",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyevent.triggers.technology.technologyfunction": {
+      "id": "technology.technologyevent.triggers.technology.technologyfunction",
+      "source_spec_node_id": "technology.technologyevent",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyevent.triggers.technology.technologyinteraction": {
+      "id": "technology.technologyevent.triggers.technology.technologyinteraction",
+      "source_spec_node_id": "technology.technologyevent",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinteraction",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyevent.triggers.technology.technologyprocess": {
+      "id": "technology.technologyevent.triggers.technology.technologyprocess",
+      "source_spec_node_id": "technology.technologyevent",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.accesses.technology.artifact": {
+      "id": "technology.technologyfunction.accesses.technology.artifact",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.composes.technology.technologyfunction": {
+      "id": "technology.technologyfunction.composes.technology.technologyfunction",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.flows-to.technology.technologyprocess": {
+      "id": "technology.technologyfunction.flows-to.technology.technologyprocess",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
+      "destination_layer": "technology",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.realizes.technology.technologyservice": {
+      "id": "technology.technologyfunction.realizes.technology.technologyservice",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.serves.technology.technologyinteraction": {
+      "id": "technology.technologyfunction.serves.technology.technologyinteraction",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinteraction",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.triggers.technology.technologyevent": {
+      "id": "technology.technologyfunction.triggers.technology.technologyevent",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyevent",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.triggers.technology.technologyprocess": {
+      "id": "technology.technologyfunction.triggers.technology.technologyprocess",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.uses.technology.technologyinterface": {
+      "id": "technology.technologyfunction.uses.technology.technologyinterface",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinteraction.accesses.technology.artifact": {
+      "id": "technology.technologyinteraction.accesses.technology.artifact",
+      "source_spec_node_id": "technology.technologyinteraction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinteraction.composes.technology.technologyfunction": {
+      "id": "technology.technologyinteraction.composes.technology.technologyfunction",
+      "source_spec_node_id": "technology.technologyinteraction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinteraction.flows-to.technology.technologyinteraction": {
+      "id": "technology.technologyinteraction.flows-to.technology.technologyinteraction",
+      "source_spec_node_id": "technology.technologyinteraction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinteraction",
+      "destination_layer": "technology",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinteraction.realizes.technology.technologycollaboration": {
+      "id": "technology.technologyinteraction.realizes.technology.technologycollaboration",
+      "source_spec_node_id": "technology.technologyinteraction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologycollaboration",
+      "destination_layer": "technology",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinteraction.realizes.technology.technologyservice": {
+      "id": "technology.technologyinteraction.realizes.technology.technologyservice",
+      "source_spec_node_id": "technology.technologyinteraction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinteraction.triggers.technology.technologyevent": {
+      "id": "technology.technologyinteraction.triggers.technology.technologyevent",
+      "source_spec_node_id": "technology.technologyinteraction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyevent",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinteraction.triggers.technology.technologyprocess": {
+      "id": "technology.technologyinteraction.triggers.technology.technologyprocess",
+      "source_spec_node_id": "technology.technologyinteraction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinteraction.uses.technology.technologyinterface": {
+      "id": "technology.technologyinteraction.uses.technology.technologyinterface",
+      "source_spec_node_id": "technology.technologyinteraction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinterface.assigned-to.technology.node": {
+      "id": "technology.technologyinterface.assigned-to.technology.node",
+      "source_spec_node_id": "technology.technologyinterface",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinterface.assigned-to.technology.systemsoftware": {
+      "id": "technology.technologyinterface.assigned-to.technology.systemsoftware",
+      "source_spec_node_id": "technology.technologyinterface",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinterface.assigned-to.technology.technologyservice": {
+      "id": "technology.technologyinterface.assigned-to.technology.technologyservice",
+      "source_spec_node_id": "technology.technologyinterface",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinterface.serves.technology.technologycollaboration": {
+      "id": "technology.technologyinterface.serves.technology.technologycollaboration",
+      "source_spec_node_id": "technology.technologyinterface",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologycollaboration",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinterface.serves.technology.technologyfunction": {
+      "id": "technology.technologyinterface.serves.technology.technologyfunction",
+      "source_spec_node_id": "technology.technologyinterface",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinterface.serves.technology.technologyprocess": {
+      "id": "technology.technologyinterface.serves.technology.technologyprocess",
+      "source_spec_node_id": "technology.technologyinterface",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinterface.uses.technology.communicationnetwork": {
+      "id": "technology.technologyinterface.uses.technology.communicationnetwork",
+      "source_spec_node_id": "technology.technologyinterface",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.communicationnetwork",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyinterface.uses.technology.path": {
+      "id": "technology.technologyinterface.uses.technology.path",
+      "source_spec_node_id": "technology.technologyinterface",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.path",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyprocess.realizes.technology.technologyservice": {
+      "id": "technology.technologyprocess.realizes.technology.technologyservice",
+      "source_spec_node_id": "technology.technologyprocess",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyprocess.triggers.technology.technologyevent": {
+      "id": "technology.technologyprocess.triggers.technology.technologyevent",
+      "source_spec_node_id": "technology.technologyprocess",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyevent",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyprocess.uses.technology.path": {
+      "id": "technology.technologyprocess.uses.technology.path",
+      "source_spec_node_id": "technology.technologyprocess",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.path",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.aggregates.technology.technologyfunction": {
+      "id": "technology.technologyservice.aggregates.technology.technologyfunction",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.associated-with.technology.technologycollaboration": {
+      "id": "technology.technologyservice.associated-with.technology.technologycollaboration",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologycollaboration",
+      "destination_layer": "technology",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.consumes.technology.artifact": {
+      "id": "technology.technologyservice.consumes.technology.artifact",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "consumes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.depends-on.technology.communicationnetwork": {
+      "id": "technology.technologyservice.depends-on.technology.communicationnetwork",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.communicationnetwork",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.depends-on.technology.node": {
+      "id": "technology.technologyservice.depends-on.technology.node",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.flows-to.technology.technologyservice": {
+      "id": "technology.technologyservice.flows-to.technology.technologyservice",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.provides.technology.technologyinterface": {
+      "id": "technology.technologyservice.provides.technology.technologyinterface",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.serves.technology.technologyinterface": {
+      "id": "technology.technologyservice.serves.technology.technologyinterface",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.serves.technology.technologyservice": {
+      "id": "technology.technologyservice.serves.technology.technologyservice",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.triggers.technology.technologyevent": {
+      "id": "technology.technologyservice.triggers.technology.technologyevent",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyevent",
+      "destination_layer": "technology",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.uses.technology.systemsoftware": {
+      "id": "technology.technologyservice.uses.technology.systemsoftware",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

@@ -1,0 +1,2154 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "testing",
+    "number": 12,
+    "name": "Testing Layer",
+    "description": "Layer 12: Testing Layer",
+    "inspired_by": {
+      "standard": "IEEE 829-2008",
+      "version": "2008",
+      "url": "https://en.wikipedia.org/wiki/IEEE_829"
+    },
+    "node_types": [
+      "testing.contextvariation",
+      "testing.coverageexclusion",
+      "testing.coveragegap",
+      "testing.coveragerequirement",
+      "testing.coveragesummary",
+      "testing.environmentfactor",
+      "testing.inputpartitionselection",
+      "testing.inputselection",
+      "testing.inputspacepartition",
+      "testing.outcomecategory",
+      "testing.partitiondependency",
+      "testing.partitionvalue",
+      "testing.targetcoveragesummary",
+      "testing.targetinputfield",
+      "testing.testcasesketch",
+      "testing.testcoveragemodel",
+      "testing.testcoveragetarget"
+    ]
+  },
+  "nodeSchemas": {
+    "contextvariation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContextVariation",
+      "description": "A distinct test type or environmental context under which a coverage target may be invoked, used to parameterize test design across different execution conditions (functional correctness, load behavior, security posture, regression state). Maps to environmental needs documented in IEEE 829-2008 test design specifications.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.contextvariation"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "contextvariation"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "contextType": {
+              "type": "string",
+              "enum": ["functional", "load", "security", "regression", "smoke", "exploratory"],
+              "description": "The category of test context this variation represents"
+            },
+            "environmentFactors": {
+              "type": "array",
+              "description": "References EnvironmentFactor nodes specifying the concrete environmental constraints (OS, locale, network, hardware, dependency versions) that define this context variation."
+            }
+          },
+          "required": ["contextType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.contextvariation"
+    },
+    "coverageexclusion": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CoverageExclusion",
+      "description": "A formally approved exclusion of a coverage target or requirement from the test coverage model, documenting the rationale, accepted risk, and accountable approver per test plan scope documentation in IEEE 829-2008.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.coverageexclusion"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "coverageexclusion"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "riskAccepted": {
+              "type": "boolean"
+            },
+            "approvedBy": {
+              "type": "string"
+            },
+            "affectedTargetRef": {
+              "type": "string",
+              "description": "ID of the testing.testcoveragetarget or testing.coveragerequirement being excluded from coverage"
+            },
+            "dateApproved": {
+              "type": "string",
+              "format": "date",
+              "description": "ISO date when the exclusion was formally approved, supporting audit trail requirements"
+            }
+          },
+          "required": ["reason", "riskAccepted", "approvedBy"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.coverageexclusion"
+    },
+    "coveragegap": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CoverageGap",
+      "description": "An identified deficit between required and achieved test coverage for a target or requirement, typically surfaced during test summary reporting per IEEE 829-2008. Gaps require remediation, risk acceptance (CoverageExclusion), or deferral.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.coveragegap"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "coveragegap"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "severity": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low"],
+              "description": "Risk level of leaving this gap unaddressed"
+            },
+            "affectedRequirements": {
+              "type": "string",
+              "description": "Identifier or reference to the requirement(s) that remain uncovered due to this gap."
+            },
+            "remediationStatus": {
+              "type": "string",
+              "enum": ["open", "deferred", "resolved", "accepted-risk"],
+              "description": "Lifecycle state of this coverage gap."
+            },
+            "targetRef": {
+              "type": "string",
+              "description": "ID of the testing.testcoveragetarget where this gap was identified"
+            }
+          },
+          "required": ["severity", "affectedRequirements"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.coveragegap"
+    },
+    "coveragerequirement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CoverageRequirement",
+      "description": "A specification of coverage criteria that must be satisfied for a TestCoverageTarget, defining which input partitions, context variations, and outcome categories must be exercised, per test design specification requirements in IEEE 829-2008.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.coveragerequirement"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "coveragerequirement"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "coverageCriteria": {
+              "type": "string",
+              "enum": [
+                "all-partitions",
+                "boundary-values",
+                "pairwise",
+                "each-choice",
+                "MC/DC",
+                "path-coverage"
+              ],
+              "description": "The coverage strategy defining which combinations of partition values must be exercised"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low"],
+              "description": "Relative importance of fulfilling this coverage requirement"
+            },
+            "inputPartitionSelections": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "contextSelections": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "outcomeSelections": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "exclusions": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["coverageCriteria"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.coveragerequirement"
+    },
+    "coveragesummary": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CoverageSummary",
+      "description": "Aggregated coverage status across all targets and requirements within a test coverage model, suitable for test summary reporting.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.coveragesummary"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "coveragesummary"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "modelRef": {
+              "type": "string",
+              "description": "ID of the testing.testcoveragemodel this summary aggregates"
+            },
+            "generatedAt": {
+              "type": "string"
+            },
+            "totalTargets": {
+              "type": "integer"
+            },
+            "totalRequirements": {
+              "type": "integer"
+            },
+            "totalSketches": {
+              "type": "integer"
+            },
+            "targetSummaries": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "gaps": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["totalTargets", "totalRequirements", "totalSketches"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.coveragesummary"
+    },
+    "environmentfactor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EnvironmentFactor",
+      "description": "A specific environmental variable (OS version, network latency, locale setting, hardware configuration, dependency version) documented as affecting test behavior. Used to parameterize ContextVariation instances with concrete environmental constraints per IEEE 829-2008 environmental needs specification.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.environmentfactor"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "environmentfactor"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "factorType": {
+              "type": "string",
+              "enum": ["os", "network", "locale", "hardware", "dependency-version"],
+              "description": "Category of environmental variable being documented."
+            },
+            "value": {
+              "type": "string",
+              "description": "The specific value or constraint for this factor (e.g., 'Ubuntu 22.04', 'latency < 100ms', 'en-US', 'Node.js 20.x')."
+            },
+            "expectedRange": {
+              "type": "string",
+              "description": "Acceptable range or set of values for this factor in the test environment (e.g., 'latency 50-200ms', 'Ubuntu 20.04 or 22.04')."
+            },
+            "testImpact": {
+              "type": "string",
+              "description": "Description of how variations in this factor are expected to affect test behavior or outcomes."
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": ["factorType", "value"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.environmentfactor"
+    },
+    "inputpartitionselection": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InputPartitionSelection",
+      "description": "A specification of which values from an InputSpacePartition must be exercised within a CoverageRequirement, supporting selective coverage of equivalence classes per IEEE 829-2008 test design specification. When coverAllCategories is true, all partition values are included except those in excludeValues; otherwise, only the values listed in coverValues are included.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.inputpartitionselection"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "inputpartitionselection"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "partitionRef": {
+              "type": "string",
+              "description": "ID of the testing.inputspacepartition from which values are being selected for coverage."
+            },
+            "coverValues": {
+              "type": "string",
+              "description": "Comma-separated labels or IDs of specific partition values to include in coverage. Ignored when coverAllCategories is true."
+            },
+            "coverAllCategories": {
+              "type": "boolean",
+              "description": "When true, all partition values are included in coverage except those listed in excludeValues. Overrides coverValues."
+            },
+            "excludeValues": {
+              "type": "string",
+              "description": "Comma-separated labels or IDs of partition values to exclude from coverage. Applied when coverAllCategories is true to carve out specific values."
+            }
+          },
+          "required": ["partitionRef", "coverValues", "coverAllCategories", "excludeValues"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.inputpartitionselection"
+    },
+    "inputselection": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InputSelection",
+      "description": "A concrete input value assignment for a TestCaseSketch, binding an abstract partition representative value (selectedValue) to a specific concrete test datum (concreteValue), per test case input specification in IEEE 829-2008.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.inputselection"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "inputselection"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "partitionRef": {
+              "type": "string"
+            },
+            "selectedValue": {
+              "type": "string"
+            },
+            "concreteValue": {
+              "type": "string"
+            },
+            "valueSource": {
+              "type": "string",
+              "enum": ["manual", "generated", "data-driven", "fixture"],
+              "description": "How the concrete value was obtained: manually authored, algorithmically generated, drawn from a data set, or loaded from a test fixture"
+            }
+          },
+          "required": ["partitionRef", "selectedValue", "concreteValue", "valueSource"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.inputselection"
+    },
+    "inputspacepartition": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InputSpacePartition",
+      "description": "Partitioning of an input dimension into testable equivalence classes, where each entry in the partitions array represents a PartitionValue (an equivalence class with a label, category, and representative value), enabling structured coverage analysis per IEEE 829-2008 equivalence partitioning guidance.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.inputspacepartition"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "inputspacepartition"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "fieldRef": {
+              "type": "string"
+            },
+            "presenceRule": {
+              "type": "string",
+              "enum": ["required", "optional", "conditional", "forbidden", "mutually-exclusive"],
+              "description": "Whether this input field must be present in test inputs for this partition"
+            },
+            "partitions": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "dependencies": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["fieldRef", "presenceRule"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.inputspacepartition"
+    },
+    "outcomecategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OutcomeCategory",
+      "description": "An abstract category of observable outcomes (e.g., success, validation error, authorization error, timeout) associated with a TestCoverageTarget, used during test design to organize expected results before test case specification per IEEE 829-2008. Distinguished from specific assertions — OutcomeCategory defines the class of outcome, not the exact expected value.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.outcomecategory"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "outcomecategory"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "outcomeType": {
+              "type": "string",
+              "enum": [
+                "success",
+                "validation-error",
+                "authorization-error",
+                "not-found",
+                "server-error",
+                "exception",
+                "timeout"
+              ],
+              "description": "The class of observable outcome this category represents, used to group test cases by expected result type for coverage analysis and reporting."
+            }
+          },
+          "required": ["outcomeType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.outcomecategory"
+    },
+    "partitiondependency": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PartitionDependency",
+      "description": "A constraint specifying how selection of a partition value in one field affects valid or available partition values in another field, enabling combinatorial test design to avoid invalid input combinations per IEEE 829-2008 test design specification.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.partitiondependency"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "partitiondependency"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "dependsOnPartition": {
+              "type": "string",
+              "description": "ID of the testing.inputspacepartition that triggers this dependency"
+            },
+            "dependsOnValue": {
+              "type": "string",
+              "description": "Label or ID of the testing.partitionvalue that activates this dependency"
+            },
+            "effect": {
+              "type": "string",
+              "enum": ["excludes", "requires", "restricts-to", "modifies-range"],
+              "description": "How the dependency affects the related partition values"
+            },
+            "affectedValues": {
+              "type": "string",
+              "description": "Comma-separated labels or IDs of the partition values in the dependent field whose availability is modified by this dependency (e.g., values that are excluded, required, or restricted when the trigger value is selected)."
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": ["dependsOnPartition", "dependsOnValue", "effect", "affectedValues"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.partitiondependency"
+    },
+    "partitionvalue": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PartitionValue",
+      "description": "An individual equivalence class within an InputSpacePartition, characterized by a label, representative value, and optional constraint expression, used to enumerate the testable categories of an input dimension per IEEE 829-2008 test design specification.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.partitionvalue"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "partitionvalue"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "label": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "constraint": {
+              "type": "string"
+            },
+            "constraintExpression": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "valid",
+                "invalid",
+                "boundary-valid",
+                "boundary-invalid",
+                "null-empty",
+                "special-character"
+              ],
+              "description": "Equivalence partition category for this value"
+            },
+            "representativeValue": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "constraint",
+            "constraintExpression",
+            "category",
+            "representativeValue"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.partitionvalue"
+    },
+    "targetcoveragesummary": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TargetCoverageSummary",
+      "description": "Coverage metrics summary for a single test coverage target",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.targetcoveragesummary"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "targetcoveragesummary"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "targetRef": {
+              "type": "string",
+              "description": "ID of the testing.testcoveragetarget this summary covers"
+            },
+            "sketchCount": {
+              "type": "integer",
+              "description": "Total number of TestCaseSketch nodes for this target (design-time count; superset of implementedCount)"
+            },
+            "implementedCount": {
+              "type": "integer",
+              "description": "Number of sketches with a concrete test case implementation (must be ≤ sketchCount; superset of automatedCount)"
+            },
+            "automatedCount": {
+              "type": "integer",
+              "description": "Number of implemented test cases that are automated (must be ≤ implementedCount)"
+            },
+            "coveragePercentage": {
+              "type": "number",
+              "description": "Percentage of coverage requirements with at least one implemented test case sketch (0–100)"
+            }
+          },
+          "required": ["targetRef", "sketchCount", "implementedCount", "automatedCount"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.targetcoveragesummary"
+    },
+    "targetinputfield": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TargetInputField",
+      "description": "An association between a TestCoverageTarget and a specific input field of the target artifact, defining which InputSpacePartition applies to that field and documenting its coverage relevance per IEEE 829-2008 test case specification.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.targetinputfield"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "targetinputfield"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "fieldRef": {
+              "type": "string",
+              "description": "ID of the referenced field element in the API layer (e.g., an API parameter) or Data Model layer (e.g., a data-model property)"
+            },
+            "partitionRef": {
+              "type": "string",
+              "description": "ID of the testing.inputspacepartition that defines the equivalence classes or boundary values for this input field."
+            },
+            "description": {
+              "type": "string"
+            },
+            "relevance": {
+              "type": "string",
+              "enum": ["required", "optional", "conditional", "not-applicable"],
+              "description": "Whether this field must be included in test case input specifications"
+            }
+          },
+          "required": ["fieldRef", "partitionRef"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.targetinputfield"
+    },
+    "testcasesketch": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TestCaseSketch",
+      "description": "A design-time test case specification that selects concrete input partition values for a CoverageRequirement, serving as the bridge between test design (InputPartitionSelection) and executable test case specification per IEEE 829-2008. Exists in sketch (unimplemented) or implemented status — not yet tied to a specific test runner or execution framework.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.testcasesketch"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "testcasesketch"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "under-review",
+                "approved",
+                "implemented",
+                "automated",
+                "deprecated"
+              ],
+              "description": "Lifecycle status of the test case sketch"
+            },
+            "inputSelections": {
+              "type": "array",
+              "description": "References InputPartitionSelection nodes specifying which partition values this sketch exercises."
+            },
+            "implementationFormat": {
+              "type": "string",
+              "enum": ["manual", "automated", "semi-automated", "exploratory"],
+              "description": "How the test case will be executed"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference to the test case implementation"
+            }
+          },
+          "required": ["status"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.testcasesketch"
+    },
+    "testcoveragemodel": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TestCoverageModel",
+      "description": "The root artifact of a testing layer coverage specification, aggregating all TestCoverageTargets, InputSpacePartitions, ContextVariations, CoverageRequirements, and TestCaseSketches for an application. Corresponds to the test plan document structure in IEEE 829-2008, providing a single point of reference for coverage governance.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.testcoveragemodel"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "testcoveragemodel"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "application": {
+              "type": "string",
+              "description": "Cross-layer reference ID to the application or API element (application layer or api layer) being covered by this model"
+            },
+            "description": {
+              "type": "string"
+            },
+            "coverageTargets": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "inputSpacePartitions": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "contextVariations": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "coverageRequirements": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "testCaseSketches": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "source": {
+              "type": "object",
+              "description": "Provenance information indicating the origin of this model (e.g., manually authored, imported from OpenAPI, or generated from source artifacts)"
+            }
+          },
+          "required": ["version", "application"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.testcoveragemodel"
+    },
+    "testcoveragetarget": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TestCoverageTarget",
+      "description": "An artifact or functionality that requires test coverage",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "testing.testcoveragetarget"
+        },
+        "layer_id": {
+          "const": "testing"
+        },
+        "type": {
+          "const": "testcoveragetarget"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "targetType": {
+              "type": "string",
+              "enum": [
+                "api-endpoint",
+                "business-workflow",
+                "ui-component",
+                "data-migration",
+                "integration-flow",
+                "scheduled-job"
+              ],
+              "description": "The kind of artifact or functionality requiring test coverage"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low"],
+              "description": "Relative importance of achieving coverage for this target"
+            },
+            "applicableContexts": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "inputFields": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "outcomeCategories": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference for the artifact requiring test coverage"
+            }
+          },
+          "required": ["targetType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:testing.testcoveragetarget"
+    }
+  },
+  "relationshipSchemas": {
+    "testing.contextvariation.references.testing.environmentfactor": {
+      "id": "testing.contextvariation.references.testing.environmentfactor",
+      "source_spec_node_id": "testing.contextvariation",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.environmentfactor",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.contextvariation.serves.testing.testcoveragetarget": {
+      "id": "testing.contextvariation.serves.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.contextvariation",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coverageexclusion.references.testing.coveragerequirement": {
+      "id": "testing.coverageexclusion.references.testing.coveragerequirement",
+      "source_spec_node_id": "testing.coverageexclusion",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coverageexclusion.references.testing.testcoveragetarget": {
+      "id": "testing.coverageexclusion.references.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.coverageexclusion",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragegap.flows-to.testing.coverageexclusion": {
+      "id": "testing.coveragegap.flows-to.testing.coverageexclusion",
+      "source_spec_node_id": "testing.coveragegap",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coverageexclusion",
+      "destination_layer": "testing",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragegap.references.testing.testcoveragetarget": {
+      "id": "testing.coveragegap.references.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.coveragegap",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragegap.triggers.testing.coveragerequirement": {
+      "id": "testing.coveragegap.triggers.testing.coveragerequirement",
+      "source_spec_node_id": "testing.coveragegap",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "triggers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragegap.triggers.testing.partitionvalue": {
+      "id": "testing.coveragegap.triggers.testing.partitionvalue",
+      "source_spec_node_id": "testing.coveragegap",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "triggers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.accesses.testing.inputpartitionselection": {
+      "id": "testing.coveragerequirement.accesses.testing.inputpartitionselection",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputpartitionselection",
+      "destination_layer": "testing",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.accesses.testing.inputselection": {
+      "id": "testing.coveragerequirement.accesses.testing.inputselection",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputselection",
+      "destination_layer": "testing",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.aggregates.testing.contextvariation": {
+      "id": "testing.coveragerequirement.aggregates.testing.contextvariation",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.contextvariation",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.aggregates.testing.coverageexclusion": {
+      "id": "testing.coveragerequirement.aggregates.testing.coverageexclusion",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coverageexclusion",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.aggregates.testing.partitionvalue": {
+      "id": "testing.coveragerequirement.aggregates.testing.partitionvalue",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.composes.testing.inputpartitionselection": {
+      "id": "testing.coveragerequirement.composes.testing.inputpartitionselection",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputpartitionselection",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.composes.testing.outcomecategory": {
+      "id": "testing.coveragerequirement.composes.testing.outcomecategory",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.outcomecategory",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.composes.testing.testcoveragetarget": {
+      "id": "testing.coveragerequirement.composes.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.constrained-by.motivation.constraint": {
+      "id": "testing.coveragerequirement.constrained-by.motivation.constraint",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.depends-on.testing.contextvariation": {
+      "id": "testing.coveragerequirement.depends-on.testing.contextvariation",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.contextvariation",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.depends-on.testing.inputspacepartition": {
+      "id": "testing.coveragerequirement.depends-on.testing.inputspacepartition",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputspacepartition",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.depends-on.testing.outcomecategory": {
+      "id": "testing.coveragerequirement.depends-on.testing.outcomecategory",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.outcomecategory",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.flows-to.testing.coveragerequirement": {
+      "id": "testing.coveragerequirement.flows-to.testing.coveragerequirement",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.flows-to.testing.testcasesketch": {
+      "id": "testing.coveragerequirement.flows-to.testing.testcasesketch",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcasesketch",
+      "destination_layer": "testing",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.fulfills-requirements.motivation.requirement": {
+      "id": "testing.coveragerequirement.fulfills-requirements.motivation.requirement",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "fulfills-requirements",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false
+    },
+    "testing.coveragerequirement.references.testing.coveragerequirement": {
+      "id": "testing.coveragerequirement.references.testing.coveragerequirement",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.references.testing.partitionvalue": {
+      "id": "testing.coveragerequirement.references.testing.partitionvalue",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.references.testing.testcoveragetarget": {
+      "id": "testing.coveragerequirement.references.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.aggregates.testing.coveragerequirement": {
+      "id": "testing.coveragesummary.aggregates.testing.coveragerequirement",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.aggregates.testing.targetcoveragesummary": {
+      "id": "testing.coveragesummary.aggregates.testing.targetcoveragesummary",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.targetcoveragesummary",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.aggregates.testing.testcasesketch": {
+      "id": "testing.coveragesummary.aggregates.testing.testcasesketch",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcasesketch",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.aggregates.testing.testcoveragemodel": {
+      "id": "testing.coveragesummary.aggregates.testing.testcoveragemodel",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragemodel",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.depends-on.testing.testcoveragetarget": {
+      "id": "testing.coveragesummary.depends-on.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.references.testing.coverageexclusion": {
+      "id": "testing.coveragesummary.references.testing.coverageexclusion",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coverageexclusion",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.references.testing.coveragegap": {
+      "id": "testing.coveragesummary.references.testing.coveragegap",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragegap",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.references.testing.testcoveragemodel": {
+      "id": "testing.coveragesummary.references.testing.testcoveragemodel",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragemodel",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.serves.testing.testcoveragemodel": {
+      "id": "testing.coveragesummary.serves.testing.testcoveragemodel",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragemodel",
+      "destination_layer": "testing",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.validates.testing.coveragerequirement": {
+      "id": "testing.coveragesummary.validates.testing.coveragerequirement",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "validates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.composes.testing.contextvariation": {
+      "id": "testing.environmentfactor.composes.testing.contextvariation",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.contextvariation",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.composes.testing.inputspacepartition": {
+      "id": "testing.environmentfactor.composes.testing.inputspacepartition",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputspacepartition",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.flows-to.testing.coveragesummary": {
+      "id": "testing.environmentfactor.flows-to.testing.coveragesummary",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragesummary",
+      "destination_layer": "testing",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.references.testing.partitionvalue": {
+      "id": "testing.environmentfactor.references.testing.partitionvalue",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.serves.testing.coveragerequirement": {
+      "id": "testing.environmentfactor.serves.testing.coveragerequirement",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.serves.testing.testcasesketch": {
+      "id": "testing.environmentfactor.serves.testing.testcasesketch",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcasesketch",
+      "destination_layer": "testing",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.serves.testing.testcoveragemodel": {
+      "id": "testing.environmentfactor.serves.testing.testcoveragemodel",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragemodel",
+      "destination_layer": "testing",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputpartitionselection.aggregates.testing.contextvariation": {
+      "id": "testing.inputpartitionselection.aggregates.testing.contextvariation",
+      "source_spec_node_id": "testing.inputpartitionselection",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.contextvariation",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputpartitionselection.aggregates.testing.partitionvalue": {
+      "id": "testing.inputpartitionselection.aggregates.testing.partitionvalue",
+      "source_spec_node_id": "testing.inputpartitionselection",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputselection.references.testing.coveragerequirement": {
+      "id": "testing.inputselection.references.testing.coveragerequirement",
+      "source_spec_node_id": "testing.inputselection",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputselection.references.testing.partitionvalue": {
+      "id": "testing.inputselection.references.testing.partitionvalue",
+      "source_spec_node_id": "testing.inputselection",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputselection.references.testing.testcoveragetarget": {
+      "id": "testing.inputselection.references.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.inputselection",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputspacepartition.serves.testing.testcoveragetarget": {
+      "id": "testing.inputspacepartition.serves.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.inputspacepartition",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.outcomecategory.aggregates.testing.testcasesketch": {
+      "id": "testing.outcomecategory.aggregates.testing.testcasesketch",
+      "source_spec_node_id": "testing.outcomecategory",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcasesketch",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.outcomecategory.constrained-by.testing.environmentfactor": {
+      "id": "testing.outcomecategory.constrained-by.testing.environmentfactor",
+      "source_spec_node_id": "testing.outcomecategory",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.environmentfactor",
+      "destination_layer": "testing",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.outcomecategory.flows-to.testing.coveragesummary": {
+      "id": "testing.outcomecategory.flows-to.testing.coveragesummary",
+      "source_spec_node_id": "testing.outcomecategory",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragesummary",
+      "destination_layer": "testing",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.outcomecategory.references.testing.targetinputfield": {
+      "id": "testing.outcomecategory.references.testing.targetinputfield",
+      "source_spec_node_id": "testing.outcomecategory",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.targetinputfield",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.outcomecategory.serves.testing.coveragerequirement": {
+      "id": "testing.outcomecategory.serves.testing.coveragerequirement",
+      "source_spec_node_id": "testing.outcomecategory",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.partitiondependency.references.testing.inputspacepartition": {
+      "id": "testing.partitiondependency.references.testing.inputspacepartition",
+      "source_spec_node_id": "testing.partitiondependency",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputspacepartition",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.partitiondependency.triggers.testing.coveragerequirement": {
+      "id": "testing.partitiondependency.triggers.testing.coveragerequirement",
+      "source_spec_node_id": "testing.partitiondependency",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "triggers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.partitiondependency.triggers.testing.partitionvalue": {
+      "id": "testing.partitiondependency.triggers.testing.partitionvalue",
+      "source_spec_node_id": "testing.partitiondependency",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "triggers",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.partitionvalue.composes.testing.inputspacepartition": {
+      "id": "testing.partitionvalue.composes.testing.inputspacepartition",
+      "source_spec_node_id": "testing.partitionvalue",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputspacepartition",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.partitionvalue.constrained-by.testing.coveragerequirement": {
+      "id": "testing.partitionvalue.constrained-by.testing.coveragerequirement",
+      "source_spec_node_id": "testing.partitionvalue",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.partitionvalue.depends-on.testing.environmentfactor": {
+      "id": "testing.partitionvalue.depends-on.testing.environmentfactor",
+      "source_spec_node_id": "testing.partitionvalue",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.environmentfactor",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.partitionvalue.flows-to.testing.outcomecategory": {
+      "id": "testing.partitionvalue.flows-to.testing.outcomecategory",
+      "source_spec_node_id": "testing.partitionvalue",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.outcomecategory",
+      "destination_layer": "testing",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.partitionvalue.references.testing.coverageexclusion": {
+      "id": "testing.partitionvalue.references.testing.coverageexclusion",
+      "source_spec_node_id": "testing.partitionvalue",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coverageexclusion",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.partitionvalue.triggers.testing.coveragegap": {
+      "id": "testing.partitionvalue.triggers.testing.coveragegap",
+      "source_spec_node_id": "testing.partitionvalue",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragegap",
+      "destination_layer": "testing",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetcoveragesummary.references.testing.coverageexclusion": {
+      "id": "testing.targetcoveragesummary.references.testing.coverageexclusion",
+      "source_spec_node_id": "testing.targetcoveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coverageexclusion",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetcoveragesummary.references.testing.coveragegap": {
+      "id": "testing.targetcoveragesummary.references.testing.coveragegap",
+      "source_spec_node_id": "testing.targetcoveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragegap",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetcoveragesummary.validates.testing.coveragerequirement": {
+      "id": "testing.targetcoveragesummary.validates.testing.coveragerequirement",
+      "source_spec_node_id": "testing.targetcoveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "validates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetcoveragesummary.validates.testing.testcoveragetarget": {
+      "id": "testing.targetcoveragesummary.validates.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.targetcoveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "validates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetinputfield.aggregates.testing.partitionvalue": {
+      "id": "testing.targetinputfield.aggregates.testing.partitionvalue",
+      "source_spec_node_id": "testing.targetinputfield",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetinputfield.constrained-by.testing.coveragerequirement": {
+      "id": "testing.targetinputfield.constrained-by.testing.coveragerequirement",
+      "source_spec_node_id": "testing.targetinputfield",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetinputfield.depends-on.testing.contextvariation": {
+      "id": "testing.targetinputfield.depends-on.testing.contextvariation",
+      "source_spec_node_id": "testing.targetinputfield",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.contextvariation",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetinputfield.flows-to.testing.inputpartitionselection": {
+      "id": "testing.targetinputfield.flows-to.testing.inputpartitionselection",
+      "source_spec_node_id": "testing.targetinputfield",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputpartitionselection",
+      "destination_layer": "testing",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetinputfield.references.testing.inputspacepartition": {
+      "id": "testing.targetinputfield.references.testing.inputspacepartition",
+      "source_spec_node_id": "testing.targetinputfield",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputspacepartition",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetinputfield.references.testing.testcoveragetarget": {
+      "id": "testing.targetinputfield.references.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.targetinputfield",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.accesses.testing.inputpartitionselection": {
+      "id": "testing.testcasesketch.accesses.testing.inputpartitionselection",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputpartitionselection",
+      "destination_layer": "testing",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.accesses.testing.inputselection": {
+      "id": "testing.testcasesketch.accesses.testing.inputselection",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputselection",
+      "destination_layer": "testing",
+      "predicate": "accesses",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.depends-on.testing.contextvariation": {
+      "id": "testing.testcasesketch.depends-on.testing.contextvariation",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.contextvariation",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.depends-on.testing.inputspacepartition": {
+      "id": "testing.testcasesketch.depends-on.testing.inputspacepartition",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputspacepartition",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.depends-on.testing.outcomecategory": {
+      "id": "testing.testcasesketch.depends-on.testing.outcomecategory",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.outcomecategory",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.fulfills-requirements.motivation.requirement": {
+      "id": "testing.testcasesketch.fulfills-requirements.motivation.requirement",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "fulfills-requirements",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false
+    },
+    "testing.testcasesketch.references.testing.coveragerequirement": {
+      "id": "testing.testcasesketch.references.testing.coveragerequirement",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.references.testing.partitionvalue": {
+      "id": "testing.testcasesketch.references.testing.partitionvalue",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.references.testing.testcoveragetarget": {
+      "id": "testing.testcasesketch.references.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.supports-goals.motivation.goal": {
+      "id": "testing.testcasesketch.supports-goals.motivation.goal",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "supports-goals",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false
+    },
+    "testing.testcasesketch.tests.testing.coveragerequirement": {
+      "id": "testing.testcasesketch.tests.testing.coveragerequirement",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.validates.testing.coveragerequirement": {
+      "id": "testing.testcasesketch.validates.testing.coveragerequirement",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "validates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.validates.testing.testcoveragetarget": {
+      "id": "testing.testcasesketch.validates.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "validates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.composes.testing.coverageexclusion": {
+      "id": "testing.testcoveragemodel.composes.testing.coverageexclusion",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coverageexclusion",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.composes.testing.coveragerequirement": {
+      "id": "testing.testcoveragemodel.composes.testing.coveragerequirement",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.composes.testing.coveragesummary": {
+      "id": "testing.testcoveragemodel.composes.testing.coveragesummary",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragesummary",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.composes.testing.inputpartitionselection": {
+      "id": "testing.testcoveragemodel.composes.testing.inputpartitionselection",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputpartitionselection",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.composes.testing.outcomecategory": {
+      "id": "testing.testcoveragemodel.composes.testing.outcomecategory",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.outcomecategory",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.composes.testing.testcoveragetarget": {
+      "id": "testing.testcoveragemodel.composes.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.constrained-by.motivation.constraint": {
+      "id": "testing.testcoveragemodel.constrained-by.motivation.constraint",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.fulfills-requirements.motivation.requirement": {
+      "id": "testing.testcoveragemodel.fulfills-requirements.motivation.requirement",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "fulfills-requirements",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false
+    },
+    "testing.testcoveragemodel.governed-by-principles.motivation.principle": {
+      "id": "testing.testcoveragemodel.governed-by-principles.motivation.principle",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "governed-by-principles",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false
+    },
+    "testing.testcoveragemodel.supports-goals.motivation.goal": {
+      "id": "testing.testcoveragemodel.supports-goals.motivation.goal",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "supports-goals",
+      "cardinality": "many-to-many",
+      "strength": "high",
+      "required": false
+    },
+    "testing.testcoveragetarget.composes.testing.inputpartitionselection": {
+      "id": "testing.testcoveragetarget.composes.testing.inputpartitionselection",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputpartitionselection",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.composes.testing.outcomecategory": {
+      "id": "testing.testcoveragetarget.composes.testing.outcomecategory",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.outcomecategory",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.composes.testing.targetinputfield": {
+      "id": "testing.testcoveragetarget.composes.testing.targetinputfield",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.targetinputfield",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.composes.testing.testcoveragetarget": {
+      "id": "testing.testcoveragetarget.composes.testing.testcoveragetarget",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcoveragetarget",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.flows-to.testing.coveragerequirement": {
+      "id": "testing.testcoveragetarget.flows-to.testing.coveragerequirement",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.coveragerequirement",
+      "destination_layer": "testing",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.flows-to.testing.testcasesketch": {
+      "id": "testing.testcoveragetarget.flows-to.testing.testcasesketch",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcasesketch",
+      "destination_layer": "testing",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

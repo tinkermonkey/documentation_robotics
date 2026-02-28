@@ -1,0 +1,2984 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "ux",
+    "number": 9,
+    "name": "UX Layer",
+    "description": "Layer 9: UX Layer",
+    "inspired_by": {
+      "standard": "HTML 5.3",
+      "version": "5.3",
+      "url": "https://html.spec.whatwg.org/"
+    },
+    "node_types": [
+      "ux.actioncomponent",
+      "ux.actionpattern",
+      "ux.chartseries",
+      "ux.componentinstance",
+      "ux.componentreference",
+      "ux.dataconfig",
+      "ux.errorconfig",
+      "ux.experiencestate",
+      "ux.layoutconfig",
+      "ux.librarycomponent",
+      "ux.librarysubview",
+      "ux.stateaction",
+      "ux.stateactiontemplate",
+      "ux.statepattern",
+      "ux.statetransition",
+      "ux.subview",
+      "ux.tablecolumn",
+      "ux.transitiontemplate",
+      "ux.uxapplication",
+      "ux.uxlibrary",
+      "ux.uxspec",
+      "ux.view"
+    ]
+  },
+  "nodeSchemas": {
+    "actioncomponent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActionComponent",
+      "description": "Interactive element that triggers actions (button, menu, link, voice command)",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.actioncomponent"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "actioncomponent"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["button", "link", "menu", "voice-command", "icon-button"],
+              "description": "Interactive element kind, per HTML 5.3 button, anchor, and menu element semantics."
+            },
+            "icon": {
+              "type": "string"
+            },
+            "disabled": {
+              "type": "boolean"
+            },
+            "tooltip": {
+              "type": "string"
+            },
+            "channel": {
+              "type": "string",
+              "enum": ["web", "mobile", "voice", "chat", "sms"],
+              "description": "Delivery channel for which this component is rendered."
+            },
+            "style": {
+              "type": "string",
+              "enum": ["primary", "secondary", "danger", "ghost", "link", "icon"],
+              "description": "Visual style variant of the action component, per design system button style conventions."
+            },
+            "children": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "validations": {
+              "type": "array",
+              "description": "Client-side validation rules applied to this component, per HTML 5.3 Constraint Validation API. Each rule specifies a constraint type, threshold value, and user-facing error message.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "required",
+                      "minlength",
+                      "maxlength",
+                      "pattern",
+                      "min",
+                      "max",
+                      "type",
+                      "custom"
+                    ],
+                    "description": "Constraint type. 'required': field must not be empty; 'minlength'/'maxlength': string length bounds (value = integer); 'pattern': regex the input must match (value = regex string); 'min'/'max': numeric range (value = number); 'type': expected data type; 'custom': application-defined rule."
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "Constraint threshold or parameter (e.g., '8' for minlength, '^[a-z]+$' for pattern)."
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "User-facing error message shown when this constraint is violated."
+                  }
+                },
+                "required": ["type", "message"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.actioncomponent"
+    },
+    "actionpattern": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActionPattern",
+      "description": "Reusable action configuration for common user interactions. Defines the trigger, feedback mechanism, and optional target for recurring UX patterns. Example: 'confirm-and-delete' pattern — trigger: click on delete button, feedback: confirmation modal then success toast, targetRef: the item being deleted.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.actionpattern"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "actionpattern"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string",
+              "enum": ["crud", "navigation", "confirmation", "bulk-operation"],
+              "description": "Functional taxonomy of the action pattern."
+            },
+            "trigger": {
+              "type": "string",
+              "enum": ["click", "swipe", "voice", "keyboard"],
+              "description": "Input modality that initiates this action pattern."
+            },
+            "feedback": {
+              "type": "string",
+              "enum": ["toast", "animation", "route-change", "modal", "inline-message", "none"],
+              "description": "User-facing feedback mechanism invoked after the action completes."
+            },
+            "targetRef": {
+              "type": "string",
+              "description": "Optional specNodeId of the component or element this action pattern is applied to."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.actionpattern"
+    },
+    "chartseries": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChartSeries",
+      "description": "Configuration for a data series within a chart component, specifying data source, visualization type, colors, and legend properties. Defines how data is visualized in charts.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.chartseries"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "chartseries"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "line",
+                "bar",
+                "column",
+                "pie",
+                "donut",
+                "area",
+                "scatter",
+                "bubble",
+                "heatmap"
+              ],
+              "description": "Visualization type for this data series."
+            },
+            "dataField": {
+              "type": "string",
+              "description": "Field name from the bound data source representing the numeric/value axis of this series (e.g., 'revenue', 'count'). For formal data-model binding, use a relationship to the corresponding data-model entity."
+            },
+            "categoryField": {
+              "type": "string",
+              "description": "Field name from the bound data source representing the category/x-axis grouping (e.g., 'month', 'region'). For formal data-model binding, use a relationship to the corresponding data-model entity."
+            },
+            "color": {
+              "type": "string",
+              "description": "CSS color value for this series (e.g., '#3B82F6', 'var(--brand-primary)'). Overrides any theme-level color scheme for this specific series."
+            },
+            "lineStyle": {
+              "type": "string",
+              "enum": ["solid", "dashed", "dotted", "double", "none"],
+              "description": "CSS border/line style applied to line chart series rendering, per CSS Border specification."
+            }
+          },
+          "required": ["label", "dataField"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.chartseries"
+    },
+    "componentinstance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ComponentInstance",
+      "description": "Instance of a LibraryComponent with application-specific configuration",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.componentinstance"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "componentinstance"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "order": {
+              "type": "integer",
+              "description": "Render order of this component instance within its parent View or SubView's component list. Lower values render first."
+            },
+            "ref": {
+              "type": "string",
+              "description": "SpecNodeId of the ux.librarycomponent this instance is based on (e.g., 'ux.librarycomponent.data-table'). Determines the component type and the set of valid prop keys."
+            },
+            "props": {
+              "type": "object",
+              "description": "Key-value map of property overrides applied to this instance. Keys must match prop names declared on the referenced LibraryComponent. Values override the component defaults for this specific usage.",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.componentinstance"
+    },
+    "componentreference": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ComponentReference",
+      "description": "A declarative placeholder in a parent component's named slot, pointing to another component to be rendered there. Unlike ComponentInstance (a concrete rendered occurrence), ComponentReference is a composition declaration that says 'render this component in this slot of the parent', analogous to the HTML slot element.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.componentreference"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "componentreference"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "ref": {
+              "type": "string",
+              "description": "SpecNodeId of the component (ux.librarycomponent or ux.componentinstance) to render in the slot."
+            },
+            "variant": {
+              "type": "string",
+              "description": "Optional design variant override for this reference (e.g., 'compact', 'expanded', 'readonly'). Must match a variant defined on the referenced component."
+            },
+            "slot": {
+              "type": "string",
+              "description": "Named slot in the parent component where this reference is placed. Slot names are defined by the parent LibraryComponent (e.g., 'header', 'actions', 'footer')."
+            }
+          },
+          "required": ["ref"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.componentreference"
+    },
+    "dataconfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DataConfig",
+      "description": "Configuration for data binding and state management within UI components, defining data sources, transformation pipelines, and update triggers. Manages component data flow.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.dataconfig"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "dataconfig"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string",
+              "enum": ["api", "state", "local-storage", "mock", "static"],
+              "description": "Data origin for this binding configuration."
+            },
+            "target": {
+              "type": "string",
+              "description": "SpecNodeId of the destination element receiving bound data (e.g., a data-model entity ID or API endpoint ID). Use relationships to formally link to those layers."
+            },
+            "path": {
+              "type": "string",
+              "description": "Dot-notation or JSONPath expression selecting a field within the source data (e.g., 'user.profile.name' or '$.items[0].id')."
+            }
+          },
+          "required": ["source", "target"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.dataconfig"
+    },
+    "errorconfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ErrorConfig",
+      "description": "Configuration for error handling and display within UI components, specifying error message formats, retry behavior, fallback content, and user guidance. Ensures consistent error UX.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.errorconfig"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "errorconfig"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "showNotification": {
+              "type": "boolean"
+            },
+            "notificationType": {
+              "type": "string",
+              "enum": ["success", "error", "warning", "info", "neutral"],
+              "description": "Severity category of the notification, aligned with ARIA live region and alert role semantics."
+            },
+            "errorMessage": {
+              "type": "string"
+            },
+            "defaultErrorMessage": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.errorconfig"
+    },
+    "experiencestate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExperienceState",
+      "description": "Distinct state that the experience can be in (works across all channels)",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.experiencestate"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "experiencestate"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "initial": {
+              "type": "boolean",
+              "description": "When true, marks this as the starting state of the state machine. Only one ExperienceState per state machine should have initial: true."
+            },
+            "description": {
+              "type": "string"
+            },
+            "channel": {
+              "type": "string",
+              "enum": ["web", "mobile", "voice", "chat", "sms"],
+              "description": "Delivery channel context for this experience state."
+            },
+            "onEnter": {
+              "type": "array",
+              "description": "List of StateAction specNodeIds executed when entering this state (lifecycle: on-enter).",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.stateaction node."
+              }
+            },
+            "onExit": {
+              "type": "array",
+              "description": "List of StateAction specNodeIds executed when leaving this state (lifecycle: on-exit).",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.stateaction node."
+              }
+            },
+            "transitions": {
+              "type": "array",
+              "description": "List of StateTransition specNodeIds owned by this state, defining the outgoing edges of the state machine.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.statetransition node."
+              }
+            },
+            "enabledComponents": {
+              "type": "array",
+              "description": "List of component specNodeIds that are interactive (enabled) when this state is active. Corresponds to ARIA aria-disabled=false.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a component node."
+              }
+            },
+            "disabledComponents": {
+              "type": "array",
+              "description": "List of component specNodeIds that are non-interactive (disabled) when this state is active. Corresponds to ARIA aria-disabled=true.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a component node."
+              }
+            },
+            "hiddenComponents": {
+              "type": "array",
+              "description": "List of component specNodeIds that are not rendered when this state is active. Corresponds to ARIA aria-hidden=true or display:none.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a component node."
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.experiencestate"
+    },
+    "layoutconfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LayoutConfig",
+      "description": "Configuration for UI layout structure, defining grid systems, responsive breakpoints, spacing rules, and component arrangement patterns. Controls visual organization of the interface.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.layoutconfig"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "layoutconfig"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["grid", "flex", "block", "inline", "absolute", "sticky"],
+              "description": "CSS layout mode governing element positioning and flow, per CSS Flexbox/Grid specification."
+            },
+            "columns": {
+              "type": "integer"
+            },
+            "rows": {
+              "type": "integer"
+            },
+            "gap": {
+              "type": "string"
+            },
+            "rowGap": {
+              "type": "string"
+            },
+            "columnGap": {
+              "type": "string"
+            },
+            "padding": {
+              "type": "string"
+            },
+            "margin": {
+              "type": "string"
+            },
+            "maxWidth": {
+              "type": "string"
+            },
+            "alignContent": {
+              "type": "string",
+              "enum": [
+                "flex-start",
+                "flex-end",
+                "center",
+                "space-between",
+                "space-around",
+                "stretch"
+              ],
+              "description": "CSS align-content property value, per CSS Flexbox/Grid specification."
+            },
+            "alignItems": {
+              "type": "string",
+              "enum": ["flex-start", "flex-end", "center", "baseline", "stretch"],
+              "description": "CSS align-items property value, per CSS Flexbox/Grid specification."
+            },
+            "justifyContent": {
+              "type": "string",
+              "enum": [
+                "flex-start",
+                "flex-end",
+                "center",
+                "space-between",
+                "space-around",
+                "space-evenly"
+              ],
+              "description": "CSS justify-content property value, per CSS Flexbox/Grid specification."
+            },
+            "justifyItems": {
+              "type": "string",
+              "enum": ["flex-start", "flex-end", "center", "stretch", "baseline"],
+              "description": "CSS justify-items property value, per CSS Grid specification."
+            },
+            "stickyPosition": {
+              "type": "string",
+              "enum": ["top", "bottom", "left", "right", "none"],
+              "description": "Anchor edge for CSS position:sticky elements, per CSS Positioning specification."
+            },
+            "style": {
+              "type": "string",
+              "enum": ["card", "table", "list", "grid", "masonry", "split"],
+              "description": "Visual presentation style applied to the layout container."
+            },
+            "labelPosition": {
+              "type": "string",
+              "enum": ["top", "left", "right", "inline", "floating", "hidden"],
+              "description": "Placement of form field labels relative to their input elements, per HTML 5.3 label element positioning patterns."
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.layoutconfig"
+    },
+    "librarycomponent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LibraryComponent",
+      "description": "Reusable UI component definition that can be instantiated in multiple UXSpecs",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.librarycomponent"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "librarycomponent"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "form",
+                "table",
+                "chart",
+                "navigation",
+                "feedback",
+                "layout",
+                "input",
+                "display"
+              ],
+              "description": "UI component category used for library organization and component lookup."
+            },
+            "label": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string",
+              "description": "Fine-grained categorization within the component type (e.g., 'data-grid', 'inline-form', 'bar-chart') for library browsing and search."
+            },
+            "source": {
+              "type": "object",
+              "description": "Distribution source for this component (npm package, git repository, or internal registry).",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["npm", "git", "internal-registry"],
+                  "description": "Distribution mechanism."
+                },
+                "identifier": {
+                  "type": "string",
+                  "description": "Package name, git URL, or registry path (e.g., '@org/ui-components', 'https://github.com/org/ui')."
+                }
+              },
+              "additionalProperties": false
+            },
+            "props": {
+              "type": "array",
+              "description": "Schema of properties accepted by this component. Each entry defines an accepted prop with its name, type, and whether it is required.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Prop identifier."
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["string", "number", "boolean", "object", "array"],
+                    "description": "Data type of the prop value."
+                  },
+                  "required": {
+                    "type": "boolean",
+                    "description": "Whether this prop must be provided by consumers."
+                  },
+                  "default": {
+                    "type": "string",
+                    "description": "Default value as string; coerced to declared type at runtime."
+                  }
+                },
+                "required": ["name", "type"],
+                "additionalProperties": false
+              }
+            },
+            "slots": {
+              "type": "array",
+              "description": "Named content slots this component exposes for composition, analogous to HTML slot elements in Web Components.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Slot identifier referenced by ComponentReference.slot."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "What content is expected in this slot."
+                  }
+                },
+                "required": ["name"],
+                "additionalProperties": false
+              }
+            },
+            "events": {
+              "type": "array",
+              "description": "Custom events emitted by this component that consumers can listen to.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Event name (e.g., 'row-selected', 'form-submitted')."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "When this event fires and what payload it carries."
+                  }
+                },
+                "required": ["name"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.librarycomponent"
+    },
+    "librarysubview": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LibrarySubView",
+      "description": "Reusable, non-routable grouping of components intended to be composed into Views or other SubViews. Unlike View, LibrarySubView has no route and cannot be navigated to directly. It exists purely as a reusable composition unit, analogous to an HTML template element.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.librarysubview"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "librarysubview"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string",
+              "description": "Functional category grouping related sub-views within a library (e.g., 'forms', 'data-display', 'navigation', 'feedback')."
+            },
+            "components": {
+              "type": "array",
+              "description": "Ordered list of ComponentInstance specNodeIds that constitute this reusable sub-view composition.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.componentinstance node."
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.librarysubview"
+    },
+    "stateaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StateAction",
+      "description": "A concrete action bound to a specific ExperienceState lifecycle event. Instances are bound to a state and lifecycle hook; for reusable parameterizable definitions use StateActionTemplate. Examples: scroll-to-top (lifecycle: on-enter), focus-first-field (lifecycle: on-enter), dispatch-analytics-event (lifecycle: on-exit).",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.stateaction"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "stateaction"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string",
+              "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
+              "description": "Operation executed during the state lifecycle."
+            },
+            "description": {
+              "type": "string"
+            },
+            "lifecycle": {
+              "type": "string",
+              "enum": ["on-enter", "on-exit", "on-transition"],
+              "description": "State lifecycle hook that triggers this action. 'on-enter': fires when entering the owning ExperienceState; 'on-exit': fires when leaving it; 'on-transition': fires during any outgoing transition from this state."
+            },
+            "timing": {
+              "type": "string",
+              "enum": ["immediate", "deferred", "conditional"],
+              "description": "Execution scheduling within the lifecycle hook: 'immediate' runs synchronously before the state activates; 'deferred' runs asynchronously after; 'conditional' runs only when a guard condition is met."
+            }
+          },
+          "required": ["action"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.stateaction"
+    },
+    "stateactiontemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StateActionTemplate",
+      "description": "A parameterizable, reusable definition of an action to execute during state transitions. StateActionTemplate is the definition; StateAction is the concrete usage bound to a specific ExperienceState and lifecycle hook. Example: a 'scroll-to-top' template with a 'targetId' parameter, instantiated as a StateAction on multiple states.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.stateactiontemplate"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "stateactiontemplate"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string",
+              "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
+              "description": "Operation this template encapsulates. Must match a value from the StateAction action enum."
+            },
+            "description": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "array",
+              "description": "Configurable parameters that can be supplied when instantiating this template as a StateAction. Each item defines a named input with its expected type and optional default value.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Parameter identifier used to reference it in the action (e.g., 'targetId', 'routePath')."
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["string", "number", "boolean"],
+                    "description": "Expected data type of the parameter value."
+                  },
+                  "default": {
+                    "type": "string",
+                    "description": "Optional default value as a string; coerced to the declared type at runtime."
+                  }
+                },
+                "required": ["name", "type"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["action"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.stateactiontemplate"
+    },
+    "statepattern": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StatePattern",
+      "description": "Reusable state machine template for common UX interaction flows, composed of named ExperienceStates and transitions. Canonical examples: 'wizard' — multi-step form with back/next/submit transitions; 'optimistic-update' — loading → success/error with retry; 'tab-panel' — N peer states with tab-driven transitions; 'authenticated-route' — unauthenticated → redirect/login → authenticated.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.statepattern"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "statepattern"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string",
+              "enum": ["navigation", "form", "data-loading", "authentication", "multi-step"],
+              "description": "Functional taxonomy of the reusable state machine pattern."
+            },
+            "states": {
+              "type": "array",
+              "description": "Ordered list of ExperienceState specNodeIds comprising this reusable pattern. The first entry is the initial state.",
+              "items": {
+                "type": "string",
+                "description": "specNodeId of an ExperienceState node belonging to this pattern."
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.statepattern"
+    },
+    "statetransition": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StateTransition",
+      "description": "A directed edge in the ExperienceState machine, owned by its source ExperienceState. Specifies the trigger event, destination state, optional guard condition, and side-effect actions. The 'from' state is implicitly the ExperienceState that contains this transition via relationship.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.statetransition"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "statetransition"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string",
+              "description": "SpecNodeId of the destination ExperienceState this transition leads to (e.g., 'ux.experiencestate.order-confirmed')."
+            },
+            "trigger": {
+              "type": "string",
+              "enum": [
+                "click",
+                "hover",
+                "focus",
+                "blur",
+                "change",
+                "submit",
+                "load",
+                "swipe",
+                "voice-command"
+              ],
+              "description": "DOM or UX event that initiates this state transition, per HTML 5.3 event model."
+            },
+            "description": {
+              "type": "string"
+            },
+            "actions": {
+              "type": "array",
+              "description": "List of StateAction specNodeIds to execute when this transition fires, in order.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.stateaction node."
+              }
+            },
+            "guard": {
+              "type": "object",
+              "description": "Optional boolean guard condition that must evaluate to true for this transition to fire.",
+              "properties": {
+                "expression": {
+                  "type": "string",
+                  "description": "Boolean expression string evaluated against current state context."
+                },
+                "syntax": {
+                  "type": "string",
+                  "enum": ["javascript", "jsonpath", "cel", "jsonata"],
+                  "description": "Expression language used to evaluate the guard expression. 'javascript': JS boolean expression (e.g., 'user.isLoggedIn && cart.items.length > 0'); 'jsonpath': JSONPath predicate (e.g., '$.user.role == \"admin\"'); 'cel': Common Expression Language (e.g., 'user.age >= 18'); 'jsonata': JSONata expression (e.g., '$count(items) > 0')."
+                }
+              },
+              "required": ["expression", "syntax"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["trigger"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.statetransition"
+    },
+    "subview": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubView",
+      "description": "A non-routable UI fragment embedded within a parent View. Two usage modes: (1) Library instance — 'ref' is populated with a ux.librarysubview specNodeId, rendering that reusable fragment; (2) Inline definition — 'ref' is absent and the SubView defines its own composition inline. SubViews are not independently routable; use View for routable pages.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.subview"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "subview"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "order": {
+              "type": "integer",
+              "description": "Render order of this SubView within its parent View's subViews list. Lower values render first (top-to-bottom or left-to-right depending on layout)."
+            },
+            "ref": {
+              "type": "string",
+              "description": "SpecNodeId of the ux.librarysubview this instance is based on (e.g., 'ux.librarysubview.data-table-with-filters'). When present, this SubView is a library instance; when absent, it is an inline definition."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.subview"
+    },
+    "tablecolumn": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TableColumn",
+      "description": "Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.tablecolumn"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "tablecolumn"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "header": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "width": {
+              "type": "string"
+            },
+            "minWidth": {
+              "type": "string"
+            },
+            "maxWidth": {
+              "type": "string"
+            },
+            "filterType": {
+              "type": "string",
+              "enum": [
+                "equals",
+                "contains",
+                "startsWith",
+                "endsWith",
+                "range",
+                "multiselect",
+                "boolean"
+              ],
+              "description": "Filter operation type available for this column, per HTML 5.3 form input filter patterns."
+            },
+            "textAlign": {
+              "type": "string",
+              "enum": ["left", "right", "center", "justify", "start", "end"],
+              "description": "CSS text-align value for cell content, per CSS Text specification."
+            },
+            "displayType": {
+              "type": "string",
+              "enum": [
+                "text",
+                "badge",
+                "icon",
+                "link",
+                "image",
+                "boolean",
+                "date",
+                "currency",
+                "actions"
+              ],
+              "description": "Rendering type that controls how cell values are visually presented."
+            },
+            "defaultSortDirection": {
+              "type": "string",
+              "enum": ["asc", "desc", "none"],
+              "description": "Default sort direction applied to this column when first sorted."
+            }
+          },
+          "required": ["header", "field"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.tablecolumn"
+    },
+    "transitiontemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TransitionTemplate",
+      "description": "Defines reusable animation and transition patterns for state changes, page navigation, or component lifecycle events. Ensures consistent motion design across the application.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.transitiontemplate"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "transitiontemplate"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            },
+            "trigger": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "animationType": {
+              "type": "string",
+              "enum": ["fade", "slide", "scale", "bounce", "none"],
+              "description": "Motion animation category applied during this transition."
+            },
+            "duration": {
+              "type": "string",
+              "description": "CSS transition duration (e.g., '300ms', '0.5s'), per CSS Transitions specification."
+            },
+            "easing": {
+              "type": "string",
+              "description": "CSS timing function controlling the transition's acceleration curve (e.g., 'ease-in-out', 'cubic-bezier(0.4, 0, 0.2, 1)')."
+            }
+          },
+          "required": ["to", "trigger"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.transitiontemplate"
+    },
+    "uxapplication": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UXApplication",
+      "description": "Application-level UX configuration that groups UXSpecs and defines shared settings",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.uxapplication"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "uxapplication"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "channel": {
+              "type": "string",
+              "enum": ["web", "mobile", "voice", "chat", "sms"],
+              "description": "Primary delivery channel this application targets. Multi-channel products use one UXApplication per channel, each referencing channel-specific UXSpecs."
+            },
+            "experiences": {
+              "type": "array",
+              "description": "List of UXSpec specNodeIds that comprise the user experiences of this application.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.uxspec node."
+              }
+            },
+            "theme": {
+              "type": "string",
+              "description": "Design token theme identifier applied application-wide (e.g., 'brand-light', 'brand-dark', 'high-contrast')."
+            },
+            "designSystem": {
+              "type": "string",
+              "description": "Identifier of the design system or UXLibrary this application uses (e.g., specNodeId of a ux.uxlibrary node)."
+            },
+            "defaultLocale": {
+              "type": "string",
+              "description": "Default locale for internationalization, as a BCP 47 language tag (e.g., 'en-US', 'fr-FR', 'ja-JP')."
+            }
+          },
+          "required": ["channel"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.uxapplication"
+    },
+    "uxlibrary": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UXLibrary",
+      "description": "Collection of reusable UI components and sub-views that can be shared across applications",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.uxlibrary"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "uxlibrary"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "author": {
+              "type": "string"
+            },
+            "license": {
+              "type": "string"
+            },
+            "components": {
+              "type": "array",
+              "description": "List of ux.librarycomponent specNodeIds exported by this library.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.librarycomponent node."
+              }
+            },
+            "subViews": {
+              "type": "array",
+              "description": "List of ux.librarysubview specNodeIds exported by this library.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.librarysubview node."
+              }
+            },
+            "statePatterns": {
+              "type": "array",
+              "description": "List of ux.statepattern specNodeIds exported by this library.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.statepattern node."
+              }
+            },
+            "actionPatterns": {
+              "type": "array",
+              "description": "List of ux.actionpattern specNodeIds exported by this library.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.actionpattern node."
+              }
+            },
+            "source": {
+              "type": "object",
+              "description": "Distribution source for this library package.",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["npm", "git", "internal-registry"],
+                  "description": "Distribution mechanism: 'npm' for a published npm package, 'git' for a git repository URL, 'internal-registry' for a private artifact registry."
+                },
+                "identifier": {
+                  "type": "string",
+                  "description": "Package name, git URL, or registry path (e.g., '@org/design-system', 'https://github.com/org/ds', 'registry.internal/ux-lib')."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.uxlibrary"
+    },
+    "uxspec": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UXSpec",
+      "description": "Complete UX specification for a single experience (visual, voice, chat, SMS)",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.uxspec"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "uxspec"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "experience": {
+              "type": "string",
+              "enum": ["visual", "voice", "chat", "sms"],
+              "description": "Delivery modality this spec describes. 'visual': screen-based UI; 'voice': voice assistant interface; 'chat': conversational messaging UI; 'sms': text message-based interaction."
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "source": {
+              "type": "object",
+              "description": "Reference to the design artifact (e.g., Figma file, Storybook, or internal design system URL) that this spec is based on.",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["figma", "storybook", "zeplin", "url"],
+                  "description": "Design tool or artifact type."
+                },
+                "url": {
+                  "type": "string",
+                  "description": "URL to the design artifact."
+                }
+              },
+              "additionalProperties": false
+            },
+            "views": {
+              "type": "array",
+              "description": "List of ux.view specNodeIds that comprise the routable screens of this experience.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.view node."
+              }
+            },
+            "states": {
+              "type": "array",
+              "description": "List of ux.experiencestate specNodeIds that represent the top-level states of this experience's state machine.",
+              "items": {
+                "type": "string",
+                "description": "SpecNodeId of a ux.experiencestate node."
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.uxspec"
+    },
+    "view": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "View",
+      "description": "Routable grouping of components (a complete user experience)",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.view"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "view"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "page",
+                "modal",
+                "dialog",
+                "drawer",
+                "panel",
+                "overlay",
+                "embedded",
+                "full-screen"
+              ],
+              "description": "View display mode, per HTML 5.3 sectioning and dialog element semantics."
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "routable": {
+              "type": "boolean"
+            },
+            "layout": {
+              "type": "string"
+            },
+            "subViews": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "components": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "actions": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:ux.view"
+    }
+  },
+  "relationshipSchemas": {
+    "ux.actioncomponent.binds-to.ux.dataconfig": {
+      "id": "ux.actioncomponent.binds-to.ux.dataconfig",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.dataconfig",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.implements.ux.actionpattern": {
+      "id": "ux.actioncomponent.implements.ux.actionpattern",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actionpattern",
+      "destination_layer": "ux",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.navigates-to.ux.view": {
+      "id": "ux.actioncomponent.navigates-to.ux.view",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.renders.ux.actioncomponent": {
+      "id": "ux.actioncomponent.renders.ux.actioncomponent",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.renders.ux.componentinstance": {
+      "id": "ux.actioncomponent.renders.ux.componentinstance",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.renders.ux.componentreference": {
+      "id": "ux.actioncomponent.renders.ux.componentreference",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentreference",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.renders.ux.librarycomponent": {
+      "id": "ux.actioncomponent.renders.ux.librarycomponent",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.triggers.ux.statetransition": {
+      "id": "ux.actioncomponent.triggers.ux.statetransition",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statetransition",
+      "destination_layer": "ux",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.uses.ux.errorconfig": {
+      "id": "ux.actioncomponent.uses.ux.errorconfig",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.errorconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actionpattern.associated-with.ux.statepattern": {
+      "id": "ux.actionpattern.associated-with.ux.statepattern",
+      "source_spec_node_id": "ux.actionpattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statepattern",
+      "destination_layer": "ux",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actionpattern.governs.ux.actioncomponent": {
+      "id": "ux.actionpattern.governs.ux.actioncomponent",
+      "source_spec_node_id": "ux.actionpattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actionpattern.governs.ux.stateaction": {
+      "id": "ux.actionpattern.governs.ux.stateaction",
+      "source_spec_node_id": "ux.actionpattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateaction",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actionpattern.triggers.ux.statetransition": {
+      "id": "ux.actionpattern.triggers.ux.statetransition",
+      "source_spec_node_id": "ux.actionpattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statetransition",
+      "destination_layer": "ux",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actionpattern.uses.ux.transitiontemplate": {
+      "id": "ux.actionpattern.uses.ux.transitiontemplate",
+      "source_spec_node_id": "ux.actionpattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.transitiontemplate",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.chartseries.binds-to.ux.dataconfig": {
+      "id": "ux.chartseries.binds-to.ux.dataconfig",
+      "source_spec_node_id": "ux.chartseries",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.dataconfig",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.chartseries.references.ux.librarycomponent": {
+      "id": "ux.chartseries.references.ux.librarycomponent",
+      "source_spec_node_id": "ux.chartseries",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.chartseries.uses.ux.experiencestate": {
+      "id": "ux.chartseries.uses.ux.experiencestate",
+      "source_spec_node_id": "ux.chartseries",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.aggregates.ux.chartseries": {
+      "id": "ux.componentinstance.aggregates.ux.chartseries",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.chartseries",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.aggregates.ux.componentreference": {
+      "id": "ux.componentinstance.aggregates.ux.componentreference",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentreference",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.aggregates.ux.tablecolumn": {
+      "id": "ux.componentinstance.aggregates.ux.tablecolumn",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.tablecolumn",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.binds-to.ux.dataconfig": {
+      "id": "ux.componentinstance.binds-to.ux.dataconfig",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.dataconfig",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.implements.ux.librarycomponent": {
+      "id": "ux.componentinstance.implements.ux.librarycomponent",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.realizes.ux.librarycomponent": {
+      "id": "ux.componentinstance.realizes.ux.librarycomponent",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.renders.ux.actioncomponent": {
+      "id": "ux.componentinstance.renders.ux.actioncomponent",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.renders.ux.componentinstance": {
+      "id": "ux.componentinstance.renders.ux.componentinstance",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.renders.ux.componentreference": {
+      "id": "ux.componentinstance.renders.ux.componentreference",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentreference",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.renders.ux.layoutconfig": {
+      "id": "ux.componentinstance.renders.ux.layoutconfig",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.renders.ux.librarycomponent": {
+      "id": "ux.componentinstance.renders.ux.librarycomponent",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.uses.ux.errorconfig": {
+      "id": "ux.componentinstance.uses.ux.errorconfig",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.errorconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentreference.implements.ux.librarycomponent": {
+      "id": "ux.componentreference.implements.ux.librarycomponent",
+      "source_spec_node_id": "ux.componentreference",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentreference.renders.ux.actioncomponent": {
+      "id": "ux.componentreference.renders.ux.actioncomponent",
+      "source_spec_node_id": "ux.componentreference",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentreference.renders.ux.componentinstance": {
+      "id": "ux.componentreference.renders.ux.componentinstance",
+      "source_spec_node_id": "ux.componentreference",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentreference.renders.ux.componentreference": {
+      "id": "ux.componentreference.renders.ux.componentreference",
+      "source_spec_node_id": "ux.componentreference",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentreference",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentreference.renders.ux.librarycomponent": {
+      "id": "ux.componentreference.renders.ux.librarycomponent",
+      "source_spec_node_id": "ux.componentreference",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentreference.uses.ux.layoutconfig": {
+      "id": "ux.componentreference.uses.ux.layoutconfig",
+      "source_spec_node_id": "ux.componentreference",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.aggregates.ux.errorconfig": {
+      "id": "ux.dataconfig.aggregates.ux.errorconfig",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.errorconfig",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.binds-to.ux.componentinstance": {
+      "id": "ux.dataconfig.binds-to.ux.componentinstance",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.binds-to.ux.librarycomponent": {
+      "id": "ux.dataconfig.binds-to.ux.librarycomponent",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.binds-to.ux.subview": {
+      "id": "ux.dataconfig.binds-to.ux.subview",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.subview",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.binds-to.ux.view": {
+      "id": "ux.dataconfig.binds-to.ux.view",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.composes.ux.chartseries": {
+      "id": "ux.dataconfig.composes.ux.chartseries",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.chartseries",
+      "destination_layer": "ux",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.provides.ux.tablecolumn": {
+      "id": "ux.dataconfig.provides.ux.tablecolumn",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.tablecolumn",
+      "destination_layer": "ux",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.realizes.ux.statepattern": {
+      "id": "ux.dataconfig.realizes.ux.statepattern",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statepattern",
+      "destination_layer": "ux",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.errorconfig.associated-with.ux.dataconfig": {
+      "id": "ux.errorconfig.associated-with.ux.dataconfig",
+      "source_spec_node_id": "ux.errorconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.dataconfig",
+      "destination_layer": "ux",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.errorconfig.governs.ux.actioncomponent": {
+      "id": "ux.errorconfig.governs.ux.actioncomponent",
+      "source_spec_node_id": "ux.errorconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.errorconfig.governs.ux.componentinstance": {
+      "id": "ux.errorconfig.governs.ux.componentinstance",
+      "source_spec_node_id": "ux.errorconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.errorconfig.governs.ux.experiencestate": {
+      "id": "ux.errorconfig.governs.ux.experiencestate",
+      "source_spec_node_id": "ux.errorconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.errorconfig.governs.ux.view": {
+      "id": "ux.errorconfig.governs.ux.view",
+      "source_spec_node_id": "ux.errorconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.experiencestate.flows-to.ux.statetransition": {
+      "id": "ux.experiencestate.flows-to.ux.statetransition",
+      "source_spec_node_id": "ux.experiencestate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statetransition",
+      "destination_layer": "ux",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.experiencestate.governs.ux.view": {
+      "id": "ux.experiencestate.governs.ux.view",
+      "source_spec_node_id": "ux.experiencestate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.experiencestate.navigates-to.ux.experiencestate": {
+      "id": "ux.experiencestate.navigates-to.ux.experiencestate",
+      "source_spec_node_id": "ux.experiencestate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.experiencestate.renders.ux.view": {
+      "id": "ux.experiencestate.renders.ux.view",
+      "source_spec_node_id": "ux.experiencestate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.experiencestate.specializes.ux.statepattern": {
+      "id": "ux.experiencestate.specializes.ux.statepattern",
+      "source_spec_node_id": "ux.experiencestate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statepattern",
+      "destination_layer": "ux",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.experiencestate.triggers.ux.stateaction": {
+      "id": "ux.experiencestate.triggers.ux.stateaction",
+      "source_spec_node_id": "ux.experiencestate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateaction",
+      "destination_layer": "ux",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.experiencestate.uses.ux.stateactiontemplate": {
+      "id": "ux.experiencestate.uses.ux.stateactiontemplate",
+      "source_spec_node_id": "ux.experiencestate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateactiontemplate",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.layoutconfig.associated-with.ux.librarycomponent": {
+      "id": "ux.layoutconfig.associated-with.ux.librarycomponent",
+      "source_spec_node_id": "ux.layoutconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.layoutconfig.composes.ux.layoutconfig": {
+      "id": "ux.layoutconfig.composes.ux.layoutconfig",
+      "source_spec_node_id": "ux.layoutconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.layoutconfig.governs.ux.view": {
+      "id": "ux.layoutconfig.governs.ux.view",
+      "source_spec_node_id": "ux.layoutconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.layoutconfig.provides.ux.subview": {
+      "id": "ux.layoutconfig.provides.ux.subview",
+      "source_spec_node_id": "ux.layoutconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.subview",
+      "destination_layer": "ux",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.layoutconfig.provides.ux.view": {
+      "id": "ux.layoutconfig.provides.ux.view",
+      "source_spec_node_id": "ux.layoutconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.composes.ux.actioncomponent": {
+      "id": "ux.librarycomponent.composes.ux.actioncomponent",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.composes.ux.librarycomponent": {
+      "id": "ux.librarycomponent.composes.ux.librarycomponent",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.renders.ux.actioncomponent": {
+      "id": "ux.librarycomponent.renders.ux.actioncomponent",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.renders.ux.componentinstance": {
+      "id": "ux.librarycomponent.renders.ux.componentinstance",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.renders.ux.componentreference": {
+      "id": "ux.librarycomponent.renders.ux.componentreference",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentreference",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.renders.ux.librarycomponent": {
+      "id": "ux.librarycomponent.renders.ux.librarycomponent",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.specializes.ux.librarycomponent": {
+      "id": "ux.librarycomponent.specializes.ux.librarycomponent",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.uses.ux.actionpattern": {
+      "id": "ux.librarycomponent.uses.ux.actionpattern",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actionpattern",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.uses.ux.statepattern": {
+      "id": "ux.librarycomponent.uses.ux.statepattern",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statepattern",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarysubview.composes.ux.componentinstance": {
+      "id": "ux.librarysubview.composes.ux.componentinstance",
+      "source_spec_node_id": "ux.librarysubview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarysubview.uses.ux.actionpattern": {
+      "id": "ux.librarysubview.uses.ux.actionpattern",
+      "source_spec_node_id": "ux.librarysubview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actionpattern",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarysubview.uses.ux.dataconfig": {
+      "id": "ux.librarysubview.uses.ux.dataconfig",
+      "source_spec_node_id": "ux.librarysubview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.dataconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarysubview.uses.ux.layoutconfig": {
+      "id": "ux.librarysubview.uses.ux.layoutconfig",
+      "source_spec_node_id": "ux.librarysubview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.stateaction.flows-to.ux.statetransition": {
+      "id": "ux.stateaction.flows-to.ux.statetransition",
+      "source_spec_node_id": "ux.stateaction",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statetransition",
+      "destination_layer": "ux",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.stateaction.specializes.ux.stateactiontemplate": {
+      "id": "ux.stateaction.specializes.ux.stateactiontemplate",
+      "source_spec_node_id": "ux.stateaction",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateactiontemplate",
+      "destination_layer": "ux",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.stateaction.uses.ux.actionpattern": {
+      "id": "ux.stateaction.uses.ux.actionpattern",
+      "source_spec_node_id": "ux.stateaction",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actionpattern",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.stateactiontemplate.associated-with.ux.statepattern": {
+      "id": "ux.stateactiontemplate.associated-with.ux.statepattern",
+      "source_spec_node_id": "ux.stateactiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statepattern",
+      "destination_layer": "ux",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.stateactiontemplate.governs.ux.statetransition": {
+      "id": "ux.stateactiontemplate.governs.ux.statetransition",
+      "source_spec_node_id": "ux.stateactiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statetransition",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.stateactiontemplate.implements.ux.stateaction": {
+      "id": "ux.stateactiontemplate.implements.ux.stateaction",
+      "source_spec_node_id": "ux.stateactiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateaction",
+      "destination_layer": "ux",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.stateactiontemplate.provides.ux.stateaction": {
+      "id": "ux.stateactiontemplate.provides.ux.stateaction",
+      "source_spec_node_id": "ux.stateactiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateaction",
+      "destination_layer": "ux",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.statepattern.aggregates.ux.experiencestate": {
+      "id": "ux.statepattern.aggregates.ux.experiencestate",
+      "source_spec_node_id": "ux.statepattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.statepattern.governs.ux.experiencestate": {
+      "id": "ux.statepattern.governs.ux.experiencestate",
+      "source_spec_node_id": "ux.statepattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.statepattern.specializes.ux.statepattern": {
+      "id": "ux.statepattern.specializes.ux.statepattern",
+      "source_spec_node_id": "ux.statepattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statepattern",
+      "destination_layer": "ux",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.statepattern.uses.ux.stateactiontemplate": {
+      "id": "ux.statepattern.uses.ux.stateactiontemplate",
+      "source_spec_node_id": "ux.statepattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateactiontemplate",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.statepattern.uses.ux.transitiontemplate": {
+      "id": "ux.statepattern.uses.ux.transitiontemplate",
+      "source_spec_node_id": "ux.statepattern",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.transitiontemplate",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.statetransition.associated-with.ux.actioncomponent": {
+      "id": "ux.statetransition.associated-with.ux.actioncomponent",
+      "source_spec_node_id": "ux.statetransition",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.statetransition.navigates-to.ux.experiencestate": {
+      "id": "ux.statetransition.navigates-to.ux.experiencestate",
+      "source_spec_node_id": "ux.statetransition",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.statetransition.triggers.ux.stateaction": {
+      "id": "ux.statetransition.triggers.ux.stateaction",
+      "source_spec_node_id": "ux.statetransition",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateaction",
+      "destination_layer": "ux",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.statetransition.uses.ux.transitiontemplate": {
+      "id": "ux.statetransition.uses.ux.transitiontemplate",
+      "source_spec_node_id": "ux.statetransition",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.transitiontemplate",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.subview.aggregates.ux.componentinstance": {
+      "id": "ux.subview.aggregates.ux.componentinstance",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.subview.binds-to.ux.dataconfig": {
+      "id": "ux.subview.binds-to.ux.dataconfig",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.dataconfig",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.subview.realizes.ux.librarysubview": {
+      "id": "ux.subview.realizes.ux.librarysubview",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarysubview",
+      "destination_layer": "ux",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.subview.renders.ux.componentinstance": {
+      "id": "ux.subview.renders.ux.componentinstance",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.subview.uses.ux.errorconfig": {
+      "id": "ux.subview.uses.ux.errorconfig",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.errorconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.subview.uses.ux.layoutconfig": {
+      "id": "ux.subview.uses.ux.layoutconfig",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.subview.uses.ux.librarysubview": {
+      "id": "ux.subview.uses.ux.librarysubview",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarysubview",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.tablecolumn.binds-to.ux.dataconfig": {
+      "id": "ux.tablecolumn.binds-to.ux.dataconfig",
+      "source_spec_node_id": "ux.tablecolumn",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.dataconfig",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.tablecolumn.references.ux.actionpattern": {
+      "id": "ux.tablecolumn.references.ux.actionpattern",
+      "source_spec_node_id": "ux.tablecolumn",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actionpattern",
+      "destination_layer": "ux",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.tablecolumn.renders.ux.componentinstance": {
+      "id": "ux.tablecolumn.renders.ux.componentinstance",
+      "source_spec_node_id": "ux.tablecolumn",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.tablecolumn.uses.ux.layoutconfig": {
+      "id": "ux.tablecolumn.uses.ux.layoutconfig",
+      "source_spec_node_id": "ux.tablecolumn",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.transitiontemplate.flows-to.ux.experiencestate": {
+      "id": "ux.transitiontemplate.flows-to.ux.experiencestate",
+      "source_spec_node_id": "ux.transitiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.transitiontemplate.flows-to.ux.subview": {
+      "id": "ux.transitiontemplate.flows-to.ux.subview",
+      "source_spec_node_id": "ux.transitiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.subview",
+      "destination_layer": "ux",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.transitiontemplate.governs.ux.statetransition": {
+      "id": "ux.transitiontemplate.governs.ux.statetransition",
+      "source_spec_node_id": "ux.transitiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statetransition",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.transitiontemplate.navigates-to.ux.view": {
+      "id": "ux.transitiontemplate.navigates-to.ux.view",
+      "source_spec_node_id": "ux.transitiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.transitiontemplate.specializes.ux.transitiontemplate": {
+      "id": "ux.transitiontemplate.specializes.ux.transitiontemplate",
+      "source_spec_node_id": "ux.transitiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.transitiontemplate",
+      "destination_layer": "ux",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.transitiontemplate.triggers.ux.stateaction": {
+      "id": "ux.transitiontemplate.triggers.ux.stateaction",
+      "source_spec_node_id": "ux.transitiontemplate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateaction",
+      "destination_layer": "ux",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxapplication.aggregates.ux.uxspec": {
+      "id": "ux.uxapplication.aggregates.ux.uxspec",
+      "source_spec_node_id": "ux.uxapplication",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.uxspec",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxlibrary.aggregates.ux.librarycomponent": {
+      "id": "ux.uxlibrary.aggregates.ux.librarycomponent",
+      "source_spec_node_id": "ux.uxlibrary",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxlibrary.aggregates.ux.librarysubview": {
+      "id": "ux.uxlibrary.aggregates.ux.librarysubview",
+      "source_spec_node_id": "ux.uxlibrary",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarysubview",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxlibrary.provides.ux.librarycomponent": {
+      "id": "ux.uxlibrary.provides.ux.librarycomponent",
+      "source_spec_node_id": "ux.uxlibrary",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxlibrary.provides.ux.librarysubview": {
+      "id": "ux.uxlibrary.provides.ux.librarysubview",
+      "source_spec_node_id": "ux.uxlibrary",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.librarysubview",
+      "destination_layer": "ux",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxlibrary.uses.ux.uxlibrary": {
+      "id": "ux.uxlibrary.uses.ux.uxlibrary",
+      "source_spec_node_id": "ux.uxlibrary",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.uxlibrary",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxspec.aggregates.ux.experiencestate": {
+      "id": "ux.uxspec.aggregates.ux.experiencestate",
+      "source_spec_node_id": "ux.uxspec",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxspec.aggregates.ux.view": {
+      "id": "ux.uxspec.aggregates.ux.view",
+      "source_spec_node_id": "ux.uxspec",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxspec.governs.ux.errorconfig": {
+      "id": "ux.uxspec.governs.ux.errorconfig",
+      "source_spec_node_id": "ux.uxspec",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.errorconfig",
+      "destination_layer": "ux",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.uxspec.uses.ux.uxlibrary": {
+      "id": "ux.uxspec.uses.ux.uxlibrary",
+      "source_spec_node_id": "ux.uxspec",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.uxlibrary",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.aggregates.ux.subview": {
+      "id": "ux.view.aggregates.ux.subview",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.subview",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.binds-to.ux.dataconfig": {
+      "id": "ux.view.binds-to.ux.dataconfig",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.dataconfig",
+      "destination_layer": "ux",
+      "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.composes.ux.subview": {
+      "id": "ux.view.composes.ux.subview",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.subview",
+      "destination_layer": "ux",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.renders.ux.componentinstance": {
+      "id": "ux.view.renders.ux.componentinstance",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.requires.ux.errorconfig": {
+      "id": "ux.view.requires.ux.errorconfig",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.errorconfig",
+      "destination_layer": "ux",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.uses.ux.layoutconfig": {
+      "id": "ux.view.uses.ux.layoutconfig",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

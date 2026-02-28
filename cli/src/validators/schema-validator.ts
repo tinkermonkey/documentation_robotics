@@ -42,10 +42,12 @@ export class SchemaValidator {
   private static baseSchemaLoadedInSharedInstance: boolean = false;
   // Track schema IDs already registered in the shared AJV instance to avoid re-registering
   private static registeredSchemaIds: Set<string> = new Set();
+  // Layer-level cache: layer ID → nodeSchemas map (avoids re-reading layer dist files)
+  private static layerCache: Map<string, Record<string, unknown>> = new Map();
 
   private ajv: Ajv;
   private compiledSchemas: Map<string, ValidateFunction> = new Map(); // Key: layer.type
-  private schemasDir: string;
+  private bundledDir: string;
 
   constructor() {
     // Initialize shared AJV instance once
@@ -59,9 +61,9 @@ export class SchemaValidator {
     }
     this.ajv = SchemaValidator.sharedAjv;
 
-    // Determine schemas directory (spec node schemas bundled with CLI)
+    // Determine bundled directory (compiled spec dist files)
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    this.schemasDir = path.join(__dirname, "..", "schemas", "bundled");
+    this.bundledDir = path.join(__dirname, "..", "schemas", "bundled");
   }
 
   /**
@@ -82,7 +84,7 @@ export class SchemaValidator {
 
   /**
    * Ensure base schemas are pre-compiled validators are initialized
-   * Loads base schema files from disk and registers them with AJV for reference resolution.
+   * Loads base schemas from base.json and registers them with AJV for reference resolution.
    * This allows per-type schemas to resolve $ref to base schemas during compilation.
    */
   private async ensureBaseSchemaLoaded(): Promise<void> {
@@ -97,50 +99,76 @@ export class SchemaValidator {
     this.compiledSchemas.set("source-references", validateSourceReference);
     this.compiledSchemas.set("attribute-spec", validateAttributeSpec);
 
-    // Load and register base schema objects with AJV for $ref resolution
-    // This is required for type-specific schemas to resolve references to base schemas
-    const baseSchemaNames = [
-      "spec-node.schema.json",
-      "spec-node-relationship.schema.json",
-      "source-references.schema.json",
-      "attribute-spec.schema.json",
-      "model-node-relationship.schema.json",
-      "predicate-catalog.schema.json",
-    ];
+    // Load base.json and register all schemas with AJV for $ref resolution
+    // Schemas use URN-style $ids like "urn:dr:spec:base:spec-node" after compilation
+    const baseJsonPath = path.join(this.bundledDir, "base.json");
+    try {
+      const baseContent = await readFile(baseJsonPath);
+      const baseData = JSON.parse(baseContent) as {
+        specVersion: string;
+        schemas: Record<string, unknown>;
+        predicates: unknown;
+      };
 
-    for (const schemaName of baseSchemaNames) {
-      // Check if already registered in the shared AJV instance
-      if (SchemaValidator.registeredSchemaIds.has(schemaName)) {
-        continue;
-      }
+      for (const [key, schema] of Object.entries(baseData.schemas)) {
+        const s = schema as Record<string, unknown>;
+        const schemaId = (s.$id as string) || `urn:dr:spec:base:${key}`;
 
-      const schemaPath = path.join(this.schemasDir, "base", schemaName);
-      try {
-        const schemaContent = await readFile(schemaPath);
-        const schema = JSON.parse(schemaContent);
-
-        // Register schema with AJV using the file name as ID
-        // This allows $ref to "filename.schema.json#/definitions/..." to be resolved
-        this.ajv.addSchema(schema, schemaName);
-        SchemaValidator.registeredSchemaIds.add(schemaName);
-      } catch (error: unknown) {
-        // Check for the specific AJV error about duplicate schema registration
-        // AJV error message: "schema with key or id <name> already exists"
-        // This is expected when multiple validators are created in the same process
-        const errorMsg = SchemaValidator.getErrorMessage(error);
-        const isDuplicateSchemaError = /schema with key or id [^ ]+ already exists/.test(errorMsg);
-
-        if (isDuplicateSchemaError) {
-          // Skip warning for duplicate registration - this is expected
-          SchemaValidator.registeredSchemaIds.add(schemaName);
+        // Skip if already registered
+        if (SchemaValidator.registeredSchemaIds.has(schemaId)) {
           continue;
         }
-        console.warn(`[SCHEMA-LOAD-001] Failed to load base schema ${schemaName}: ${errorMsg}`);
+
+        try {
+          this.ajv.addSchema(s, schemaId);
+          SchemaValidator.registeredSchemaIds.add(schemaId);
+        } catch (error: unknown) {
+          const errorMsg = SchemaValidator.getErrorMessage(error);
+          const isDuplicateSchemaError = /schema with key or id [^ ]+ already exists/.test(errorMsg);
+          if (isDuplicateSchemaError) {
+            SchemaValidator.registeredSchemaIds.add(schemaId);
+          } else {
+            console.warn(`[SCHEMA-LOAD-001] Failed to register base schema '${key}': ${errorMsg}`);
+          }
+        }
       }
+    } catch (error: unknown) {
+      console.warn(
+        `[SCHEMA-LOAD-001] Failed to load base.json from ${baseJsonPath}: ${SchemaValidator.getErrorMessage(error)}`
+      );
     }
 
     // Mark base schemas as loaded in shared instance (applies to all instances)
     SchemaValidator.baseSchemaLoadedInSharedInstance = true;
+  }
+
+  /**
+   * Load the nodeSchemas map for a layer, using a static layer-level cache.
+   * Reads bundled/{layer}.json once per layer and caches the nodeSchemas object.
+   */
+  private async loadLayerNodeSchemas(layer: string): Promise<Record<string, unknown> | null> {
+    // Return cached layer schemas if available
+    if (SchemaValidator.layerCache.has(layer)) {
+      return SchemaValidator.layerCache.get(layer)!;
+    }
+
+    const layerPath = path.join(this.bundledDir, `${layer}.json`);
+    if (!existsSync(layerPath)) {
+      return null;
+    }
+
+    try {
+      const content = await readFile(layerPath);
+      const layerData = JSON.parse(content) as { nodeSchemas: Record<string, unknown> };
+      const nodeSchemas = layerData.nodeSchemas || {};
+      SchemaValidator.layerCache.set(layer, nodeSchemas);
+      return nodeSchemas;
+    } catch (error: unknown) {
+      console.warn(
+        `[SCHEMA-LOAD-002] Failed to load layer file for '${layer}': ${SchemaValidator.getErrorMessage(error)}`
+      );
+      return null;
+    }
   }
 
   /**
@@ -149,7 +177,7 @@ export class SchemaValidator {
   private async loadSpecNodeSchema(layer: string, type: string): Promise<ValidateFunction | null> {
     const cacheKey = `${layer}.${type}`;
 
-    // Check cache first
+    // Check compiled schema cache first
     if (this.compiledSchemas.has(cacheKey)) {
       return this.compiledSchemas.get(cacheKey)!;
     }
@@ -158,41 +186,28 @@ export class SchemaValidator {
     await this.ensureBaseSchemaLoaded();
 
     try {
-      // Try primary path: spec/schemas/nodes/{layer}/{type}.node.schema.json (from bundled schemas)
-      const schemaPath = path.join(this.schemasDir, "nodes", layer, `${type}.node.schema.json`);
-
-      if (!existsSync(schemaPath)) {
-        // Schema file doesn't exist - this is acceptable for newer/custom types
+      // Load node schemas from layer dist file (layer-level cache)
+      const nodeSchemas = await this.loadLayerNodeSchemas(layer);
+      if (!nodeSchemas || !nodeSchemas[type]) {
+        // No schema for this type - acceptable for custom types
         return null;
       }
 
-      const schemaContent = await readFile(schemaPath);
-      const schema = JSON.parse(schemaContent);
-
-      // Set $id on the schema to enable reference resolution
-      // The schema uses relative refs like "../../base/spec-node.schema.json"
-      // By setting $id to the absolute path, AJV can resolve relative references
-      if (!schema.$id) {
-        schema.$id = `file://${schemaPath}`;
-      }
+      const schema = nodeSchemas[type] as Record<string, unknown>;
+      const schemaId = (schema.$id as string) || `urn:dr:spec:node:${layer}.${type}`;
 
       // Check if schema with this $id is already registered to avoid duplicate compilation
-      const schemaId = schema.$id;
       if (SchemaValidator.registeredSchemaIds.has(schemaId)) {
-        // Schema already registered - try to retrieve from cache instead of recompiling
-        // If not in cache, return null to fall back to base validation
+        // Schema already registered — return from compiled cache or null (fallback to base)
         return this.compiledSchemas.get(cacheKey) || null;
       }
 
       try {
-        // Compile and cache the schema
         const validate = this.ajv.compile(schema);
         this.compiledSchemas.set(cacheKey, validate);
         SchemaValidator.registeredSchemaIds.add(schemaId);
         return validate;
       } catch (registrationError: unknown) {
-        // If compilation fails due to duplicate registration, mark as registered
-        // and return null to fall back to base validation
         const errorMsg = SchemaValidator.getErrorMessage(registrationError);
         if (errorMsg.includes("already exists")) {
           SchemaValidator.registeredSchemaIds.add(schemaId);
@@ -201,11 +216,8 @@ export class SchemaValidator {
         throw registrationError;
       }
     } catch (error: unknown) {
-      // Skip reference resolution errors - they're expected for schema discovery
-      // Base schema validation still passes via pre-compiled validators
       const errorMsg = SchemaValidator.getErrorMessage(error);
       if (errorMsg.includes("can't resolve reference")) {
-        // This is expected for type-specific schema discovery - fallback to base validator only
         return null;
       }
       console.warn(`[SCHEMA-LOAD-002] Failed to load spec node schema for ${layer}.${type}: ${errorMsg}`);
@@ -402,5 +414,6 @@ export class SchemaValidator {
     SchemaValidator.sharedAjv = null;
     SchemaValidator.baseSchemaLoadedInSharedInstance = false;
     SchemaValidator.registeredSchemaIds.clear();
+    SchemaValidator.layerCache.clear();
   }
 }

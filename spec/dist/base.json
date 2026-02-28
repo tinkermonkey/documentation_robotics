@@ -1,0 +1,1165 @@
+{
+  "specVersion": "0.8.0",
+  "schemas": {
+    "spec-node": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "urn:dr:spec:base:spec-node",
+      "title": "SpecNode",
+      "description": "Base schema for all spec node types. Each node type schema extends this with type-specific attribute constraints via allOf.",
+      "type": "object",
+      "required": ["id", "spec_node_id", "type", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique node instance identifier (UUIDv4). Globally unique across the entire model.",
+          "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+        },
+        "spec_node_id": {
+          "type": "string",
+          "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
+          "description": "Reference to the spec node type that this node conforms to (e.g., 'motivation.goal')"
+        },
+        "type": {
+          "type": "string",
+          "description": "Denormalized node type for efficient filtering and queries. Extracted from spec_node_id (the part after the dot).",
+          "examples": ["goal", "requirement", "endpoint", "table"]
+        },
+        "layer_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Denormalized layer ID for efficient layer-scoped queries. Extracted from spec_node_id (the part before the dot)."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable instance name",
+          "examples": ["Improve Customer Satisfaction", "User Login API", "Customer Table"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional detailed description of this specific node instance"
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Attribute values for this node instance. Keys must correspond to attributes defined in the per-type schema, and values must conform to the type constraints."
+        },
+        "source_reference": {
+          "$ref": "urn:dr:spec:base:source-references#/definitions/SourceReference",
+          "description": "Optional provenance tracking linking this node to source code locations"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Optional metadata about the lifecycle and version of this node instance",
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "ISO 8601 timestamp when this node was created"
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "ISO 8601 timestamp of the last modification"
+            },
+            "created_by": {
+              "type": "string",
+              "description": "User or system that created this node"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Version number of this node (incremented on updates)"
+            }
+          }
+        }
+      }
+    },
+    "spec-node-relationship": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "urn:dr:spec:base:spec-node-relationship",
+      "title": "SpecNodeRelationship",
+      "description": "Base type for relationship type definitions in the specification. Defines valid relationships between node types, including cardinality, strength, and semantic properties.",
+      "type": "object",
+      "required": ["id", "source_spec_node_id", "destination_spec_node_id", "predicate"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z-]+\\.[a-z-]+\\.[a-z-]+$",
+          "description": "Unique relationship ID in format: {source-layer}.{predicate}.{dest-layer}. All components use lowercase with hyphens.",
+          "examples": [
+            "motivation.supports.motivation",
+            "motivation.realizes.business",
+            "api.exposes.data-model"
+          ]
+        },
+        "source_spec_node_id": {
+          "type": "string",
+          "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
+          "description": "SpecNode ID that can serve as the source of this relationship type"
+        },
+        "source_layer": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Denormalized layer ID extracted from source_spec_node_id for efficient queries"
+        },
+        "destination_spec_node_id": {
+          "type": "string",
+          "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
+          "description": "SpecNode ID that can serve as the destination of this relationship type"
+        },
+        "destination_layer": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Denormalized layer ID extracted from destination_spec_node_id for efficient queries"
+        },
+        "predicate": {
+          "type": "string",
+          "description": "Semantic predicate from PredicateCatalog describing the relationship type. Must be a valid predicate name.",
+          "examples": ["supports", "realizes", "fulfills", "implements", "uses", "consumes"]
+        },
+        "cardinality": {
+          "type": "string",
+          "enum": ["one-to-one", "one-to-many", "many-to-one", "many-to-many"],
+          "description": "Multiplicity constraint on this relationship type. Defines how many source nodes can relate to how many destination nodes.",
+          "default": "many-to-many"
+        },
+        "strength": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "description": "Typical importance or strength of this relationship type",
+          "default": "medium"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether instances of the source node type must have at least one relationship of this type",
+          "default": false
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Optional schema defining attributes that can appear on relationship instances of this type",
+          "additionalProperties": {
+            "$ref": "urn:dr:spec:base:attribute-spec#/definitions/AttributeSpec"
+          },
+          "minProperties": 0,
+          "examples": [
+            {
+              "reason": {
+                "type": "string",
+                "description": "Explanation for why this relationship exists"
+              },
+              "strength_override": {
+                "type": "enum",
+                "enum_values": ["critical", "high", "medium", "low"],
+                "description": "Instance-specific strength override"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "source-references": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "urn:dr:spec:base:source-references",
+      "title": "Source Code Reference Definitions",
+      "description": "Reusable JSON Schema definitions for linking architecture elements to source code locations",
+      "version": "1.0.0",
+      "definitions": {
+        "ProvenanceType": {
+          "type": "string",
+          "enum": ["extracted", "manual", "inferred", "generated"],
+          "description": "How this reference was created: extracted (automated ingestion), manual (human added), inferred (pattern matching), generated (code generated from model)"
+        },
+        "SourceLocation": {
+          "type": "object",
+          "description": "A specific location in source code, identified by file path and optional symbol",
+          "required": ["file"],
+          "properties": {
+            "file": {
+              "type": "string",
+              "minLength": 1,
+              "description": "File path relative to repository root"
+            },
+            "symbol": {
+              "type": "string",
+              "description": "Named code element (e.g., ClassName.methodName, function_name)"
+            }
+          }
+        },
+        "RepositoryContext": {
+          "type": "object",
+          "description": "Repository context for the source reference",
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Git remote URL (HTTPS or SSH format)"
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$",
+              "description": "Full 40-character Git commit SHA"
+            }
+          }
+        },
+        "SourceReference": {
+          "type": "object",
+          "description": "Links entity to source code location(s) with provenance tracking",
+          "required": ["provenance", "locations"],
+          "properties": {
+            "provenance": {
+              "$ref": "#/definitions/ProvenanceType"
+            },
+            "locations": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/SourceLocation"
+              },
+              "description": "One or more source code locations"
+            },
+            "repository": {
+              "$ref": "#/definitions/RepositoryContext"
+            }
+          }
+        }
+      }
+    },
+    "attribute-spec": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "urn:dr:spec:base:attribute-spec",
+      "title": "AttributeSpec Definitions",
+      "description": "Reusable definition for attribute specifications used in spec-level schemas (e.g., spec-node-relationship attributes)",
+      "definitions": {
+        "AttributeSpec": {
+          "type": "object",
+          "title": "AttributeSpec",
+          "description": "Specification for a single attribute that can appear on node or relationship instances",
+          "required": ["type", "description"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["string", "integer", "number", "boolean", "array", "object", "enum"],
+              "description": "The JSON type of this attribute"
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of this attribute's purpose"
+            },
+            "enum_values": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Required when type is 'enum'. Lists the valid string values for this attribute.",
+              "examples": [
+                ["high", "medium", "low"],
+                ["active", "inactive", "archived"]
+              ]
+            },
+            "format": {
+              "type": "string",
+              "description": "Optional format constraint for string types (e.g., 'email', 'uri', 'date-time')",
+              "examples": ["email", "uri", "date-time", "uuid"]
+            },
+            "default": {
+              "description": "Default value for this attribute when not provided on a node instance. Can be any JSON value."
+            }
+          },
+          "if": {
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["type", "description", "enum_values"]
+          }
+        }
+      }
+    },
+    "model-node-relationship": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "urn:dr:spec:base:model-node-relationship",
+      "title": "ModelNodeRelationship",
+      "description": "Concrete relationship instance connecting two ModelNodes. Represents a specific relationship edge in the model graph that conforms to a SpecNodeRelationship type.",
+      "type": "object",
+      "required": [
+        "id",
+        "spec_relationship_id",
+        "source_node_id",
+        "destination_node_id",
+        "predicate"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique relationship instance identifier (UUIDv4). Globally unique across the entire model.",
+          "examples": ["660e9500-f39c-52e5-b827-557766551111"]
+        },
+        "spec_relationship_id": {
+          "type": "string",
+          "pattern": "^[a-z-]+\\.[a-z-]+\\.[a-z-]+$",
+          "description": "Reference to the SpecNodeRelationship type that this relationship conforms to (e.g., 'motivation.supports.motivation')"
+        },
+        "source_node_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID of the source ModelNode. Must be a valid node in the model."
+        },
+        "source_layer_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Denormalized layer ID of the source node for efficient layer-scoped queries"
+        },
+        "destination_node_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID of the destination ModelNode. Must be a valid node in the model."
+        },
+        "destination_layer_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Denormalized layer ID of the destination node for efficient layer-scoped queries"
+        },
+        "predicate": {
+          "type": "string",
+          "description": "The semantic predicate describing this relationship (e.g., 'supports', 'realizes'). Must be a valid predicate from PredicateCatalog.",
+          "examples": ["supports", "realizes", "fulfills", "implements", "uses"]
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Optional relationship-specific attribute values. Keys must correspond to attributes defined in the SpecNodeRelationship, and values must conform to the AttributeSpec type constraints.",
+          "additionalProperties": true,
+          "examples": [
+            {
+              "strength_override": "critical",
+              "reason": "Business critical dependency"
+            }
+          ]
+        },
+        "source_reference": {
+          "$ref": "urn:dr:spec:base:source-references#/definitions/SourceReference",
+          "description": "Optional provenance tracking linking this relationship to source code locations or comments"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Optional metadata about the lifecycle and version of this relationship instance",
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "ISO 8601 timestamp when this relationship was created"
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "ISO 8601 timestamp of the last modification"
+            },
+            "created_by": {
+              "type": "string",
+              "description": "User or system that created this relationship"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Version number of this relationship (incremented on updates)"
+            }
+          }
+        }
+      }
+    },
+    "predicate-catalog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "urn:dr:spec:base:predicate-catalog",
+      "title": "PredicateCatalog",
+      "description": "Master catalog of all semantic predicates used in the model. Consolidates predicate definitions with their semantics, inverse relationships, and standard alignments. Single source of truth for valid predicates.",
+      "type": "object",
+      "required": ["predicates"],
+      "additionalProperties": false,
+      "properties": {
+        "predicates": {
+          "type": "object",
+          "description": "Mapping of predicate names to their definitions",
+          "additionalProperties": {
+            "$ref": "#/definitions/PredicateDefinition"
+          },
+          "minProperties": 1,
+          "examples": [
+            {
+              "supports": {
+                "predicate": "supports",
+                "inverse": "supported-by",
+                "category": "motivation",
+                "semantics": {
+                  "directionality": "bidirectional",
+                  "transitivity": true,
+                  "symmetry": false,
+                  "reflexivity": false
+                },
+                "archimate_alignment": "Influence",
+                "description": "Element contributes to achieving or enabling another element"
+              }
+            }
+          ]
+        }
+      },
+      "definitions": {
+        "PredicateDefinition": {
+          "type": "object",
+          "title": "PredicateDefinition",
+          "description": "Complete definition of a semantic predicate including its semantics and relationships",
+          "required": ["predicate", "inverse", "category", "description"],
+          "additionalProperties": false,
+          "properties": {
+            "predicate": {
+              "type": "string",
+              "description": "Forward direction predicate name (e.g., 'supports')"
+            },
+            "inverse": {
+              "type": "string",
+              "description": "Inverse/reverse predicate name (e.g., 'supported-by')"
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "motivation",
+                "business",
+                "security",
+                "application",
+                "technology",
+                "api",
+                "data",
+                "data-store",
+                "ux",
+                "navigation",
+                "apm",
+                "testing",
+                "structural",
+                "behavioral",
+                "dependency",
+                "traceability",
+                "governance"
+              ],
+              "description": "Category of relationship based on layer or domain"
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of what this predicate means"
+            },
+            "archimate_alignment": {
+              "type": "string",
+              "enum": [
+                "Composition",
+                "Aggregation",
+                "Assignment",
+                "Realization",
+                "Serving",
+                "Access",
+                "Influence",
+                "Triggering",
+                "Flow",
+                "Specialization",
+                "Association"
+              ],
+              "description": "Corresponding ArchiMate 3.2 relationship type (if applicable)"
+            },
+            "semantics": {
+              "type": "object",
+              "description": "Semantic properties describing the nature of this relationship",
+              "required": ["directionality", "transitivity", "symmetry", "reflexivity"],
+              "additionalProperties": false,
+              "properties": {
+                "directionality": {
+                  "type": "string",
+                  "enum": ["unidirectional", "bidirectional"],
+                  "description": "Whether the relationship is unidirectional (one-way) or bidirectional (navigable both ways)"
+                },
+                "transitivity": {
+                  "type": "boolean",
+                  "description": "Whether the relationship is transitive: if A→B and B→C, then A→C"
+                },
+                "symmetry": {
+                  "type": "boolean",
+                  "description": "Whether the relationship is symmetric: if A→B, then B→A"
+                },
+                "reflexivity": {
+                  "type": "boolean",
+                  "description": "Whether an element can have this relationship with itself"
+                }
+              }
+            },
+            "default_strength": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low"],
+              "description": "Default strength/importance level for relationships using this predicate"
+            }
+          }
+        }
+      }
+    },
+    "spec-layer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "urn:dr:spec:base:spec-layer",
+      "title": "SpecLayer",
+      "description": "Base type for layer definitions in the specification. Defines the structure and metadata of a layer that contains nodes and relationships.",
+      "type": "object",
+      "required": ["id", "number", "name", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Unique layer identifier using lowercase letters, numbers, and hyphens (e.g., 'motivation', 'data-model', 'data-store')",
+          "examples": ["motivation", "business", "data-model", "data-store", "apm"]
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99,
+          "description": "Layer number for ordering and cross-layer references. Maps to layer position in the 12-layer model.",
+          "examples": [1, 2, 3, 12]
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable layer name",
+          "examples": ["Motivation Layer", "Business Layer", "Data Model Layer"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Purpose and scope of this layer within the architecture model",
+          "examples": ["Captures stakeholder concerns, goals, requirements, and constraints"]
+        },
+        "inspired_by": {
+          "type": "object",
+          "description": "External standard or model that inspired the design of this layer",
+          "additionalProperties": false,
+          "properties": {
+            "standard": {
+              "type": "string",
+              "description": "Name of the standard (e.g., 'ArchiMate', 'OpenAPI')",
+              "examples": ["ArchiMate 3.2", "OpenAPI 3.0", "JSON Schema Draft 7"]
+            },
+            "version": {
+              "type": "string",
+              "description": "Version of the standard",
+              "examples": ["3.2", "3.0", "Draft 7"]
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL to the standard specification",
+              "examples": ["https://pubs.opengroup.org/architecture/archimate32-doc/"]
+            }
+          }
+        },
+        "node_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
+            "description": "Reference to a SpecNode ID"
+          },
+          "description": "List of SpecNode IDs that are valid in this layer. Used to define which node types can belong to this layer.",
+          "examples": [["motivation.goal", "motivation.requirement", "motivation.constraint"]]
+        }
+      }
+    }
+  },
+  "predicates": {
+    "supports": {
+      "predicate": "supports",
+      "inverse": "supported-by",
+      "category": "motivation",
+      "description": "Element contributes to achieving or enabling another element",
+      "archimate_alignment": "Influence",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "realizes": {
+      "predicate": "realizes",
+      "inverse": "realized-by",
+      "category": "structural",
+      "description": "Element implements or makes concrete another element",
+      "archimate_alignment": "Realization",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "fulfills": {
+      "predicate": "fulfills",
+      "inverse": "fulfilled-by",
+      "category": "motivation",
+      "description": "Element satisfies the needs specified by another element",
+      "archimate_alignment": "Realization",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "delivers": {
+      "predicate": "delivers",
+      "inverse": "delivered-by",
+      "category": "motivation",
+      "description": "Element provides value or benefit",
+      "archimate_alignment": "Realization",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "constrains": {
+      "predicate": "constrains",
+      "inverse": "constrained-by",
+      "category": "motivation",
+      "description": "Element limits or restricts another element",
+      "archimate_alignment": "Influence",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "governs": {
+      "predicate": "governs",
+      "inverse": "governed-by",
+      "category": "motivation",
+      "description": "Element provides rules or guidelines for another element",
+      "archimate_alignment": "Influence",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "owns": {
+      "predicate": "owns",
+      "inverse": "owned-by",
+      "category": "business",
+      "description": "Element has responsibility or authority over another element",
+      "archimate_alignment": "Assignment",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "performs": {
+      "predicate": "performs",
+      "inverse": "performed-by",
+      "category": "business",
+      "description": "Element executes or carries out another element",
+      "archimate_alignment": "Assignment",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "provides": {
+      "predicate": "provides",
+      "inverse": "provided-by",
+      "category": "structural",
+      "description": "Element makes functionality available",
+      "archimate_alignment": "Serving",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "consumes": {
+      "predicate": "consumes",
+      "inverse": "consumed-by",
+      "category": "dependency",
+      "description": "Element uses or depends on another element's functionality",
+      "archimate_alignment": "Serving",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "requires": {
+      "predicate": "requires",
+      "inverse": "required-by",
+      "category": "security",
+      "description": "Element needs another element to function correctly",
+      "archimate_alignment": "Access",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "protects": {
+      "predicate": "protects",
+      "inverse": "protected-by",
+      "category": "security",
+      "description": "Element provides security for another element",
+      "archimate_alignment": "Influence",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "mitigates": {
+      "predicate": "mitigates",
+      "inverse": "mitigated-by",
+      "category": "security",
+      "description": "Element reduces or addresses a risk or threat",
+      "archimate_alignment": "Influence",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "accesses": {
+      "predicate": "accesses",
+      "inverse": "accessed-by",
+      "category": "security",
+      "description": "Element can read or modify another element",
+      "archimate_alignment": "Access",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "uses": {
+      "predicate": "uses",
+      "inverse": "used-by",
+      "category": "dependency",
+      "description": "Element depends on or utilizes another element",
+      "archimate_alignment": "Serving",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "implements": {
+      "predicate": "implements",
+      "inverse": "implemented-by",
+      "category": "structural",
+      "description": "Element provides concrete implementation of another element",
+      "archimate_alignment": "Realization",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "composes": {
+      "predicate": "composes",
+      "inverse": "composed-of",
+      "category": "structural",
+      "description": "Whole-part relationship where part cannot exist without whole",
+      "archimate_alignment": "Composition",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "aggregates": {
+      "predicate": "aggregates",
+      "inverse": "aggregated-by",
+      "category": "structural",
+      "description": "Whole-part relationship where part can exist independently",
+      "archimate_alignment": "Aggregation",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "triggers": {
+      "predicate": "triggers",
+      "inverse": "triggered-by",
+      "category": "behavioral",
+      "description": "Element causes or initiates another element",
+      "archimate_alignment": "Triggering",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "flows-to": {
+      "predicate": "flows-to",
+      "inverse": "flows-from",
+      "category": "behavioral",
+      "description": "Data or control flows from one element to another",
+      "archimate_alignment": "Flow",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "monitors": {
+      "predicate": "monitors",
+      "inverse": "monitored-by",
+      "category": "apm",
+      "description": "Element observes or tracks another element",
+      "archimate_alignment": "Serving",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "tests": {
+      "predicate": "tests",
+      "inverse": "tested-by",
+      "category": "testing",
+      "description": "Element validates or verifies another element",
+      "archimate_alignment": "Serving",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false,
+        "reflexivity": false
+      }
+    },
+    "specializes": {
+      "predicate": "specializes",
+      "inverse": "generalized-by",
+      "category": "structural",
+      "description": "Type-subtype relationship (inheritance)",
+      "archimate_alignment": "Specialization",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false
+      }
+    },
+    "assigned-to": {
+      "predicate": "assigned-to",
+      "inverse": "assigns",
+      "category": "structural",
+      "description": "Active element assigned to behavior or role",
+      "archimate_alignment": "Assignment",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "associated-with": {
+      "predicate": "associated-with",
+      "inverse": "associated-with",
+      "category": "structural",
+      "description": "Generic relationship indicating elements are related or connected",
+      "archimate_alignment": "Association",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": true
+      }
+    },
+    "influence": {
+      "predicate": "influence",
+      "inverse": "influenced-by",
+      "category": "behavioral",
+      "description": "Element affects or impacts another element",
+      "archimate_alignment": "Influence",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "serves": {
+      "predicate": "serves",
+      "inverse": "served-by",
+      "category": "behavioral",
+      "description": "Service available to consumer",
+      "archimate_alignment": "Serving",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "references": {
+      "predicate": "references",
+      "inverse": "referenced-by",
+      "category": "dependency",
+      "description": "Pointer reference without functional dependency",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "depends-on": {
+      "predicate": "depends-on",
+      "inverse": "dependency-of",
+      "category": "dependency",
+      "description": "Element requires another to function",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false
+      }
+    },
+    "supports-goals": {
+      "predicate": "supports-goals",
+      "inverse": "supported-by",
+      "category": "traceability",
+      "description": "Implementation contributes to achieving goal",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false
+      }
+    },
+    "fulfills-requirements": {
+      "predicate": "fulfills-requirements",
+      "inverse": "fulfilled-by",
+      "category": "traceability",
+      "description": "Implementation satisfies requirement",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "delivers-value": {
+      "predicate": "delivers-value",
+      "inverse": "delivered-by",
+      "category": "traceability",
+      "description": "Implementation provides business value",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "measures-outcome": {
+      "predicate": "measures-outcome",
+      "inverse": "measured-by",
+      "category": "traceability",
+      "description": "Metric validates outcome achievement",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "governed-by-principles": {
+      "predicate": "governed-by-principles",
+      "inverse": "governs",
+      "category": "governance",
+      "description": "Element follows architectural principle",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "constrained-by": {
+      "predicate": "constrained-by",
+      "inverse": "constrains",
+      "category": "governance",
+      "description": "Element limited by constraint",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "enforces-requirement": {
+      "predicate": "enforces-requirement",
+      "inverse": "enforced-by",
+      "category": "governance",
+      "description": "Element actively enforces requirement",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "traces": {
+      "predicate": "traces",
+      "inverse": "traced-by",
+      "category": "apm",
+      "description": "Distributed tracing relationships",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "measures": {
+      "predicate": "measures",
+      "inverse": "measured-by",
+      "category": "apm",
+      "description": "Metric collection relationships",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "authenticates": {
+      "predicate": "authenticates",
+      "inverse": "authenticated-by",
+      "category": "security",
+      "description": "Authentication flows",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "authorizes": {
+      "predicate": "authorizes",
+      "inverse": "authorized-by",
+      "category": "security",
+      "description": "Permission grants",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "renders": {
+      "predicate": "renders",
+      "inverse": "rendered-by",
+      "category": "ux",
+      "description": "UI rendering relationships",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "binds-to": {
+      "predicate": "binds-to",
+      "inverse": "bound-by",
+      "category": "ux",
+      "description": "Data binding relationships",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "navigates-to": {
+      "predicate": "navigates-to",
+      "inverse": "navigated-from",
+      "category": "ux",
+      "description": "Navigation flows",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "maps-to": {
+      "predicate": "maps-to",
+      "inverse": "mapped-from",
+      "category": "data",
+      "description": "Schema/table mapping",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "references-table": {
+      "predicate": "references-table",
+      "inverse": "table-referenced-by",
+      "category": "data",
+      "description": "Foreign key relationships",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "derives-from": {
+      "predicate": "derives-from",
+      "inverse": "derived-by",
+      "category": "data",
+      "description": "Calculated field relationships",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    },
+    "validates": {
+      "predicate": "validates",
+      "inverse": "validated-by",
+      "category": "testing",
+      "description": "Test element validates that a requirement or target is satisfied",
+      "archimate_alignment": null,
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      }
+    }
+  }
+}

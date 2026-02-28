@@ -17,6 +17,25 @@ import { readFile } from "../utils/file-io.js";
 import { existsSync } from "fs";
 import { startSpan, endSpan } from "../telemetry/index.js";
 
+interface ManifestDistFile {
+  layers: Array<{ id: string }>;
+}
+
+interface LayerDistFile {
+  relationshipSchemas: Record<string, {
+    id: string;
+    source_spec_node_id: string;
+    source_layer: string;
+    destination_spec_node_id: string;
+    destination_layer: string;
+    predicate: string;
+    cardinality: "one-to-one" | "one-to-many" | "many-to-one" | "many-to-many";
+    strength: string;
+    required?: boolean;
+    attributes?: Record<string, unknown>;
+  }>;
+}
+
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
@@ -59,49 +78,46 @@ export class RelationshipValidator {
   }
 
   /**
-   * Load relationship schemas from bundled spec
+   * Load relationship schemas from compiled bundled spec (manifest.json + per-layer JSON files)
    */
   private async loadRelationshipSchemas(): Promise<void> {
     try {
-      const relationshipsPath = path.join(
-        this.schemasDir,
-        "relationships"
-      );
+      const manifestPath = path.join(this.schemasDir, "manifest.json");
 
-      if (!existsSync(relationshipsPath)) {
-        console.warn(`Relationship schemas directory not found at ${relationshipsPath}`);
+      if (!existsSync(manifestPath)) {
+        console.warn(`Bundled manifest not found at ${manifestPath}`);
         return;
       }
 
-      // Dynamically import glob
-      const { glob } = await import("glob");
-      const schemaFiles = await glob(
-        path.join(relationshipsPath, "**", "*.relationship.schema.json")
-      );
+      const manifestContent = await readFile(manifestPath);
+      const manifest = JSON.parse(manifestContent) as ManifestDistFile;
 
-      for (const schemaFile of schemaFiles) {
+      for (const { id: layerId } of manifest.layers) {
+        const layerPath = path.join(this.schemasDir, `${layerId}.json`);
+        if (!existsSync(layerPath)) {
+          continue;
+        }
+
         try {
-          const content = await readFile(schemaFile);
-          const schema = JSON.parse(content);
+          const layerContent = await readFile(layerPath);
+          const layerData = JSON.parse(layerContent) as LayerDistFile;
 
-          if (schema.properties?.id?.const) {
-            const id = schema.properties.id.const;
-            this.relationshipSchemas.set(id, {
-              id,
-              source_spec_node_id: schema.properties.source_spec_node_id?.const || "",
-              source_layer: schema.properties.source_layer?.const || "",
-              destination_spec_node_id:
-                schema.properties.destination_spec_node_id?.const || "",
-              destination_layer: schema.properties.destination_layer?.const || "",
-              predicate: schema.properties.predicate?.const || "",
-              cardinality: schema.properties.cardinality?.const || "many-to-many",
-              strength: schema.properties.strength?.const || "medium",
-              required: schema.properties.required?.default || false,
-              attributes: schema.properties.attributes,
+          for (const [relId, relSchema] of Object.entries(layerData.relationshipSchemas || {})) {
+            this.relationshipSchemas.set(relId, {
+              id: relSchema.id || relId,
+              source_spec_node_id: relSchema.source_spec_node_id || "",
+              source_layer: relSchema.source_layer || "",
+              destination_spec_node_id: relSchema.destination_spec_node_id || "",
+              destination_layer: relSchema.destination_layer || "",
+              predicate: relSchema.predicate || "",
+              cardinality: relSchema.cardinality || "many-to-many",
+              strength: relSchema.strength || "medium",
+              required: relSchema.required || false,
+              attributes: relSchema.attributes,
             });
           }
         } catch (error: any) {
-          console.warn(`Failed to load relationship schema from ${schemaFile}: ${error.message}`);
+          console.warn(`Failed to load relationship schemas for layer '${layerId}': ${error.message}`);
         }
       }
     } catch (error: any) {

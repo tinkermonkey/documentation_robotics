@@ -1,0 +1,93 @@
+{
+  "specVersion": "0.8.0",
+  "layers": [
+    {
+      "id": "motivation",
+      "number": 1,
+      "name": "Motivation Layer",
+      "nodeTypeCount": 10,
+      "relationshipCount": 70
+    },
+    {
+      "id": "business",
+      "number": 2,
+      "name": "Business Layer",
+      "nodeTypeCount": 13,
+      "relationshipCount": 56
+    },
+    {
+      "id": "security",
+      "number": 3,
+      "name": "Security Layer",
+      "nodeTypeCount": 29,
+      "relationshipCount": 147
+    },
+    {
+      "id": "application",
+      "number": 4,
+      "name": "Application Layer",
+      "nodeTypeCount": 9,
+      "relationshipCount": 42
+    },
+    {
+      "id": "technology",
+      "number": 5,
+      "name": "Technology Layer",
+      "nodeTypeCount": 13,
+      "relationshipCount": 85
+    },
+    {
+      "id": "api",
+      "number": 6,
+      "name": "API Layer",
+      "nodeTypeCount": 27,
+      "relationshipCount": 140
+    },
+    {
+      "id": "data-model",
+      "number": 7,
+      "name": "Data Model Layer",
+      "nodeTypeCount": 9,
+      "relationshipCount": 15
+    },
+    {
+      "id": "data-store",
+      "number": 8,
+      "name": "Data Store Layer",
+      "nodeTypeCount": 11,
+      "relationshipCount": 51
+    },
+    {
+      "id": "ux",
+      "number": 9,
+      "name": "UX Layer",
+      "nodeTypeCount": 22,
+      "relationshipCount": 122
+    },
+    {
+      "id": "navigation",
+      "number": 10,
+      "name": "Navigation Layer",
+      "nodeTypeCount": 11,
+      "relationshipCount": 51
+    },
+    {
+      "id": "apm",
+      "number": 11,
+      "name": "APM Observability Layer",
+      "nodeTypeCount": 13,
+      "relationshipCount": 54
+    },
+    {
+      "id": "testing",
+      "number": 12,
+      "name": "Testing Layer",
+      "nodeTypeCount": 17,
+      "relationshipCount": 102
+    }
+  ],
+  "totals": {
+    "nodeTypes": 184,
+    "relationships": 935
+  }
+}

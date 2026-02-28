@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# sync-spec-schemas.sh — Copy spec schemas into cli/src/schemas/bundled/
+# sync-spec-schemas.sh — Copy spec/dist/*.json into cli/src/schemas/bundled/
 # and update BUNDLED_SPEC_VERSION in spec-version.ts.
 #
+# Requires spec/dist/ to already exist (run `npm run build:spec` at repo root first).
 # Safe to run repeatedly (idempotent). Called automatically by `npm run build`.
 
 set -euo pipefail
@@ -12,74 +13,41 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLI_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$CLI_DIR/.." && pwd)"
 
-SPEC_SCHEMAS="$REPO_ROOT/spec/schemas"
+SPEC_DIST="$REPO_ROOT/spec/dist"
 BUNDLED_DIR="$CLI_DIR/src/schemas/bundled"
-SPEC_VERSION_FILE="$REPO_ROOT/spec/VERSION"
 SPEC_VERSION_TS="$CLI_DIR/src/utils/spec-version.ts"
 
 # --- Pre-flight checks ---
 
-if [ ! -d "$SPEC_SCHEMAS" ]; then
-  echo "ERROR: spec/schemas/ not found at $SPEC_SCHEMAS" >&2
-  echo "This script must run inside the monorepo." >&2
+if [ ! -d "$SPEC_DIST" ]; then
+  echo "ERROR: spec/dist/ not found at $SPEC_DIST" >&2
+  echo "Run 'npm run build:spec' at the repo root first to compile the spec." >&2
   exit 1
 fi
 
-if [ ! -f "$SPEC_VERSION_FILE" ]; then
-  echo "ERROR: spec/VERSION not found at $SPEC_VERSION_FILE" >&2
+if [ ! -f "$SPEC_DIST/manifest.json" ]; then
+  echo "ERROR: spec/dist/manifest.json not found — spec/dist/ appears incomplete" >&2
+  echo "Run 'npm run build:spec' at the repo root to rebuild the spec distribution." >&2
   exit 1
 fi
 
-# --- Copy schemas ---
+# --- Sync compiled spec files ---
 
-# Create base directory
-mkdir -p "$BUNDLED_DIR/base"
+rm -rf "$BUNDLED_DIR"
+mkdir -p "$BUNDLED_DIR"
 
-# Copy base schemas
-if [ -d "$SPEC_SCHEMAS/base" ]; then
-  base_count=$(find "$SPEC_SCHEMAS/base" -name '*.json' | wc -l)
-  cp "$SPEC_SCHEMAS/base/"*.json "$BUNDLED_DIR/base/"
-  echo "Copied $base_count base schema files"
-fi
+cp "$SPEC_DIST"/*.json "$BUNDLED_DIR/"
 
-# Copy nodes and relationships directories if they exist
-if [ -d "$SPEC_SCHEMAS/nodes" ]; then
-  rm -rf "$BUNDLED_DIR/nodes"
-  mkdir -p "$BUNDLED_DIR/nodes"
-  cp -r "$SPEC_SCHEMAS/nodes/"* "$BUNDLED_DIR/nodes/"
-  echo "Copied nodes directory"
-fi
-
-if [ -d "$SPEC_SCHEMAS/relationships" ]; then
-  rm -rf "$BUNDLED_DIR/relationships"
-  mkdir -p "$BUNDLED_DIR/relationships"
-  cp -r "$SPEC_SCHEMAS/relationships/"* "$BUNDLED_DIR/relationships/"
-  echo "Copied relationships directory"
-fi
-
-# Copy layer instances (from spec/layers, not spec/schemas/layers)
-if [ -d "$REPO_ROOT/spec/layers" ]; then
-  mkdir -p "$BUNDLED_DIR/layers"
-  cp "$REPO_ROOT/spec/layers/"*.layer.json "$BUNDLED_DIR/layers/"
-  echo "Copied layer instances"
-fi
-
-# --- Validate file count ---
-
-bundled_count=$(find "$BUNDLED_DIR" -name '*.json' | wc -l)
-# Exclude relationship-catalog.json from spec count (not bundled anymore)
-total_spec=$(find "$SPEC_SCHEMAS" -name '*.json' ! -name 'relationship-catalog.json' | wc -l)
-
-if [ "$bundled_count" -lt "$total_spec" ]; then
-  echo "ERROR: bundled has $bundled_count files but spec has $total_spec" >&2
-  exit 1
-fi
+bundled_count=$(find "$BUNDLED_DIR" -name '*.json' | wc -l | tr -d ' ')
+echo "Copied $bundled_count compiled spec files to bundled/"
 
 # --- Update BUNDLED_SPEC_VERSION ---
 
-SPEC_VERSION=$(tr -d '[:space:]' < "$SPEC_VERSION_FILE")
+SPEC_VERSION=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('$SPEC_DIST/manifest.json','utf-8')).specVersion)}catch(e){}" 2>/dev/null || echo "")
 
-if [ ! -f "$SPEC_VERSION_TS" ]; then
+if [ -z "$SPEC_VERSION" ]; then
+  echo "WARNING: Could not read specVersion from manifest.json — skipping version update" >&2
+elif [ ! -f "$SPEC_VERSION_TS" ]; then
   echo "WARNING: spec-version.ts not found at $SPEC_VERSION_TS — skipping version update" >&2
 else
   # Escape special regex characters in SPEC_VERSION for safe sed replacement

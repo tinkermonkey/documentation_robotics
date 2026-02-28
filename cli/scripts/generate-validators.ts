@@ -20,24 +20,18 @@ import addFormats from "ajv-formats";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.join(__dirname, "..");
-const BUNDLED_SCHEMAS_DIR = path.join(CLI_DIR, "src", "schemas", "bundled");
+const BUNDLED_DIR = path.join(CLI_DIR, "src", "schemas", "bundled");
 const GENERATED_DIR = path.join(CLI_DIR, "src", "generated");
 
 /**
- * Base schemas to pre-compile
+ * Base schema keys (in base.json) to pre-compile, mapped to export names
  * These are the schemas that are used most frequently and benefit most from pre-compilation
  */
 const BASE_SCHEMAS = [
-  { file: "base/spec-node.schema.json", exportName: "validateSpecNode" },
-  {
-    file: "base/spec-node-relationship.schema.json",
-    exportName: "validateSpecNodeRelationship",
-  },
-  {
-    file: "base/source-references.schema.json",
-    exportName: "validateSourceReference",
-  },
-  { file: "base/attribute-spec.schema.json", exportName: "validateAttributeSpec" },
+  { key: "spec-node", exportName: "validateSpecNode" },
+  { key: "spec-node-relationship", exportName: "validateSpecNodeRelationship" },
+  { key: "source-references", exportName: "validateSourceReference" },
+  { key: "attribute-spec", exportName: "validateAttributeSpec" },
 ];
 
 interface SchemaToCompile {
@@ -47,44 +41,52 @@ interface SchemaToCompile {
 }
 
 /**
- * Load base schemas from bundled directory
+ * Load base schemas from bundled base.json compiled dist file
  */
 async function loadBaseSchemas(quiet: boolean = false): Promise<SchemaToCompile[]> {
+  const baseJsonPath = path.join(BUNDLED_DIR, "base.json");
+
+  if (!fs.existsSync(baseJsonPath)) {
+    console.error(`ERROR: base.json not found at ${baseJsonPath}`);
+    console.error("Run 'npm run sync-schemas' (which requires 'npm run build:spec' at repo root).");
+    process.exit(1);
+  }
+
+  let baseData: { specVersion: string; schemas: Record<string, any>; predicates: unknown };
+  try {
+    baseData = JSON.parse(fs.readFileSync(baseJsonPath, "utf-8"));
+  } catch (error: any) {
+    console.error(`ERROR: Failed to parse base.json: ${error.message}`);
+    process.exit(1);
+  }
+
   const schemasToCompile: SchemaToCompile[] = [];
 
-  for (const { file, exportName } of BASE_SCHEMAS) {
-    const schemaPath = path.join(BUNDLED_SCHEMAS_DIR, file);
+  for (const { key, exportName } of BASE_SCHEMAS) {
+    const schema = baseData.schemas[key];
 
-    if (!fs.existsSync(schemaPath)) {
+    if (!schema) {
       if (!quiet) {
-        console.warn(`WARNING: Base schema not found at ${schemaPath}, skipping...`);
+        console.warn(`WARNING: Base schema '${key}' not found in base.json, skipping...`);
       }
       continue;
     }
 
-    try {
-      const schemaContent = fs.readFileSync(schemaPath, "utf-8");
-      const schema = JSON.parse(schemaContent);
+    const schemaId = schema.$id || `urn:dr:spec:base:${key}`;
 
-      const schemaId = schema.$id || file;
+    schemasToCompile.push({
+      schemaId,
+      schema,
+      exportName,
+    });
 
-      schemasToCompile.push({
-        schemaId,
-        schema,
-        exportName,
-      });
-
-      if (!quiet) {
-        console.log(`[OK] Loaded ${file} (id: ${schemaId})`);
-      }
-    } catch (error: any) {
-      console.error(`ERROR: Failed to load ${file}: ${error.message}`);
-      process.exit(1);
+    if (!quiet) {
+      console.log(`[OK] Loaded base schema '${key}' (id: ${schemaId})`);
     }
   }
 
   if (schemasToCompile.length === 0) {
-    console.error("ERROR: No base schemas were loaded");
+    console.error("ERROR: No base schemas were loaded from base.json");
     process.exit(1);
   }
 

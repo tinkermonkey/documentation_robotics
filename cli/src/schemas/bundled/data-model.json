@@ -1,0 +1,658 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "data-model",
+    "number": 7,
+    "name": "Data Model Layer",
+    "description": "Layer 7: Data Model Layer",
+    "inspired_by": {
+      "standard": "JSON Schema Draft 7",
+      "version": "Draft 7",
+      "url": "https://json-schema.org/draft-07/"
+    },
+    "node_types": []
+  },
+  "nodeSchemas": {
+    "arrayschema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ArraySchema",
+      "description": "Defines validation rules for JSON array instances, constraining item schemas, cardinality bounds (minItems/maxItems), uniqueness requirements, and contains-subschema matching.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "data-model.arrayschema"
+        },
+        "layer_id": {
+          "const": "data-model"
+        },
+        "type": {
+          "const": "arrayschema"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "array"
+            },
+            "items": {
+              "type": "string"
+            },
+            "minItems": {
+              "type": "integer"
+            },
+            "maxItems": {
+              "type": "integer"
+            },
+            "uniqueItems": {
+              "type": "boolean"
+            },
+            "contains": {
+              "type": "string"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:data-model.arrayschema"
+    },
+    "jsonschema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JSONSchema",
+      "description": "The root JSON Schema document, identified by $schema (dialect URI) and $id (base URI for $ref resolution), containing type constraints, annotations, and reusable definitions.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "data-model.jsonschema"
+        },
+        "layer_id": {
+          "const": "data-model"
+        },
+        "type": {
+          "const": "jsonschema"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "$schema": {
+              "type": "string"
+            },
+            "$id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
+              "description": "JSON Schema Draft 7 primitive type"
+            },
+            "definitions": {
+              "type": "object",
+              "description": "Reusable subschemas keyed by name, referenced elsewhere in the schema via $ref: '#/definitions/{name}'"
+            }
+          },
+          "required": ["$schema", "$id", "type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:data-model.jsonschema"
+    },
+    "numericschema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NumericSchema",
+      "description": "Defines validation rules for JSON numeric instances (number or integer types), including inclusive/exclusive bounds and divisibility constraints. Note: in JSON Schema Draft 7, exclusiveMinimum and exclusiveMaximum are numeric boundary values (e.g., exclusiveMinimum: 0), not the boolean flags used in Draft 4.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "data-model.numericschema"
+        },
+        "layer_id": {
+          "const": "data-model"
+        },
+        "type": {
+          "const": "numericschema"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["number", "integer"],
+              "description": "JSON Schema Draft 7 numeric type: 'number' for any numeric value, 'integer' for whole numbers only"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            },
+            "exclusiveMinimum": {
+              "type": "number"
+            },
+            "exclusiveMaximum": {
+              "type": "number"
+            },
+            "multipleOf": {
+              "type": "number"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:data-model.numericschema"
+    },
+    "objectschema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ObjectSchema",
+      "description": "Defines validation rules for JSON object instances, specifying named properties, required fields, and constraints on additional or dynamically named properties.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "data-model.objectschema"
+        },
+        "layer_id": {
+          "const": "data-model"
+        },
+        "type": {
+          "const": "objectschema"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "string",
+              "description": "Named property definitions for the object schema (primary mechanism for defining object structure)"
+            },
+            "patternProperties": {
+              "type": "string",
+              "description": "Pattern-matched property definitions applied to properties whose names match the given regex"
+            },
+            "propertyNames": {
+              "type": "string",
+              "description": "Schema applied to all property names of the object instance for name validation"
+            },
+            "required": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            },
+            "minProperties": {
+              "type": "integer"
+            },
+            "maxProperties": {
+              "type": "integer"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:data-model.objectschema"
+    },
+    "reference": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reference",
+      "description": "A JSON Schema $ref pointer that references another schema by URI or JSON Pointer fragment, enabling schema reuse without duplication. In JSON Schema Draft 7, all sibling keywords alongside $ref are ignored — use allOf to combine a $ref with additional constraints.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "data-model.reference"
+        },
+        "layer_id": {
+          "const": "data-model"
+        },
+        "type": {
+          "const": "reference"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "$ref": {
+              "type": "string",
+              "description": "URI or JSON Pointer fragment referencing another schema"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:data-model.reference"
+    },
+    "schemacomposition": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SchemaComposition",
+      "description": "Combines multiple schemas using boolean logic. allOf requires all subschemas to validate; anyOf requires at least one; oneOf requires exactly one; not inverts the result of the subschema.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "data-model.schemacomposition"
+        },
+        "layer_id": {
+          "const": "data-model"
+        },
+        "type": {
+          "const": "schemacomposition"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "allOf": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "All listed subschemas must validate against the instance"
+            },
+            "anyOf": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "At least one of the listed subschemas must validate against the instance"
+            },
+            "oneOf": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Exactly one of the listed subschemas must validate against the instance"
+            },
+            "not": {
+              "type": "string",
+              "description": "The instance must not validate against this subschema"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:data-model.schemacomposition"
+    },
+    "schemadefinition": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SchemaDefinition",
+      "description": "A reusable JSON Schema definition declared under the 'definitions' keyword and referenced via '$ref: #/definitions/{name}'. Enables DRY schema design and consistent type definitions across entities.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "data-model.schemadefinition"
+        },
+        "layer_id": {
+          "const": "data-model"
+        },
+        "type": {
+          "const": "schemadefinition"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
+              "description": "JSON Schema Draft 7 primitive type"
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable explanation of this definition's purpose (JSON Schema Draft 7 annotation keyword)"
+            },
+            "format": {
+              "type": "string",
+              "description": "Semantic format hint for string-typed definitions (e.g., date-time, email, uri)"
+            },
+            "enum": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Restricts the value of this definition to a fixed set of allowed values"
+            },
+            "examples": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Sample values illustrating valid instances of this definition (JSON Schema Draft 7 annotation keyword)"
+            }
+          },
+          "required": ["title", "type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:data-model.schemadefinition"
+    },
+    "schemaproperty": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SchemaProperty",
+      "description": "Defines a single property within a schema, including its type, constraints, validation rules, and documentation. The fundamental building block of data model structure.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "data-model.schemaproperty"
+        },
+        "layer_id": {
+          "const": "data-model"
+        },
+        "type": {
+          "const": "schemaproperty"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
+              "description": "JSON Schema Draft 7 primitive type"
+            },
+            "title": {
+              "type": "string"
+            },
+            "format": {
+              "type": "string"
+            },
+            "default": {
+              "type": "string"
+            },
+            "enum": {
+              "type": "string"
+            },
+            "const": {
+              "type": "string"
+            },
+            "readOnly": {
+              "type": "boolean"
+            },
+            "writeOnly": {
+              "type": "boolean"
+            },
+            "examples": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable explanation of the property's purpose (JSON Schema Draft 7 annotation keyword)"
+            },
+            "$ref": {
+              "type": "string",
+              "description": "URI reference to a reusable schema definition (e.g., #/definitions/MyType)"
+            }
+          },
+          "required": ["type", "title", "format", "default", "enum", "const", "examples"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:data-model.schemaproperty"
+    },
+    "stringschema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StringSchema",
+      "description": "Defines validation rules for JSON string instances, including length bounds (minLength/maxLength), regular expression patterns, and semantic format hints (e.g., date-time, email, uri). The canonical node type for string type constraints in the data model.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "data-model.stringschema"
+        },
+        "layer_id": {
+          "const": "data-model"
+        },
+        "type": {
+          "const": "stringschema"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "string"
+            },
+            "minLength": {
+              "type": "integer"
+            },
+            "maxLength": {
+              "type": "integer"
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "date-time",
+                "date",
+                "time",
+                "duration",
+                "email",
+                "idn-email",
+                "hostname",
+                "idn-hostname",
+                "ipv4",
+                "ipv6",
+                "uri",
+                "uri-reference",
+                "iri",
+                "iri-reference",
+                "uuid",
+                "json-pointer",
+                "relative-json-pointer",
+                "regex"
+              ],
+              "description": "Semantic format hint for string values (JSON Schema Draft 7 format keyword)"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:data-model.stringschema"
+    }
+  },
+  "relationshipSchemas": {
+    "data-model.arrayschema.aggregates.data-model.objectschema": {
+      "id": "data-model.arrayschema.aggregates.data-model.objectschema",
+      "source_spec_node_id": "data-model.arrayschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.arrayschema.aggregates.data-model.reference": {
+      "id": "data-model.arrayschema.aggregates.data-model.reference",
+      "source_spec_node_id": "data-model.arrayschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.reference",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.jsonschema.aggregates.data-model.objectschema": {
+      "id": "data-model.jsonschema.aggregates.data-model.objectschema",
+      "source_spec_node_id": "data-model.jsonschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.jsonschema.aggregates.data-model.schemadefinition": {
+      "id": "data-model.jsonschema.aggregates.data-model.schemadefinition",
+      "source_spec_node_id": "data-model.jsonschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.jsonschema.references.application.applicationservice": {
+      "id": "data-model.jsonschema.references.application.applicationservice",
+      "source_spec_node_id": "data-model.jsonschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.jsonschema.references.business.businessobject": {
+      "id": "data-model.jsonschema.references.business.businessobject",
+      "source_spec_node_id": "data-model.jsonschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.objectschema.aggregates.data-model.schemaproperty": {
+      "id": "data-model.objectschema.aggregates.data-model.schemaproperty",
+      "source_spec_node_id": "data-model.objectschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemaproperty",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.reference.references.data-model.schemadefinition": {
+      "id": "data-model.reference.references.data-model.schemadefinition",
+      "source_spec_node_id": "data-model.reference",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemacomposition.composes.data-model.objectschema": {
+      "id": "data-model.schemacomposition.composes.data-model.objectschema",
+      "source_spec_node_id": "data-model.schemacomposition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemacomposition.composes.data-model.schemadefinition": {
+      "id": "data-model.schemacomposition.composes.data-model.schemadefinition",
+      "source_spec_node_id": "data-model.schemacomposition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemadefinition.specializes.data-model.schemadefinition": {
+      "id": "data-model.schemadefinition.specializes.data-model.schemadefinition",
+      "source_spec_node_id": "data-model.schemadefinition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemaproperty.references.data-model.arrayschema": {
+      "id": "data-model.schemaproperty.references.data-model.arrayschema",
+      "source_spec_node_id": "data-model.schemaproperty",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.arrayschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemaproperty.references.data-model.numericschema": {
+      "id": "data-model.schemaproperty.references.data-model.numericschema",
+      "source_spec_node_id": "data-model.schemaproperty",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.numericschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemaproperty.references.data-model.objectschema": {
+      "id": "data-model.schemaproperty.references.data-model.objectschema",
+      "source_spec_node_id": "data-model.schemaproperty",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemaproperty.references.data-model.stringschema": {
+      "id": "data-model.schemaproperty.references.data-model.stringschema",
+      "source_spec_node_id": "data-model.schemaproperty",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.stringschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

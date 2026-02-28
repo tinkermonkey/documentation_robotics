@@ -7,6 +7,7 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+!spec/dist/
 downloads/
 eggs/
 .eggs/
@@ -68,6 +69,7 @@ documentation/claude_thoughts/
 # Node.js / Bun
 node_modules/
 dist/
+!spec/dist/
 **/src/generated/
 
 # Audit artifacts

@@ -4,6 +4,8 @@
   "type": "module",
   "description": "Documentation Robotics - Federated Architecture Modeling",
   "scripts": {
+    "build:spec": "npx tsx spec/scripts/build-spec.ts",
+    "build:spec:validate": "npx tsx spec/scripts/build-spec.ts --validate",
     "export:spec-neo4j": "npx tsx scripts/export-spec-to-neo4j.ts",
     "generate:layer-reports": "npx tsx scripts/generate-layer-reports.ts",
     "audit:relationships": "npx tsx scripts/relationship-audit.ts",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "markdownlint-cli": "^0.47.0",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "tsx": "^4.0.0"
   }
 }

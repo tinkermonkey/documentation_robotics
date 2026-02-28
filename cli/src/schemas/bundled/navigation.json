@@ -1,0 +1,1178 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "navigation",
+    "number": 10,
+    "name": "Navigation Layer",
+    "description": "Layer 10: Navigation Layer",
+    "inspired_by": {
+      "standard": "SPA Navigation Patterns",
+      "version": "1.0",
+      "url": "https://www.w3.org/TR/navigation-timing-2/"
+    },
+    "node_types": [
+      "navigation.breadcrumbconfig",
+      "navigation.contextvariable",
+      "navigation.flowstep",
+      "navigation.guardaction",
+      "navigation.guardcondition",
+      "navigation.navigationflow",
+      "navigation.navigationgraph",
+      "navigation.navigationguard",
+      "navigation.navigationtransition",
+      "navigation.route",
+      "navigation.routemeta"
+    ]
+  },
+  "nodeSchemas": {
+    "breadcrumbconfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BreadcrumbConfig",
+      "description": "Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Applied globally to define breadcrumb rendering for a navigation scope rather than attached per individual Route. Provides users with location context and navigation history.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.breadcrumbconfig"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "breadcrumbconfig"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "labelTemplate": {
+              "type": "string",
+              "description": "Template string for dynamic label generation using {title} placeholder syntax to interpolate route metadata. Used when breadcrumb labels need to vary by route context rather than a static label."
+            },
+            "showHome": {
+              "type": "boolean"
+            },
+            "homeLabel": {
+              "type": "string"
+            },
+            "homeRoute": {
+              "type": "string"
+            }
+          },
+          "required": ["label"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.breadcrumbconfig"
+    },
+    "contextvariable": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContextVariable",
+      "description": "A typed variable shared across steps of a NavigationFlow, enabling state to persist and transfer between route transitions.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.contextvariable"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "contextvariable"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "schemaRef": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string",
+              "enum": ["global", "flow", "step", "session"],
+              "description": "Lifetime and visibility of the variable across navigation flow execution."
+            },
+            "persistedIn": {
+              "type": "string",
+              "enum": ["sessionStorage", "localStorage", "memory", "url-param"],
+              "description": "Storage mechanism used to persist the variable across route transitions: sessionStorage (browser session), localStorage (cross-session), memory (in-process only), url-param (serialized into the URL query string)."
+            },
+            "defaultValue": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean",
+              "description": "When true, the flow cannot proceed if this variable is unset or null. Used to enforce mandatory input collection before advancing to dependent steps."
+            }
+          },
+          "required": ["schemaRef", "scope", "persistedIn"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.contextvariable"
+    },
+    "flowstep": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FlowStep",
+      "description": "One step in a navigation flow",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.flowstep"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "flowstep"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "sequence": {
+              "type": "integer"
+            },
+            "route": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "waitBehavior": {
+              "type": "string",
+              "enum": ["blocking", "non-blocking", "timeout", "async"],
+              "description": "Execution model governing how the flow waits for this step to complete before advancing."
+            }
+          },
+          "required": ["sequence", "route"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.flowstep"
+    },
+    "guardaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GuardAction",
+      "description": "Defines the response executed by a NavigationGuard when its condition evaluates to false (access denied). Specifies whether to redirect the user, block navigation in place, notify with a message, or prompt for confirmation — along with the target destination and whether to preserve the attempted route for post-authentication redirect.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.guardaction"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "guardaction"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string",
+              "enum": ["redirect", "block", "notify", "prompt"],
+              "description": "The action taken when the guard denies access to the target route."
+            },
+            "target": {
+              "type": "string",
+              "description": "Destination for redirect or replace actions — a Route ID (e.g., 'login') or an absolute URL. Ignored for block and notify actions."
+            },
+            "message": {
+              "type": "string",
+              "description": "User-facing message shown when action is 'notify' or 'prompt', explaining why access was denied."
+            },
+            "preserveRoute": {
+              "type": "boolean",
+              "description": "When true, the originally attempted route is stored (e.g., in session state) so the user can be redirected back to it after successfully authenticating."
+            }
+          },
+          "required": ["action", "target", "message", "preserveRoute"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.guardaction"
+    },
+    "guardcondition": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GuardCondition",
+      "description": "Boolean predicate evaluated by a NavigationGuard to determine whether route access should be permitted. Expressions may reference user session state, roles, or feature flags. Async conditions (e.g., token validation API calls) are supported with a configurable timeout; on timeout, the condition fails closed (access denied) to preserve security.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.guardcondition"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "guardcondition"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "expression": {
+              "type": "string",
+              "description": "Boolean predicate expression to evaluate — may be a JavaScript expression, CEL expression, or logical reference to a named predicate (e.g., 'user.isAuthenticated && user.roles.includes(route.meta.roles)')."
+            },
+            "async": {
+              "type": "boolean",
+              "description": "When true, the expression is evaluated asynchronously (e.g., via an API call). The guard will await resolution up to the timeout limit before failing closed."
+            },
+            "timeout": {
+              "type": "integer",
+              "description": "Maximum milliseconds to wait for an async condition to resolve. On timeout, the guard treats the condition as false (access denied) to fail securely."
+            }
+          },
+          "required": ["expression", "timeout"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.guardcondition"
+    },
+    "navigationflow": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NavigationFlow",
+      "description": "Sequence of routes that realizes a business process",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.navigationflow"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "navigationflow"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "steps": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.navigationflow"
+    },
+    "navigationgraph": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NavigationGraph",
+      "description": "Root container for an application's complete routing structure, composing all Route, NavigationTransition, and NavigationGuard nodes into a unified navigation model.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.navigationgraph"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "navigationgraph"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "application": {
+              "type": "string",
+              "description": "Reference to the Layer 4 ApplicationComponent that this navigation graph belongs to, enabling cross-layer traceability from routing to application architecture."
+            },
+            "description": {
+              "type": "string"
+            },
+            "routes": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "transitions": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "guards": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["version", "application"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.navigationgraph"
+    },
+    "navigationguard": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NavigationGuard",
+      "description": "Guard condition for route access",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.navigationguard"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "navigationguard"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["auth", "role", "permission", "feature-flag", "custom"],
+              "description": "Classification of the guard mechanism: auth (authentication check), role (role membership), permission (fine-grained permission), feature-flag (feature toggle), custom (arbitrary condition)."
+            },
+            "description": {
+              "type": "string"
+            },
+            "order": {
+              "type": "integer"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["type", "order"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.navigationguard"
+    },
+    "navigationtransition": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NavigationTransition",
+      "description": "Transition from one route to another",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.navigationtransition"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "navigationtransition"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            },
+            "trigger": {
+              "type": "string",
+              "enum": ["user-click", "programmatic", "timeout", "browser-back", "redirect"],
+              "description": "Mechanism that initiates the route transition: user-click (explicit user interaction), programmatic (code-driven), timeout (time-based), browser-back (browser history navigation), redirect (automatic server/guard redirect)."
+            },
+            "description": {
+              "type": "string"
+            },
+            "guards": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["from", "to", "trigger"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.navigationtransition"
+    },
+    "route": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Route",
+      "description": "Single route/destination in the application (channel-agnostic)",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.route"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "route"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["public", "protected", "redirect", "alias", "lazy"],
+              "description": "Access and loading classification: public (no auth), protected (requires auth), redirect (auto-forwards), alias (multiple paths to same component), lazy (code-split, loaded on demand)."
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.route"
+    },
+    "routemeta": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RouteMeta",
+      "description": "Per-route rendering and access configuration attached to a Route node and consumed by the SPA router at runtime. Covers layout selection, component instance caching, animation transitions, breadcrumb labeling, and access control hints. Security attributes (requiresAuth, roles, permissions) are navigation hints that should be enforced through NavigationGuard nodes in the security layer.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "navigation.routemeta"
+        },
+        "layer_id": {
+          "const": "navigation"
+        },
+        "type": {
+          "const": "routemeta"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "requiresAuth": {
+              "type": "boolean",
+              "description": "Hint indicating this route requires an authenticated session; used by NavigationGuard nodes to enforce access control."
+            },
+            "roles": {
+              "type": "string",
+              "description": "Comma-separated list of roles permitted to access this route (e.g., 'admin,editor'). Enforced via NavigationGuard."
+            },
+            "permissions": {
+              "type": "string",
+              "description": "Comma-separated list of permission strings required for this route (e.g., 'reports:read,users:write'). Enforced via NavigationGuard."
+            },
+            "layout": {
+              "type": "string",
+              "description": "Name or reference of the layout component to wrap this route's view (e.g., 'DefaultLayout', 'AuthLayout')."
+            },
+            "breadcrumb": {
+              "type": "string",
+              "description": "Breadcrumb label or reference to a BreadcrumbConfig node; used to render the route's position in the location trail."
+            },
+            "keepAlive": {
+              "type": "boolean",
+              "description": "When true, the route's component instance is cached and reused across navigation events rather than destroyed and re-created."
+            },
+            "transition": {
+              "type": "string",
+              "description": "Name of the CSS transition or animation applied when entering or leaving this route (e.g., 'fade', 'slide-left')."
+            }
+          },
+          "required": ["roles", "permissions", "layout", "keepAlive", "transition"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:navigation.routemeta"
+    }
+  },
+  "relationshipSchemas": {
+    "navigation.breadcrumbconfig.associated-with.navigation.navigationgraph": {
+      "id": "navigation.breadcrumbconfig.associated-with.navigation.navigationgraph",
+      "source_spec_node_id": "navigation.breadcrumbconfig",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationgraph",
+      "destination_layer": "navigation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.breadcrumbconfig.provides.navigation.routemeta": {
+      "id": "navigation.breadcrumbconfig.provides.navigation.routemeta",
+      "source_spec_node_id": "navigation.breadcrumbconfig",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.routemeta",
+      "destination_layer": "navigation",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.breadcrumbconfig.references.navigation.route": {
+      "id": "navigation.breadcrumbconfig.references.navigation.route",
+      "source_spec_node_id": "navigation.breadcrumbconfig",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.contextvariable.consumes.navigation.route": {
+      "id": "navigation.contextvariable.consumes.navigation.route",
+      "source_spec_node_id": "navigation.contextvariable",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "consumes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.contextvariable.flows-to.navigation.flowstep": {
+      "id": "navigation.contextvariable.flows-to.navigation.flowstep",
+      "source_spec_node_id": "navigation.contextvariable",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.flowstep",
+      "destination_layer": "navigation",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.contextvariable.triggers.navigation.navigationtransition": {
+      "id": "navigation.contextvariable.triggers.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.contextvariable",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.consumes.navigation.contextvariable": {
+      "id": "navigation.flowstep.consumes.navigation.contextvariable",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.contextvariable",
+      "destination_layer": "navigation",
+      "predicate": "consumes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.navigates-to.navigation.route": {
+      "id": "navigation.flowstep.navigates-to.navigation.route",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.realizes.navigation.route": {
+      "id": "navigation.flowstep.realizes.navigation.route",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.requires.navigation.navigationguard": {
+      "id": "navigation.flowstep.requires.navigation.navigationguard",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationguard",
+      "destination_layer": "navigation",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.triggers.navigation.navigationtransition": {
+      "id": "navigation.flowstep.triggers.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.guardaction.depends-on.navigation.guardcondition": {
+      "id": "navigation.guardaction.depends-on.navigation.guardcondition",
+      "source_spec_node_id": "navigation.guardaction",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.guardcondition",
+      "destination_layer": "navigation",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.guardaction.navigates-to.navigation.route": {
+      "id": "navigation.guardaction.navigates-to.navigation.route",
+      "source_spec_node_id": "navigation.guardaction",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.guardaction.uses.navigation.contextvariable": {
+      "id": "navigation.guardaction.uses.navigation.contextvariable",
+      "source_spec_node_id": "navigation.guardaction",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.contextvariable",
+      "destination_layer": "navigation",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.guardcondition.constrains.navigation.route": {
+      "id": "navigation.guardcondition.constrains.navigation.route",
+      "source_spec_node_id": "navigation.guardcondition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.guardcondition.consumes.navigation.contextvariable": {
+      "id": "navigation.guardcondition.consumes.navigation.contextvariable",
+      "source_spec_node_id": "navigation.guardcondition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.contextvariable",
+      "destination_layer": "navigation",
+      "predicate": "consumes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.guardcondition.references.navigation.routemeta": {
+      "id": "navigation.guardcondition.references.navigation.routemeta",
+      "source_spec_node_id": "navigation.guardcondition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.routemeta",
+      "destination_layer": "navigation",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.guardcondition.triggers.navigation.guardaction": {
+      "id": "navigation.guardcondition.triggers.navigation.guardaction",
+      "source_spec_node_id": "navigation.guardcondition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.guardaction",
+      "destination_layer": "navigation",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.guardcondition.uses.navigation.contextvariable": {
+      "id": "navigation.guardcondition.uses.navigation.contextvariable",
+      "source_spec_node_id": "navigation.guardcondition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.contextvariable",
+      "destination_layer": "navigation",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.aggregates.navigation.contextvariable": {
+      "id": "navigation.navigationflow.aggregates.navigation.contextvariable",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.contextvariable",
+      "destination_layer": "navigation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.aggregates.navigation.flowstep": {
+      "id": "navigation.navigationflow.aggregates.navigation.flowstep",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.flowstep",
+      "destination_layer": "navigation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.composes.navigation.flowstep": {
+      "id": "navigation.navigationflow.composes.navigation.flowstep",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.flowstep",
+      "destination_layer": "navigation",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.flows-to.navigation.navigationtransition": {
+      "id": "navigation.navigationflow.flows-to.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.requires.navigation.navigationguard": {
+      "id": "navigation.navigationflow.requires.navigation.navigationguard",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationguard",
+      "destination_layer": "navigation",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig": {
+      "id": "navigation.navigationgraph.aggregates.navigation.breadcrumbconfig",
+      "source_spec_node_id": "navigation.navigationgraph",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.breadcrumbconfig",
+      "destination_layer": "navigation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationgraph.aggregates.navigation.navigationflow": {
+      "id": "navigation.navigationgraph.aggregates.navigation.navigationflow",
+      "source_spec_node_id": "navigation.navigationgraph",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationflow",
+      "destination_layer": "navigation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationgraph.aggregates.navigation.navigationguard": {
+      "id": "navigation.navigationgraph.aggregates.navigation.navigationguard",
+      "source_spec_node_id": "navigation.navigationgraph",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationguard",
+      "destination_layer": "navigation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationgraph.aggregates.navigation.navigationtransition": {
+      "id": "navigation.navigationgraph.aggregates.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.navigationgraph",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationgraph.aggregates.navigation.route": {
+      "id": "navigation.navigationgraph.aggregates.navigation.route",
+      "source_spec_node_id": "navigation.navigationgraph",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationgraph.composes.navigation.navigationtransition": {
+      "id": "navigation.navigationgraph.composes.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.navigationgraph",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationgraph.composes.navigation.route": {
+      "id": "navigation.navigationgraph.composes.navigation.route",
+      "source_spec_node_id": "navigation.navigationgraph",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.constrains.navigation.navigationtransition": {
+      "id": "navigation.navigationguard.constrains.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.consumes.navigation.contextvariable": {
+      "id": "navigation.navigationguard.consumes.navigation.contextvariable",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.contextvariable",
+      "destination_layer": "navigation",
+      "predicate": "consumes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.protects.navigation.route": {
+      "id": "navigation.navigationguard.protects.navigation.route",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "protects",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.triggers.navigation.guardaction": {
+      "id": "navigation.navigationguard.triggers.navigation.guardaction",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.guardaction",
+      "destination_layer": "navigation",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.uses.navigation.guardcondition": {
+      "id": "navigation.navigationguard.uses.navigation.guardcondition",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.guardcondition",
+      "destination_layer": "navigation",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationtransition.flows-to.navigation.route": {
+      "id": "navigation.navigationtransition.flows-to.navigation.route",
+      "source_spec_node_id": "navigation.navigationtransition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationtransition.navigates-to.navigation.route": {
+      "id": "navigation.navigationtransition.navigates-to.navigation.route",
+      "source_spec_node_id": "navigation.navigationtransition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationtransition.requires.navigation.navigationguard": {
+      "id": "navigation.navigationtransition.requires.navigation.navigationguard",
+      "source_spec_node_id": "navigation.navigationtransition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationguard",
+      "destination_layer": "navigation",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationtransition.triggers.navigation.guardaction": {
+      "id": "navigation.navigationtransition.triggers.navigation.guardaction",
+      "source_spec_node_id": "navigation.navigationtransition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.guardaction",
+      "destination_layer": "navigation",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationtransition.uses.navigation.contextvariable": {
+      "id": "navigation.navigationtransition.uses.navigation.contextvariable",
+      "source_spec_node_id": "navigation.navigationtransition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.contextvariable",
+      "destination_layer": "navigation",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.aggregates.navigation.route": {
+      "id": "navigation.route.aggregates.navigation.route",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.associated-with.navigation.routemeta": {
+      "id": "navigation.route.associated-with.navigation.routemeta",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.routemeta",
+      "destination_layer": "navigation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.composes.navigation.routemeta": {
+      "id": "navigation.route.composes.navigation.routemeta",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.routemeta",
+      "destination_layer": "navigation",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.flows-to.navigation.navigationtransition": {
+      "id": "navigation.route.flows-to.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.navigates-to.navigation.route": {
+      "id": "navigation.route.navigates-to.navigation.route",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.triggers.navigation.navigationtransition": {
+      "id": "navigation.route.triggers.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.routemeta.governs.navigation.navigationguard": {
+      "id": "navigation.routemeta.governs.navigation.navigationguard",
+      "source_spec_node_id": "navigation.routemeta",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationguard",
+      "destination_layer": "navigation",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.routemeta.references.navigation.breadcrumbconfig": {
+      "id": "navigation.routemeta.references.navigation.breadcrumbconfig",
+      "source_spec_node_id": "navigation.routemeta",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.breadcrumbconfig",
+      "destination_layer": "navigation",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.routemeta.serves.navigation.route": {
+      "id": "navigation.routemeta.serves.navigation.route",
+      "source_spec_node_id": "navigation.routemeta",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.routemeta.uses.navigation.navigationtransition": {
+      "id": "navigation.routemeta.uses.navigation.navigationtransition",
+      "source_spec_node_id": "navigation.routemeta",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

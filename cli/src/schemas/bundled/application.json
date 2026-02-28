@@ -1,0 +1,899 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "application",
+    "number": 4,
+    "name": "Application Layer",
+    "description": "Layer 4: Application Layer",
+    "inspired_by": {
+      "standard": "ArchiMate 3.2",
+      "version": "3.2",
+      "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
+    },
+    "node_types": [
+      "application.applicationcollaboration",
+      "application.applicationcomponent",
+      "application.applicationevent",
+      "application.applicationfunction",
+      "application.applicationinteraction",
+      "application.applicationinterface",
+      "application.applicationprocess",
+      "application.applicationservice",
+      "application.dataobject"
+    ]
+  },
+  "nodeSchemas": {
+    "applicationcollaboration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApplicationCollaboration",
+      "description": "Aggregate of application components working together",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "application.applicationcollaboration"
+        },
+        "layer_id": {
+          "const": "application"
+        },
+        "type": {
+          "const": "applicationcollaboration"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "components": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:application.applicationcollaboration"
+    },
+    "applicationcomponent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApplicationComponent",
+      "description": "Modular, deployable, and replaceable part of a system",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "application.applicationcomponent"
+        },
+        "layer_id": {
+          "const": "application"
+        },
+        "type": {
+          "const": "applicationcomponent"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["generic", "external", "internal", "service-component"],
+              "description": "Classification of the application component kind."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:application.applicationcomponent"
+    },
+    "applicationevent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApplicationEvent",
+      "description": "A state change in an application element that triggers reactive application behavior.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "application.applicationevent"
+        },
+        "layer_id": {
+          "const": "application"
+        },
+        "type": {
+          "const": "applicationevent"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "eventType": {
+              "type": "string",
+              "enum": ["domain", "integration", "system"],
+              "description": "Classification of the application event: domain (business logic), integration (cross-system), or system (infrastructure/runtime)."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["eventType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:application.applicationevent"
+    },
+    "applicationfunction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApplicationFunction",
+      "description": "Automated behavior performed by an application component for internal purposes, not directly exposed as a service to external consumers.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "application.applicationfunction"
+        },
+        "layer_id": {
+          "const": "application"
+        },
+        "type": {
+          "const": "applicationfunction"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:application.applicationfunction"
+    },
+    "applicationinteraction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApplicationInteraction",
+      "description": "Collective application behavior performed by two or more application components working in collaboration, representing their joint behavioral contribution.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "application.applicationinteraction"
+        },
+        "layer_id": {
+          "const": "application"
+        },
+        "type": {
+          "const": "applicationinteraction"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string",
+              "enum": ["request-reply", "publish-subscribe", "event-driven", "fire-and-forget"],
+              "description": "Interaction pattern used by this application collaboration."
+            }
+          },
+          "required": ["pattern"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:application.applicationinteraction"
+    },
+    "applicationinterface": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApplicationInterface",
+      "description": "Point of access where application service is available",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "application.applicationinterface"
+        },
+        "layer_id": {
+          "const": "application"
+        },
+        "type": {
+          "const": "applicationinterface"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "protocol": {
+              "type": "string",
+              "enum": ["HTTP", "HTTPS", "gRPC", "AMQP", "WebSocket", "REST", "GraphQL", "SOAP"],
+              "description": "Application-level communication protocol used to expose the service. Use application-level protocols only; network/transport-level protocols (TCP, TLS) belong in the Technology Layer."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["protocol"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:application.applicationinterface"
+    },
+    "applicationprocess": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApplicationProcess",
+      "description": "An ordered sequence of application behaviors performed by an application component to achieve a specific operational result.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "application.applicationprocess"
+        },
+        "layer_id": {
+          "const": "application"
+        },
+        "type": {
+          "const": "applicationprocess"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:application.applicationprocess"
+    },
+    "applicationservice": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApplicationService",
+      "description": "Service that exposes application functionality",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "application.applicationservice"
+        },
+        "layer_id": {
+          "const": "application"
+        },
+        "type": {
+          "const": "applicationservice"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "serviceType": {
+              "type": "string",
+              "enum": ["synchronous", "asynchronous", "event-driven", "batch"],
+              "description": "Classification of how the service exposes its functionality to consumers."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "required": ["serviceType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:application.applicationservice"
+    },
+    "dataobject": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DataObject",
+      "description": "A passive application element representing data structured for automated processing by application components. Unlike behavioral elements, it is accessed, manipulated, or stored by active elements — not an actor itself. For canonical data schema definitions shared across layers, use the Data Model layer instead.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "application.dataobject"
+        },
+        "layer_id": {
+          "const": "application"
+        },
+        "type": {
+          "const": "dataobject"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "documentation": {
+              "type": "string"
+            },
+            "properties": {
+              "type": "object",
+              "description": "Cross-layer properties"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:application.dataobject"
+    }
+  },
+  "relationshipSchemas": {
+    "application.applicationcollaboration.aggregates.application.applicationcomponent": {
+      "id": "application.applicationcollaboration.aggregates.application.applicationcomponent",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcollaboration.delivers-value.application.applicationinteraction": {
+      "id": "application.applicationcollaboration.delivers-value.application.applicationinteraction",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationinteraction",
+      "destination_layer": "application",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcollaboration.delivers-value.application.applicationservice": {
+      "id": "application.applicationcollaboration.delivers-value.application.applicationservice",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcollaboration.depends-on.application.applicationcomponent": {
+      "id": "application.applicationcollaboration.depends-on.application.applicationcomponent",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcollaboration.depends-on.application.applicationinteraction": {
+      "id": "application.applicationcollaboration.depends-on.application.applicationinteraction",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationinteraction",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcollaboration.depends-on.application.applicationinterface": {
+      "id": "application.applicationcollaboration.depends-on.application.applicationinterface",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationinterface",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.accesses.application.dataobject": {
+      "id": "application.applicationcomponent.accesses.application.dataobject",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.composes.application.applicationfunction": {
+      "id": "application.applicationcomponent.composes.application.applicationfunction",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.provides.application.applicationinterface": {
+      "id": "application.applicationcomponent.provides.application.applicationinterface",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationinterface",
+      "destination_layer": "application",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.realizes.application.applicationservice": {
+      "id": "application.applicationcomponent.realizes.application.applicationservice",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.uses.application.applicationcomponent": {
+      "id": "application.applicationcomponent.uses.application.applicationcomponent",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationevent.triggers.application.applicationprocess": {
+      "id": "application.applicationevent.triggers.application.applicationprocess",
+      "source_spec_node_id": "application.applicationevent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationprocess",
+      "destination_layer": "application",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.accesses.application.dataobject": {
+      "id": "application.applicationfunction.accesses.application.dataobject",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.delivers-value.application.applicationprocess": {
+      "id": "application.applicationfunction.delivers-value.application.applicationprocess",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationprocess",
+      "destination_layer": "application",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.delivers-value.application.applicationservice": {
+      "id": "application.applicationfunction.delivers-value.application.applicationservice",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.depends-on.application.applicationevent": {
+      "id": "application.applicationfunction.depends-on.application.applicationevent",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationevent",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.depends-on.application.applicationfunction": {
+      "id": "application.applicationfunction.depends-on.application.applicationfunction",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.depends-on.application.dataobject": {
+      "id": "application.applicationfunction.depends-on.application.dataobject",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.realizes.application.applicationservice": {
+      "id": "application.applicationfunction.realizes.application.applicationservice",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinteraction.delivers-value.application.applicationservice": {
+      "id": "application.applicationinteraction.delivers-value.application.applicationservice",
+      "source_spec_node_id": "application.applicationinteraction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinteraction.depends-on.application.applicationcollaboration": {
+      "id": "application.applicationinteraction.depends-on.application.applicationcollaboration",
+      "source_spec_node_id": "application.applicationinteraction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcollaboration",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinteraction.depends-on.application.applicationevent": {
+      "id": "application.applicationinteraction.depends-on.application.applicationevent",
+      "source_spec_node_id": "application.applicationinteraction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationevent",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinteraction.depends-on.application.applicationservice": {
+      "id": "application.applicationinteraction.depends-on.application.applicationservice",
+      "source_spec_node_id": "application.applicationinteraction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinteraction.depends-on.application.dataobject": {
+      "id": "application.applicationinteraction.depends-on.application.dataobject",
+      "source_spec_node_id": "application.applicationinteraction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinteraction.realizes.application.applicationservice": {
+      "id": "application.applicationinteraction.realizes.application.applicationservice",
+      "source_spec_node_id": "application.applicationinteraction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinterface.delivers-value.application.applicationcollaboration": {
+      "id": "application.applicationinterface.delivers-value.application.applicationcollaboration",
+      "source_spec_node_id": "application.applicationinterface",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcollaboration",
+      "destination_layer": "application",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinterface.depends-on.application.applicationcomponent": {
+      "id": "application.applicationinterface.depends-on.application.applicationcomponent",
+      "source_spec_node_id": "application.applicationinterface",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinterface.depends-on.application.applicationfunction": {
+      "id": "application.applicationinterface.depends-on.application.applicationfunction",
+      "source_spec_node_id": "application.applicationinterface",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinterface.depends-on.application.applicationservice": {
+      "id": "application.applicationinterface.depends-on.application.applicationservice",
+      "source_spec_node_id": "application.applicationinterface",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinterface.depends-on.application.dataobject": {
+      "id": "application.applicationinterface.depends-on.application.dataobject",
+      "source_spec_node_id": "application.applicationinterface",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinterface.serves.application.applicationservice": {
+      "id": "application.applicationinterface.serves.application.applicationservice",
+      "source_spec_node_id": "application.applicationinterface",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationprocess.delivers-value.application.applicationservice": {
+      "id": "application.applicationprocess.delivers-value.application.applicationservice",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationprocess.depends-on.application.applicationcollaboration": {
+      "id": "application.applicationprocess.depends-on.application.applicationcollaboration",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcollaboration",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationprocess.depends-on.application.applicationevent": {
+      "id": "application.applicationprocess.depends-on.application.applicationevent",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationevent",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationprocess.depends-on.application.applicationfunction": {
+      "id": "application.applicationprocess.depends-on.application.applicationfunction",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationprocess.depends-on.application.applicationinterface": {
+      "id": "application.applicationprocess.depends-on.application.applicationinterface",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationinterface",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationprocess.depends-on.application.dataobject": {
+      "id": "application.applicationprocess.depends-on.application.dataobject",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationprocess.realizes.business.businessprocess": {
+      "id": "application.applicationprocess.realizes.business.businessprocess",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationprocess.triggers.application.applicationevent": {
+      "id": "application.applicationprocess.triggers.application.applicationevent",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationevent",
+      "destination_layer": "application",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.delivers-value.motivation.value": {
+      "id": "application.applicationservice.delivers-value.motivation.value",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "delivers-value",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.depends-on.application.dataobject": {
+      "id": "application.applicationservice.depends-on.application.dataobject",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.references.apm.traceconfiguration": {
+      "id": "application.applicationservice.references.apm.traceconfiguration",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "apm.traceconfiguration",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

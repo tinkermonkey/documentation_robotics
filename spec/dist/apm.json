@@ -1,0 +1,1392 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "apm",
+    "number": 11,
+    "name": "APM Observability Layer",
+    "description": "Layer 11: APM Observability Layer",
+    "inspired_by": {
+      "standard": "OpenTelemetry",
+      "version": "1.0",
+      "url": "https://opentelemetry.io/"
+    },
+    "node_types": [
+      "apm.exporterconfig",
+      "apm.instrumentationconfig",
+      "apm.instrumentationscope",
+      "apm.logconfiguration",
+      "apm.logprocessor",
+      "apm.logrecord",
+      "apm.metricconfiguration",
+      "apm.metricinstrument",
+      "apm.resource",
+      "apm.span",
+      "apm.spanevent",
+      "apm.spanlink",
+      "apm.traceconfiguration"
+    ]
+  },
+  "nodeSchemas": {
+    "exporterconfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExporterConfig",
+      "description": "Configuration for telemetry data export destinations, specifying protocol (OTLP, Jaeger, Prometheus), endpoints, authentication, batching, and retry policies. Controls where observability data is sent.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.exporterconfig"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "exporterconfig"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["otlp", "jaeger", "zipkin", "prometheus", "stdout", "logging"],
+              "description": "The type of exporter"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "endpoint": {
+              "type": "string"
+            },
+            "protocol": {
+              "type": "string"
+            },
+            "authType": {
+              "type": "string",
+              "enum": ["none", "api_key", "bearer", "tls_client_cert", "basic"],
+              "description": "Authentication method used for the export destination"
+            },
+            "compression": {
+              "type": "string",
+              "enum": ["none", "gzip"],
+              "description": "Compression algorithm for OTLP export payloads. Applies to OTLP exporters only."
+            }
+          },
+          "required": ["type", "endpoint"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.exporterconfig"
+    },
+    "instrumentationconfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InstrumentationConfig",
+      "description": "Configuration for OTel instrumentation of application code. Auto-instrumentation uses SDK contrib plugin libraries (e.g., opentelemetry-instrumentation-express) that hook into frameworks transparently at SDK bootstrap time. Manual instrumentation uses direct OTel API calls (Tracer.startSpan, Meter.createCounter) embedded in application code. This node controls which libraries or code paths are instrumented and whether instrumentation is enabled.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.instrumentationconfig"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "instrumentationconfig"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "libraryName": {
+              "type": "string",
+              "description": "OTel InstrumentationScope-compatible library name identifying the instrumented library or framework (e.g., 'io.opentelemetry.spring-webmvc-6.0'). Used to correlate this config with telemetry emitted under the matching InstrumentationScope."
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            },
+            "instrumentationType": {
+              "type": "string",
+              "enum": ["automatic", "manual", "both"],
+              "description": "Whether instrumentation is applied automatically, manually, or both"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.instrumentationconfig"
+    },
+    "instrumentationscope": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InstrumentationScope",
+      "description": "Named instrumented library or component that identifies the source of telemetry across all three OTel signal types (traces, metrics, logs), enabling attribution and filtering of signals by their origin.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.instrumentationscope"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "instrumentationscope"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "schemaUrl": {
+              "type": "string"
+            },
+            "droppedAttributesCount": {
+              "type": "string"
+            },
+            "attributes": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["droppedAttributesCount"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.instrumentationscope"
+    },
+    "logconfiguration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LogConfiguration",
+      "description": "OTel LoggerProvider configuration, covering the LogRecordProcessor pipeline, LogRecordExporter wiring, and minimum severity filtering for log emission.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.logconfiguration"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "logconfiguration"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "serviceName": {
+              "type": "string"
+            },
+            "minimumSeverity": {
+              "type": "string",
+              "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
+              "description": "Minimum OTel SeverityText level for log records to be emitted"
+            }
+          },
+          "required": ["serviceName"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.logconfiguration"
+    },
+    "logprocessor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LogProcessor",
+      "description": "A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.logprocessor"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "logprocessor"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["simple", "batch", "custom"],
+              "description": "OTel log record processor type (simple: synchronous, batch: asynchronous buffered)"
+            },
+            "order": {
+              "type": "integer"
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.logprocessor"
+    },
+    "logrecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LogRecord",
+      "description": "Structured log record in the OTel data model, capturing an event with dual timestamps (timeUnixNano for event occurrence, observedTimeUnixNano for ingestion), a 1–24 severity scale, and an unstructured body. Supports trace context correlation to link logs to distributed traces.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.logrecord"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "logrecord"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "timeUnixNano": {
+              "type": "string"
+            },
+            "observedTimeUnixNano": {
+              "type": "string"
+            },
+            "severityNumber": {
+              "type": "string"
+            },
+            "severityText": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            },
+            "flags": {
+              "type": "string"
+            },
+            "droppedAttributesCount": {
+              "type": "string"
+            },
+            "attributes": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": [
+            "timeUnixNano",
+            "observedTimeUnixNano",
+            "severityNumber",
+            "body",
+            "flags",
+            "droppedAttributesCount"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.logrecord"
+    },
+    "metricconfiguration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MetricConfiguration",
+      "description": "OTel MeterProvider-level (global) metrics SDK configuration, covering export intervals, cardinality limits, and exemplar filtering. Distinct from per-meter configuration in MeterConfig.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.metricconfiguration"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "metricconfiguration"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "serviceName": {
+              "type": "string"
+            },
+            "exportIntervalMillis": {
+              "type": "integer"
+            },
+            "exportTimeoutMillis": {
+              "type": "integer",
+              "description": "Maximum time allowed for a metric export to complete"
+            },
+            "cardinalityLimit": {
+              "type": "integer",
+              "description": "Maximum number of unique metric time series per instrument"
+            },
+            "exemplarFilter": {
+              "type": "string",
+              "enum": ["always_on", "always_off", "trace_based"],
+              "description": "OTel exemplar filter controlling which exemplars are recorded"
+            },
+            "exemplarReservoirSize": {
+              "type": "integer",
+              "description": "Maximum number of exemplars retained per instrument per collection cycle. Used in conjunction with exemplarFilter to control exemplar sampling volume."
+            }
+          },
+          "required": ["serviceName"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.metricconfiguration"
+    },
+    "metricinstrument": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MetricInstrument",
+      "description": "Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc.) with its name, unit, description, and attributes. The fundamental unit of metric collection.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.metricinstrument"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "metricinstrument"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "Counter",
+                "UpDownCounter",
+                "Histogram",
+                "Gauge",
+                "ObservableCounter",
+                "ObservableUpDownCounter",
+                "ObservableGauge"
+              ],
+              "description": "OTel instrument type: synchronous (Counter, UpDownCounter, Histogram, Gauge) or asynchronous/observable (ObservableCounter, ObservableUpDownCounter, ObservableGauge)"
+            },
+            "unit": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference for code-defined metrics"
+            }
+          },
+          "required": ["type", "unit"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.metricinstrument"
+    },
+    "resource": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Resource",
+      "description": "Immutable set of attributes identifying the entity (service, host, process) that produces telemetry. Resource attributes are merged into all signals (traces, metrics, logs) emitted by a process at the SDK level, making accurate resource definition critical for cross-signal correlation.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.resource"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "resource"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "schemaUrl": {
+              "type": "string"
+            },
+            "droppedAttributesCount": {
+              "type": "string"
+            },
+            "serviceName": {
+              "type": "string",
+              "description": "OTel Resource semantic convention: logical name of the service (service.name)"
+            },
+            "serviceVersion": {
+              "type": "string",
+              "description": "OTel Resource semantic convention: version of the service (service.version)"
+            },
+            "deploymentEnvironment": {
+              "type": "string",
+              "description": "OTel Resource semantic convention: deployment environment (deployment.environment)"
+            },
+            "attributes": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["droppedAttributesCount"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.resource"
+    },
+    "span": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Span",
+      "description": "Unit of work in distributed tracing",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.span"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "span"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "traceId": {
+              "type": "string"
+            },
+            "spanId": {
+              "type": "string"
+            },
+            "traceState": {
+              "type": "string"
+            },
+            "parentSpanId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "spanKind": {
+              "type": "string",
+              "enum": ["INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER"],
+              "description": "OTel SpanKind indicating the span's relationship to the calling and receiving system"
+            },
+            "startTimeUnixNano": {
+              "type": "string"
+            },
+            "endTimeUnixNano": {
+              "type": "string"
+            },
+            "droppedAttributesCount": {
+              "type": "string"
+            },
+            "droppedEventsCount": {
+              "type": "string"
+            },
+            "droppedLinksCount": {
+              "type": "string"
+            },
+            "statusCode": {
+              "type": "string",
+              "enum": ["UNSET", "OK", "ERROR"],
+              "description": "OTel span status code. UNSET = not explicitly set by instrumentation; OK = explicitly successful; ERROR = explicitly failed. Once set to OK, cannot be overridden to ERROR."
+            },
+            "statusMessage": {
+              "type": "string",
+              "description": "Optional human-readable error message, used when statusCode is ERROR."
+            },
+            "attributes": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "events": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "links": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": [
+            "traceId",
+            "spanId",
+            "traceState",
+            "parentSpanId",
+            "spanKind",
+            "startTimeUnixNano",
+            "endTimeUnixNano",
+            "droppedAttributesCount",
+            "droppedEventsCount",
+            "droppedLinksCount"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.span"
+    },
+    "spanevent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SpanEvent",
+      "description": "Timestamped annotation within a span's lifetime, used to record significant moments such as exceptions (OTel semantic convention: name='exception' with exception.type, exception.message, and exception.stacktrace attributes) or state transitions.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.spanevent"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "spanevent"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "timeUnixNano": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "droppedAttributesCount": {
+              "type": "string"
+            },
+            "attributes": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["timeUnixNano", "droppedAttributesCount"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.spanevent"
+    },
+    "spanlink": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SpanLink",
+      "description": "Non-hierarchical causality link to a span in a different trace or batch context (e.g., async message consumer linking to producer spans). Distinct from parent-child relationships, which are expressed via the parentSpanId attribute on the Span.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.spanlink"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "spanlink"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "traceId": {
+              "type": "string"
+            },
+            "spanId": {
+              "type": "string"
+            },
+            "traceState": {
+              "type": "string"
+            },
+            "droppedAttributesCount": {
+              "type": "string"
+            },
+            "attributes": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["traceId", "spanId", "droppedAttributesCount"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.spanlink"
+    },
+    "traceconfiguration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TraceConfiguration",
+      "description": "OTel TracerProvider configuration covering sampler selection, context propagation formats, and span processor pipeline. Service identity attributes (serviceName, serviceVersion, deploymentEnvironment) are OTel Resource semantic conventions and belong on the Resource node.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.traceconfiguration"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "traceconfiguration"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference for trace configuration"
+            },
+            "samplerType": {
+              "type": "string",
+              "enum": [
+                "always_on",
+                "always_off",
+                "trace_id_ratio",
+                "parent_based_always_on",
+                "parent_based_always_off",
+                "parent_based_trace_id_ratio"
+              ],
+              "description": "OTel SDK sampler type controlling which traces are recorded"
+            },
+            "propagators": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["tracecontext", "baggage", "b3", "b3multi", "xray", "jaeger"]
+              },
+              "description": "OTel context propagation formats enabled for this trace configuration"
+            },
+            "samplerParam": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Sampling rate for ratio-based samplers (trace_id_ratio, parent_based_trace_id_ratio). Value between 0.0 (sample none) and 1.0 (sample all). Ignored for non-ratio sampler types."
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.traceconfiguration"
+    }
+  },
+  "relationshipSchemas": {
+    "apm.exporterconfig.serves.apm.resource": {
+      "id": "apm.exporterconfig.serves.apm.resource",
+      "source_spec_node_id": "apm.exporterconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationconfig.serves.apm.instrumentationscope": {
+      "id": "apm.instrumentationconfig.serves.apm.instrumentationscope",
+      "source_spec_node_id": "apm.instrumentationconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.instrumentationscope",
+      "destination_layer": "apm",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationconfig.serves.apm.resource": {
+      "id": "apm.instrumentationconfig.serves.apm.resource",
+      "source_spec_node_id": "apm.instrumentationconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "serves",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationscope.aggregates.apm.exporterconfig": {
+      "id": "apm.instrumentationscope.aggregates.apm.exporterconfig",
+      "source_spec_node_id": "apm.instrumentationscope",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationscope.aggregates.apm.metricinstrument": {
+      "id": "apm.instrumentationscope.aggregates.apm.metricinstrument",
+      "source_spec_node_id": "apm.instrumentationscope",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationscope.aggregates.apm.span": {
+      "id": "apm.instrumentationscope.aggregates.apm.span",
+      "source_spec_node_id": "apm.instrumentationscope",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logconfiguration.aggregates.apm.exporterconfig": {
+      "id": "apm.logconfiguration.aggregates.apm.exporterconfig",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logconfiguration.aggregates.apm.logprocessor": {
+      "id": "apm.logconfiguration.aggregates.apm.logprocessor",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.logprocessor",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logconfiguration.depends-on.apm.resource": {
+      "id": "apm.logconfiguration.depends-on.apm.resource",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logconfiguration.flows-to.apm.exporterconfig": {
+      "id": "apm.logconfiguration.flows-to.apm.exporterconfig",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logconfiguration.references.apm.traceconfiguration": {
+      "id": "apm.logconfiguration.references.apm.traceconfiguration",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.traceconfiguration",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logconfiguration.serves.apm.logrecord": {
+      "id": "apm.logconfiguration.serves.apm.logrecord",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.logrecord",
+      "destination_layer": "apm",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logconfiguration.serves.apm.resource": {
+      "id": "apm.logconfiguration.serves.apm.resource",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logprocessor.flows-to.apm.exporterconfig": {
+      "id": "apm.logprocessor.flows-to.apm.exporterconfig",
+      "source_spec_node_id": "apm.logprocessor",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logprocessor.flows-to.apm.logprocessor": {
+      "id": "apm.logprocessor.flows-to.apm.logprocessor",
+      "source_spec_node_id": "apm.logprocessor",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.logprocessor",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logprocessor.flows-to.apm.span": {
+      "id": "apm.logprocessor.flows-to.apm.span",
+      "source_spec_node_id": "apm.logprocessor",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logrecord.depends-on.apm.instrumentationscope": {
+      "id": "apm.logrecord.depends-on.apm.instrumentationscope",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.instrumentationscope",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logrecord.depends-on.apm.resource": {
+      "id": "apm.logrecord.depends-on.apm.resource",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logrecord.flows-to.apm.logprocessor": {
+      "id": "apm.logrecord.flows-to.apm.logprocessor",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.logprocessor",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logrecord.references.apm.span": {
+      "id": "apm.logrecord.references.apm.span",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricconfiguration.aggregates.apm.exporterconfig": {
+      "id": "apm.metricconfiguration.aggregates.apm.exporterconfig",
+      "source_spec_node_id": "apm.metricconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricconfiguration.aggregates.apm.metricinstrument": {
+      "id": "apm.metricconfiguration.aggregates.apm.metricinstrument",
+      "source_spec_node_id": "apm.metricconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricconfiguration.depends-on.apm.resource": {
+      "id": "apm.metricconfiguration.depends-on.apm.resource",
+      "source_spec_node_id": "apm.metricconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricconfiguration.references.apm.traceconfiguration": {
+      "id": "apm.metricconfiguration.references.apm.traceconfiguration",
+      "source_spec_node_id": "apm.metricconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.traceconfiguration",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricconfiguration.serves.apm.instrumentationconfig": {
+      "id": "apm.metricconfiguration.serves.apm.instrumentationconfig",
+      "source_spec_node_id": "apm.metricconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.instrumentationconfig",
+      "destination_layer": "apm",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricconfiguration.serves.apm.resource": {
+      "id": "apm.metricconfiguration.serves.apm.resource",
+      "source_spec_node_id": "apm.metricconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.depends-on.apm.instrumentationscope": {
+      "id": "apm.metricinstrument.depends-on.apm.instrumentationscope",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.instrumentationscope",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.depends-on.apm.resource": {
+      "id": "apm.metricinstrument.depends-on.apm.resource",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.flows-to.apm.exporterconfig": {
+      "id": "apm.metricinstrument.flows-to.apm.exporterconfig",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.flows-to.apm.logprocessor": {
+      "id": "apm.metricinstrument.flows-to.apm.logprocessor",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.logprocessor",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.flows-to.apm.span": {
+      "id": "apm.metricinstrument.flows-to.apm.span",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.references.apm.span": {
+      "id": "apm.metricinstrument.references.apm.span",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.resource.aggregates.apm.exporterconfig": {
+      "id": "apm.resource.aggregates.apm.exporterconfig",
+      "source_spec_node_id": "apm.resource",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.resource.aggregates.apm.metricinstrument": {
+      "id": "apm.resource.aggregates.apm.metricinstrument",
+      "source_spec_node_id": "apm.resource",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.resource.aggregates.apm.span": {
+      "id": "apm.resource.aggregates.apm.span",
+      "source_spec_node_id": "apm.resource",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.composes.apm.metricinstrument": {
+      "id": "apm.span.composes.apm.metricinstrument",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.composes.apm.spanevent": {
+      "id": "apm.span.composes.apm.spanevent",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.spanevent",
+      "destination_layer": "apm",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.composes.apm.traceconfiguration": {
+      "id": "apm.span.composes.apm.traceconfiguration",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.traceconfiguration",
+      "destination_layer": "apm",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.depends-on.apm.instrumentationscope": {
+      "id": "apm.span.depends-on.apm.instrumentationscope",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.instrumentationscope",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.depends-on.apm.resource": {
+      "id": "apm.span.depends-on.apm.resource",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.flows-to.apm.exporterconfig": {
+      "id": "apm.span.flows-to.apm.exporterconfig",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.flows-to.apm.logprocessor": {
+      "id": "apm.span.flows-to.apm.logprocessor",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.logprocessor",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.flows-to.apm.span": {
+      "id": "apm.span.flows-to.apm.span",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.references.apm.span": {
+      "id": "apm.span.references.apm.span",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.spanevent.depends-on.apm.instrumentationscope": {
+      "id": "apm.spanevent.depends-on.apm.instrumentationscope",
+      "source_spec_node_id": "apm.spanevent",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.instrumentationscope",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.spanevent.depends-on.apm.resource": {
+      "id": "apm.spanevent.depends-on.apm.resource",
+      "source_spec_node_id": "apm.spanevent",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.resource",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.spanevent.depends-on.apm.traceconfiguration": {
+      "id": "apm.spanevent.depends-on.apm.traceconfiguration",
+      "source_spec_node_id": "apm.spanevent",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.traceconfiguration",
+      "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.spanevent.flows-to.apm.exporterconfig": {
+      "id": "apm.spanevent.flows-to.apm.exporterconfig",
+      "source_spec_node_id": "apm.spanevent",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.spanevent.references.apm.logrecord": {
+      "id": "apm.spanevent.references.apm.logrecord",
+      "source_spec_node_id": "apm.spanevent",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.logrecord",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.spanevent.triggers.apm.metricinstrument": {
+      "id": "apm.spanevent.triggers.apm.metricinstrument",
+      "source_spec_node_id": "apm.spanevent",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.spanlink.references.apm.span": {
+      "id": "apm.spanlink.references.apm.span",
+      "source_spec_node_id": "apm.spanlink",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.aggregates.apm.exporterconfig": {
+      "id": "apm.traceconfiguration.aggregates.apm.exporterconfig",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.aggregates.apm.metricinstrument": {
+      "id": "apm.traceconfiguration.aggregates.apm.metricinstrument",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.aggregates.apm.span": {
+      "id": "apm.traceconfiguration.aggregates.apm.span",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

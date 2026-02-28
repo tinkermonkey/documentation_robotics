@@ -1,0 +1,3301 @@
+{
+  "specVersion": "0.8.0",
+  "layer": {
+    "id": "security",
+    "number": 3,
+    "name": "Security Layer",
+    "description": "Layer 3: Security Layer",
+    "inspired_by": {
+      "standard": "NIST SP 800-53",
+      "version": "5.1",
+      "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+    },
+    "node_types": [
+      "security.accesscondition",
+      "security.accountabilityrequirement",
+      "security.actor",
+      "security.auditconfig",
+      "security.authenticationconfig",
+      "security.bindingofduty",
+      "security.condition",
+      "security.countermeasure",
+      "security.dataclassification",
+      "security.delegation",
+      "security.evidence",
+      "security.fieldaccesscontrol",
+      "security.informationentity",
+      "security.informationright",
+      "security.needtoknow",
+      "security.passwordpolicy",
+      "security.permission",
+      "security.policyaction",
+      "security.policyrule",
+      "security.resourceoperation",
+      "security.retentionpolicy",
+      "security.role",
+      "security.secureresource",
+      "security.securityconstraints",
+      "security.securitymodel",
+      "security.securitypolicy",
+      "security.separationofduty",
+      "security.threat",
+      "security.validationrule"
+    ]
+  },
+  "nodeSchemas": {
+    "accesscondition": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AccessCondition",
+      "description": "Defines a single boolean predicate evaluated against a request context attribute (field), comparing the runtime value using a specified operator. Composed inside a PolicyRule condition chain to form compound access control expressions.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.accesscondition"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "accesscondition"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "operator": {
+              "type": "string",
+              "enum": ["eq", "neq", "gt", "lt", "in", "contains", "matches", "exists"],
+              "description": "Comparison operator applied to the field value, per XACML 3.0 match function semantics."
+            },
+            "value": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            }
+          },
+          "required": ["field", "operator", "value", "message", "source"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.accesscondition"
+    },
+    "accountabilityrequirement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AccountabilityRequirement",
+      "description": "Expresses who is obligated to provide evidence that a specific action occurred and under what conditions that evidence can be challenged. Distinct from AuditConfig, which defines what events are captured — this node defines the obligation to prove an action took place. Implements NIST SP 800-53 AU-10 non-repudiation.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.accountabilityrequirement"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "accountabilityrequirement"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string"
+            },
+            "resource": {
+              "type": "string"
+            },
+            "nonRepudiation": {
+              "type": "boolean"
+            },
+            "purposeDeclaration": {
+              "type": "string"
+            },
+            "challengeable": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "action",
+            "resource",
+            "nonRepudiation",
+            "purposeDeclaration",
+            "challengeable"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.accountabilityrequirement"
+    },
+    "actor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Actor",
+      "description": "A named principal — human user, service account, automated system, or external entity — whose identity and trust level govern what operations it may perform. Associates with Roles for permission grouping and with SeparationOfDuty and Delegation controls, per NIST SP 800-53 AC-2 (Account Management) and SP 800-207 (Zero Trust Architecture).",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.actor"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "actor"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["human", "service", "system", "external-entity"],
+              "description": "Category of actor, per NIST AC-2 (Account Management) subject classification."
+            },
+            "description": {
+              "type": "string"
+            },
+            "trustLevel": {
+              "type": "string",
+              "enum": ["zero", "low", "medium", "high", "full"],
+              "description": "Zero-trust assurance level assigned to this actor, per NIST SP 800-207."
+            },
+            "objectives": {
+              "type": "array",
+              "description": "References nodes describing this actor's goals or intended behaviors (e.g., for threat modeling or trust analysis)."
+            },
+            "dependencies": {
+              "type": "array",
+              "description": "References actor or delegation nodes this actor depends on for trust chain or access delegation analysis."
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.actor"
+    },
+    "auditconfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AuditConfig",
+      "description": "Configuration for security audit logging, specifying what events to capture, retention periods, storage destinations, and compliance requirements. Enables security monitoring and forensic analysis.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.auditconfig"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "auditconfig"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "level": {
+              "type": "string",
+              "enum": ["none", "basic", "standard", "detailed", "verbose"],
+              "description": "Verbosity of audit event capture, from no logging to full payload-level tracing, per NIST SP 800-53 AU-2 Event Logging."
+            },
+            "includePayload": {
+              "type": "boolean"
+            },
+            "includeHeaders": {
+              "type": "boolean"
+            },
+            "sanitizeFields": {
+              "type": "string"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["level", "sanitizeFields"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.auditconfig"
+    },
+    "authenticationconfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AuthenticationConfig",
+      "description": "Specifies how principals are verified before accessing protected resources, including the identity provider, multi-factor requirements, session lifetime, and credential policy references. Scoped per application or service. Maps to NIST SP 800-53 IA-2, IA-5, and IA-11.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.authenticationconfig"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "authenticationconfig"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "provider": {
+              "type": "string",
+              "enum": ["oauth2", "saml", "ldap", "openid-connect", "local", "fido2"],
+              "description": "Authentication protocol or provider type."
+            },
+            "verificationLevel": {
+              "type": "string",
+              "enum": ["ial1", "ial2", "ial3"],
+              "description": "Identity Assurance Level, per NIST SP 800-63A: IAL1 (self-asserted), IAL2 (remote identity proofing), IAL3 (in-person proofing)."
+            },
+            "sessionTimeout": {
+              "type": "integer"
+            },
+            "mfaRequired": {
+              "type": "boolean"
+            },
+            "passwordPolicy": {
+              "type": "string"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["provider", "sessionTimeout"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.authenticationconfig"
+    },
+    "bindingofduty": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BindingOfDuty",
+      "description": "Obligation control requiring that a single actor who initiates a task must also complete it, preventing task hijacking or inconsistent workflow state that could be exploited by a different actor. Complements SeparationOfDuty by enforcing task continuity rather than task segregation. Anchored to NIST SP 800-53 CM-5 (Access Restrictions for Change) and workflow integrity controls.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.bindingofduty"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "bindingofduty"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "tasks": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "scope": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["message"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.bindingofduty"
+    },
+    "condition": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Condition",
+      "description": "A reusable logical expression evaluated against request context (time, location, user attributes, resource state) to determine when a SecurityPolicy rule applies. Distinct from AccessCondition, which is a concrete field+operator+value predicate composed inside a PolicyRule condition chain.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.condition"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "condition"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "expression": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "operator": {
+              "type": "string",
+              "enum": ["eq", "neq", "gt", "lt", "in", "contains", "matches"],
+              "description": "Comparison operator for the condition expression, aligned with XACML MatchType values."
+            },
+            "evaluationType": {
+              "type": "string",
+              "enum": ["static", "dynamic", "runtime", "compile-time"],
+              "description": "When the condition is evaluated: at build time, at policy load, or at runtime during access enforcement."
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["expression"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.condition"
+    },
+    "countermeasure": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Countermeasure",
+      "description": "A security control or mitigation technique that reduces the likelihood or impact of a specific threat. Maps to NIST SP 800-53 controls by type (technical, operational, management) and tracks implementation status and residual risk.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.countermeasure"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "countermeasure"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["technical", "operational", "management", "physical"],
+              "description": "NIST SP 800-53 control family classification: technical (hardware/software mechanisms), operational (people and procedures), management (governance), or physical (facility/environmental)."
+            },
+            "description": {
+              "type": "string"
+            },
+            "effectiveness": {
+              "type": "string",
+              "enum": ["high", "medium", "low", "unknown"],
+              "description": "Assessed effectiveness of the countermeasure in reducing threat risk, per NIST SP 800-30 risk treatment evaluation."
+            },
+            "implemented": {
+              "type": "boolean"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.countermeasure"
+    },
+    "dataclassification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DataClassification",
+      "description": "Data classification and protection policies",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.dataclassification"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "dataclassification"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "encryptionRequirement": {
+              "type": "string",
+              "enum": ["none", "in-transit", "at-rest", "end-to-end", "field-level"],
+              "description": "Minimum encryption obligation for data within this classification scheme, per NIST SP 800-53 SC-28 and SC-8 controls."
+            },
+            "classificationLevel": {
+              "type": "string",
+              "enum": ["public", "internal", "confidential", "restricted", "top-secret"],
+              "description": "Data sensitivity tier applied by this scheme, aligned with NIST FIPS 199 security categorization levels."
+            },
+            "classifications": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.dataclassification"
+    },
+    "delegation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Delegation",
+      "description": "Explicit transfer of permissions or authority from a delegator to a delegatee, subject to scope constraints and optional time bounds. Supports least-privilege enforcement (NIST AC-6) by enabling time-limited privilege elevation rather than permanent role assignment.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.delegation"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "delegation"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "delegator": {
+              "type": "string"
+            },
+            "delegatee": {
+              "type": "string"
+            },
+            "delegationType": {
+              "type": "string",
+              "enum": ["full", "partial", "temporary", "conditional", "revocable"],
+              "description": "Scope and constraints of the delegation grant, per OAuth 2.0 token delegation and NIST SP 800-162 attribute delegation models."
+            },
+            "validUntil": {
+              "type": "string",
+              "description": "ISO 8601 datetime after which this delegation automatically expires. Required for delegationType 'temporary' and recommended for 'conditional' to enforce time-bounded privilege grants per AC-6."
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": ["delegator", "delegatee", "delegationType"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.delegation"
+    },
+    "evidence": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Evidence",
+      "description": "An artifact that provides verifiable proof of an action or event for non-repudiation and audit purposes. Anchored to NIST SP 800-53 AU-10 (Non-repudiation), evidence types range from cryptographic signatures to plain audit log entries, with strength characterizing the assurance level per NIST SP 800-63-3.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.evidence"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "evidence"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["log", "signature", "timestamp", "hash", "certificate", "audit-trail"],
+              "description": "Category of evidence artifact, per NIST AU-10 (Non-repudiation)."
+            },
+            "strength": {
+              "type": "string",
+              "enum": ["strong", "moderate", "weak", "cryptographic"],
+              "description": "Assurance strength of the evidence, per NIST SP 800-63-3 assurance levels."
+            },
+            "source": {
+              "type": "string",
+              "description": "Origin or location of this evidence artifact, such as a system identifier, log stream name, or storage URI."
+            }
+          },
+          "required": ["type", "source"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.evidence"
+    },
+    "fieldaccesscontrol": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FieldAccessControl",
+      "description": "Defines access restrictions and transformation rules for a specific data field, controlling how sensitive values are masked or redacted when exposed to unauthorized principals. Used within SecureResource fieldAccess to enforce field-level data protection per NIST SP 800-53 AC-3 and SC-28.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.fieldaccesscontrol"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "fieldaccesscontrol"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "maskingStrategy": {
+              "type": "string",
+              "enum": ["redact", "hash", "tokenize", "truncate", "blur", "none"],
+              "description": "Technique used to protect sensitive field values when exposed to unauthorized principals, per NIST SP 800-53 SC-28 data-at-rest protection controls."
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": ["field"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.fieldaccesscontrol"
+    },
+    "informationentity": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InformationEntity",
+      "description": "Named information asset subject to fine-grained access rights and data classification. Represents a logical grouping of data (e.g., customer PII, financial records) whose access is governed by associated InformationRight grants and AccountabilityRequirements, per NIST SP 800-53 AC-3 and IP-1.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.informationentity"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "informationentity"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "classification": {
+              "type": "string",
+              "description": "Sensitivity classification of this information asset. Use classificationLevel values: public, internal, confidential, restricted, or top-secret."
+            },
+            "authorizationRequirements": {
+              "type": "array",
+              "description": "References InformationRight nodes defining which actors may access this entity and under what constraints."
+            }
+          },
+          "required": ["classification"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.informationentity"
+    },
+    "informationright": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InformationRight",
+      "description": "A granular access grant specifying which operations a named actor may perform on an InformationEntity, subject to a qualifying constraint expression. Implements attribute-based access control (ABAC) at the information asset level, per NIST SP 800-162 (ABAC Guide) and NIST SP 800-53 AC-3(14).",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.informationright"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "informationright"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "actor": {
+              "type": "string",
+              "description": "Identifier of the actor (security.actor) to whom this right is granted."
+            },
+            "constraint": {
+              "type": "string",
+              "description": "Boolean constraint expression that must evaluate to true for the right to apply (e.g., 'actor.department == resource.ownerDepartment')."
+            },
+            "operations": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["read", "write", "delete", "share", "export", "approve"]
+              },
+              "description": "Permitted operations on the information entity granted by this right."
+            }
+          },
+          "required": ["actor", "constraint"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.informationright"
+    },
+    "needtoknow": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NeedToKnow",
+      "description": "Restricts access to a resource to only those actors whose stated purpose requires it, implementing the NIST SP 800-53 AC-3(3) mandatory access control principle. JustificationRequired enforces that actors must declare their purpose before access is granted.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.needtoknow"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "needtoknow"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "resource": {
+              "type": "string"
+            },
+            "objective": {
+              "type": "string",
+              "description": "A free-text statement of the business or operational purpose that justifies access. This is a purpose declaration string, not a reference to an ActorObjective node."
+            },
+            "message": {
+              "type": "string"
+            },
+            "justificationRequired": {
+              "type": "boolean"
+            }
+          },
+          "required": ["resource", "objective", "message", "justificationRequired"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.needtoknow"
+    },
+    "passwordpolicy": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PasswordPolicy",
+      "description": "Defines password complexity, rotation, and lockout requirements for credential-based authentication. Implements NIST SP 800-53 IA-5(1) controls including minimum length, character class requirements, history enforcement, and brute-force lockout thresholds.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.passwordpolicy"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "passwordpolicy"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "minLength": {
+              "type": "integer"
+            },
+            "maxLength": {
+              "type": "integer"
+            },
+            "requireUppercase": {
+              "type": "boolean"
+            },
+            "requireLowercase": {
+              "type": "boolean"
+            },
+            "requireNumbers": {
+              "type": "boolean"
+            },
+            "requireSpecialChars": {
+              "type": "boolean"
+            },
+            "preventReuse": {
+              "type": "integer"
+            },
+            "expiryDays": {
+              "type": "integer"
+            },
+            "lockoutAttempts": {
+              "type": "integer"
+            },
+            "lockoutDuration": {
+              "type": "integer"
+            }
+          },
+          "required": ["expiryDays"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.passwordpolicy"
+    },
+    "permission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Permission",
+      "description": "An atomic grant authorizing a specific action (e.g., read, write, execute) on a resource within a defined scope. Permissions are assigned to Roles and enforced by SecureResource access control lists. Implements NIST SP 800-53 AC-3 access enforcement and AC-6 least privilege.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.permission"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "permission"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string",
+              "enum": ["read-only", "write", "admin", "delegated", "conditional"],
+              "description": "Breadth of access granted by this permission, from narrow read-only to full administrative control."
+            },
+            "resource": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string",
+              "enum": ["create", "read", "update", "delete", "execute", "list"],
+              "description": "CRUD-plus operation type this permission governs, per NIST SP 800-53 AC-3 Access Enforcement."
+            }
+          },
+          "required": ["scope", "resource", "action"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.permission"
+    },
+    "policyaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PolicyAction",
+      "description": "The enforcement action executed when a SecurityPolicy rule condition is met. Defines the system response to a policy match (allow, deny, remediation, notification), ensuring consistent policy enforcement across the security model per NIST SP 800-53 CA-9 (Internal System Connections) and SI-3 (Malicious Code Protection).",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.policyaction"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "policyaction"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "allow",
+                "deny",
+                "log",
+                "alert",
+                "redirect",
+                "rate-limit",
+                "challenge",
+                "quarantine",
+                "notify",
+                "mask",
+                "encrypt"
+              ],
+              "description": "Enforcement action type applied when the parent policy rule fires."
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Key-value configuration for the action (e.g., redirect URL, notification recipient, masking pattern)."
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["type", "parameters"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.policyaction"
+    },
+    "policyrule": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PolicyRule",
+      "description": "An atomic policy evaluation unit consisting of a condition predicate and an enforcement effect (PERMIT or DENY), with optional obligation actions executed upon match. Multiple PolicyRules compose a SecurityPolicy evaluated in priority order.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.policyrule"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "policyrule"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "condition": {
+              "type": "string"
+            },
+            "effect": {
+              "type": "string",
+              "enum": ["permit", "deny", "indeterminate", "not-applicable"],
+              "description": "Policy decision outcome, per XACML 3.0 Rule element effect values."
+            },
+            "message": {
+              "type": "string"
+            },
+            "actions": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["condition", "effect"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.policyrule"
+    },
+    "resourceoperation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ResourceOperation",
+      "description": "A permitted operation that an actor may perform on a secured resource, forming the verb component of a subject-verb-object access control policy. Bound to AccessConditions, RateLimits, and AuditConfig nodes via the security policy model, per NIST SP 800-53 AC-3 (Access Enforcement).",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.resourceoperation"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "resourceoperation"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "create",
+                "read",
+                "update",
+                "delete",
+                "list",
+                "execute",
+                "approve",
+                "share",
+                "export",
+                "import"
+              ],
+              "description": "Permitted operation type on the secured resource."
+            },
+            "description": {
+              "type": "string"
+            },
+            "conditions": {
+              "type": "array",
+              "description": "References AccessCondition nodes that must be satisfied before this operation is authorized."
+            },
+            "rateLimit": {
+              "type": "array",
+              "description": "References RateLimit nodes (api.ratelimit) applied to this operation."
+            },
+            "audit": {
+              "type": "array",
+              "description": "References AuditConfig nodes specifying how this operation is logged for accountability."
+            }
+          },
+          "required": ["operation"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.resourceoperation"
+    },
+    "retentionpolicy": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RetentionPolicy",
+      "description": "Defines how long security-related data (audit logs, access records, encryption keys) must be retained, archival strategies, and secure deletion procedures. Ensures compliance with regulatory requirements.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.retentionpolicy"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "retentionpolicy"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "period": {
+              "type": "string"
+            },
+            "destination": {
+              "type": "string",
+              "enum": ["siem", "database", "file", "cloud", "stream", "archive"],
+              "description": "Storage or forwarding target for retained security data, per NIST SP 800-53 AU-9 Protection of Audit Information."
+            },
+            "deletionMethod": {
+              "type": "string",
+              "enum": ["secure-erase", "crypto-shred", "overwrite", "logical-delete", "archive"],
+              "description": "Secure disposal technique applied when data reaches end of retention period, per NIST SP 800-88 Guidelines for Media Sanitization."
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": ["period"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.retentionpolicy"
+    },
+    "role": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Role",
+      "description": "A named collection of Permissions implementing RBAC per NIST SP 800-53 AC-2 and AC-6. Roles can inherit from parent roles (role hierarchy), accumulating permissions transitively. The level attribute defines the role privilege tier for least-privilege enforcement.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.role"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "role"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "level": {
+              "type": "integer"
+            },
+            "inheritsFrom": {
+              "type": "string",
+              "description": "Name of the parent role this role inherits permissions from. Supports single inheritance; the child accumulates all permissions of the referenced role in addition to its own."
+            },
+            "permissions": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["displayName", "level", "inheritsFrom"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.role"
+    },
+    "secureresource": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SecureResource",
+      "description": "Represents a named resource subject to security controls, defining the operations that can be performed on it and optional field-level access restrictions. Acts as the resource component in subject-action-resource access control triples per NIST SP 800-53 AC-3.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.secureresource"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "secureresource"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "resource": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["api", "database", "file", "service", "ui", "stream"],
+              "description": "Category of protected resource, used to apply appropriate access control and audit policies per NIST SP 800-53 AC-3."
+            },
+            "description": {
+              "type": "string"
+            },
+            "operations": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "fieldAccess": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["resource", "type"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.secureresource"
+    },
+    "securityconstraints": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SecurityConstraints",
+      "description": "An aggregate container defining the procedural access control constraints for an application, grouping SeparationOfDuty, BindingOfDuty, and NeedToKnow rules. Applied within SecurityModel to enforce AC-5 and workflow integrity controls.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.securityconstraints"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "securityconstraints"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "separationOfDuty": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "bindingOfDuty": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "needToKnow": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.securityconstraints"
+    },
+    "securitymodel": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SecurityModel",
+      "description": "The root aggregate for an application's security posture, composing authentication, authorization (roles, permissions, resources), threat model, data classification, accountability requirements, and policies into a unified security specification. Scoped to a single application or bounded context.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.securitymodel"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "securitymodel"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "application": {
+              "type": "string",
+              "description": "Name or identifier of the application this security model governs. Used to scope the security posture to a single application or bounded context."
+            },
+            "accessControlModel": {
+              "type": "string",
+              "enum": ["dac", "mac", "rbac", "abac", "rebac"],
+              "description": "Access control paradigm in use: DAC (discretionary), MAC (mandatory), RBAC (role-based), ABAC (attribute-based), ReBAC (relationship-based). Per NIST SP 800-162 and SP 800-207."
+            },
+            "authentication": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "actors": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "permissions": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "resources": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "informationEntities": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "delegations": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "securityConstraints": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "policies": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "dataClassification": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "socialDependencies": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "accountability": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "threats": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["version", "application"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.securitymodel"
+    },
+    "securitypolicy": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SecurityPolicy",
+      "description": "A named, prioritized security policy containing ordered evaluation rules that determine access control decisions for targeted resources or operations. Policies are evaluated in priority order with the highest-priority matching policy determining the outcome. Implements NIST SP 800-53 AC-1 policy requirements.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.securitypolicy"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "securitypolicy"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "priority": {
+              "type": "integer"
+            },
+            "target": {
+              "type": "string",
+              "enum": ["endpoint", "service", "data", "user", "role", "resource"],
+              "description": "The category of entity this policy governs, aligned with XACML target element semantics."
+            },
+            "requirementLevel": {
+              "type": "string",
+              "enum": ["mandatory", "recommended", "optional", "conditional"],
+              "description": "Compliance obligation of this policy, indicating whether enforcement is required by regulation, recommended best practice, or situationally applicable."
+            },
+            "rules": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["priority", "target"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.securitypolicy"
+    },
+    "separationofduty": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SeparationOfDuty",
+      "description": "Enforces NIST SP 800-53 AC-5 by requiring that sensitive tasks (e.g., request + approval, initiate + authorize) are performed by different actors or roles, preventing fraud, collusion, and undetected errors. MutuallyExclusive indicates roles that cannot be assigned to the same individual.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.separationofduty"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "separationofduty"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "tasks": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "roles": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "mutuallyExclusive": {
+              "type": "array",
+              "description": "Contains relationship"
+            }
+          },
+          "required": ["message"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.separationofduty"
+    },
+    "threat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Threat",
+      "description": "Represents an identified security threat with assessed likelihood and impact, targeting specific resources or controls. Linked to Countermeasures that reduce exposure. Supports NIST SP 800-53 RA-3 risk assessment and enables residual risk tracking.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.threat"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "threat"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "threatens": {
+              "type": "string"
+            },
+            "likelihood": {
+              "type": "string",
+              "enum": ["low", "moderate", "high"],
+              "description": "Probability the threat will be exploited, per NIST SP 800-30 Table E-2."
+            },
+            "impact": {
+              "type": "string",
+              "enum": ["low", "moderate", "high"],
+              "description": "Potential adverse impact if the threat is realized, per NIST FIPS 199."
+            },
+            "criticality": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"],
+              "description": "Combined severity rating reflecting both likelihood and impact for prioritization."
+            },
+            "countermeasures": {
+              "type": "array",
+              "description": "Contains relationship"
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["threatens", "likelihood", "impact"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.threat"
+    },
+    "validationrule": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ValidationRule",
+      "description": "Specifies data validation constraints for FieldAccessControl, defining allowed patterns, value ranges, or transformations applied when accessing protected fields. Prevents data corruption and enforces field-level integrity.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "security.validationrule"
+        },
+        "layer_id": {
+          "const": "security"
+        },
+        "type": {
+          "const": "validationrule"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["regex", "range", "length", "enum", "custom"],
+              "description": "Validation mechanism type, per NIST SI-10 (Information Input Validation)."
+            },
+            "value": {
+              "type": "string",
+              "description": "Validation constraint value whose meaning depends on `type`: a regex pattern string, a numeric range expression (e.g. '1-100'), a maximum character count, a pipe-delimited list of allowed enum values, or a custom expression string."
+            },
+            "message": {
+              "type": "string",
+              "description": "Human-readable violation message shown to the user or logged when this validation rule fails."
+            },
+            "severity": {
+              "type": "string",
+              "enum": ["error", "warning", "info"],
+              "description": "Severity of a validation rule violation."
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference"
+            }
+          },
+          "required": ["type", "value", "message"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:security.validationrule"
+    }
+  },
+  "relationshipSchemas": {
+    "security.accesscondition.composes.security.policyrule": {
+      "id": "security.accesscondition.composes.security.policyrule",
+      "source_spec_node_id": "security.accesscondition",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.accesscondition.constrains.security.permission": {
+      "id": "security.accesscondition.constrains.security.permission",
+      "source_spec_node_id": "security.accesscondition",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.accesscondition.governs.security.fieldaccesscontrol": {
+      "id": "security.accesscondition.governs.security.fieldaccesscontrol",
+      "source_spec_node_id": "security.accesscondition",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.fieldaccesscontrol",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.accesscondition.references.security.secureresource": {
+      "id": "security.accesscondition.references.security.secureresource",
+      "source_spec_node_id": "security.accesscondition",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.accesscondition.uses.security.validationrule": {
+      "id": "security.accesscondition.uses.security.validationrule",
+      "source_spec_node_id": "security.accesscondition",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.validationrule",
+      "destination_layer": "security",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.accountabilityrequirement.constrains.security.actor": {
+      "id": "security.accountabilityrequirement.constrains.security.actor",
+      "source_spec_node_id": "security.accountabilityrequirement",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.actor",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.accountabilityrequirement.requires.security.auditconfig": {
+      "id": "security.accountabilityrequirement.requires.security.auditconfig",
+      "source_spec_node_id": "security.accountabilityrequirement",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.auditconfig",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.accountabilityrequirement.requires.security.evidence": {
+      "id": "security.accountabilityrequirement.requires.security.evidence",
+      "source_spec_node_id": "security.accountabilityrequirement",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.evidence",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.accountabilityrequirement.requires.security.retentionpolicy": {
+      "id": "security.accountabilityrequirement.requires.security.retentionpolicy",
+      "source_spec_node_id": "security.accountabilityrequirement",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.retentionpolicy",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.actor.accesses.security.secureresource": {
+      "id": "security.actor.accesses.security.secureresource",
+      "source_spec_node_id": "security.actor",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.actor.assigned-to.security.role": {
+      "id": "security.actor.assigned-to.security.role",
+      "source_spec_node_id": "security.actor",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.actor.associated-with.security.delegation": {
+      "id": "security.actor.associated-with.security.delegation",
+      "source_spec_node_id": "security.actor",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.delegation",
+      "destination_layer": "security",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.actor.associated-with.security.threat": {
+      "id": "security.actor.associated-with.security.threat",
+      "source_spec_node_id": "security.actor",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.actor.references.security.delegation": {
+      "id": "security.actor.references.security.delegation",
+      "source_spec_node_id": "security.actor",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.delegation",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.actor.requires.security.authenticationconfig": {
+      "id": "security.actor.requires.security.authenticationconfig",
+      "source_spec_node_id": "security.actor",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.authenticationconfig",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.auditconfig.depends-on.security.retentionpolicy": {
+      "id": "security.auditconfig.depends-on.security.retentionpolicy",
+      "source_spec_node_id": "security.auditconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.retentionpolicy",
+      "destination_layer": "security",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.auditconfig.fulfills.security.accountabilityrequirement": {
+      "id": "security.auditconfig.fulfills.security.accountabilityrequirement",
+      "source_spec_node_id": "security.auditconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "fulfills",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.auditconfig.governs.security.retentionpolicy": {
+      "id": "security.auditconfig.governs.security.retentionpolicy",
+      "source_spec_node_id": "security.auditconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.retentionpolicy",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.auditconfig.governs.security.secureresource": {
+      "id": "security.auditconfig.governs.security.secureresource",
+      "source_spec_node_id": "security.auditconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.auditconfig.mitigates.security.threat": {
+      "id": "security.auditconfig.mitigates.security.threat",
+      "source_spec_node_id": "security.auditconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "mitigates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.auditconfig.monitors.security.secureresource": {
+      "id": "security.auditconfig.monitors.security.secureresource",
+      "source_spec_node_id": "security.auditconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.auditconfig.triggers.security.evidence": {
+      "id": "security.auditconfig.triggers.security.evidence",
+      "source_spec_node_id": "security.auditconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.evidence",
+      "destination_layer": "security",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.authenticationconfig.authenticates.security.actor": {
+      "id": "security.authenticationconfig.authenticates.security.actor",
+      "source_spec_node_id": "security.authenticationconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.actor",
+      "destination_layer": "security",
+      "predicate": "authenticates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.authenticationconfig.constrained-by.security.securitypolicy": {
+      "id": "security.authenticationconfig.constrained-by.security.securitypolicy",
+      "source_spec_node_id": "security.authenticationconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.authenticationconfig.depends-on.security.auditconfig": {
+      "id": "security.authenticationconfig.depends-on.security.auditconfig",
+      "source_spec_node_id": "security.authenticationconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.auditconfig",
+      "destination_layer": "security",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.authenticationconfig.protects.security.secureresource": {
+      "id": "security.authenticationconfig.protects.security.secureresource",
+      "source_spec_node_id": "security.authenticationconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "protects",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.authenticationconfig.references.security.passwordpolicy": {
+      "id": "security.authenticationconfig.references.security.passwordpolicy",
+      "source_spec_node_id": "security.authenticationconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.passwordpolicy",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.authenticationconfig.uses.security.passwordpolicy": {
+      "id": "security.authenticationconfig.uses.security.passwordpolicy",
+      "source_spec_node_id": "security.authenticationconfig",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.passwordpolicy",
+      "destination_layer": "security",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.bindingofduty.associated-with.security.separationofduty": {
+      "id": "security.bindingofduty.associated-with.security.separationofduty",
+      "source_spec_node_id": "security.bindingofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.separationofduty",
+      "destination_layer": "security",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.bindingofduty.constrains.security.role": {
+      "id": "security.bindingofduty.constrains.security.role",
+      "source_spec_node_id": "security.bindingofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.bindingofduty.governs.security.resourceoperation": {
+      "id": "security.bindingofduty.governs.security.resourceoperation",
+      "source_spec_node_id": "security.bindingofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.resourceoperation",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.bindingofduty.requires.security.evidence": {
+      "id": "security.bindingofduty.requires.security.evidence",
+      "source_spec_node_id": "security.bindingofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.evidence",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.bindingofduty.supports.security.accountabilityrequirement": {
+      "id": "security.bindingofduty.supports.security.accountabilityrequirement",
+      "source_spec_node_id": "security.bindingofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "supports",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.condition.composes.security.accesscondition": {
+      "id": "security.condition.composes.security.accesscondition",
+      "source_spec_node_id": "security.condition",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.condition.constrains.security.policyrule": {
+      "id": "security.condition.constrains.security.policyrule",
+      "source_spec_node_id": "security.condition",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.condition.constrains.security.securitypolicy": {
+      "id": "security.condition.constrains.security.securitypolicy",
+      "source_spec_node_id": "security.condition",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.condition.triggers.security.policyaction": {
+      "id": "security.condition.triggers.security.policyaction",
+      "source_spec_node_id": "security.condition",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyaction",
+      "destination_layer": "security",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.countermeasure.fulfills.security.securityconstraints": {
+      "id": "security.countermeasure.fulfills.security.securityconstraints",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securityconstraints",
+      "destination_layer": "security",
+      "predicate": "fulfills",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.countermeasure.implements.security.securitypolicy": {
+      "id": "security.countermeasure.implements.security.securitypolicy",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.countermeasure.mitigates.security.threat": {
+      "id": "security.countermeasure.mitigates.security.threat",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "mitigates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.countermeasure.protects.security.secureresource": {
+      "id": "security.countermeasure.protects.security.secureresource",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "protects",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.countermeasure.requires.security.evidence": {
+      "id": "security.countermeasure.requires.security.evidence",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.evidence",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.dataclassification.governs.security.fieldaccesscontrol": {
+      "id": "security.dataclassification.governs.security.fieldaccesscontrol",
+      "source_spec_node_id": "security.dataclassification",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.fieldaccesscontrol",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.dataclassification.governs.security.informationentity": {
+      "id": "security.dataclassification.governs.security.informationentity",
+      "source_spec_node_id": "security.dataclassification",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationentity",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.dataclassification.governs.security.retentionpolicy": {
+      "id": "security.dataclassification.governs.security.retentionpolicy",
+      "source_spec_node_id": "security.dataclassification",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.retentionpolicy",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.dataclassification.governs.security.secureresource": {
+      "id": "security.dataclassification.governs.security.secureresource",
+      "source_spec_node_id": "security.dataclassification",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.dataclassification.requires.security.countermeasure": {
+      "id": "security.dataclassification.requires.security.countermeasure",
+      "source_spec_node_id": "security.dataclassification",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.dataclassification.supports.security.securitypolicy": {
+      "id": "security.dataclassification.supports.security.securitypolicy",
+      "source_spec_node_id": "security.dataclassification",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "supports",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.delegation.authorizes.security.role": {
+      "id": "security.delegation.authorizes.security.role",
+      "source_spec_node_id": "security.delegation",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "authorizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.delegation.constrained-by.security.securitypolicy": {
+      "id": "security.delegation.constrained-by.security.securitypolicy",
+      "source_spec_node_id": "security.delegation",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.delegation.requires.security.actor": {
+      "id": "security.delegation.requires.security.actor",
+      "source_spec_node_id": "security.delegation",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.actor",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.delegation.triggers.security.evidence": {
+      "id": "security.delegation.triggers.security.evidence",
+      "source_spec_node_id": "security.delegation",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.evidence",
+      "destination_layer": "security",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.evidence.mitigates.security.threat": {
+      "id": "security.evidence.mitigates.security.threat",
+      "source_spec_node_id": "security.evidence",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "mitigates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.evidence.realizes.security.auditconfig": {
+      "id": "security.evidence.realizes.security.auditconfig",
+      "source_spec_node_id": "security.evidence",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.auditconfig",
+      "destination_layer": "security",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.evidence.supports.security.accountabilityrequirement": {
+      "id": "security.evidence.supports.security.accountabilityrequirement",
+      "source_spec_node_id": "security.evidence",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "supports",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.evidence.validates.security.policyrule": {
+      "id": "security.evidence.validates.security.policyrule",
+      "source_spec_node_id": "security.evidence",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "validates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.fieldaccesscontrol.constrained-by.security.accesscondition": {
+      "id": "security.fieldaccesscontrol.constrained-by.security.accesscondition",
+      "source_spec_node_id": "security.fieldaccesscontrol",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.fieldaccesscontrol.constrained-by.security.dataclassification": {
+      "id": "security.fieldaccesscontrol.constrained-by.security.dataclassification",
+      "source_spec_node_id": "security.fieldaccesscontrol",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.fieldaccesscontrol.governs.security.secureresource": {
+      "id": "security.fieldaccesscontrol.governs.security.secureresource",
+      "source_spec_node_id": "security.fieldaccesscontrol",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.fieldaccesscontrol.implements.security.policyrule": {
+      "id": "security.fieldaccesscontrol.implements.security.policyrule",
+      "source_spec_node_id": "security.fieldaccesscontrol",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.fieldaccesscontrol.protects.security.secureresource": {
+      "id": "security.fieldaccesscontrol.protects.security.secureresource",
+      "source_spec_node_id": "security.fieldaccesscontrol",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "protects",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.fieldaccesscontrol.requires.security.permission": {
+      "id": "security.fieldaccesscontrol.requires.security.permission",
+      "source_spec_node_id": "security.fieldaccesscontrol",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.informationentity.constrained-by.security.dataclassification": {
+      "id": "security.informationentity.constrained-by.security.dataclassification",
+      "source_spec_node_id": "security.informationentity",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.informationentity.constrained-by.security.retentionpolicy": {
+      "id": "security.informationentity.constrained-by.security.retentionpolicy",
+      "source_spec_node_id": "security.informationentity",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.retentionpolicy",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.informationentity.governs.security.informationright": {
+      "id": "security.informationentity.governs.security.informationright",
+      "source_spec_node_id": "security.informationentity",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationright",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.informationentity.requires.security.accountabilityrequirement": {
+      "id": "security.informationentity.requires.security.accountabilityrequirement",
+      "source_spec_node_id": "security.informationentity",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.informationright.accesses.security.informationentity": {
+      "id": "security.informationright.accesses.security.informationentity",
+      "source_spec_node_id": "security.informationright",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationentity",
+      "destination_layer": "security",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.informationright.assigned-to.security.actor": {
+      "id": "security.informationright.assigned-to.security.actor",
+      "source_spec_node_id": "security.informationright",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.actor",
+      "destination_layer": "security",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.informationright.constrained-by.security.accesscondition": {
+      "id": "security.informationright.constrained-by.security.accesscondition",
+      "source_spec_node_id": "security.informationright",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.informationright.governs.security.informationentity": {
+      "id": "security.informationright.governs.security.informationentity",
+      "source_spec_node_id": "security.informationright",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationentity",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.informationright.implements.security.permission": {
+      "id": "security.informationright.implements.security.permission",
+      "source_spec_node_id": "security.informationright",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.needtoknow.associated-with.security.role": {
+      "id": "security.needtoknow.associated-with.security.role",
+      "source_spec_node_id": "security.needtoknow",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.needtoknow.constrained-by.security.dataclassification": {
+      "id": "security.needtoknow.constrained-by.security.dataclassification",
+      "source_spec_node_id": "security.needtoknow",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.needtoknow.constrains.security.permission": {
+      "id": "security.needtoknow.constrains.security.permission",
+      "source_spec_node_id": "security.needtoknow",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.needtoknow.implements.security.policyrule": {
+      "id": "security.needtoknow.implements.security.policyrule",
+      "source_spec_node_id": "security.needtoknow",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.needtoknow.protects.security.informationentity": {
+      "id": "security.needtoknow.protects.security.informationentity",
+      "source_spec_node_id": "security.needtoknow",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationentity",
+      "destination_layer": "security",
+      "predicate": "protects",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.passwordpolicy.constrains.security.authenticationconfig": {
+      "id": "security.passwordpolicy.constrains.security.authenticationconfig",
+      "source_spec_node_id": "security.passwordpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.authenticationconfig",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.passwordpolicy.mitigates.security.threat": {
+      "id": "security.passwordpolicy.mitigates.security.threat",
+      "source_spec_node_id": "security.passwordpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "mitigates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.passwordpolicy.requires.security.auditconfig": {
+      "id": "security.passwordpolicy.requires.security.auditconfig",
+      "source_spec_node_id": "security.passwordpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.auditconfig",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.passwordpolicy.requires.security.countermeasure": {
+      "id": "security.passwordpolicy.requires.security.countermeasure",
+      "source_spec_node_id": "security.passwordpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.passwordpolicy.uses.security.validationrule": {
+      "id": "security.passwordpolicy.uses.security.validationrule",
+      "source_spec_node_id": "security.passwordpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.validationrule",
+      "destination_layer": "security",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.permission.authorizes.security.resourceoperation": {
+      "id": "security.permission.authorizes.security.resourceoperation",
+      "source_spec_node_id": "security.permission",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.resourceoperation",
+      "destination_layer": "security",
+      "predicate": "authorizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyaction.enforces-requirement.security.policyrule": {
+      "id": "security.policyaction.enforces-requirement.security.policyrule",
+      "source_spec_node_id": "security.policyaction",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "enforces-requirement",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyaction.governs.security.permission": {
+      "id": "security.policyaction.governs.security.permission",
+      "source_spec_node_id": "security.policyaction",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyaction.mitigates.security.threat": {
+      "id": "security.policyaction.mitigates.security.threat",
+      "source_spec_node_id": "security.policyaction",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "mitigates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyaction.requires.security.countermeasure": {
+      "id": "security.policyaction.requires.security.countermeasure",
+      "source_spec_node_id": "security.policyaction",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyaction.triggers.security.auditconfig": {
+      "id": "security.policyaction.triggers.security.auditconfig",
+      "source_spec_node_id": "security.policyaction",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.auditconfig",
+      "destination_layer": "security",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyrule.authorizes.security.permission": {
+      "id": "security.policyrule.authorizes.security.permission",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "authorizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyrule.composes.security.securitypolicy": {
+      "id": "security.policyrule.composes.security.securitypolicy",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyrule.governs.security.informationright": {
+      "id": "security.policyrule.governs.security.informationright",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationright",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyrule.protects.security.secureresource": {
+      "id": "security.policyrule.protects.security.secureresource",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "protects",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyrule.requires.security.countermeasure": {
+      "id": "security.policyrule.requires.security.countermeasure",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyrule.triggers.security.policyaction": {
+      "id": "security.policyrule.triggers.security.policyaction",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyaction",
+      "destination_layer": "security",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyrule.uses.security.accesscondition": {
+      "id": "security.policyrule.uses.security.accesscondition",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyrule.uses.security.condition": {
+      "id": "security.policyrule.uses.security.condition",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.condition",
+      "destination_layer": "security",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.resourceoperation.accesses.security.secureresource": {
+      "id": "security.resourceoperation.accesses.security.secureresource",
+      "source_spec_node_id": "security.resourceoperation",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.resourceoperation.constrained-by.security.accesscondition": {
+      "id": "security.resourceoperation.constrained-by.security.accesscondition",
+      "source_spec_node_id": "security.resourceoperation",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.resourceoperation.governs.security.secureresource": {
+      "id": "security.resourceoperation.governs.security.secureresource",
+      "source_spec_node_id": "security.resourceoperation",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.resourceoperation.triggers.security.auditconfig": {
+      "id": "security.resourceoperation.triggers.security.auditconfig",
+      "source_spec_node_id": "security.resourceoperation",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.auditconfig",
+      "destination_layer": "security",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.retentionpolicy.constrains.security.informationentity": {
+      "id": "security.retentionpolicy.constrains.security.informationentity",
+      "source_spec_node_id": "security.retentionpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationentity",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.retentionpolicy.governs.security.auditconfig": {
+      "id": "security.retentionpolicy.governs.security.auditconfig",
+      "source_spec_node_id": "security.retentionpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.auditconfig",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.retentionpolicy.governs.security.evidence": {
+      "id": "security.retentionpolicy.governs.security.evidence",
+      "source_spec_node_id": "security.retentionpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.evidence",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.retentionpolicy.requires.security.countermeasure": {
+      "id": "security.retentionpolicy.requires.security.countermeasure",
+      "source_spec_node_id": "security.retentionpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.role.accesses.security.secureresource": {
+      "id": "security.role.accesses.security.secureresource",
+      "source_spec_node_id": "security.role",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.role.aggregates.security.permission": {
+      "id": "security.role.aggregates.security.permission",
+      "source_spec_node_id": "security.role",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.role.authorizes.security.permission": {
+      "id": "security.role.authorizes.security.permission",
+      "source_spec_node_id": "security.role",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "authorizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.role.constrained-by.security.separationofduty": {
+      "id": "security.role.constrained-by.security.separationofduty",
+      "source_spec_node_id": "security.role",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.separationofduty",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.role.provides.security.permission": {
+      "id": "security.role.provides.security.permission",
+      "source_spec_node_id": "security.role",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.role.specializes.security.role": {
+      "id": "security.role.specializes.security.role",
+      "source_spec_node_id": "security.role",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.secureresource.aggregates.security.fieldaccesscontrol": {
+      "id": "security.secureresource.aggregates.security.fieldaccesscontrol",
+      "source_spec_node_id": "security.secureresource",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.fieldaccesscontrol",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.secureresource.aggregates.security.resourceoperation": {
+      "id": "security.secureresource.aggregates.security.resourceoperation",
+      "source_spec_node_id": "security.secureresource",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.resourceoperation",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securityconstraints.aggregates.security.bindingofduty": {
+      "id": "security.securityconstraints.aggregates.security.bindingofduty",
+      "source_spec_node_id": "security.securityconstraints",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.bindingofduty",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securityconstraints.aggregates.security.needtoknow": {
+      "id": "security.securityconstraints.aggregates.security.needtoknow",
+      "source_spec_node_id": "security.securityconstraints",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.needtoknow",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securityconstraints.aggregates.security.separationofduty": {
+      "id": "security.securityconstraints.aggregates.security.separationofduty",
+      "source_spec_node_id": "security.securityconstraints",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.separationofduty",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securityconstraints.constrains.security.role": {
+      "id": "security.securityconstraints.constrains.security.role",
+      "source_spec_node_id": "security.securityconstraints",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securityconstraints.governs.security.securitypolicy": {
+      "id": "security.securityconstraints.governs.security.securitypolicy",
+      "source_spec_node_id": "security.securityconstraints",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.aggregates.security.authenticationconfig": {
+      "id": "security.securitymodel.aggregates.security.authenticationconfig",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.authenticationconfig",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.aggregates.security.threat": {
+      "id": "security.securitymodel.aggregates.security.threat",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.composes.security.authenticationconfig": {
+      "id": "security.securitymodel.composes.security.authenticationconfig",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.authenticationconfig",
+      "destination_layer": "security",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.composes.security.securityconstraints": {
+      "id": "security.securitymodel.composes.security.securityconstraints",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securityconstraints",
+      "destination_layer": "security",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.composes.security.securitypolicy": {
+      "id": "security.securitymodel.composes.security.securitypolicy",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.constrains.security.accountabilityrequirement": {
+      "id": "security.securitymodel.constrains.security.accountabilityrequirement",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.governs.security.dataclassification": {
+      "id": "security.securitymodel.governs.security.dataclassification",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.governs.security.securitypolicy": {
+      "id": "security.securitymodel.governs.security.securitypolicy",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitypolicy.aggregates.security.policyrule": {
+      "id": "security.securitypolicy.aggregates.security.policyrule",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitypolicy.constrains.security.permission": {
+      "id": "security.securitypolicy.constrains.security.permission",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitypolicy.enforces-requirement.security.accesscondition": {
+      "id": "security.securitypolicy.enforces-requirement.security.accesscondition",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "enforces-requirement",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitypolicy.fulfills.security.accountabilityrequirement": {
+      "id": "security.securitypolicy.fulfills.security.accountabilityrequirement",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "fulfills",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitypolicy.governs.security.passwordpolicy": {
+      "id": "security.securitypolicy.governs.security.passwordpolicy",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.passwordpolicy",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitypolicy.governs.security.secureresource": {
+      "id": "security.securitypolicy.governs.security.secureresource",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitypolicy.requires.security.countermeasure": {
+      "id": "security.securitypolicy.requires.security.countermeasure",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.separationofduty.associated-with.security.bindingofduty": {
+      "id": "security.separationofduty.associated-with.security.bindingofduty",
+      "source_spec_node_id": "security.separationofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.bindingofduty",
+      "destination_layer": "security",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.separationofduty.constrains.security.role": {
+      "id": "security.separationofduty.constrains.security.role",
+      "source_spec_node_id": "security.separationofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.separationofduty.governs.security.policyrule": {
+      "id": "security.separationofduty.governs.security.policyrule",
+      "source_spec_node_id": "security.separationofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.separationofduty.mitigates.security.threat": {
+      "id": "security.separationofduty.mitigates.security.threat",
+      "source_spec_node_id": "security.separationofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "mitigates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.separationofduty.requires.security.accountabilityrequirement": {
+      "id": "security.separationofduty.requires.security.accountabilityrequirement",
+      "source_spec_node_id": "security.separationofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.accesses.security.secureresource": {
+      "id": "security.threat.accesses.security.secureresource",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.constrains.security.accesscondition": {
+      "id": "security.threat.constrains.security.accesscondition",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.influence.security.dataclassification": {
+      "id": "security.threat.influence.security.dataclassification",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.influence.security.securitypolicy": {
+      "id": "security.threat.influence.security.securitypolicy",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.triggers.security.auditconfig": {
+      "id": "security.threat.triggers.security.auditconfig",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.auditconfig",
+      "destination_layer": "security",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.validationrule.constrains.security.accesscondition": {
+      "id": "security.validationrule.constrains.security.accesscondition",
+      "source_spec_node_id": "security.validationrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.validationrule.constrains.security.fieldaccesscontrol": {
+      "id": "security.validationrule.constrains.security.fieldaccesscontrol",
+      "source_spec_node_id": "security.validationrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.fieldaccesscontrol",
+      "destination_layer": "security",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.validationrule.enforces-requirement.security.fieldaccesscontrol": {
+      "id": "security.validationrule.enforces-requirement.security.fieldaccesscontrol",
+      "source_spec_node_id": "security.validationrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.fieldaccesscontrol",
+      "destination_layer": "security",
+      "predicate": "enforces-requirement",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.validationrule.enforces-requirement.security.securityconstraints": {
+      "id": "security.validationrule.enforces-requirement.security.securityconstraints",
+      "source_spec_node_id": "security.validationrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securityconstraints",
+      "destination_layer": "security",
+      "predicate": "enforces-requirement",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.validationrule.realizes.security.policyrule": {
+      "id": "security.validationrule.realizes.security.policyrule",
+      "source_spec_node_id": "security.validationrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.policyrule",
+      "destination_layer": "security",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.validationrule.supports.security.securitypolicy": {
+      "id": "security.validationrule.supports.security.securitypolicy",
+      "source_spec_node_id": "security.validationrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "supports",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    }
+  }
+}

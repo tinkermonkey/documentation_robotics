@@ -17,10 +17,47 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_DIR = path.join(__dirname, "..");
-const BUNDLED_LAYERS_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "layers");
-const BUNDLED_NODES_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "nodes");
-const BUNDLED_RELATIONSHIPS_DIR = path.join(CLI_DIR, "src", "schemas", "bundled", "relationships");
+const BUNDLED_DIR = path.join(CLI_DIR, "src", "schemas", "bundled");
 const GENERATED_DIR = path.join(CLI_DIR, "src", "generated");
+
+// ─── Compiled dist format types ────────────────────────────────────────────────
+
+interface ManifestDistFile {
+  specVersion: string;
+  builtAt: string;
+  layers: Array<{
+    id: string;
+    number: number;
+    name: string;
+    nodeTypeCount: number;
+    relationshipCount: number;
+  }>;
+  totals: { nodeTypes: number; relationships: number };
+}
+
+interface LayerDistInstance {
+  id: string;
+  number: number;
+  name: string;
+  description: string;
+  node_types: string[];
+  inspired_by?: { standard: string; version: string; url?: string };
+}
+
+interface LayerDistFile {
+  specVersion: string;
+  layer: LayerDistInstance;
+  nodeSchemas: Record<string, any>;
+  relationshipSchemas: Record<string, {
+    id: string;
+    source_spec_node_id: string;
+    destination_spec_node_id: string;
+    predicate: string;
+    cardinality: string;
+    strength: string;
+    required?: boolean;
+  }>;
+}
 
 /**
  * Expected layer count for the architecture model
@@ -29,19 +66,6 @@ const GENERATED_DIR = path.join(CLI_DIR, "src", "generated");
  * See: spec/layers/ for all layer definitions
  */
 const EXPECTED_LAYER_COUNT = 12;
-
-interface LayerInstance {
-  id: string;
-  number: number;
-  name: string;
-  description: string;
-  node_types: string[];
-  inspired_by?: {
-    standard: string;
-    version: string;
-    url?: string;
-  };
-}
 
 interface LayerMetadata {
   id: string;
@@ -77,256 +101,60 @@ interface RelationshipSchemaFile {
 }
 
 /**
- * Recursively find all node schema files in a directory
+ * Load the manifest from bundled directory
  */
-function findNodeSchemaFiles(dir: string): string[] {
-  const files: string[] = [];
+function loadManifest(): ManifestDistFile {
+  const manifestPath = path.join(BUNDLED_DIR, "manifest.json");
 
-  function traverse(currentDir: string) {
-    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
-        traverse(fullPath);
-      } else if (entry.name.endsWith(".node.schema.json")) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  traverse(dir);
-  return files.sort();
-}
-
-/**
- * Recursively find all relationship schema files in a directory
- */
-function findRelationshipSchemaFiles(dir: string): string[] {
-  const files: string[] = [];
-
-  function traverse(currentDir: string) {
-    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
-        traverse(fullPath);
-      } else if (entry.name.endsWith(".relationship.schema.json")) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  traverse(dir);
-  return files.sort();
-}
-
-/**
- * Load all node schema files from bundled directory and extract metadata
- */
-function loadNodeSchemas(quiet: boolean = false): NodeTypeInfo[] {
-  if (!fs.existsSync(BUNDLED_NODES_DIR)) {
-    console.error(`ERROR: Node schemas directory not found at ${BUNDLED_NODES_DIR}`);
+  if (!fs.existsSync(manifestPath)) {
+    console.error(`ERROR: manifest.json not found at ${manifestPath}`);
+    console.error("Run 'npm run sync-schemas' first (which requires 'npm run build:spec' at repo root).");
     process.exit(1);
   }
 
-  const schemaFiles = findNodeSchemaFiles(BUNDLED_NODES_DIR);
-
-  if (schemaFiles.length === 0) {
-    console.error(`ERROR: No .node.schema.json files found in ${BUNDLED_NODES_DIR}`);
-    process.exit(1);
-  }
-
-  const nodeTypes: NodeTypeInfo[] = schemaFiles.map((schemaFile) => {
-    const content = fs.readFileSync(schemaFile, "utf-8");
-    const schema = JSON.parse(content);
-
-    const specNodeId = schema.properties?.spec_node_id?.const;
-    const layer = schema.properties?.layer_id?.const;
-    const type = schema.properties?.type?.const;
-    const title = schema.title || type;
-
-    if (!specNodeId || !layer || !type) {
-      throw new Error(
-        `Invalid node schema at ${schemaFile}: missing spec_node_id, layer_id, or type`
-      );
-    }
-
-    // Extract attribute information
-    const attributesSchema = schema.properties?.attributes;
-    const requiredAttributes = attributesSchema?.required || [];
-    const allAttributes = Object.keys(attributesSchema?.properties || {});
-    const optionalAttributes = allAttributes.filter(
-      (a) => !requiredAttributes.includes(a)
-    );
-
-    return {
-      specNodeId,
-      layer,
-      type,
-      title,
-      requiredAttributes,
-      optionalAttributes,
-      attributeConstraints: attributesSchema?.properties || {},
-    };
-  });
-
-  return nodeTypes;
+  return JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as ManifestDistFile;
 }
 
 /**
- * Load all relationship schema files from bundled directory
- *
- * @param strictMode If true, duplicates trigger a build-breaking error (for production CI/CD)
- *                   If false, duplicates are warned but build continues (for local development)
- * @param quiet If true, suppress all progress output
+ * Load a single layer dist file from bundled directory
  */
-function loadRelationshipSchemas(strictMode: boolean = false, quiet: boolean = false): RelationshipSchemaFile[] {
-  if (!fs.existsSync(BUNDLED_RELATIONSHIPS_DIR)) {
-    if (!quiet) {
-      console.warn(`WARNING: Relationship schemas directory not found at ${BUNDLED_RELATIONSHIPS_DIR}`);
-    }
-    return [];
-  }
+function loadLayerDistFile(layerId: string): LayerDistFile {
+  const layerPath = path.join(BUNDLED_DIR, `${layerId}.json`);
 
-  const schemaFiles = findRelationshipSchemaFiles(BUNDLED_RELATIONSHIPS_DIR);
-
-  if (schemaFiles.length === 0) {
-    if (!quiet) {
-      console.warn(`WARNING: No .relationship.schema.json files found in ${BUNDLED_RELATIONSHIPS_DIR}`);
-    }
-    return [];
-  }
-
-  // Use Map to deduplicate by relationship ID (keep first occurrence)
-  // Store both the relationship data and the file path it came from
-  const relationshipMap = new Map<string, { data: RelationshipSchemaFile; filePath: string }>();
-  const duplicates: Array<{ id: string; files: string[] }> = [];
-  const duplicateIds = new Set<string>();
-
-  for (const schemaFile of schemaFiles) {
-    try {
-      const content = fs.readFileSync(schemaFile, "utf-8");
-      const schema = JSON.parse(content);
-
-      const id = schema.properties?.id?.const;
-      const sourceSpecNodeId = schema.properties?.source_spec_node_id?.const;
-      const destinationSpecNodeId = schema.properties?.destination_spec_node_id?.const;
-      const predicate = schema.properties?.predicate?.const;
-
-      if (!id || !sourceSpecNodeId || !destinationSpecNodeId || !predicate) {
-        console.warn(
-          `WARNING: Incomplete relationship schema at ${schemaFile}: missing required fields`
-        );
-        continue;
-      }
-
-      // Track if we already have this relationship ID
-      if (relationshipMap.has(id)) {
-        if (!duplicateIds.has(id)) {
-          duplicateIds.add(id);
-          // Include the first occurrence's file path
-          const firstOccurrence = relationshipMap.get(id)!.filePath;
-          duplicates.push({
-            id,
-            files: [firstOccurrence, schemaFile],
-          });
-        } else {
-          const dup = duplicates.find((d) => d.id === id);
-          if (dup && !dup.files.includes(schemaFile)) {
-            dup.files.push(schemaFile);
-          }
-        }
-
-        if (strictMode) {
-          const firstOccurrence = relationshipMap.get(id)!.filePath;
-          console.error(
-            `ERROR: Duplicate relationship ID '${id}' found in ${schemaFile}; ` +
-            `first occurrence was in ${firstOccurrence}`
-          );
-        } else {
-          console.warn(
-            `WARNING: Duplicate relationship ID '${id}' found in ${schemaFile}; using first occurrence`
-          );
-        }
-        continue;
-      }
-
-      const relationshipData: RelationshipSchemaFile = {
-        id,
-        source_spec_node_id: sourceSpecNodeId,
-        destination_spec_node_id: destinationSpecNodeId,
-        predicate,
-        cardinality: schema.properties?.cardinality?.const || "many-to-many",
-        strength: schema.properties?.strength?.const || "medium",
-        required: schema.properties?.required?.const || false,
-      };
-
-      relationshipMap.set(id, { data: relationshipData, filePath: schemaFile });
-    } catch (error: any) {
-      console.warn(`WARNING: Failed to parse relationship schema ${schemaFile}: ${error.message}`);
-    }
-  }
-
-  // In strict mode, fail the build if any duplicates were found
-  if (strictMode && duplicates.length > 0) {
-    console.error("\nERROR: Relationship schema validation failed:");
-    console.error(`Found ${duplicates.length} duplicate relationship ID(s):`);
-    for (const dup of duplicates) {
-      console.error(`  - ID '${dup.id}' appears in multiple files:`);
-      for (const file of dup.files) {
-        console.error(`    - ${file}`);
-      }
-    }
-    console.error(
-      "\nDuplicates indicate spec corruption. Check relationship schema files and ensure each ID is unique."
-    );
+  if (!fs.existsSync(layerPath)) {
+    console.error(`ERROR: Layer file not found: ${layerPath}`);
     process.exit(1);
   }
 
-  return Array.from(relationshipMap.values()).map((entry) => entry.data);
+  return JSON.parse(fs.readFileSync(layerPath, "utf-8")) as LayerDistFile;
 }
 
 /**
- * Load all layer instance files from bundled directory
+ * Load all layer instances from bundled compiled format
  */
 function loadLayerInstances(quiet: boolean = false): LayerMetadata[] {
-  if (!fs.existsSync(BUNDLED_LAYERS_DIR)) {
-    console.error(`ERROR: Layer instances directory not found at ${BUNDLED_LAYERS_DIR}`);
-    console.error("Run 'npm run sync-schemas' first to copy layer instances from spec/");
+  const manifest = loadManifest();
+
+  if (manifest.layers.length !== EXPECTED_LAYER_COUNT) {
+    console.error(`ERROR: Expected ${EXPECTED_LAYER_COUNT} layers, but manifest has ${manifest.layers.length}`);
     process.exit(1);
   }
 
-  const files = fs
-    .readdirSync(BUNDLED_LAYERS_DIR)
-    .filter((f) => f.endsWith(".layer.json"))
-    .sort();
+  const layers: LayerMetadata[] = manifest.layers
+    .sort((a, b) => a.number - b.number)
+    .map((entry) => {
+      const layerFile = loadLayerDistFile(entry.id);
+      const instance = layerFile.layer;
 
-  if (files.length === 0) {
-    console.error(`ERROR: No .layer.json files found in ${BUNDLED_LAYERS_DIR}`);
-    process.exit(1);
-  }
-
-  const layers: LayerMetadata[] = files.map((file) => {
-    const filePath = path.join(BUNDLED_LAYERS_DIR, file);
-    const content = fs.readFileSync(filePath, "utf-8");
-    const instance: LayerInstance = JSON.parse(content);
-
-    return {
-      id: instance.id,
-      number: instance.number,
-      name: instance.name,
-      description: instance.description,
-      nodeTypes: instance.node_types,
-      ...(instance.inspired_by && { inspiredBy: instance.inspired_by }),
-    };
-  });
-
-  // Validate we have the expected number of layers
-  if (layers.length !== EXPECTED_LAYER_COUNT) {
-    console.error(`ERROR: Expected ${EXPECTED_LAYER_COUNT} layers, but found ${layers.length}`);
-    console.error(`Files found: ${files.join(", ")}`);
-    process.exit(1);
-  }
+      return {
+        id: instance.id,
+        number: instance.number,
+        name: instance.name,
+        description: instance.description,
+        nodeTypes: instance.node_types,
+        ...(instance.inspired_by && { inspiredBy: instance.inspired_by }),
+      };
+    });
 
   // Validate layers are numbered sequentially from 1 to EXPECTED_LAYER_COUNT
   const numbers = layers.map((l) => l.number).sort((a, b) => a - b);
@@ -337,7 +165,86 @@ function loadLayerInstances(quiet: boolean = false): LayerMetadata[] {
     process.exit(1);
   }
 
-  return layers.sort((a, b) => a.number - b.number);
+  return layers;
+}
+
+/**
+ * Load all node schemas from bundled compiled format
+ */
+function loadNodeSchemas(quiet: boolean = false): NodeTypeInfo[] {
+  const manifest = loadManifest();
+  const nodeTypes: NodeTypeInfo[] = [];
+
+  for (const entry of manifest.layers.sort((a, b) => a.number - b.number)) {
+    const layerFile = loadLayerDistFile(entry.id);
+
+    for (const [type, schema] of Object.entries(layerFile.nodeSchemas)) {
+      const s = schema as any;
+      const specNodeId = s.properties?.spec_node_id?.const;
+      const layer = s.properties?.layer_id?.const;
+      const nodeType = s.properties?.type?.const;
+      const title = s.title || type;
+
+      if (!specNodeId || !layer || !nodeType) {
+        throw new Error(
+          `Invalid node schema for '${entry.id}.${type}': missing spec_node_id, layer_id, or type`
+        );
+      }
+
+      const attributesSchema = s.properties?.attributes;
+      const requiredAttributes = attributesSchema?.required || [];
+      const allAttributes = Object.keys(attributesSchema?.properties || {});
+      const optionalAttributes = allAttributes.filter(
+        (a: string) => !requiredAttributes.includes(a)
+      );
+
+      nodeTypes.push({
+        specNodeId,
+        layer,
+        type: nodeType,
+        title,
+        requiredAttributes,
+        optionalAttributes,
+        attributeConstraints: attributesSchema?.properties || {},
+      });
+    }
+  }
+
+  if (nodeTypes.length === 0) {
+    console.error("ERROR: No node types found in bundled layer files");
+    process.exit(1);
+  }
+
+  return nodeTypes;
+}
+
+/**
+ * Load all relationship schemas from bundled compiled format
+ *
+ * @param strictMode Not used in compiled format (duplicates are deduplicated at build:spec time)
+ * @param quiet If true, suppress all progress output
+ */
+function loadRelationshipSchemas(strictMode: boolean = false, quiet: boolean = false): RelationshipSchemaFile[] {
+  const manifest = loadManifest();
+  const relationships: RelationshipSchemaFile[] = [];
+
+  for (const entry of manifest.layers.sort((a, b) => a.number - b.number)) {
+    const layerFile = loadLayerDistFile(entry.id);
+
+    for (const rel of Object.values(layerFile.relationshipSchemas)) {
+      relationships.push({
+        id: rel.id,
+        source_spec_node_id: rel.source_spec_node_id,
+        destination_spec_node_id: rel.destination_spec_node_id,
+        predicate: rel.predicate,
+        cardinality: (rel.cardinality || "many-to-many") as RelationshipSchemaFile["cardinality"],
+        strength: (rel.strength || "medium") as RelationshipSchemaFile["strength"],
+        required: rel.required || false,
+      });
+    }
+  }
+
+  return relationships;
 }
 
 /**
