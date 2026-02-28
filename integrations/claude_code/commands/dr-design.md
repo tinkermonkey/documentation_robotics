@@ -88,14 +88,15 @@ For each affected layer, determine:
 1. Motivation — what goal/requirement drives this?
 2. Business — what business capability does it add or change?
 3. Security — what access controls, policies, or threats does it introduce?
-4. Application — what services or components implement it?
-5. API — what endpoints expose it?
-6. Data Model — what entities or schemas does it require?
-7. Data Store — what tables or indexes does it need?
-8. UX — what screens or components does the user interact with? (if applicable)
-9. Navigation — what routing changes does it require? (if applicable)
-10. APM — what metrics, spans, or alerts should track it?
-11. Testing — what test cases should validate it?
+4. Technology — what infrastructure, platforms, or frameworks does it require?
+5. Application — what services or components implement it?
+6. API — what endpoints expose it?
+7. Data Model — what entities or schemas does it require?
+8. Data Store — what tables or indexes does it need?
+9. UX — what screens or components does the user interact with? (if applicable)
+10. Navigation — what routing changes does it require? (if applicable)
+11. APM — what metrics, spans, or alerts should track it?
+12. Testing — what test cases should validate it?
 
 Reason about each layer explicitly. It's acceptable to skip layers that are genuinely not affected — but provide a rationale.
 
@@ -151,9 +152,9 @@ Staging api layer...
 
 Staging data-model layer...
 
-+ data-model.entity.order-tracking-event
++ data-model.objectschema.order-tracking-event
   Reasoning: Need to store tracking state transitions (submitted → shipped → delivered).
-  This entity captures each event with timestamp and actor.
+  This schema captures each event with timestamp, actor, and orderId.
 ```
 
 ### Step 7: Show Complete Changeset Preview
@@ -196,12 +197,12 @@ API (2 elements):
     [Operation] WS /api/v1/orders/{id}/tracking/ws — push endpoint
 
 DATA MODEL (1 element):
-  + data-model.entity.order-tracking-event
-    [Entity] Immutable event log: status, timestamp, actor, orderId
+  + data-model.objectschema.order-tracking-event
+    [ObjectSchema] Immutable event log: status, timestamp, actor, orderId
 
 DATA STORE (1 element):
-  + data-store.table.order-tracking-events
-    [Table] Append-only event table with index on orderId
+  + data-store.collection.order-tracking-events
+    [Collection] Append-only event collection with index on orderId
 
 APM (2 elements):
   + apm.span.order-tracking-update
@@ -210,15 +211,15 @@ APM (2 elements):
     [Metric] P95 latency for pushing updates to clients — alert if >500ms
 
 TESTING (2 elements):
-  + testing.test-case.order-tracking-status-transitions
-    [TestCase] Validates all valid state machine transitions
-  + testing.test-case.concurrent-tracking-subscribers
-    [TestCase] Load test: 1000 concurrent WebSocket connections
+  + testing.testcasesketch.order-tracking-status-transitions
+    [TestCaseSketch] Validates all valid state machine transitions
+  + testing.testcasesketch.concurrent-tracking-subscribers
+    [TestCaseSketch] Load test: 1000 concurrent WebSocket connections
 
 CROSS-LAYER REFERENCES:
   api.operation.get-order-tracking-status → exposes → application.service.order-tracking-service
   application.service.order-tracking-service → realizes → business.service.order-tracking-capability
-  application.service.order-tracking-service → stores → data-store.table.order-tracking-events
+  application.service.order-tracking-service → stores → data-store.collection.order-tracking-events
 
 Total: 13 new elements across 9 layers
 
@@ -313,7 +314,7 @@ Affected layers: motivation (requirements), security (controls), business (proce
 Checking existing model for payment elements...
   Found: application.service.payment-service
   Found: api.operation.create-payment
-  Found: data-store.table.payments
+  Found: data-store.collection.payments
 
 Staging SOC2 controls mapped to existing elements...
 [... staged elements with reasoning ...]

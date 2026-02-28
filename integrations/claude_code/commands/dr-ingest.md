@@ -85,8 +85,8 @@ In recipe mode, extract all layers in the prescribed bottom-up order. The orderi
 | 1     | Technology (5)  | Frameworks, platforms, infra deps (package.json, requirements.txt, Dockerfiles, K8s manifests) |
 | 2     | Data Store (8)  | DB schemas, tables, migrations (.sql files, migration scripts, ORM table configs)              |
 | 3     | Data Model (7)  | Entity classes, JSON schemas, type defs (ORM models, Pydantic, TypeScript interfaces)          |
-| 4     | API (6)         | REST endpoints, OpenAPI specs, route handlers (@route decorators, router files)                |
-| 5     | Application (4) | Services, components, orchestrators (@Service classes, business logic modules)                 |
+| 4     | Application (4) | Services, components, orchestrators (@Service classes, business logic modules)                 |
+| 5     | API (6)         | REST endpoints, OpenAPI specs, route handlers (@route decorators, router files)                |
 | 6     | UX (9)          | UI components, screens, forms — skip automatically if no frontend detected                     |
 | 7     | Navigation (10) | Routing, menu structures — skip automatically if no frontend detected                          |
 | 8     | APM (11)        | Monitoring instrumentation, metrics, spans (OpenTelemetry, Datadog, custom metrics)            |
@@ -154,7 +154,7 @@ Next steps:
 
 **Optional:**
 
-- **Layers**: Which layers to extract (default: business, application, api, data_model)
+- **Layers**: Which layers to extract (default: business, application, api, data-model)
 - **Technology**: Tech stack hints (e.g., "Python FastAPI", "Node.js Express", "Java Spring")
 
 **Examples:**
@@ -173,7 +173,7 @@ I'll analyze the codebase at ./src
 Quick questions:
 1. Which layers should I extract?
    - All relevant (recommended)
-   - Specific layers: business, application, api, data_model, etc.
+   - Specific layers: business, application, api, data-model, etc.
 
 2. Technology stack (optional, helps with analysis):
    - Auto-detect
@@ -356,7 +356,7 @@ Files Modified:
 - documentation-robotics/model/04_application/services.yaml (8 elements)
 - documentation-robotics/model/04_application/components.yaml (3 elements)
 - documentation-robotics/model/06_api/operations.yaml (25 elements)
-- documentation-robotics/model/07_data_model/schemas.yaml (12 elements)
+- documentation-robotics/model/07_data-model/schemas.yaml (12 elements)
 ```
 
 ### Step 6: Validation & Review
@@ -458,7 +458,7 @@ def create_order(order: OrderCreate):
 # Extracts to:
 # - api.operation.create-order (path: /api/v1/orders, method: POST)
 # - application.service.order-service (if referenced)
-# - data_model.schema.order-create (from Pydantic model)
+# - data-model.objectschema.order-create (from Pydantic model)
 ```
 
 ### Node.js Express
@@ -508,7 +508,7 @@ public class OrderController {
 // Extracts to:
 # - api.operation.create-order
 # - application.service.order-controller
-# - data_model.schema.order-request
+# - data-model.objectschema.order-request
 ```
 
 ## Handling Edge Cases
