@@ -92,10 +92,6 @@
               "enum": ["primary", "secondary", "danger", "ghost", "link", "icon"],
               "description": "Visual style variant of the action component, per design system button style conventions."
             },
-            "children": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "validations": {
               "type": "array",
               "description": "Client-side validation rules applied to this component, per HTML 5.3 Constraint Validation API. Each rule specifies a constraint type, threshold value, and user-facing error message.",
@@ -1613,10 +1609,6 @@
             "layout": {
               "type": "string"
             },
-            "actions": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "source": {
               "type": "object",
               "description": "Source code reference"
@@ -2903,6 +2895,17 @@
       "destination_layer": "ux",
       "predicate": "uses",
       "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.aggregates.actioncomponent": {
+      "id": "ux.view.aggregates.actioncomponent",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "one-to-many",
       "strength": "medium",
       "required": false
     },

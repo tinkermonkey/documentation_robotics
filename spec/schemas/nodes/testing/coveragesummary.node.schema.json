@@ -42,10 +42,6 @@
         },
         "totalSketches": {
           "type": "integer"
-        },
-        "targetSummaries": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["totalTargets", "totalRequirements", "totalSketches"],

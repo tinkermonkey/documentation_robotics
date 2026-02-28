@@ -108,18 +108,6 @@
             },
             "name": {
               "type": "string"
-            },
-            "requestBodies": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "links": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "callbacks": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "additionalProperties": false
@@ -669,22 +657,6 @@
             },
             "name": {
               "type": "string"
-            },
-            "implicit": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "password": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "clientCredentials": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "authorizationCode": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "additionalProperties": false
@@ -930,38 +902,6 @@
             },
             "description": {
               "type": "string"
-            },
-            "get": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "put": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "post": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "delete": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "options": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "head": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "patch": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "trace": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": [],
@@ -1101,10 +1041,6 @@
             },
             "required": {
               "type": "boolean"
-            },
-            "content": {
-              "type": "array",
-              "description": "Contains relationship — a map of media type strings to MediaType objects; must contain at least one entry per OpenAPI 3.0."
             }
           },
           "additionalProperties": false
@@ -1143,10 +1079,6 @@
             },
             "description": {
               "type": "string"
-            },
-            "content": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["description"],
@@ -1345,10 +1277,6 @@
             "bearerFormat": {
               "type": "string"
             },
-            "flows": {
-              "type": "array",
-              "description": "Contains relationship — OAuth Flows configuration, required when type is oauth2"
-            },
             "openIdConnectUrl": {
               "type": "string",
               "description": "OpenID Connect discovery URL, required when type is openIdConnect"
@@ -1504,6 +1432,17 @@
       "strength": "medium",
       "required": false
     },
+    "api.components.aggregates.callback": {
+      "id": "api.components.aggregates.callback",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.callback",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "api.components.aggregates.api.example": {
       "id": "api.components.aggregates.api.example",
       "source_spec_node_id": "api.components",
@@ -1512,6 +1451,28 @@
       "destination_layer": "api",
       "predicate": "aggregates",
       "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.aggregates.link": {
+      "id": "api.components.aggregates.link",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.link",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.components.aggregates.requestbody": {
+      "id": "api.components.aggregates.requestbody",
+      "source_spec_node_id": "api.components",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.requestbody",
+      "destination_layer": "api",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -2855,6 +2816,17 @@
       "predicate": "specializes",
       "cardinality": "many-to-many",
       "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.composes.oauthflows": {
+      "id": "api.securityscheme.composes.oauthflows",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.oauthflows",
+      "destination_layer": "api",
+      "predicate": "composes",
+      "cardinality": "one-to-one",
+      "strength": "high",
       "required": false
     },
     "api.securityscheme.maps-to.data-store.collection": {

@@ -29,10 +29,6 @@
         },
         "description": {
           "type": "string"
-        },
-        "content": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["description"],

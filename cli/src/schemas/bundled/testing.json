@@ -241,14 +241,6 @@
               "type": "string",
               "enum": ["critical", "high", "medium", "low"],
               "description": "Relative importance of fulfilling this coverage requirement"
-            },
-            "contextSelections": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "outcomeSelections": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["coverageCriteria"],
@@ -301,10 +293,6 @@
             },
             "totalSketches": {
               "type": "integer"
-            },
-            "targetSummaries": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["totalTargets", "totalRequirements", "totalSketches"],
@@ -510,14 +498,6 @@
               "type": "string",
               "enum": ["required", "optional", "conditional", "forbidden", "mutually-exclusive"],
               "description": "Whether this input field must be present in test inputs for this partition"
-            },
-            "partitions": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "dependencies": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": ["fieldRef", "presenceRule"],
@@ -911,18 +891,6 @@
             "description": {
               "type": "string"
             },
-            "inputSpacePartitions": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "contextVariations": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "testCaseSketches": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "source": {
               "type": "object",
               "description": "Provenance information indicating the origin of this model (e.g., manually authored, imported from OpenAPI, or generated from source artifacts)"
@@ -982,14 +950,6 @@
               "type": "string",
               "enum": ["critical", "high", "medium", "low"],
               "description": "Relative importance of achieving coverage for this target"
-            },
-            "applicableContexts": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "outcomeCategories": {
-              "type": "array",
-              "description": "Contains relationship"
             },
             "source": {
               "type": "object",
@@ -1532,6 +1492,28 @@
       "strength": "medium",
       "required": false
     },
+    "testing.inputspacepartition.composes.partitionvalue": {
+      "id": "testing.inputspacepartition.composes.partitionvalue",
+      "source_spec_node_id": "testing.inputspacepartition",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.partitionvalue",
+      "destination_layer": "testing",
+      "predicate": "composes",
+      "cardinality": "one-to-many",
+      "strength": "high",
+      "required": false
+    },
+    "testing.inputspacepartition.depends-on.inputspacepartition": {
+      "id": "testing.inputspacepartition.depends-on.inputspacepartition",
+      "source_spec_node_id": "testing.inputspacepartition",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputspacepartition",
+      "destination_layer": "testing",
+      "predicate": "depends-on",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "testing.inputspacepartition.serves.testing.testcoveragetarget": {
       "id": "testing.inputspacepartition.serves.testing.testcoveragetarget",
       "source_spec_node_id": "testing.inputspacepartition",
@@ -1950,6 +1932,39 @@
       "strength": "medium",
       "required": false
     },
+    "testing.testcoveragemodel.aggregates.contextvariation": {
+      "id": "testing.testcoveragemodel.aggregates.contextvariation",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.contextvariation",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "one-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.aggregates.inputspacepartition": {
+      "id": "testing.testcoveragemodel.aggregates.inputspacepartition",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.inputspacepartition",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "one-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.aggregates.testcasesketch": {
+      "id": "testing.testcoveragemodel.aggregates.testcasesketch",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.testcasesketch",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "one-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "testing.testcoveragemodel.composes.testing.coverageexclusion": {
       "id": "testing.testcoveragemodel.composes.testing.coverageexclusion",
       "source_spec_node_id": "testing.testcoveragemodel",
@@ -2058,6 +2073,17 @@
       "predicate": "supports-goals",
       "cardinality": "many-to-many",
       "strength": "high",
+      "required": false
+    },
+    "testing.testcoveragetarget.aggregates.contextvariation": {
+      "id": "testing.testcoveragetarget.aggregates.contextvariation",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "testing.contextvariation",
+      "destination_layer": "testing",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
       "required": false
     },
     "testing.testcoveragetarget.composes.testing.inputpartitionselection": {

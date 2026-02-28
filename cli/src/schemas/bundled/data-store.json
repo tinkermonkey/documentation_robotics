@@ -174,10 +174,6 @@
               "type": "string",
               "description": "Reference to a schema definition that validates documents or records. For MongoDB this is the JSON Schema validator; for relational databases, the set of column constraints; for search engines, the mapping definition."
             },
-            "constraints": {
-              "type": "array",
-              "description": "Contains relationship to validation rules on this collection"
-            },
             "x-source-reference": {
               "type": "string",
               "description": "Source code reference using OpenAPI x- extension pattern."
@@ -584,10 +580,6 @@
             },
             "owner": {
               "type": "string"
-            },
-            "storedLogic": {
-              "type": "array",
-              "description": "Contains relationship to stored logic (functions, procedures, pipelines) within this namespace"
             }
           },
           "additionalProperties": false
@@ -1226,6 +1218,17 @@
       "predicate": "composes",
       "cardinality": "many-to-many",
       "strength": "medium",
+      "required": false
+    },
+    "data-store.namespace.composes.storedlogic": {
+      "id": "data-store.namespace.composes.storedlogic",
+      "source_spec_node_id": "data-store.namespace",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.storedlogic",
+      "destination_layer": "data-store",
+      "predicate": "composes",
+      "cardinality": "one-to-many",
+      "strength": "high",
       "required": false
     },
     "data-store.namespace.composes.data-store.validationrule": {

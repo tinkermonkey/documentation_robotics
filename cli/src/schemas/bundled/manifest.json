@@ -20,7 +20,7 @@
       "number": 3,
       "name": "Security Layer",
       "nodeTypeCount": 29,
-      "relationshipCount": 147
+      "relationshipCount": 154
     },
     {
       "id": "application",
@@ -41,7 +41,7 @@
       "number": 6,
       "name": "API Layer",
       "nodeTypeCount": 27,
-      "relationshipCount": 140
+      "relationshipCount": 144
     },
     {
       "id": "data-model",
@@ -55,14 +55,14 @@
       "number": 8,
       "name": "Data Store Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 51
+      "relationshipCount": 52
     },
     {
       "id": "ux",
       "number": 9,
       "name": "UX Layer",
       "nodeTypeCount": 22,
-      "relationshipCount": 122
+      "relationshipCount": 123
     },
     {
       "id": "navigation",
@@ -76,18 +76,18 @@
       "number": 11,
       "name": "APM Observability Layer",
       "nodeTypeCount": 13,
-      "relationshipCount": 54
+      "relationshipCount": 55
     },
     {
       "id": "testing",
       "number": 12,
       "name": "Testing Layer",
       "nodeTypeCount": 17,
-      "relationshipCount": 102
+      "relationshipCount": 108
     }
   ],
   "totals": {
     "nodeTypes": 184,
-    "relationships": 935
+    "relationships": 955
   }
 }

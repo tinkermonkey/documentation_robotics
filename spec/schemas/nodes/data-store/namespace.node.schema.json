@@ -29,10 +29,6 @@
         },
         "owner": {
           "type": "string"
-        },
-        "storedLogic": {
-          "type": "array",
-          "description": "Contains relationship to stored logic (functions, procedures, pipelines) within this namespace"
         }
       },
       "additionalProperties": false

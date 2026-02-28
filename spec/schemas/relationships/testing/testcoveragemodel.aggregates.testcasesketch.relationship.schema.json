@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Testcoveragemodel Aggregates Testcasesketch",
+  "description": "Defines relationship: testing.testcoveragemodel aggregates testing.testcasesketch",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.testcoveragemodel.aggregates.testcasesketch"
+    },
+    "source_spec_node_id": {
+      "const": "testing.testcoveragemodel"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "testing.testcasesketch"
+    },
+    "destination_layer": {
+      "const": "testing"
+    },
+    "predicate": {
+      "const": "aggregates"
+    },
+    "cardinality": {
+      "const": "one-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

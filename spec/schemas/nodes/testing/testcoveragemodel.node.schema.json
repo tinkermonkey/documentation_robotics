@@ -37,18 +37,6 @@
         "description": {
           "type": "string"
         },
-        "inputSpacePartitions": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "contextVariations": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "testCaseSketches": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "source": {
           "type": "object",
           "description": "Provenance information indicating the origin of this model (e.g., manually authored, imported from OpenAPI, or generated from source artifacts)"

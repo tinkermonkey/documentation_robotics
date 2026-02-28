@@ -39,34 +39,6 @@
           "enum": ["dac", "mac", "rbac", "abac", "rebac"],
           "description": "Access control paradigm in use: DAC (discretionary), MAC (mandatory), RBAC (role-based), ABAC (attribute-based), ReBAC (relationship-based). Per NIST SP 800-162 and SP 800-207."
         },
-        "actors": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "roles": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "permissions": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "resources": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "informationEntities": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "delegations": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "policies": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "socialDependencies": {
           "type": "array",
           "description": "Contains relationship"

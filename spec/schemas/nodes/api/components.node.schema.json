@@ -26,18 +26,6 @@
         },
         "name": {
           "type": "string"
-        },
-        "requestBodies": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "links": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "callbacks": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "additionalProperties": false

@@ -32,38 +32,6 @@
         },
         "description": {
           "type": "string"
-        },
-        "get": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "put": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "post": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "delete": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "options": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "head": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "patch": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "trace": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": [],

@@ -71,10 +71,6 @@
         "attributes": {
           "type": "array",
           "description": "Contains relationship"
-        },
-        "links": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": [

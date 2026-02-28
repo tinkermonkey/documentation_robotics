@@ -46,14 +46,6 @@
           "type": "string",
           "enum": ["critical", "high", "medium", "low"],
           "description": "Relative importance of fulfilling this coverage requirement"
-        },
-        "contextSelections": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "outcomeSelections": {
-          "type": "array",
-          "description": "Contains relationship"
         }
       },
       "required": ["coverageCriteria"],

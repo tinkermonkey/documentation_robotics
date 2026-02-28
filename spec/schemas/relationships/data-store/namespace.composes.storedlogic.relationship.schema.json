@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Namespace Composes Storedlogic",
+  "description": "Defines relationship: data-store.namespace composes data-store.storedlogic",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-store.namespace.composes.storedlogic"
+    },
+    "source_spec_node_id": {
+      "const": "data-store.namespace"
+    },
+    "source_layer": {
+      "const": "data-store"
+    },
+    "destination_spec_node_id": {
+      "const": "data-store.storedlogic"
+    },
+    "destination_layer": {
+      "const": "data-store"
+    },
+    "predicate": {
+      "const": "composes"
+    },
+    "cardinality": {
+      "const": "one-to-many"
+    },
+    "strength": {
+      "const": "high"
+    }
+  }
+}

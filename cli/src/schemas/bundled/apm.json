@@ -601,10 +601,6 @@
             "attributes": {
               "type": "array",
               "description": "Contains relationship"
-            },
-            "links": {
-              "type": "array",
-              "description": "Contains relationship"
             }
           },
           "required": [
@@ -1172,6 +1168,17 @@
       "destination_layer": "apm",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.aggregates.spanlink": {
+      "id": "apm.span.aggregates.spanlink",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.spanlink",
+      "destination_layer": "apm",
+      "predicate": "aggregates",
+      "cardinality": "one-to-many",
       "strength": "medium",
       "required": false
     },

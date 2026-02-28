@@ -48,10 +48,6 @@
           "enum": ["low", "medium", "high", "critical"],
           "description": "Combined severity rating reflecting both likelihood and impact for prioritization."
         },
-        "countermeasures": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "source": {
           "type": "object",
           "description": "Source code reference"

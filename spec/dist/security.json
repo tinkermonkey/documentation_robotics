@@ -1355,34 +1355,6 @@
               "enum": ["dac", "mac", "rbac", "abac", "rebac"],
               "description": "Access control paradigm in use: DAC (discretionary), MAC (mandatory), RBAC (role-based), ABAC (attribute-based), ReBAC (relationship-based). Per NIST SP 800-162 and SP 800-207."
             },
-            "actors": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "roles": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "permissions": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "resources": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "informationEntities": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "delegations": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
-            "policies": {
-              "type": "array",
-              "description": "Contains relationship"
-            },
             "socialDependencies": {
               "type": "array",
               "description": "Contains relationship"
@@ -1548,10 +1520,6 @@
               "type": "string",
               "enum": ["low", "medium", "high", "critical"],
               "description": "Combined severity rating reflecting both likelihood and impact for prioritization."
-            },
-            "countermeasures": {
-              "type": "array",
-              "description": "Contains relationship"
             },
             "source": {
               "type": "object",
@@ -2900,6 +2868,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.securitymodel.aggregates.actor": {
+      "id": "security.securitymodel.aggregates.actor",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.actor",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
     "security.securitymodel.aggregates.security.authenticationconfig": {
       "id": "security.securitymodel.aggregates.security.authenticationconfig",
       "source_spec_node_id": "security.securitymodel",
@@ -2908,6 +2887,61 @@
       "destination_layer": "security",
       "predicate": "aggregates",
       "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.aggregates.delegation": {
+      "id": "security.securitymodel.aggregates.delegation",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.delegation",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.aggregates.informationentity": {
+      "id": "security.securitymodel.aggregates.informationentity",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationentity",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.aggregates.permission": {
+      "id": "security.securitymodel.aggregates.permission",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.aggregates.role": {
+      "id": "security.securitymodel.aggregates.role",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitymodel.aggregates.secureresource": {
+      "id": "security.securitymodel.aggregates.secureresource",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -3128,6 +3162,17 @@
       "destination_layer": "security",
       "predicate": "accesses",
       "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.aggregates.countermeasure": {
+      "id": "security.threat.aggregates.countermeasure",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },

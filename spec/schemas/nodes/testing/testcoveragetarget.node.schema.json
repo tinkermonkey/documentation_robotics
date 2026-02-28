@@ -47,14 +47,6 @@
           "enum": ["critical", "high", "medium", "low"],
           "description": "Relative importance of achieving coverage for this target"
         },
-        "applicableContexts": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
-        "outcomeCategories": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "source": {
           "type": "object",
           "description": "Source code reference for the artifact requiring test coverage"

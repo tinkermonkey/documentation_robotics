@@ -54,10 +54,6 @@
           "enum": ["primary", "secondary", "danger", "ghost", "link", "icon"],
           "description": "Visual style variant of the action component, per design system button style conventions."
         },
-        "children": {
-          "type": "array",
-          "description": "Contains relationship"
-        },
         "validations": {
           "type": "array",
           "description": "Client-side validation rules applied to this component, per HTML 5.3 Constraint Validation API. Each rule specifies a constraint type, threshold value, and user-facing error message.",
