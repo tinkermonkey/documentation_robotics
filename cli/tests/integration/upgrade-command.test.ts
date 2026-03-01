@@ -850,6 +850,40 @@ describe("upgrade command - unified flow", () => {
       // Upgrade should complete even if integrations aren't installed
       expect(result.stdout).toContain("Scanning for available upgrades");
     });
+
+    it("--force with no integrations installed exits cleanly with no integration section", async () => {
+      // Initialize a model with no integrations installed
+      await runDr(["init", "--name", "Force No Integrations"], { cwd: tempDir.path });
+
+      const result = await runDr(["upgrade", "--force", "--yes"], { cwd: tempDir.path });
+
+      expect(result.exitCode).toBe(0);
+      // No integration section should appear when none are installed
+      expect(result.stdout).not.toContain("Integration Status");
+      expect(result.stdout).not.toContain("Reinstall Claude Code integration");
+      expect(result.stdout).not.toContain("Reinstall GitHub Copilot integration");
+    });
+
+    it("--force plan includes integration reinstall when integration is installed", async () => {
+      // Initialize a model
+      await runDr(["init", "--name", "Force Integration Test"], { cwd: tempDir.path });
+
+      // Simulate an installed Claude integration by writing a version file at the expected path.
+      // The Claude manager uses .claude/.dr-version (YAML format with version, installed_at, components).
+      const claudeDir = join(tempDir.path, ".claude");
+      const claudeVersionPath = join(claudeDir, ".dr-version");
+      await mkdir(claudeDir, { recursive: true });
+      const yamlContent = `version: "0.1.1"\ninstalled_at: "${new Date().toISOString()}"\ncomponents: {}\n`;
+      await writeFile(claudeVersionPath, yamlContent);
+
+      const result = await runDr(["upgrade", "--force", "--dry-run"], { cwd: tempDir.path });
+
+      expect(result.exitCode).toBe(0);
+      // --force should include integration in the upgrade plan
+      assertOutputContains(result, "Upgrade Plan");
+      assertOutputContains(result, "Reinstall");
+      assertOutputContains(result, "Claude Code integration");
+    });
   });
 
   // ============================================================================

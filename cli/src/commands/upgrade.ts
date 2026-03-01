@@ -31,37 +31,45 @@ export interface UpgradeOptions {
 }
 
 interface UpgradeAction {
-  type: "spec" | "model";
+  type: "spec" | "model" | "integration";
   description: string;
   fromVersion?: string;
   toVersion: string;
   details?: string[];
-}
-
-interface IntegrationStatus {
-  claudeOutdated: boolean;
-  copilotOutdated: boolean;
-  messages: string[];
+  integrationName?: "claude" | "copilot";
 }
 
 /**
- * Check for outdated integrations and suggest updates
+ * Build integration upgrade actions and collect up-to-date status lines
  */
-async function checkIntegrationVersions(cliVersion: string): Promise<IntegrationStatus> {
-  const messages: string[] = [];
-  let claudeOutdated = false;
-  let copilotOutdated = false;
+async function buildIntegrationActions(
+  cliVersion: string,
+  force: boolean
+): Promise<{ actions: UpgradeAction[]; upToDate: string[] }> {
+  const actions: UpgradeAction[] = [];
+  const upToDate: string[] = [];
 
   // Check Claude integration
   const claudeManager = new ClaudeIntegrationManager();
   if (await claudeManager.isInstalled()) {
     const claudeVersion = await claudeManager.loadVersionFile();
-    if (claudeVersion && claudeVersion.version !== cliVersion) {
-      claudeOutdated = true;
-      messages.push(
-        ansis.yellow("⚠") + ` Claude integration outdated: ${claudeVersion.version} → ${cliVersion}`
+    const installedVersion = claudeVersion?.version;
+    const needsUpgrade = installedVersion && installedVersion !== cliVersion;
+
+    if (force || needsUpgrade) {
+      actions.push({
+        type: "integration",
+        description: force
+          ? "Reinstall Claude Code integration (forced)"
+          : "Upgrade Claude Code integration",
+        fromVersion: installedVersion,
+        toVersion: cliVersion,
+        integrationName: "claude",
+      });
+    } else if (installedVersion) {
+      upToDate.push(
+        `  ${ansis.green("✓")} Claude Code integration up to date (v${installedVersion})`
       );
-      messages.push(ansis.dim("  Run: ") + ansis.cyan("dr claude upgrade"));
     }
   }
 
@@ -69,17 +77,27 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
   const copilotManager = new CopilotIntegrationManager();
   if (await copilotManager.isInstalled()) {
     const copilotVersion = await copilotManager.loadVersionFile();
-    if (copilotVersion && copilotVersion.version !== cliVersion) {
-      copilotOutdated = true;
-      messages.push(
-        ansis.yellow("⚠") +
-          ` GitHub Copilot integration outdated: ${copilotVersion.version} → ${cliVersion}`
+    const installedVersion = copilotVersion?.version;
+    const needsUpgrade = installedVersion && installedVersion !== cliVersion;
+
+    if (force || needsUpgrade) {
+      actions.push({
+        type: "integration",
+        description: force
+          ? "Reinstall GitHub Copilot integration (forced)"
+          : "Upgrade GitHub Copilot integration",
+        fromVersion: installedVersion,
+        toVersion: cliVersion,
+        integrationName: "copilot",
+      });
+    } else if (installedVersion) {
+      upToDate.push(
+        `  ${ansis.green("✓")} GitHub Copilot integration up to date (v${installedVersion})`
       );
-      messages.push(ansis.dim("  Run: ") + ansis.cyan("dr copilot upgrade"));
     }
   }
 
-  return { claudeOutdated, copilotOutdated, messages };
+  return { actions, upToDate };
 }
 
 export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void> {
@@ -95,6 +113,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     }
 
     const bundledSpecVersion = getCliBundledSpecVersion();
+    const cliVersion = getCliVersion();
     const actions: UpgradeAction[] = [];
 
     // ============================================================================
@@ -154,9 +173,10 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
       // If only spec needs upgrade, handle it
       if (actions.length > 0) {
-        const cliVersion = getCliVersion();
-        const integrationStatus = await checkIntegrationVersions(cliVersion);
-        await handleUpgrade(projectRoot, actions, options, integrationStatus);
+        const { actions: integrationActions, upToDate: integrationUpToDate } =
+          await buildIntegrationActions(cliVersion, options.force ?? false);
+        actions.push(...integrationActions);
+        await handleUpgrade(projectRoot, actions, options, integrationUpToDate);
       }
       return;
     }
@@ -168,9 +188,10 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
       // If only spec needs upgrade, handle it
       if (actions.length > 0) {
-        const cliVersion = getCliVersion();
-        const integrationStatus = await checkIntegrationVersions(cliVersion);
-        await handleUpgrade(projectRoot, actions, options, integrationStatus);
+        const { actions: integrationActions, upToDate: integrationUpToDate } =
+          await buildIntegrationActions(cliVersion, options.force ?? false);
+        actions.push(...integrationActions);
+        await handleUpgrade(projectRoot, actions, options, integrationUpToDate);
       }
       return;
     }
@@ -217,21 +238,22 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     // STEP 3: Check integration versions
     // ============================================================================
 
-    const cliVersion = getCliVersion();
-    const integrationStatus = await checkIntegrationVersions(cliVersion);
+    const { actions: integrationActions, upToDate: integrationUpToDate } =
+      await buildIntegrationActions(cliVersion, options.force ?? false);
+    actions.push(...integrationActions);
 
     // ============================================================================
     // STEP 4: Display upgrade plan and execute
     // ============================================================================
 
-    if (actions.length === 0 && integrationStatus.messages.length === 0) {
+    if (actions.length === 0) {
       console.log(ansis.green("✓ Everything is up to date!\n"));
       console.log(ansis.dim(`  Spec reference: v${currentSpecVersion || bundledSpecVersion}`));
       console.log(ansis.dim(`  Model: v${modelSpecVersion}\n`));
       return;
     }
 
-    await handleUpgrade(projectRoot, actions, options, integrationStatus);
+    await handleUpgrade(projectRoot, actions, options, integrationUpToDate);
   } catch (error) {
     console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
     process.exit(1);
@@ -245,11 +267,7 @@ async function handleUpgrade(
   projectRoot: string,
   actions: UpgradeAction[],
   options: UpgradeOptions,
-  integrationStatus: IntegrationStatus = {
-    claudeOutdated: false,
-    copilotOutdated: false,
-    messages: [],
-  }
+  integrationUpToDate: string[] = []
 ): Promise<void> {
   // Display upgrade plan
   if (actions.length > 0) {
@@ -260,7 +278,8 @@ async function handleUpgrade(
         ? `${action.fromVersion} → ${action.toVersion}`
         : `v${action.toVersion}`;
 
-      console.log(ansis.yellow(`${action.type === "spec" ? "📦" : "🔄"} ${action.description}`));
+      const icon = action.type === "spec" ? "📦" : action.type === "integration" ? "🔌" : "🔄";
+      console.log(ansis.yellow(`${icon} ${action.description}`));
       console.log(ansis.dim(`   Version: ${versionChange}`));
 
       if (action.details && action.details.length > 0) {
@@ -272,10 +291,10 @@ async function handleUpgrade(
     }
   }
 
-  // Display integration status
-  if (integrationStatus.messages.length > 0) {
-    console.log(ansis.bold("Integration Updates Available:"));
-    integrationStatus.messages.forEach((msg) => console.log(msg));
+  // Display integration status for up-to-date integrations
+  if (integrationUpToDate.length > 0) {
+    console.log(ansis.bold("Integration Status:"));
+    integrationUpToDate.forEach((msg) => console.log(msg));
     console.log();
   }
 
@@ -311,28 +330,23 @@ async function handleUpgrade(
 
   console.log(ansis.bold("\nExecuting upgrades...\n"));
 
-  // Execute actions in order: spec first, then model
+  // Execute actions in order: spec, model, then integrations
   for (const action of actions) {
     if (action.type === "spec") {
       await executeSpecUpgrade(projectRoot, action);
     } else if (action.type === "model") {
       await executeModelMigration(action, options);
+    } else if (action.type === "integration") {
+      await executeIntegrationUpdate(action.description, async () => {
+        if (action.integrationName === "claude") {
+          const m = new ClaudeIntegrationManager();
+          await m.upgrade({ force: true }); // force=true skips internal prompts (user confirmed above)
+        } else {
+          const m = new CopilotIntegrationManager();
+          await m.upgrade({ force: true });
+        }
+      });
     }
-  }
-
-  // Execute integration updates
-  if (integrationStatus.claudeOutdated) {
-    await executeIntegrationUpdate("Claude", async () => {
-      const claudeManager = new ClaudeIntegrationManager();
-      await claudeManager.upgrade({ force: true });
-    });
-  }
-
-  if (integrationStatus.copilotOutdated) {
-    await executeIntegrationUpdate("GitHub Copilot", async () => {
-      const copilotManager = new CopilotIntegrationManager();
-      await copilotManager.upgrade({ force: true });
-    });
   }
 
   console.log(ansis.green("\n✓ All upgrades completed successfully!\n"));
@@ -405,19 +419,15 @@ async function executeModelMigration(
  * Execute integration update
  */
 async function executeIntegrationUpdate(
-  integrationName: string,
+  label: string,
   updateFn: () => Promise<void>
 ): Promise<void> {
   try {
-    console.log(ansis.dim(`Updating ${integrationName} integration...`));
+    console.log(ansis.dim(`${label}...`));
     await updateFn();
-    console.log(ansis.green(`✓ ${integrationName} integration updated`));
+    console.log(ansis.green(`✓ ${label}`));
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error updating ${integrationName} integration: ${getErrorMessage(error)}`
-      )
-    );
+    console.error(ansis.red(`Error: ${label} failed: ${getErrorMessage(error)}`));
     throw error;
   }
 }

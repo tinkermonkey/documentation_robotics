@@ -689,7 +689,7 @@ program
   .description("Upgrade spec reference and migrate model to latest versions")
   .option("-y, --yes", "Automatically upgrade without prompting")
   .option("--dry-run", "Show what would be upgraded without making changes")
-  .option("--force", "Skip validation during migration")
+  .option("--force", "Force all upgrades regardless of current versions; skips migration validation")
   .addHelpText(
     "after",
     `
@@ -697,7 +697,7 @@ Examples:
   $ dr upgrade              # Scan, show plan, and prompt for upgrades
   $ dr upgrade --dry-run    # Preview available upgrades
   $ dr upgrade --yes        # Upgrade without prompting
-  $ dr upgrade --force      # Skip validation during migration`
+  $ dr upgrade --force      # Force all upgrades, ignoring version checks`
   )
   .action(async (options) => {
     await upgradeCommand({
