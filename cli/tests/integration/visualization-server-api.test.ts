@@ -156,7 +156,7 @@ describe.serial("Visualization Server API Endpoints", () => {
   });
 
   describe("GET /api/model", () => {
-    it("should return complete model metadata", async () => {
+    it("should return graph-format model", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/model`);
@@ -166,64 +166,41 @@ describe.serial("Visualization Server API Endpoints", () => {
 
       const data = await response.json();
 
-      // Validate structure
-      expect(data).toHaveProperty("manifest");
-      expect(data).toHaveProperty("layers");
-      expect(data).toHaveProperty("totalElements");
-
-      // Validate manifest
-      expect(data.manifest.name).toBe("API Test Model");
-      expect(data.manifest.description).toBe("Model for API testing");
-      expect(data.manifest).toHaveProperty("version");
-      expect(data.manifest).toHaveProperty("specVersion");
-
-      // Validate layers
-      expect(typeof data.layers).toBe("object");
-      expect(Object.keys(data.layers).length).toBeGreaterThan(0);
-
-      // Validate total elements
-      expect(typeof data.totalElements).toBe("number");
-      expect(data.totalElements).toBeGreaterThanOrEqual(3);
+      // Validate graph structure
+      expect(data).toHaveProperty("nodes");
+      expect(data).toHaveProperty("links");
+      expect(Array.isArray(data.nodes)).toBe(true);
+      expect(Array.isArray(data.links)).toBe(true);
+      expect(data.nodes.length).toBeGreaterThanOrEqual(3);
     });
 
-    it("should include layer information with element counts", async () => {
+    it("should include nodes from all layers with layer_id", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/model`);
       const data = await response.json();
 
-      // Check business layer
-      expect(data.layers.business).toBeDefined();
-      expect(data.layers.business).toHaveProperty("name");
-      expect(data.layers.business).toHaveProperty("elements");
-      expect(data.layers.business).toHaveProperty("elementCount");
-      expect(Array.isArray(data.layers.business.elements)).toBe(true);
-
-      // Check application layer
-      expect(data.layers.application).toBeDefined();
-      expect(data.layers.application.elementCount).toBeGreaterThan(0);
-
-      // Check API layer
-      expect(data.layers.api).toBeDefined();
-      expect(data.layers.api.elementCount).toBeGreaterThan(0);
+      const layerIds = new Set(data.nodes.map((n: any) => n.layer_id));
+      expect(layerIds.has("business")).toBe(true);
+      expect(layerIds.has("application")).toBe(true);
+      expect(layerIds.has("api")).toBe(true);
     });
 
-    it("should include elements with all required fields", async () => {
+    it("should include nodes with all required fields", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/api/model`);
       const data = await response.json();
 
-      const businessElements = data.layers.business.elements;
-      expect(businessElements.length).toBeGreaterThan(0);
+      const businessNodes = data.nodes.filter((n: any) => n.layer_id === "business");
+      expect(businessNodes.length).toBeGreaterThan(0);
 
-      const element = businessElements[0];
-      expect(element).toHaveProperty("id");
-      expect(element).toHaveProperty("type");
-      expect(element).toHaveProperty("name");
-      expect(element).toHaveProperty("description");
-      expect(element).toHaveProperty("annotations");
-      expect(Array.isArray(element.annotations)).toBe(true);
+      const node = businessNodes[0];
+      expect(node).toHaveProperty("id");
+      expect(node).toHaveProperty("spec_node_id");
+      expect(node).toHaveProperty("type");
+      expect(node).toHaveProperty("layer_id");
+      expect(node).toHaveProperty("name");
     });
   });
 

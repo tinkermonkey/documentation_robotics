@@ -1507,45 +1507,94 @@ export class VisualizationServer {
   }
 
   /**
-   * Serialize model to JSON for client consumption
+   * Serialize model to graph format for client consumption.
+   *
+   * Returns { nodes, links } where:
+   * - nodes: flat array of all elements across all layers
+   * - links: intra-layer relationships (carry layer_id) and cross-layer
+   *   references (carry source_layer_id + target_layer_id)
+   *
+   * Links are deduplicated: if the same relationship appears on multiple
+   * elements (e.g. stored on both source and target), only one entry is kept.
    */
   private async serializeModel(): Promise<any> {
-    const layers: any = {};
+    const nodes: any[] = [];
+    const linksMap = new Map<string, any>();
 
-    for (const [name, layer] of this.model.layers) {
-      const elements = layer.listElements().map((e) => {
+    // Build element-id → layer_id lookup so cross-layer reference links can
+    // carry accurate source_layer_id / target_layer_id even when the
+    // referenced element lives in a different layer.
+    const elementLayerMap = new Map<string, string>();
+    for (const [layerName, layer] of this.model.layers) {
+      for (const e of layer.listElements()) {
+        const layerId = e.layer_id || layerName;
+        if (e.id) elementLayerMap.set(e.id, layerId);
+        if (e.elementId) elementLayerMap.set(e.elementId, layerId);
+      }
+    }
+
+    for (const [layerName, layer] of this.model.layers) {
+      for (const e of layer.listElements()) {
+        const layerId = e.layer_id || layerName;
+
+        // Resolve annotations for this element
         const annotationIds = this.annotationsByElement.get(e.id) || new Set();
         const annotations = Array.from(annotationIds)
           .map((id) => {
             const annotation = this.annotations.get(id);
             if (!annotation) return undefined;
-
-            // Include replies in annotation response
             const replies = this.replies.get(id) || [];
             return { ...annotation, replies };
           })
           .filter((a) => a !== undefined);
 
-        return {
-          ...e.toJSON(),
-          annotations,
+        // Node — include only the fields the UX needs
+        const node: any = {
+          id: e.id,
+          spec_node_id: e.spec_node_id,
+          type: e.type,
+          layer_id: layerId,
+          name: e.name,
         };
-      });
+        if (e.description) node.description = e.description;
+        if (e.attributes && Object.keys(e.attributes).length > 0) node.attributes = e.attributes;
+        if (annotations.length > 0) node.annotations = annotations;
+        nodes.push(node);
 
-      layers[name] = {
-        name,
-        elements,
-        elementCount: elements.length,
-      };
+        // Intra-layer links from relationships
+        for (const rel of e.relationships) {
+          const linkId = `rel:${rel.source}:${rel.target}:${rel.predicate}`;
+          if (!linksMap.has(linkId)) {
+            linksMap.set(linkId, {
+              id: linkId,
+              source: rel.source,
+              target: rel.target,
+              type: rel.predicate,
+              layer_id: layerId,
+            });
+          }
+        }
+
+        // Cross-layer links from references
+        for (const ref of e.references) {
+          const linkId = `ref:${ref.source}:${ref.target}:${ref.type}`;
+          if (!linksMap.has(linkId)) {
+            linksMap.set(linkId, {
+              id: linkId,
+              source: ref.source,
+              target: ref.target,
+              type: ref.type,
+              source_layer_id: elementLayerMap.get(ref.source) || layerId,
+              target_layer_id: elementLayerMap.get(ref.target) || 'unknown',
+            });
+          }
+        }
+      }
     }
 
     return {
-      manifest: this.model.manifest.toJSON(),
-      layers,
-      totalElements: Array.from(this.model.layers.values()).reduce(
-        (sum, layer) => sum + layer.listElements().length,
-        0
-      ),
+      nodes,
+      links: Array.from(linksMap.values()),
     };
   }
 

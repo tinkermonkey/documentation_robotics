@@ -91,52 +91,48 @@ describe("VisualizationServer", () => {
   });
 
   describe("serializeModel", () => {
-    it("should serialize model with manifest and layers", async () => {
+    it("should serialize model with nodes and links", async () => {
       const serialized = await server["serializeModel"]();
 
-      expect(serialized).toHaveProperty("manifest");
-      expect(serialized).toHaveProperty("layers");
-      expect(serialized).toHaveProperty("totalElements");
+      expect(serialized).toHaveProperty("nodes");
+      expect(serialized).toHaveProperty("links");
+      expect(Array.isArray(serialized.nodes)).toBe(true);
+      expect(Array.isArray(serialized.links)).toBe(true);
     });
 
-    it("should include manifest data", async () => {
+    it("should include all elements as nodes", async () => {
       const serialized = await server["serializeModel"]();
 
-      expect(serialized.manifest.name).toBe("Test Model");
-      expect(serialized.manifest.version).toBe("0.1.0");
+      expect(serialized.nodes.length).toBeGreaterThan(0);
     });
 
-    it("should include layer information", async () => {
+    it("should include required fields on each node", async () => {
       const serialized = await server["serializeModel"]();
 
-      expect(serialized.layers).toHaveProperty("motivation");
-      expect(serialized.layers.motivation).toHaveProperty("name");
-      expect(serialized.layers.motivation).toHaveProperty("elements");
-      expect(serialized.layers.motivation).toHaveProperty("elementCount");
+      const node = serialized.nodes[0];
+      expect(node).toHaveProperty("id");
+      expect(node).toHaveProperty("spec_node_id");
+      expect(node).toHaveProperty("type");
+      expect(node).toHaveProperty("layer_id");
+      expect(node).toHaveProperty("name");
     });
 
-    it("should include elements in layers", async () => {
+    it("should include annotations on nodes that have them", async () => {
       const serialized = await server["serializeModel"]();
 
-      const elements = serialized.layers.motivation.elements;
-      expect(elements.length).toBeGreaterThan(0);
-      expect(elements[0]).toHaveProperty("id");
-      expect(elements[0]).toHaveProperty("name");
-      expect(elements[0]).toHaveProperty("type");
+      // Nodes without annotations omit the field; those with annotations carry an array
+      for (const node of serialized.nodes) {
+        if (Object.prototype.hasOwnProperty.call(node, "annotations")) {
+          expect(Array.isArray(node.annotations)).toBe(true);
+        }
+      }
     });
 
-    it("should include annotations in elements", async () => {
+    it("should tag nodes with correct layer_id", async () => {
       const serialized = await server["serializeModel"]();
 
-      const elements = serialized.layers.motivation.elements;
-      expect(elements[0]).toHaveProperty("annotations");
-      expect(Array.isArray(elements[0].annotations)).toBe(true);
-    });
-
-    it("should calculate total elements correctly", async () => {
-      const serialized = await server["serializeModel"]();
-
-      expect(serialized.totalElements).toBeGreaterThan(0);
+      const motivationNodes = serialized.nodes.filter((n: any) => n.layer_id === "motivation");
+      expect(motivationNodes.length).toBeGreaterThan(0);
     });
   });
 

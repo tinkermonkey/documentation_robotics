@@ -129,10 +129,12 @@ describe.serial("Visualization Server - Model Loading", () => {
     expect(response.status).toBe(200);
 
     const data = await response.json();
-    expect(data).toHaveProperty("manifest");
-    expect(data).toHaveProperty("layers");
-    expect(data.manifest.name).toBe("Test Visualization Model");
-    expect(Object.keys(data.layers).length).toBeGreaterThan(0);
+    expect(data).toHaveProperty("nodes");
+    expect(data).toHaveProperty("links");
+    expect(Array.isArray(data.nodes)).toBe(true);
+    expect(data.nodes.length).toBeGreaterThan(0);
+    const layerIds = new Set(data.nodes.map((n: any) => n.layer_id));
+    expect(layerIds.has("motivation")).toBe(true);
   });
 
   it("should load specific layer via GET /api/layers/:name", async () => {
@@ -157,9 +159,10 @@ describe.serial("Visualization Server - Model Loading", () => {
     expect(response.status).toBe(200);
 
     const data = await response.json();
-    expect(data).toHaveProperty("layers");
-    expect(typeof data.layers).toBe("object");
-    expect(Object.keys(data.layers).length).toBeGreaterThan(0);
+    expect(data).toHaveProperty("nodes");
+    expect(data).toHaveProperty("links");
+    expect(Array.isArray(data.nodes)).toBe(true);
+    expect(Array.isArray(data.links)).toBe(true);
   });
 
   it("should get specific element via GET /api/elements/:id", async () => {

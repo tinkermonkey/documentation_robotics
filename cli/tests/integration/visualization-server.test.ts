@@ -101,24 +101,26 @@ describe.serial("VisualizationServer Integration Tests", () => {
   });
 
   describe("REST API - Model Endpoint", () => {
-    it("should serialize complete model correctly", async () => {
+    it("should serialize model in graph format", async () => {
       const modelData = await server["serializeModel"]();
 
-      expect(modelData.manifest.name).toBe("Integration Test Model");
-      expect(Object.keys(modelData.layers)).toContain("motivation");
-      expect(Object.keys(modelData.layers)).toContain("application");
+      expect(Array.isArray(modelData.nodes)).toBe(true);
+      expect(Array.isArray(modelData.links)).toBe(true);
+
+      const layerIds = new Set(modelData.nodes.map((n: any) => n.layer_id));
+      expect(layerIds.has("motivation")).toBe(true);
+      expect(layerIds.has("application")).toBe(true);
     });
 
     it("should count elements accurately", async () => {
       const modelData = await server["serializeModel"]();
 
-      const motivationCount = modelData.layers.motivation.elements.length;
-      const applicationCount = modelData.layers.application.elements.length;
-      const total = modelData.totalElements;
+      const motivationNodes = modelData.nodes.filter((n: any) => n.layer_id === "motivation");
+      const applicationNodes = modelData.nodes.filter((n: any) => n.layer_id === "application");
 
-      expect(motivationCount).toBe(2);
-      expect(applicationCount).toBe(1);
-      expect(total).toBe(3);
+      expect(motivationNodes.length).toBe(2);
+      expect(applicationNodes.length).toBe(1);
+      expect(modelData.nodes.length).toBe(3);
     });
   });
 
@@ -355,12 +357,13 @@ describe.serial("VisualizationServer Integration Tests", () => {
   });
 
   describe("Multi-Layer Support", () => {
-    it("should serialize all layers correctly", async () => {
+    it("should include nodes from all layers", async () => {
       const modelData = await server["serializeModel"]();
 
-      expect(Object.keys(modelData.layers).length).toBeGreaterThanOrEqual(2);
-      expect(modelData.layers.motivation).toBeDefined();
-      expect(modelData.layers.application).toBeDefined();
+      const layerIds = new Set(modelData.nodes.map((n: any) => n.layer_id));
+      expect(layerIds.size).toBeGreaterThanOrEqual(2);
+      expect(layerIds.has("motivation")).toBe(true);
+      expect(layerIds.has("application")).toBe(true);
     });
 
     it("should find elements across different layers", async () => {
