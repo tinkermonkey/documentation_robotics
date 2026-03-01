@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                xmlns:archimate="http://www.opengroup.org/xsd/archimate/3.2.2"
-                name="DR Architecture Model Template"
-                id="template">
-  <!-- This is a template for ArchiMate models generated from DR -->
-</archimate:model>
