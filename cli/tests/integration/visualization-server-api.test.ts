@@ -277,26 +277,6 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
   });
 
-  describe("GET /api/elements/:id", () => {
-    it("should return 404 for valid-format but non-existent element ID", async () => {
-      serverProcess = await startServer(testDir, testPort);
-
-      // Use a valid three-part format ID that doesn't exist: layer.type.name
-      const response = await fetch(
-        `http://localhost:${testPort}/api/elements/motivation.goal.nonexistent-goal`
-      );
-
-      // Should be 404 (not found), not 400 (bad request)
-      // This tests that format validation passes but element lookup fails
-      expect(response.status).toBe(404);
-
-      const data = await response.json();
-      expect(data).toHaveProperty("error");
-      expect(data.error).toContain("not found");
-    });
-  });
-
-
   describe("OpenAPI Specification", () => {
     it("should serve OpenAPI spec at /api-spec.json or /api-spec.yaml", async () => {
       serverProcess = await startServer(testDir, testPort);
@@ -389,35 +369,11 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(response.status).toBe(404);
     });
 
-    it("should handle malformed element IDs gracefully", async () => {
-      serverProcess = await startServer(testDir, testPort);
-
-      const response = await fetch(
-        `http://localhost:${testPort}/api/elements/invalid%20id%20with%20spaces`
-      );
-
-      expect(response.status).toBe(400);
-    });
-
     it("should reject invalid layer name with Zod validation", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(
         `http://localhost:${testPort}/api/layers/InvalidLayerName`
-      );
-
-      expect(response.status).toBe(400);
-
-      const data = await response.json();
-      expect(data).toHaveProperty("error");
-    });
-
-    it("should reject invalid element ID format with Zod validation", async () => {
-      serverProcess = await startServer(testDir, testPort);
-
-      // Element IDs with spaces are invalid
-      const response = await fetch(
-        `http://localhost:${testPort}/api/elements/invalid%20element%20id`
       );
 
       expect(response.status).toBe(400);

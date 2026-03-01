@@ -62,7 +62,6 @@ import {
   LayerNameSchema,
   IdSchema,
   AnnotationFilterSchema,
-  ElementIdSchema,
   ErrorResponseSchema,
   HealthResponseSchema,
   AnnotationSchema,
@@ -72,7 +71,6 @@ import {
   ChangesetDetailSchema,
   ModelResponseSchema,
   LayerResponseSchema,
-  ElementResponseSchema,
   SpecResponseSchema,
   AnnotationRepliesSchema,
   WSMessageSchema,
@@ -116,7 +114,6 @@ const JSONRPC_ERRORS = {
  * - Annotation replacement (PUT /api/annotations/:id)
  * - Annotation deletion (DELETE /api/annotations/:id)
  * - Layer retrieval (GET /api/layers/:layerName)
- * - Element retrieval (GET /api/elements/:id)
  * - Schema retrieval (GET /api/spec)
  */
 
@@ -514,70 +511,6 @@ export class VisualizationServer {
           name: layerName,
           elements,
           elementCount: elements.length,
-        });
-      } catch (error) {
-        const message = getErrorMessage(error);
-        return c.json({ error: message }, 500);
-      }
-    }) as any);
-
-    // Get specific element
-    const getElementRoute = createRoute({
-      method: 'get',
-      path: '/api/elements/:id',
-      tags: ['Model'],
-      summary: 'Get element',
-      description: 'Retrieve a specific architecture element with its metadata and annotations',
-      security: [{ bearerAuth: [] }],
-      request: {
-        params: z.object({ id: ElementIdSchema }),
-      },
-      responses: {
-        200: {
-          description: 'Element retrieved successfully',
-          content: {
-            'application/json': {
-              schema: ElementResponseSchema,
-            },
-          },
-        },
-        404: {
-          description: 'Element not found',
-          content: {
-            'application/json': {
-              schema: ErrorResponseSchema,
-            },
-          },
-        },
-        500: {
-          description: 'Server error',
-          content: {
-            'application/json': {
-              schema: ErrorResponseSchema,
-            },
-          },
-        },
-      },
-    });
-
-    // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getElementRoute, (async (c: any) => {
-      try {
-        const { id: elementId } = c.req.valid("param");
-        const element = await this.findElement(elementId);
-
-        if (!element) {
-          return c.json({ error: "Element not found" }, 404);
-        }
-
-        const annotationIds = this.annotationsByElement.get(elementId) || new Set();
-        const annotations = Array.from(annotationIds)
-          .map((id) => this.annotations.get(id))
-          .filter((a): a is ClientAnnotation => a !== undefined);
-
-        return c.json({
-          ...element.toJSON(),
-          annotations,
         });
       } catch (error) {
         const message = getErrorMessage(error);
@@ -1537,17 +1470,6 @@ export class VisualizationServer {
       for (const e of layer.listElements()) {
         const layerId = e.layer_id || layerName;
 
-        // Resolve annotations for this element
-        const annotationIds = this.annotationsByElement.get(e.id) || new Set();
-        const annotations = Array.from(annotationIds)
-          .map((id) => {
-            const annotation = this.annotations.get(id);
-            if (!annotation) return undefined;
-            const replies = this.replies.get(id) || [];
-            return { ...annotation, replies };
-          })
-          .filter((a) => a !== undefined);
-
         // Node — include only the fields the UX needs
         const node: any = {
           id: e.id,
@@ -1558,7 +1480,6 @@ export class VisualizationServer {
         };
         if (e.description) node.description = e.description;
         if (e.attributes && Object.keys(e.attributes).length > 0) node.attributes = e.attributes;
-        if (annotations.length > 0) node.annotations = annotations;
         nodes.push(node);
 
         // Intra-layer links from relationships

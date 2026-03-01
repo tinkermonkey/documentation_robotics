@@ -249,45 +249,6 @@ export const LayerResponseSchema = z.object({
   elementCount: z.number().describe('Total element count'),
 });
 
-export const ElementResponseSchema = z.object({
-  // Spec-node required fields (always present)
-  id: z.string().min(1).describe('Element ID (UUID for spec-aligned elements, semantic dot-ID for legacy elements)'),
-  spec_node_id: z.string().describe('Spec node type ID (e.g. motivation.goal)'),
-  type: z.string().describe('Element type (e.g. goal, endpoint)'),
-  layer_id: z.string().describe('Layer this element belongs to'),
-  name: z.string().describe('Element display name'),
-  // Optional spec-node fields
-  description: z.string().optional().describe('Element description'),
-  attributes: z.record(z.string(), z.unknown()).optional()
-    .describe('Typed attribute bag per spec-node schema'),
-  source_reference: z.object({
-    provenance: z.enum(['extracted', 'manual', 'inferred', 'generated']),
-    locations: z.array(z.object({
-      file: z.string(),
-      symbol: z.string().optional(),
-    })).min(1),
-    repository: z.object({
-      url: z.string().optional(),
-      commit: z.string().optional(),
-    }).optional(),
-  }).optional().describe('Source file and symbol reference'),
-  metadata: z.object({
-    created_at: z.string().optional(),
-    updated_at: z.string().optional(),
-    created_by: z.string().optional(),
-    version: z.number().optional(),
-  }).passthrough().optional().describe('Element metadata'),
-  // Legacy compat fields (present on pre-migration elements)
-  properties: z.record(z.string(), z.unknown()).optional()
-    .describe('Legacy flat properties (deprecated, use attributes)'),
-  elementId: z.string().optional()
-    .describe('Legacy semantic ID (deprecated, use id)'),
-  references: z.array(z.unknown()).optional().describe('Cross-layer references'),
-  relationships: z.array(z.unknown()).optional().describe('Intra-layer relationships'),
-  // Server-added field
-  annotations: z.array(AnnotationSchema).optional().describe('Associated annotations'),
-});
-
 export const GraphNodeSchema = z.object({
   id: z.string().describe('Element ID (UUID or semantic dot-ID)'),
   spec_node_id: z.string().describe('Spec node type ID (e.g. motivation.goal)'),
@@ -297,7 +258,6 @@ export const GraphNodeSchema = z.object({
   description: z.string().optional().describe('Element description'),
   attributes: z.record(z.string(), z.unknown()).optional()
     .describe('Typed attribute bag per spec-node schema'),
-  annotations: z.array(AnnotationSchema).optional().describe('Associated annotations'),
 });
 
 export const GraphLinkSchema = z.object({

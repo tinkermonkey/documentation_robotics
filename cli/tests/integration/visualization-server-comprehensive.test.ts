@@ -165,21 +165,6 @@ describe.serial("Visualization Server - Model Loading", () => {
     expect(Array.isArray(data.links)).toBe(true);
   });
 
-  it("should get specific element via GET /api/elements/:id", async () => {
-    const response = await fetch(`${baseUrl}/api/elements/motivation.goal.g1`);
-    expect(response.status).toBe(200);
-
-    const data = await response.json();
-    // Element ID might be UUID or the semantic ID we set, just verify it matches one we expect
-    expect(data.name).toBe("Test Goal 1");
-    expect(data.type).toBe("goal");
-    expect(data.description).toBe("A test goal for visualization");
-  });
-
-  it("should return 404 for non-existent element", async () => {
-    const response = await fetch(`${baseUrl}/api/elements/nonexistent.element.id`);
-    expect(response.status).toBe(404);
-  });
 });
 
 describe.serial("Visualization Server - Annotations", () => {
