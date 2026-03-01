@@ -98,9 +98,9 @@ dr changeset activate "extract-api-layer"
 dr add api operation create-order --name "Create Order" \
   --source-file "src/api/orders.ts" --source-symbol "createOrder" \
   --source-provenance "extracted" \
-  --property method=POST --property path="/api/orders"
+  --properties '{"method":"POST","path":"/api/orders"}'
 dr validate --layers api
-dr changeset apply "extract-api-layer"
+dr changeset commit
 ```
 
 **Source tracking is mandatory during extraction**: always include `--source-file`, `--source-symbol`, `--source-provenance "extracted"`.
@@ -119,7 +119,7 @@ Report confidence as you extract:
 ## Changeset Lifecycle
 
 ```
-create → activate → work (dr add / dr update) → validate → diff → apply → delete
+create → activate → work (dr add / dr update) → validate → diff → commit → delete
 ```
 
 - **Mandatory for**: extraction, exploration, large refactors
@@ -147,7 +147,7 @@ After validation: report before/after counts, list remaining issues, suggest pat
 ## Modeling Workflow
 
 1. Check for duplicates first: `dr search <term>`
-2. Add element: `dr add <layer> <type> <id> --name "Name" --description "..."`
+2. Add element: `dr add <layer> <type> <name> --description "..."`
 3. Add cross-layer links where clear
 4. Validate: `dr validate`
 5. Suggest logical next steps (e.g., "This is a critical service — should I add a security policy?")
@@ -164,9 +164,9 @@ After validation: report before/after counts, list remaining issues, suggest pat
 ## Export / Documentation
 
 ```bash
-dr export --format archimate --output exports/   # Layers 1,2,4,5
-dr export --format openapi --output api-spec.yaml # Layer 6
-dr export --format markdown --output docs/
+dr export archimate --output exports/      # Layers 1,2,4,5
+dr export openapi --output api-spec.yaml   # Layer 6
+dr export markdown --output docs/
 dr visualize                                      # Interactive web UI
 ```
 
@@ -175,9 +175,9 @@ dr visualize                                      # Interactive web UI
 Scan for: critical services without auth, public APIs without security schemes, personal data without encryption flags, missing audit/monitoring.
 
 ```bash
-dr list application service   # find critical services
-dr list security policy       # check what policies exist
-dr list api operation         # find public endpoints
+dr list application --type service   # find critical services
+dr list security --type policy       # check what policies exist
+dr list api --type operation         # find public endpoints
 ```
 
 Produce prioritized list: CRITICAL (immediate) → HIGH (this sprint) → MEDIUM (backlog).
@@ -194,7 +194,7 @@ dr validate --strict  # verify
 ## Audit
 
 ```bash
-dr audit --layer <name>   # single layer coverage
+dr audit <name>           # single layer coverage
 dr audit                  # full model
 dr audit --threshold      # quality gate mode
 ```
@@ -224,38 +224,25 @@ Proactively suggest `dr audit` after adding 5+ elements to a layer without menti
 - Metric, trace, log, alert → **APM**
 - Test case, strategy, coverage → **Testing**
 
-## Cross-Layer Linking Patterns
+## Cross-Layer Linking
 
-**Pattern A — X-extensions** (API/Data Model layers):
+Add cross-layer references via `--properties` when creating or updating elements:
 
-```yaml
-x-archimate-ref: application.service.order-api
-x-supports-goals: [motivation.goal.revenue]
+```bash
+# API operation referencing an application service
+dr add api operation create-order --name "Create Order" \
+  --properties '{"x-archimate-ref":"application.service.order-api","method":"POST","path":"/orders"}'
+
+# Application service referencing a business service and motivation goal
+dr update application.service.order-api \
+  --properties '{"business":{"realizes-services":["business.service.orders"]},"motivation":{"supports-goals":["motivation.goal.revenue"]}}'
+
+# Data model element referencing a data store
+dr update data-model.entity.order \
+  --properties '{"schemaRef":"data-store.table.orders"}'
 ```
 
-**Pattern B — dot-notation** (upward references):
-
-```yaml
-motivation:
-  supports-goals: [motivation.goal.revenue]
-business:
-  realizes-services: [business.service.orders]
-```
-
-**Pattern C — nested objects** (complex relationships):
-
-```yaml
-motivationAlignment:
-  supportsGoals: [motivation.goal.satisfaction]
-  governedByPrinciples: [motivation.principle.user-centric]
-```
-
-**Pattern D — direct fields** (native spec fields):
-
-```yaml
-operationId: createOrder
-schemaRef: data-model.object-schema.order
-```
+The spec uses four property patterns internally (x-extensions, dot-notation blocks, nested objects, direct fields) — the CLI handles which pattern applies for each layer. Use `dr schema node <type-id>` to inspect valid properties for any element type.
 
 ## CLI Mandate
 

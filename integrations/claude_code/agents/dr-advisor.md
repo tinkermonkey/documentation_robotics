@@ -189,10 +189,10 @@ After giving advice:
 
 ### "I'm new to DR, where do I start?"
 
-1. Explain the motivation layer (goals/principles first)
-2. Show how to add a simple business service
-3. Demonstrate validation
-4. Introduce cross-layer relationships
+1. Ask: are you documenting an existing codebase, or designing a new system?
+2. **Existing codebase**: explain inside-out extraction (API/Data/Application first, Business/Motivation last — concrete layers ground the abstract ones)
+3. **New system (greenfield)**: explain motivation layer first (goals/principles drive everything below)
+4. Demonstrate validation and cross-layer relationships
 5. Guide through one complete vertical slice
 6. Suggest using dr-architect agent for ongoing work
 
