@@ -250,7 +250,8 @@ export const LayerResponseSchema = z.object({
 });
 
 export const GraphNodeSchema = z.object({
-  id: z.string().describe('Element ID (UUID or semantic dot-ID)'),
+  id: z.string().describe('Element ID (UUID for spec-node aligned elements)'),
+  elementId: z.string().optional().describe('Stable semantic ID in layer.type.name format (e.g. motivation.goal.my-goal) — use this for annotation lookup'),
   spec_node_id: z.string().describe('Spec node type ID (e.g. motivation.goal)'),
   type: z.string().describe('Element type (e.g. goal, endpoint)'),
   layer_id: z.string().describe('Layer this element belongs to'),
@@ -258,6 +259,25 @@ export const GraphNodeSchema = z.object({
   description: z.string().optional().describe('Element description'),
   attributes: z.record(z.string(), z.unknown()).optional()
     .describe('Typed attribute bag per spec-node schema'),
+  source_reference: z.object({
+    provenance: z.enum(['extracted', 'manual', 'inferred', 'generated']),
+    locations: z.array(z.object({
+      file: z.string(),
+      symbol: z.string().optional(),
+    })),
+    repository: z.object({
+      url: z.string().optional(),
+      commit: z.string().optional(),
+    }).optional(),
+  }).optional().describe('Source code provenance linking this element to its implementation'),
+  metadata: z.object({
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+    created_by: z.string().optional(),
+    version: z.number().optional(),
+  }).optional().describe('Element lifecycle metadata (timestamps, version)'),
+  properties: z.record(z.string(), z.unknown()).optional()
+    .describe('Legacy property bag (deprecated — prefer attributes)'),
 });
 
 export const GraphLinkSchema = z.object({

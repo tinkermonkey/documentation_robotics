@@ -73,7 +73,12 @@ paths:
                       properties:
                         id:
                           type: string
-                          description: Element ID (UUID or semantic dot-ID)
+                          description: Element ID (UUID for spec-node aligned elements)
+                        elementId:
+                          type: string
+                          description: Stable semantic ID in layer.type.name format (e.g.
+                            motivation.goal.my-goal) — use this for annotation
+                            lookup
                         spec_node_id:
                           type: string
                           description: Spec node type ID (e.g. motivation.goal)
@@ -93,6 +98,54 @@ paths:
                           type: object
                           additionalProperties: {}
                           description: Typed attribute bag per spec-node schema
+                        source_reference:
+                          type: object
+                          properties:
+                            provenance:
+                              type: string
+                              enum:
+                                - extracted
+                                - manual
+                                - inferred
+                                - generated
+                            locations:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  file:
+                                    type: string
+                                  symbol:
+                                    type: string
+                                required:
+                                  - file
+                            repository:
+                              type: object
+                              properties:
+                                url:
+                                  type: string
+                                commit:
+                                  type: string
+                          required:
+                            - provenance
+                            - locations
+                          description: Source code provenance linking this element to its implementation
+                        metadata:
+                          type: object
+                          properties:
+                            created_at:
+                              type: string
+                            updated_at:
+                              type: string
+                            created_by:
+                              type: string
+                            version:
+                              type: number
+                          description: Element lifecycle metadata (timestamps, version)
+                        properties:
+                          type: object
+                          additionalProperties: {}
+                          description: Legacy property bag (deprecated — prefer attributes)
                       required:
                         - id
                         - spec_node_id
