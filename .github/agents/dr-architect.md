@@ -451,7 +451,49 @@ Check for:
 
 **Why**: Manual YAML has 60%+ error rate, 5x fix time. CLI validation is immediate.
 
-### Extraction Workflow
+### Step 0: Assess Model State Before Extracting
+
+**Always run this first:**
+
+```bash
+dr info
+```
+
+**If the model is a blank slate (all layers empty):** Use the **outside-in, top-down phase plan** below.
+**If the model has existing elements:** Identify gaps with `dr validate` and extract the missing layers.
+
+### Outside-In Extraction Strategy (Blank Slate)
+
+When a project has no existing model, use the **outside-in, top-down** approach: start with _why_ the system exists, then _what_ it does, then _how_. This produces a model where every technical element traces back to a business reason.
+
+Explore the codebase before proposing phases. Adjust the source column based on what you find (READMEs, route files, service directories, type definitions, etc.).
+
+| Phase | Layer           | Source                                          | Notes                                          |
+| ----- | --------------- | ----------------------------------------------- | ---------------------------------------------- |
+| 1     | **Motivation**  | READMEs, ADRs, comments, ticket titles          | Write by hand — 3–6 elements max to start      |
+| 2     | **Application** | Service classes, stores, core logic directories | Highest ROI — most systems have clear services |
+| 3     | **Business**    | Route groupings, business capability names      | Infer from application services                |
+| 4     | **Technology**  | `package.json`, Dockerfiles, infra configs      | Extract from dependency/config files           |
+| 5     | **API**         | Route files, controllers, OpenAPI specs         | Map to application services                    |
+| 6     | **Data Model**  | Type files, DTOs, ORM models, schema files      | Extract entities and relationships             |
+| 7     | **UX**          | Component directories, page files               | Extract after data model is in place           |
+
+**Recommended workflow — one changeset per phase:**
+
+```bash
+# Phase 1: Motivation (manual, no changeset needed — small number of elements)
+dr add motivation goal <id> --name "..." --description "..."
+
+# Phase 2+: Each subsequent phase in its own changeset
+dr changeset create "extract-application-layer"
+# ... add elements ...
+dr validate --layers application
+dr changeset apply "extract-application-layer"
+```
+
+**Key principle:** Do not skip to API/data layers first on a blank model. The motivation and application layers provide the vocabulary and governance that makes every subsequent layer meaningful.
+
+### Extraction Workflow (Incremental / Gap-Filling)
 
 ```bash
 # 1. Create changeset
@@ -705,8 +747,9 @@ dr changeset abandon <changeset-id>
 
 **Do:**
 
-- Start with motivation layer (goals first)
-- Use changesets for exploration
+- For blank-slate models: use outside-in, top-down order — Motivation → Application → Business → Technology → API → Data Model → UX
+- Start with motivation layer (goals, stakeholders, principles) — even 3–6 elements is enough to anchor everything else
+- Use one changeset per phase during bulk extraction
 - Validate regularly
 - Link elements across layers
 - Keep descriptions clear and concise
