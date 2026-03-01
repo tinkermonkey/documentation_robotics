@@ -251,7 +251,7 @@ export const LayerResponseSchema = z.object({
 
 export const GraphNodeSchema = z.object({
   id: z.string().describe('Element ID (UUID for spec-node aligned elements)'),
-  elementId: z.string().optional().describe('Stable semantic ID in layer.type.name format (e.g. motivation.goal.my-goal) — use this for annotation lookup'),
+  elementId: z.string().optional().describe('Stable semantic ID in layer.type.name format (e.g. motivation.goal.my-goal). Present only on legacy-format elements. Use this field — not id — when calling the annotation API. Elements without this field (pure spec-node format) do not yet support annotation creation.'),
   spec_node_id: z.string().describe('Spec node type ID (e.g. motivation.goal)'),
   type: z.string().describe('Element type (e.g. goal, endpoint)'),
   layer_id: z.string().describe('Layer this element belongs to'),
