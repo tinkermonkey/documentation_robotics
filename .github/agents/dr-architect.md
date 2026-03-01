@@ -460,7 +460,7 @@ dr info
 ```
 
 **If the model is a blank slate (all layers empty):** Use the **outside-in, top-down phase plan** below.
-**If the model has existing elements:** Identify gaps with `dr validate` and extract the missing layers.
+**If the model has existing elements:** Review the per-layer element counts in `dr info` to identify empty or under-populated layers, then run `dr validate` to surface any issues in what already exists. Extract the missing layers using the phase order below as a guide.
 
 ### Outside-In Extraction Strategy (Blank Slate)
 
@@ -478,6 +478,8 @@ Explore the codebase before proposing phases. Adjust the source column based on 
 | 6     | **Data Model**  | Type files, DTOs, ORM models, schema files      | Extract entities and relationships             |
 | 7     | **UX**          | Component directories, page files               | Extract after data model is in place           |
 
+Security, Data Store, Navigation, APM, and Testing are not listed above because they emerge as cross-cutting concerns during the phases above rather than as a dedicated pass. Add elements from those layers when the codebase clearly surfaces them (e.g., auth middleware → Security, DB migration files → Data Store, route config → Navigation, monitoring config → APM, test files → Testing). Do not force them if the evidence is not there.
+
 **Recommended workflow — one changeset per phase:**
 
 ```bash
@@ -486,6 +488,7 @@ dr add motivation goal <id> --name "..." --description "..."
 
 # Phase 2+: Each subsequent phase in its own changeset
 dr changeset create "extract-application-layer"
+dr changeset activate "extract-application-layer"
 # ... add elements ...
 dr validate --layers application
 dr changeset apply "extract-application-layer"
