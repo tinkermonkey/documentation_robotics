@@ -66,25 +66,134 @@ paths:
               schema:
                 type: object
                 properties:
-                  manifest:
-                    type: object
-                    additionalProperties: {}
-                    description: Model manifest metadata
-                  layers:
-                    type: object
-                    additionalProperties:
+                  nodes:
+                    type: array
+                    items:
                       type: object
-                      properties: {}
-                      additionalProperties: {}
-                    description: All layers in the model (key-value pairs mapping layer names to
-                      layer objects)
-                  totalElements:
-                    type: number
-                    description: Total number of elements across all layers
+                      properties:
+                        id:
+                          type: string
+                          description: Element ID (UUID or semantic dot-ID)
+                        spec_node_id:
+                          type: string
+                          description: Spec node type ID (e.g. motivation.goal)
+                        type:
+                          type: string
+                          description: Element type (e.g. goal, endpoint)
+                        layer_id:
+                          type: string
+                          description: Layer this element belongs to
+                        name:
+                          type: string
+                          description: Element display name
+                        description:
+                          type: string
+                          description: Element description
+                        attributes:
+                          type: object
+                          additionalProperties: {}
+                          description: Typed attribute bag per spec-node schema
+                        annotations:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                                description: Annotation ID
+                              elementId:
+                                type: string
+                                minLength: 1
+                                pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                                description: Target element ID
+                              author:
+                                type: string
+                                description: Author name
+                              content:
+                                type: string
+                                description: Annotation content
+                              createdAt:
+                                type: string
+                                description: Creation timestamp
+                              updatedAt:
+                                type: string
+                                description: Last update timestamp
+                              tags:
+                                type: array
+                                items:
+                                  type: string
+                                description: Annotation tags
+                              resolved:
+                                type: boolean
+                                description: Resolution status
+                              replies:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: string
+                                    author:
+                                      type: string
+                                    content:
+                                      type: string
+                                    createdAt:
+                                      type: string
+                                  required:
+                                    - id
+                                    - author
+                                    - content
+                                    - createdAt
+                                description: Annotation replies
+                            required:
+                              - id
+                              - elementId
+                              - author
+                              - content
+                              - createdAt
+                          description: Associated annotations
+                      required:
+                        - id
+                        - spec_node_id
+                        - type
+                        - layer_id
+                        - name
+                    description: All architecture elements across all layers
+                  links:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Stable link ID derived from source, target, and type
+                        source:
+                          type: string
+                          description: Source element ID
+                        target:
+                          type: string
+                          description: Target element ID
+                        type:
+                          type: string
+                          description: Relationship predicate or reference type
+                        layer_id:
+                          type: string
+                          description: Layer ID for intra-layer relationships
+                        source_layer_id:
+                          type: string
+                          description: Source layer ID for cross-layer references
+                        target_layer_id:
+                          type: string
+                          description: Target layer ID for cross-layer references
+                      required:
+                        - id
+                        - source
+                        - target
+                        - type
+                    description: Intra-layer relationships and cross-layer references
                 required:
-                  - manifest
-                  - layers
-                  - totalElements
+                  - nodes
+                  - links
         "500":
           description: Server error
           content:

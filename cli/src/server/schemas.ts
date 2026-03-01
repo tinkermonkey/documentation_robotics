@@ -288,10 +288,32 @@ export const ElementResponseSchema = z.object({
   annotations: z.array(AnnotationSchema).optional().describe('Associated annotations'),
 });
 
+export const GraphNodeSchema = z.object({
+  id: z.string().describe('Element ID (UUID or semantic dot-ID)'),
+  spec_node_id: z.string().describe('Spec node type ID (e.g. motivation.goal)'),
+  type: z.string().describe('Element type (e.g. goal, endpoint)'),
+  layer_id: z.string().describe('Layer this element belongs to'),
+  name: z.string().describe('Element display name'),
+  description: z.string().optional().describe('Element description'),
+  attributes: z.record(z.string(), z.unknown()).optional()
+    .describe('Typed attribute bag per spec-node schema'),
+  annotations: z.array(AnnotationSchema).optional().describe('Associated annotations'),
+});
+
+export const GraphLinkSchema = z.object({
+  id: z.string().describe('Stable link ID derived from source, target, and type'),
+  source: z.string().describe('Source element ID'),
+  target: z.string().describe('Target element ID'),
+  type: z.string().describe('Relationship predicate or reference type'),
+  // Intra-layer links carry layer_id; cross-layer links carry source/target layer IDs
+  layer_id: z.string().optional().describe('Layer ID for intra-layer relationships'),
+  source_layer_id: z.string().optional().describe('Source layer ID for cross-layer references'),
+  target_layer_id: z.string().optional().describe('Target layer ID for cross-layer references'),
+});
+
 export const ModelResponseSchema = z.object({
-  manifest: z.record(z.string(), z.unknown()).describe('Model manifest metadata'),
-  layers: z.record(z.string(), z.object({}).passthrough()).describe('All layers in the model (key-value pairs mapping layer names to layer objects)'),
-  totalElements: z.number().describe('Total number of elements across all layers'),
+  nodes: z.array(GraphNodeSchema).describe('All architecture elements across all layers'),
+  links: z.array(GraphLinkSchema).describe('Intra-layer relationships and cross-layer references'),
 });
 
 export const SpecResponseSchema = z.object({
