@@ -829,10 +829,11 @@ copilotCommands(program);
       // Shutdown telemetry after execution completes
       await shutdownTelemetry();
 
-      // Exit with appropriate code after telemetry shutdown
-      if (exitCode !== 0) {
-        process.exit(exitCode);
-      }
+      // Always call process.exit() after telemetry shutdown to avoid hanging on
+      // http.Agent keepAlive timers from the OTLPLogExporter when the OTEL
+      // endpoint is not reachable. Without this, the event loop stays alive for
+      // several seconds waiting for keepAlive sockets to time out.
+      process.exit(exitCode);
     } else {
       // No telemetry - just parse normally with error handling
       try {

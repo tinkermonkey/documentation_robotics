@@ -79,13 +79,21 @@ export async function initTelemetry(): Promise<void> {
       import("./config.js"),
     ]);
 
+    // Load OTLP configuration from environment variables, config file, and defaults
+    const otlpConfig = await loadOTLPConfig();
+
+    // Runtime guard: TELEMETRY_ENABLED is a build-time capability flag, but we only
+    // actually send data when an OTLP endpoint is explicitly configured at runtime.
+    // Without this check the SDK would connect to the localhost:4318 default even
+    // when no collector is running, causing the process to hang at shutdown.
+    if (!otlpConfig.isExplicitlyConfigured) {
+      return;
+    }
+
     // Cache API imports for synchronous access in other functions
     const { trace, context } = otelApi;
     cachedTrace = trace;
     cachedContext = context;
-
-    // Load OTLP configuration from environment variables, config file, and defaults
-    const otlpConfig = await loadOTLPConfig();
 
     // Debug: Log loaded configuration
     if (process.env.DR_TELEMETRY_DEBUG) {

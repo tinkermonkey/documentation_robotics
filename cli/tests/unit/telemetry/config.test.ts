@@ -38,6 +38,7 @@ describe("loadOTLPConfig()", () => {
         endpoint: "http://localhost:4318/v1/traces",
         logsEndpoint: "http://localhost:4318/v1/logs",
         serviceName: "dr-cli",
+        isExplicitlyConfigured: false,
       });
     });
   });
@@ -78,6 +79,7 @@ describe("loadOTLPConfig()", () => {
         endpoint: "http://env-endpoint:4318/v1/traces",
         logsEndpoint: "http://env-logs:4318/v1/logs",
         serviceName: "env-service",
+        isExplicitlyConfigured: true,
       });
     });
   });
@@ -92,6 +94,7 @@ describe("loadOTLPConfig()", () => {
         endpoint: "http://localhost:4318/v1/traces",
         logsEndpoint: "http://localhost:4318/v1/logs",
         serviceName: "dr-cli",
+        isExplicitlyConfigured: false,
       });
     });
   });
@@ -108,6 +111,7 @@ describe("loadOTLPConfig()", () => {
         endpoint: "http://env-endpoint:4318/v1/traces",
         logsEndpoint: "http://env-logs:4318/v1/logs",
         serviceName: "env-service",
+        isExplicitlyConfigured: true,
       });
     });
 
@@ -129,6 +133,24 @@ describe("loadOTLPConfig()", () => {
       expect(typeof config.endpoint).toBe("string");
       expect(typeof config.logsEndpoint).toBe("string");
       expect(typeof config.serviceName).toBe("string");
+      expect(typeof config.isExplicitlyConfigured).toBe("boolean");
+    });
+
+    it("should set isExplicitlyConfigured false with only defaults", async () => {
+      const config = await loadOTLPConfig();
+      expect(config.isExplicitlyConfigured).toBe(false);
+    });
+
+    it("should set isExplicitlyConfigured true when trace endpoint env var is set", async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://collector:4318/v1/traces";
+      const config = await loadOTLPConfig();
+      expect(config.isExplicitlyConfigured).toBe(true);
+    });
+
+    it("should set isExplicitlyConfigured true when logs endpoint env var is set", async () => {
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "http://collector:4318/v1/logs";
+      const config = await loadOTLPConfig();
+      expect(config.isExplicitlyConfigured).toBe(true);
     });
 
     it("should return non-empty string values", async () => {

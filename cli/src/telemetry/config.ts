@@ -42,6 +42,8 @@ export interface OTLPConfig {
   endpoint: string;
   logsEndpoint: string;
   serviceName: string;
+  /** True only when an endpoint was explicitly set via env var or config file. */
+  isExplicitlyConfigured: boolean;
 }
 
 const CONFIG_FILENAME = ".dr-config.yaml";
@@ -70,6 +72,7 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
     endpoint: "http://localhost:4318/v1/traces",
     logsEndpoint: "http://localhost:4318/v1/logs",
     serviceName: "dr-cli",
+    isExplicitlyConfigured: false,
   };
 
   // Load file configuration (Priority 2)
@@ -171,25 +174,28 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
     }
   };
 
-  // Merge configuration with precedence: env vars > file config > defaults
-  // Note: Empty or whitespace-only strings are treated as not set (fall back to next priority)
-  // Invalid URLs are also rejected and fall back to next priority
+  // Resolve explicit endpoints (env var or config file) separately from defaults
+  // so we can detect whether the user actually configured an OTLP endpoint.
+  const explicitEndpoint =
+    getValidUrl(
+      getEnvVar(process.env.OTEL_EXPORTER_OTLP_ENDPOINT),
+      "OTEL_EXPORTER_OTLP_ENDPOINT"
+    ) ?? getValidUrl(otlp?.endpoint, "telemetry.otlp.endpoint");
+
+  const explicitLogsEndpoint =
+    getValidUrl(
+      getEnvVar(process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT),
+      "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"
+    ) ?? getValidUrl(otlp?.logs_endpoint, "telemetry.otlp.logs_endpoint");
+
   return {
-    endpoint:
-      getValidUrl(
-        getEnvVar(process.env.OTEL_EXPORTER_OTLP_ENDPOINT),
-        "OTEL_EXPORTER_OTLP_ENDPOINT"
-      ) ??
-      getValidUrl(otlp?.endpoint, "telemetry.otlp.endpoint") ??
-      defaults.endpoint,
-    logsEndpoint:
-      getValidUrl(
-        getEnvVar(process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT),
-        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"
-      ) ??
-      getValidUrl(otlp?.logs_endpoint, "telemetry.otlp.logs_endpoint") ??
-      defaults.logsEndpoint,
+    endpoint: explicitEndpoint ?? defaults.endpoint,
+    logsEndpoint: explicitLogsEndpoint ?? defaults.logsEndpoint,
     serviceName:
       getEnvVar(process.env.OTEL_SERVICE_NAME) ?? otlp?.service_name ?? defaults.serviceName,
+    // True only when at least one endpoint was explicitly provided. Without this,
+    // TELEMETRY_ENABLED=true (build-time) would try to connect to localhost:4318
+    // even when no collector is running, causing a hang at shutdown.
+    isExplicitlyConfigured: !!(explicitEndpoint || explicitLogsEndpoint),
   };
 }
