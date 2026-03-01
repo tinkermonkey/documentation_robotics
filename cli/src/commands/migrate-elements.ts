@@ -78,9 +78,8 @@ export async function migrateElementsCommand(options: {
       console.log(ansis.dim(`  Backup created: ${backupPath}`));
 
       try {
-        // Save the updated model with atomic write semantics
-        // Write to temporary file first, then rename on success to ensure atomicity
-        await model.saveDirtyLayersAtomic();
+        // Save the updated model back to the layer directories the loader reads
+        await model.save();
 
         console.log(ansis.green(`✓ Element migration complete`));
         console.log(
