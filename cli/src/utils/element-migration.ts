@@ -128,19 +128,21 @@ export class ElementMigration {
 
   /**
    * Check if element is in legacy format
-   * Legacy format indicators:
-   * - Has elementId field
-   * - id looks like semantic ID (contains dots)
-   * - Missing spec_node_id
-   * - Missing layer_id
+   * Legacy format indicator:
+   * - id is a semantic dotted ID (e.g., "motivation.stakeholder.end-users")
+   *
+   * Note: elementId is NOT checked here. After migration, saveLayer() persists
+   * properties.__elementId__ for backward compatibility, which the elements
+   * getter then passes as elementId when reconstructing Element objects. This
+   * means elementId is set on ALL elements (migrated or not), so it cannot
+   * distinguish elements that need migration from those that are already done.
+   *
+   * The only reliable indicator is whether element.id is still a semantic
+   * dotted ID. After migration, element.id is a UUID and isSemanticId returns
+   * false — correctly identifying the element as already migrated.
    */
   private isLegacyFormat(element: any): boolean {
-    return (
-      element.elementId ||
-      (element.id && this.isSemanticId(element.id)) ||
-      !element.spec_node_id ||
-      !element.layer_id
-    );
+    return !!(element.id && this.isSemanticId(element.id));
   }
 
   /**

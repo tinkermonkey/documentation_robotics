@@ -101,6 +101,12 @@ export class Element implements IElement {
    * Migration ensures elements transition from:
    * - Legacy: { elementId: "...", id: "dotted.id", properties: {...} }
    * - To New: { spec_node_id: "...", id: "uuid", layer_id: "...", type: "...", ... }
+   *
+   * Note: after migration, elements still go through initializeFromLegacy() when
+   * reconstructed via the Layer.elements getter (which passes elementId from
+   * node.properties.__elementId__ for backward compatibility). This is intentional —
+   * initializeFromLegacy() correctly derives spec_node_id and layer_id from elementId.
+   * The deprecation warning is suppressed in that case (id is already a UUID).
    */
   private isLegacyFormat(data: any): boolean {
     // CRITICAL: Check for elementId FIRST, even if spec-aligned fields are present
@@ -186,8 +192,12 @@ export class Element implements IElement {
     this.filePath = data.filePath;
     this.rawData = data.rawData;
 
-    // Log deprecation warning once per session to avoid log flooding
-    if (!legacyFormatWarningShown) {
+    // Log deprecation warning once per session to avoid log flooding.
+    // Suppress the warning when id is already a UUID: this indicates the element
+    // was already migrated and is being reconstructed from the graph (Layer.elements
+    // getter passes elementId from node.properties.__elementId__ for backward compat).
+    // Only warn for genuinely un-migrated elements whose id is still a semantic dotted ID.
+    if (!legacyFormatWarningShown && isSemanticId) {
       console.warn(
         `Element initialized from legacy format: ${this.elementId || this.id}. ` +
           "Legacy format with flat properties will be removed in a future version. " +
