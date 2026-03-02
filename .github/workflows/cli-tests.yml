@@ -298,6 +298,9 @@ jobs:
             echo "✓ $schema"
           done
 
+      - name: Regenerate spec/dist if needed
+        run: npm run build:spec
+
       - name: Cross-validate spec schemas with CLI bundled schemas
         working-directory: ./cli
         run: |

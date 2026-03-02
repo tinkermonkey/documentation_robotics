@@ -40,6 +40,18 @@ repos:
         args: [--fix, --config, .markdownlint.json]
         exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|spec/browser/.*-layer-report\.md|spec/browser/README\.md)
 
+  # Spec schema synchronization
+  - repo: local
+    hooks:
+      - id: spec-schema-sync
+        name: Regenerate spec/dist when spec sources change
+        entry: bash -c 'if git diff --cached --name-only | grep -qE "^spec/(schemas|layers)/"; then npm run build:spec && git add spec/dist/; fi'
+        language: system
+        files: ^spec/(schemas|layers)/
+        pass_filenames: false
+        always_run: false
+        stages: [commit]
+
   # TypeScript/JavaScript linting (for Bun CLI)
   - repo: local
     hooks:
