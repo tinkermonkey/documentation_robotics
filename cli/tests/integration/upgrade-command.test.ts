@@ -464,10 +464,10 @@ describe("upgrade command - unified flow", () => {
       const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
 
       expect(result.exitCode).toBe(0);
-      // Should complete all migrations and reach latest version (0.7.1)
+      // Should complete all migrations and reach latest version (0.8.1)
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.7.1");
+      expect(updatedManifest.spec_version).toBe("0.8.1");
     });
 
     it("should show migration steps in output", async () => {
@@ -527,10 +527,10 @@ describe("upgrade command - unified flow", () => {
       // .dr folder should be created/restored
       expect(await fileExists(drPath)).toBe(true);
 
-      // Model should be upgraded to latest version (0.7.1)
+      // Model should be upgraded to latest version (0.8.1)
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.7.1");
+      expect(updatedManifest.spec_version).toBe("0.8.1");
     });
 
     it("should complete both upgrades successfully", async () => {

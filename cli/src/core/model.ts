@@ -411,6 +411,7 @@ export class Model {
           name: json.name,
           ...(json.description && { description: json.description }),
           ...(cleanAttrs && Object.keys(cleanAttrs).length > 0 && { attributes: cleanAttrs }),
+          ...(json.properties && Object.keys(json.properties).length > 0 && { properties: json.properties }),
           ...(json.source_reference && { source_reference: json.source_reference }),
           ...(json.metadata && { metadata: json.metadata }),
           // Bridge field: preserves semantic ID so old-format readers can still identify elements

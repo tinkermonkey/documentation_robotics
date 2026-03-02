@@ -85,14 +85,14 @@ describe("Add Command - Type Validation", () => {
       expect(result.stdout).toContain("create-order");
     });
 
-    it("should accept valid data-store.table type", async () => {
+    it("should accept valid data-store.view type", async () => {
       const result = await runCLICommand(workdir.path, [
         "add",
         "data-store",
-        "table",
+        "view",
         "users",
         "--description",
-        "Users table",
+        "Users view",
       ]);
 
       expect(result.exitCode).toBe(0);
@@ -174,7 +174,7 @@ describe("Add Command - Type Validation", () => {
         { layer: "motivation", validType: "goal", invalidType: "operation" },
         { layer: "business", validType: "businessservice", invalidType: "goal" },
         { layer: "api", validType: "operation", invalidType: "goal" },
-        { layer: "data-store", validType: "table", invalidType: "goal" },
+        { layer: "data-store", validType: "view", invalidType: "goal" },
       ];
 
       for (const testCase of testCases) {

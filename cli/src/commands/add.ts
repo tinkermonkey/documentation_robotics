@@ -140,7 +140,8 @@ export async function addCommand(
       type: type,
       name: options.name || name,
       description: options.description,
-      attributes: properties,
+      attributes: {},
+      properties: properties,
       metadata: {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

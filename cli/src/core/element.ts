@@ -228,7 +228,8 @@ export class Element implements IElement {
     this.metadata = data.metadata;
 
     // Initialize legacy fields for backward compatibility
-    this.properties = data.properties || {};
+    // If properties not provided, use attributes (for backward compatibility with spec-node format)
+    this.properties = data.properties || data.attributes || {};
     this.elementId = data.elementId;
 
     // Relationship tracking

@@ -8,6 +8,20 @@ declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
+ * Filter out graph metadata fields from node properties
+ * Graph metadata fields (starting with __) should not be exposed as user properties
+ */
+function filterGraphMetadata(properties: Record<string, unknown> = {}): Record<string, unknown> {
+  const filtered: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(properties)) {
+    if (!key.startsWith("__")) {
+      filtered[key] = value;
+    }
+  }
+  return filtered;
+}
+
+/**
  * Layer class - thin wrapper over graph model for backward compatibility
  * Queries the graph for elements in a specific layer
  */
@@ -95,6 +109,13 @@ export class Layer {
     const nodes = this.graph.getNodesByLayer(this.name);
 
     for (const node of nodes) {
+      // Merge properties from both node.properties and node.attributes
+      // node.attributes takes precedence (from spec-node aligned storage)
+      const userProperties = {
+        ...filterGraphMetadata(node.properties),
+        ...(node.attributes || {}),
+      };
+
       const element = new Element({
         id: node.id,
         spec_node_id: node.spec_node_id,
@@ -105,7 +126,7 @@ export class Layer {
         attributes: node.attributes,
         source_reference: node.source_reference,
         metadata: node.metadata,
-        properties: node.properties,
+        properties: userProperties,
         layer: node.layer,
         references: (node.properties["__references__"] ?? []) as Reference[],
         relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
@@ -227,6 +248,13 @@ export class Layer {
       return undefined;
     }
 
+    // Merge properties from both node.properties and node.attributes
+    // node.attributes takes precedence (from spec-node aligned storage)
+    const userProperties = {
+      ...filterGraphMetadata(node.properties),
+      ...(node.attributes || {}),
+    };
+
     return new Element({
       id: node.id,
       spec_node_id: node.spec_node_id,
@@ -237,7 +265,7 @@ export class Layer {
       attributes: node.attributes,
       source_reference: node.source_reference,
       metadata: node.metadata,
-      properties: node.properties,
+      properties: userProperties,
       layer: node.layer,
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
@@ -339,7 +367,7 @@ export class Layer {
           attributes: node.attributes,
           source_reference: node.source_reference,
           metadata: node.metadata,
-          properties: node.properties,
+          properties: filterGraphMetadata(node.properties),
           layer: node.layer,
           references: (node.properties["__references__"] ?? []) as Reference[],
           relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
