@@ -13,6 +13,11 @@ FROM clauditoreum-orchestrator:latest
 
 USER root
 
+# Install agent-specific entrypoint that fixes corrupted .gitconfig mounts
+COPY docker-entrypoint-agent.sh /usr/local/bin/docker-entrypoint-agent.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-agent.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-agent.sh"]
+
 # ============================================================================
 # Stage 2: Install Project-Specific Runtimes
 # ============================================================================
