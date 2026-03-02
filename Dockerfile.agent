@@ -52,6 +52,15 @@ WORKDIR /workspace/documentation_robotics
 # with the runtime mount. All dependencies are installed explicitly below.
 # The source code (including pyproject.toml) comes from the runtime mount.
 
+# Pre-install Node.js dependencies for the TypeScript CLI
+# Copy ONLY dependency manifests (not source code) for npm install
+COPY package.json package-lock.json ./
+COPY cli/package.json cli/package-lock.json ./cli/
+RUN cd /workspace/documentation_robotics && npm install --ignore-scripts && \
+    cd /workspace/documentation_robotics/cli && npm install --ignore-scripts && \
+    chown -R orchestrator:orchestrator /workspace/documentation_robotics/node_modules \
+    /workspace/documentation_robotics/cli/node_modules
+
 # Pre-install Python dependencies
 # These match the dependencies from cli/pyproject.toml
 # Core CLI dependencies
