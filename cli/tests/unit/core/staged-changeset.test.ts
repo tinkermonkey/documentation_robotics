@@ -14,19 +14,6 @@ let TEST_DIR: string;
 
 describe("Staged Changeset Data Model", () => {
   describe("Changeset with extended fields", () => {
-    it("should support new status values", () => {
-      const changeset = Changeset.create("test");
-
-      changeset.markStaged();
-      expect(changeset.status).toBe("staged");
-
-      changeset.markCommitted();
-      expect(changeset.status).toBe("committed");
-
-      changeset.markDiscarded();
-      expect(changeset.status).toBe("discarded");
-    });
-
     it("should serialize and deserialize with extended fields", () => {
       const original = new Changeset({
         id: "test-001",

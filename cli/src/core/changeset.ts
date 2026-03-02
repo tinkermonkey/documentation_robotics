@@ -107,10 +107,15 @@ export class Changeset {
     this.description = data.description;
     this.created = data.created;
     this.modified = data.modified;
-    // Store changes; strip sequenceNumber if present (recomputed on toJSON)
+    // Store changes; preserve sequenceNumber if present from storage
     this.changes = (data.changes || []).map((change) => {
-      const { type, elementId, layerName, before, after, timestamp } = change;
-      return { type, elementId, layerName, before, after, timestamp } as Change;
+      const { type, elementId, layerName, before, after, timestamp, sequenceNumber } = change as any;
+      const result: any = { type, elementId, layerName, before, after, timestamp };
+      // Preserve sequenceNumber if it exists (from loaded StagedChange)
+      if (typeof sequenceNumber === "number") {
+        result.sequenceNumber = sequenceNumber;
+      }
+      return result as Change;
     });
     this.status = data.status || "draft";
     this.id = data.id;
