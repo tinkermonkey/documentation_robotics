@@ -51,8 +51,8 @@ export interface StagedChangesetData {
   modified: string; // ISO timestamp of last modification
   status: ChangesetStatus;
   baseSnapshot: string; // SHA256 hash of base model at creation (for drift detection)
-  changes: StagedChange[]; // Changes with sequence numbers
-  stats: {
+  changes: Change[] | StagedChange[]; // Changes (with optional sequence numbers)
+  stats?: {
     additions: number;
     modifications: number;
     deletions: number;
@@ -107,7 +107,11 @@ export class Changeset {
     this.description = data.description;
     this.created = data.created;
     this.modified = data.modified;
-    this.changes = data.changes || [];
+    // Store changes; strip sequenceNumber if present (recomputed on toJSON)
+    this.changes = (data.changes || []).map((change) => {
+      const { type, elementId, layerName, before, after, timestamp } = change;
+      return { type, elementId, layerName, before, after, timestamp } as Change;
+    });
     this.status = data.status || "staged";
     this.id = data.id;
     this.baseSnapshot = data.baseSnapshot;
@@ -119,15 +123,15 @@ export class Changeset {
    *
    * @param name - Human-readable name for the changeset
    * @param description - Optional description of changes
-   * @param id - Unique changeset ID
-   * @param baseSnapshot - SHA256 hash of base model at creation
+   * @param id - Unique changeset ID (required)
+   * @param baseSnapshot - SHA256 hash of base model at creation (required)
    * @returns New Changeset instance in staged status
    */
   static create(
     name: string,
-    description?: string,
-    id?: string,
-    baseSnapshot?: string
+    description: string | undefined,
+    id: string,
+    baseSnapshot: string
   ): Changeset {
     const now = new Date().toISOString();
     return new Changeset({
@@ -137,8 +141,8 @@ export class Changeset {
       modified: now,
       changes: [],
       status: "staged",
-      id: id || "",
-      baseSnapshot: baseSnapshot || "",
+      id,
+      baseSnapshot,
     });
   }
 
@@ -198,7 +202,7 @@ export class Changeset {
   }
 
   /**
-   * Mark changeset as staged (new staging workflow).
+   * Mark changeset as staged.
    * Enables the changeset to accept new changes via staging operations.
    * Updates status and modified timestamp.
    */
@@ -208,7 +212,7 @@ export class Changeset {
   }
 
   /**
-   * Mark changeset as committed (new staging workflow).
+   * Mark changeset as committed.
    * Indicates changes have been applied to the base model.
    * Updates status and modified timestamp.
    */
@@ -218,7 +222,7 @@ export class Changeset {
   }
 
   /**
-   * Mark changeset as discarded (new staging workflow).
+   * Mark changeset as discarded.
    * Indicates changes have been discarded without applying.
    * Updates status and modified timestamp.
    */
@@ -229,7 +233,7 @@ export class Changeset {
 
   /**
    * Serialize changeset to JSON.
-   * Always returns StagedChangesetData format.
+   * Always returns StagedChangesetData format with sequenceNumbers added.
    *
    * @returns Serialized changeset data suitable for storage
    */
@@ -242,7 +246,10 @@ export class Changeset {
       modified: this.modified,
       baseSnapshot: this.baseSnapshot,
       status: this.status,
-      changes: this.changes,
+      changes: this.changes.map((change, idx) => ({
+        ...change,
+        sequenceNumber: idx,
+      })),
       stats: this.stats,
     };
   }
