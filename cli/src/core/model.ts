@@ -186,14 +186,14 @@ export class Model {
                   const elementUUID = el.id || `${name}.${key}`;
 
                   // Infer type from filename if not specified (Python CLI compatibility)
-                  // Python: _infer_type_from_file removes trailing 's' from stem
+                  // Filenames are now singular snake_case (e.g., "application_component.yaml")
+                  // Old-style filenames had trailing 's' and no separators (e.g., "applicationcomponents.yaml")
                   let elementType = el.type;
                   if (!elementType) {
                     const stem = file.replace(/\.ya?ml$/, "");
-                    const singular = stem.endsWith("s") ? stem.slice(0, -1) : stem;
-                    // Strip underscores and hyphens so both old-style ("applicationcomponents")
-                    // and new-style ("application_components") filenames map to the correct type
-                    elementType = singular.replace(/[_-]/g, "");
+                    // Strip underscores/hyphens and trailing 's' to recover the raw type name
+                    const compact = stem.replace(/[_-]/g, "");
+                    elementType = compact.endsWith("s") ? compact.slice(0, -1) : compact;
                   }
 
                   // Determine semantic/elementId for this element:
@@ -385,7 +385,7 @@ export class Model {
 
     // Write each type to its own YAML file
     for (const [, { stem, elements }] of elementsByType) {
-      const filename = `${stem}s.yaml`;
+      const filename = `${stem}.yaml`;
       const filePath = `${layerPath}/${filename}`;
 
       // Convert elements to spec-node format YAML
