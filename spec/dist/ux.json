@@ -63,7 +63,13 @@
             },
             "type": {
               "type": "string",
-              "enum": ["button", "link", "menu", "voice-command", "icon-button"],
+              "enum": [
+                "button",
+                "link",
+                "menu",
+                "voice-command",
+                "icon-button"
+              ],
               "description": "Interactive element kind, per HTML 5.3 button, anchor, and menu element semantics."
             },
             "icon": {
@@ -77,12 +83,25 @@
             },
             "channel": {
               "type": "string",
-              "enum": ["web", "mobile", "voice", "chat", "sms"],
+              "enum": [
+                "web",
+                "mobile",
+                "voice",
+                "chat",
+                "sms"
+              ],
               "description": "Delivery channel for which this component is rendered."
             },
             "style": {
               "type": "string",
-              "enum": ["primary", "secondary", "danger", "ghost", "link", "icon"],
+              "enum": [
+                "primary",
+                "secondary",
+                "danger",
+                "ghost",
+                "link",
+                "icon"
+              ],
               "description": "Visual style variant of the action component, per design system button style conventions."
             },
             "validations": {
@@ -114,12 +133,17 @@
                     "description": "User-facing error message shown when this constraint is violated."
                   }
                 },
-                "required": ["type", "message"],
+                "required": [
+                  "type",
+                  "message"
+                ],
                 "additionalProperties": false
               }
             }
           },
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "additionalProperties": false
         }
       },
@@ -152,17 +176,34 @@
             },
             "category": {
               "type": "string",
-              "enum": ["crud", "navigation", "confirmation", "bulk-operation"],
+              "enum": [
+                "crud",
+                "navigation",
+                "confirmation",
+                "bulk-operation"
+              ],
               "description": "Functional taxonomy of the action pattern."
             },
             "trigger": {
               "type": "string",
-              "enum": ["click", "swipe", "voice", "keyboard"],
+              "enum": [
+                "click",
+                "swipe",
+                "voice",
+                "keyboard"
+              ],
               "description": "Input modality that initiates this action pattern."
             },
             "feedback": {
               "type": "string",
-              "enum": ["toast", "animation", "route-change", "modal", "inline-message", "none"],
+              "enum": [
+                "toast",
+                "animation",
+                "route-change",
+                "modal",
+                "inline-message",
+                "none"
+              ],
               "description": "User-facing feedback mechanism invoked after the action completes."
             },
             "targetRef": {
@@ -229,11 +270,20 @@
             },
             "lineStyle": {
               "type": "string",
-              "enum": ["solid", "dashed", "dotted", "double", "none"],
+              "enum": [
+                "solid",
+                "dashed",
+                "dotted",
+                "double",
+                "none"
+              ],
               "description": "CSS border/line style applied to line chart series rendering, per CSS Border specification."
             }
           },
-          "required": ["label", "dataField"],
+          "required": [
+            "label",
+            "dataField"
+          ],
           "additionalProperties": false
         }
       },
@@ -315,7 +365,9 @@
               "description": "Named slot in the parent component where this reference is placed. Slot names are defined by the parent LibraryComponent (e.g., 'header', 'actions', 'footer')."
             }
           },
-          "required": ["ref"],
+          "required": [
+            "ref"
+          ],
           "additionalProperties": false
         }
       },
@@ -345,7 +397,13 @@
           "properties": {
             "source": {
               "type": "string",
-              "enum": ["api", "state", "local-storage", "mock", "static"],
+              "enum": [
+                "api",
+                "state",
+                "local-storage",
+                "mock",
+                "static"
+              ],
               "description": "Data origin for this binding configuration."
             },
             "target": {
@@ -357,7 +415,10 @@
               "description": "Dot-notation or JSONPath expression selecting a field within the source data (e.g., 'user.profile.name' or '$.items[0].id')."
             }
           },
-          "required": ["source", "target"],
+          "required": [
+            "source",
+            "target"
+          ],
           "additionalProperties": false
         }
       },
@@ -390,7 +451,13 @@
             },
             "notificationType": {
               "type": "string",
-              "enum": ["success", "error", "warning", "info", "neutral"],
+              "enum": [
+                "success",
+                "error",
+                "warning",
+                "info",
+                "neutral"
+              ],
               "description": "Severity category of the notification, aligned with ARIA live region and alert role semantics."
             },
             "errorMessage": {
@@ -436,7 +503,13 @@
             },
             "channel": {
               "type": "string",
-              "enum": ["web", "mobile", "voice", "chat", "sms"],
+              "enum": [
+                "web",
+                "mobile",
+                "voice",
+                "chat",
+                "sms"
+              ],
               "description": "Delivery channel context for this experience state."
             },
             "onEnter": {
@@ -517,7 +590,14 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": ["grid", "flex", "block", "inline", "absolute", "sticky"],
+              "enum": [
+                "grid",
+                "flex",
+                "block",
+                "inline",
+                "absolute",
+                "sticky"
+              ],
               "description": "CSS layout mode governing element positioning and flow, per CSS Flexbox/Grid specification."
             },
             "columns": {
@@ -558,7 +638,13 @@
             },
             "alignItems": {
               "type": "string",
-              "enum": ["flex-start", "flex-end", "center", "baseline", "stretch"],
+              "enum": [
+                "flex-start",
+                "flex-end",
+                "center",
+                "baseline",
+                "stretch"
+              ],
               "description": "CSS align-items property value, per CSS Flexbox/Grid specification."
             },
             "justifyContent": {
@@ -575,26 +661,54 @@
             },
             "justifyItems": {
               "type": "string",
-              "enum": ["flex-start", "flex-end", "center", "stretch", "baseline"],
+              "enum": [
+                "flex-start",
+                "flex-end",
+                "center",
+                "stretch",
+                "baseline"
+              ],
               "description": "CSS justify-items property value, per CSS Grid specification."
             },
             "stickyPosition": {
               "type": "string",
-              "enum": ["top", "bottom", "left", "right", "none"],
+              "enum": [
+                "top",
+                "bottom",
+                "left",
+                "right",
+                "none"
+              ],
               "description": "Anchor edge for CSS position:sticky elements, per CSS Positioning specification."
             },
             "style": {
               "type": "string",
-              "enum": ["card", "table", "list", "grid", "masonry", "split"],
+              "enum": [
+                "card",
+                "table",
+                "list",
+                "grid",
+                "masonry",
+                "split"
+              ],
               "description": "Visual presentation style applied to the layout container."
             },
             "labelPosition": {
               "type": "string",
-              "enum": ["top", "left", "right", "inline", "floating", "hidden"],
+              "enum": [
+                "top",
+                "left",
+                "right",
+                "inline",
+                "floating",
+                "hidden"
+              ],
               "description": "Placement of form field labels relative to their input elements, per HTML 5.3 label element positioning patterns."
             }
           },
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "additionalProperties": false
         }
       },
@@ -652,7 +766,11 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["npm", "git", "internal-registry"],
+                  "enum": [
+                    "npm",
+                    "git",
+                    "internal-registry"
+                  ],
                   "description": "Distribution mechanism."
                 },
                 "identifier": {
@@ -674,7 +792,13 @@
                   },
                   "type": {
                     "type": "string",
-                    "enum": ["string", "number", "boolean", "object", "array"],
+                    "enum": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "object",
+                      "array"
+                    ],
                     "description": "Data type of the prop value."
                   },
                   "required": {
@@ -686,7 +810,10 @@
                     "description": "Default value as string; coerced to declared type at runtime."
                   }
                 },
-                "required": ["name", "type"],
+                "required": [
+                  "name",
+                  "type"
+                ],
                 "additionalProperties": false
               }
             },
@@ -705,7 +832,9 @@
                     "description": "What content is expected in this slot."
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             },
@@ -724,12 +853,16 @@
                     "description": "When this event fires and what payload it carries."
                   }
                 },
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "additionalProperties": false
               }
             }
           },
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "additionalProperties": false
         }
       },
@@ -805,7 +938,14 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
+              "enum": [
+                "navigate",
+                "submit",
+                "open",
+                "close",
+                "dispatch",
+                "validate"
+              ],
               "description": "Operation executed during the state lifecycle."
             },
             "description": {
@@ -813,16 +953,26 @@
             },
             "lifecycle": {
               "type": "string",
-              "enum": ["on-enter", "on-exit", "on-transition"],
+              "enum": [
+                "on-enter",
+                "on-exit",
+                "on-transition"
+              ],
               "description": "State lifecycle hook that triggers this action. 'on-enter': fires when entering the owning ExperienceState; 'on-exit': fires when leaving it; 'on-transition': fires during any outgoing transition from this state."
             },
             "timing": {
               "type": "string",
-              "enum": ["immediate", "deferred", "conditional"],
+              "enum": [
+                "immediate",
+                "deferred",
+                "conditional"
+              ],
               "description": "Execution scheduling within the lifecycle hook: 'immediate' runs synchronously before the state activates; 'deferred' runs asynchronously after; 'conditional' runs only when a guard condition is met."
             }
           },
-          "required": ["action"],
+          "required": [
+            "action"
+          ],
           "additionalProperties": false
         }
       },
@@ -852,7 +1002,14 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
+              "enum": [
+                "navigate",
+                "submit",
+                "open",
+                "close",
+                "dispatch",
+                "validate"
+              ],
               "description": "Operation this template encapsulates. Must match a value from the StateAction action enum."
             },
             "description": {
@@ -870,7 +1027,11 @@
                   },
                   "type": {
                     "type": "string",
-                    "enum": ["string", "number", "boolean"],
+                    "enum": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ],
                     "description": "Expected data type of the parameter value."
                   },
                   "default": {
@@ -878,12 +1039,17 @@
                     "description": "Optional default value as a string; coerced to the declared type at runtime."
                   }
                 },
-                "required": ["name", "type"],
+                "required": [
+                  "name",
+                  "type"
+                ],
                 "additionalProperties": false
               }
             }
           },
-          "required": ["action"],
+          "required": [
+            "action"
+          ],
           "additionalProperties": false
         }
       },
@@ -916,7 +1082,13 @@
             },
             "category": {
               "type": "string",
-              "enum": ["navigation", "form", "data-loading", "authentication", "multi-step"],
+              "enum": [
+                "navigation",
+                "form",
+                "data-loading",
+                "authentication",
+                "multi-step"
+              ],
               "description": "Functional taxonomy of the reusable state machine pattern."
             },
             "states": {
@@ -995,15 +1167,25 @@
                 },
                 "syntax": {
                   "type": "string",
-                  "enum": ["javascript", "jsonpath", "cel", "jsonata"],
+                  "enum": [
+                    "javascript",
+                    "jsonpath",
+                    "cel",
+                    "jsonata"
+                  ],
                   "description": "Expression language used to evaluate the guard expression. 'javascript': JS boolean expression (e.g., 'user.isLoggedIn && cart.items.length > 0'); 'jsonpath': JSONPath predicate (e.g., '$.user.role == \"admin\"'); 'cel': Common Expression Language (e.g., 'user.age >= 18'); 'jsonata': JSONata expression (e.g., '$count(items) > 0')."
                 }
               },
-              "required": ["expression", "syntax"],
+              "required": [
+                "expression",
+                "syntax"
+              ],
               "additionalProperties": false
             }
           },
-          "required": ["trigger"],
+          "required": [
+            "trigger"
+          ],
           "additionalProperties": false
         }
       },
@@ -1103,7 +1285,14 @@
             },
             "textAlign": {
               "type": "string",
-              "enum": ["left", "right", "center", "justify", "start", "end"],
+              "enum": [
+                "left",
+                "right",
+                "center",
+                "justify",
+                "start",
+                "end"
+              ],
               "description": "CSS text-align value for cell content, per CSS Text specification."
             },
             "displayType": {
@@ -1123,11 +1312,18 @@
             },
             "defaultSortDirection": {
               "type": "string",
-              "enum": ["asc", "desc", "none"],
+              "enum": [
+                "asc",
+                "desc",
+                "none"
+              ],
               "description": "Default sort direction applied to this column when first sorted."
             }
           },
-          "required": ["header", "field"],
+          "required": [
+            "header",
+            "field"
+          ],
           "additionalProperties": false
         }
       },
@@ -1166,7 +1362,13 @@
             },
             "animationType": {
               "type": "string",
-              "enum": ["fade", "slide", "scale", "bounce", "none"],
+              "enum": [
+                "fade",
+                "slide",
+                "scale",
+                "bounce",
+                "none"
+              ],
               "description": "Motion animation category applied during this transition."
             },
             "duration": {
@@ -1178,7 +1380,10 @@
               "description": "CSS timing function controlling the transition's acceleration curve (e.g., 'ease-in-out', 'cubic-bezier(0.4, 0, 0.2, 1)')."
             }
           },
-          "required": ["to", "trigger"],
+          "required": [
+            "to",
+            "trigger"
+          ],
           "additionalProperties": false
         }
       },
@@ -1214,7 +1419,13 @@
             },
             "channel": {
               "type": "string",
-              "enum": ["web", "mobile", "voice", "chat", "sms"],
+              "enum": [
+                "web",
+                "mobile",
+                "voice",
+                "chat",
+                "sms"
+              ],
               "description": "Primary delivery channel this application targets. Multi-channel products use one UXApplication per channel, each referencing channel-specific UXSpecs."
             },
             "experiences": {
@@ -1238,7 +1449,9 @@
               "description": "Default locale for internationalization, as a BCP 47 language tag (e.g., 'en-US', 'fr-FR', 'ja-JP')."
             }
           },
-          "required": ["channel"],
+          "required": [
+            "channel"
+          ],
           "additionalProperties": false
         }
       },
@@ -1316,7 +1529,11 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["npm", "git", "internal-registry"],
+                  "enum": [
+                    "npm",
+                    "git",
+                    "internal-registry"
+                  ],
                   "description": "Distribution mechanism: 'npm' for a published npm package, 'git' for a git repository URL, 'internal-registry' for a private artifact registry."
                 },
                 "identifier": {
@@ -1327,7 +1544,9 @@
               "additionalProperties": false
             }
           },
-          "required": ["version"],
+          "required": [
+            "version"
+          ],
           "additionalProperties": false
         }
       },
@@ -1360,7 +1579,12 @@
             },
             "experience": {
               "type": "string",
-              "enum": ["visual", "voice", "chat", "sms"],
+              "enum": [
+                "visual",
+                "voice",
+                "chat",
+                "sms"
+              ],
               "description": "Delivery modality this spec describes. 'visual': screen-based UI; 'voice': voice assistant interface; 'chat': conversational messaging UI; 'sms': text message-based interaction."
             },
             "title": {
@@ -1375,7 +1599,12 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["figma", "storybook", "zeplin", "url"],
+                  "enum": [
+                    "figma",
+                    "storybook",
+                    "zeplin",
+                    "url"
+                  ],
                   "description": "Design tool or artifact type."
                 },
                 "url": {
@@ -1460,7 +1689,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "additionalProperties": false
         }
       },
