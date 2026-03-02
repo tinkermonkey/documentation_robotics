@@ -109,8 +109,14 @@ export class Element implements IElement {
    * The deprecation warning is suppressed in that case (id is already a UUID).
    */
   private isLegacyFormat(data: any): boolean {
-    // CRITICAL: Check for elementId FIRST, even if spec-aligned fields are present
-    // This catches mixed-format elements during migration where both might be present
+    // CRITICAL: Check for spec_node_id FIRST — if present, it's definitively new format.
+    // This allows elements to carry both spec_node_id and elementId (bridge field for
+    // backward compat) without triggering the legacy migration path.
+    if (data.spec_node_id) {
+      return false;
+    }
+
+    // Check for elementId (legacy semantic identifier)
     if (data.elementId) {
       return true;
     }
@@ -443,8 +449,14 @@ export class Element implements IElement {
           delete this.properties["source"];
         }
       }
+
+      // Always sync top-level field
+      this.source_reference = undefined;
       return;
     }
+
+    // Always keep top-level field in sync so toJSON() includes it
+    this.source_reference = sourceRef;
 
     // Layer-aware storage: use layer-specific property paths
     if (!this.layer) {

@@ -154,9 +154,8 @@ export class Model {
                 if (element && typeof element === "object") {
                   const el: any = element;
 
-                  // Auto-generate layer-prefixed ID if missing (Python CLI compatibility)
-                  // Python: element_id = f"{self.name}.{key}" when no id field
-                  const elementId = el.id || `${name}.${key}`;
+                  // Use UUID from file if present; fall back to layer-prefixed key for very old format
+                  const elementUUID = el.id || `${name}.${key}`;
 
                   // Infer type from filename if not specified (Python CLI compatibility)
                   // Python: _infer_type_from_file removes trailing 's' from stem
@@ -166,17 +165,34 @@ export class Model {
                     elementType = stem.endsWith("s") ? stem.slice(0, -1) : stem;
                   }
 
+                  // Determine semantic/elementId for this element:
+                  // - New format YAML: el.elementId is the bridge field written by saveLayer()
+                  // - Old format YAML: __elementId__ is stored in el.properties
+                  const isNewFormat = !!el.spec_node_id;
+                  const semanticId = isNewFormat
+                    ? el.elementId
+                    : (el.properties?.["__elementId__"] as string | undefined);
+
                   const newElement = new Element({
-                    id: elementId,
+                    id: elementUUID,
+                    // Spec-node fields (present in new format, absent in old)
+                    spec_node_id: el.spec_node_id,
+                    layer_id: el.layer_id,
+                    attributes: el.attributes,
+                    source_reference: el.source_reference,
+                    metadata: el.metadata,
+                    // Legacy fields for backward compat
                     name: el.name || key,
                     type: elementType,
                     description: el.description || el.documentation || "",
                     properties: el.properties || {},
                     relationships: el.relationships || [],
                     references: el.references || [],
-                    layer: name, // Track layer (Python CLI compatibility)
-                    filePath: filePath, // Track source file (Python CLI compatibility)
-                    rawData: el, // Preserve raw YAML data (Python CLI compatibility)
+                    layer: el.layer_id || el.layer || name,
+                    filePath: filePath,
+                    rawData: el,
+                    // elementId triggers legacy path for old format; acts as bridge field for new format
+                    elementId: semanticId,
                   });
                   layer.addElement(newElement);
                 }
@@ -329,26 +345,45 @@ export class Model {
       elementsByType.get(type)!.push(element);
     }
 
+    // Internal graph fields stored in properties/attributes — never written to YAML
+    const INTERNAL_FIELDS = new Set([
+      "__elementId__", "__references__", "__relationships__",
+      "source", "x-source-reference",
+    ]);
+
     // Write each type to its own YAML file
     for (const [type, elements] of elementsByType) {
       const filename = `${type}.yaml`;
       const filePath = `${layerPath}/${filename}`;
 
-      // Convert elements to YAML format
+      // Convert elements to spec-node format YAML
       const yamlData: any = {};
       for (const element of elements) {
-        const key = element.id.split(".").pop() || element.id;
+        const json = element.toJSON();
+
+        // Clean attributes: remove graph-internal keys that should not be persisted
+        const cleanAttrs = json.attributes
+          ? Object.fromEntries(
+              Object.entries(json.attributes).filter(([k]) => !INTERNAL_FIELDS.has(k))
+            )
+          : undefined;
+
+        // Use last segment of semantic ID as YAML key for human readability;
+        // fall back to UUID for elements without a semantic ID
+        const key = element.elementId?.split(".").pop() ?? element.id;
         yamlData[key] = {
-          id: element.id,
-          name: element.name,
-          type: element.type,
-          layer: element.layer || name, // Add layer for graph compatibility
-          ...(element.description && { documentation: element.description }),
-          ...(Object.keys(element.properties || {}).length > 0 && {
-            properties: element.properties,
-          }),
-          ...(element.references &&
-            element.references.length > 0 && { references: element.references }),
+          id: json.id,
+          spec_node_id: json.spec_node_id,
+          type: json.type,
+          layer_id: json.layer_id,
+          name: json.name,
+          ...(json.description && { description: json.description }),
+          ...(cleanAttrs && Object.keys(cleanAttrs).length > 0 && { attributes: cleanAttrs }),
+          ...(json.source_reference && { source_reference: json.source_reference }),
+          ...(json.metadata && { metadata: json.metadata }),
+          // Bridge field: preserves semantic ID so old-format readers can still identify elements
+          ...(json.elementId && { elementId: json.elementId }),
+          ...(json.references && json.references.length > 0 && { references: json.references }),
           // Relationships are now stored in centralized relationships.yaml, not inline
         };
       }

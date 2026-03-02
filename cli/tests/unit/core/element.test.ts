@@ -361,39 +361,27 @@ describe("Element", () => {
       }
     });
 
-    it("should detect element with BOTH elementId AND spec_node_id as legacy format (mixed-format scenario)", () => {
-      // CRITICAL TEST: This tests the bug fix for mixed-format elements during migration
-      // During migration, an element might temporarily have BOTH:
-      // - elementId: "motivation.goal.example" (legacy semantic ID)
-      // - spec_node_id present in data (newly added during migration)
-      // The element should be detected as LEGACY, preserving the semantic elementId
-      // The Element class will generate spec_node_id from layer.type, which is the correct behavior
+    it("should detect element with BOTH elementId AND spec_node_id as new format (spec_node_id takes priority)", () => {
+      // spec_node_id takes priority over elementId for format detection.
+      // This supports the bridge-field pattern: elements can carry both spec_node_id
+      // (authoritative new-format field) and elementId (human-readable semantic ID
+      // preserved for YAML keys and duplicate checks).
+      const element = new Element({
+        elementId: "motivation.goal.test-goal", // Bridge field — preserved but doesn't trigger legacy path
+        spec_node_id: "motivation.goal",        // Present → spec-node path
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        layer_id: "motivation",
+        type: "goal",
+        name: "Test Goal",
+        layer: "motivation",
+      });
 
-      // Suppress expected deprecation warnings during this test
-      const warnSpy = console.warn;
-      console.warn = () => {};
-
-      try {
-        const element = new Element({
-          elementId: "motivation.goal.test-goal", // Legacy semantic ID
-          spec_node_id: "spec_node_abc123", // Provided but will be overwritten by layer.type
-          id: "550e8400-e29b-41d4-a716-446655440000", // UUID
-          layer_id: "motivation",
-          type: "goal",
-          name: "Test Goal",
-          layer: "motivation", // For backward compatibility
-        });
-
-        // CRITICAL: Should preserve the semantic elementId despite presence of spec_node_id in data
-        expect(element.elementId).toBe("motivation.goal.test-goal");
-        // The Element class generates spec_node_id from layer.type (this is correct behavior)
-        // It should be "motivation.goal" (layer_id.type)
-        expect((element as any).spec_node_id).toBe("motivation.goal");
-        // Should retain the provided UUID
-        expect(element.id).toBe("550e8400-e29b-41d4-a716-446655440000");
-      } finally {
-        console.warn = warnSpy;
-      }
+      // spec_node_id from data is used as-is (not derived from semantic ID)
+      expect((element as any).spec_node_id).toBe("motivation.goal");
+      // elementId is preserved as bridge field via initializeFromSpecNode()
+      expect(element.elementId).toBe("motivation.goal.test-goal");
+      // UUID is preserved
+      expect(element.id).toBe("550e8400-e29b-41d4-a716-446655440000");
     });
 
     it("should detect element with only spec_node_id as new format (without elementId)", () => {

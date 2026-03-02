@@ -97,9 +97,14 @@ export class Layer {
     for (const node of nodes) {
       const element = new Element({
         id: node.id,
+        spec_node_id: node.spec_node_id,
+        layer_id: node.layer_id,
         type: node.type,
         name: node.name,
         description: node.description,
+        attributes: node.attributes,
+        source_reference: node.source_reference,
+        metadata: node.metadata,
         properties: node.properties,
         layer: node.layer,
         references: (node.properties["__references__"] ?? []) as Reference[],
@@ -224,9 +229,14 @@ export class Layer {
 
     return new Element({
       id: node.id,
+      spec_node_id: node.spec_node_id,
+      layer_id: node.layer_id,
       type: node.type,
       name: node.name,
       description: node.description,
+      attributes: node.attributes,
+      source_reference: node.source_reference,
+      metadata: node.metadata,
       properties: node.properties,
       layer: node.layer,
       references: (node.properties["__references__"] ?? []) as Reference[],
@@ -315,9 +325,14 @@ export class Layer {
       (node) =>
         new Element({
           id: node.id,
+          spec_node_id: node.spec_node_id,
+          layer_id: node.layer_id,
           type: node.type,
           name: node.name,
           description: node.description,
+          attributes: node.attributes,
+          source_reference: node.source_reference,
+          metadata: node.metadata,
           properties: node.properties,
           layer: node.layer,
           references: (node.properties["__references__"] ?? []) as Reference[],
@@ -364,9 +379,14 @@ export class Layer {
       (e) =>
         new Element({
           id: e.id,
+          spec_node_id: e.spec_node_id,
+          layer_id: e.layer_id,
           type: e.type,
           name: e.name,
           description: e.description,
+          attributes: e.attributes,
+          source_reference: e.source_reference,
+          metadata: e.metadata,
           properties: e.properties,
           references: e.references,
           relationships: e.relationships,

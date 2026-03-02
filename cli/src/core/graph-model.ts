@@ -1,5 +1,5 @@
 import { Element } from "./element.js";
-import type { Relationship } from "../types/index.js";
+import type { ElementMetadata, Relationship, SourceReference } from "../types/index.js";
 
 /**
  * Graph node representing a model element
@@ -12,6 +12,12 @@ export interface GraphNode {
   name: string; // Display name
   description?: string; // Optional description
   properties: Record<string, unknown>; // Custom properties
+  // Spec-node aligned fields (preserved through graph round-trip)
+  spec_node_id?: string;
+  layer_id?: string;
+  attributes?: Record<string, unknown>;
+  source_reference?: SourceReference;
+  metadata?: ElementMetadata;
 }
 
 /**
@@ -524,6 +530,7 @@ export class GraphModel implements IGraphModel {
 
   /**
    * Convert Element to GraphNode
+   * Preserves spec-node fields so they survive graph round-trips
    */
   static fromElement(element: Element): GraphNode {
     return {
@@ -533,6 +540,13 @@ export class GraphModel implements IGraphModel {
       name: element.name,
       description: element.description,
       properties: element.properties,
+      spec_node_id: element.spec_node_id || undefined,
+      layer_id: element.layer_id || undefined,
+      attributes: element.attributes && Object.keys(element.attributes).length > 0
+        ? element.attributes
+        : undefined,
+      source_reference: element.source_reference,
+      metadata: element.metadata,
     };
   }
 

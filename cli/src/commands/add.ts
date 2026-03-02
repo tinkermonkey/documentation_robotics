@@ -2,6 +2,7 @@
  * Add an element to a layer
  */
 
+import { randomUUID } from "crypto";
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { Layer } from "../core/layer.js";
@@ -130,17 +131,25 @@ export async function addCommand(
       }
     }
 
-    // Create element with Python CLI compatible ID format
-    // Use user-provided type (not normalized) for element type field to maintain
-    // backwards compatibility with file naming (services.yaml not businessservices.yaml)
+    // Create element in spec-node format directly
+    // Use UUID as the element's internal ID; keep semantic elementId as a bridge field
     const element = new Element({
-      id: elementId,
+      id: randomUUID(),
+      spec_node_id: `${layer}.${type}`,
+      layer_id: layer,
       type: type,
       name: options.name || name,
       description: options.description,
-      properties,
+      attributes: properties,
+      metadata: {
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        version: 1,
+      },
       layer, // Set layer so setSourceReference can use it
     });
+    // Preserve semantic ID as bridge field for human-readable YAML keys and duplicate checks
+    element.elementId = elementId;
 
     // Add source reference if provided
     const sourceRef = buildSourceReference(options);
