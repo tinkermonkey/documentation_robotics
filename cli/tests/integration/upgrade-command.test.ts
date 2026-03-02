@@ -440,10 +440,10 @@ describe("upgrade command - unified flow", () => {
 
       expect(result.exitCode).toBe(0);
 
-      // Verify model spec version was updated to latest (0.7.1)
+      // Verify model spec version was updated to latest (0.8.1)
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.7.1");
+      expect(updatedManifest.spec_version).toBe("0.8.1");
     });
 
     it("should handle chained migrations across multiple versions", async () => {
