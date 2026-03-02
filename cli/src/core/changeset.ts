@@ -2,12 +2,11 @@
  * Changeset - Represents a collection of model changes.
  *
  * Changesets group related modifications to the architecture model for:
- * - Atomic application or reversion as a unit
- * - Staging changes before committing to the base model (new staging workflow)
+ * - Staging changes before committing to the base model
  * - Audit trail of model changes with before/after snapshots
  * - Collaboration and change tracking across team members
  *
- * Supports both legacy (draft/applied/reverted) and new staging (staged/committed/discarded) workflows.
+ * Uses the staging workflow (staged/committed/discarded).
  */
 
 /**
@@ -32,42 +31,17 @@ export interface StagedChange extends Change {
 }
 
 /**
- * Status values for changesets (supports both legacy and new staging workflows).
+ * Status values for changesets in the staging workflow.
  *
- * Legacy workflow (deprecated, still supported for compatibility):
- * - 'draft': Created but not yet applied
- * - 'applied': Changes have been applied to model
- * - 'reverted': Changes have been reverted from model
- *
- * New staging workflow (current approach):
  * - 'staged': Created and active for staging changes (can accept new changes)
  * - 'committed': Changes have been committed to base model
  * - 'discarded': Changes were discarded without applying
  */
-export type ChangesetStatus =
-  | "draft"
-  | "applied"
-  | "reverted"
-  | "staged"
-  | "committed"
-  | "discarded";
+export type ChangesetStatus = "staged" | "committed" | "discarded";
 
 /**
- * Changeset metadata for legacy and staging workflows.
- * Base interface for both ChangesetData and StagedChangesetData.
- */
-export interface ChangesetData {
-  name: string;
-  description?: string;
-  created: string; // ISO timestamp of creation
-  modified: string; // ISO timestamp of last modification
-  changes: Change[];
-  status: ChangesetStatus;
-}
-
-/**
- * Extended changeset data with staging semantics and metadata.
- * Includes base snapshot for drift detection and auto-computed stats.
+ * Changeset data with staging semantics and metadata.
+ * Includes id and base snapshot for drift detection and auto-computed stats.
  */
 export interface StagedChangesetData {
   id: string; // Unique changeset ID
@@ -87,10 +61,9 @@ export interface StagedChangesetData {
 
 /**
  * Changeset class for managing model changes.
- * Represents either a legacy (draft/applied/reverted) or staging workflow (staged/committed/discarded) changeset.
+ * Represents a staging workflow changeset (staged/committed/discarded).
  *
  * Stats are computed on-demand from the changes array, ensuring consistency.
- * Extended fields (id, baseSnapshot) are optional for backward compatibility.
  */
 export class Changeset {
   name: string;
@@ -98,11 +71,11 @@ export class Changeset {
   created: string;
   modified: string;
   changes: Change[] = [];
-  status: ChangesetStatus = "draft";
+  status: ChangesetStatus = "staged";
 
-  // Extended staging fields (optional for backward compatibility with legacy changesets)
-  id?: string;
-  baseSnapshot?: string;
+  // Staging workflow fields (required)
+  id: string;
+  baseSnapshot: string;
 
   /**
    * Get statistics derived from changes array.
@@ -125,36 +98,37 @@ export class Changeset {
 
   /**
    * Create changeset from data object.
-   * Handles both legacy (ChangesetData) and staging (StagedChangesetData) formats.
+   * Accepts only StagedChangesetData format with id and baseSnapshot.
    *
    * @param data - Changeset data from storage or API
    */
-  constructor(data: ChangesetData | StagedChangesetData) {
+  constructor(data: StagedChangesetData) {
     this.name = data.name;
     this.description = data.description;
     this.created = data.created;
     this.modified = data.modified;
     this.changes = data.changes || [];
-    this.status = data.status || "draft";
-
-    // Load extended staging fields if present
-    if ("id" in data) {
-      this.id = (data as StagedChangesetData).id;
-    }
-    if ("baseSnapshot" in data) {
-      this.baseSnapshot = (data as StagedChangesetData).baseSnapshot;
-    }
+    this.status = data.status || "staged";
+    this.id = data.id;
+    this.baseSnapshot = data.baseSnapshot;
     // Note: Stats are computed from changes array via getter; ignore any stored stats
   }
 
   /**
-   * Create a new changeset with draft status.
+   * Create a new changeset with staged status.
    *
    * @param name - Human-readable name for the changeset
    * @param description - Optional description of changes
-   * @returns New Changeset instance in draft status
+   * @param id - Unique changeset ID
+   * @param baseSnapshot - SHA256 hash of base model at creation
+   * @returns New Changeset instance in staged status
    */
-  static create(name: string, description?: string): Changeset {
+  static create(
+    name: string,
+    description?: string,
+    id?: string,
+    baseSnapshot?: string
+  ): Changeset {
     const now = new Date().toISOString();
     return new Changeset({
       name,
@@ -162,7 +136,9 @@ export class Changeset {
       created: now,
       modified: now,
       changes: [],
-      status: "draft",
+      status: "staged",
+      id: id || "",
+      baseSnapshot: baseSnapshot || "",
     });
   }
 
@@ -222,24 +198,6 @@ export class Changeset {
   }
 
   /**
-   * Mark changeset as applied (legacy workflow).
-   * Updates status and modified timestamp.
-   */
-  markApplied(): void {
-    this.status = "applied";
-    this.updateModified();
-  }
-
-  /**
-   * Mark changeset as reverted (legacy workflow).
-   * Updates status and modified timestamp.
-   */
-  markReverted(): void {
-    this.status = "reverted";
-    this.updateModified();
-  }
-
-  /**
    * Mark changeset as staged (new staging workflow).
    * Enables the changeset to accept new changes via staging operations.
    * Updates status and modified timestamp.
@@ -271,41 +229,32 @@ export class Changeset {
 
   /**
    * Serialize changeset to JSON.
-   * Returns StagedChangesetData if extended fields are present, otherwise ChangesetData.
+   * Always returns StagedChangesetData format.
    *
    * @returns Serialized changeset data suitable for storage
    */
-  toJSON(): ChangesetData | StagedChangesetData {
-    const base = {
+  toJSON(): StagedChangesetData {
+    return {
+      id: this.id,
       name: this.name,
       description: this.description,
       created: this.created,
       modified: this.modified,
-      changes: this.changes,
+      baseSnapshot: this.baseSnapshot,
       status: this.status,
+      changes: this.changes,
+      stats: this.stats,
     };
-
-    // Include extended staging fields if present
-    if (this.id && this.baseSnapshot) {
-      return {
-        ...base,
-        id: this.id,
-        baseSnapshot: this.baseSnapshot,
-        stats: this.stats,
-      } as StagedChangesetData;
-    }
-
-    return base as ChangesetData;
   }
 
   /**
    * Deserialize changeset from JSON data.
-   * Handles both legacy (ChangesetData) and staging (StagedChangesetData) formats.
+   * Accepts StagedChangesetData format.
    *
    * @param data - Serialized changeset data
    * @returns New Changeset instance
    */
-  static fromJSON(data: ChangesetData | StagedChangesetData): Changeset {
+  static fromJSON(data: StagedChangesetData): Changeset {
     return new Changeset(data);
   }
 }
