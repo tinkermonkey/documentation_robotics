@@ -1,23 +1,30 @@
 #!/bin/sh
 set -e
 
-# Fix corrupted .gitconfig: if the orchestrator bind-mount created it as an
-# empty directory (Docker behaviour when the host source does not exist at
-# container-creation time), replace it with a proper file so that git
-# operations succeed.
+# Fix corrupted .gitconfig: if the orchestrator bind-mount created
+# /home/orchestrator/.gitconfig as an empty directory (Docker behaviour when
+# the host source does not exist at container-creation time), git will refuse
+# to read it.  We cannot remove a bind-mount from inside the container, so
+# instead we redirect git to an alternative global config file via
+# GIT_CONFIG_GLOBAL.
 GITCONFIG="/home/orchestrator/.gitconfig"
-if [ -d "$GITCONFIG" ]; then
-    # Empty directory — safe to remove and recreate as a file
-    if [ -z "$(ls -A "$GITCONFIG" 2>/dev/null)" ]; then
-        rm -rf "$GITCONFIG" 2>/dev/null || true
-    fi
-fi
+GITCONFIG_ALT="/home/orchestrator/.gitconfig-agent"
 
-# If .gitconfig still does not exist (or was just removed above), create a
-# minimal one so that git-commit and similar commands do not error out about
-# missing user.email / user.name.  Environment variables take precedence if
-# set at runtime.
-if [ ! -f "$GITCONFIG" ]; then
+if [ -d "$GITCONFIG" ]; then
+    # .gitconfig is a directory (corrupted mount) — redirect git to an
+    # alternative file that we control.
+    if [ ! -f "$GITCONFIG_ALT" ]; then
+        cat > "$GITCONFIG_ALT" <<EOF
+[user]
+	email = ${GIT_AUTHOR_EMAIL:-agent@documentation-robotics.local}
+	name = ${GIT_AUTHOR_NAME:-Documentation Robotics Agent}
+EOF
+        chmod 644 "$GITCONFIG_ALT" 2>/dev/null || true
+    fi
+    export GIT_CONFIG_GLOBAL="$GITCONFIG_ALT"
+elif [ ! -f "$GITCONFIG" ]; then
+    # .gitconfig does not exist at all — create a minimal one so that
+    # git-commit and similar commands do not error out.
     cat > "$GITCONFIG" 2>/dev/null <<EOF
 [user]
 	email = ${GIT_AUTHOR_EMAIL:-agent@documentation-robotics.local}
