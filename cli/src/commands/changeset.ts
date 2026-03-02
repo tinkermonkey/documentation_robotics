@@ -133,7 +133,7 @@ export async function changesetListCommand(): Promise<void> {
           ? ansis.green
           : changeset.status === "reverted"
             ? ansis.gray
-            : ansis.yellow;
+            : ansis.yellow; // "draft" status shows yellow
 
       console.log(`${statusColor(changeset.status.toUpperCase())} ${ansis.bold(changeset.name)}`);
 

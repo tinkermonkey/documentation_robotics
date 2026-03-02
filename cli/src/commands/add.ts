@@ -186,7 +186,7 @@ export async function addCommand(
       // Check if we went through staging path
       const stagingManager = handler.getStagingManager();
       const activeChangeset = await stagingManager.getActive();
-      if (activeChangeset && activeChangeset.status === "staged") {
+      if (activeChangeset && activeChangeset.status === "draft") {
         // Staging path
         handleSuccess(
           `Staged element ${ansis.bold(elementId)} to ${ansis.bold(activeChangeset.name)}`,

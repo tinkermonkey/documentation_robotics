@@ -114,7 +114,7 @@ export class MutationHandler {
 
     // Check if we're in staging mode
     const activeChangeset = await this.stagingManager.getActive();
-    if (activeChangeset && activeChangeset.status === "staged") {
+    if (activeChangeset && activeChangeset.status === "draft") {
       // Staging path: capture after state and stage
       if (!activeChangeset.id) {
         throw new CLIError(`Active changeset has no ID, cannot stage changes`, 1, [
@@ -157,7 +157,7 @@ export class MutationHandler {
 
     // Check if we're in staging mode
     const activeChangeset = await this.stagingManager.getActive();
-    if (activeChangeset && activeChangeset.status === "staged") {
+    if (activeChangeset && activeChangeset.status === "draft") {
       // Staging path: apply mutations to after state, then stage
       if (!activeChangeset.id) {
         throw new CLIError(`Active changeset has no ID, cannot stage changes`, 1, [
@@ -194,7 +194,7 @@ export class MutationHandler {
 
     // Check if we're in staging mode
     const activeChangeset = await this.stagingManager.getActive();
-    if (activeChangeset && activeChangeset.status === "staged") {
+    if (activeChangeset && activeChangeset.status === "draft") {
       // Staging path: stage the deletion only
       if (!activeChangeset.id) {
         throw new CLIError(`Active changeset has no ID, cannot stage changes`, 1, [
@@ -243,7 +243,7 @@ export class MutationHandler {
 
     // Check if we're in staging mode
     const activeChangeset = await this.stagingManager.getActive();
-    if (activeChangeset && activeChangeset.status === "staged") {
+    if (activeChangeset && activeChangeset.status === "draft") {
       // Staging path: build after state and stage
       if (!activeChangeset.id) {
         throw new CLIError(`Active changeset has no ID, cannot stage changes`, 1, [
