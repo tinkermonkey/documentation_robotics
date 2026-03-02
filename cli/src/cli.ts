@@ -26,7 +26,6 @@ import { docsCommands } from "./commands/docs.js";
 import { traceCommand } from "./commands/trace.js";
 import { exportCommand } from "./commands/export.js";
 import { importCommand } from "./commands/import.js";
-import { migrateElementsCommand } from "./commands/migrate-elements.js";
 import { chatCommand } from "./commands/chat.js";
 import { upgradeCommand } from "./commands/upgrade.js";
 import { conformanceCommand } from "./commands/conformance.js";
@@ -704,32 +703,6 @@ Examples:
       yes: options.yes,
       dryRun: options.dryRun,
       force: options.force,
-    });
-  });
-
-program
-  .command("migrate-elements")
-  .description("Migrate elements to spec-node aligned format")
-  .option("--dry-run", "Preview migration without making changes")
-  .addHelpText(
-    "after",
-    `
-Migrates all elements in the model from legacy format to spec-node aligned format.
-This ensures elements match the spec-node.schema.json structure for direct validation.
-
-Changes made:
-  - Generates UUIDs for elements lacking them
-  - Migrates flat properties to structured attributes
-  - Preserves semantic IDs in elementId field for backward compatibility
-  - Initializes metadata with creation/update timestamps
-
-Examples:
-  $ dr migrate-elements              # Migrate all elements
-  $ dr migrate-elements --dry-run    # Preview changes without saving`
-  )
-  .action(async (options) => {
-    await migrateElementsCommand({
-      dryRun: options.dryRun,
     });
   });
 
