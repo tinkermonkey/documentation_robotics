@@ -402,29 +402,24 @@ describe("Element", () => {
       expect(element.id).toBe("550e8400-e29b-41d4-a716-446655440000");
     });
 
-    it("should prioritize elementId over spec_node_id when both are present (legacy wins)", () => {
-      // Verify that elementId field takes priority in determining format
-      // This ensures that migration doesn't lose semantic ID information
+    it("should preserve elementId as bridge field when spec_node_id is also present (spec-node wins)", () => {
+      // spec_node_id takes priority in format detection. When both are present,
+      // the element uses the spec-node path and elementId is kept as a bridge
+      // field for YAML keys and duplicate checks — it does NOT override spec_node_id.
+      const element = new Element({
+        elementId: "motivation.goal.priority-test",
+        spec_node_id: "motivation.goal",  // authoritative — takes priority
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        layer_id: "motivation",
+        type: "goal",
+        name: "Priority Test",
+        layer: "motivation",
+      });
 
-      const warnSpy = console.warn;
-      console.warn = () => {};
-
-      try {
-        const element = new Element({
-          elementId: "motivation.goal.priority-test",
-          spec_node_id: "spec_node_should_not_override",
-          id: "550e8400-e29b-41d4-a716-446655440000",
-          layer_id: "motivation",
-          type: "goal",
-          name: "Priority Test",
-          layer: "motivation",
-        });
-
-        // elementId should be preserved (legacy format wins)
-        expect(element.elementId).toBe("motivation.goal.priority-test");
-      } finally {
-        console.warn = warnSpy;
-      }
+      // spec_node_id from data is used as-is
+      expect((element as any).spec_node_id).toBe("motivation.goal");
+      // elementId is preserved as bridge field
+      expect(element.elementId).toBe("motivation.goal.priority-test");
     });
   });
 });

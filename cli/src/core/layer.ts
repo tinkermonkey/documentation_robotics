@@ -270,11 +270,17 @@ export class Layer {
       delete properties["__relationships__"];
     }
 
-    // Convert element to graph node and update in place
+    // Convert element to graph node and update in place, including spec-node fields
+    // so that source_reference and attributes changes aren't lost on the next save cycle
     const updated = this.graph.updateNode(element.id, {
       name: element.name,
       description: element.description,
       properties,
+      spec_node_id: element.spec_node_id || undefined,
+      layer_id: element.layer_id || undefined,
+      attributes: element.attributes,
+      source_reference: element.source_reference,
+      metadata: element.metadata,
     });
 
     if (updated) {
