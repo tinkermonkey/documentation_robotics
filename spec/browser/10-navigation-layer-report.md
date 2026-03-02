@@ -167,11 +167,11 @@ Configuration for breadcrumb navigation display, specifying path generation rule
 
 | Related Node                        | Predicate       | Direction | Cardinality |
 | ----------------------------------- | --------------- | --------- | ----------- |
-| [navigationgraph](#navigationgraph) | associated-with | outbound  | many-to-one |
-| [routemeta](#routemeta)             | provides        | outbound  | many-to-one |
-| [route](#route)                     | references      | outbound  | many-to-one |
-| [navigationgraph](#navigationgraph) | aggregates      | inbound   | many-to-one |
-| [routemeta](#routemeta)             | references      | inbound   | many-to-one |
+| [Navigationgraph](#navigationgraph) | associated-with | outbound  | many-to-one |
+| [Routemeta](#routemeta)             | provides        | outbound  | many-to-one |
+| [Route](#route)                     | references      | outbound  | many-to-one |
+| [Navigationgraph](#navigationgraph) | aggregates      | inbound   | many-to-one |
+| [Routemeta](#routemeta)             | references      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -190,16 +190,16 @@ A typed variable shared across steps of a NavigationFlow, enabling state to pers
 
 | Related Node                                  | Predicate  | Direction | Cardinality |
 | --------------------------------------------- | ---------- | --------- | ----------- |
-| [route](#route)                               | consumes   | outbound  | many-to-one |
-| [flowstep](#flowstep)                         | flows-to   | outbound  | many-to-one |
-| [navigationtransition](#navigationtransition) | triggers   | outbound  | many-to-one |
-| [flowstep](#flowstep)                         | consumes   | inbound   | many-to-one |
-| [guardaction](#guardaction)                   | uses       | inbound   | many-to-one |
-| [guardcondition](#guardcondition)             | consumes   | inbound   | many-to-one |
-| [guardcondition](#guardcondition)             | uses       | inbound   | many-to-one |
-| [navigationflow](#navigationflow)             | aggregates | inbound   | many-to-one |
-| [navigationguard](#navigationguard)           | consumes   | inbound   | many-to-one |
-| [navigationtransition](#navigationtransition) | uses       | inbound   | many-to-one |
+| [Route](#route)                               | consumes   | outbound  | many-to-one |
+| [Flowstep](#flowstep)                         | flows-to   | outbound  | many-to-one |
+| [Navigationtransition](#navigationtransition) | triggers   | outbound  | many-to-one |
+| [Flowstep](#flowstep)                         | consumes   | inbound   | many-to-one |
+| [Guardaction](#guardaction)                   | uses       | inbound   | many-to-one |
+| [Guardcondition](#guardcondition)             | consumes   | inbound   | many-to-one |
+| [Guardcondition](#guardcondition)             | uses       | inbound   | many-to-one |
+| [Navigationflow](#navigationflow)             | aggregates | inbound   | many-to-one |
+| [Navigationguard](#navigationguard)           | consumes   | inbound   | many-to-one |
+| [Navigationtransition](#navigationtransition) | uses       | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -218,14 +218,14 @@ One step in a navigation flow
 
 | Related Node                                  | Predicate    | Direction | Cardinality |
 | --------------------------------------------- | ------------ | --------- | ----------- |
-| [contextvariable](#contextvariable)           | flows-to     | inbound   | many-to-one |
-| [contextvariable](#contextvariable)           | consumes     | outbound  | many-to-one |
-| [route](#route)                               | navigates-to | outbound  | many-to-one |
-| [route](#route)                               | realizes     | outbound  | many-to-one |
-| [navigationguard](#navigationguard)           | requires     | outbound  | many-to-one |
-| [navigationtransition](#navigationtransition) | triggers     | outbound  | many-to-one |
-| [navigationflow](#navigationflow)             | aggregates   | inbound   | many-to-one |
-| [navigationflow](#navigationflow)             | composes     | inbound   | many-to-one |
+| [Contextvariable](#contextvariable)           | flows-to     | inbound   | many-to-one |
+| [Contextvariable](#contextvariable)           | consumes     | outbound  | many-to-one |
+| [Route](#route)                               | navigates-to | outbound  | many-to-one |
+| [Route](#route)                               | realizes     | outbound  | many-to-one |
+| [Navigationguard](#navigationguard)           | requires     | outbound  | many-to-one |
+| [Navigationtransition](#navigationtransition) | triggers     | outbound  | many-to-one |
+| [Navigationflow](#navigationflow)             | aggregates   | inbound   | many-to-one |
+| [Navigationflow](#navigationflow)             | composes     | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -244,12 +244,12 @@ Defines the response executed by a NavigationGuard when its condition evaluates 
 
 | Related Node                                  | Predicate    | Direction | Cardinality |
 | --------------------------------------------- | ------------ | --------- | ----------- |
-| [guardcondition](#guardcondition)             | depends-on   | outbound  | many-to-one |
-| [route](#route)                               | navigates-to | outbound  | many-to-one |
-| [contextvariable](#contextvariable)           | uses         | outbound  | many-to-one |
-| [guardcondition](#guardcondition)             | triggers     | inbound   | many-to-one |
-| [navigationguard](#navigationguard)           | triggers     | inbound   | many-to-one |
-| [navigationtransition](#navigationtransition) | triggers     | inbound   | many-to-one |
+| [Guardcondition](#guardcondition)             | depends-on   | outbound  | many-to-one |
+| [Route](#route)                               | navigates-to | outbound  | many-to-one |
+| [Contextvariable](#contextvariable)           | uses         | outbound  | many-to-one |
+| [Guardcondition](#guardcondition)             | triggers     | inbound   | many-to-one |
+| [Navigationguard](#navigationguard)           | triggers     | inbound   | many-to-one |
+| [Navigationtransition](#navigationtransition) | triggers     | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -268,13 +268,13 @@ Boolean predicate evaluated by a NavigationGuard to determine whether route acce
 
 | Related Node                        | Predicate  | Direction | Cardinality |
 | ----------------------------------- | ---------- | --------- | ----------- |
-| [guardaction](#guardaction)         | depends-on | inbound   | many-to-one |
-| [route](#route)                     | constrains | outbound  | many-to-one |
-| [contextvariable](#contextvariable) | consumes   | outbound  | many-to-one |
-| [routemeta](#routemeta)             | references | outbound  | many-to-one |
-| [guardaction](#guardaction)         | triggers   | outbound  | many-to-one |
-| [contextvariable](#contextvariable) | uses       | outbound  | many-to-one |
-| [navigationguard](#navigationguard) | uses       | inbound   | many-to-one |
+| [Guardaction](#guardaction)         | depends-on | inbound   | many-to-one |
+| [Route](#route)                     | constrains | outbound  | many-to-one |
+| [Contextvariable](#contextvariable) | consumes   | outbound  | many-to-one |
+| [Routemeta](#routemeta)             | references | outbound  | many-to-one |
+| [Guardaction](#guardaction)         | triggers   | outbound  | many-to-one |
+| [Contextvariable](#contextvariable) | uses       | outbound  | many-to-one |
+| [Navigationguard](#navigationguard) | uses       | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -293,12 +293,12 @@ Sequence of routes that realizes a business process
 
 | Related Node                                  | Predicate  | Direction | Cardinality |
 | --------------------------------------------- | ---------- | --------- | ----------- |
-| [contextvariable](#contextvariable)           | aggregates | outbound  | many-to-one |
-| [flowstep](#flowstep)                         | aggregates | outbound  | many-to-one |
-| [flowstep](#flowstep)                         | composes   | outbound  | many-to-one |
-| [navigationtransition](#navigationtransition) | flows-to   | outbound  | many-to-one |
-| [navigationguard](#navigationguard)           | requires   | outbound  | many-to-one |
-| [navigationgraph](#navigationgraph)           | aggregates | inbound   | many-to-one |
+| [Contextvariable](#contextvariable)           | aggregates | outbound  | many-to-one |
+| [Flowstep](#flowstep)                         | aggregates | outbound  | many-to-one |
+| [Flowstep](#flowstep)                         | composes   | outbound  | many-to-one |
+| [Navigationtransition](#navigationtransition) | flows-to   | outbound  | many-to-one |
+| [Navigationguard](#navigationguard)           | requires   | outbound  | many-to-one |
+| [Navigationgraph](#navigationgraph)           | aggregates | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -317,14 +317,14 @@ Root container for an application's complete routing structure, composing all Ro
 
 | Related Node                                  | Predicate       | Direction | Cardinality |
 | --------------------------------------------- | --------------- | --------- | ----------- |
-| [breadcrumbconfig](#breadcrumbconfig)         | associated-with | inbound   | many-to-one |
-| [breadcrumbconfig](#breadcrumbconfig)         | aggregates      | outbound  | many-to-one |
-| [navigationflow](#navigationflow)             | aggregates      | outbound  | many-to-one |
-| [navigationguard](#navigationguard)           | aggregates      | outbound  | many-to-one |
-| [navigationtransition](#navigationtransition) | aggregates      | outbound  | many-to-one |
-| [route](#route)                               | aggregates      | outbound  | many-to-one |
-| [navigationtransition](#navigationtransition) | composes        | outbound  | many-to-one |
-| [route](#route)                               | composes        | outbound  | many-to-one |
+| [Breadcrumbconfig](#breadcrumbconfig)         | associated-with | inbound   | many-to-one |
+| [Breadcrumbconfig](#breadcrumbconfig)         | aggregates      | outbound  | many-to-one |
+| [Navigationflow](#navigationflow)             | aggregates      | outbound  | many-to-one |
+| [Navigationguard](#navigationguard)           | aggregates      | outbound  | many-to-one |
+| [Navigationtransition](#navigationtransition) | aggregates      | outbound  | many-to-one |
+| [Route](#route)                               | aggregates      | outbound  | many-to-one |
+| [Navigationtransition](#navigationtransition) | composes        | outbound  | many-to-one |
+| [Route](#route)                               | composes        | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -343,16 +343,16 @@ Guard condition for route access
 
 | Related Node                                  | Predicate  | Direction | Cardinality |
 | --------------------------------------------- | ---------- | --------- | ----------- |
-| [flowstep](#flowstep)                         | requires   | inbound   | many-to-one |
-| [navigationflow](#navigationflow)             | requires   | inbound   | many-to-one |
-| [navigationgraph](#navigationgraph)           | aggregates | inbound   | many-to-one |
-| [navigationtransition](#navigationtransition) | constrains | outbound  | many-to-one |
-| [contextvariable](#contextvariable)           | consumes   | outbound  | many-to-one |
-| [route](#route)                               | protects   | outbound  | many-to-one |
-| [guardaction](#guardaction)                   | triggers   | outbound  | many-to-one |
-| [guardcondition](#guardcondition)             | uses       | outbound  | many-to-one |
-| [navigationtransition](#navigationtransition) | requires   | inbound   | many-to-one |
-| [routemeta](#routemeta)                       | governs    | inbound   | many-to-one |
+| [Flowstep](#flowstep)                         | requires   | inbound   | many-to-one |
+| [Navigationflow](#navigationflow)             | requires   | inbound   | many-to-one |
+| [Navigationgraph](#navigationgraph)           | aggregates | inbound   | many-to-one |
+| [Navigationtransition](#navigationtransition) | constrains | outbound  | many-to-one |
+| [Contextvariable](#contextvariable)           | consumes   | outbound  | many-to-one |
+| [Route](#route)                               | protects   | outbound  | many-to-one |
+| [Guardaction](#guardaction)                   | triggers   | outbound  | many-to-one |
+| [Guardcondition](#guardcondition)             | uses       | outbound  | many-to-one |
+| [Navigationtransition](#navigationtransition) | requires   | inbound   | many-to-one |
+| [Routemeta](#routemeta)                       | governs    | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -371,20 +371,20 @@ Transition from one route to another
 
 | Related Node                        | Predicate    | Direction | Cardinality |
 | ----------------------------------- | ------------ | --------- | ----------- |
-| [contextvariable](#contextvariable) | triggers     | inbound   | many-to-one |
-| [flowstep](#flowstep)               | triggers     | inbound   | many-to-one |
-| [navigationflow](#navigationflow)   | flows-to     | inbound   | many-to-one |
-| [navigationgraph](#navigationgraph) | aggregates   | inbound   | many-to-one |
-| [navigationgraph](#navigationgraph) | composes     | inbound   | many-to-one |
-| [navigationguard](#navigationguard) | constrains   | inbound   | many-to-one |
-| [route](#route)                     | flows-to     | outbound  | many-to-one |
-| [route](#route)                     | navigates-to | outbound  | many-to-one |
-| [navigationguard](#navigationguard) | requires     | outbound  | many-to-one |
-| [guardaction](#guardaction)         | triggers     | outbound  | many-to-one |
-| [contextvariable](#contextvariable) | uses         | outbound  | many-to-one |
-| [route](#route)                     | flows-to     | inbound   | many-to-one |
-| [route](#route)                     | triggers     | inbound   | many-to-one |
-| [routemeta](#routemeta)             | uses         | inbound   | many-to-one |
+| [Contextvariable](#contextvariable) | triggers     | inbound   | many-to-one |
+| [Flowstep](#flowstep)               | triggers     | inbound   | many-to-one |
+| [Navigationflow](#navigationflow)   | flows-to     | inbound   | many-to-one |
+| [Navigationgraph](#navigationgraph) | aggregates   | inbound   | many-to-one |
+| [Navigationgraph](#navigationgraph) | composes     | inbound   | many-to-one |
+| [Navigationguard](#navigationguard) | constrains   | inbound   | many-to-one |
+| [Route](#route)                     | flows-to     | outbound  | many-to-one |
+| [Route](#route)                     | navigates-to | outbound  | many-to-one |
+| [Navigationguard](#navigationguard) | requires     | outbound  | many-to-one |
+| [Guardaction](#guardaction)         | triggers     | outbound  | many-to-one |
+| [Contextvariable](#contextvariable) | uses         | outbound  | many-to-one |
+| [Route](#route)                     | flows-to     | inbound   | many-to-one |
+| [Route](#route)                     | triggers     | inbound   | many-to-one |
+| [Routemeta](#routemeta)             | uses         | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -403,24 +403,24 @@ Single route/destination in the application (channel-agnostic)
 
 | Related Node                                  | Predicate       | Direction | Cardinality |
 | --------------------------------------------- | --------------- | --------- | ----------- |
-| [breadcrumbconfig](#breadcrumbconfig)         | references      | inbound   | many-to-one |
-| [contextvariable](#contextvariable)           | consumes        | inbound   | many-to-one |
-| [flowstep](#flowstep)                         | navigates-to    | inbound   | many-to-one |
-| [flowstep](#flowstep)                         | realizes        | inbound   | many-to-one |
-| [guardaction](#guardaction)                   | navigates-to    | inbound   | many-to-one |
-| [guardcondition](#guardcondition)             | constrains      | inbound   | many-to-one |
-| [navigationgraph](#navigationgraph)           | aggregates      | inbound   | many-to-one |
-| [navigationgraph](#navigationgraph)           | composes        | inbound   | many-to-one |
-| [navigationguard](#navigationguard)           | protects        | inbound   | many-to-one |
-| [navigationtransition](#navigationtransition) | flows-to        | inbound   | many-to-one |
-| [navigationtransition](#navigationtransition) | navigates-to    | inbound   | many-to-one |
-| [route](#route)                               | aggregates      | outbound  | many-to-one |
-| [routemeta](#routemeta)                       | associated-with | outbound  | many-to-one |
-| [routemeta](#routemeta)                       | composes        | outbound  | many-to-one |
-| [navigationtransition](#navigationtransition) | flows-to        | outbound  | many-to-one |
-| [route](#route)                               | navigates-to    | outbound  | many-to-one |
-| [navigationtransition](#navigationtransition) | triggers        | outbound  | many-to-one |
-| [routemeta](#routemeta)                       | serves          | inbound   | many-to-one |
+| [Breadcrumbconfig](#breadcrumbconfig)         | references      | inbound   | many-to-one |
+| [Contextvariable](#contextvariable)           | consumes        | inbound   | many-to-one |
+| [Flowstep](#flowstep)                         | navigates-to    | inbound   | many-to-one |
+| [Flowstep](#flowstep)                         | realizes        | inbound   | many-to-one |
+| [Guardaction](#guardaction)                   | navigates-to    | inbound   | many-to-one |
+| [Guardcondition](#guardcondition)             | constrains      | inbound   | many-to-one |
+| [Navigationgraph](#navigationgraph)           | aggregates      | inbound   | many-to-one |
+| [Navigationgraph](#navigationgraph)           | composes        | inbound   | many-to-one |
+| [Navigationguard](#navigationguard)           | protects        | inbound   | many-to-one |
+| [Navigationtransition](#navigationtransition) | flows-to        | inbound   | many-to-one |
+| [Navigationtransition](#navigationtransition) | navigates-to    | inbound   | many-to-one |
+| [Route](#route)                               | aggregates      | outbound  | many-to-one |
+| [Routemeta](#routemeta)                       | associated-with | outbound  | many-to-one |
+| [Routemeta](#routemeta)                       | composes        | outbound  | many-to-one |
+| [Navigationtransition](#navigationtransition) | flows-to        | outbound  | many-to-one |
+| [Route](#route)                               | navigates-to    | outbound  | many-to-one |
+| [Navigationtransition](#navigationtransition) | triggers        | outbound  | many-to-one |
+| [Routemeta](#routemeta)                       | serves          | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -439,17 +439,17 @@ Per-route rendering and access configuration attached to a Route node and consum
 
 | Related Node                                  | Predicate       | Direction | Cardinality |
 | --------------------------------------------- | --------------- | --------- | ----------- |
-| [breadcrumbconfig](#breadcrumbconfig)         | provides        | inbound   | many-to-one |
-| [guardcondition](#guardcondition)             | references      | inbound   | many-to-one |
-| [route](#route)                               | associated-with | inbound   | many-to-one |
-| [route](#route)                               | composes        | inbound   | many-to-one |
-| [navigationguard](#navigationguard)           | governs         | outbound  | many-to-one |
-| [breadcrumbconfig](#breadcrumbconfig)         | references      | outbound  | many-to-one |
-| [route](#route)                               | serves          | outbound  | many-to-one |
-| [navigationtransition](#navigationtransition) | uses            | outbound  | many-to-one |
+| [Breadcrumbconfig](#breadcrumbconfig)         | provides        | inbound   | many-to-one |
+| [Guardcondition](#guardcondition)             | references      | inbound   | many-to-one |
+| [Route](#route)                               | associated-with | inbound   | many-to-one |
+| [Route](#route)                               | composes        | inbound   | many-to-one |
+| [Navigationguard](#navigationguard)           | governs         | outbound  | many-to-one |
+| [Breadcrumbconfig](#breadcrumbconfig)         | references      | outbound  | many-to-one |
+| [Route](#route)                               | serves          | outbound  | many-to-one |
+| [Navigationtransition](#navigationtransition) | uses            | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-28T15:47:18.829Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-02T20:37:51.228Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

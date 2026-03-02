@@ -16,7 +16,7 @@
   - [Header](#header)
   - [Info](#info)
   - [License](#license)
-  - [Link](#link)
+  - [Link node](#link)
   - [Mediatype](#mediatype)
   - [Oauthflow](#oauthflow)
   - [Oauthflows](#oauthflows)
@@ -261,20 +261,20 @@ flowchart TB
 
 | Relationship ID                                              | Source Node                                               | Dest Node                                                                 | Dest Layer                                      | Predicate  | Cardinality | Strength |
 | ------------------------------------------------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | ----------- | -------- |
-| api.operation.references.apm.traceconfiguration              | [operation](./06-api-layer-report.md#operation)           | [traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [APM](./11-apm-layer-report.md)                 | references | many-to-one | medium   |
-| api.operation.references.application.applicationservice      | [operation](./06-api-layer-report.md#operation)           | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | many-to-one | medium   |
-| api.operation.references.business.businessinterface          | [operation](./06-api-layer-report.md#operation)           | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
-| api.operation.references.business.businessservice            | [operation](./06-api-layer-report.md#operation)           | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
-| api.operation.references.security.secureresource             | [operation](./06-api-layer-report.md#operation)           | [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | references | many-to-one | medium   |
-| api.operation.requires.security.permission                   | [operation](./06-api-layer-report.md#operation)           | [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
-| api.schema.maps-to.data-store.collection                     | [schema](./06-api-layer-report.md#schema)                 | [collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | maps-to    | many-to-one | medium   |
-| api.schema.maps-to.data-store.field                          | [schema](./06-api-layer-report.md#schema)                 | [field](./08-data-store-layer-report.md#field)                            | [Data Store](./08-data-store-layer-report.md)   | maps-to    | many-to-one | medium   |
-| api.securityscheme.maps-to.data-store.collection             | [securityscheme](./06-api-layer-report.md#securityscheme) | [collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | maps-to    | many-to-one | medium   |
-| api.securityscheme.references.application.applicationservice | [securityscheme](./06-api-layer-report.md#securityscheme) | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | many-to-one | medium   |
-| api.securityscheme.references.business.businessinterface     | [securityscheme](./06-api-layer-report.md#securityscheme) | [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
-| api.securityscheme.references.business.businessservice       | [securityscheme](./06-api-layer-report.md#securityscheme) | [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
-| api.securityscheme.references.security.secureresource        | [securityscheme](./06-api-layer-report.md#securityscheme) | [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | references | many-to-one | medium   |
-| api.securityscheme.requires.security.permission              | [securityscheme](./06-api-layer-report.md#securityscheme) | [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
+| api.operation.references.apm.traceconfiguration              | [Operation](./06-api-layer-report.md#operation)           | [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [APM](./11-apm-layer-report.md)                 | references | many-to-one | medium   |
+| api.operation.references.application.applicationservice      | [Operation](./06-api-layer-report.md#operation)           | [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | many-to-one | medium   |
+| api.operation.references.business.businessinterface          | [Operation](./06-api-layer-report.md#operation)           | [Businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
+| api.operation.references.business.businessservice            | [Operation](./06-api-layer-report.md#operation)           | [Businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
+| api.operation.references.security.secureresource             | [Operation](./06-api-layer-report.md#operation)           | [Secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | references | many-to-one | medium   |
+| api.operation.requires.security.permission                   | [Operation](./06-api-layer-report.md#operation)           | [Permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
+| api.schema.maps-to.data-store.collection                     | [Schema](./06-api-layer-report.md#schema)                 | [Collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | maps-to    | many-to-one | medium   |
+| api.schema.maps-to.data-store.field                          | [Schema](./06-api-layer-report.md#schema)                 | [Field](./08-data-store-layer-report.md#field)                            | [Data Store](./08-data-store-layer-report.md)   | maps-to    | many-to-one | medium   |
+| api.securityscheme.maps-to.data-store.collection             | [Securityscheme](./06-api-layer-report.md#securityscheme) | [Collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | maps-to    | many-to-one | medium   |
+| api.securityscheme.references.application.applicationservice | [Securityscheme](./06-api-layer-report.md#securityscheme) | [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | many-to-one | medium   |
+| api.securityscheme.references.business.businessinterface     | [Securityscheme](./06-api-layer-report.md#securityscheme) | [Businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
+| api.securityscheme.references.business.businessservice       | [Securityscheme](./06-api-layer-report.md#securityscheme) | [Businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
+| api.securityscheme.references.security.secureresource        | [Securityscheme](./06-api-layer-report.md#securityscheme) | [Secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | references | many-to-one | medium   |
+| api.securityscheme.requires.security.permission              | [Securityscheme](./06-api-layer-report.md#securityscheme) | [Permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
 
 ## Node Reference
 
@@ -293,9 +293,9 @@ Defines a callback where the API sends asynchronous notifications to an external
 
 | Related Node              | Predicate  | Direction | Cardinality  |
 | ------------------------- | ---------- | --------- | ------------ |
-| [pathitem](#pathitem)     | aggregates | outbound  | many-to-one  |
-| [components](#components) | aggregates | inbound   | many-to-many |
-| [operation](#operation)   | triggers   | inbound   | many-to-many |
+| [Pathitem](#pathitem)     | aggregates | outbound  | many-to-one  |
+| [Components](#components) | aggregates | inbound   | many-to-many |
+| [Operation](#operation)   | triggers   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -314,20 +314,20 @@ A named registry for reusable API definition objects (schemas, responses, parame
 
 | Related Node                        | Predicate       | Direction | Cardinality  |
 | ----------------------------------- | --------------- | --------- | ------------ |
-| [callback](#callback)               | aggregates      | outbound  | many-to-many |
-| [example](#example)                 | aggregates      | outbound  | many-to-one  |
-| [link](#link)                       | aggregates      | outbound  | many-to-many |
-| [requestbody](#requestbody)         | aggregates      | outbound  | many-to-many |
-| [response](#response)               | aggregates      | outbound  | many-to-one  |
-| [header](#header)                   | composes        | outbound  | many-to-one  |
-| [parameter](#parameter)             | composes        | outbound  | many-to-one  |
-| [paths](#paths)                     | composes        | outbound  | many-to-many |
-| [response](#response)               | composes        | outbound  | many-to-one  |
-| [responses](#responses)             | composes        | outbound  | many-to-many |
-| [schema](#schema)                   | composes        | outbound  | many-to-many |
-| [securityscheme](#securityscheme)   | composes        | outbound  | many-to-one  |
-| [oauthflows](#oauthflows)           | associated-with | inbound   | many-to-one  |
-| [openapidocument](#openapidocument) | composes        | inbound   | many-to-one  |
+| [Callback](#callback)               | aggregates      | outbound  | many-to-many |
+| [Example](#example)                 | aggregates      | outbound  | many-to-one  |
+| [Link node](#link)                  | aggregates      | outbound  | many-to-many |
+| [Requestbody](#requestbody)         | aggregates      | outbound  | many-to-many |
+| [Response](#response)               | aggregates      | outbound  | many-to-one  |
+| [Header](#header)                   | composes        | outbound  | many-to-one  |
+| [Parameter](#parameter)             | composes        | outbound  | many-to-one  |
+| [Paths](#paths)                     | composes        | outbound  | many-to-many |
+| [Response](#response)               | composes        | outbound  | many-to-one  |
+| [Responses](#responses)             | composes        | outbound  | many-to-many |
+| [Schema](#schema)                   | composes        | outbound  | many-to-many |
+| [Securityscheme](#securityscheme)   | composes        | outbound  | many-to-one  |
+| [Oauthflows](#oauthflows)           | associated-with | inbound   | many-to-one  |
+| [Openapidocument](#openapidocument) | composes        | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -346,8 +346,8 @@ Contact information for the API owner or maintainer, including name, email, and 
 
 | Related Node                        | Predicate       | Direction | Cardinality  |
 | ----------------------------------- | --------------- | --------- | ------------ |
-| [openapidocument](#openapidocument) | associated-with | outbound  | many-to-many |
-| [info](#info)                       | aggregates      | inbound   | many-to-one  |
+| [Openapidocument](#openapidocument) | associated-with | outbound  | many-to-many |
+| [Info](#info)                       | aggregates      | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -366,14 +366,14 @@ Specifies serialization details for multipart request body properties, including
 
 | Related Node                | Predicate       | Direction | Cardinality |
 | --------------------------- | --------------- | --------- | ----------- |
-| [mediatype](#mediatype)     | associated-with | outbound  | many-to-one |
-| [parameter](#parameter)     | associated-with | outbound  | many-to-one |
-| [header](#header)           | composes        | outbound  | many-to-one |
-| [header](#header)           | references      | outbound  | many-to-one |
-| [schema](#schema)           | references      | outbound  | many-to-one |
-| [mediatype](#mediatype)     | aggregates      | inbound   | many-to-one |
-| [mediatype](#mediatype)     | composes        | inbound   | many-to-one |
-| [requestbody](#requestbody) | associated-with | inbound   | many-to-one |
+| [Mediatype](#mediatype)     | associated-with | outbound  | many-to-one |
+| [Parameter](#parameter)     | associated-with | outbound  | many-to-one |
+| [Header](#header)           | composes        | outbound  | many-to-one |
+| [Header](#header)           | references      | outbound  | many-to-one |
+| [Schema](#schema)           | references      | outbound  | many-to-one |
+| [Mediatype](#mediatype)     | aggregates      | inbound   | many-to-one |
+| [Mediatype](#mediatype)     | composes        | inbound   | many-to-one |
+| [Requestbody](#requestbody) | associated-with | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -392,15 +392,15 @@ Provides sample values for request bodies, responses, or parameters. Improves do
 
 | Related Node                | Predicate       | Direction | Cardinality |
 | --------------------------- | --------------- | --------- | ----------- |
-| [components](#components)   | aggregates      | inbound   | many-to-one |
-| [operation](#operation)     | associated-with | outbound  | many-to-one |
-| [schema](#schema)           | references      | outbound  | many-to-one |
-| [header](#header)           | references      | inbound   | many-to-one |
-| [mediatype](#mediatype)     | aggregates      | inbound   | many-to-one |
-| [mediatype](#mediatype)     | references      | inbound   | many-to-one |
-| [parameter](#parameter)     | references      | inbound   | many-to-one |
-| [requestbody](#requestbody) | aggregates      | inbound   | many-to-one |
-| [response](#response)       | references      | inbound   | many-to-one |
+| [Components](#components)   | aggregates      | inbound   | many-to-one |
+| [Operation](#operation)     | associated-with | outbound  | many-to-one |
+| [Schema](#schema)           | references      | outbound  | many-to-one |
+| [Header](#header)           | references      | inbound   | many-to-one |
+| [Mediatype](#mediatype)     | aggregates      | inbound   | many-to-one |
+| [Mediatype](#mediatype)     | references      | inbound   | many-to-one |
+| [Parameter](#parameter)     | references      | inbound   | many-to-one |
+| [Requestbody](#requestbody) | aggregates      | inbound   | many-to-one |
+| [Response](#response)       | references      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -419,9 +419,9 @@ A reference to external documentation resources (URLs, wikis, guides) that provi
 
 | Related Node          | Predicate  | Direction | Cardinality |
 | --------------------- | ---------- | --------- | ----------- |
-| [pathitem](#pathitem) | references | inbound   | many-to-one |
-| [paths](#paths)       | references | inbound   | many-to-one |
-| [tag](#tag)           | references | inbound   | many-to-one |
+| [Pathitem](#pathitem) | references | inbound   | many-to-one |
+| [Paths](#paths)       | references | inbound   | many-to-one |
+| [Tag](#tag)           | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -440,18 +440,18 @@ Defines a reusable HTTP header for responses or request components. The header n
 
 | Related Node                      | Predicate       | Direction | Cardinality |
 | --------------------------------- | --------------- | --------- | ----------- |
-| [components](#components)         | composes        | inbound   | many-to-one |
-| [encoding](#encoding)             | composes        | inbound   | many-to-one |
-| [encoding](#encoding)             | references      | inbound   | many-to-one |
-| [securityscheme](#securityscheme) | associated-with | outbound  | many-to-one |
-| [example](#example)               | references      | outbound  | many-to-one |
-| [schema](#schema)                 | references      | outbound  | many-to-one |
-| [parameter](#parameter)           | specializes     | outbound  | many-to-one |
-| [mediatype](#mediatype)           | associated-with | inbound   | many-to-one |
-| [ratelimit](#ratelimit)           | associated-with | inbound   | many-to-one |
-| [response](#response)             | aggregates      | inbound   | many-to-one |
-| [response](#response)             | composes        | inbound   | many-to-one |
-| [responses](#responses)           | aggregates      | inbound   | many-to-one |
+| [Components](#components)         | composes        | inbound   | many-to-one |
+| [Encoding](#encoding)             | composes        | inbound   | many-to-one |
+| [Encoding](#encoding)             | references      | inbound   | many-to-one |
+| [Securityscheme](#securityscheme) | associated-with | outbound  | many-to-one |
+| [Example](#example)               | references      | outbound  | many-to-one |
+| [Schema](#schema)                 | references      | outbound  | many-to-one |
+| [Parameter](#parameter)           | specializes     | outbound  | many-to-one |
+| [Mediatype](#mediatype)           | associated-with | inbound   | many-to-one |
+| [Ratelimit](#ratelimit)           | associated-with | inbound   | many-to-one |
+| [Response](#response)             | aggregates      | inbound   | many-to-one |
+| [Response](#response)             | composes        | inbound   | many-to-one |
+| [Responses](#responses)           | aggregates      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -470,10 +470,10 @@ Required root-level metadata describing the API identity, version, legal terms, 
 
 | Related Node                        | Predicate       | Direction | Cardinality |
 | ----------------------------------- | --------------- | --------- | ----------- |
-| [contact](#contact)                 | aggregates      | outbound  | many-to-one |
-| [license](#license)                 | aggregates      | outbound  | many-to-one |
-| [openapidocument](#openapidocument) | associated-with | outbound  | many-to-one |
-| [openapidocument](#openapidocument) | composes        | inbound   | many-to-one |
+| [Contact](#contact)                 | aggregates      | outbound  | many-to-one |
+| [License](#license)                 | aggregates      | outbound  | many-to-one |
+| [Openapidocument](#openapidocument) | associated-with | outbound  | many-to-one |
+| [Openapidocument](#openapidocument) | composes        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -492,8 +492,8 @@ Specifies the legal license under which the API is provided, including license n
 
 | Related Node                        | Predicate       | Direction | Cardinality  |
 | ----------------------------------- | --------------- | --------- | ------------ |
-| [info](#info)                       | aggregates      | inbound   | many-to-one  |
-| [openapidocument](#openapidocument) | associated-with | outbound  | many-to-many |
+| [Info](#info)                       | aggregates      | inbound   | many-to-one  |
+| [Openapidocument](#openapidocument) | associated-with | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -512,12 +512,12 @@ Describes a relationship between API responses and subsequent operations, enabli
 
 | Related Node              | Predicate  | Direction | Cardinality  |
 | ------------------------- | ---------- | --------- | ------------ |
-| [components](#components) | aggregates | inbound   | many-to-many |
-| [operation](#operation)   | references | outbound  | many-to-many |
-| [schema](#schema)         | references | outbound  | many-to-many |
-| [tag](#tag)               | references | outbound  | many-to-many |
-| [response](#response)     | composes   | inbound   | many-to-one  |
-| [responses](#responses)   | references | inbound   | many-to-one  |
+| [Components](#components) | aggregates | inbound   | many-to-many |
+| [Operation](#operation)   | references | outbound  | many-to-many |
+| [Schema](#schema)         | references | outbound  | many-to-many |
+| [Tag](#tag)               | references | outbound  | many-to-many |
+| [Response](#response)     | composes   | inbound   | many-to-one  |
+| [Responses](#responses)   | references | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -536,20 +536,20 @@ Describes the schema, examples, and encoding for a specific MIME type within a r
 
 | Related Node                | Predicate       | Direction | Cardinality |
 | --------------------------- | --------------- | --------- | ----------- |
-| [encoding](#encoding)       | associated-with | inbound   | many-to-one |
-| [encoding](#encoding)       | aggregates      | outbound  | many-to-one |
-| [example](#example)         | aggregates      | outbound  | many-to-one |
-| [header](#header)           | associated-with | outbound  | many-to-one |
-| [encoding](#encoding)       | composes        | outbound  | many-to-one |
-| [schema](#schema)           | composes        | outbound  | many-to-one |
-| [example](#example)         | references      | outbound  | many-to-one |
-| [schema](#schema)           | references      | outbound  | many-to-one |
-| [requestbody](#requestbody) | serves          | outbound  | many-to-one |
-| [response](#response)       | serves          | outbound  | many-to-one |
-| [requestbody](#requestbody) | aggregates      | inbound   | many-to-one |
-| [requestbody](#requestbody) | composes        | inbound   | many-to-one |
-| [response](#response)       | aggregates      | inbound   | many-to-one |
-| [response](#response)       | composes        | inbound   | many-to-one |
+| [Encoding](#encoding)       | associated-with | inbound   | many-to-one |
+| [Encoding](#encoding)       | aggregates      | outbound  | many-to-one |
+| [Example](#example)         | aggregates      | outbound  | many-to-one |
+| [Header](#header)           | associated-with | outbound  | many-to-one |
+| [Encoding](#encoding)       | composes        | outbound  | many-to-one |
+| [Schema](#schema)           | composes        | outbound  | many-to-one |
+| [Example](#example)         | references      | outbound  | many-to-one |
+| [Schema](#schema)           | references      | outbound  | many-to-one |
+| [Requestbody](#requestbody) | serves          | outbound  | many-to-one |
+| [Response](#response)       | serves          | outbound  | many-to-one |
+| [Requestbody](#requestbody) | aggregates      | inbound   | many-to-one |
+| [Requestbody](#requestbody) | composes        | inbound   | many-to-one |
+| [Response](#response)       | aggregates      | inbound   | many-to-one |
+| [Response](#response)       | composes        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -568,14 +568,14 @@ Configuration for a single OAuth 2.0 grant type (implicit, password, clientCrede
 
 | Related Node                      | Predicate       | Direction | Cardinality |
 | --------------------------------- | --------------- | --------- | ----------- |
-| [tag](#tag)                       | aggregates      | outbound  | many-to-one |
-| [oauthflows](#oauthflows)         | associated-with | outbound  | many-to-one |
-| [ratelimit](#ratelimit)           | associated-with | outbound  | many-to-one |
-| [server](#server)                 | references      | outbound  | many-to-one |
-| [operation](#operation)           | serves          | outbound  | many-to-one |
-| [securityscheme](#securityscheme) | serves          | outbound  | many-to-one |
-| [oauthflows](#oauthflows)         | aggregates      | inbound   | many-to-one |
-| [oauthflows](#oauthflows)         | composes        | inbound   | many-to-one |
+| [Tag](#tag)                       | aggregates      | outbound  | many-to-one |
+| [Oauthflows](#oauthflows)         | associated-with | outbound  | many-to-one |
+| [Ratelimit](#ratelimit)           | associated-with | outbound  | many-to-one |
+| [Server](#server)                 | references      | outbound  | many-to-one |
+| [Operation](#operation)           | serves          | outbound  | many-to-one |
+| [Securityscheme](#securityscheme) | serves          | outbound  | many-to-one |
+| [Oauthflows](#oauthflows)         | aggregates      | inbound   | many-to-one |
+| [Oauthflows](#oauthflows)         | composes        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -594,13 +594,13 @@ Configuration for OAuth 2.0 authentication flows (implicit, password, clientCred
 
 | Related Node                      | Predicate       | Direction | Cardinality |
 | --------------------------------- | --------------- | --------- | ----------- |
-| [oauthflow](#oauthflow)           | associated-with | inbound   | many-to-one |
-| [oauthflow](#oauthflow)           | aggregates      | outbound  | many-to-one |
-| [components](#components)         | associated-with | outbound  | many-to-one |
-| [operation](#operation)           | associated-with | outbound  | many-to-one |
-| [oauthflow](#oauthflow)           | composes        | outbound  | many-to-one |
-| [securityscheme](#securityscheme) | serves          | outbound  | many-to-one |
-| [securityscheme](#securityscheme) | composes        | inbound   | one-to-one  |
+| [Oauthflow](#oauthflow)           | associated-with | inbound   | many-to-one |
+| [Oauthflow](#oauthflow)           | aggregates      | outbound  | many-to-one |
+| [Components](#components)         | associated-with | outbound  | many-to-one |
+| [Operation](#operation)           | associated-with | outbound  | many-to-one |
+| [Oauthflow](#oauthflow)           | composes        | outbound  | many-to-one |
+| [Securityscheme](#securityscheme) | serves          | outbound  | many-to-one |
+| [Securityscheme](#securityscheme) | composes        | inbound   | one-to-one  |
 
 [Back to Index](#report-index)
 
@@ -619,16 +619,16 @@ The root document object of an OpenAPI 3.0 specification. Required fields are op
 
 | Related Node              | Predicate       | Direction | Cardinality  |
 | ------------------------- | --------------- | --------- | ------------ |
-| [contact](#contact)       | associated-with | inbound   | many-to-many |
-| [info](#info)             | associated-with | inbound   | many-to-one  |
-| [license](#license)       | associated-with | inbound   | many-to-many |
-| [server](#server)         | aggregates      | outbound  | many-to-many |
-| [tag](#tag)               | aggregates      | outbound  | many-to-many |
-| [components](#components) | composes        | outbound  | many-to-one  |
-| [info](#info)             | composes        | outbound  | many-to-one  |
-| [paths](#paths)           | composes        | outbound  | many-to-many |
-| [responses](#responses)   | composes        | outbound  | many-to-many |
-| [schema](#schema)         | composes        | outbound  | many-to-many |
+| [Contact](#contact)       | associated-with | inbound   | many-to-many |
+| [Info](#info)             | associated-with | inbound   | many-to-one  |
+| [License](#license)       | associated-with | inbound   | many-to-many |
+| [Server](#server)         | aggregates      | outbound  | many-to-many |
+| [Tag](#tag)               | aggregates      | outbound  | many-to-many |
+| [Components](#components) | composes        | outbound  | many-to-one  |
+| [Info](#info)             | composes        | outbound  | many-to-one  |
+| [Paths](#paths)           | composes        | outbound  | many-to-many |
+| [Responses](#responses)   | composes        | outbound  | many-to-many |
+| [Schema](#schema)         | composes        | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -647,44 +647,44 @@ Defines a single HTTP method bound to a path, specifying its contract: parameter
 
 | Related Node                      | Predicate       | Direction | Cardinality  |
 | --------------------------------- | --------------- | --------- | ------------ |
-| [example](#example)               | associated-with | inbound   | many-to-one  |
-| [link](#link)                     | references      | inbound   | many-to-many |
-| [oauthflow](#oauthflow)           | serves          | inbound   | many-to-one  |
-| [oauthflows](#oauthflows)         | associated-with | inbound   | many-to-one  |
-| [parameter](#parameter)           | aggregates      | outbound  | many-to-one  |
-| [requestbody](#requestbody)       | aggregates      | outbound  | many-to-one  |
-| [server](#server)                 | aggregates      | outbound  | many-to-many |
-| [tag](#tag)                       | aggregates      | outbound  | many-to-many |
-| [paths](#paths)                   | composes        | outbound  | many-to-many |
-| [responses](#responses)           | composes        | outbound  | many-to-many |
-| [schema](#schema)                 | composes        | outbound  | many-to-many |
-| [response](#response)             | delivers        | outbound  | many-to-one  |
-| [operation](#operation)           | references      | outbound  | many-to-many |
-| [schema](#schema)                 | references      | outbound  | many-to-many |
-| [tag](#tag)                       | references      | outbound  | many-to-many |
-| [callback](#callback)             | triggers        | outbound  | many-to-many |
-| [securityscheme](#securityscheme) | uses            | outbound  | many-to-one  |
-| [parameter](#parameter)           | references      | inbound   | many-to-many |
-| [pathitem](#pathitem)             | composes        | inbound   | many-to-one  |
-| [paths](#paths)                   | serves          | inbound   | many-to-one  |
-| [ratelimit](#ratelimit)           | governs         | inbound   | many-to-one  |
-| [ratelimit](#ratelimit)           | serves          | inbound   | many-to-one  |
-| [requestbody](#requestbody)       | serves          | inbound   | many-to-one  |
-| [schema](#schema)                 | references      | inbound   | many-to-many |
-| [securityscheme](#securityscheme) | serves          | inbound   | many-to-many |
-| [tag](#tag)                       | aggregates      | inbound   | many-to-one  |
-| [tag](#tag)                       | serves          | inbound   | many-to-one  |
+| [Example](#example)               | associated-with | inbound   | many-to-one  |
+| [Link node](#link)                | references      | inbound   | many-to-many |
+| [Oauthflow](#oauthflow)           | serves          | inbound   | many-to-one  |
+| [Oauthflows](#oauthflows)         | associated-with | inbound   | many-to-one  |
+| [Parameter](#parameter)           | aggregates      | outbound  | many-to-one  |
+| [Requestbody](#requestbody)       | aggregates      | outbound  | many-to-one  |
+| [Server](#server)                 | aggregates      | outbound  | many-to-many |
+| [Tag](#tag)                       | aggregates      | outbound  | many-to-many |
+| [Paths](#paths)                   | composes        | outbound  | many-to-many |
+| [Responses](#responses)           | composes        | outbound  | many-to-many |
+| [Schema](#schema)                 | composes        | outbound  | many-to-many |
+| [Response](#response)             | delivers        | outbound  | many-to-one  |
+| [Operation](#operation)           | references      | outbound  | many-to-many |
+| [Schema](#schema)                 | references      | outbound  | many-to-many |
+| [Tag](#tag)                       | references      | outbound  | many-to-many |
+| [Callback](#callback)             | triggers        | outbound  | many-to-many |
+| [Securityscheme](#securityscheme) | uses            | outbound  | many-to-one  |
+| [Parameter](#parameter)           | references      | inbound   | many-to-many |
+| [Pathitem](#pathitem)             | composes        | inbound   | many-to-one  |
+| [Paths](#paths)                   | serves          | inbound   | many-to-one  |
+| [Ratelimit](#ratelimit)           | governs         | inbound   | many-to-one  |
+| [Ratelimit](#ratelimit)           | serves          | inbound   | many-to-one  |
+| [Requestbody](#requestbody)       | serves          | inbound   | many-to-one  |
+| [Schema](#schema)                 | references      | inbound   | many-to-many |
+| [Securityscheme](#securityscheme) | serves          | inbound   | many-to-many |
+| [Tag](#tag)                       | aggregates      | inbound   | many-to-one  |
+| [Tag](#tag)                       | serves          | inbound   | many-to-one  |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                              | Layer                                           | Predicate  | Direction | Cardinality |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [APM](./11-apm-layer-report.md)                 | references | outbound  | many-to-one |
-| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | outbound  | many-to-one |
-| [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
-| [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
-| [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | references | outbound  | many-to-one |
-| [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
+| [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [APM](./11-apm-layer-report.md)                 | references | outbound  | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | outbound  | many-to-one |
+| [Businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
+| [Businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
+| [Secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | references | outbound  | many-to-one |
+| [Permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -703,15 +703,15 @@ Defines an input to an API operation by location, name, and schema. Parameters c
 
 | Related Node              | Predicate       | Direction | Cardinality  |
 | ------------------------- | --------------- | --------- | ------------ |
-| [components](#components) | composes        | inbound   | many-to-one  |
-| [encoding](#encoding)     | associated-with | inbound   | many-to-one  |
-| [header](#header)         | specializes     | inbound   | many-to-one  |
-| [operation](#operation)   | aggregates      | inbound   | many-to-one  |
-| [example](#example)       | references      | outbound  | many-to-one  |
-| [operation](#operation)   | references      | outbound  | many-to-many |
-| [schema](#schema)         | references      | outbound  | many-to-many |
-| [tag](#tag)               | references      | outbound  | many-to-many |
-| [pathitem](#pathitem)     | aggregates      | inbound   | many-to-one  |
+| [Components](#components) | composes        | inbound   | many-to-one  |
+| [Encoding](#encoding)     | associated-with | inbound   | many-to-one  |
+| [Header](#header)         | specializes     | inbound   | many-to-one  |
+| [Operation](#operation)   | aggregates      | inbound   | many-to-one  |
+| [Example](#example)       | references      | outbound  | many-to-one  |
+| [Operation](#operation)   | references      | outbound  | many-to-many |
+| [Schema](#schema)         | references      | outbound  | many-to-many |
+| [Tag](#tag)               | references      | outbound  | many-to-many |
+| [Pathitem](#pathitem)     | aggregates      | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -730,16 +730,16 @@ Groups all HTTP operations available under a single URL path pattern (e.g., /use
 
 | Related Node                                    | Predicate  | Direction | Cardinality |
 | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [callback](#callback)                           | aggregates | inbound   | many-to-one |
-| [parameter](#parameter)                         | aggregates | outbound  | many-to-one |
-| [server](#server)                               | aggregates | outbound  | many-to-one |
-| [operation](#operation)                         | composes   | outbound  | many-to-one |
-| [externaldocumentation](#externaldocumentation) | references | outbound  | many-to-one |
-| [pathitem](#pathitem)                           | references | outbound  | many-to-one |
-| [paths](#paths)                                 | aggregates | inbound   | many-to-one |
-| [paths](#paths)                                 | composes   | inbound   | many-to-one |
-| [ratelimit](#ratelimit)                         | serves     | inbound   | many-to-one |
-| [server](#server)                               | serves     | inbound   | many-to-one |
+| [Callback](#callback)                           | aggregates | inbound   | many-to-one |
+| [Parameter](#parameter)                         | aggregates | outbound  | many-to-one |
+| [Server](#server)                               | aggregates | outbound  | many-to-one |
+| [Operation](#operation)                         | composes   | outbound  | many-to-one |
+| [Externaldocumentation](#externaldocumentation) | references | outbound  | many-to-one |
+| [Pathitem](#pathitem)                           | references | outbound  | many-to-one |
+| [Paths](#paths)                                 | aggregates | inbound   | many-to-one |
+| [Paths](#paths)                                 | composes   | inbound   | many-to-one |
+| [Ratelimit](#ratelimit)                         | serves     | inbound   | many-to-one |
+| [Server](#server)                               | serves     | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -758,16 +758,16 @@ A map of URL path patterns to PathItem objects defining the API surface. Path ke
 
 | Related Node                                    | Predicate       | Direction | Cardinality  |
 | ----------------------------------------------- | --------------- | --------- | ------------ |
-| [components](#components)                       | composes        | inbound   | many-to-many |
-| [openapidocument](#openapidocument)             | composes        | inbound   | many-to-many |
-| [operation](#operation)                         | composes        | inbound   | many-to-many |
-| [pathitem](#pathitem)                           | aggregates      | outbound  | many-to-one  |
-| [server](#server)                               | aggregates      | outbound  | many-to-one  |
-| [ratelimit](#ratelimit)                         | associated-with | outbound  | many-to-one  |
-| [pathitem](#pathitem)                           | composes        | outbound  | many-to-one  |
-| [externaldocumentation](#externaldocumentation) | references      | outbound  | many-to-one  |
-| [tag](#tag)                                     | references      | outbound  | many-to-one  |
-| [operation](#operation)                         | serves          | outbound  | many-to-one  |
+| [Components](#components)                       | composes        | inbound   | many-to-many |
+| [Openapidocument](#openapidocument)             | composes        | inbound   | many-to-many |
+| [Operation](#operation)                         | composes        | inbound   | many-to-many |
+| [Pathitem](#pathitem)                           | aggregates      | outbound  | many-to-one  |
+| [Server](#server)                               | aggregates      | outbound  | many-to-one  |
+| [Ratelimit](#ratelimit)                         | associated-with | outbound  | many-to-one  |
+| [Pathitem](#pathitem)                           | composes        | outbound  | many-to-one  |
+| [Externaldocumentation](#externaldocumentation) | references      | outbound  | many-to-one  |
+| [Tag](#tag)                                     | references      | outbound  | many-to-one  |
+| [Operation](#operation)                         | serves          | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -786,17 +786,17 @@ Defines throttling constraints for API or service access, specifying maximum req
 
 | Related Node                      | Predicate       | Direction | Cardinality |
 | --------------------------------- | --------------- | --------- | ----------- |
-| [oauthflow](#oauthflow)           | associated-with | inbound   | many-to-one |
-| [paths](#paths)                   | associated-with | inbound   | many-to-one |
-| [header](#header)                 | associated-with | outbound  | many-to-one |
-| [securityscheme](#securityscheme) | associated-with | outbound  | many-to-one |
-| [operation](#operation)           | governs         | outbound  | many-to-one |
-| [operation](#operation)           | serves          | outbound  | many-to-one |
-| [pathitem](#pathitem)             | serves          | outbound  | many-to-one |
-| [ratelimit](#ratelimit)           | specializes     | outbound  | many-to-one |
-| [response](#response)             | triggers        | outbound  | many-to-one |
-| [responses](#responses)           | associated-with | inbound   | many-to-one |
-| [server](#server)                 | associated-with | inbound   | many-to-one |
+| [Oauthflow](#oauthflow)           | associated-with | inbound   | many-to-one |
+| [Paths](#paths)                   | associated-with | inbound   | many-to-one |
+| [Header](#header)                 | associated-with | outbound  | many-to-one |
+| [Securityscheme](#securityscheme) | associated-with | outbound  | many-to-one |
+| [Operation](#operation)           | governs         | outbound  | many-to-one |
+| [Operation](#operation)           | serves          | outbound  | many-to-one |
+| [Pathitem](#pathitem)             | serves          | outbound  | many-to-one |
+| [Ratelimit](#ratelimit)           | specializes     | outbound  | many-to-one |
+| [Response](#response)             | triggers        | outbound  | many-to-one |
+| [Responses](#responses)           | associated-with | inbound   | many-to-one |
+| [Server](#server)                 | associated-with | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -815,15 +815,15 @@ Defines the request body for an operation as a map of MIME types to MediaType ob
 
 | Related Node              | Predicate       | Direction | Cardinality  |
 | ------------------------- | --------------- | --------- | ------------ |
-| [components](#components) | aggregates      | inbound   | many-to-many |
-| [mediatype](#mediatype)   | serves          | inbound   | many-to-one  |
-| [operation](#operation)   | aggregates      | inbound   | many-to-one  |
-| [example](#example)       | aggregates      | outbound  | many-to-one  |
-| [mediatype](#mediatype)   | aggregates      | outbound  | many-to-one  |
-| [encoding](#encoding)     | associated-with | outbound  | many-to-one  |
-| [mediatype](#mediatype)   | composes        | outbound  | many-to-one  |
-| [schema](#schema)         | references      | outbound  | many-to-one  |
-| [operation](#operation)   | serves          | outbound  | many-to-one  |
+| [Components](#components) | aggregates      | inbound   | many-to-many |
+| [Mediatype](#mediatype)   | serves          | inbound   | many-to-one  |
+| [Operation](#operation)   | aggregates      | inbound   | many-to-one  |
+| [Example](#example)       | aggregates      | outbound  | many-to-one  |
+| [Mediatype](#mediatype)   | aggregates      | outbound  | many-to-one  |
+| [Encoding](#encoding)     | associated-with | outbound  | many-to-one  |
+| [Mediatype](#mediatype)   | composes        | outbound  | many-to-one  |
+| [Schema](#schema)         | references      | outbound  | many-to-one  |
+| [Operation](#operation)   | serves          | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -842,20 +842,20 @@ Defines a single HTTP response returned by an operation, including its descripti
 
 | Related Node              | Predicate  | Direction | Cardinality |
 | ------------------------- | ---------- | --------- | ----------- |
-| [components](#components) | aggregates | inbound   | many-to-one |
-| [components](#components) | composes   | inbound   | many-to-one |
-| [mediatype](#mediatype)   | serves     | inbound   | many-to-one |
-| [operation](#operation)   | delivers   | inbound   | many-to-one |
-| [ratelimit](#ratelimit)   | triggers   | inbound   | many-to-one |
-| [header](#header)         | aggregates | outbound  | many-to-one |
-| [mediatype](#mediatype)   | aggregates | outbound  | many-to-one |
-| [schema](#schema)         | aggregates | outbound  | many-to-one |
-| [header](#header)         | composes   | outbound  | many-to-one |
-| [link](#link)             | composes   | outbound  | many-to-one |
-| [mediatype](#mediatype)   | composes   | outbound  | many-to-one |
-| [example](#example)       | references | outbound  | many-to-one |
-| [schema](#schema)         | references | outbound  | many-to-one |
-| [responses](#responses)   | composes   | inbound   | many-to-one |
+| [Components](#components) | aggregates | inbound   | many-to-one |
+| [Components](#components) | composes   | inbound   | many-to-one |
+| [Mediatype](#mediatype)   | serves     | inbound   | many-to-one |
+| [Operation](#operation)   | delivers   | inbound   | many-to-one |
+| [Ratelimit](#ratelimit)   | triggers   | inbound   | many-to-one |
+| [Header](#header)         | aggregates | outbound  | many-to-one |
+| [Mediatype](#mediatype)   | aggregates | outbound  | many-to-one |
+| [Schema](#schema)         | aggregates | outbound  | many-to-one |
+| [Header](#header)         | composes   | outbound  | many-to-one |
+| [Link node](#link)        | composes   | outbound  | many-to-one |
+| [Mediatype](#mediatype)   | composes   | outbound  | many-to-one |
+| [Example](#example)       | references | outbound  | many-to-one |
+| [Schema](#schema)         | references | outbound  | many-to-one |
+| [Responses](#responses)   | composes   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -874,15 +874,15 @@ A map of HTTP status codes (e.g., 200, 404, default) to Response objects describ
 
 | Related Node                        | Predicate       | Direction | Cardinality  |
 | ----------------------------------- | --------------- | --------- | ------------ |
-| [components](#components)           | composes        | inbound   | many-to-many |
-| [openapidocument](#openapidocument) | composes        | inbound   | many-to-many |
-| [operation](#operation)             | composes        | inbound   | many-to-many |
-| [header](#header)                   | aggregates      | outbound  | many-to-one  |
-| [schema](#schema)                   | aggregates      | outbound  | many-to-one  |
-| [ratelimit](#ratelimit)             | associated-with | outbound  | many-to-one  |
-| [response](#response)               | composes        | outbound  | many-to-one  |
-| [link](#link)                       | references      | outbound  | many-to-one  |
-| [schema](#schema)                   | references      | outbound  | many-to-one  |
+| [Components](#components)           | composes        | inbound   | many-to-many |
+| [Openapidocument](#openapidocument) | composes        | inbound   | many-to-many |
+| [Operation](#operation)             | composes        | inbound   | many-to-many |
+| [Header](#header)                   | aggregates      | outbound  | many-to-one  |
+| [Schema](#schema)                   | aggregates      | outbound  | many-to-one  |
+| [Ratelimit](#ratelimit)             | associated-with | outbound  | many-to-one  |
+| [Response](#response)               | composes        | outbound  | many-to-one  |
+| [Link node](#link)                  | references      | outbound  | many-to-one  |
+| [Schema](#schema)                   | references      | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -901,34 +901,34 @@ Inline data type definition using a subset of JSON Schema Draft 7, used within A
 
 | Related Node                        | Predicate       | Direction | Cardinality  |
 | ----------------------------------- | --------------- | --------- | ------------ |
-| [components](#components)           | composes        | inbound   | many-to-many |
-| [encoding](#encoding)               | references      | inbound   | many-to-one  |
-| [example](#example)                 | references      | inbound   | many-to-one  |
-| [header](#header)                   | references      | inbound   | many-to-one  |
-| [link](#link)                       | references      | inbound   | many-to-many |
-| [mediatype](#mediatype)             | composes        | inbound   | many-to-one  |
-| [mediatype](#mediatype)             | references      | inbound   | many-to-one  |
-| [openapidocument](#openapidocument) | composes        | inbound   | many-to-many |
-| [operation](#operation)             | composes        | inbound   | many-to-many |
-| [operation](#operation)             | references      | inbound   | many-to-many |
-| [parameter](#parameter)             | references      | inbound   | many-to-many |
-| [requestbody](#requestbody)         | references      | inbound   | many-to-one  |
-| [response](#response)               | aggregates      | inbound   | many-to-one  |
-| [response](#response)               | references      | inbound   | many-to-one  |
-| [responses](#responses)             | aggregates      | inbound   | many-to-one  |
-| [responses](#responses)             | references      | inbound   | many-to-one  |
-| [operation](#operation)             | references      | outbound  | many-to-many |
-| [schema](#schema)                   | references      | outbound  | many-to-many |
-| [tag](#tag)                         | references      | outbound  | many-to-many |
-| [schema](#schema)                   | specializes     | outbound  | many-to-many |
-| [tag](#tag)                         | associated-with | inbound   | many-to-one  |
+| [Components](#components)           | composes        | inbound   | many-to-many |
+| [Encoding](#encoding)               | references      | inbound   | many-to-one  |
+| [Example](#example)                 | references      | inbound   | many-to-one  |
+| [Header](#header)                   | references      | inbound   | many-to-one  |
+| [Link node](#link)                  | references      | inbound   | many-to-many |
+| [Mediatype](#mediatype)             | composes        | inbound   | many-to-one  |
+| [Mediatype](#mediatype)             | references      | inbound   | many-to-one  |
+| [Openapidocument](#openapidocument) | composes        | inbound   | many-to-many |
+| [Operation](#operation)             | composes        | inbound   | many-to-many |
+| [Operation](#operation)             | references      | inbound   | many-to-many |
+| [Parameter](#parameter)             | references      | inbound   | many-to-many |
+| [Requestbody](#requestbody)         | references      | inbound   | many-to-one  |
+| [Response](#response)               | aggregates      | inbound   | many-to-one  |
+| [Response](#response)               | references      | inbound   | many-to-one  |
+| [Responses](#responses)             | aggregates      | inbound   | many-to-one  |
+| [Responses](#responses)             | references      | inbound   | many-to-one  |
+| [Operation](#operation)             | references      | outbound  | many-to-many |
+| [Schema](#schema)                   | references      | outbound  | many-to-many |
+| [Tag](#tag)                         | references      | outbound  | many-to-many |
+| [Schema](#schema)                   | specializes     | outbound  | many-to-many |
+| [Tag](#tag)                         | associated-with | inbound   | many-to-one  |
 
 #### Inter-Layer Relationships
 
 | Related Node                                             | Layer                                         | Predicate | Direction | Cardinality |
 | -------------------------------------------------------- | --------------------------------------------- | --------- | --------- | ----------- |
-| [collection](./08-data-store-layer-report.md#collection) | [Data Store](./08-data-store-layer-report.md) | maps-to   | outbound  | many-to-one |
-| [field](./08-data-store-layer-report.md#field)           | [Data Store](./08-data-store-layer-report.md) | maps-to   | outbound  | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection) | [Data Store](./08-data-store-layer-report.md) | maps-to   | outbound  | many-to-one |
+| [Field](./08-data-store-layer-report.md#field)           | [Data Store](./08-data-store-layer-report.md) | maps-to   | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -947,27 +947,27 @@ Defines an authentication/authorization mechanism for the API. Supports four sch
 
 | Related Node              | Predicate       | Direction | Cardinality  |
 | ------------------------- | --------------- | --------- | ------------ |
-| [components](#components) | composes        | inbound   | many-to-one  |
-| [header](#header)         | associated-with | inbound   | many-to-one  |
-| [oauthflow](#oauthflow)   | serves          | inbound   | many-to-one  |
-| [oauthflows](#oauthflows) | serves          | inbound   | many-to-one  |
-| [operation](#operation)   | uses            | inbound   | many-to-one  |
-| [ratelimit](#ratelimit)   | associated-with | inbound   | many-to-one  |
-| [oauthflows](#oauthflows) | composes        | outbound  | one-to-one   |
-| [operation](#operation)   | serves          | outbound  | many-to-many |
-| [server](#server)         | references      | inbound   | many-to-one  |
-| [tag](#tag)               | associated-with | inbound   | many-to-one  |
+| [Components](#components) | composes        | inbound   | many-to-one  |
+| [Header](#header)         | associated-with | inbound   | many-to-one  |
+| [Oauthflow](#oauthflow)   | serves          | inbound   | many-to-one  |
+| [Oauthflows](#oauthflows) | serves          | inbound   | many-to-one  |
+| [Operation](#operation)   | uses            | inbound   | many-to-one  |
+| [Ratelimit](#ratelimit)   | associated-with | inbound   | many-to-one  |
+| [Oauthflows](#oauthflows) | composes        | outbound  | one-to-one   |
+| [Operation](#operation)   | serves          | outbound  | many-to-many |
+| [Server](#server)         | references      | inbound   | many-to-one  |
+| [Tag](#tag)               | associated-with | inbound   | many-to-one  |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                              | Layer                                           | Predicate  | Direction | Cardinality |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | maps-to    | outbound  | many-to-one |
-| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | outbound  | many-to-one |
-| [businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
-| [businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
-| [secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | references | outbound  | many-to-one |
-| [permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | maps-to    | outbound  | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | outbound  | many-to-one |
+| [Businessinterface](./02-business-layer-report.md#businessinterface)      | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
+| [Businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
+| [Secureresource](./03-security-layer-report.md#secureresource)            | [Security](./03-security-layer-report.md)       | references | outbound  | many-to-one |
+| [Permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -986,15 +986,15 @@ Defines a server URL (optionally templated with {variable} placeholders) where t
 
 | Related Node                        | Predicate       | Direction | Cardinality  |
 | ----------------------------------- | --------------- | --------- | ------------ |
-| [oauthflow](#oauthflow)             | references      | inbound   | many-to-one  |
-| [openapidocument](#openapidocument) | aggregates      | inbound   | many-to-many |
-| [operation](#operation)             | aggregates      | inbound   | many-to-many |
-| [pathitem](#pathitem)               | aggregates      | inbound   | many-to-one  |
-| [paths](#paths)                     | aggregates      | inbound   | many-to-one  |
-| [servervariable](#servervariable)   | aggregates      | outbound  | many-to-one  |
-| [ratelimit](#ratelimit)             | associated-with | outbound  | many-to-one  |
-| [securityscheme](#securityscheme)   | references      | outbound  | many-to-one  |
-| [pathitem](#pathitem)               | serves          | outbound  | many-to-one  |
+| [Oauthflow](#oauthflow)             | references      | inbound   | many-to-one  |
+| [Openapidocument](#openapidocument) | aggregates      | inbound   | many-to-many |
+| [Operation](#operation)             | aggregates      | inbound   | many-to-many |
+| [Pathitem](#pathitem)               | aggregates      | inbound   | many-to-one  |
+| [Paths](#paths)                     | aggregates      | inbound   | many-to-one  |
+| [Servervariable](#servervariable)   | aggregates      | outbound  | many-to-one  |
+| [Ratelimit](#ratelimit)             | associated-with | outbound  | many-to-one  |
+| [Securityscheme](#securityscheme)   | references      | outbound  | many-to-one  |
+| [Pathitem](#pathitem)               | serves          | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -1013,7 +1013,7 @@ A variable placeholder in server URL templates that can be substituted at runtim
 
 | Related Node      | Predicate  | Direction | Cardinality |
 | ----------------- | ---------- | --------- | ----------- |
-| [server](#server) | aggregates | inbound   | many-to-one |
+| [Server](#server) | aggregates | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -1032,22 +1032,22 @@ A metadata label used to group and categorize API operations for documentation o
 
 | Related Node                                    | Predicate       | Direction | Cardinality  |
 | ----------------------------------------------- | --------------- | --------- | ------------ |
-| [link](#link)                                   | references      | inbound   | many-to-many |
-| [oauthflow](#oauthflow)                         | aggregates      | inbound   | many-to-one  |
-| [openapidocument](#openapidocument)             | aggregates      | inbound   | many-to-many |
-| [operation](#operation)                         | aggregates      | inbound   | many-to-many |
-| [operation](#operation)                         | references      | inbound   | many-to-many |
-| [parameter](#parameter)                         | references      | inbound   | many-to-many |
-| [paths](#paths)                                 | references      | inbound   | many-to-one  |
-| [schema](#schema)                               | references      | inbound   | many-to-many |
-| [operation](#operation)                         | aggregates      | outbound  | many-to-one  |
-| [schema](#schema)                               | associated-with | outbound  | many-to-one  |
-| [securityscheme](#securityscheme)               | associated-with | outbound  | many-to-one  |
-| [externaldocumentation](#externaldocumentation) | references      | outbound  | many-to-one  |
-| [operation](#operation)                         | serves          | outbound  | many-to-one  |
+| [Link node](#link)                              | references      | inbound   | many-to-many |
+| [Oauthflow](#oauthflow)                         | aggregates      | inbound   | many-to-one  |
+| [Openapidocument](#openapidocument)             | aggregates      | inbound   | many-to-many |
+| [Operation](#operation)                         | aggregates      | inbound   | many-to-many |
+| [Operation](#operation)                         | references      | inbound   | many-to-many |
+| [Parameter](#parameter)                         | references      | inbound   | many-to-many |
+| [Paths](#paths)                                 | references      | inbound   | many-to-one  |
+| [Schema](#schema)                               | references      | inbound   | many-to-many |
+| [Operation](#operation)                         | aggregates      | outbound  | many-to-one  |
+| [Schema](#schema)                               | associated-with | outbound  | many-to-one  |
+| [Securityscheme](#securityscheme)               | associated-with | outbound  | many-to-one  |
+| [Externaldocumentation](#externaldocumentation) | references      | outbound  | many-to-one  |
+| [Operation](#operation)                         | serves          | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-28T15:47:18.824Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-02T20:37:51.223Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

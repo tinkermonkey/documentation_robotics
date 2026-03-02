@@ -289,12 +289,12 @@ flowchart TB
 
 | Relationship ID                                                      | Source Node                                                      | Dest Node                                                                | Dest Layer                                | Predicate      | Cardinality | Strength |
 | -------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------- | -------------- | ----------- | -------- |
-| api.operation.references.security.secureresource                     | [operation](./06-api-layer-report.md#operation)                  | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | references     | many-to-one | medium   |
-| api.operation.requires.security.permission                           | [operation](./06-api-layer-report.md#operation)                  | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | requires       | many-to-one | medium   |
-| api.securityscheme.references.security.secureresource                | [securityscheme](./06-api-layer-report.md#securityscheme)        | [secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | references     | many-to-one | medium   |
-| api.securityscheme.requires.security.permission                      | [securityscheme](./06-api-layer-report.md#securityscheme)        | [permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | requires       | many-to-one | medium   |
-| business.businessprocess.constrained-by.security.securityconstraints | [businessprocess](./02-business-layer-report.md#businessprocess) | [securityconstraints](./03-security-layer-report.md#securityconstraints) | [Security](./03-security-layer-report.md) | constrained-by | many-to-one | medium   |
-| business.businessprocess.constrained-by.security.separationofduty    | [businessprocess](./02-business-layer-report.md#businessprocess) | [separationofduty](./03-security-layer-report.md#separationofduty)       | [Security](./03-security-layer-report.md) | constrained-by | many-to-one | medium   |
+| api.operation.references.security.secureresource                     | [Operation](./06-api-layer-report.md#operation)                  | [Secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | references     | many-to-one | medium   |
+| api.operation.requires.security.permission                           | [Operation](./06-api-layer-report.md#operation)                  | [Permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | requires       | many-to-one | medium   |
+| api.securityscheme.references.security.secureresource                | [Securityscheme](./06-api-layer-report.md#securityscheme)        | [Secureresource](./03-security-layer-report.md#secureresource)           | [Security](./03-security-layer-report.md) | references     | many-to-one | medium   |
+| api.securityscheme.requires.security.permission                      | [Securityscheme](./06-api-layer-report.md#securityscheme)        | [Permission](./03-security-layer-report.md#permission)                   | [Security](./03-security-layer-report.md) | requires       | many-to-one | medium   |
+| business.businessprocess.constrained-by.security.securityconstraints | [Businessprocess](./02-business-layer-report.md#businessprocess) | [Securityconstraints](./03-security-layer-report.md#securityconstraints) | [Security](./03-security-layer-report.md) | constrained-by | many-to-one | medium   |
+| business.businessprocess.constrained-by.security.separationofduty    | [Businessprocess](./02-business-layer-report.md#businessprocess) | [Separationofduty](./03-security-layer-report.md#separationofduty)       | [Security](./03-security-layer-report.md) | constrained-by | many-to-one | medium   |
 
 ## Node Reference
 
@@ -313,19 +313,19 @@ Defines a single boolean predicate evaluated against a request context attribute
 
 | Related Node                              | Predicate            | Direction | Cardinality |
 | ----------------------------------------- | -------------------- | --------- | ----------- |
-| [policyrule](#policyrule)                 | composes             | outbound  | many-to-one |
-| [permission](#permission)                 | constrains           | outbound  | many-to-one |
-| [fieldaccesscontrol](#fieldaccesscontrol) | governs              | outbound  | many-to-one |
-| [secureresource](#secureresource)         | references           | outbound  | many-to-one |
-| [validationrule](#validationrule)         | uses                 | outbound  | many-to-one |
-| [condition](#condition)                   | composes             | inbound   | many-to-one |
-| [fieldaccesscontrol](#fieldaccesscontrol) | constrained-by       | inbound   | many-to-one |
-| [informationright](#informationright)     | constrained-by       | inbound   | many-to-one |
-| [policyrule](#policyrule)                 | uses                 | inbound   | many-to-one |
-| [resourceoperation](#resourceoperation)   | constrained-by       | inbound   | many-to-one |
-| [securitypolicy](#securitypolicy)         | enforces-requirement | inbound   | many-to-one |
-| [threat](#threat)                         | constrains           | inbound   | many-to-one |
-| [validationrule](#validationrule)         | constrains           | inbound   | many-to-one |
+| [Policyrule](#policyrule)                 | composes             | outbound  | many-to-one |
+| [Permission](#permission)                 | constrains           | outbound  | many-to-one |
+| [Fieldaccesscontrol](#fieldaccesscontrol) | governs              | outbound  | many-to-one |
+| [Secureresource](#secureresource)         | references           | outbound  | many-to-one |
+| [Validationrule](#validationrule)         | uses                 | outbound  | many-to-one |
+| [Condition](#condition)                   | composes             | inbound   | many-to-one |
+| [Fieldaccesscontrol](#fieldaccesscontrol) | constrained-by       | inbound   | many-to-one |
+| [Informationright](#informationright)     | constrained-by       | inbound   | many-to-one |
+| [Policyrule](#policyrule)                 | uses                 | inbound   | many-to-one |
+| [Resourceoperation](#resourceoperation)   | constrained-by       | inbound   | many-to-one |
+| [Securitypolicy](#securitypolicy)         | enforces-requirement | inbound   | many-to-one |
+| [Threat](#threat)                         | constrains           | inbound   | many-to-one |
+| [Validationrule](#validationrule)         | constrains           | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -344,17 +344,17 @@ Expresses who is obligated to provide evidence that a specific action occurred a
 
 | Related Node                            | Predicate  | Direction | Cardinality |
 | --------------------------------------- | ---------- | --------- | ----------- |
-| [actor](#actor)                         | constrains | outbound  | many-to-one |
-| [auditconfig](#auditconfig)             | requires   | outbound  | many-to-one |
-| [evidence](#evidence)                   | requires   | outbound  | many-to-one |
-| [retentionpolicy](#retentionpolicy)     | requires   | outbound  | many-to-one |
-| [auditconfig](#auditconfig)             | fulfills   | inbound   | many-to-one |
-| [bindingofduty](#bindingofduty)         | supports   | inbound   | many-to-one |
-| [evidence](#evidence)                   | supports   | inbound   | many-to-one |
-| [informationentity](#informationentity) | requires   | inbound   | many-to-one |
-| [securitymodel](#securitymodel)         | constrains | inbound   | many-to-one |
-| [securitypolicy](#securitypolicy)       | fulfills   | inbound   | many-to-one |
-| [separationofduty](#separationofduty)   | requires   | inbound   | many-to-one |
+| [Actor](#actor)                         | constrains | outbound  | many-to-one |
+| [Auditconfig](#auditconfig)             | requires   | outbound  | many-to-one |
+| [Evidence](#evidence)                   | requires   | outbound  | many-to-one |
+| [Retentionpolicy](#retentionpolicy)     | requires   | outbound  | many-to-one |
+| [Auditconfig](#auditconfig)             | fulfills   | inbound   | many-to-one |
+| [Bindingofduty](#bindingofduty)         | supports   | inbound   | many-to-one |
+| [Evidence](#evidence)                   | supports   | inbound   | many-to-one |
+| [Informationentity](#informationentity) | requires   | inbound   | many-to-one |
+| [Securitymodel](#securitymodel)         | constrains | inbound   | many-to-one |
+| [Securitypolicy](#securitypolicy)       | fulfills   | inbound   | many-to-one |
+| [Separationofduty](#separationofduty)   | requires   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -373,17 +373,17 @@ A named principal — human user, service account, automated system, or external
 
 | Related Node                                            | Predicate       | Direction | Cardinality  |
 | ------------------------------------------------------- | --------------- | --------- | ------------ |
-| [accountabilityrequirement](#accountabilityrequirement) | constrains      | inbound   | many-to-one  |
-| [secureresource](#secureresource)                       | accesses        | outbound  | many-to-one  |
-| [role](#role)                                           | assigned-to     | outbound  | many-to-one  |
-| [delegation](#delegation)                               | associated-with | outbound  | many-to-one  |
-| [threat](#threat)                                       | associated-with | outbound  | many-to-one  |
-| [delegation](#delegation)                               | references      | outbound  | many-to-one  |
-| [authenticationconfig](#authenticationconfig)           | requires        | outbound  | many-to-one  |
-| [authenticationconfig](#authenticationconfig)           | authenticates   | inbound   | many-to-one  |
-| [delegation](#delegation)                               | requires        | inbound   | many-to-one  |
-| [informationright](#informationright)                   | assigned-to     | inbound   | many-to-one  |
-| [securitymodel](#securitymodel)                         | aggregates      | inbound   | many-to-many |
+| [Accountabilityrequirement](#accountabilityrequirement) | constrains      | inbound   | many-to-one  |
+| [Secureresource](#secureresource)                       | accesses        | outbound  | many-to-one  |
+| [Role](#role)                                           | assigned-to     | outbound  | many-to-one  |
+| [Delegation](#delegation)                               | associated-with | outbound  | many-to-one  |
+| [Threat](#threat)                                       | associated-with | outbound  | many-to-one  |
+| [Delegation](#delegation)                               | references      | outbound  | many-to-one  |
+| [Authenticationconfig](#authenticationconfig)           | requires        | outbound  | many-to-one  |
+| [Authenticationconfig](#authenticationconfig)           | authenticates   | inbound   | many-to-one  |
+| [Delegation](#delegation)                               | requires        | inbound   | many-to-one  |
+| [Informationright](#informationright)                   | assigned-to     | inbound   | many-to-one  |
+| [Securitymodel](#securitymodel)                         | aggregates      | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -402,21 +402,21 @@ Configuration for security audit logging, specifying what events to capture, ret
 
 | Related Node                                            | Predicate  | Direction | Cardinality |
 | ------------------------------------------------------- | ---------- | --------- | ----------- |
-| [accountabilityrequirement](#accountabilityrequirement) | requires   | inbound   | many-to-one |
-| [retentionpolicy](#retentionpolicy)                     | depends-on | outbound  | many-to-one |
-| [accountabilityrequirement](#accountabilityrequirement) | fulfills   | outbound  | many-to-one |
-| [retentionpolicy](#retentionpolicy)                     | governs    | outbound  | many-to-one |
-| [secureresource](#secureresource)                       | governs    | outbound  | many-to-one |
-| [threat](#threat)                                       | mitigates  | outbound  | many-to-one |
-| [secureresource](#secureresource)                       | monitors   | outbound  | many-to-one |
-| [evidence](#evidence)                                   | triggers   | outbound  | many-to-one |
-| [authenticationconfig](#authenticationconfig)           | depends-on | inbound   | many-to-one |
-| [evidence](#evidence)                                   | realizes   | inbound   | many-to-one |
-| [passwordpolicy](#passwordpolicy)                       | requires   | inbound   | many-to-one |
-| [policyaction](#policyaction)                           | triggers   | inbound   | many-to-one |
-| [resourceoperation](#resourceoperation)                 | triggers   | inbound   | many-to-one |
-| [retentionpolicy](#retentionpolicy)                     | governs    | inbound   | many-to-one |
-| [threat](#threat)                                       | triggers   | inbound   | many-to-one |
+| [Accountabilityrequirement](#accountabilityrequirement) | requires   | inbound   | many-to-one |
+| [Retentionpolicy](#retentionpolicy)                     | depends-on | outbound  | many-to-one |
+| [Accountabilityrequirement](#accountabilityrequirement) | fulfills   | outbound  | many-to-one |
+| [Retentionpolicy](#retentionpolicy)                     | governs    | outbound  | many-to-one |
+| [Secureresource](#secureresource)                       | governs    | outbound  | many-to-one |
+| [Threat](#threat)                                       | mitigates  | outbound  | many-to-one |
+| [Secureresource](#secureresource)                       | monitors   | outbound  | many-to-one |
+| [Evidence](#evidence)                                   | triggers   | outbound  | many-to-one |
+| [Authenticationconfig](#authenticationconfig)           | depends-on | inbound   | many-to-one |
+| [Evidence](#evidence)                                   | realizes   | inbound   | many-to-one |
+| [Passwordpolicy](#passwordpolicy)                       | requires   | inbound   | many-to-one |
+| [Policyaction](#policyaction)                           | triggers   | inbound   | many-to-one |
+| [Resourceoperation](#resourceoperation)                 | triggers   | inbound   | many-to-one |
+| [Retentionpolicy](#retentionpolicy)                     | governs    | inbound   | many-to-one |
+| [Threat](#threat)                                       | triggers   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -435,16 +435,16 @@ Specifies how principals are verified before accessing protected resources, incl
 
 | Related Node                      | Predicate      | Direction | Cardinality |
 | --------------------------------- | -------------- | --------- | ----------- |
-| [actor](#actor)                   | requires       | inbound   | many-to-one |
-| [actor](#actor)                   | authenticates  | outbound  | many-to-one |
-| [securitypolicy](#securitypolicy) | constrained-by | outbound  | many-to-one |
-| [auditconfig](#auditconfig)       | depends-on     | outbound  | many-to-one |
-| [secureresource](#secureresource) | protects       | outbound  | many-to-one |
-| [passwordpolicy](#passwordpolicy) | references     | outbound  | many-to-one |
-| [passwordpolicy](#passwordpolicy) | uses           | outbound  | many-to-one |
-| [passwordpolicy](#passwordpolicy) | constrains     | inbound   | many-to-one |
-| [securitymodel](#securitymodel)   | aggregates     | inbound   | many-to-one |
-| [securitymodel](#securitymodel)   | composes       | inbound   | many-to-one |
+| [Actor](#actor)                   | requires       | inbound   | many-to-one |
+| [Actor](#actor)                   | authenticates  | outbound  | many-to-one |
+| [Securitypolicy](#securitypolicy) | constrained-by | outbound  | many-to-one |
+| [Auditconfig](#auditconfig)       | depends-on     | outbound  | many-to-one |
+| [Secureresource](#secureresource) | protects       | outbound  | many-to-one |
+| [Passwordpolicy](#passwordpolicy) | references     | outbound  | many-to-one |
+| [Passwordpolicy](#passwordpolicy) | uses           | outbound  | many-to-one |
+| [Passwordpolicy](#passwordpolicy) | constrains     | inbound   | many-to-one |
+| [Securitymodel](#securitymodel)   | aggregates     | inbound   | many-to-one |
+| [Securitymodel](#securitymodel)   | composes       | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -463,13 +463,13 @@ Obligation control requiring that a single actor who initiates a task must also 
 
 | Related Node                                            | Predicate       | Direction | Cardinality |
 | ------------------------------------------------------- | --------------- | --------- | ----------- |
-| [separationofduty](#separationofduty)                   | associated-with | outbound  | many-to-one |
-| [role](#role)                                           | constrains      | outbound  | many-to-one |
-| [resourceoperation](#resourceoperation)                 | governs         | outbound  | many-to-one |
-| [evidence](#evidence)                                   | requires        | outbound  | many-to-one |
-| [accountabilityrequirement](#accountabilityrequirement) | supports        | outbound  | many-to-one |
-| [securityconstraints](#securityconstraints)             | aggregates      | inbound   | many-to-one |
-| [separationofduty](#separationofduty)                   | associated-with | inbound   | many-to-one |
+| [Separationofduty](#separationofduty)                   | associated-with | outbound  | many-to-one |
+| [Role](#role)                                           | constrains      | outbound  | many-to-one |
+| [Resourceoperation](#resourceoperation)                 | governs         | outbound  | many-to-one |
+| [Evidence](#evidence)                                   | requires        | outbound  | many-to-one |
+| [Accountabilityrequirement](#accountabilityrequirement) | supports        | outbound  | many-to-one |
+| [Securityconstraints](#securityconstraints)             | aggregates      | inbound   | many-to-one |
+| [Separationofduty](#separationofduty)                   | associated-with | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -488,11 +488,11 @@ A reusable logical expression evaluated against request context (time, location,
 
 | Related Node                        | Predicate  | Direction | Cardinality |
 | ----------------------------------- | ---------- | --------- | ----------- |
-| [accesscondition](#accesscondition) | composes   | outbound  | many-to-one |
-| [policyrule](#policyrule)           | constrains | outbound  | many-to-one |
-| [securitypolicy](#securitypolicy)   | constrains | outbound  | many-to-one |
-| [policyaction](#policyaction)       | triggers   | outbound  | many-to-one |
-| [policyrule](#policyrule)           | uses       | inbound   | many-to-one |
+| [Accesscondition](#accesscondition) | composes   | outbound  | many-to-one |
+| [Policyrule](#policyrule)           | constrains | outbound  | many-to-one |
+| [Securitypolicy](#securitypolicy)   | constrains | outbound  | many-to-one |
+| [Policyaction](#policyaction)       | triggers   | outbound  | many-to-one |
+| [Policyrule](#policyrule)           | uses       | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -511,18 +511,18 @@ A security control or mitigation technique that reduces the likelihood or impact
 
 | Related Node                                | Predicate  | Direction | Cardinality  |
 | ------------------------------------------- | ---------- | --------- | ------------ |
-| [securityconstraints](#securityconstraints) | fulfills   | outbound  | many-to-one  |
-| [securitypolicy](#securitypolicy)           | implements | outbound  | many-to-one  |
-| [threat](#threat)                           | mitigates  | outbound  | many-to-one  |
-| [secureresource](#secureresource)           | protects   | outbound  | many-to-one  |
-| [evidence](#evidence)                       | requires   | outbound  | many-to-one  |
-| [dataclassification](#dataclassification)   | requires   | inbound   | many-to-one  |
-| [passwordpolicy](#passwordpolicy)           | requires   | inbound   | many-to-one  |
-| [policyaction](#policyaction)               | requires   | inbound   | many-to-one  |
-| [policyrule](#policyrule)                   | requires   | inbound   | many-to-one  |
-| [retentionpolicy](#retentionpolicy)         | requires   | inbound   | many-to-one  |
-| [securitypolicy](#securitypolicy)           | requires   | inbound   | many-to-one  |
-| [threat](#threat)                           | aggregates | inbound   | many-to-many |
+| [Securityconstraints](#securityconstraints) | fulfills   | outbound  | many-to-one  |
+| [Securitypolicy](#securitypolicy)           | implements | outbound  | many-to-one  |
+| [Threat](#threat)                           | mitigates  | outbound  | many-to-one  |
+| [Secureresource](#secureresource)           | protects   | outbound  | many-to-one  |
+| [Evidence](#evidence)                       | requires   | outbound  | many-to-one  |
+| [Dataclassification](#dataclassification)   | requires   | inbound   | many-to-one  |
+| [Passwordpolicy](#passwordpolicy)           | requires   | inbound   | many-to-one  |
+| [Policyaction](#policyaction)               | requires   | inbound   | many-to-one  |
+| [Policyrule](#policyrule)                   | requires   | inbound   | many-to-one  |
+| [Retentionpolicy](#retentionpolicy)         | requires   | inbound   | many-to-one  |
+| [Securitypolicy](#securitypolicy)           | requires   | inbound   | many-to-one  |
+| [Threat](#threat)                           | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -541,17 +541,17 @@ Data classification and protection policies
 
 | Related Node                              | Predicate      | Direction | Cardinality |
 | ----------------------------------------- | -------------- | --------- | ----------- |
-| [fieldaccesscontrol](#fieldaccesscontrol) | governs        | outbound  | many-to-one |
-| [informationentity](#informationentity)   | governs        | outbound  | many-to-one |
-| [retentionpolicy](#retentionpolicy)       | governs        | outbound  | many-to-one |
-| [secureresource](#secureresource)         | governs        | outbound  | many-to-one |
-| [countermeasure](#countermeasure)         | requires       | outbound  | many-to-one |
-| [securitypolicy](#securitypolicy)         | supports       | outbound  | many-to-one |
-| [fieldaccesscontrol](#fieldaccesscontrol) | constrained-by | inbound   | many-to-one |
-| [informationentity](#informationentity)   | constrained-by | inbound   | many-to-one |
-| [needtoknow](#needtoknow)                 | constrained-by | inbound   | many-to-one |
-| [securitymodel](#securitymodel)           | governs        | inbound   | many-to-one |
-| [threat](#threat)                         | influence      | inbound   | many-to-one |
+| [Fieldaccesscontrol](#fieldaccesscontrol) | governs        | outbound  | many-to-one |
+| [Informationentity](#informationentity)   | governs        | outbound  | many-to-one |
+| [Retentionpolicy](#retentionpolicy)       | governs        | outbound  | many-to-one |
+| [Secureresource](#secureresource)         | governs        | outbound  | many-to-one |
+| [Countermeasure](#countermeasure)         | requires       | outbound  | many-to-one |
+| [Securitypolicy](#securitypolicy)         | supports       | outbound  | many-to-one |
+| [Fieldaccesscontrol](#fieldaccesscontrol) | constrained-by | inbound   | many-to-one |
+| [Informationentity](#informationentity)   | constrained-by | inbound   | many-to-one |
+| [Needtoknow](#needtoknow)                 | constrained-by | inbound   | many-to-one |
+| [Securitymodel](#securitymodel)           | governs        | inbound   | many-to-one |
+| [Threat](#threat)                         | influence      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -570,13 +570,13 @@ Explicit transfer of permissions or authority from a delegator to a delegatee, s
 
 | Related Node                      | Predicate       | Direction | Cardinality  |
 | --------------------------------- | --------------- | --------- | ------------ |
-| [actor](#actor)                   | associated-with | inbound   | many-to-one  |
-| [actor](#actor)                   | references      | inbound   | many-to-one  |
-| [role](#role)                     | authorizes      | outbound  | many-to-one  |
-| [securitypolicy](#securitypolicy) | constrained-by  | outbound  | many-to-one  |
-| [actor](#actor)                   | requires        | outbound  | many-to-one  |
-| [evidence](#evidence)             | triggers        | outbound  | many-to-one  |
-| [securitymodel](#securitymodel)   | aggregates      | inbound   | many-to-many |
+| [Actor](#actor)                   | associated-with | inbound   | many-to-one  |
+| [Actor](#actor)                   | references      | inbound   | many-to-one  |
+| [Role](#role)                     | authorizes      | outbound  | many-to-one  |
+| [Securitypolicy](#securitypolicy) | constrained-by  | outbound  | many-to-one  |
+| [Actor](#actor)                   | requires        | outbound  | many-to-one  |
+| [Evidence](#evidence)             | triggers        | outbound  | many-to-one  |
+| [Securitymodel](#securitymodel)   | aggregates      | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -595,16 +595,16 @@ An artifact that provides verifiable proof of an action or event for non-repudia
 
 | Related Node                                            | Predicate | Direction | Cardinality |
 | ------------------------------------------------------- | --------- | --------- | ----------- |
-| [accountabilityrequirement](#accountabilityrequirement) | requires  | inbound   | many-to-one |
-| [auditconfig](#auditconfig)                             | triggers  | inbound   | many-to-one |
-| [bindingofduty](#bindingofduty)                         | requires  | inbound   | many-to-one |
-| [countermeasure](#countermeasure)                       | requires  | inbound   | many-to-one |
-| [delegation](#delegation)                               | triggers  | inbound   | many-to-one |
-| [threat](#threat)                                       | mitigates | outbound  | many-to-one |
-| [auditconfig](#auditconfig)                             | realizes  | outbound  | many-to-one |
-| [accountabilityrequirement](#accountabilityrequirement) | supports  | outbound  | many-to-one |
-| [policyrule](#policyrule)                               | validates | outbound  | many-to-one |
-| [retentionpolicy](#retentionpolicy)                     | governs   | inbound   | many-to-one |
+| [Accountabilityrequirement](#accountabilityrequirement) | requires  | inbound   | many-to-one |
+| [Auditconfig](#auditconfig)                             | triggers  | inbound   | many-to-one |
+| [Bindingofduty](#bindingofduty)                         | requires  | inbound   | many-to-one |
+| [Countermeasure](#countermeasure)                       | requires  | inbound   | many-to-one |
+| [Delegation](#delegation)                               | triggers  | inbound   | many-to-one |
+| [Threat](#threat)                                       | mitigates | outbound  | many-to-one |
+| [Auditconfig](#auditconfig)                             | realizes  | outbound  | many-to-one |
+| [Accountabilityrequirement](#accountabilityrequirement) | supports  | outbound  | many-to-one |
+| [Policyrule](#policyrule)                               | validates | outbound  | many-to-one |
+| [Retentionpolicy](#retentionpolicy)                     | governs   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -623,17 +623,17 @@ Defines access restrictions and transformation rules for a specific data field, 
 
 | Related Node                              | Predicate            | Direction | Cardinality |
 | ----------------------------------------- | -------------------- | --------- | ----------- |
-| [accesscondition](#accesscondition)       | governs              | inbound   | many-to-one |
-| [dataclassification](#dataclassification) | governs              | inbound   | many-to-one |
-| [accesscondition](#accesscondition)       | constrained-by       | outbound  | many-to-one |
-| [dataclassification](#dataclassification) | constrained-by       | outbound  | many-to-one |
-| [secureresource](#secureresource)         | governs              | outbound  | many-to-one |
-| [policyrule](#policyrule)                 | implements           | outbound  | many-to-one |
-| [secureresource](#secureresource)         | protects             | outbound  | many-to-one |
-| [permission](#permission)                 | requires             | outbound  | many-to-one |
-| [secureresource](#secureresource)         | aggregates           | inbound   | many-to-one |
-| [validationrule](#validationrule)         | constrains           | inbound   | many-to-one |
-| [validationrule](#validationrule)         | enforces-requirement | inbound   | many-to-one |
+| [Accesscondition](#accesscondition)       | governs              | inbound   | many-to-one |
+| [Dataclassification](#dataclassification) | governs              | inbound   | many-to-one |
+| [Accesscondition](#accesscondition)       | constrained-by       | outbound  | many-to-one |
+| [Dataclassification](#dataclassification) | constrained-by       | outbound  | many-to-one |
+| [Secureresource](#secureresource)         | governs              | outbound  | many-to-one |
+| [Policyrule](#policyrule)                 | implements           | outbound  | many-to-one |
+| [Secureresource](#secureresource)         | protects             | outbound  | many-to-one |
+| [Permission](#permission)                 | requires             | outbound  | many-to-one |
+| [Secureresource](#secureresource)         | aggregates           | inbound   | many-to-one |
+| [Validationrule](#validationrule)         | constrains           | inbound   | many-to-one |
+| [Validationrule](#validationrule)         | enforces-requirement | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -652,16 +652,16 @@ Named information asset subject to fine-grained access rights and data classific
 
 | Related Node                                            | Predicate      | Direction | Cardinality  |
 | ------------------------------------------------------- | -------------- | --------- | ------------ |
-| [dataclassification](#dataclassification)               | governs        | inbound   | many-to-one  |
-| [dataclassification](#dataclassification)               | constrained-by | outbound  | many-to-one  |
-| [retentionpolicy](#retentionpolicy)                     | constrained-by | outbound  | many-to-one  |
-| [informationright](#informationright)                   | governs        | outbound  | many-to-one  |
-| [accountabilityrequirement](#accountabilityrequirement) | requires       | outbound  | many-to-one  |
-| [informationright](#informationright)                   | accesses       | inbound   | many-to-one  |
-| [informationright](#informationright)                   | governs        | inbound   | many-to-one  |
-| [needtoknow](#needtoknow)                               | protects       | inbound   | many-to-one  |
-| [retentionpolicy](#retentionpolicy)                     | constrains     | inbound   | many-to-one  |
-| [securitymodel](#securitymodel)                         | aggregates     | inbound   | many-to-many |
+| [Dataclassification](#dataclassification)               | governs        | inbound   | many-to-one  |
+| [Dataclassification](#dataclassification)               | constrained-by | outbound  | many-to-one  |
+| [Retentionpolicy](#retentionpolicy)                     | constrained-by | outbound  | many-to-one  |
+| [Informationright](#informationright)                   | governs        | outbound  | many-to-one  |
+| [Accountabilityrequirement](#accountabilityrequirement) | requires       | outbound  | many-to-one  |
+| [Informationright](#informationright)                   | accesses       | inbound   | many-to-one  |
+| [Informationright](#informationright)                   | governs        | inbound   | many-to-one  |
+| [Needtoknow](#needtoknow)                               | protects       | inbound   | many-to-one  |
+| [Retentionpolicy](#retentionpolicy)                     | constrains     | inbound   | many-to-one  |
+| [Securitymodel](#securitymodel)                         | aggregates     | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -680,13 +680,13 @@ A granular access grant specifying which operations a named actor may perform on
 
 | Related Node                            | Predicate      | Direction | Cardinality |
 | --------------------------------------- | -------------- | --------- | ----------- |
-| [informationentity](#informationentity) | governs        | inbound   | many-to-one |
-| [informationentity](#informationentity) | accesses       | outbound  | many-to-one |
-| [actor](#actor)                         | assigned-to    | outbound  | many-to-one |
-| [accesscondition](#accesscondition)     | constrained-by | outbound  | many-to-one |
-| [informationentity](#informationentity) | governs        | outbound  | many-to-one |
-| [permission](#permission)               | implements     | outbound  | many-to-one |
-| [policyrule](#policyrule)               | governs        | inbound   | many-to-one |
+| [Informationentity](#informationentity) | governs        | inbound   | many-to-one |
+| [Informationentity](#informationentity) | accesses       | outbound  | many-to-one |
+| [Actor](#actor)                         | assigned-to    | outbound  | many-to-one |
+| [Accesscondition](#accesscondition)     | constrained-by | outbound  | many-to-one |
+| [Informationentity](#informationentity) | governs        | outbound  | many-to-one |
+| [Permission](#permission)               | implements     | outbound  | many-to-one |
+| [Policyrule](#policyrule)               | governs        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -705,12 +705,12 @@ Restricts access to a resource to only those actors whose stated purpose require
 
 | Related Node                                | Predicate       | Direction | Cardinality |
 | ------------------------------------------- | --------------- | --------- | ----------- |
-| [role](#role)                               | associated-with | outbound  | many-to-one |
-| [dataclassification](#dataclassification)   | constrained-by  | outbound  | many-to-one |
-| [permission](#permission)                   | constrains      | outbound  | many-to-one |
-| [policyrule](#policyrule)                   | implements      | outbound  | many-to-one |
-| [informationentity](#informationentity)     | protects        | outbound  | many-to-one |
-| [securityconstraints](#securityconstraints) | aggregates      | inbound   | many-to-one |
+| [Role](#role)                               | associated-with | outbound  | many-to-one |
+| [Dataclassification](#dataclassification)   | constrained-by  | outbound  | many-to-one |
+| [Permission](#permission)                   | constrains      | outbound  | many-to-one |
+| [Policyrule](#policyrule)                   | implements      | outbound  | many-to-one |
+| [Informationentity](#informationentity)     | protects        | outbound  | many-to-one |
+| [Securityconstraints](#securityconstraints) | aggregates      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -729,14 +729,14 @@ Defines password complexity, rotation, and lockout requirements for credential-b
 
 | Related Node                                  | Predicate  | Direction | Cardinality |
 | --------------------------------------------- | ---------- | --------- | ----------- |
-| [authenticationconfig](#authenticationconfig) | references | inbound   | many-to-one |
-| [authenticationconfig](#authenticationconfig) | uses       | inbound   | many-to-one |
-| [authenticationconfig](#authenticationconfig) | constrains | outbound  | many-to-one |
-| [threat](#threat)                             | mitigates  | outbound  | many-to-one |
-| [auditconfig](#auditconfig)                   | requires   | outbound  | many-to-one |
-| [countermeasure](#countermeasure)             | requires   | outbound  | many-to-one |
-| [validationrule](#validationrule)             | uses       | outbound  | many-to-one |
-| [securitypolicy](#securitypolicy)             | governs    | inbound   | many-to-one |
+| [Authenticationconfig](#authenticationconfig) | references | inbound   | many-to-one |
+| [Authenticationconfig](#authenticationconfig) | uses       | inbound   | many-to-one |
+| [Authenticationconfig](#authenticationconfig) | constrains | outbound  | many-to-one |
+| [Threat](#threat)                             | mitigates  | outbound  | many-to-one |
+| [Auditconfig](#auditconfig)                   | requires   | outbound  | many-to-one |
+| [Countermeasure](#countermeasure)             | requires   | outbound  | many-to-one |
+| [Validationrule](#validationrule)             | uses       | outbound  | many-to-one |
+| [Securitypolicy](#securitypolicy)             | governs    | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -755,25 +755,25 @@ An atomic grant authorizing a specific action (e.g., read, write, execute) on a 
 
 | Related Node                              | Predicate  | Direction | Cardinality  |
 | ----------------------------------------- | ---------- | --------- | ------------ |
-| [accesscondition](#accesscondition)       | constrains | inbound   | many-to-one  |
-| [fieldaccesscontrol](#fieldaccesscontrol) | requires   | inbound   | many-to-one  |
-| [informationright](#informationright)     | implements | inbound   | many-to-one  |
-| [needtoknow](#needtoknow)                 | constrains | inbound   | many-to-one  |
-| [resourceoperation](#resourceoperation)   | authorizes | outbound  | many-to-one  |
-| [policyaction](#policyaction)             | governs    | inbound   | many-to-one  |
-| [policyrule](#policyrule)                 | authorizes | inbound   | many-to-one  |
-| [role](#role)                             | aggregates | inbound   | many-to-one  |
-| [role](#role)                             | authorizes | inbound   | many-to-one  |
-| [role](#role)                             | provides   | inbound   | many-to-one  |
-| [securitymodel](#securitymodel)           | aggregates | inbound   | many-to-many |
-| [securitypolicy](#securitypolicy)         | constrains | inbound   | many-to-one  |
+| [Accesscondition](#accesscondition)       | constrains | inbound   | many-to-one  |
+| [Fieldaccesscontrol](#fieldaccesscontrol) | requires   | inbound   | many-to-one  |
+| [Informationright](#informationright)     | implements | inbound   | many-to-one  |
+| [Needtoknow](#needtoknow)                 | constrains | inbound   | many-to-one  |
+| [Resourceoperation](#resourceoperation)   | authorizes | outbound  | many-to-one  |
+| [Policyaction](#policyaction)             | governs    | inbound   | many-to-one  |
+| [Policyrule](#policyrule)                 | authorizes | inbound   | many-to-one  |
+| [Role](#role)                             | aggregates | inbound   | many-to-one  |
+| [Role](#role)                             | authorizes | inbound   | many-to-one  |
+| [Role](#role)                             | provides   | inbound   | many-to-one  |
+| [Securitymodel](#securitymodel)           | aggregates | inbound   | many-to-many |
+| [Securitypolicy](#securitypolicy)         | constrains | inbound   | many-to-one  |
 
 #### Inter-Layer Relationships
 
 | Related Node                                              | Layer                           | Predicate | Direction | Cardinality |
 | --------------------------------------------------------- | ------------------------------- | --------- | --------- | ----------- |
-| [operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | requires  | inbound   | many-to-one |
-| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | requires  | inbound   | many-to-one |
+| [Operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | requires  | inbound   | many-to-one |
+| [Securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | requires  | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -792,13 +792,13 @@ The enforcement action executed when a SecurityPolicy rule condition is met. Def
 
 | Related Node                      | Predicate            | Direction | Cardinality |
 | --------------------------------- | -------------------- | --------- | ----------- |
-| [condition](#condition)           | triggers             | inbound   | many-to-one |
-| [policyrule](#policyrule)         | enforces-requirement | outbound  | many-to-one |
-| [permission](#permission)         | governs              | outbound  | many-to-one |
-| [threat](#threat)                 | mitigates            | outbound  | many-to-one |
-| [countermeasure](#countermeasure) | requires             | outbound  | many-to-one |
-| [auditconfig](#auditconfig)       | triggers             | outbound  | many-to-one |
-| [policyrule](#policyrule)         | triggers             | inbound   | many-to-one |
+| [Condition](#condition)           | triggers             | inbound   | many-to-one |
+| [Policyrule](#policyrule)         | enforces-requirement | outbound  | many-to-one |
+| [Permission](#permission)         | governs              | outbound  | many-to-one |
+| [Threat](#threat)                 | mitigates            | outbound  | many-to-one |
+| [Countermeasure](#countermeasure) | requires             | outbound  | many-to-one |
+| [Auditconfig](#auditconfig)       | triggers             | outbound  | many-to-one |
+| [Policyrule](#policyrule)         | triggers             | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -817,23 +817,23 @@ An atomic policy evaluation unit consisting of a condition predicate and an enfo
 
 | Related Node                              | Predicate            | Direction | Cardinality |
 | ----------------------------------------- | -------------------- | --------- | ----------- |
-| [accesscondition](#accesscondition)       | composes             | inbound   | many-to-one |
-| [condition](#condition)                   | constrains           | inbound   | many-to-one |
-| [evidence](#evidence)                     | validates            | inbound   | many-to-one |
-| [fieldaccesscontrol](#fieldaccesscontrol) | implements           | inbound   | many-to-one |
-| [needtoknow](#needtoknow)                 | implements           | inbound   | many-to-one |
-| [policyaction](#policyaction)             | enforces-requirement | inbound   | many-to-one |
-| [permission](#permission)                 | authorizes           | outbound  | many-to-one |
-| [securitypolicy](#securitypolicy)         | composes             | outbound  | many-to-one |
-| [informationright](#informationright)     | governs              | outbound  | many-to-one |
-| [secureresource](#secureresource)         | protects             | outbound  | many-to-one |
-| [countermeasure](#countermeasure)         | requires             | outbound  | many-to-one |
-| [policyaction](#policyaction)             | triggers             | outbound  | many-to-one |
-| [accesscondition](#accesscondition)       | uses                 | outbound  | many-to-one |
-| [condition](#condition)                   | uses                 | outbound  | many-to-one |
-| [securitypolicy](#securitypolicy)         | aggregates           | inbound   | many-to-one |
-| [separationofduty](#separationofduty)     | governs              | inbound   | many-to-one |
-| [validationrule](#validationrule)         | realizes             | inbound   | many-to-one |
+| [Accesscondition](#accesscondition)       | composes             | inbound   | many-to-one |
+| [Condition](#condition)                   | constrains           | inbound   | many-to-one |
+| [Evidence](#evidence)                     | validates            | inbound   | many-to-one |
+| [Fieldaccesscontrol](#fieldaccesscontrol) | implements           | inbound   | many-to-one |
+| [Needtoknow](#needtoknow)                 | implements           | inbound   | many-to-one |
+| [Policyaction](#policyaction)             | enforces-requirement | inbound   | many-to-one |
+| [Permission](#permission)                 | authorizes           | outbound  | many-to-one |
+| [Securitypolicy](#securitypolicy)         | composes             | outbound  | many-to-one |
+| [Informationright](#informationright)     | governs              | outbound  | many-to-one |
+| [Secureresource](#secureresource)         | protects             | outbound  | many-to-one |
+| [Countermeasure](#countermeasure)         | requires             | outbound  | many-to-one |
+| [Policyaction](#policyaction)             | triggers             | outbound  | many-to-one |
+| [Accesscondition](#accesscondition)       | uses                 | outbound  | many-to-one |
+| [Condition](#condition)                   | uses                 | outbound  | many-to-one |
+| [Securitypolicy](#securitypolicy)         | aggregates           | inbound   | many-to-one |
+| [Separationofduty](#separationofduty)     | governs              | inbound   | many-to-one |
+| [Validationrule](#validationrule)         | realizes             | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -852,13 +852,13 @@ A permitted operation that an actor may perform on a secured resource, forming t
 
 | Related Node                        | Predicate      | Direction | Cardinality |
 | ----------------------------------- | -------------- | --------- | ----------- |
-| [bindingofduty](#bindingofduty)     | governs        | inbound   | many-to-one |
-| [permission](#permission)           | authorizes     | inbound   | many-to-one |
-| [secureresource](#secureresource)   | accesses       | outbound  | many-to-one |
-| [accesscondition](#accesscondition) | constrained-by | outbound  | many-to-one |
-| [secureresource](#secureresource)   | governs        | outbound  | many-to-one |
-| [auditconfig](#auditconfig)         | triggers       | outbound  | many-to-one |
-| [secureresource](#secureresource)   | aggregates     | inbound   | many-to-one |
+| [Bindingofduty](#bindingofduty)     | governs        | inbound   | many-to-one |
+| [Permission](#permission)           | authorizes     | inbound   | many-to-one |
+| [Secureresource](#secureresource)   | accesses       | outbound  | many-to-one |
+| [Accesscondition](#accesscondition) | constrained-by | outbound  | many-to-one |
+| [Secureresource](#secureresource)   | governs        | outbound  | many-to-one |
+| [Auditconfig](#auditconfig)         | triggers       | outbound  | many-to-one |
+| [Secureresource](#secureresource)   | aggregates     | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -877,15 +877,15 @@ Defines how long security-related data (audit logs, access records, encryption k
 
 | Related Node                                            | Predicate      | Direction | Cardinality |
 | ------------------------------------------------------- | -------------- | --------- | ----------- |
-| [accountabilityrequirement](#accountabilityrequirement) | requires       | inbound   | many-to-one |
-| [auditconfig](#auditconfig)                             | depends-on     | inbound   | many-to-one |
-| [auditconfig](#auditconfig)                             | governs        | inbound   | many-to-one |
-| [dataclassification](#dataclassification)               | governs        | inbound   | many-to-one |
-| [informationentity](#informationentity)                 | constrained-by | inbound   | many-to-one |
-| [informationentity](#informationentity)                 | constrains     | outbound  | many-to-one |
-| [auditconfig](#auditconfig)                             | governs        | outbound  | many-to-one |
-| [evidence](#evidence)                                   | governs        | outbound  | many-to-one |
-| [countermeasure](#countermeasure)                       | requires       | outbound  | many-to-one |
+| [Accountabilityrequirement](#accountabilityrequirement) | requires       | inbound   | many-to-one |
+| [Auditconfig](#auditconfig)                             | depends-on     | inbound   | many-to-one |
+| [Auditconfig](#auditconfig)                             | governs        | inbound   | many-to-one |
+| [Dataclassification](#dataclassification)               | governs        | inbound   | many-to-one |
+| [Informationentity](#informationentity)                 | constrained-by | inbound   | many-to-one |
+| [Informationentity](#informationentity)                 | constrains     | outbound  | many-to-one |
+| [Auditconfig](#auditconfig)                             | governs        | outbound  | many-to-one |
+| [Evidence](#evidence)                                   | governs        | outbound  | many-to-one |
+| [Countermeasure](#countermeasure)                       | requires       | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -904,19 +904,19 @@ A named collection of Permissions implementing RBAC per NIST SP 800-53 AC-2 and 
 
 | Related Node                                | Predicate       | Direction | Cardinality  |
 | ------------------------------------------- | --------------- | --------- | ------------ |
-| [actor](#actor)                             | assigned-to     | inbound   | many-to-one  |
-| [bindingofduty](#bindingofduty)             | constrains      | inbound   | many-to-one  |
-| [delegation](#delegation)                   | authorizes      | inbound   | many-to-one  |
-| [needtoknow](#needtoknow)                   | associated-with | inbound   | many-to-one  |
-| [secureresource](#secureresource)           | accesses        | outbound  | many-to-one  |
-| [permission](#permission)                   | aggregates      | outbound  | many-to-one  |
-| [permission](#permission)                   | authorizes      | outbound  | many-to-one  |
-| [separationofduty](#separationofduty)       | constrained-by  | outbound  | many-to-one  |
-| [permission](#permission)                   | provides        | outbound  | many-to-one  |
-| [role](#role)                               | specializes     | outbound  | many-to-one  |
-| [securityconstraints](#securityconstraints) | constrains      | inbound   | many-to-one  |
-| [securitymodel](#securitymodel)             | aggregates      | inbound   | many-to-many |
-| [separationofduty](#separationofduty)       | constrains      | inbound   | many-to-one  |
+| [Actor](#actor)                             | assigned-to     | inbound   | many-to-one  |
+| [Bindingofduty](#bindingofduty)             | constrains      | inbound   | many-to-one  |
+| [Delegation](#delegation)                   | authorizes      | inbound   | many-to-one  |
+| [Needtoknow](#needtoknow)                   | associated-with | inbound   | many-to-one  |
+| [Secureresource](#secureresource)           | accesses        | outbound  | many-to-one  |
+| [Permission](#permission)                   | aggregates      | outbound  | many-to-one  |
+| [Permission](#permission)                   | authorizes      | outbound  | many-to-one  |
+| [Separationofduty](#separationofduty)       | constrained-by  | outbound  | many-to-one  |
+| [Permission](#permission)                   | provides        | outbound  | many-to-one  |
+| [Role](#role)                               | specializes     | outbound  | many-to-one  |
+| [Securityconstraints](#securityconstraints) | constrains      | inbound   | many-to-one  |
+| [Securitymodel](#securitymodel)             | aggregates      | inbound   | many-to-many |
+| [Separationofduty](#separationofduty)       | constrains      | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -935,31 +935,31 @@ Represents a named resource subject to security controls, defining the operation
 
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
-| [accesscondition](#accesscondition)           | references | inbound   | many-to-one  |
-| [actor](#actor)                               | accesses   | inbound   | many-to-one  |
-| [auditconfig](#auditconfig)                   | governs    | inbound   | many-to-one  |
-| [auditconfig](#auditconfig)                   | monitors   | inbound   | many-to-one  |
-| [authenticationconfig](#authenticationconfig) | protects   | inbound   | many-to-one  |
-| [countermeasure](#countermeasure)             | protects   | inbound   | many-to-one  |
-| [dataclassification](#dataclassification)     | governs    | inbound   | many-to-one  |
-| [fieldaccesscontrol](#fieldaccesscontrol)     | governs    | inbound   | many-to-one  |
-| [fieldaccesscontrol](#fieldaccesscontrol)     | protects   | inbound   | many-to-one  |
-| [policyrule](#policyrule)                     | protects   | inbound   | many-to-one  |
-| [resourceoperation](#resourceoperation)       | accesses   | inbound   | many-to-one  |
-| [resourceoperation](#resourceoperation)       | governs    | inbound   | many-to-one  |
-| [role](#role)                                 | accesses   | inbound   | many-to-one  |
-| [fieldaccesscontrol](#fieldaccesscontrol)     | aggregates | outbound  | many-to-one  |
-| [resourceoperation](#resourceoperation)       | aggregates | outbound  | many-to-one  |
-| [securitymodel](#securitymodel)               | aggregates | inbound   | many-to-many |
-| [securitypolicy](#securitypolicy)             | governs    | inbound   | many-to-one  |
-| [threat](#threat)                             | accesses   | inbound   | many-to-one  |
+| [Accesscondition](#accesscondition)           | references | inbound   | many-to-one  |
+| [Actor](#actor)                               | accesses   | inbound   | many-to-one  |
+| [Auditconfig](#auditconfig)                   | governs    | inbound   | many-to-one  |
+| [Auditconfig](#auditconfig)                   | monitors   | inbound   | many-to-one  |
+| [Authenticationconfig](#authenticationconfig) | protects   | inbound   | many-to-one  |
+| [Countermeasure](#countermeasure)             | protects   | inbound   | many-to-one  |
+| [Dataclassification](#dataclassification)     | governs    | inbound   | many-to-one  |
+| [Fieldaccesscontrol](#fieldaccesscontrol)     | governs    | inbound   | many-to-one  |
+| [Fieldaccesscontrol](#fieldaccesscontrol)     | protects   | inbound   | many-to-one  |
+| [Policyrule](#policyrule)                     | protects   | inbound   | many-to-one  |
+| [Resourceoperation](#resourceoperation)       | accesses   | inbound   | many-to-one  |
+| [Resourceoperation](#resourceoperation)       | governs    | inbound   | many-to-one  |
+| [Role](#role)                                 | accesses   | inbound   | many-to-one  |
+| [Fieldaccesscontrol](#fieldaccesscontrol)     | aggregates | outbound  | many-to-one  |
+| [Resourceoperation](#resourceoperation)       | aggregates | outbound  | many-to-one  |
+| [Securitymodel](#securitymodel)               | aggregates | inbound   | many-to-many |
+| [Securitypolicy](#securitypolicy)             | governs    | inbound   | many-to-one  |
+| [Threat](#threat)                             | accesses   | inbound   | many-to-one  |
 
 #### Inter-Layer Relationships
 
 | Related Node                                              | Layer                           | Predicate  | Direction | Cardinality |
 | --------------------------------------------------------- | ------------------------------- | ---------- | --------- | ----------- |
-| [operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | references | inbound   | many-to-one |
-| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | references | inbound   | many-to-one |
+| [Operation](./06-api-layer-report.md#operation)           | [API](./06-api-layer-report.md) | references | inbound   | many-to-one |
+| [Securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -978,20 +978,20 @@ An aggregate container defining the procedural access control constraints for an
 
 | Related Node                          | Predicate            | Direction | Cardinality |
 | ------------------------------------- | -------------------- | --------- | ----------- |
-| [countermeasure](#countermeasure)     | fulfills             | inbound   | many-to-one |
-| [bindingofduty](#bindingofduty)       | aggregates           | outbound  | many-to-one |
-| [needtoknow](#needtoknow)             | aggregates           | outbound  | many-to-one |
-| [separationofduty](#separationofduty) | aggregates           | outbound  | many-to-one |
-| [role](#role)                         | constrains           | outbound  | many-to-one |
-| [securitypolicy](#securitypolicy)     | governs              | outbound  | many-to-one |
-| [securitymodel](#securitymodel)       | composes             | inbound   | many-to-one |
-| [validationrule](#validationrule)     | enforces-requirement | inbound   | many-to-one |
+| [Countermeasure](#countermeasure)     | fulfills             | inbound   | many-to-one |
+| [Bindingofduty](#bindingofduty)       | aggregates           | outbound  | many-to-one |
+| [Needtoknow](#needtoknow)             | aggregates           | outbound  | many-to-one |
+| [Separationofduty](#separationofduty) | aggregates           | outbound  | many-to-one |
+| [Role](#role)                         | constrains           | outbound  | many-to-one |
+| [Securitypolicy](#securitypolicy)     | governs              | outbound  | many-to-one |
+| [Securitymodel](#securitymodel)       | composes             | inbound   | many-to-one |
+| [Validationrule](#validationrule)     | enforces-requirement | inbound   | many-to-one |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                     | Layer                                     | Predicate      | Direction | Cardinality |
 | ---------------------------------------------------------------- | ----------------------------------------- | -------------- | --------- | ----------- |
-| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | constrained-by | inbound   | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | constrained-by | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -1010,20 +1010,20 @@ The root aggregate for an application's security posture, composing authenticati
 
 | Related Node                                            | Predicate  | Direction | Cardinality  |
 | ------------------------------------------------------- | ---------- | --------- | ------------ |
-| [actor](#actor)                                         | aggregates | outbound  | many-to-many |
-| [authenticationconfig](#authenticationconfig)           | aggregates | outbound  | many-to-one  |
-| [delegation](#delegation)                               | aggregates | outbound  | many-to-many |
-| [informationentity](#informationentity)                 | aggregates | outbound  | many-to-many |
-| [permission](#permission)                               | aggregates | outbound  | many-to-many |
-| [role](#role)                                           | aggregates | outbound  | many-to-many |
-| [secureresource](#secureresource)                       | aggregates | outbound  | many-to-many |
-| [threat](#threat)                                       | aggregates | outbound  | many-to-one  |
-| [authenticationconfig](#authenticationconfig)           | composes   | outbound  | many-to-one  |
-| [securityconstraints](#securityconstraints)             | composes   | outbound  | many-to-one  |
-| [securitypolicy](#securitypolicy)                       | composes   | outbound  | many-to-one  |
-| [accountabilityrequirement](#accountabilityrequirement) | constrains | outbound  | many-to-one  |
-| [dataclassification](#dataclassification)               | governs    | outbound  | many-to-one  |
-| [securitypolicy](#securitypolicy)                       | governs    | outbound  | many-to-one  |
+| [Actor](#actor)                                         | aggregates | outbound  | many-to-many |
+| [Authenticationconfig](#authenticationconfig)           | aggregates | outbound  | many-to-one  |
+| [Delegation](#delegation)                               | aggregates | outbound  | many-to-many |
+| [Informationentity](#informationentity)                 | aggregates | outbound  | many-to-many |
+| [Permission](#permission)                               | aggregates | outbound  | many-to-many |
+| [Role](#role)                                           | aggregates | outbound  | many-to-many |
+| [Secureresource](#secureresource)                       | aggregates | outbound  | many-to-many |
+| [Threat](#threat)                                       | aggregates | outbound  | many-to-one  |
+| [Authenticationconfig](#authenticationconfig)           | composes   | outbound  | many-to-one  |
+| [Securityconstraints](#securityconstraints)             | composes   | outbound  | many-to-one  |
+| [Securitypolicy](#securitypolicy)                       | composes   | outbound  | many-to-one  |
+| [Accountabilityrequirement](#accountabilityrequirement) | constrains | outbound  | many-to-one  |
+| [Dataclassification](#dataclassification)               | governs    | outbound  | many-to-one  |
+| [Securitypolicy](#securitypolicy)                       | governs    | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -1042,24 +1042,24 @@ A named, prioritized security policy containing ordered evaluation rules that de
 
 | Related Node                                            | Predicate            | Direction | Cardinality |
 | ------------------------------------------------------- | -------------------- | --------- | ----------- |
-| [authenticationconfig](#authenticationconfig)           | constrained-by       | inbound   | many-to-one |
-| [condition](#condition)                                 | constrains           | inbound   | many-to-one |
-| [countermeasure](#countermeasure)                       | implements           | inbound   | many-to-one |
-| [dataclassification](#dataclassification)               | supports             | inbound   | many-to-one |
-| [delegation](#delegation)                               | constrained-by       | inbound   | many-to-one |
-| [policyrule](#policyrule)                               | composes             | inbound   | many-to-one |
-| [securityconstraints](#securityconstraints)             | governs              | inbound   | many-to-one |
-| [securitymodel](#securitymodel)                         | composes             | inbound   | many-to-one |
-| [securitymodel](#securitymodel)                         | governs              | inbound   | many-to-one |
-| [policyrule](#policyrule)                               | aggregates           | outbound  | many-to-one |
-| [permission](#permission)                               | constrains           | outbound  | many-to-one |
-| [accesscondition](#accesscondition)                     | enforces-requirement | outbound  | many-to-one |
-| [accountabilityrequirement](#accountabilityrequirement) | fulfills             | outbound  | many-to-one |
-| [passwordpolicy](#passwordpolicy)                       | governs              | outbound  | many-to-one |
-| [secureresource](#secureresource)                       | governs              | outbound  | many-to-one |
-| [countermeasure](#countermeasure)                       | requires             | outbound  | many-to-one |
-| [threat](#threat)                                       | influence            | inbound   | many-to-one |
-| [validationrule](#validationrule)                       | supports             | inbound   | many-to-one |
+| [Authenticationconfig](#authenticationconfig)           | constrained-by       | inbound   | many-to-one |
+| [Condition](#condition)                                 | constrains           | inbound   | many-to-one |
+| [Countermeasure](#countermeasure)                       | implements           | inbound   | many-to-one |
+| [Dataclassification](#dataclassification)               | supports             | inbound   | many-to-one |
+| [Delegation](#delegation)                               | constrained-by       | inbound   | many-to-one |
+| [Policyrule](#policyrule)                               | composes             | inbound   | many-to-one |
+| [Securityconstraints](#securityconstraints)             | governs              | inbound   | many-to-one |
+| [Securitymodel](#securitymodel)                         | composes             | inbound   | many-to-one |
+| [Securitymodel](#securitymodel)                         | governs              | inbound   | many-to-one |
+| [Policyrule](#policyrule)                               | aggregates           | outbound  | many-to-one |
+| [Permission](#permission)                               | constrains           | outbound  | many-to-one |
+| [Accesscondition](#accesscondition)                     | enforces-requirement | outbound  | many-to-one |
+| [Accountabilityrequirement](#accountabilityrequirement) | fulfills             | outbound  | many-to-one |
+| [Passwordpolicy](#passwordpolicy)                       | governs              | outbound  | many-to-one |
+| [Secureresource](#secureresource)                       | governs              | outbound  | many-to-one |
+| [Countermeasure](#countermeasure)                       | requires             | outbound  | many-to-one |
+| [Threat](#threat)                                       | influence            | inbound   | many-to-one |
+| [Validationrule](#validationrule)                       | supports             | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -1078,20 +1078,20 @@ Enforces NIST SP 800-53 AC-5 by requiring that sensitive tasks (e.g., request + 
 
 | Related Node                                            | Predicate       | Direction | Cardinality |
 | ------------------------------------------------------- | --------------- | --------- | ----------- |
-| [bindingofduty](#bindingofduty)                         | associated-with | inbound   | many-to-one |
-| [role](#role)                                           | constrained-by  | inbound   | many-to-one |
-| [securityconstraints](#securityconstraints)             | aggregates      | inbound   | many-to-one |
-| [bindingofduty](#bindingofduty)                         | associated-with | outbound  | many-to-one |
-| [role](#role)                                           | constrains      | outbound  | many-to-one |
-| [policyrule](#policyrule)                               | governs         | outbound  | many-to-one |
-| [threat](#threat)                                       | mitigates       | outbound  | many-to-one |
-| [accountabilityrequirement](#accountabilityrequirement) | requires        | outbound  | many-to-one |
+| [Bindingofduty](#bindingofduty)                         | associated-with | inbound   | many-to-one |
+| [Role](#role)                                           | constrained-by  | inbound   | many-to-one |
+| [Securityconstraints](#securityconstraints)             | aggregates      | inbound   | many-to-one |
+| [Bindingofduty](#bindingofduty)                         | associated-with | outbound  | many-to-one |
+| [Role](#role)                                           | constrains      | outbound  | many-to-one |
+| [Policyrule](#policyrule)                               | governs         | outbound  | many-to-one |
+| [Threat](#threat)                                       | mitigates       | outbound  | many-to-one |
+| [Accountabilityrequirement](#accountabilityrequirement) | requires        | outbound  | many-to-one |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                     | Layer                                     | Predicate      | Direction | Cardinality |
 | ---------------------------------------------------------------- | ----------------------------------------- | -------------- | --------- | ----------- |
-| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | constrained-by | inbound   | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | constrained-by | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -1110,20 +1110,20 @@ Represents an identified security threat with assessed likelihood and impact, ta
 
 | Related Node                              | Predicate       | Direction | Cardinality  |
 | ----------------------------------------- | --------------- | --------- | ------------ |
-| [actor](#actor)                           | associated-with | inbound   | many-to-one  |
-| [auditconfig](#auditconfig)               | mitigates       | inbound   | many-to-one  |
-| [countermeasure](#countermeasure)         | mitigates       | inbound   | many-to-one  |
-| [evidence](#evidence)                     | mitigates       | inbound   | many-to-one  |
-| [passwordpolicy](#passwordpolicy)         | mitigates       | inbound   | many-to-one  |
-| [policyaction](#policyaction)             | mitigates       | inbound   | many-to-one  |
-| [securitymodel](#securitymodel)           | aggregates      | inbound   | many-to-one  |
-| [separationofduty](#separationofduty)     | mitigates       | inbound   | many-to-one  |
-| [secureresource](#secureresource)         | accesses        | outbound  | many-to-one  |
-| [countermeasure](#countermeasure)         | aggregates      | outbound  | many-to-many |
-| [accesscondition](#accesscondition)       | constrains      | outbound  | many-to-one  |
-| [dataclassification](#dataclassification) | influence       | outbound  | many-to-one  |
-| [securitypolicy](#securitypolicy)         | influence       | outbound  | many-to-one  |
-| [auditconfig](#auditconfig)               | triggers        | outbound  | many-to-one  |
+| [Actor](#actor)                           | associated-with | inbound   | many-to-one  |
+| [Auditconfig](#auditconfig)               | mitigates       | inbound   | many-to-one  |
+| [Countermeasure](#countermeasure)         | mitigates       | inbound   | many-to-one  |
+| [Evidence](#evidence)                     | mitigates       | inbound   | many-to-one  |
+| [Passwordpolicy](#passwordpolicy)         | mitigates       | inbound   | many-to-one  |
+| [Policyaction](#policyaction)             | mitigates       | inbound   | many-to-one  |
+| [Securitymodel](#securitymodel)           | aggregates      | inbound   | many-to-one  |
+| [Separationofduty](#separationofduty)     | mitigates       | inbound   | many-to-one  |
+| [Secureresource](#secureresource)         | accesses        | outbound  | many-to-one  |
+| [Countermeasure](#countermeasure)         | aggregates      | outbound  | many-to-many |
+| [Accesscondition](#accesscondition)       | constrains      | outbound  | many-to-one  |
+| [Dataclassification](#dataclassification) | influence       | outbound  | many-to-one  |
+| [Securitypolicy](#securitypolicy)         | influence       | outbound  | many-to-one  |
+| [Auditconfig](#auditconfig)               | triggers        | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -1142,17 +1142,17 @@ Specifies data validation constraints for FieldAccessControl, defining allowed p
 
 | Related Node                                | Predicate            | Direction | Cardinality |
 | ------------------------------------------- | -------------------- | --------- | ----------- |
-| [accesscondition](#accesscondition)         | uses                 | inbound   | many-to-one |
-| [passwordpolicy](#passwordpolicy)           | uses                 | inbound   | many-to-one |
-| [accesscondition](#accesscondition)         | constrains           | outbound  | many-to-one |
-| [fieldaccesscontrol](#fieldaccesscontrol)   | constrains           | outbound  | many-to-one |
-| [fieldaccesscontrol](#fieldaccesscontrol)   | enforces-requirement | outbound  | many-to-one |
-| [securityconstraints](#securityconstraints) | enforces-requirement | outbound  | many-to-one |
-| [policyrule](#policyrule)                   | realizes             | outbound  | many-to-one |
-| [securitypolicy](#securitypolicy)           | supports             | outbound  | many-to-one |
+| [Accesscondition](#accesscondition)         | uses                 | inbound   | many-to-one |
+| [Passwordpolicy](#passwordpolicy)           | uses                 | inbound   | many-to-one |
+| [Accesscondition](#accesscondition)         | constrains           | outbound  | many-to-one |
+| [Fieldaccesscontrol](#fieldaccesscontrol)   | constrains           | outbound  | many-to-one |
+| [Fieldaccesscontrol](#fieldaccesscontrol)   | enforces-requirement | outbound  | many-to-one |
+| [Securityconstraints](#securityconstraints) | enforces-requirement | outbound  | many-to-one |
+| [Policyrule](#policyrule)                   | realizes             | outbound  | many-to-one |
+| [Securitypolicy](#securitypolicy)           | supports             | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-28T15:47:18.822Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-02T20:37:51.218Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

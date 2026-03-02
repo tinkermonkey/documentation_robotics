@@ -108,8 +108,8 @@ flowchart TB
 
 | Relationship ID                                                 | Source Node                                              | Dest Node                                                                 | Dest Layer                                      | Predicate  | Cardinality | Strength |
 | --------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | ----------- | -------- |
-| data-model.jsonschema.references.application.applicationservice | [jsonschema](./07-data-model-layer-report.md#jsonschema) | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | many-to-one | medium   |
-| data-model.jsonschema.references.business.businessobject        | [jsonschema](./07-data-model-layer-report.md#jsonschema) | [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
+| data-model.jsonschema.references.application.applicationservice | [Jsonschema](./07-data-model-layer-report.md#jsonschema) | [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | many-to-one | medium   |
+| data-model.jsonschema.references.business.businessobject        | [Jsonschema](./07-data-model-layer-report.md#jsonschema) | [Businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
 
 ## Node Reference
 
@@ -128,9 +128,9 @@ Defines validation rules for JSON array instances, constraining item schemas, ca
 
 | Related Node                      | Predicate  | Direction | Cardinality |
 | --------------------------------- | ---------- | --------- | ----------- |
-| [objectschema](#objectschema)     | aggregates | outbound  | many-to-one |
-| [reference](#reference)           | aggregates | outbound  | many-to-one |
-| [schemaproperty](#schemaproperty) | references | inbound   | many-to-one |
+| [Objectschema](#objectschema)     | aggregates | outbound  | many-to-one |
+| [Reference](#reference)           | aggregates | outbound  | many-to-one |
+| [Schemaproperty](#schemaproperty) | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -149,15 +149,15 @@ The root JSON Schema document, identified by $schema (dialect URI) and $id (base
 
 | Related Node                          | Predicate  | Direction | Cardinality |
 | ------------------------------------- | ---------- | --------- | ----------- |
-| [objectschema](#objectschema)         | aggregates | outbound  | many-to-one |
-| [schemadefinition](#schemadefinition) | aggregates | outbound  | many-to-one |
+| [Objectschema](#objectschema)         | aggregates | outbound  | many-to-one |
+| [Schemadefinition](#schemadefinition) | aggregates | outbound  | many-to-one |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                              | Layer                                           | Predicate  | Direction | Cardinality |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | outbound  | many-to-one |
-| [businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | outbound  | many-to-one |
+| [Businessobject](./02-business-layer-report.md#businessobject)            | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -176,7 +176,7 @@ Defines validation rules for JSON numeric instances (number or integer types), i
 
 | Related Node                      | Predicate  | Direction | Cardinality |
 | --------------------------------- | ---------- | --------- | ----------- |
-| [schemaproperty](#schemaproperty) | references | inbound   | many-to-one |
+| [Schemaproperty](#schemaproperty) | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -195,11 +195,11 @@ Defines validation rules for JSON object instances, specifying named properties,
 
 | Related Node                            | Predicate  | Direction | Cardinality |
 | --------------------------------------- | ---------- | --------- | ----------- |
-| [arrayschema](#arrayschema)             | aggregates | inbound   | many-to-one |
-| [jsonschema](#jsonschema)               | aggregates | inbound   | many-to-one |
-| [schemaproperty](#schemaproperty)       | aggregates | outbound  | many-to-one |
-| [schemacomposition](#schemacomposition) | composes   | inbound   | many-to-one |
-| [schemaproperty](#schemaproperty)       | references | inbound   | many-to-one |
+| [Arrayschema](#arrayschema)             | aggregates | inbound   | many-to-one |
+| [Jsonschema](#jsonschema)               | aggregates | inbound   | many-to-one |
+| [Schemaproperty](#schemaproperty)       | aggregates | outbound  | many-to-one |
+| [Schemacomposition](#schemacomposition) | composes   | inbound   | many-to-one |
+| [Schemaproperty](#schemaproperty)       | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -218,8 +218,8 @@ A JSON Schema $ref pointer that references another schema by URI or JSON Pointer
 
 | Related Node                          | Predicate  | Direction | Cardinality |
 | ------------------------------------- | ---------- | --------- | ----------- |
-| [arrayschema](#arrayschema)           | aggregates | inbound   | many-to-one |
-| [schemadefinition](#schemadefinition) | references | outbound  | many-to-one |
+| [Arrayschema](#arrayschema)           | aggregates | inbound   | many-to-one |
+| [Schemadefinition](#schemadefinition) | references | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -238,8 +238,8 @@ Combines multiple schemas using boolean logic. allOf requires all subschemas to 
 
 | Related Node                          | Predicate | Direction | Cardinality |
 | ------------------------------------- | --------- | --------- | ----------- |
-| [objectschema](#objectschema)         | composes  | outbound  | many-to-one |
-| [schemadefinition](#schemadefinition) | composes  | outbound  | many-to-one |
+| [Objectschema](#objectschema)         | composes  | outbound  | many-to-one |
+| [Schemadefinition](#schemadefinition) | composes  | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -258,10 +258,10 @@ A reusable JSON Schema definition declared under the 'definitions' keyword and r
 
 | Related Node                            | Predicate   | Direction | Cardinality |
 | --------------------------------------- | ----------- | --------- | ----------- |
-| [jsonschema](#jsonschema)               | aggregates  | inbound   | many-to-one |
-| [reference](#reference)                 | references  | inbound   | many-to-one |
-| [schemacomposition](#schemacomposition) | composes    | inbound   | many-to-one |
-| [schemadefinition](#schemadefinition)   | specializes | outbound  | many-to-one |
+| [Jsonschema](#jsonschema)               | aggregates  | inbound   | many-to-one |
+| [Reference](#reference)                 | references  | inbound   | many-to-one |
+| [Schemacomposition](#schemacomposition) | composes    | inbound   | many-to-one |
+| [Schemadefinition](#schemadefinition)   | specializes | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -280,11 +280,11 @@ Defines a single property within a schema, including its type, constraints, vali
 
 | Related Node                    | Predicate  | Direction | Cardinality |
 | ------------------------------- | ---------- | --------- | ----------- |
-| [objectschema](#objectschema)   | aggregates | inbound   | many-to-one |
-| [arrayschema](#arrayschema)     | references | outbound  | many-to-one |
-| [numericschema](#numericschema) | references | outbound  | many-to-one |
-| [objectschema](#objectschema)   | references | outbound  | many-to-one |
-| [stringschema](#stringschema)   | references | outbound  | many-to-one |
+| [Objectschema](#objectschema)   | aggregates | inbound   | many-to-one |
+| [Arrayschema](#arrayschema)     | references | outbound  | many-to-one |
+| [Numericschema](#numericschema) | references | outbound  | many-to-one |
+| [Objectschema](#objectschema)   | references | outbound  | many-to-one |
+| [Stringschema](#stringschema)   | references | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -303,10 +303,10 @@ Defines validation rules for JSON string instances, including length bounds (min
 
 | Related Node                      | Predicate  | Direction | Cardinality |
 | --------------------------------- | ---------- | --------- | ----------- |
-| [schemaproperty](#schemaproperty) | references | inbound   | many-to-one |
+| [Schemaproperty](#schemaproperty) | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-28T15:47:18.825Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-02T20:37:51.224Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

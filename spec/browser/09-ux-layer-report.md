@@ -261,23 +261,23 @@ Interactive element that triggers actions (button, menu, link, voice command)
 
 | Related Node                              | Predicate       | Direction | Cardinality |
 | ----------------------------------------- | --------------- | --------- | ----------- |
-| [dataconfig](#dataconfig)                 | binds-to        | outbound  | many-to-one |
-| [actionpattern](#actionpattern)           | implements      | outbound  | many-to-one |
-| [view](#view)                             | navigates-to    | outbound  | many-to-one |
-| [actioncomponent](#actioncomponent)       | renders         | outbound  | many-to-one |
-| [componentinstance](#componentinstance)   | renders         | outbound  | many-to-one |
-| [componentreference](#componentreference) | renders         | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | renders         | outbound  | many-to-one |
-| [statetransition](#statetransition)       | triggers        | outbound  | many-to-one |
-| [errorconfig](#errorconfig)               | uses            | outbound  | many-to-one |
-| [actionpattern](#actionpattern)           | governs         | inbound   | many-to-one |
-| [componentinstance](#componentinstance)   | renders         | inbound   | many-to-one |
-| [componentreference](#componentreference) | renders         | inbound   | many-to-one |
-| [errorconfig](#errorconfig)               | governs         | inbound   | many-to-one |
-| [librarycomponent](#librarycomponent)     | composes        | inbound   | many-to-one |
-| [librarycomponent](#librarycomponent)     | renders         | inbound   | many-to-one |
-| [statetransition](#statetransition)       | associated-with | inbound   | many-to-one |
-| [view](#view)                             | aggregates      | inbound   | one-to-many |
+| [Dataconfig](#dataconfig)                 | binds-to        | outbound  | many-to-one |
+| [Actionpattern](#actionpattern)           | implements      | outbound  | many-to-one |
+| [View](#view)                             | navigates-to    | outbound  | many-to-one |
+| [Actioncomponent](#actioncomponent)       | renders         | outbound  | many-to-one |
+| [Componentinstance](#componentinstance)   | renders         | outbound  | many-to-one |
+| [Componentreference](#componentreference) | renders         | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | renders         | outbound  | many-to-one |
+| [Statetransition](#statetransition)       | triggers        | outbound  | many-to-one |
+| [Errorconfig](#errorconfig)               | uses            | outbound  | many-to-one |
+| [Actionpattern](#actionpattern)           | governs         | inbound   | many-to-one |
+| [Componentinstance](#componentinstance)   | renders         | inbound   | many-to-one |
+| [Componentreference](#componentreference) | renders         | inbound   | many-to-one |
+| [Errorconfig](#errorconfig)               | governs         | inbound   | many-to-one |
+| [Librarycomponent](#librarycomponent)     | composes        | inbound   | many-to-one |
+| [Librarycomponent](#librarycomponent)     | renders         | inbound   | many-to-one |
+| [Statetransition](#statetransition)       | associated-with | inbound   | many-to-one |
+| [View](#view)                             | aggregates      | inbound   | one-to-many |
 
 [Back to Index](#report-index)
 
@@ -296,16 +296,16 @@ Reusable action configuration for common user interactions. Defines the trigger,
 
 | Related Node                              | Predicate       | Direction | Cardinality |
 | ----------------------------------------- | --------------- | --------- | ----------- |
-| [actioncomponent](#actioncomponent)       | implements      | inbound   | many-to-one |
-| [statepattern](#statepattern)             | associated-with | outbound  | many-to-one |
-| [actioncomponent](#actioncomponent)       | governs         | outbound  | many-to-one |
-| [stateaction](#stateaction)               | governs         | outbound  | many-to-one |
-| [statetransition](#statetransition)       | triggers        | outbound  | many-to-one |
-| [transitiontemplate](#transitiontemplate) | uses            | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | uses            | inbound   | many-to-one |
-| [librarysubview](#librarysubview)         | uses            | inbound   | many-to-one |
-| [stateaction](#stateaction)               | uses            | inbound   | many-to-one |
-| [tablecolumn](#tablecolumn)               | references      | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)       | implements      | inbound   | many-to-one |
+| [Statepattern](#statepattern)             | associated-with | outbound  | many-to-one |
+| [Actioncomponent](#actioncomponent)       | governs         | outbound  | many-to-one |
+| [Stateaction](#stateaction)               | governs         | outbound  | many-to-one |
+| [Statetransition](#statetransition)       | triggers        | outbound  | many-to-one |
+| [Transitiontemplate](#transitiontemplate) | uses            | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | uses            | inbound   | many-to-one |
+| [Librarysubview](#librarysubview)         | uses            | inbound   | many-to-one |
+| [Stateaction](#stateaction)               | uses            | inbound   | many-to-one |
+| [Tablecolumn](#tablecolumn)               | references      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -324,11 +324,11 @@ Configuration for a data series within a chart component, specifying data source
 
 | Related Node                            | Predicate  | Direction | Cardinality |
 | --------------------------------------- | ---------- | --------- | ----------- |
-| [dataconfig](#dataconfig)               | binds-to   | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)   | references | outbound  | many-to-one |
-| [experiencestate](#experiencestate)     | uses       | outbound  | many-to-one |
-| [componentinstance](#componentinstance) | aggregates | inbound   | many-to-one |
-| [dataconfig](#dataconfig)               | composes   | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)               | binds-to   | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)   | references | outbound  | many-to-one |
+| [Experiencestate](#experiencestate)     | uses       | outbound  | many-to-one |
+| [Componentinstance](#componentinstance) | aggregates | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)               | composes   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -347,28 +347,28 @@ Instance of a LibraryComponent with application-specific configuration
 
 | Related Node                              | Predicate  | Direction | Cardinality |
 | ----------------------------------------- | ---------- | --------- | ----------- |
-| [actioncomponent](#actioncomponent)       | renders    | inbound   | many-to-one |
-| [chartseries](#chartseries)               | aggregates | outbound  | many-to-one |
-| [componentreference](#componentreference) | aggregates | outbound  | many-to-one |
-| [tablecolumn](#tablecolumn)               | aggregates | outbound  | many-to-one |
-| [dataconfig](#dataconfig)                 | binds-to   | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | implements | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | realizes   | outbound  | many-to-one |
-| [actioncomponent](#actioncomponent)       | renders    | outbound  | many-to-one |
-| [componentinstance](#componentinstance)   | renders    | outbound  | many-to-one |
-| [componentreference](#componentreference) | renders    | outbound  | many-to-one |
-| [layoutconfig](#layoutconfig)             | renders    | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | renders    | outbound  | many-to-one |
-| [errorconfig](#errorconfig)               | uses       | outbound  | many-to-one |
-| [componentreference](#componentreference) | renders    | inbound   | many-to-one |
-| [dataconfig](#dataconfig)                 | binds-to   | inbound   | many-to-one |
-| [errorconfig](#errorconfig)               | governs    | inbound   | many-to-one |
-| [librarycomponent](#librarycomponent)     | renders    | inbound   | many-to-one |
-| [librarysubview](#librarysubview)         | composes   | inbound   | many-to-one |
-| [subview](#subview)                       | aggregates | inbound   | many-to-one |
-| [subview](#subview)                       | renders    | inbound   | many-to-one |
-| [tablecolumn](#tablecolumn)               | renders    | inbound   | many-to-one |
-| [view](#view)                             | renders    | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)       | renders    | inbound   | many-to-one |
+| [Chartseries](#chartseries)               | aggregates | outbound  | many-to-one |
+| [Componentreference](#componentreference) | aggregates | outbound  | many-to-one |
+| [Tablecolumn](#tablecolumn)               | aggregates | outbound  | many-to-one |
+| [Dataconfig](#dataconfig)                 | binds-to   | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | implements | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | realizes   | outbound  | many-to-one |
+| [Actioncomponent](#actioncomponent)       | renders    | outbound  | many-to-one |
+| [Componentinstance](#componentinstance)   | renders    | outbound  | many-to-one |
+| [Componentreference](#componentreference) | renders    | outbound  | many-to-one |
+| [Layoutconfig](#layoutconfig)             | renders    | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | renders    | outbound  | many-to-one |
+| [Errorconfig](#errorconfig)               | uses       | outbound  | many-to-one |
+| [Componentreference](#componentreference) | renders    | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)                 | binds-to   | inbound   | many-to-one |
+| [Errorconfig](#errorconfig)               | governs    | inbound   | many-to-one |
+| [Librarycomponent](#librarycomponent)     | renders    | inbound   | many-to-one |
+| [Librarysubview](#librarysubview)         | composes   | inbound   | many-to-one |
+| [Subview](#subview)                       | aggregates | inbound   | many-to-one |
+| [Subview](#subview)                       | renders    | inbound   | many-to-one |
+| [Tablecolumn](#tablecolumn)               | renders    | inbound   | many-to-one |
+| [View](#view)                             | renders    | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -387,16 +387,16 @@ A declarative placeholder in a parent component's named slot, pointing to anothe
 
 | Related Node                              | Predicate  | Direction | Cardinality |
 | ----------------------------------------- | ---------- | --------- | ----------- |
-| [actioncomponent](#actioncomponent)       | renders    | inbound   | many-to-one |
-| [componentinstance](#componentinstance)   | aggregates | inbound   | many-to-one |
-| [componentinstance](#componentinstance)   | renders    | inbound   | many-to-one |
-| [librarycomponent](#librarycomponent)     | implements | outbound  | many-to-one |
-| [actioncomponent](#actioncomponent)       | renders    | outbound  | many-to-one |
-| [componentinstance](#componentinstance)   | renders    | outbound  | many-to-one |
-| [componentreference](#componentreference) | renders    | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | renders    | outbound  | many-to-one |
-| [layoutconfig](#layoutconfig)             | uses       | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | renders    | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)       | renders    | inbound   | many-to-one |
+| [Componentinstance](#componentinstance)   | aggregates | inbound   | many-to-one |
+| [Componentinstance](#componentinstance)   | renders    | inbound   | many-to-one |
+| [Librarycomponent](#librarycomponent)     | implements | outbound  | many-to-one |
+| [Actioncomponent](#actioncomponent)       | renders    | outbound  | many-to-one |
+| [Componentinstance](#componentinstance)   | renders    | outbound  | many-to-one |
+| [Componentreference](#componentreference) | renders    | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | renders    | outbound  | many-to-one |
+| [Layoutconfig](#layoutconfig)             | uses       | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | renders    | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -415,22 +415,22 @@ Configuration for data binding and state management within UI components, defini
 
 | Related Node                            | Predicate       | Direction | Cardinality |
 | --------------------------------------- | --------------- | --------- | ----------- |
-| [actioncomponent](#actioncomponent)     | binds-to        | inbound   | many-to-one |
-| [chartseries](#chartseries)             | binds-to        | inbound   | many-to-one |
-| [componentinstance](#componentinstance) | binds-to        | inbound   | many-to-one |
-| [errorconfig](#errorconfig)             | aggregates      | outbound  | many-to-one |
-| [componentinstance](#componentinstance) | binds-to        | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)   | binds-to        | outbound  | many-to-one |
-| [subview](#subview)                     | binds-to        | outbound  | many-to-one |
-| [view](#view)                           | binds-to        | outbound  | many-to-one |
-| [chartseries](#chartseries)             | composes        | outbound  | many-to-one |
-| [tablecolumn](#tablecolumn)             | provides        | outbound  | many-to-one |
-| [statepattern](#statepattern)           | realizes        | outbound  | many-to-one |
-| [errorconfig](#errorconfig)             | associated-with | inbound   | many-to-one |
-| [librarysubview](#librarysubview)       | uses            | inbound   | many-to-one |
-| [subview](#subview)                     | binds-to        | inbound   | many-to-one |
-| [tablecolumn](#tablecolumn)             | binds-to        | inbound   | many-to-one |
-| [view](#view)                           | binds-to        | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)     | binds-to        | inbound   | many-to-one |
+| [Chartseries](#chartseries)             | binds-to        | inbound   | many-to-one |
+| [Componentinstance](#componentinstance) | binds-to        | inbound   | many-to-one |
+| [Errorconfig](#errorconfig)             | aggregates      | outbound  | many-to-one |
+| [Componentinstance](#componentinstance) | binds-to        | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)   | binds-to        | outbound  | many-to-one |
+| [Subview](#subview)                     | binds-to        | outbound  | many-to-one |
+| [View](#view)                           | binds-to        | outbound  | many-to-one |
+| [Chartseries](#chartseries)             | composes        | outbound  | many-to-one |
+| [Tablecolumn](#tablecolumn)             | provides        | outbound  | many-to-one |
+| [Statepattern](#statepattern)           | realizes        | outbound  | many-to-one |
+| [Errorconfig](#errorconfig)             | associated-with | inbound   | many-to-one |
+| [Librarysubview](#librarysubview)       | uses            | inbound   | many-to-one |
+| [Subview](#subview)                     | binds-to        | inbound   | many-to-one |
+| [Tablecolumn](#tablecolumn)             | binds-to        | inbound   | many-to-one |
+| [View](#view)                           | binds-to        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -449,17 +449,17 @@ Configuration for error handling and display within UI components, specifying er
 
 | Related Node                            | Predicate       | Direction | Cardinality |
 | --------------------------------------- | --------------- | --------- | ----------- |
-| [actioncomponent](#actioncomponent)     | uses            | inbound   | many-to-one |
-| [componentinstance](#componentinstance) | uses            | inbound   | many-to-one |
-| [dataconfig](#dataconfig)               | aggregates      | inbound   | many-to-one |
-| [dataconfig](#dataconfig)               | associated-with | outbound  | many-to-one |
-| [actioncomponent](#actioncomponent)     | governs         | outbound  | many-to-one |
-| [componentinstance](#componentinstance) | governs         | outbound  | many-to-one |
-| [experiencestate](#experiencestate)     | governs         | outbound  | many-to-one |
-| [view](#view)                           | governs         | outbound  | many-to-one |
-| [subview](#subview)                     | uses            | inbound   | many-to-one |
-| [uxspec](#uxspec)                       | governs         | inbound   | many-to-one |
-| [view](#view)                           | requires        | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)     | uses            | inbound   | many-to-one |
+| [Componentinstance](#componentinstance) | uses            | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)               | aggregates      | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)               | associated-with | outbound  | many-to-one |
+| [Actioncomponent](#actioncomponent)     | governs         | outbound  | many-to-one |
+| [Componentinstance](#componentinstance) | governs         | outbound  | many-to-one |
+| [Experiencestate](#experiencestate)     | governs         | outbound  | many-to-one |
+| [View](#view)                           | governs         | outbound  | many-to-one |
+| [Subview](#subview)                     | uses            | inbound   | many-to-one |
+| [Uxspec](#uxspec)                       | governs         | inbound   | many-to-one |
+| [View](#view)                           | requires        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -478,20 +478,20 @@ Distinct state that the experience can be in (works across all channels)
 
 | Related Node                                | Predicate    | Direction | Cardinality |
 | ------------------------------------------- | ------------ | --------- | ----------- |
-| [chartseries](#chartseries)                 | uses         | inbound   | many-to-one |
-| [errorconfig](#errorconfig)                 | governs      | inbound   | many-to-one |
-| [statetransition](#statetransition)         | flows-to     | outbound  | many-to-one |
-| [view](#view)                               | governs      | outbound  | many-to-one |
-| [experiencestate](#experiencestate)         | navigates-to | outbound  | many-to-one |
-| [view](#view)                               | renders      | outbound  | many-to-one |
-| [statepattern](#statepattern)               | specializes  | outbound  | many-to-one |
-| [stateaction](#stateaction)                 | triggers     | outbound  | many-to-one |
-| [stateactiontemplate](#stateactiontemplate) | uses         | outbound  | many-to-one |
-| [statepattern](#statepattern)               | aggregates   | inbound   | many-to-one |
-| [statepattern](#statepattern)               | governs      | inbound   | many-to-one |
-| [statetransition](#statetransition)         | navigates-to | inbound   | many-to-one |
-| [transitiontemplate](#transitiontemplate)   | flows-to     | inbound   | many-to-one |
-| [uxspec](#uxspec)                           | aggregates   | inbound   | many-to-one |
+| [Chartseries](#chartseries)                 | uses         | inbound   | many-to-one |
+| [Errorconfig](#errorconfig)                 | governs      | inbound   | many-to-one |
+| [Statetransition](#statetransition)         | flows-to     | outbound  | many-to-one |
+| [View](#view)                               | governs      | outbound  | many-to-one |
+| [Experiencestate](#experiencestate)         | navigates-to | outbound  | many-to-one |
+| [View](#view)                               | renders      | outbound  | many-to-one |
+| [Statepattern](#statepattern)               | specializes  | outbound  | many-to-one |
+| [Stateaction](#stateaction)                 | triggers     | outbound  | many-to-one |
+| [Stateactiontemplate](#stateactiontemplate) | uses         | outbound  | many-to-one |
+| [Statepattern](#statepattern)               | aggregates   | inbound   | many-to-one |
+| [Statepattern](#statepattern)               | governs      | inbound   | many-to-one |
+| [Statetransition](#statetransition)         | navigates-to | inbound   | many-to-one |
+| [Transitiontemplate](#transitiontemplate)   | flows-to     | inbound   | many-to-one |
+| [Uxspec](#uxspec)                           | aggregates   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -510,17 +510,17 @@ Configuration for UI layout structure, defining grid systems, responsive breakpo
 
 | Related Node                              | Predicate       | Direction | Cardinality |
 | ----------------------------------------- | --------------- | --------- | ----------- |
-| [componentinstance](#componentinstance)   | renders         | inbound   | many-to-one |
-| [componentreference](#componentreference) | uses            | inbound   | many-to-one |
-| [librarycomponent](#librarycomponent)     | associated-with | outbound  | many-to-one |
-| [layoutconfig](#layoutconfig)             | composes        | outbound  | many-to-one |
-| [view](#view)                             | governs         | outbound  | many-to-one |
-| [subview](#subview)                       | provides        | outbound  | many-to-one |
-| [view](#view)                             | provides        | outbound  | many-to-one |
-| [librarysubview](#librarysubview)         | uses            | inbound   | many-to-one |
-| [subview](#subview)                       | uses            | inbound   | many-to-one |
-| [tablecolumn](#tablecolumn)               | uses            | inbound   | many-to-one |
-| [view](#view)                             | uses            | inbound   | many-to-one |
+| [Componentinstance](#componentinstance)   | renders         | inbound   | many-to-one |
+| [Componentreference](#componentreference) | uses            | inbound   | many-to-one |
+| [Librarycomponent](#librarycomponent)     | associated-with | outbound  | many-to-one |
+| [Layoutconfig](#layoutconfig)             | composes        | outbound  | many-to-one |
+| [View](#view)                             | governs         | outbound  | many-to-one |
+| [Subview](#subview)                       | provides        | outbound  | many-to-one |
+| [View](#view)                             | provides        | outbound  | many-to-one |
+| [Librarysubview](#librarysubview)         | uses            | inbound   | many-to-one |
+| [Subview](#subview)                       | uses            | inbound   | many-to-one |
+| [Tablecolumn](#tablecolumn)               | uses            | inbound   | many-to-one |
+| [View](#view)                             | uses            | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -539,26 +539,26 @@ Reusable UI component definition that can be instantiated in multiple UXSpecs
 
 | Related Node                              | Predicate       | Direction | Cardinality |
 | ----------------------------------------- | --------------- | --------- | ----------- |
-| [actioncomponent](#actioncomponent)       | renders         | inbound   | many-to-one |
-| [chartseries](#chartseries)               | references      | inbound   | many-to-one |
-| [componentinstance](#componentinstance)   | implements      | inbound   | many-to-one |
-| [componentinstance](#componentinstance)   | realizes        | inbound   | many-to-one |
-| [componentinstance](#componentinstance)   | renders         | inbound   | many-to-one |
-| [componentreference](#componentreference) | implements      | inbound   | many-to-one |
-| [componentreference](#componentreference) | renders         | inbound   | many-to-one |
-| [dataconfig](#dataconfig)                 | binds-to        | inbound   | many-to-one |
-| [layoutconfig](#layoutconfig)             | associated-with | inbound   | many-to-one |
-| [actioncomponent](#actioncomponent)       | composes        | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | composes        | outbound  | many-to-one |
-| [actioncomponent](#actioncomponent)       | renders         | outbound  | many-to-one |
-| [componentinstance](#componentinstance)   | renders         | outbound  | many-to-one |
-| [componentreference](#componentreference) | renders         | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | renders         | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent)     | specializes     | outbound  | many-to-one |
-| [actionpattern](#actionpattern)           | uses            | outbound  | many-to-one |
-| [statepattern](#statepattern)             | uses            | outbound  | many-to-one |
-| [uxlibrary](#uxlibrary)                   | aggregates      | inbound   | many-to-one |
-| [uxlibrary](#uxlibrary)                   | provides        | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)       | renders         | inbound   | many-to-one |
+| [Chartseries](#chartseries)               | references      | inbound   | many-to-one |
+| [Componentinstance](#componentinstance)   | implements      | inbound   | many-to-one |
+| [Componentinstance](#componentinstance)   | realizes        | inbound   | many-to-one |
+| [Componentinstance](#componentinstance)   | renders         | inbound   | many-to-one |
+| [Componentreference](#componentreference) | implements      | inbound   | many-to-one |
+| [Componentreference](#componentreference) | renders         | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)                 | binds-to        | inbound   | many-to-one |
+| [Layoutconfig](#layoutconfig)             | associated-with | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)       | composes        | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | composes        | outbound  | many-to-one |
+| [Actioncomponent](#actioncomponent)       | renders         | outbound  | many-to-one |
+| [Componentinstance](#componentinstance)   | renders         | outbound  | many-to-one |
+| [Componentreference](#componentreference) | renders         | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | renders         | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent)     | specializes     | outbound  | many-to-one |
+| [Actionpattern](#actionpattern)           | uses            | outbound  | many-to-one |
+| [Statepattern](#statepattern)             | uses            | outbound  | many-to-one |
+| [Uxlibrary](#uxlibrary)                   | aggregates      | inbound   | many-to-one |
+| [Uxlibrary](#uxlibrary)                   | provides        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -577,14 +577,14 @@ Reusable, non-routable grouping of components intended to be composed into Views
 
 | Related Node                            | Predicate  | Direction | Cardinality |
 | --------------------------------------- | ---------- | --------- | ----------- |
-| [componentinstance](#componentinstance) | composes   | outbound  | many-to-one |
-| [actionpattern](#actionpattern)         | uses       | outbound  | many-to-one |
-| [dataconfig](#dataconfig)               | uses       | outbound  | many-to-one |
-| [layoutconfig](#layoutconfig)           | uses       | outbound  | many-to-one |
-| [subview](#subview)                     | realizes   | inbound   | many-to-one |
-| [subview](#subview)                     | uses       | inbound   | many-to-one |
-| [uxlibrary](#uxlibrary)                 | aggregates | inbound   | many-to-one |
-| [uxlibrary](#uxlibrary)                 | provides   | inbound   | many-to-one |
+| [Componentinstance](#componentinstance) | composes   | outbound  | many-to-one |
+| [Actionpattern](#actionpattern)         | uses       | outbound  | many-to-one |
+| [Dataconfig](#dataconfig)               | uses       | outbound  | many-to-one |
+| [Layoutconfig](#layoutconfig)           | uses       | outbound  | many-to-one |
+| [Subview](#subview)                     | realizes   | inbound   | many-to-one |
+| [Subview](#subview)                     | uses       | inbound   | many-to-one |
+| [Uxlibrary](#uxlibrary)                 | aggregates | inbound   | many-to-one |
+| [Uxlibrary](#uxlibrary)                 | provides   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -603,15 +603,15 @@ A concrete action bound to a specific ExperienceState lifecycle event. Instances
 
 | Related Node                                | Predicate   | Direction | Cardinality |
 | ------------------------------------------- | ----------- | --------- | ----------- |
-| [actionpattern](#actionpattern)             | governs     | inbound   | many-to-one |
-| [experiencestate](#experiencestate)         | triggers    | inbound   | many-to-one |
-| [statetransition](#statetransition)         | flows-to    | outbound  | many-to-one |
-| [stateactiontemplate](#stateactiontemplate) | specializes | outbound  | many-to-one |
-| [actionpattern](#actionpattern)             | uses        | outbound  | many-to-one |
-| [stateactiontemplate](#stateactiontemplate) | implements  | inbound   | many-to-one |
-| [stateactiontemplate](#stateactiontemplate) | provides    | inbound   | many-to-one |
-| [statetransition](#statetransition)         | triggers    | inbound   | many-to-one |
-| [transitiontemplate](#transitiontemplate)   | triggers    | inbound   | many-to-one |
+| [Actionpattern](#actionpattern)             | governs     | inbound   | many-to-one |
+| [Experiencestate](#experiencestate)         | triggers    | inbound   | many-to-one |
+| [Statetransition](#statetransition)         | flows-to    | outbound  | many-to-one |
+| [Stateactiontemplate](#stateactiontemplate) | specializes | outbound  | many-to-one |
+| [Actionpattern](#actionpattern)             | uses        | outbound  | many-to-one |
+| [Stateactiontemplate](#stateactiontemplate) | implements  | inbound   | many-to-one |
+| [Stateactiontemplate](#stateactiontemplate) | provides    | inbound   | many-to-one |
+| [Statetransition](#statetransition)         | triggers    | inbound   | many-to-one |
+| [Transitiontemplate](#transitiontemplate)   | triggers    | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -630,13 +630,13 @@ A parameterizable, reusable definition of an action to execute during state tran
 
 | Related Node                        | Predicate       | Direction | Cardinality |
 | ----------------------------------- | --------------- | --------- | ----------- |
-| [experiencestate](#experiencestate) | uses            | inbound   | many-to-one |
-| [stateaction](#stateaction)         | specializes     | inbound   | many-to-one |
-| [statepattern](#statepattern)       | associated-with | outbound  | many-to-one |
-| [statetransition](#statetransition) | governs         | outbound  | many-to-one |
-| [stateaction](#stateaction)         | implements      | outbound  | many-to-one |
-| [stateaction](#stateaction)         | provides        | outbound  | many-to-one |
-| [statepattern](#statepattern)       | uses            | inbound   | many-to-one |
+| [Experiencestate](#experiencestate) | uses            | inbound   | many-to-one |
+| [Stateaction](#stateaction)         | specializes     | inbound   | many-to-one |
+| [Statepattern](#statepattern)       | associated-with | outbound  | many-to-one |
+| [Statetransition](#statetransition) | governs         | outbound  | many-to-one |
+| [Stateaction](#stateaction)         | implements      | outbound  | many-to-one |
+| [Stateaction](#stateaction)         | provides        | outbound  | many-to-one |
+| [Statepattern](#statepattern)       | uses            | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -655,16 +655,16 @@ Reusable state machine template for common UX interaction flows, composed of nam
 
 | Related Node                                | Predicate       | Direction | Cardinality |
 | ------------------------------------------- | --------------- | --------- | ----------- |
-| [actionpattern](#actionpattern)             | associated-with | inbound   | many-to-one |
-| [dataconfig](#dataconfig)                   | realizes        | inbound   | many-to-one |
-| [experiencestate](#experiencestate)         | specializes     | inbound   | many-to-one |
-| [librarycomponent](#librarycomponent)       | uses            | inbound   | many-to-one |
-| [stateactiontemplate](#stateactiontemplate) | associated-with | inbound   | many-to-one |
-| [experiencestate](#experiencestate)         | aggregates      | outbound  | many-to-one |
-| [experiencestate](#experiencestate)         | governs         | outbound  | many-to-one |
-| [statepattern](#statepattern)               | specializes     | outbound  | many-to-one |
-| [stateactiontemplate](#stateactiontemplate) | uses            | outbound  | many-to-one |
-| [transitiontemplate](#transitiontemplate)   | uses            | outbound  | many-to-one |
+| [Actionpattern](#actionpattern)             | associated-with | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)                   | realizes        | inbound   | many-to-one |
+| [Experiencestate](#experiencestate)         | specializes     | inbound   | many-to-one |
+| [Librarycomponent](#librarycomponent)       | uses            | inbound   | many-to-one |
+| [Stateactiontemplate](#stateactiontemplate) | associated-with | inbound   | many-to-one |
+| [Experiencestate](#experiencestate)         | aggregates      | outbound  | many-to-one |
+| [Experiencestate](#experiencestate)         | governs         | outbound  | many-to-one |
+| [Statepattern](#statepattern)               | specializes     | outbound  | many-to-one |
+| [Stateactiontemplate](#stateactiontemplate) | uses            | outbound  | many-to-one |
+| [Transitiontemplate](#transitiontemplate)   | uses            | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -683,16 +683,16 @@ A directed edge in the ExperienceState machine, owned by its source ExperienceSt
 
 | Related Node                                | Predicate       | Direction | Cardinality |
 | ------------------------------------------- | --------------- | --------- | ----------- |
-| [actioncomponent](#actioncomponent)         | triggers        | inbound   | many-to-one |
-| [actionpattern](#actionpattern)             | triggers        | inbound   | many-to-one |
-| [experiencestate](#experiencestate)         | flows-to        | inbound   | many-to-one |
-| [stateaction](#stateaction)                 | flows-to        | inbound   | many-to-one |
-| [stateactiontemplate](#stateactiontemplate) | governs         | inbound   | many-to-one |
-| [actioncomponent](#actioncomponent)         | associated-with | outbound  | many-to-one |
-| [experiencestate](#experiencestate)         | navigates-to    | outbound  | many-to-one |
-| [stateaction](#stateaction)                 | triggers        | outbound  | many-to-one |
-| [transitiontemplate](#transitiontemplate)   | uses            | outbound  | many-to-one |
-| [transitiontemplate](#transitiontemplate)   | governs         | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)         | triggers        | inbound   | many-to-one |
+| [Actionpattern](#actionpattern)             | triggers        | inbound   | many-to-one |
+| [Experiencestate](#experiencestate)         | flows-to        | inbound   | many-to-one |
+| [Stateaction](#stateaction)                 | flows-to        | inbound   | many-to-one |
+| [Stateactiontemplate](#stateactiontemplate) | governs         | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)         | associated-with | outbound  | many-to-one |
+| [Experiencestate](#experiencestate)         | navigates-to    | outbound  | many-to-one |
+| [Stateaction](#stateaction)                 | triggers        | outbound  | many-to-one |
+| [Transitiontemplate](#transitiontemplate)   | uses            | outbound  | many-to-one |
+| [Transitiontemplate](#transitiontemplate)   | governs         | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -711,18 +711,18 @@ A non-routable UI fragment embedded within a parent View. Two usage modes: (1) L
 
 | Related Node                              | Predicate  | Direction | Cardinality |
 | ----------------------------------------- | ---------- | --------- | ----------- |
-| [dataconfig](#dataconfig)                 | binds-to   | inbound   | many-to-one |
-| [layoutconfig](#layoutconfig)             | provides   | inbound   | many-to-one |
-| [componentinstance](#componentinstance)   | aggregates | outbound  | many-to-one |
-| [dataconfig](#dataconfig)                 | binds-to   | outbound  | many-to-one |
-| [librarysubview](#librarysubview)         | realizes   | outbound  | many-to-one |
-| [componentinstance](#componentinstance)   | renders    | outbound  | many-to-one |
-| [errorconfig](#errorconfig)               | uses       | outbound  | many-to-one |
-| [layoutconfig](#layoutconfig)             | uses       | outbound  | many-to-one |
-| [librarysubview](#librarysubview)         | uses       | outbound  | many-to-one |
-| [transitiontemplate](#transitiontemplate) | flows-to   | inbound   | many-to-one |
-| [view](#view)                             | aggregates | inbound   | many-to-one |
-| [view](#view)                             | composes   | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)                 | binds-to   | inbound   | many-to-one |
+| [Layoutconfig](#layoutconfig)             | provides   | inbound   | many-to-one |
+| [Componentinstance](#componentinstance)   | aggregates | outbound  | many-to-one |
+| [Dataconfig](#dataconfig)                 | binds-to   | outbound  | many-to-one |
+| [Librarysubview](#librarysubview)         | realizes   | outbound  | many-to-one |
+| [Componentinstance](#componentinstance)   | renders    | outbound  | many-to-one |
+| [Errorconfig](#errorconfig)               | uses       | outbound  | many-to-one |
+| [Layoutconfig](#layoutconfig)             | uses       | outbound  | many-to-one |
+| [Librarysubview](#librarysubview)         | uses       | outbound  | many-to-one |
+| [Transitiontemplate](#transitiontemplate) | flows-to   | inbound   | many-to-one |
+| [View](#view)                             | aggregates | inbound   | many-to-one |
+| [View](#view)                             | composes   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -741,12 +741,12 @@ Configuration for a single column within a data table component, specifying head
 
 | Related Node                            | Predicate  | Direction | Cardinality |
 | --------------------------------------- | ---------- | --------- | ----------- |
-| [componentinstance](#componentinstance) | aggregates | inbound   | many-to-one |
-| [dataconfig](#dataconfig)               | provides   | inbound   | many-to-one |
-| [dataconfig](#dataconfig)               | binds-to   | outbound  | many-to-one |
-| [actionpattern](#actionpattern)         | references | outbound  | many-to-one |
-| [componentinstance](#componentinstance) | renders    | outbound  | many-to-one |
-| [layoutconfig](#layoutconfig)           | uses       | outbound  | many-to-one |
+| [Componentinstance](#componentinstance) | aggregates | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)               | provides   | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)               | binds-to   | outbound  | many-to-one |
+| [Actionpattern](#actionpattern)         | references | outbound  | many-to-one |
+| [Componentinstance](#componentinstance) | renders    | outbound  | many-to-one |
+| [Layoutconfig](#layoutconfig)           | uses       | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -765,15 +765,15 @@ Defines reusable animation and transition patterns for state changes, page navig
 
 | Related Node                              | Predicate    | Direction | Cardinality |
 | ----------------------------------------- | ------------ | --------- | ----------- |
-| [actionpattern](#actionpattern)           | uses         | inbound   | many-to-one |
-| [statepattern](#statepattern)             | uses         | inbound   | many-to-one |
-| [statetransition](#statetransition)       | uses         | inbound   | many-to-one |
-| [experiencestate](#experiencestate)       | flows-to     | outbound  | many-to-one |
-| [subview](#subview)                       | flows-to     | outbound  | many-to-one |
-| [statetransition](#statetransition)       | governs      | outbound  | many-to-one |
-| [view](#view)                             | navigates-to | outbound  | many-to-one |
-| [transitiontemplate](#transitiontemplate) | specializes  | outbound  | many-to-one |
-| [stateaction](#stateaction)               | triggers     | outbound  | many-to-one |
+| [Actionpattern](#actionpattern)           | uses         | inbound   | many-to-one |
+| [Statepattern](#statepattern)             | uses         | inbound   | many-to-one |
+| [Statetransition](#statetransition)       | uses         | inbound   | many-to-one |
+| [Experiencestate](#experiencestate)       | flows-to     | outbound  | many-to-one |
+| [Subview](#subview)                       | flows-to     | outbound  | many-to-one |
+| [Statetransition](#statetransition)       | governs      | outbound  | many-to-one |
+| [View](#view)                             | navigates-to | outbound  | many-to-one |
+| [Transitiontemplate](#transitiontemplate) | specializes  | outbound  | many-to-one |
+| [Stateaction](#stateaction)               | triggers     | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -792,7 +792,7 @@ Application-level UX configuration that groups UXSpecs and defines shared settin
 
 | Related Node      | Predicate  | Direction | Cardinality |
 | ----------------- | ---------- | --------- | ----------- |
-| [uxspec](#uxspec) | aggregates | outbound  | many-to-one |
+| [Uxspec](#uxspec) | aggregates | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -811,12 +811,12 @@ Collection of reusable UI components and sub-views that can be shared across app
 
 | Related Node                          | Predicate  | Direction | Cardinality |
 | ------------------------------------- | ---------- | --------- | ----------- |
-| [librarycomponent](#librarycomponent) | aggregates | outbound  | many-to-one |
-| [librarysubview](#librarysubview)     | aggregates | outbound  | many-to-one |
-| [librarycomponent](#librarycomponent) | provides   | outbound  | many-to-one |
-| [librarysubview](#librarysubview)     | provides   | outbound  | many-to-one |
-| [uxlibrary](#uxlibrary)               | uses       | outbound  | many-to-one |
-| [uxspec](#uxspec)                     | uses       | inbound   | many-to-one |
+| [Librarycomponent](#librarycomponent) | aggregates | outbound  | many-to-one |
+| [Librarysubview](#librarysubview)     | aggregates | outbound  | many-to-one |
+| [Librarycomponent](#librarycomponent) | provides   | outbound  | many-to-one |
+| [Librarysubview](#librarysubview)     | provides   | outbound  | many-to-one |
+| [Uxlibrary](#uxlibrary)               | uses       | outbound  | many-to-one |
+| [Uxspec](#uxspec)                     | uses       | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -835,11 +835,11 @@ Complete UX specification for a single experience (visual, voice, chat, SMS)
 
 | Related Node                        | Predicate  | Direction | Cardinality |
 | ----------------------------------- | ---------- | --------- | ----------- |
-| [uxapplication](#uxapplication)     | aggregates | inbound   | many-to-one |
-| [experiencestate](#experiencestate) | aggregates | outbound  | many-to-one |
-| [view](#view)                       | aggregates | outbound  | many-to-one |
-| [errorconfig](#errorconfig)         | governs    | outbound  | many-to-one |
-| [uxlibrary](#uxlibrary)             | uses       | outbound  | many-to-one |
+| [Uxapplication](#uxapplication)     | aggregates | inbound   | many-to-one |
+| [Experiencestate](#experiencestate) | aggregates | outbound  | many-to-one |
+| [View](#view)                       | aggregates | outbound  | many-to-one |
+| [Errorconfig](#errorconfig)         | governs    | outbound  | many-to-one |
+| [Uxlibrary](#uxlibrary)             | uses       | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -858,25 +858,25 @@ Routable grouping of components (a complete user experience)
 
 | Related Node                              | Predicate    | Direction | Cardinality |
 | ----------------------------------------- | ------------ | --------- | ----------- |
-| [actioncomponent](#actioncomponent)       | navigates-to | inbound   | many-to-one |
-| [dataconfig](#dataconfig)                 | binds-to     | inbound   | many-to-one |
-| [errorconfig](#errorconfig)               | governs      | inbound   | many-to-one |
-| [experiencestate](#experiencestate)       | governs      | inbound   | many-to-one |
-| [experiencestate](#experiencestate)       | renders      | inbound   | many-to-one |
-| [layoutconfig](#layoutconfig)             | governs      | inbound   | many-to-one |
-| [layoutconfig](#layoutconfig)             | provides     | inbound   | many-to-one |
-| [transitiontemplate](#transitiontemplate) | navigates-to | inbound   | many-to-one |
-| [uxspec](#uxspec)                         | aggregates   | inbound   | many-to-one |
-| [actioncomponent](#actioncomponent)       | aggregates   | outbound  | one-to-many |
-| [subview](#subview)                       | aggregates   | outbound  | many-to-one |
-| [dataconfig](#dataconfig)                 | binds-to     | outbound  | many-to-one |
-| [subview](#subview)                       | composes     | outbound  | many-to-one |
-| [componentinstance](#componentinstance)   | renders      | outbound  | many-to-one |
-| [errorconfig](#errorconfig)               | requires     | outbound  | many-to-one |
-| [layoutconfig](#layoutconfig)             | uses         | outbound  | many-to-one |
+| [Actioncomponent](#actioncomponent)       | navigates-to | inbound   | many-to-one |
+| [Dataconfig](#dataconfig)                 | binds-to     | inbound   | many-to-one |
+| [Errorconfig](#errorconfig)               | governs      | inbound   | many-to-one |
+| [Experiencestate](#experiencestate)       | governs      | inbound   | many-to-one |
+| [Experiencestate](#experiencestate)       | renders      | inbound   | many-to-one |
+| [Layoutconfig](#layoutconfig)             | governs      | inbound   | many-to-one |
+| [Layoutconfig](#layoutconfig)             | provides     | inbound   | many-to-one |
+| [Transitiontemplate](#transitiontemplate) | navigates-to | inbound   | many-to-one |
+| [Uxspec](#uxspec)                         | aggregates   | inbound   | many-to-one |
+| [Actioncomponent](#actioncomponent)       | aggregates   | outbound  | one-to-many |
+| [Subview](#subview)                       | aggregates   | outbound  | many-to-one |
+| [Dataconfig](#dataconfig)                 | binds-to     | outbound  | many-to-one |
+| [Subview](#subview)                       | composes     | outbound  | many-to-one |
+| [Componentinstance](#componentinstance)   | renders      | outbound  | many-to-one |
+| [Errorconfig](#errorconfig)               | requires     | outbound  | many-to-one |
+| [Layoutconfig](#layoutconfig)             | uses         | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-28T15:47:18.827Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-02T20:37:51.227Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

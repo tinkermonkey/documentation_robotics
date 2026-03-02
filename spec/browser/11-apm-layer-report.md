@@ -158,8 +158,8 @@ flowchart TB
 
 | Relationship ID                                                  | Source Node                                                               | Dest Node                                                         | Dest Layer                      | Predicate  | Cardinality | Strength |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------- | ---------- | ----------- | -------- |
-| api.operation.references.apm.traceconfiguration                  | [operation](./06-api-layer-report.md#operation)                           | [traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [APM](./11-apm-layer-report.md) | references | many-to-one | medium   |
-| application.applicationservice.references.apm.traceconfiguration | [applicationservice](./04-application-layer-report.md#applicationservice) | [traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [APM](./11-apm-layer-report.md) | references | many-to-one | medium   |
+| api.operation.references.apm.traceconfiguration                  | [Operation](./06-api-layer-report.md#operation)                           | [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [APM](./11-apm-layer-report.md) | references | many-to-one | medium   |
+| application.applicationservice.references.apm.traceconfiguration | [Applicationservice](./04-application-layer-report.md#applicationservice) | [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [APM](./11-apm-layer-report.md) | references | many-to-one | medium   |
 
 ## Node Reference
 
@@ -178,17 +178,17 @@ Configuration for telemetry data export destinations, specifying protocol (OTLP,
 
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
-| [resource](#resource)                         | serves     | outbound  | many-to-many |
-| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
-| [logconfiguration](#logconfiguration)         | aggregates | inbound   | many-to-one  |
-| [logconfiguration](#logconfiguration)         | flows-to   | inbound   | many-to-one  |
-| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
-| [metricconfiguration](#metricconfiguration)   | aggregates | inbound   | many-to-one  |
-| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
-| [resource](#resource)                         | aggregates | inbound   | many-to-many |
-| [span](#span)                                 | flows-to   | inbound   | many-to-many |
-| [spanevent](#spanevent)                       | flows-to   | inbound   | many-to-one  |
-| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
+| [Resource](#resource)                         | serves     | outbound  | many-to-many |
+| [Instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
+| [Logconfiguration](#logconfiguration)         | aggregates | inbound   | many-to-one  |
+| [Logconfiguration](#logconfiguration)         | flows-to   | inbound   | many-to-one  |
+| [Logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
+| [Metricconfiguration](#metricconfiguration)   | aggregates | inbound   | many-to-one  |
+| [Metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
+| [Resource](#resource)                         | aggregates | inbound   | many-to-many |
+| [Span](#span)                                 | flows-to   | inbound   | many-to-many |
+| [Spanevent](#spanevent)                       | flows-to   | inbound   | many-to-one  |
+| [Traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -207,9 +207,9 @@ Configuration for OTel instrumentation of application code. Auto-instrumentation
 
 | Related Node                                  | Predicate | Direction | Cardinality  |
 | --------------------------------------------- | --------- | --------- | ------------ |
-| [instrumentationscope](#instrumentationscope) | serves    | outbound  | many-to-one  |
-| [resource](#resource)                         | serves    | outbound  | many-to-many |
-| [metricconfiguration](#metricconfiguration)   | serves    | inbound   | many-to-one  |
+| [Instrumentationscope](#instrumentationscope) | serves    | outbound  | many-to-one  |
+| [Resource](#resource)                         | serves    | outbound  | many-to-many |
+| [Metricconfiguration](#metricconfiguration)   | serves    | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -228,14 +228,14 @@ Named instrumented library or component that identifies the source of telemetry 
 
 | Related Node                                    | Predicate  | Direction | Cardinality  |
 | ----------------------------------------------- | ---------- | --------- | ------------ |
-| [instrumentationconfig](#instrumentationconfig) | serves     | inbound   | many-to-one  |
-| [exporterconfig](#exporterconfig)               | aggregates | outbound  | many-to-many |
-| [metricinstrument](#metricinstrument)           | aggregates | outbound  | many-to-many |
-| [span](#span)                                   | aggregates | outbound  | many-to-many |
-| [logrecord](#logrecord)                         | depends-on | inbound   | many-to-many |
-| [metricinstrument](#metricinstrument)           | depends-on | inbound   | many-to-many |
-| [span](#span)                                   | depends-on | inbound   | many-to-many |
-| [spanevent](#spanevent)                         | depends-on | inbound   | many-to-one  |
+| [Instrumentationconfig](#instrumentationconfig) | serves     | inbound   | many-to-one  |
+| [Exporterconfig](#exporterconfig)               | aggregates | outbound  | many-to-many |
+| [Metricinstrument](#metricinstrument)           | aggregates | outbound  | many-to-many |
+| [Span](#span)                                   | aggregates | outbound  | many-to-many |
+| [Logrecord](#logrecord)                         | depends-on | inbound   | many-to-many |
+| [Metricinstrument](#metricinstrument)           | depends-on | inbound   | many-to-many |
+| [Span](#span)                                   | depends-on | inbound   | many-to-many |
+| [Spanevent](#spanevent)                         | depends-on | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -254,13 +254,13 @@ OTel LoggerProvider configuration, covering the LogRecordProcessor pipeline, Log
 
 | Related Node                              | Predicate  | Direction | Cardinality |
 | ----------------------------------------- | ---------- | --------- | ----------- |
-| [exporterconfig](#exporterconfig)         | aggregates | outbound  | many-to-one |
-| [logprocessor](#logprocessor)             | aggregates | outbound  | many-to-one |
-| [resource](#resource)                     | depends-on | outbound  | many-to-one |
-| [exporterconfig](#exporterconfig)         | flows-to   | outbound  | many-to-one |
-| [traceconfiguration](#traceconfiguration) | references | outbound  | many-to-one |
-| [logrecord](#logrecord)                   | serves     | outbound  | many-to-one |
-| [resource](#resource)                     | serves     | outbound  | many-to-one |
+| [Exporterconfig](#exporterconfig)         | aggregates | outbound  | many-to-one |
+| [Logprocessor](#logprocessor)             | aggregates | outbound  | many-to-one |
+| [Resource](#resource)                     | depends-on | outbound  | many-to-one |
+| [Exporterconfig](#exporterconfig)         | flows-to   | outbound  | many-to-one |
+| [Traceconfiguration](#traceconfiguration) | references | outbound  | many-to-one |
+| [Logrecord](#logrecord)                   | serves     | outbound  | many-to-one |
+| [Resource](#resource)                     | serves     | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -279,13 +279,13 @@ A processing pipeline component for log records, enabling filtering, transformat
 
 | Related Node                          | Predicate  | Direction | Cardinality  |
 | ------------------------------------- | ---------- | --------- | ------------ |
-| [logconfiguration](#logconfiguration) | aggregates | inbound   | many-to-one  |
-| [exporterconfig](#exporterconfig)     | flows-to   | outbound  | many-to-many |
-| [logprocessor](#logprocessor)         | flows-to   | outbound  | many-to-many |
-| [span](#span)                         | flows-to   | outbound  | many-to-many |
-| [logrecord](#logrecord)               | flows-to   | inbound   | many-to-one  |
-| [metricinstrument](#metricinstrument) | flows-to   | inbound   | many-to-many |
-| [span](#span)                         | flows-to   | inbound   | many-to-many |
+| [Logconfiguration](#logconfiguration) | aggregates | inbound   | many-to-one  |
+| [Exporterconfig](#exporterconfig)     | flows-to   | outbound  | many-to-many |
+| [Logprocessor](#logprocessor)         | flows-to   | outbound  | many-to-many |
+| [Span](#span)                         | flows-to   | outbound  | many-to-many |
+| [Logrecord](#logrecord)               | flows-to   | inbound   | many-to-one  |
+| [Metricinstrument](#metricinstrument) | flows-to   | inbound   | many-to-many |
+| [Span](#span)                         | flows-to   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -304,12 +304,12 @@ Structured log record in the OTel data model, capturing an event with dual times
 
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
-| [logconfiguration](#logconfiguration)         | serves     | inbound   | many-to-one  |
-| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
-| [resource](#resource)                         | depends-on | outbound  | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-one  |
-| [span](#span)                                 | references | outbound  | many-to-many |
-| [spanevent](#spanevent)                       | references | inbound   | many-to-one  |
+| [Logconfiguration](#logconfiguration)         | serves     | inbound   | many-to-one  |
+| [Instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
+| [Resource](#resource)                         | depends-on | outbound  | many-to-many |
+| [Logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-one  |
+| [Span](#span)                                 | references | outbound  | many-to-many |
+| [Spanevent](#spanevent)                       | references | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -328,12 +328,12 @@ OTel MeterProvider-level (global) metrics SDK configuration, covering export int
 
 | Related Node                                    | Predicate  | Direction | Cardinality |
 | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [exporterconfig](#exporterconfig)               | aggregates | outbound  | many-to-one |
-| [metricinstrument](#metricinstrument)           | aggregates | outbound  | many-to-one |
-| [resource](#resource)                           | depends-on | outbound  | many-to-one |
-| [traceconfiguration](#traceconfiguration)       | references | outbound  | many-to-one |
-| [instrumentationconfig](#instrumentationconfig) | serves     | outbound  | many-to-one |
-| [resource](#resource)                           | serves     | outbound  | many-to-one |
+| [Exporterconfig](#exporterconfig)               | aggregates | outbound  | many-to-one |
+| [Metricinstrument](#metricinstrument)           | aggregates | outbound  | many-to-one |
+| [Resource](#resource)                           | depends-on | outbound  | many-to-one |
+| [Traceconfiguration](#traceconfiguration)       | references | outbound  | many-to-one |
+| [Instrumentationconfig](#instrumentationconfig) | serves     | outbound  | many-to-one |
+| [Resource](#resource)                           | serves     | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -352,18 +352,18 @@ Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc
 
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
-| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
-| [metricconfiguration](#metricconfiguration)   | aggregates | inbound   | many-to-one  |
-| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
-| [resource](#resource)                         | depends-on | outbound  | many-to-many |
-| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
-| [span](#span)                                 | flows-to   | outbound  | many-to-many |
-| [span](#span)                                 | references | outbound  | many-to-one  |
-| [resource](#resource)                         | aggregates | inbound   | many-to-many |
-| [span](#span)                                 | composes   | inbound   | many-to-many |
-| [spanevent](#spanevent)                       | triggers   | inbound   | many-to-one  |
-| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
+| [Instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
+| [Metricconfiguration](#metricconfiguration)   | aggregates | inbound   | many-to-one  |
+| [Instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
+| [Resource](#resource)                         | depends-on | outbound  | many-to-many |
+| [Exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
+| [Logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
+| [Span](#span)                                 | flows-to   | outbound  | many-to-many |
+| [Span](#span)                                 | references | outbound  | many-to-one  |
+| [Resource](#resource)                         | aggregates | inbound   | many-to-many |
+| [Span](#span)                                 | composes   | inbound   | many-to-many |
+| [Spanevent](#spanevent)                       | triggers   | inbound   | many-to-one  |
+| [Traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -382,19 +382,19 @@ Immutable set of attributes identifying the entity (service, host, process) that
 
 | Related Node                                    | Predicate  | Direction | Cardinality  |
 | ----------------------------------------------- | ---------- | --------- | ------------ |
-| [exporterconfig](#exporterconfig)               | serves     | inbound   | many-to-many |
-| [instrumentationconfig](#instrumentationconfig) | serves     | inbound   | many-to-many |
-| [logconfiguration](#logconfiguration)           | depends-on | inbound   | many-to-one  |
-| [logconfiguration](#logconfiguration)           | serves     | inbound   | many-to-one  |
-| [logrecord](#logrecord)                         | depends-on | inbound   | many-to-many |
-| [metricconfiguration](#metricconfiguration)     | depends-on | inbound   | many-to-one  |
-| [metricconfiguration](#metricconfiguration)     | serves     | inbound   | many-to-one  |
-| [metricinstrument](#metricinstrument)           | depends-on | inbound   | many-to-many |
-| [exporterconfig](#exporterconfig)               | aggregates | outbound  | many-to-many |
-| [metricinstrument](#metricinstrument)           | aggregates | outbound  | many-to-many |
-| [span](#span)                                   | aggregates | outbound  | many-to-many |
-| [span](#span)                                   | depends-on | inbound   | many-to-many |
-| [spanevent](#spanevent)                         | depends-on | inbound   | many-to-one  |
+| [Exporterconfig](#exporterconfig)               | serves     | inbound   | many-to-many |
+| [Instrumentationconfig](#instrumentationconfig) | serves     | inbound   | many-to-many |
+| [Logconfiguration](#logconfiguration)           | depends-on | inbound   | many-to-one  |
+| [Logconfiguration](#logconfiguration)           | serves     | inbound   | many-to-one  |
+| [Logrecord](#logrecord)                         | depends-on | inbound   | many-to-many |
+| [Metricconfiguration](#metricconfiguration)     | depends-on | inbound   | many-to-one  |
+| [Metricconfiguration](#metricconfiguration)     | serves     | inbound   | many-to-one  |
+| [Metricinstrument](#metricinstrument)           | depends-on | inbound   | many-to-many |
+| [Exporterconfig](#exporterconfig)               | aggregates | outbound  | many-to-many |
+| [Metricinstrument](#metricinstrument)           | aggregates | outbound  | many-to-many |
+| [Span](#span)                                   | aggregates | outbound  | many-to-many |
+| [Span](#span)                                   | depends-on | inbound   | many-to-many |
+| [Spanevent](#spanevent)                         | depends-on | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -413,24 +413,24 @@ Unit of work in distributed tracing
 
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
-| [instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
-| [logrecord](#logrecord)                       | references | inbound   | many-to-many |
-| [metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
-| [metricinstrument](#metricinstrument)         | references | inbound   | many-to-one  |
-| [resource](#resource)                         | aggregates | inbound   | many-to-many |
-| [spanlink](#spanlink)                         | aggregates | outbound  | one-to-many  |
-| [metricinstrument](#metricinstrument)         | composes   | outbound  | many-to-many |
-| [spanevent](#spanevent)                       | composes   | outbound  | many-to-many |
-| [traceconfiguration](#traceconfiguration)     | composes   | outbound  | many-to-many |
-| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
-| [resource](#resource)                         | depends-on | outbound  | many-to-many |
-| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
-| [logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
-| [span](#span)                                 | flows-to   | outbound  | many-to-many |
-| [span](#span)                                 | references | outbound  | many-to-many |
-| [spanlink](#spanlink)                         | references | inbound   | many-to-many |
-| [traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
+| [Instrumentationscope](#instrumentationscope) | aggregates | inbound   | many-to-many |
+| [Logprocessor](#logprocessor)                 | flows-to   | inbound   | many-to-many |
+| [Logrecord](#logrecord)                       | references | inbound   | many-to-many |
+| [Metricinstrument](#metricinstrument)         | flows-to   | inbound   | many-to-many |
+| [Metricinstrument](#metricinstrument)         | references | inbound   | many-to-one  |
+| [Resource](#resource)                         | aggregates | inbound   | many-to-many |
+| [Spanlink](#spanlink)                         | aggregates | outbound  | one-to-many  |
+| [Metricinstrument](#metricinstrument)         | composes   | outbound  | many-to-many |
+| [Spanevent](#spanevent)                       | composes   | outbound  | many-to-many |
+| [Traceconfiguration](#traceconfiguration)     | composes   | outbound  | many-to-many |
+| [Instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-many |
+| [Resource](#resource)                         | depends-on | outbound  | many-to-many |
+| [Exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-many |
+| [Logprocessor](#logprocessor)                 | flows-to   | outbound  | many-to-many |
+| [Span](#span)                                 | flows-to   | outbound  | many-to-many |
+| [Span](#span)                                 | references | outbound  | many-to-many |
+| [Spanlink](#spanlink)                         | references | inbound   | many-to-many |
+| [Traceconfiguration](#traceconfiguration)     | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -449,13 +449,13 @@ Timestamped annotation within a span's lifetime, used to record significant mome
 
 | Related Node                                  | Predicate  | Direction | Cardinality  |
 | --------------------------------------------- | ---------- | --------- | ------------ |
-| [span](#span)                                 | composes   | inbound   | many-to-many |
-| [instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-one  |
-| [resource](#resource)                         | depends-on | outbound  | many-to-one  |
-| [traceconfiguration](#traceconfiguration)     | depends-on | outbound  | many-to-one  |
-| [exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-one  |
-| [logrecord](#logrecord)                       | references | outbound  | many-to-one  |
-| [metricinstrument](#metricinstrument)         | triggers   | outbound  | many-to-one  |
+| [Span](#span)                                 | composes   | inbound   | many-to-many |
+| [Instrumentationscope](#instrumentationscope) | depends-on | outbound  | many-to-one  |
+| [Resource](#resource)                         | depends-on | outbound  | many-to-one  |
+| [Traceconfiguration](#traceconfiguration)     | depends-on | outbound  | many-to-one  |
+| [Exporterconfig](#exporterconfig)             | flows-to   | outbound  | many-to-one  |
+| [Logrecord](#logrecord)                       | references | outbound  | many-to-one  |
+| [Metricinstrument](#metricinstrument)         | triggers   | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -474,8 +474,8 @@ Non-hierarchical causality link to a span in a different trace or batch context 
 
 | Related Node  | Predicate  | Direction | Cardinality  |
 | ------------- | ---------- | --------- | ------------ |
-| [span](#span) | aggregates | inbound   | one-to-many  |
-| [span](#span) | references | outbound  | many-to-many |
+| [Span](#span) | aggregates | inbound   | one-to-many  |
+| [Span](#span) | references | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -494,23 +494,23 @@ OTel TracerProvider configuration covering sampler selection, context propagatio
 
 | Related Node                                | Predicate  | Direction | Cardinality  |
 | ------------------------------------------- | ---------- | --------- | ------------ |
-| [logconfiguration](#logconfiguration)       | references | inbound   | many-to-one  |
-| [metricconfiguration](#metricconfiguration) | references | inbound   | many-to-one  |
-| [span](#span)                               | composes   | inbound   | many-to-many |
-| [spanevent](#spanevent)                     | depends-on | inbound   | many-to-one  |
-| [exporterconfig](#exporterconfig)           | aggregates | outbound  | many-to-many |
-| [metricinstrument](#metricinstrument)       | aggregates | outbound  | many-to-many |
-| [span](#span)                               | aggregates | outbound  | many-to-many |
+| [Logconfiguration](#logconfiguration)       | references | inbound   | many-to-one  |
+| [Metricconfiguration](#metricconfiguration) | references | inbound   | many-to-one  |
+| [Span](#span)                               | composes   | inbound   | many-to-many |
+| [Spanevent](#spanevent)                     | depends-on | inbound   | many-to-one  |
+| [Exporterconfig](#exporterconfig)           | aggregates | outbound  | many-to-many |
+| [Metricinstrument](#metricinstrument)       | aggregates | outbound  | many-to-many |
+| [Span](#span)                               | aggregates | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                              | Layer                                           | Predicate  | Direction | Cardinality |
 | ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [operation](./06-api-layer-report.md#operation)                           | [API](./06-api-layer-report.md)                 | references | inbound   | many-to-one |
-| [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | inbound   | many-to-one |
+| [Operation](./06-api-layer-report.md#operation)                           | [API](./06-api-layer-report.md)                 | references | inbound   | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-28T15:47:18.829Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-02T20:37:51.229Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

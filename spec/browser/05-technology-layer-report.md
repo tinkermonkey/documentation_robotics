@@ -205,14 +205,14 @@ A piece of data that is used or produced in a software development process, or b
 
 | Related Node                                        | Predicate | Direction | Cardinality |
 | --------------------------------------------------- | --------- | --------- | ----------- |
-| [node](#node)                                       | composes  | inbound   | many-to-one |
-| [systemsoftware](#systemsoftware)                   | accesses  | inbound   | many-to-one |
-| [systemsoftware](#systemsoftware)                   | composes  | inbound   | many-to-one |
-| [technologycollaboration](#technologycollaboration) | accesses  | inbound   | many-to-one |
-| [technologyevent](#technologyevent)                 | flows-to  | inbound   | many-to-one |
-| [technologyfunction](#technologyfunction)           | accesses  | inbound   | many-to-one |
-| [technologyinteraction](#technologyinteraction)     | accesses  | inbound   | many-to-one |
-| [technologyservice](#technologyservice)             | consumes  | inbound   | many-to-one |
+| [Node](#node)                                       | composes  | inbound   | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | accesses  | inbound   | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | composes  | inbound   | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | accesses  | inbound   | many-to-one |
+| [Technologyevent](#technologyevent)                 | flows-to  | inbound   | many-to-one |
+| [Technologyfunction](#technologyfunction)           | accesses  | inbound   | many-to-one |
+| [Technologyinteraction](#technologyinteraction)     | accesses  | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)             | consumes  | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -231,18 +231,18 @@ A set of structures that connects nodes for the purpose of transmission, routing
 
 | Related Node                                        | Predicate       | Direction | Cardinality |
 | --------------------------------------------------- | --------------- | --------- | ----------- |
-| [communicationnetwork](#communicationnetwork)       | aggregates      | outbound  | many-to-one |
-| [path](#path)                                       | aggregates      | outbound  | many-to-one |
-| [technologycollaboration](#technologycollaboration) | assigned-to     | outbound  | many-to-one |
-| [systemsoftware](#systemsoftware)                   | associated-with | outbound  | many-to-one |
-| [technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-one |
-| [device](#device)                                   | serves          | outbound  | many-to-one |
-| [node](#node)                                       | serves          | outbound  | many-to-one |
-| [technologyservice](#technologyservice)             | supports        | outbound  | many-to-one |
-| [systemsoftware](#systemsoftware)                   | uses            | inbound   | many-to-one |
-| [technologycollaboration](#technologycollaboration) | uses            | inbound   | many-to-one |
-| [technologyinterface](#technologyinterface)         | uses            | inbound   | many-to-one |
-| [technologyservice](#technologyservice)             | depends-on      | inbound   | many-to-one |
+| [Communicationnetwork](#communicationnetwork)       | aggregates      | outbound  | many-to-one |
+| [Path](#path)                                       | aggregates      | outbound  | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | assigned-to     | outbound  | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | associated-with | outbound  | many-to-one |
+| [Technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-one |
+| [Device](#device)                                   | serves          | outbound  | many-to-one |
+| [Node](#node)                                       | serves          | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)             | supports        | outbound  | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | uses            | inbound   | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | uses            | inbound   | many-to-one |
+| [Technologyinterface](#technologyinterface)         | uses            | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)             | depends-on      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -261,11 +261,11 @@ A physical IT resource upon which system software and artifacts may be stored or
 
 | Related Node                                  | Predicate  | Direction | Cardinality |
 | --------------------------------------------- | ---------- | --------- | ----------- |
-| [communicationnetwork](#communicationnetwork) | serves     | inbound   | many-to-one |
-| [node](#node)                                 | composes   | outbound  | many-to-one |
-| [node](#node)                                 | composes   | inbound   | many-to-one |
-| [path](#path)                                 | serves     | inbound   | many-to-one |
-| [systemsoftware](#systemsoftware)             | depends-on | inbound   | many-to-one |
+| [Communicationnetwork](#communicationnetwork) | serves     | inbound   | many-to-one |
+| [Node](#node)                                 | composes   | outbound  | many-to-one |
+| [Node](#node)                                 | composes   | inbound   | many-to-one |
+| [Path](#path)                                 | serves     | inbound   | many-to-one |
+| [Systemsoftware](#systemsoftware)             | depends-on | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -284,17 +284,17 @@ A computational or physical resource that hosts, manipulates, or interacts with 
 
 | Related Node                                        | Predicate   | Direction | Cardinality |
 | --------------------------------------------------- | ----------- | --------- | ----------- |
-| [communicationnetwork](#communicationnetwork)       | serves      | inbound   | many-to-one |
-| [device](#device)                                   | composes    | inbound   | many-to-one |
-| [technologyfunction](#technologyfunction)           | assigned-to | outbound  | many-to-one |
-| [artifact](#artifact)                               | composes    | outbound  | many-to-one |
-| [device](#device)                                   | composes    | outbound  | many-to-one |
-| [systemsoftware](#systemsoftware)                   | composes    | outbound  | many-to-one |
-| [technologyinterface](#technologyinterface)         | composes    | outbound  | many-to-one |
-| [path](#path)                                       | serves      | inbound   | many-to-one |
-| [technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-one |
-| [technologyinterface](#technologyinterface)         | assigned-to | inbound   | many-to-one |
-| [technologyservice](#technologyservice)             | depends-on  | inbound   | many-to-one |
+| [Communicationnetwork](#communicationnetwork)       | serves      | inbound   | many-to-one |
+| [Device](#device)                                   | composes    | inbound   | many-to-one |
+| [Technologyfunction](#technologyfunction)           | assigned-to | outbound  | many-to-one |
+| [Artifact](#artifact)                               | composes    | outbound  | many-to-one |
+| [Device](#device)                                   | composes    | outbound  | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | composes    | outbound  | many-to-one |
+| [Technologyinterface](#technologyinterface)         | composes    | outbound  | many-to-one |
+| [Path](#path)                                       | serves      | inbound   | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-one |
+| [Technologyinterface](#technologyinterface)         | assigned-to | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)             | depends-on  | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -313,18 +313,18 @@ A link between two or more nodes through which those nodes can exchange data, re
 
 | Related Node                                        | Predicate   | Direction | Cardinality |
 | --------------------------------------------------- | ----------- | --------- | ----------- |
-| [communicationnetwork](#communicationnetwork)       | aggregates  | inbound   | many-to-one |
-| [technologyinterface](#technologyinterface)         | assigned-to | outbound  | many-to-one |
-| [path](#path)                                       | composes    | outbound  | many-to-one |
-| [technologyservice](#technologyservice)             | flows-to    | outbound  | many-to-one |
-| [technologyservice](#technologyservice)             | realizes    | outbound  | many-to-one |
-| [device](#device)                                   | serves      | outbound  | many-to-one |
-| [node](#node)                                       | serves      | outbound  | many-to-one |
-| [technologyevent](#technologyevent)                 | triggers    | outbound  | many-to-one |
-| [systemsoftware](#systemsoftware)                   | uses        | inbound   | many-to-one |
-| [technologycollaboration](#technologycollaboration) | uses        | inbound   | many-to-one |
-| [technologyinterface](#technologyinterface)         | uses        | inbound   | many-to-one |
-| [technologyprocess](#technologyprocess)             | uses        | inbound   | many-to-one |
+| [Communicationnetwork](#communicationnetwork)       | aggregates  | inbound   | many-to-one |
+| [Technologyinterface](#technologyinterface)         | assigned-to | outbound  | many-to-one |
+| [Path](#path)                                       | composes    | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)             | flows-to    | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)             | realizes    | outbound  | many-to-one |
+| [Device](#device)                                   | serves      | outbound  | many-to-one |
+| [Node](#node)                                       | serves      | outbound  | many-to-one |
+| [Technologyevent](#technologyevent)                 | triggers    | outbound  | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | uses        | inbound   | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | uses        | inbound   | many-to-one |
+| [Technologyinterface](#technologyinterface)         | uses        | inbound   | many-to-one |
+| [Technologyprocess](#technologyprocess)             | uses        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -343,21 +343,21 @@ Software that provides or contributes to an environment for storing, executing, 
 
 | Related Node                                  | Predicate       | Direction | Cardinality |
 | --------------------------------------------- | --------------- | --------- | ----------- |
-| [communicationnetwork](#communicationnetwork) | associated-with | inbound   | many-to-one |
-| [node](#node)                                 | composes        | inbound   | many-to-one |
-| [artifact](#artifact)                         | accesses        | outbound  | many-to-one |
-| [technologyfunction](#technologyfunction)     | assigned-to     | outbound  | many-to-one |
-| [artifact](#artifact)                         | composes        | outbound  | many-to-one |
-| [device](#device)                             | depends-on      | outbound  | many-to-one |
-| [systemsoftware](#systemsoftware)             | depends-on      | outbound  | many-to-one |
-| [technologyinterface](#technologyinterface)   | provides        | outbound  | many-to-one |
-| [technologyservice](#technologyservice)       | realizes        | outbound  | many-to-one |
-| [technologyfunction](#technologyfunction)     | serves          | outbound  | many-to-one |
-| [technologyevent](#technologyevent)           | triggers        | outbound  | many-to-one |
-| [communicationnetwork](#communicationnetwork) | uses            | outbound  | many-to-one |
-| [path](#path)                                 | uses            | outbound  | many-to-one |
-| [technologyinterface](#technologyinterface)   | assigned-to     | inbound   | many-to-one |
-| [technologyservice](#technologyservice)       | uses            | inbound   | many-to-one |
+| [Communicationnetwork](#communicationnetwork) | associated-with | inbound   | many-to-one |
+| [Node](#node)                                 | composes        | inbound   | many-to-one |
+| [Artifact](#artifact)                         | accesses        | outbound  | many-to-one |
+| [Technologyfunction](#technologyfunction)     | assigned-to     | outbound  | many-to-one |
+| [Artifact](#artifact)                         | composes        | outbound  | many-to-one |
+| [Device](#device)                             | depends-on      | outbound  | many-to-one |
+| [Systemsoftware](#systemsoftware)             | depends-on      | outbound  | many-to-one |
+| [Technologyinterface](#technologyinterface)   | provides        | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)       | realizes        | outbound  | many-to-one |
+| [Technologyfunction](#technologyfunction)     | serves          | outbound  | many-to-one |
+| [Technologyevent](#technologyevent)           | triggers        | outbound  | many-to-one |
+| [Communicationnetwork](#communicationnetwork) | uses            | outbound  | many-to-one |
+| [Path](#path)                                 | uses            | outbound  | many-to-one |
+| [Technologyinterface](#technologyinterface)   | assigned-to     | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)       | uses            | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -376,19 +376,19 @@ An aggregate of two or more technology active structure elements that work toget
 
 | Related Node                                        | Predicate       | Direction | Cardinality |
 | --------------------------------------------------- | --------------- | --------- | ----------- |
-| [communicationnetwork](#communicationnetwork)       | assigned-to     | inbound   | many-to-one |
-| [artifact](#artifact)                               | accesses        | outbound  | many-to-one |
-| [node](#node)                                       | aggregates      | outbound  | many-to-one |
-| [technologyinterface](#technologyinterface)         | aggregates      | outbound  | many-to-one |
-| [technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-one |
-| [technologyinteraction](#technologyinteraction)     | performs        | outbound  | many-to-one |
-| [technologyservice](#technologyservice)             | realizes        | outbound  | many-to-one |
-| [technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-one |
-| [communicationnetwork](#communicationnetwork)       | uses            | outbound  | many-to-one |
-| [path](#path)                                       | uses            | outbound  | many-to-one |
-| [technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-one |
-| [technologyinterface](#technologyinterface)         | serves          | inbound   | many-to-one |
-| [technologyservice](#technologyservice)             | associated-with | inbound   | many-to-one |
+| [Communicationnetwork](#communicationnetwork)       | assigned-to     | inbound   | many-to-one |
+| [Artifact](#artifact)                               | accesses        | outbound  | many-to-one |
+| [Node](#node)                                       | aggregates      | outbound  | many-to-one |
+| [Technologyinterface](#technologyinterface)         | aggregates      | outbound  | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-one |
+| [Technologyinteraction](#technologyinteraction)     | performs        | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)             | realizes        | outbound  | many-to-one |
+| [Technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-one |
+| [Communicationnetwork](#communicationnetwork)       | uses            | outbound  | many-to-one |
+| [Path](#path)                                       | uses            | outbound  | many-to-one |
+| [Technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-one |
+| [Technologyinterface](#technologyinterface)         | serves          | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)             | associated-with | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -407,19 +407,19 @@ A technology behavior element that denotes a state change in the technology laye
 
 | Related Node                                        | Predicate       | Direction | Cardinality |
 | --------------------------------------------------- | --------------- | --------- | ----------- |
-| [path](#path)                                       | triggers        | inbound   | many-to-one |
-| [systemsoftware](#systemsoftware)                   | triggers        | inbound   | many-to-one |
-| [technologycollaboration](#technologycollaboration) | triggers        | inbound   | many-to-one |
-| [technologyservice](#technologyservice)             | associated-with | outbound  | many-to-one |
-| [artifact](#artifact)                               | flows-to        | outbound  | many-to-one |
-| [technologyprocess](#technologyprocess)             | flows-to        | outbound  | many-to-one |
-| [technologyfunction](#technologyfunction)           | triggers        | outbound  | many-to-one |
-| [technologyinteraction](#technologyinteraction)     | triggers        | outbound  | many-to-one |
-| [technologyprocess](#technologyprocess)             | triggers        | outbound  | many-to-one |
-| [technologyfunction](#technologyfunction)           | triggers        | inbound   | many-to-one |
-| [technologyinteraction](#technologyinteraction)     | triggers        | inbound   | many-to-one |
-| [technologyprocess](#technologyprocess)             | triggers        | inbound   | many-to-one |
-| [technologyservice](#technologyservice)             | triggers        | inbound   | many-to-one |
+| [Path](#path)                                       | triggers        | inbound   | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | triggers        | inbound   | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | triggers        | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)             | associated-with | outbound  | many-to-one |
+| [Artifact](#artifact)                               | flows-to        | outbound  | many-to-one |
+| [Technologyprocess](#technologyprocess)             | flows-to        | outbound  | many-to-one |
+| [Technologyfunction](#technologyfunction)           | triggers        | outbound  | many-to-one |
+| [Technologyinteraction](#technologyinteraction)     | triggers        | outbound  | many-to-one |
+| [Technologyprocess](#technologyprocess)             | triggers        | outbound  | many-to-one |
+| [Technologyfunction](#technologyfunction)           | triggers        | inbound   | many-to-one |
+| [Technologyinteraction](#technologyinteraction)     | triggers        | inbound   | many-to-one |
+| [Technologyprocess](#technologyprocess)             | triggers        | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)             | triggers        | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -438,21 +438,21 @@ A collection of technology behavior that can be performed by a node, representin
 
 | Related Node                                    | Predicate   | Direction | Cardinality |
 | ----------------------------------------------- | ----------- | --------- | ----------- |
-| [node](#node)                                   | assigned-to | inbound   | many-to-one |
-| [systemsoftware](#systemsoftware)               | assigned-to | inbound   | many-to-one |
-| [systemsoftware](#systemsoftware)               | serves      | inbound   | many-to-one |
-| [technologyevent](#technologyevent)             | triggers    | inbound   | many-to-one |
-| [artifact](#artifact)                           | accesses    | outbound  | many-to-one |
-| [technologyfunction](#technologyfunction)       | composes    | outbound  | many-to-one |
-| [technologyprocess](#technologyprocess)         | flows-to    | outbound  | many-to-one |
-| [technologyservice](#technologyservice)         | realizes    | outbound  | many-to-one |
-| [technologyinteraction](#technologyinteraction) | serves      | outbound  | many-to-one |
-| [technologyevent](#technologyevent)             | triggers    | outbound  | many-to-one |
-| [technologyprocess](#technologyprocess)         | triggers    | outbound  | many-to-one |
-| [technologyinterface](#technologyinterface)     | uses        | outbound  | many-to-one |
-| [technologyinteraction](#technologyinteraction) | composes    | inbound   | many-to-one |
-| [technologyinterface](#technologyinterface)     | serves      | inbound   | many-to-one |
-| [technologyservice](#technologyservice)         | aggregates  | inbound   | many-to-one |
+| [Node](#node)                                   | assigned-to | inbound   | many-to-one |
+| [Systemsoftware](#systemsoftware)               | assigned-to | inbound   | many-to-one |
+| [Systemsoftware](#systemsoftware)               | serves      | inbound   | many-to-one |
+| [Technologyevent](#technologyevent)             | triggers    | inbound   | many-to-one |
+| [Artifact](#artifact)                           | accesses    | outbound  | many-to-one |
+| [Technologyfunction](#technologyfunction)       | composes    | outbound  | many-to-one |
+| [Technologyprocess](#technologyprocess)         | flows-to    | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)         | realizes    | outbound  | many-to-one |
+| [Technologyinteraction](#technologyinteraction) | serves      | outbound  | many-to-one |
+| [Technologyevent](#technologyevent)             | triggers    | outbound  | many-to-one |
+| [Technologyprocess](#technologyprocess)         | triggers    | outbound  | many-to-one |
+| [Technologyinterface](#technologyinterface)     | uses        | outbound  | many-to-one |
+| [Technologyinteraction](#technologyinteraction) | composes    | inbound   | many-to-one |
+| [Technologyinterface](#technologyinterface)     | serves      | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)         | aggregates  | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -471,17 +471,17 @@ A unit of collective technology behavior performed by two or more collaborating 
 
 | Related Node                                        | Predicate | Direction | Cardinality |
 | --------------------------------------------------- | --------- | --------- | ----------- |
-| [technologycollaboration](#technologycollaboration) | performs  | inbound   | many-to-one |
-| [technologyevent](#technologyevent)                 | triggers  | inbound   | many-to-one |
-| [technologyfunction](#technologyfunction)           | serves    | inbound   | many-to-one |
-| [artifact](#artifact)                               | accesses  | outbound  | many-to-one |
-| [technologyfunction](#technologyfunction)           | composes  | outbound  | many-to-one |
-| [technologyinteraction](#technologyinteraction)     | flows-to  | outbound  | many-to-one |
-| [technologycollaboration](#technologycollaboration) | realizes  | outbound  | many-to-one |
-| [technologyservice](#technologyservice)             | realizes  | outbound  | many-to-one |
-| [technologyevent](#technologyevent)                 | triggers  | outbound  | many-to-one |
-| [technologyprocess](#technologyprocess)             | triggers  | outbound  | many-to-one |
-| [technologyinterface](#technologyinterface)         | uses      | outbound  | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | performs  | inbound   | many-to-one |
+| [Technologyevent](#technologyevent)                 | triggers  | inbound   | many-to-one |
+| [Technologyfunction](#technologyfunction)           | serves    | inbound   | many-to-one |
+| [Artifact](#artifact)                               | accesses  | outbound  | many-to-one |
+| [Technologyfunction](#technologyfunction)           | composes  | outbound  | many-to-one |
+| [Technologyinteraction](#technologyinteraction)     | flows-to  | outbound  | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | realizes  | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)             | realizes  | outbound  | many-to-one |
+| [Technologyevent](#technologyevent)                 | triggers  | outbound  | many-to-one |
+| [Technologyprocess](#technologyprocess)             | triggers  | outbound  | many-to-one |
+| [Technologyinterface](#technologyinterface)         | uses      | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -500,23 +500,23 @@ Point of access where technology services are available
 
 | Related Node                                        | Predicate   | Direction | Cardinality |
 | --------------------------------------------------- | ----------- | --------- | ----------- |
-| [communicationnetwork](#communicationnetwork)       | provides    | inbound   | many-to-one |
-| [node](#node)                                       | composes    | inbound   | many-to-one |
-| [path](#path)                                       | assigned-to | inbound   | many-to-one |
-| [systemsoftware](#systemsoftware)                   | provides    | inbound   | many-to-one |
-| [technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-one |
-| [technologyfunction](#technologyfunction)           | uses        | inbound   | many-to-one |
-| [technologyinteraction](#technologyinteraction)     | uses        | inbound   | many-to-one |
-| [node](#node)                                       | assigned-to | outbound  | many-to-one |
-| [systemsoftware](#systemsoftware)                   | assigned-to | outbound  | many-to-one |
-| [technologyservice](#technologyservice)             | assigned-to | outbound  | many-to-one |
-| [technologycollaboration](#technologycollaboration) | serves      | outbound  | many-to-one |
-| [technologyfunction](#technologyfunction)           | serves      | outbound  | many-to-one |
-| [technologyprocess](#technologyprocess)             | serves      | outbound  | many-to-one |
-| [communicationnetwork](#communicationnetwork)       | uses        | outbound  | many-to-one |
-| [path](#path)                                       | uses        | outbound  | many-to-one |
-| [technologyservice](#technologyservice)             | provides    | inbound   | many-to-one |
-| [technologyservice](#technologyservice)             | serves      | inbound   | many-to-one |
+| [Communicationnetwork](#communicationnetwork)       | provides    | inbound   | many-to-one |
+| [Node](#node)                                       | composes    | inbound   | many-to-one |
+| [Path](#path)                                       | assigned-to | inbound   | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | provides    | inbound   | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-one |
+| [Technologyfunction](#technologyfunction)           | uses        | inbound   | many-to-one |
+| [Technologyinteraction](#technologyinteraction)     | uses        | inbound   | many-to-one |
+| [Node](#node)                                       | assigned-to | outbound  | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | assigned-to | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)             | assigned-to | outbound  | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | serves      | outbound  | many-to-one |
+| [Technologyfunction](#technologyfunction)           | serves      | outbound  | many-to-one |
+| [Technologyprocess](#technologyprocess)             | serves      | outbound  | many-to-one |
+| [Communicationnetwork](#communicationnetwork)       | uses        | outbound  | many-to-one |
+| [Path](#path)                                       | uses        | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)             | provides    | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)             | serves      | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -535,15 +535,15 @@ A sequence of technology behaviors that achieves a specific technology result, s
 
 | Related Node                                    | Predicate | Direction | Cardinality |
 | ----------------------------------------------- | --------- | --------- | ----------- |
-| [technologyevent](#technologyevent)             | flows-to  | inbound   | many-to-one |
-| [technologyevent](#technologyevent)             | triggers  | inbound   | many-to-one |
-| [technologyfunction](#technologyfunction)       | flows-to  | inbound   | many-to-one |
-| [technologyfunction](#technologyfunction)       | triggers  | inbound   | many-to-one |
-| [technologyinteraction](#technologyinteraction) | triggers  | inbound   | many-to-one |
-| [technologyinterface](#technologyinterface)     | serves    | inbound   | many-to-one |
-| [technologyservice](#technologyservice)         | realizes  | outbound  | many-to-one |
-| [technologyevent](#technologyevent)             | triggers  | outbound  | many-to-one |
-| [path](#path)                                   | uses      | outbound  | many-to-one |
+| [Technologyevent](#technologyevent)             | flows-to  | inbound   | many-to-one |
+| [Technologyevent](#technologyevent)             | triggers  | inbound   | many-to-one |
+| [Technologyfunction](#technologyfunction)       | flows-to  | inbound   | many-to-one |
+| [Technologyfunction](#technologyfunction)       | triggers  | inbound   | many-to-one |
+| [Technologyinteraction](#technologyinteraction) | triggers  | inbound   | many-to-one |
+| [Technologyinterface](#technologyinterface)     | serves    | inbound   | many-to-one |
+| [Technologyservice](#technologyservice)         | realizes  | outbound  | many-to-one |
+| [Technologyevent](#technologyevent)             | triggers  | outbound  | many-to-one |
+| [Path](#path)                                   | uses      | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -562,30 +562,30 @@ Externally visible unit of technology functionality
 
 | Related Node                                        | Predicate       | Direction | Cardinality |
 | --------------------------------------------------- | --------------- | --------- | ----------- |
-| [communicationnetwork](#communicationnetwork)       | supports        | inbound   | many-to-one |
-| [path](#path)                                       | flows-to        | inbound   | many-to-one |
-| [path](#path)                                       | realizes        | inbound   | many-to-one |
-| [systemsoftware](#systemsoftware)                   | realizes        | inbound   | many-to-one |
-| [technologycollaboration](#technologycollaboration) | realizes        | inbound   | many-to-one |
-| [technologyevent](#technologyevent)                 | associated-with | inbound   | many-to-one |
-| [technologyfunction](#technologyfunction)           | realizes        | inbound   | many-to-one |
-| [technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-one |
-| [technologyinterface](#technologyinterface)         | assigned-to     | inbound   | many-to-one |
-| [technologyprocess](#technologyprocess)             | realizes        | inbound   | many-to-one |
-| [technologyfunction](#technologyfunction)           | aggregates      | outbound  | many-to-one |
-| [technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-one |
-| [artifact](#artifact)                               | consumes        | outbound  | many-to-one |
-| [communicationnetwork](#communicationnetwork)       | depends-on      | outbound  | many-to-one |
-| [node](#node)                                       | depends-on      | outbound  | many-to-one |
-| [technologyservice](#technologyservice)             | flows-to        | outbound  | many-to-one |
-| [technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-one |
-| [technologyinterface](#technologyinterface)         | serves          | outbound  | many-to-one |
-| [technologyservice](#technologyservice)             | serves          | outbound  | many-to-one |
-| [technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-one |
-| [systemsoftware](#systemsoftware)                   | uses            | outbound  | many-to-one |
+| [Communicationnetwork](#communicationnetwork)       | supports        | inbound   | many-to-one |
+| [Path](#path)                                       | flows-to        | inbound   | many-to-one |
+| [Path](#path)                                       | realizes        | inbound   | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | realizes        | inbound   | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | realizes        | inbound   | many-to-one |
+| [Technologyevent](#technologyevent)                 | associated-with | inbound   | many-to-one |
+| [Technologyfunction](#technologyfunction)           | realizes        | inbound   | many-to-one |
+| [Technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-one |
+| [Technologyinterface](#technologyinterface)         | assigned-to     | inbound   | many-to-one |
+| [Technologyprocess](#technologyprocess)             | realizes        | inbound   | many-to-one |
+| [Technologyfunction](#technologyfunction)           | aggregates      | outbound  | many-to-one |
+| [Technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-one |
+| [Artifact](#artifact)                               | consumes        | outbound  | many-to-one |
+| [Communicationnetwork](#communicationnetwork)       | depends-on      | outbound  | many-to-one |
+| [Node](#node)                                       | depends-on      | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)             | flows-to        | outbound  | many-to-one |
+| [Technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-one |
+| [Technologyinterface](#technologyinterface)         | serves          | outbound  | many-to-one |
+| [Technologyservice](#technologyservice)             | serves          | outbound  | many-to-one |
+| [Technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-one |
+| [Systemsoftware](#systemsoftware)                   | uses            | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-28T15:47:18.823Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-02T20:37:51.221Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

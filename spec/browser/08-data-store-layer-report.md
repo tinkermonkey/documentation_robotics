@@ -151,9 +151,9 @@ flowchart TB
 
 | Relationship ID                                  | Source Node                                               | Dest Node                                                | Dest Layer                                    | Predicate | Cardinality | Strength |
 | ------------------------------------------------ | --------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------- | --------- | ----------- | -------- |
-| api.schema.maps-to.data-store.collection         | [schema](./06-api-layer-report.md#schema)                 | [collection](./08-data-store-layer-report.md#collection) | [Data Store](./08-data-store-layer-report.md) | maps-to   | many-to-one | medium   |
-| api.schema.maps-to.data-store.field              | [schema](./06-api-layer-report.md#schema)                 | [field](./08-data-store-layer-report.md#field)           | [Data Store](./08-data-store-layer-report.md) | maps-to   | many-to-one | medium   |
-| api.securityscheme.maps-to.data-store.collection | [securityscheme](./06-api-layer-report.md#securityscheme) | [collection](./08-data-store-layer-report.md#collection) | [Data Store](./08-data-store-layer-report.md) | maps-to   | many-to-one | medium   |
+| api.schema.maps-to.data-store.collection         | [Schema](./06-api-layer-report.md#schema)                 | [Collection](./08-data-store-layer-report.md#collection) | [Data Store](./08-data-store-layer-report.md) | maps-to   | many-to-one | medium   |
+| api.schema.maps-to.data-store.field              | [Schema](./06-api-layer-report.md#schema)                 | [Field](./08-data-store-layer-report.md#field)           | [Data Store](./08-data-store-layer-report.md) | maps-to   | many-to-one | medium   |
+| api.securityscheme.maps-to.data-store.collection | [Securityscheme](./06-api-layer-report.md#securityscheme) | [Collection](./08-data-store-layer-report.md#collection) | [Data Store](./08-data-store-layer-report.md) | maps-to   | many-to-one | medium   |
 
 ## Node Reference
 
@@ -172,13 +172,13 @@ A documented data access pattern that describes how applications read or write d
 
 | Related Node                  | Predicate  | Direction | Cardinality |
 | ----------------------------- | ---------- | --------- | ----------- |
-| [collection](#collection)     | accesses   | outbound  | many-to-one |
-| [collection](#collection)     | aggregates | outbound  | many-to-one |
-| [field](#field)               | aggregates | outbound  | many-to-one |
-| [index](#index)               | aggregates | outbound  | many-to-one |
-| [eventhandler](#eventhandler) | triggers   | outbound  | many-to-one |
-| [storedlogic](#storedlogic)   | triggers   | outbound  | many-to-one |
-| [index](#index)               | uses       | outbound  | many-to-one |
+| [Collection](#collection)     | accesses   | outbound  | many-to-one |
+| [Collection](#collection)     | aggregates | outbound  | many-to-one |
+| [Field](#field)               | aggregates | outbound  | many-to-one |
+| [Index](#index)               | aggregates | outbound  | many-to-one |
+| [Eventhandler](#eventhandler) | triggers   | outbound  | many-to-one |
+| [Storedlogic](#storedlogic)   | triggers   | outbound  | many-to-one |
+| [Index](#index)               | uses       | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -197,30 +197,30 @@ A container for records, documents, or entries within a data store. Paradigm-neu
 
 | Related Node                        | Predicate    | Direction | Cardinality  |
 | ----------------------------------- | ------------ | --------- | ------------ |
-| [accesspattern](#accesspattern)     | accesses     | inbound   | many-to-one  |
-| [accesspattern](#accesspattern)     | aggregates   | inbound   | many-to-one  |
-| [collection](#collection)           | composes     | outbound  | many-to-many |
-| [eventhandler](#eventhandler)       | composes     | outbound  | many-to-one  |
-| [field](#field)                     | composes     | outbound  | many-to-many |
-| [index](#index)                     | composes     | outbound  | many-to-many |
-| [namespace](#namespace)             | composes     | outbound  | many-to-many |
-| [validationrule](#validationrule)   | composes     | outbound  | many-to-many |
-| [collection](#collection)           | references   | outbound  | many-to-one  |
-| [database](#database)               | composes     | inbound   | many-to-many |
-| [namespace](#namespace)             | composes     | inbound   | many-to-many |
-| [retentionpolicy](#retentionpolicy) | aggregates   | inbound   | many-to-one  |
-| [retentionpolicy](#retentionpolicy) | governs      | inbound   | many-to-one  |
-| [storedlogic](#storedlogic)         | accesses     | inbound   | many-to-one  |
-| [storedlogic](#storedlogic)         | aggregates   | inbound   | many-to-one  |
-| [view](#view)                       | aggregates   | inbound   | many-to-one  |
-| [view](#view)                       | derives-from | inbound   | many-to-one  |
+| [Accesspattern](#accesspattern)     | accesses     | inbound   | many-to-one  |
+| [Accesspattern](#accesspattern)     | aggregates   | inbound   | many-to-one  |
+| [Collection](#collection)           | composes     | outbound  | many-to-many |
+| [Eventhandler](#eventhandler)       | composes     | outbound  | many-to-one  |
+| [Field](#field)                     | composes     | outbound  | many-to-many |
+| [Index](#index)                     | composes     | outbound  | many-to-many |
+| [Namespace](#namespace)             | composes     | outbound  | many-to-many |
+| [Validationrule](#validationrule)   | composes     | outbound  | many-to-many |
+| [Collection](#collection)           | references   | outbound  | many-to-one  |
+| [Database](#database)               | composes     | inbound   | many-to-many |
+| [Namespace](#namespace)             | composes     | inbound   | many-to-many |
+| [Retentionpolicy](#retentionpolicy) | aggregates   | inbound   | many-to-one  |
+| [Retentionpolicy](#retentionpolicy) | governs      | inbound   | many-to-one  |
+| [Storedlogic](#storedlogic)         | accesses     | inbound   | many-to-one  |
+| [Storedlogic](#storedlogic)         | aggregates   | inbound   | many-to-one  |
+| [View](#view)                       | aggregates   | inbound   | many-to-one  |
+| [View](#view)                       | derives-from | inbound   | many-to-one  |
 
 #### Inter-Layer Relationships
 
 | Related Node                                              | Layer                           | Predicate | Direction | Cardinality |
 | --------------------------------------------------------- | ------------------------------- | --------- | --------- | ----------- |
-| [schema](./06-api-layer-report.md#schema)                 | [API](./06-api-layer-report.md) | maps-to   | inbound   | many-to-one |
-| [securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | maps-to   | inbound   | many-to-one |
+| [Schema](./06-api-layer-report.md#schema)                 | [API](./06-api-layer-report.md) | maps-to   | inbound   | many-to-one |
+| [Securityscheme](./06-api-layer-report.md#securityscheme) | [API](./06-api-layer-report.md) | maps-to   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -239,12 +239,12 @@ A database instance representing a top-level data store deployment. Paradigm-neu
 
 | Related Node                      | Predicate | Direction | Cardinality  |
 | --------------------------------- | --------- | --------- | ------------ |
-| [collection](#collection)         | composes  | outbound  | many-to-many |
-| [field](#field)                   | composes  | outbound  | many-to-many |
-| [index](#index)                   | composes  | outbound  | many-to-many |
-| [namespace](#namespace)           | composes  | outbound  | many-to-many |
-| [validationrule](#validationrule) | composes  | outbound  | many-to-many |
-| [view](#view)                     | composes  | outbound  | many-to-one  |
+| [Collection](#collection)         | composes  | outbound  | many-to-many |
+| [Field](#field)                   | composes  | outbound  | many-to-many |
+| [Index](#index)                   | composes  | outbound  | many-to-many |
+| [Namespace](#namespace)           | composes  | outbound  | many-to-many |
+| [Validationrule](#validationrule) | composes  | outbound  | many-to-many |
+| [View](#view)                     | composes  | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -263,11 +263,11 @@ A reactive mechanism that executes in response to data change events. Paradigm-n
 
 | Related Node                        | Predicate | Direction | Cardinality  |
 | ----------------------------------- | --------- | --------- | ------------ |
-| [accesspattern](#accesspattern)     | triggers  | inbound   | many-to-one  |
-| [collection](#collection)           | composes  | inbound   | many-to-one  |
-| [storedlogic](#storedlogic)         | triggers  | outbound  | many-to-many |
-| [field](#field)                     | triggers  | inbound   | many-to-one  |
-| [retentionpolicy](#retentionpolicy) | triggers  | inbound   | many-to-one  |
+| [Accesspattern](#accesspattern)     | triggers  | inbound   | many-to-one  |
+| [Collection](#collection)           | composes  | inbound   | many-to-one  |
+| [Storedlogic](#storedlogic)         | triggers  | outbound  | many-to-many |
+| [Field](#field)                     | triggers  | inbound   | many-to-one  |
+| [Retentionpolicy](#retentionpolicy) | triggers  | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -286,24 +286,24 @@ A named data element within a collection. Paradigm-neutral: maps to SQL column, 
 
 | Related Node                      | Predicate  | Direction | Cardinality  |
 | --------------------------------- | ---------- | --------- | ------------ |
-| [accesspattern](#accesspattern)   | aggregates | inbound   | many-to-one  |
-| [collection](#collection)         | composes   | inbound   | many-to-many |
-| [database](#database)             | composes   | inbound   | many-to-many |
-| [field](#field)                   | composes   | outbound  | many-to-one  |
-| [eventhandler](#eventhandler)     | triggers   | outbound  | many-to-one  |
-| [storedlogic](#storedlogic)       | triggers   | outbound  | many-to-one  |
-| [validationrule](#validationrule) | triggers   | outbound  | many-to-one  |
-| [index](#index)                   | aggregates | inbound   | many-to-many |
-| [namespace](#namespace)           | composes   | inbound   | many-to-many |
-| [storedlogic](#storedlogic)       | aggregates | inbound   | many-to-one  |
-| [validationrule](#validationrule) | aggregates | inbound   | many-to-many |
-| [view](#view)                     | aggregates | inbound   | many-to-one  |
+| [Accesspattern](#accesspattern)   | aggregates | inbound   | many-to-one  |
+| [Collection](#collection)         | composes   | inbound   | many-to-many |
+| [Database](#database)             | composes   | inbound   | many-to-many |
+| [Field](#field)                   | composes   | outbound  | many-to-one  |
+| [Eventhandler](#eventhandler)     | triggers   | outbound  | many-to-one  |
+| [Storedlogic](#storedlogic)       | triggers   | outbound  | many-to-one  |
+| [Validationrule](#validationrule) | triggers   | outbound  | many-to-one  |
+| [Index](#index)                   | aggregates | inbound   | many-to-many |
+| [Namespace](#namespace)           | composes   | inbound   | many-to-many |
+| [Storedlogic](#storedlogic)       | aggregates | inbound   | many-to-one  |
+| [Validationrule](#validationrule) | aggregates | inbound   | many-to-many |
+| [View](#view)                     | aggregates | inbound   | many-to-one  |
 
 #### Inter-Layer Relationships
 
 | Related Node                              | Layer                           | Predicate | Direction | Cardinality |
 | ----------------------------------------- | ------------------------------- | --------- | --------- | ----------- |
-| [schema](./06-api-layer-report.md#schema) | [API](./06-api-layer-report.md) | maps-to   | inbound   | many-to-one |
+| [Schema](./06-api-layer-report.md#schema) | [API](./06-api-layer-report.md) | maps-to   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -322,13 +322,13 @@ A database index for query optimization. Paradigm-neutral: covers B-tree and has
 
 | Related Node                    | Predicate  | Direction | Cardinality  |
 | ------------------------------- | ---------- | --------- | ------------ |
-| [accesspattern](#accesspattern) | aggregates | inbound   | many-to-one  |
-| [accesspattern](#accesspattern) | uses       | inbound   | many-to-one  |
-| [collection](#collection)       | composes   | inbound   | many-to-many |
-| [database](#database)           | composes   | inbound   | many-to-many |
-| [field](#field)                 | aggregates | outbound  | many-to-many |
-| [namespace](#namespace)         | composes   | inbound   | many-to-many |
-| [view](#view)                   | composes   | inbound   | many-to-one  |
+| [Accesspattern](#accesspattern) | aggregates | inbound   | many-to-one  |
+| [Accesspattern](#accesspattern) | uses       | inbound   | many-to-one  |
+| [Collection](#collection)       | composes   | inbound   | many-to-many |
+| [Database](#database)           | composes   | inbound   | many-to-many |
+| [Field](#field)                 | aggregates | outbound  | many-to-many |
+| [Namespace](#namespace)         | composes   | inbound   | many-to-many |
+| [View](#view)                   | composes   | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -347,17 +347,17 @@ A logical grouping of database objects within a database instance. Paradigm-neut
 
 | Related Node                        | Predicate  | Direction | Cardinality  |
 | ----------------------------------- | ---------- | --------- | ------------ |
-| [collection](#collection)           | composes   | inbound   | many-to-many |
-| [database](#database)               | composes   | inbound   | many-to-many |
-| [collection](#collection)           | composes   | outbound  | many-to-many |
-| [field](#field)                     | composes   | outbound  | many-to-many |
-| [index](#index)                     | composes   | outbound  | many-to-many |
-| [namespace](#namespace)             | composes   | outbound  | many-to-many |
-| [storedlogic](#storedlogic)         | composes   | outbound  | one-to-many  |
-| [validationrule](#validationrule)   | composes   | outbound  | many-to-many |
-| [view](#view)                       | composes   | outbound  | many-to-one  |
-| [retentionpolicy](#retentionpolicy) | aggregates | inbound   | many-to-one  |
-| [retentionpolicy](#retentionpolicy) | governs    | inbound   | many-to-one  |
+| [Collection](#collection)           | composes   | inbound   | many-to-many |
+| [Database](#database)               | composes   | inbound   | many-to-many |
+| [Collection](#collection)           | composes   | outbound  | many-to-many |
+| [Field](#field)                     | composes   | outbound  | many-to-many |
+| [Index](#index)                     | composes   | outbound  | many-to-many |
+| [Namespace](#namespace)             | composes   | outbound  | many-to-many |
+| [Storedlogic](#storedlogic)         | composes   | outbound  | one-to-many  |
+| [Validationrule](#validationrule)   | composes   | outbound  | many-to-many |
+| [View](#view)                       | composes   | outbound  | many-to-one  |
+| [Retentionpolicy](#retentionpolicy) | aggregates | inbound   | many-to-one  |
+| [Retentionpolicy](#retentionpolicy) | governs    | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -376,12 +376,12 @@ A data lifecycle management policy that governs how long data is retained and wh
 
 | Related Node                  | Predicate  | Direction | Cardinality |
 | ----------------------------- | ---------- | --------- | ----------- |
-| [collection](#collection)     | aggregates | outbound  | many-to-one |
-| [namespace](#namespace)       | aggregates | outbound  | many-to-one |
-| [collection](#collection)     | governs    | outbound  | many-to-one |
-| [namespace](#namespace)       | governs    | outbound  | many-to-one |
-| [eventhandler](#eventhandler) | triggers   | outbound  | many-to-one |
-| [storedlogic](#storedlogic)   | triggers   | outbound  | many-to-one |
+| [Collection](#collection)     | aggregates | outbound  | many-to-one |
+| [Namespace](#namespace)       | aggregates | outbound  | many-to-one |
+| [Collection](#collection)     | governs    | outbound  | many-to-one |
+| [Namespace](#namespace)       | governs    | outbound  | many-to-one |
+| [Eventhandler](#eventhandler) | triggers   | outbound  | many-to-one |
+| [Storedlogic](#storedlogic)   | triggers   | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -400,18 +400,18 @@ Stored computation logic that executes within the data store engine. Paradigm-ne
 
 | Related Node                        | Predicate  | Direction | Cardinality  |
 | ----------------------------------- | ---------- | --------- | ------------ |
-| [accesspattern](#accesspattern)     | triggers   | inbound   | many-to-one  |
-| [eventhandler](#eventhandler)       | triggers   | inbound   | many-to-many |
-| [field](#field)                     | triggers   | inbound   | many-to-one  |
-| [namespace](#namespace)             | composes   | inbound   | one-to-many  |
-| [retentionpolicy](#retentionpolicy) | triggers   | inbound   | many-to-one  |
-| [collection](#collection)           | accesses   | outbound  | many-to-one  |
-| [collection](#collection)           | aggregates | outbound  | many-to-one  |
-| [field](#field)                     | aggregates | outbound  | many-to-one  |
-| [storedlogic](#storedlogic)         | composes   | outbound  | many-to-one  |
-| [validationrule](#validationrule)   | composes   | outbound  | many-to-one  |
-| [storedlogic](#storedlogic)         | triggers   | outbound  | many-to-one  |
-| [view](#view)                       | triggers   | outbound  | many-to-one  |
+| [Accesspattern](#accesspattern)     | triggers   | inbound   | many-to-one  |
+| [Eventhandler](#eventhandler)       | triggers   | inbound   | many-to-many |
+| [Field](#field)                     | triggers   | inbound   | many-to-one  |
+| [Namespace](#namespace)             | composes   | inbound   | one-to-many  |
+| [Retentionpolicy](#retentionpolicy) | triggers   | inbound   | many-to-one  |
+| [Collection](#collection)           | accesses   | outbound  | many-to-one  |
+| [Collection](#collection)           | aggregates | outbound  | many-to-one  |
+| [Field](#field)                     | aggregates | outbound  | many-to-one  |
+| [Storedlogic](#storedlogic)         | composes   | outbound  | many-to-one  |
+| [Validationrule](#validationrule)   | composes   | outbound  | many-to-one  |
+| [Storedlogic](#storedlogic)         | triggers   | outbound  | many-to-one  |
+| [View](#view)                       | triggers   | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -430,12 +430,12 @@ A data integrity or validation rule enforced by the data store. Paradigm-neutral
 
 | Related Node                | Predicate  | Direction | Cardinality  |
 | --------------------------- | ---------- | --------- | ------------ |
-| [collection](#collection)   | composes   | inbound   | many-to-many |
-| [database](#database)       | composes   | inbound   | many-to-many |
-| [field](#field)             | triggers   | inbound   | many-to-one  |
-| [namespace](#namespace)     | composes   | inbound   | many-to-many |
-| [storedlogic](#storedlogic) | composes   | inbound   | many-to-one  |
-| [field](#field)             | aggregates | outbound  | many-to-many |
+| [Collection](#collection)   | composes   | inbound   | many-to-many |
+| [Database](#database)       | composes   | inbound   | many-to-many |
+| [Field](#field)             | triggers   | inbound   | many-to-one  |
+| [Namespace](#namespace)     | composes   | inbound   | many-to-many |
+| [Storedlogic](#storedlogic) | composes   | inbound   | many-to-one  |
+| [Field](#field)             | aggregates | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -454,17 +454,17 @@ A derived or virtual collection that presents data from one or more source colle
 
 | Related Node                | Predicate    | Direction | Cardinality |
 | --------------------------- | ------------ | --------- | ----------- |
-| [database](#database)       | composes     | inbound   | many-to-one |
-| [namespace](#namespace)     | composes     | inbound   | many-to-one |
-| [storedlogic](#storedlogic) | triggers     | inbound   | many-to-one |
-| [collection](#collection)   | aggregates   | outbound  | many-to-one |
-| [field](#field)             | aggregates   | outbound  | many-to-one |
-| [index](#index)             | composes     | outbound  | many-to-one |
-| [collection](#collection)   | derives-from | outbound  | many-to-one |
-| [view](#view)               | derives-from | outbound  | many-to-one |
+| [Database](#database)       | composes     | inbound   | many-to-one |
+| [Namespace](#namespace)     | composes     | inbound   | many-to-one |
+| [Storedlogic](#storedlogic) | triggers     | inbound   | many-to-one |
+| [Collection](#collection)   | aggregates   | outbound  | many-to-one |
+| [Field](#field)             | aggregates   | outbound  | many-to-one |
+| [Index](#index)             | composes     | outbound  | many-to-one |
+| [Collection](#collection)   | derives-from | outbound  | many-to-one |
+| [View](#view)               | derives-from | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-28T15:47:18.826Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-02T20:37:51.225Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

@@ -134,14 +134,14 @@ flowchart TB
 
 | Relationship ID                                                    | Source Node                                                               | Dest Node                                                                 | Dest Layer                                      | Predicate      | Cardinality  | Strength |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------- | -------------- | ------------ | -------- |
-| api.operation.references.application.applicationservice            | [operation](./06-api-layer-report.md#operation)                           | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references     | many-to-one  | medium   |
-| api.securityscheme.references.application.applicationservice       | [securityscheme](./06-api-layer-report.md#securityscheme)                 | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references     | many-to-one  | medium   |
-| application.applicationprocess.realizes.business.businessprocess   | [applicationprocess](./04-application-layer-report.md#applicationprocess) | [businessprocess](./02-business-layer-report.md#businessprocess)          | [Business](./02-business-layer-report.md)       | realizes       | many-to-one  | medium   |
-| application.applicationservice.delivers-value.motivation.value     | [applicationservice](./04-application-layer-report.md#applicationservice) | [value](./01-motivation-layer-report.md#value)                            | [Motivation](./01-motivation-layer-report.md)   | delivers-value | many-to-many | medium   |
-| application.applicationservice.references.apm.traceconfiguration   | [applicationservice](./04-application-layer-report.md#applicationservice) | [traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [APM](./11-apm-layer-report.md)                 | references     | many-to-one  | medium   |
-| business.businessobject.references.application.dataobject          | [businessobject](./02-business-layer-report.md#businessobject)            | [dataobject](./04-application-layer-report.md#dataobject)                 | [Application](./04-application-layer-report.md) | references     | many-to-one  | medium   |
-| business.businessprocess.aggregates.application.applicationprocess | [businessprocess](./02-business-layer-report.md#businessprocess)          | [applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | aggregates     | many-to-one  | medium   |
-| data-model.jsonschema.references.application.applicationservice    | [jsonschema](./07-data-model-layer-report.md#jsonschema)                  | [applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references     | many-to-one  | medium   |
+| api.operation.references.application.applicationservice            | [Operation](./06-api-layer-report.md#operation)                           | [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references     | many-to-one  | medium   |
+| api.securityscheme.references.application.applicationservice       | [Securityscheme](./06-api-layer-report.md#securityscheme)                 | [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references     | many-to-one  | medium   |
+| application.applicationprocess.realizes.business.businessprocess   | [Applicationprocess](./04-application-layer-report.md#applicationprocess) | [Businessprocess](./02-business-layer-report.md#businessprocess)          | [Business](./02-business-layer-report.md)       | realizes       | many-to-one  | medium   |
+| application.applicationservice.delivers-value.motivation.value     | [Applicationservice](./04-application-layer-report.md#applicationservice) | [Value](./01-motivation-layer-report.md#value)                            | [Motivation](./01-motivation-layer-report.md)   | delivers-value | many-to-many | medium   |
+| application.applicationservice.references.apm.traceconfiguration   | [Applicationservice](./04-application-layer-report.md#applicationservice) | [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)         | [APM](./11-apm-layer-report.md)                 | references     | many-to-one  | medium   |
+| business.businessobject.references.application.dataobject          | [Businessobject](./02-business-layer-report.md#businessobject)            | [Dataobject](./04-application-layer-report.md#dataobject)                 | [Application](./04-application-layer-report.md) | references     | many-to-one  | medium   |
+| business.businessprocess.aggregates.application.applicationprocess | [Businessprocess](./02-business-layer-report.md#businessprocess)          | [Applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | aggregates     | many-to-one  | medium   |
+| data-model.jsonschema.references.application.applicationservice    | [Jsonschema](./07-data-model-layer-report.md#jsonschema)                  | [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | references     | many-to-one  | medium   |
 
 ## Node Reference
 
@@ -160,15 +160,15 @@ Aggregate of application components working together
 
 | Related Node                                      | Predicate      | Direction | Cardinality |
 | ------------------------------------------------- | -------------- | --------- | ----------- |
-| [applicationcomponent](#applicationcomponent)     | aggregates     | outbound  | many-to-one |
-| [applicationinteraction](#applicationinteraction) | delivers-value | outbound  | many-to-one |
-| [applicationservice](#applicationservice)         | delivers-value | outbound  | many-to-one |
-| [applicationcomponent](#applicationcomponent)     | depends-on     | outbound  | many-to-one |
-| [applicationinteraction](#applicationinteraction) | depends-on     | outbound  | many-to-one |
-| [applicationinterface](#applicationinterface)     | depends-on     | outbound  | many-to-one |
-| [applicationinteraction](#applicationinteraction) | depends-on     | inbound   | many-to-one |
-| [applicationinterface](#applicationinterface)     | delivers-value | inbound   | many-to-one |
-| [applicationprocess](#applicationprocess)         | depends-on     | inbound   | many-to-one |
+| [Applicationcomponent](#applicationcomponent)     | aggregates     | outbound  | many-to-one |
+| [Applicationinteraction](#applicationinteraction) | delivers-value | outbound  | many-to-one |
+| [Applicationservice](#applicationservice)         | delivers-value | outbound  | many-to-one |
+| [Applicationcomponent](#applicationcomponent)     | depends-on     | outbound  | many-to-one |
+| [Applicationinteraction](#applicationinteraction) | depends-on     | outbound  | many-to-one |
+| [Applicationinterface](#applicationinterface)     | depends-on     | outbound  | many-to-one |
+| [Applicationinteraction](#applicationinteraction) | depends-on     | inbound   | many-to-one |
+| [Applicationinterface](#applicationinterface)     | delivers-value | inbound   | many-to-one |
+| [Applicationprocess](#applicationprocess)         | depends-on     | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -187,14 +187,14 @@ Modular, deployable, and replaceable part of a system
 
 | Related Node                                          | Predicate  | Direction | Cardinality |
 | ----------------------------------------------------- | ---------- | --------- | ----------- |
-| [applicationcollaboration](#applicationcollaboration) | aggregates | inbound   | many-to-one |
-| [applicationcollaboration](#applicationcollaboration) | depends-on | inbound   | many-to-one |
-| [dataobject](#dataobject)                             | accesses   | outbound  | many-to-one |
-| [applicationfunction](#applicationfunction)           | composes   | outbound  | many-to-one |
-| [applicationinterface](#applicationinterface)         | provides   | outbound  | many-to-one |
-| [applicationservice](#applicationservice)             | realizes   | outbound  | many-to-one |
-| [applicationcomponent](#applicationcomponent)         | uses       | outbound  | many-to-one |
-| [applicationinterface](#applicationinterface)         | depends-on | inbound   | many-to-one |
+| [Applicationcollaboration](#applicationcollaboration) | aggregates | inbound   | many-to-one |
+| [Applicationcollaboration](#applicationcollaboration) | depends-on | inbound   | many-to-one |
+| [Dataobject](#dataobject)                             | accesses   | outbound  | many-to-one |
+| [Applicationfunction](#applicationfunction)           | composes   | outbound  | many-to-one |
+| [Applicationinterface](#applicationinterface)         | provides   | outbound  | many-to-one |
+| [Applicationservice](#applicationservice)             | realizes   | outbound  | many-to-one |
+| [Applicationcomponent](#applicationcomponent)         | uses       | outbound  | many-to-one |
+| [Applicationinterface](#applicationinterface)         | depends-on | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -213,11 +213,11 @@ A state change in an application element that triggers reactive application beha
 
 | Related Node                                      | Predicate  | Direction | Cardinality |
 | ------------------------------------------------- | ---------- | --------- | ----------- |
-| [applicationprocess](#applicationprocess)         | triggers   | outbound  | many-to-one |
-| [applicationfunction](#applicationfunction)       | depends-on | inbound   | many-to-one |
-| [applicationinteraction](#applicationinteraction) | depends-on | inbound   | many-to-one |
-| [applicationprocess](#applicationprocess)         | depends-on | inbound   | many-to-one |
-| [applicationprocess](#applicationprocess)         | triggers   | inbound   | many-to-one |
+| [Applicationprocess](#applicationprocess)         | triggers   | outbound  | many-to-one |
+| [Applicationfunction](#applicationfunction)       | depends-on | inbound   | many-to-one |
+| [Applicationinteraction](#applicationinteraction) | depends-on | inbound   | many-to-one |
+| [Applicationprocess](#applicationprocess)         | depends-on | inbound   | many-to-one |
+| [Applicationprocess](#applicationprocess)         | triggers   | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -236,16 +236,16 @@ Automated behavior performed by an application component for internal purposes, 
 
 | Related Node                                  | Predicate      | Direction | Cardinality |
 | --------------------------------------------- | -------------- | --------- | ----------- |
-| [applicationcomponent](#applicationcomponent) | composes       | inbound   | many-to-one |
-| [dataobject](#dataobject)                     | accesses       | outbound  | many-to-one |
-| [applicationprocess](#applicationprocess)     | delivers-value | outbound  | many-to-one |
-| [applicationservice](#applicationservice)     | delivers-value | outbound  | many-to-one |
-| [applicationevent](#applicationevent)         | depends-on     | outbound  | many-to-one |
-| [applicationfunction](#applicationfunction)   | depends-on     | outbound  | many-to-one |
-| [dataobject](#dataobject)                     | depends-on     | outbound  | many-to-one |
-| [applicationservice](#applicationservice)     | realizes       | outbound  | many-to-one |
-| [applicationinterface](#applicationinterface) | depends-on     | inbound   | many-to-one |
-| [applicationprocess](#applicationprocess)     | depends-on     | inbound   | many-to-one |
+| [Applicationcomponent](#applicationcomponent) | composes       | inbound   | many-to-one |
+| [Dataobject](#dataobject)                     | accesses       | outbound  | many-to-one |
+| [Applicationprocess](#applicationprocess)     | delivers-value | outbound  | many-to-one |
+| [Applicationservice](#applicationservice)     | delivers-value | outbound  | many-to-one |
+| [Applicationevent](#applicationevent)         | depends-on     | outbound  | many-to-one |
+| [Applicationfunction](#applicationfunction)   | depends-on     | outbound  | many-to-one |
+| [Dataobject](#dataobject)                     | depends-on     | outbound  | many-to-one |
+| [Applicationservice](#applicationservice)     | realizes       | outbound  | many-to-one |
+| [Applicationinterface](#applicationinterface) | depends-on     | inbound   | many-to-one |
+| [Applicationprocess](#applicationprocess)     | depends-on     | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -264,14 +264,14 @@ Collective application behavior performed by two or more application components 
 
 | Related Node                                          | Predicate      | Direction | Cardinality |
 | ----------------------------------------------------- | -------------- | --------- | ----------- |
-| [applicationcollaboration](#applicationcollaboration) | delivers-value | inbound   | many-to-one |
-| [applicationcollaboration](#applicationcollaboration) | depends-on     | inbound   | many-to-one |
-| [applicationservice](#applicationservice)             | delivers-value | outbound  | many-to-one |
-| [applicationcollaboration](#applicationcollaboration) | depends-on     | outbound  | many-to-one |
-| [applicationevent](#applicationevent)                 | depends-on     | outbound  | many-to-one |
-| [applicationservice](#applicationservice)             | depends-on     | outbound  | many-to-one |
-| [dataobject](#dataobject)                             | depends-on     | outbound  | many-to-one |
-| [applicationservice](#applicationservice)             | realizes       | outbound  | many-to-one |
+| [Applicationcollaboration](#applicationcollaboration) | delivers-value | inbound   | many-to-one |
+| [Applicationcollaboration](#applicationcollaboration) | depends-on     | inbound   | many-to-one |
+| [Applicationservice](#applicationservice)             | delivers-value | outbound  | many-to-one |
+| [Applicationcollaboration](#applicationcollaboration) | depends-on     | outbound  | many-to-one |
+| [Applicationevent](#applicationevent)                 | depends-on     | outbound  | many-to-one |
+| [Applicationservice](#applicationservice)             | depends-on     | outbound  | many-to-one |
+| [Dataobject](#dataobject)                             | depends-on     | outbound  | many-to-one |
+| [Applicationservice](#applicationservice)             | realizes       | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -290,15 +290,15 @@ Point of access where application service is available
 
 | Related Node                                          | Predicate      | Direction | Cardinality |
 | ----------------------------------------------------- | -------------- | --------- | ----------- |
-| [applicationcollaboration](#applicationcollaboration) | depends-on     | inbound   | many-to-one |
-| [applicationcomponent](#applicationcomponent)         | provides       | inbound   | many-to-one |
-| [applicationcollaboration](#applicationcollaboration) | delivers-value | outbound  | many-to-one |
-| [applicationcomponent](#applicationcomponent)         | depends-on     | outbound  | many-to-one |
-| [applicationfunction](#applicationfunction)           | depends-on     | outbound  | many-to-one |
-| [applicationservice](#applicationservice)             | depends-on     | outbound  | many-to-one |
-| [dataobject](#dataobject)                             | depends-on     | outbound  | many-to-one |
-| [applicationservice](#applicationservice)             | serves         | outbound  | many-to-one |
-| [applicationprocess](#applicationprocess)             | depends-on     | inbound   | many-to-one |
+| [Applicationcollaboration](#applicationcollaboration) | depends-on     | inbound   | many-to-one |
+| [Applicationcomponent](#applicationcomponent)         | provides       | inbound   | many-to-one |
+| [Applicationcollaboration](#applicationcollaboration) | delivers-value | outbound  | many-to-one |
+| [Applicationcomponent](#applicationcomponent)         | depends-on     | outbound  | many-to-one |
+| [Applicationfunction](#applicationfunction)           | depends-on     | outbound  | many-to-one |
+| [Applicationservice](#applicationservice)             | depends-on     | outbound  | many-to-one |
+| [Dataobject](#dataobject)                             | depends-on     | outbound  | many-to-one |
+| [Applicationservice](#applicationservice)             | serves         | outbound  | many-to-one |
+| [Applicationprocess](#applicationprocess)             | depends-on     | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -317,22 +317,22 @@ An ordered sequence of application behaviors performed by an application compone
 
 | Related Node                                          | Predicate      | Direction | Cardinality |
 | ----------------------------------------------------- | -------------- | --------- | ----------- |
-| [applicationevent](#applicationevent)                 | triggers       | inbound   | many-to-one |
-| [applicationfunction](#applicationfunction)           | delivers-value | inbound   | many-to-one |
-| [applicationservice](#applicationservice)             | delivers-value | outbound  | many-to-one |
-| [applicationcollaboration](#applicationcollaboration) | depends-on     | outbound  | many-to-one |
-| [applicationevent](#applicationevent)                 | depends-on     | outbound  | many-to-one |
-| [applicationfunction](#applicationfunction)           | depends-on     | outbound  | many-to-one |
-| [applicationinterface](#applicationinterface)         | depends-on     | outbound  | many-to-one |
-| [dataobject](#dataobject)                             | depends-on     | outbound  | many-to-one |
-| [applicationevent](#applicationevent)                 | triggers       | outbound  | many-to-one |
+| [Applicationevent](#applicationevent)                 | triggers       | inbound   | many-to-one |
+| [Applicationfunction](#applicationfunction)           | delivers-value | inbound   | many-to-one |
+| [Applicationservice](#applicationservice)             | delivers-value | outbound  | many-to-one |
+| [Applicationcollaboration](#applicationcollaboration) | depends-on     | outbound  | many-to-one |
+| [Applicationevent](#applicationevent)                 | depends-on     | outbound  | many-to-one |
+| [Applicationfunction](#applicationfunction)           | depends-on     | outbound  | many-to-one |
+| [Applicationinterface](#applicationinterface)         | depends-on     | outbound  | many-to-one |
+| [Dataobject](#dataobject)                             | depends-on     | outbound  | many-to-one |
+| [Applicationevent](#applicationevent)                 | triggers       | outbound  | many-to-one |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                     | Layer                                     | Predicate  | Direction | Cardinality |
 | ---------------------------------------------------------------- | ----------------------------------------- | ---------- | --------- | ----------- |
-| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | realizes   | outbound  | many-to-one |
-| [businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | aggregates | inbound   | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | realizes   | outbound  | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md) | aggregates | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -351,27 +351,27 @@ Service that exposes application functionality
 
 | Related Node                                          | Predicate      | Direction | Cardinality  |
 | ----------------------------------------------------- | -------------- | --------- | ------------ |
-| [applicationcollaboration](#applicationcollaboration) | delivers-value | inbound   | many-to-one  |
-| [applicationcomponent](#applicationcomponent)         | realizes       | inbound   | many-to-one  |
-| [applicationfunction](#applicationfunction)           | delivers-value | inbound   | many-to-one  |
-| [applicationfunction](#applicationfunction)           | realizes       | inbound   | many-to-one  |
-| [applicationinteraction](#applicationinteraction)     | delivers-value | inbound   | many-to-one  |
-| [applicationinteraction](#applicationinteraction)     | depends-on     | inbound   | many-to-one  |
-| [applicationinteraction](#applicationinteraction)     | realizes       | inbound   | many-to-one  |
-| [applicationinterface](#applicationinterface)         | depends-on     | inbound   | many-to-one  |
-| [applicationinterface](#applicationinterface)         | serves         | inbound   | many-to-one  |
-| [applicationprocess](#applicationprocess)             | delivers-value | inbound   | many-to-one  |
-| [dataobject](#dataobject)                             | depends-on     | outbound  | many-to-many |
+| [Applicationcollaboration](#applicationcollaboration) | delivers-value | inbound   | many-to-one  |
+| [Applicationcomponent](#applicationcomponent)         | realizes       | inbound   | many-to-one  |
+| [Applicationfunction](#applicationfunction)           | delivers-value | inbound   | many-to-one  |
+| [Applicationfunction](#applicationfunction)           | realizes       | inbound   | many-to-one  |
+| [Applicationinteraction](#applicationinteraction)     | delivers-value | inbound   | many-to-one  |
+| [Applicationinteraction](#applicationinteraction)     | depends-on     | inbound   | many-to-one  |
+| [Applicationinteraction](#applicationinteraction)     | realizes       | inbound   | many-to-one  |
+| [Applicationinterface](#applicationinterface)         | depends-on     | inbound   | many-to-one  |
+| [Applicationinterface](#applicationinterface)         | serves         | inbound   | many-to-one  |
+| [Applicationprocess](#applicationprocess)             | delivers-value | inbound   | many-to-one  |
+| [Dataobject](#dataobject)                             | depends-on     | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                      | Layer                                         | Predicate      | Direction | Cardinality  |
 | ----------------------------------------------------------------- | --------------------------------------------- | -------------- | --------- | ------------ |
-| [operation](./06-api-layer-report.md#operation)                   | [API](./06-api-layer-report.md)               | references     | inbound   | many-to-one  |
-| [securityscheme](./06-api-layer-report.md#securityscheme)         | [API](./06-api-layer-report.md)               | references     | inbound   | many-to-one  |
-| [value](./01-motivation-layer-report.md#value)                    | [Motivation](./01-motivation-layer-report.md) | delivers-value | outbound  | many-to-many |
-| [traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [APM](./11-apm-layer-report.md)               | references     | outbound  | many-to-one  |
-| [jsonschema](./07-data-model-layer-report.md#jsonschema)          | [Data Model](./07-data-model-layer-report.md) | references     | inbound   | many-to-one  |
+| [Operation](./06-api-layer-report.md#operation)                   | [API](./06-api-layer-report.md)               | references     | inbound   | many-to-one  |
+| [Securityscheme](./06-api-layer-report.md#securityscheme)         | [API](./06-api-layer-report.md)               | references     | inbound   | many-to-one  |
+| [Value](./01-motivation-layer-report.md#value)                    | [Motivation](./01-motivation-layer-report.md) | delivers-value | outbound  | many-to-many |
+| [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration) | [APM](./11-apm-layer-report.md)               | references     | outbound  | many-to-one  |
+| [Jsonschema](./07-data-model-layer-report.md#jsonschema)          | [Data Model](./07-data-model-layer-report.md) | references     | inbound   | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -390,22 +390,22 @@ A passive application element representing data structured for automated process
 
 | Related Node                                      | Predicate  | Direction | Cardinality  |
 | ------------------------------------------------- | ---------- | --------- | ------------ |
-| [applicationcomponent](#applicationcomponent)     | accesses   | inbound   | many-to-one  |
-| [applicationfunction](#applicationfunction)       | accesses   | inbound   | many-to-one  |
-| [applicationfunction](#applicationfunction)       | depends-on | inbound   | many-to-one  |
-| [applicationinteraction](#applicationinteraction) | depends-on | inbound   | many-to-one  |
-| [applicationinterface](#applicationinterface)     | depends-on | inbound   | many-to-one  |
-| [applicationprocess](#applicationprocess)         | depends-on | inbound   | many-to-one  |
-| [applicationservice](#applicationservice)         | depends-on | inbound   | many-to-many |
+| [Applicationcomponent](#applicationcomponent)     | accesses   | inbound   | many-to-one  |
+| [Applicationfunction](#applicationfunction)       | accesses   | inbound   | many-to-one  |
+| [Applicationfunction](#applicationfunction)       | depends-on | inbound   | many-to-one  |
+| [Applicationinteraction](#applicationinteraction) | depends-on | inbound   | many-to-one  |
+| [Applicationinterface](#applicationinterface)     | depends-on | inbound   | many-to-one  |
+| [Applicationprocess](#applicationprocess)         | depends-on | inbound   | many-to-one  |
+| [Applicationservice](#applicationservice)         | depends-on | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
 | Related Node                                                   | Layer                                     | Predicate  | Direction | Cardinality |
 | -------------------------------------------------------------- | ----------------------------------------- | ---------- | --------- | ----------- |
-| [businessobject](./02-business-layer-report.md#businessobject) | [Business](./02-business-layer-report.md) | references | inbound   | many-to-one |
+| [Businessobject](./02-business-layer-report.md#businessobject) | [Business](./02-business-layer-report.md) | references | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-02-28T15:47:18.823Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-02T20:37:51.219Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

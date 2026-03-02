@@ -317,6 +317,24 @@ function formatNodeTypeName(type: string): string {
     .replace(/^./, (c) => c.toUpperCase());
 }
 
+/**
+ * Create descriptive link text that avoids markdownlint MD059 prohibited texts
+ * Prohibited texts: "click here", "here", "link", "more"
+ * @param type The node type to create link text for
+ * @returns Descriptive link text safe for markdownlint MD059
+ */
+function createDescriptiveLinkText(type: string): string {
+  const prohibited = ["click here", "here", "link", "more"];
+  const formatted = formatNodeTypeName(type);
+
+  if (prohibited.includes(formatted.toLowerCase())) {
+    // Add "node" suffix to make it descriptive
+    return `${formatted} node`;
+  }
+
+  return formatted;
+}
+
 function createAnchor(text: string): string {
   return text
     .toLowerCase()
@@ -398,7 +416,7 @@ class LayerReportGenerator {
       lines.push("- [Node Reference](#node-reference)\n");
       for (const schema of reportData.nodeSchemas) {
         const anchor = createAnchor(schema.type);
-        lines.push(`  - [${formatNodeTypeName(schema.type)}](#${anchor})\n`);
+        lines.push(`  - [${createDescriptiveLinkText(schema.type)}](#${anchor})\n`);
       }
     }
 
@@ -654,11 +672,11 @@ class LayerReportGenerator {
 
       // Create source link (to source node in source layer)
       const sourceLink = sourceLayerNum
-        ? `[${sourceType}](${sourceLayerFilename}#${sourceAnchor})`
+        ? `[${createDescriptiveLinkText(sourceType)}](${sourceLayerFilename}#${sourceAnchor})`
         : sourceType;
       // Create dest link (to dest node in dest layer)
       const destLink = destLayerNum
-        ? `[${destType}](${destLayerFilename}#${destAnchor})`
+        ? `[${createDescriptiveLinkText(destType)}](${destLayerFilename}#${destAnchor})`
         : destType;
 
       rows.push([rel.id, sourceLink, destLink, destLayerLink, rel.predicate, rel.cardinality, rel.strength]);
@@ -740,7 +758,7 @@ class LayerReportGenerator {
               ? extractTypeFromSpecNodeId(rel.destination_spec_node_id, "intraRels")
               : extractTypeFromSpecNodeId(rel.source_spec_node_id, "intraRels");
           const relatedAnchor = createAnchor(relatedType);
-          intraRows.push([`[${relatedType}](#${relatedAnchor})`, rel.predicate, direction, rel.cardinality]);
+          intraRows.push([`[${createDescriptiveLinkText(relatedType)}](#${relatedAnchor})`, rel.predicate, direction, rel.cardinality]);
         }
 
         const intraTable = formatMarkdownTable(["Related Node", "Predicate", "Direction", "Cardinality"], intraRows);
@@ -779,7 +797,7 @@ class LayerReportGenerator {
             : relatedLayer;
           const relatedAnchor = createAnchor(relatedType || "unknown");
 
-          interRows.push([`[${relatedType}](${layerFilename}#${relatedAnchor})`, layerLink, rel.predicate, direction, rel.cardinality]);
+          interRows.push([`[${createDescriptiveLinkText(relatedType)}](${layerFilename}#${relatedAnchor})`, layerLink, rel.predicate, direction, rel.cardinality]);
         }
 
         const interTable = formatMarkdownTable(["Related Node", "Layer", "Predicate", "Direction", "Cardinality"], interRows);
