@@ -8,7 +8,7 @@ pipelines:
       - command: "add motivation goal rel-base-goal --name 'Baseline Goal' --description 'Goal for relationships'"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
       - command: "relationship list motivation.goal.rel-base-goal"
@@ -18,13 +18,13 @@ pipelines:
       - command: "add data-store collection rel-test-table --name 'test_collection' --description 'Collection for relationship test'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collections.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
 
       - command: "add data-store field rel-test-column --name 'test_field' --description 'Field for relationship test'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/fields.yaml
+          - 08_data-store/field.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.collection.rel-test-table data-store.field.rel-test-column --predicate composes"
@@ -44,19 +44,19 @@ pipelines:
       - command: "delete data-store.collection.rel-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collections.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.field.rel-test-column --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/fields.yaml
+          - 08_data-store/field.yaml
         expect_exit_code: 0
 
       - command: "delete motivation.goal.rel-base-goal --force"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
   - name: "Multiple relationship types"
@@ -64,19 +64,19 @@ pipelines:
       - command: "add data-store collection multi-rel-table --name 'multi_collection' --description 'Collection for multi-relationship test'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collections.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
 
       - command: "add data-store field multi-rel-col-1 --name 'field_1' --description 'First field'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/fields.yaml
+          - 08_data-store/field.yaml
         expect_exit_code: 0
 
       - command: "add data-store field multi-rel-col-2 --name 'field_2' --description 'Second field'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/fields.yaml
+          - 08_data-store/field.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.collection.multi-rel-table data-store.field.multi-rel-col-1 --predicate composes"
@@ -96,20 +96,20 @@ pipelines:
       - command: "delete data-store.collection.multi-rel-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collections.yaml
+          - 08_data-store/collection.yaml
           - relationships.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.field.multi-rel-col-1 --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/fields.yaml
+          - 08_data-store/field.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.field.multi-rel-col-2 --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/fields.yaml
+          - 08_data-store/field.yaml
         expect_exit_code: 0
 
   - name: "Negative test: Cross-layer relationships not supported"
@@ -118,13 +118,13 @@ pipelines:
       - command: "add motivation goal cross-layer-goal --name 'Cross Layer Goal' --description 'Goal for cross-layer test'"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
       - command: "add business service cross-layer-service --name 'Cross Layer Service' --description 'Service for cross-layer test'"
         files_to_compare:
           - manifest.yaml
-          - 02_business/services.yaml
+          - 02_business/service.yaml
         expect_exit_code: 0
 
       - command: "relationship add motivation.goal.cross-layer-goal business.service.cross-layer-service --predicate realizes"
@@ -136,11 +136,11 @@ pipelines:
       - command: "delete motivation.goal.cross-layer-goal --force"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
       - command: "delete business.service.cross-layer-service --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/services.yaml
+          - 02_business/service.yaml
         expect_exit_code: 0

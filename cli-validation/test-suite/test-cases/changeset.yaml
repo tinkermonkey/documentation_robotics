@@ -33,7 +33,7 @@ pipelines:
       - command: "changeset apply test-changeset-001 --no-validate --force"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Applied"
@@ -79,7 +79,7 @@ pipelines:
       - command: "changeset apply multi-element-changeset --no-validate --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/processs.yaml
+          - 02_business/process.yaml
         expect_exit_code: 0
 
       - command: "relationship add business.process.changeset-process-001 business.process.changeset-process-002 --predicate flows-to"
@@ -90,14 +90,14 @@ pipelines:
       - command: "delete business.process.changeset-process-001 --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/processs.yaml
+          - 02_business/process.yaml
           - relationships.yaml
         expect_exit_code: 0
 
       - command: "delete business.process.changeset-process-002 --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/processs.yaml
+          - 02_business/process.yaml
         expect_exit_code: 0
 
   - name: "Changeset with element deletion"
@@ -105,7 +105,7 @@ pipelines:
       - command: "add motivation goal temp-goal-for-deletion --name 'Temporary Goal' --description 'Goal to be deleted in changeset'"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
       - command: "changeset create delete-changeset --description 'Changeset for element deletion'"
@@ -131,5 +131,5 @@ pipelines:
       - command: "changeset apply delete-changeset --no-validate --force"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0

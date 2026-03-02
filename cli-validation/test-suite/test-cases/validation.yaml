@@ -59,7 +59,7 @@ pipelines:
       - command: "add motivation goal inspect-test-goal --name 'Test Goal for Inspection' --description 'Goal to inspect'"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
       - command: "show motivation.goal.inspect-test-goal"
@@ -72,7 +72,7 @@ pipelines:
       - command: "delete motivation.goal.inspect-test-goal --force"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
   - name: "Model conformance check"
@@ -87,7 +87,7 @@ pipelines:
       - command: "add motivation goal invalid_id_with_underscore --name 'Invalid ID' --description 'Testing invalid ID format'"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "invalid-id-with-underscore"
@@ -95,7 +95,7 @@ pipelines:
       - command: "delete motivation.goal.invalid-id-with-underscore --force"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
   - name: "Duplicate element creation"
@@ -104,7 +104,7 @@ pipelines:
       - command: "add motivation goal dup-test-goal --name 'Duplicate Test' --description 'First goal'"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
       - command: "add motivation goal dup-test-goal --name 'Duplicate Test 2' --description 'Second goal with same ID'"
@@ -116,7 +116,7 @@ pipelines:
       - command: "delete motivation.goal.dup-test-goal --force"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 01_motivation/goal.yaml
         expect_exit_code: 0
 
   - name: "Missing required properties"
@@ -125,7 +125,7 @@ pipelines:
       - command: 'add api operation missing-name-operation --description ''Missing required name'' --properties ''{"method":"GET","path":"/test"}'''
         files_to_compare:
           - manifest.yaml
-          - 06_api/operations.yaml
+          - 06_api/operation.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "missing-name-operation"
@@ -133,7 +133,7 @@ pipelines:
       - command: "delete api.operation.missing-name-operation --force"
         files_to_compare:
           - manifest.yaml
-          - 06_api/operations.yaml
+          - 06_api/operation.yaml
         expect_exit_code: 0
 
   - name: "Reference to non-existent element"
@@ -142,7 +142,7 @@ pipelines:
       - command: "add data-store collection ref-test-table --name 'test_collection' --description 'Collection for reference test'"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collections.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.collection.ref-test-table nonexistent-element --predicate composes"
@@ -154,7 +154,7 @@ pipelines:
       - command: "delete data-store.collection.ref-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_data-store/collections.yaml
+          - 08_data-store/collection.yaml
         expect_exit_code: 0
 
   - name: "Invalid layer name"
