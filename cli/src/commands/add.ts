@@ -141,7 +141,6 @@ export async function addCommand(
       name: options.name || name,
       description: options.description,
       attributes: properties,
-      properties: properties, // Also set properties for backward compatibility
       metadata: {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
