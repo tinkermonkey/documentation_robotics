@@ -9,10 +9,38 @@ import { ensureDir, writeFile } from "../utils/file-io.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
+import { getNodeType } from "../generated/node-types.js";
+import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
 import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
+
+/**
+ * Convert a PascalCase title to snake_case.
+ * Handles acronyms correctly: "UXApplication" → "ux_application", "OpenAPIDocument" → "open_api_document".
+ */
+function titleToSnakeCase(title: string): string {
+  return title
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2") // "APIDoc" → "API_Doc"
+    .replace(/([a-z\d])([A-Z])/g, "$1_$2")       // "appComponent" → "app_Component"
+    .toLowerCase();
+}
+
+/**
+ * Derive a snake_case file stem for a given element type.
+ * Uses the spec node title for accurate word boundaries (e.g., "InputSpacePartition" → "input_space_partition").
+ * Falls back to the raw type string when the title is unavailable.
+ */
+function typeToSnakeStem(specNodeId: string | undefined, type: string): string {
+  if (specNodeId) {
+    const nodeType = getNodeType(specNodeId as SpecNodeId);
+    if (nodeType?.title) {
+      return titleToSnakeCase(nodeType.title);
+    }
+  }
+  return type;
+}
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -162,7 +190,10 @@ export class Model {
                   let elementType = el.type;
                   if (!elementType) {
                     const stem = file.replace(/\.ya?ml$/, "");
-                    elementType = stem.endsWith("s") ? stem.slice(0, -1) : stem;
+                    const singular = stem.endsWith("s") ? stem.slice(0, -1) : stem;
+                    // Strip underscores and hyphens so both old-style ("applicationcomponents")
+                    // and new-style ("application_components") filenames map to the correct type
+                    elementType = singular.replace(/[_-]/g, "");
                   }
 
                   // Determine semantic/elementId for this element:
@@ -335,14 +366,15 @@ export class Model {
       // Directory might not exist yet, that's okay
     }
 
-    // Group elements by type
-    const elementsByType = new Map<string, any[]>();
+    // Group elements by type, computing the snake_case file stem from the spec node title
+    const elementsByType = new Map<string, { stem: string; elements: Element[] }>();
     for (const element of layer.elements.values()) {
-      const type = element.type + "s"; // pluralize (e.g., goal -> goals)
-      if (!elementsByType.has(type)) {
-        elementsByType.set(type, []);
+      const typeKey = element.type;
+      if (!elementsByType.has(typeKey)) {
+        const stem = typeToSnakeStem(element.spec_node_id, element.type);
+        elementsByType.set(typeKey, { stem, elements: [] });
       }
-      elementsByType.get(type)!.push(element);
+      elementsByType.get(typeKey)!.elements.push(element);
     }
 
     // Internal graph fields stored in properties/attributes — never written to YAML
@@ -352,8 +384,8 @@ export class Model {
     ]);
 
     // Write each type to its own YAML file
-    for (const [type, elements] of elementsByType) {
-      const filename = `${type}.yaml`;
+    for (const [, { stem, elements }] of elementsByType) {
+      const filename = `${stem}s.yaml`;
       const filePath = `${layerPath}/${filename}`;
 
       // Convert elements to spec-node format YAML
