@@ -20,6 +20,7 @@ import { searchCommand } from "./commands/search.js";
 import { validateCommand } from "./commands/validate.js";
 import { infoCommand } from "./commands/info.js";
 import { relationshipCommands } from "./commands/relationship.js";
+import { elementCommands } from "./commands/element.js";
 import { schemaCommands } from "./commands/schema.js";
 import { catalogCommands } from "./commands/catalog.js";
 import { docsCommands } from "./commands/docs.js";
@@ -536,6 +537,10 @@ Examples:
 // Relationship subcommands
 const relationshipGroup = program.command("relationship").description("Relationship operations");
 relationshipCommands(relationshipGroup);
+
+// Element subcommands
+const elementGroup = program.command("element").description("Element operations");
+elementCommands(elementGroup);
 
 // Schema introspection subcommands
 schemaCommands(program);

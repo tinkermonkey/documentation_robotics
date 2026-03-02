@@ -283,7 +283,8 @@ export class Layer {
     }
 
     // Prepare properties including references and relationships
-    const properties = { ...element.properties };
+    // Start with existing node properties to preserve graph metadata fields like __elementId__
+    const properties = { ...node.properties, ...element.properties };
 
     // Persist references and relationships as node properties
     if (element.references && element.references.length > 0) {

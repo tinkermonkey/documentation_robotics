@@ -314,12 +314,14 @@ function formatDuplicatesTextSummary(lines: string[], duplicates: DuplicateCandi
  * Format duplicates detailed for text output
  */
 function formatDuplicatesTextDetailed(lines: string[], duplicates: DuplicateCandidate[]): void {
-  if (duplicates.length === 0) {
-    return;
-  }
-
   lines.push(ansis.bold("Duplicate Detection (Detailed):"));
   lines.push("");
+
+  if (duplicates.length === 0) {
+    lines.push("  No duplicate candidates detected.");
+    lines.push("");
+    return;
+  }
 
   // Show high confidence first
   const sorted = [...duplicates].sort((a, b) => {
@@ -425,12 +427,14 @@ function formatGapsTextSummary(lines: string[], gaps: GapCandidate[]): void {
  * Format gaps detailed for text output
  */
 function formatGapsTextDetailed(lines: string[], gaps: GapCandidate[]): void {
-  if (gaps.length === 0) {
-    return;
-  }
-
   lines.push(ansis.bold("Gap Analysis (Detailed):"));
   lines.push("");
+
+  if (gaps.length === 0) {
+    lines.push("  No gaps detected.");
+    lines.push("");
+    return;
+  }
 
   // Show high priority first
   const sorted = [...gaps].sort((a, b) => {
@@ -544,12 +548,14 @@ function formatBalanceTextSummary(lines: string[], balance: BalanceAssessment[])
  * Format balance detailed for text output
  */
 function formatBalanceTextDetailed(lines: string[], balance: BalanceAssessment[]): void {
-  if (balance.length === 0) {
-    return;
-  }
-
   lines.push(ansis.bold("Balance Assessment (Detailed):"));
   lines.push("");
+
+  if (balance.length === 0) {
+    lines.push("  All assessed node types are balanced.");
+    lines.push("");
+    return;
+  }
 
   // Show issues first
   const issues = balance.filter(b => b.status !== "balanced");

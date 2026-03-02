@@ -374,7 +374,7 @@ describe("upgrade command - unified flow", () => {
       expect(await fileExists(manifestPath)).toBe(true);
     });
 
-    it("should copy schema files to .dr/schemas/", async () => {
+    it("should copy schema files to .dr/spec/", async () => {
       // Initialize a model
       await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
 
@@ -389,9 +389,9 @@ describe("upgrade command - unified flow", () => {
       const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
 
       expect(result.exitCode).toBe(0);
-      // Check schemas directory was created with files
-      const schemasPath = join(drPath, "schemas");
-      expect(await fileExists(schemasPath)).toBe(true);
+      // Check spec directory was created with files
+      const specPath = join(drPath, "spec");
+      expect(await fileExists(specPath)).toBe(true);
     });
   });
 

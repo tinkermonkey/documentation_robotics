@@ -305,8 +305,10 @@ describe.serial("VisualizationServer Integration Tests", () => {
 
       expect(receivedMessage).toBeDefined();
       expect(receivedMessage.type).toBe("model");
-      expect(receivedMessage.data).toHaveProperty("manifest");
-      expect(receivedMessage.data).toHaveProperty("layers");
+      expect(receivedMessage.data).toHaveProperty("nodes");
+      expect(receivedMessage.data).toHaveProperty("links");
+      expect(Array.isArray(receivedMessage.data.nodes)).toBe(true);
+      expect(Array.isArray(receivedMessage.data.links)).toBe(true);
     });
 
     it("should handle annotate messages", async () => {
