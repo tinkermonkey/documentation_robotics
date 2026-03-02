@@ -83,16 +83,24 @@ Layer schemas include relationship metadata:
 - `intraLayerRelationships` - Relationships within the layer (34 types from catalog)
 - `crossLayerRelationships` - Outgoing/incoming relationships to/from other layers (62+ patterns)
 
-Four patterns for linking elements across layers:
+Cross-layer relationships are created using `dr relationship add <source> <target> --predicate <predicate>`. Relationships are stored in `documentation-robotics/model/relationships.yaml`.
 
-**Pattern A: X-Extensions** (OpenAPI/JSON Schema)
+```bash
+dr relationship add api.operation.create-order application.service.order-api --predicate realizes
+dr relationship add api.operation.create-order business.service.orders --predicate realizes
+```
+
+Use `dr catalog types` to list valid predicates.
+
+Element properties (`--properties`) can also carry same-element cross-layer metadata for Motivation layer:
+
+**Pattern: X-Extensions** (OpenAPI/JSON Schema for Motivation links)
 
 ```yaml
-x-archimate-ref: application.service.order-api
 x-supports-goals: [motivation.goal.revenue]
 ```
 
-**Pattern B: Dot-Notation** (Upward References)
+**Pattern: Dot-Notation** (Upward References)
 
 ```yaml
 motivation:
@@ -348,8 +356,7 @@ dr add application service --name "Order Service"
 dr validate --layer application
 
 # 3. Link layers
-dr update api.operation.create-order \
-  --property x-archimate-ref=application.service.order-service
+dr relationship add api.operation.create-order application.service.order-service --predicate realizes
 dr validate
 
 # 4. Review and apply

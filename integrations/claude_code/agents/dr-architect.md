@@ -231,23 +231,21 @@ Proactively suggest `dr audit` after adding 5+ elements to a layer without menti
 
 ## Cross-Layer Linking
 
-Add cross-layer references via `--properties` when creating or updating elements:
+Add cross-layer relationships using `dr relationship add`:
 
 ```bash
-# API operation referencing an application service
-dr add api operation create-order --name "Create Order" \
-  --properties '{"x-archimate-ref":"application.service.order-api","method":"POST","path":"/orders"}'
+# API operation linked to an application service and business service
+dr relationship add api.operation.create-order application.service.order-api --predicate realizes
+dr relationship add api.operation.create-order business.service.orders --predicate realizes
 
-# Application service referencing a business service and motivation goal
-dr update application.service.order-api \
-  --properties '{"business":{"realizes-services":["business.service.orders"]},"motivation":{"supports-goals":["motivation.goal.revenue"]}}'
+# Application service linked to a motivation goal
+dr relationship add application.service.order-api motivation.goal.revenue --predicate supports
 
-# Data model element referencing a data store
-dr update data-model.entity.order \
-  --properties '{"schemaRef":"data-store.table.orders"}'
+# Data model entity linked to a data store table
+dr relationship add data-model.entity.order data-store.table.orders --predicate realizes
 ```
 
-The spec uses four property patterns internally (x-extensions, dot-notation blocks, nested objects, direct fields) — the CLI handles which pattern applies for each layer. Use `dr schema node <type-id>` to inspect valid properties for any element type.
+Cross-layer relationships are stored in `documentation-robotics/model/relationships.yaml`. Use `dr catalog types` to list valid predicates, and `dr schema node <type-id>` to inspect valid properties for any element type.
 
 ## CLI Mandate
 

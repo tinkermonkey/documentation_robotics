@@ -180,24 +180,32 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 
 OpenAPI specification includes **custom extensions** (x-\* properties) for cross-layer traceability:
 
-| Target Layer              | Extension Property              | Example                                             |
-| ------------------------- | ------------------------------- | --------------------------------------------------- |
-| **Layer 1 (Motivation)**  | `x-supports-goals`              | Operation supports business goals                   |
-| **Layer 1 (Motivation)**  | `x-fulfills-requirements`       | Operation fulfills functional requirements          |
-| **Layer 1 (Motivation)**  | `x-governed-by-principles`      | Operation follows architectural principles          |
-| **Layer 1 (Motivation)**  | `x-constrained-by`              | Operation subject to constraints (GDPR, HIPAA, SOX) |
-| **Layer 2 (Business)**    | `x-business-service-ref`        | Operation realizes business service                 |
-| **Layer 2 (Business)**    | `x-business-interface-ref`      | Operation exposed via business interface            |
-| **Layer 4 (Application)** | `x-archimate-ref`               | OpenAPI document realizes ApplicationService        |
-| **Layer 7 (Data Model)**  | `schema.$ref`                   | Schema references JSON Schema definition            |
-| **Layer 3 (Security)**    | `x-security-resource`           | Operation protected by SecureResource               |
-| **Layer 3 (Security)**    | `x-required-permissions`        | Operation requires specific permissions             |
-| **Layer 3 (Security)**    | `x-rate-limit`                  | Rate limiting configuration                         |
-| **Layer 11 (APM)**        | `x-apm-business-metrics`        | Operation tracked by business metrics               |
-| **Layer 11 (APM)**        | `x-apm-sla-target-latency`      | Expected response time (e.g., "100ms")              |
-| **Layer 11 (APM)**        | `x-apm-sla-target-availability` | Expected availability (e.g., "99.9%")               |
-| **Layer 11 (APM)**        | `x-apm-trace`                   | Distributed tracing enabled                         |
-| **Layer 11 (APM)**        | `x-apm-criticality`             | Business criticality (critical, high, medium, low)  |
+Cross-layer links to Business and Application layers use `dr relationship add`:
+
+```bash
+dr relationship add api.<type>.<name> business.<type>.<name> --predicate realizes
+dr relationship add api.<type>.<name> application.<type>.<name> --predicate realizes
+```
+
+Use `dr catalog types` to list all valid predicates.
+
+OpenAPI **x-\* properties** (set via `--properties`) are used for same-element metadata:
+
+| Target Layer             | Extension Property              | Example                                             |
+| ------------------------ | ------------------------------- | --------------------------------------------------- |
+| **Layer 1 (Motivation)** | `x-supports-goals`              | Operation supports business goals                   |
+| **Layer 1 (Motivation)** | `x-fulfills-requirements`       | Operation fulfills functional requirements          |
+| **Layer 1 (Motivation)** | `x-governed-by-principles`      | Operation follows architectural principles          |
+| **Layer 1 (Motivation)** | `x-constrained-by`              | Operation subject to constraints (GDPR, HIPAA, SOX) |
+| **Layer 7 (Data Model)** | `schema.$ref`                   | Schema references JSON Schema definition            |
+| **Layer 3 (Security)**   | `x-security-resource`           | Operation protected by SecureResource               |
+| **Layer 3 (Security)**   | `x-required-permissions`        | Operation requires specific permissions             |
+| **Layer 3 (Security)**   | `x-rate-limit`                  | Rate limiting configuration                         |
+| **Layer 11 (APM)**       | `x-apm-business-metrics`        | Operation tracked by business metrics               |
+| **Layer 11 (APM)**       | `x-apm-sla-target-latency`      | Expected response time (e.g., "100ms")              |
+| **Layer 11 (APM)**       | `x-apm-sla-target-availability` | Expected availability (e.g., "99.9%")               |
+| **Layer 11 (APM)**       | `x-apm-trace`                   | Distributed tracing enabled                         |
+| **Layer 11 (APM)**       | `x-apm-criticality`             | Business criticality (critical, high, medium, low)  |
 
 ### Incoming References (Lower Layers → API)
 
@@ -240,7 +248,6 @@ class UserResponse(BaseModel):  # Schema (Response)
 )
 async def create_user(user: UserCreateRequest) -> UserResponse:  # RequestBody + Response
     """
-    x-business-service-ref: business/service/user-management
     x-apm-sla-target-latency: 200ms
     x-required-permissions: users.write
     """
@@ -288,7 +295,6 @@ const router = express.Router();
  *               $ref: '#/components/schemas/Order'
  *       404:
  *         description: Order not found
- *     x-business-service-ref: business/service/order-management
  *     x-apm-sla-target-latency: 100ms
  *     x-apm-criticality: high
  */
@@ -304,7 +310,7 @@ router.get("/api/orders/:orderId", param("orderId").isUUID(), async (req, res) =
 - Parameter: "orderId" (in: path, type: string, format: uuid)
 - Response: 200 with schema reference
 - Response: 404 error response
-- Custom extensions: x-business-service-ref, x-apm-sla-target-latency, x-apm-criticality
+- Custom extensions: x-apm-sla-target-latency, x-apm-criticality
 
 ### Pattern 3: Spring Boot Java
 
@@ -405,7 +411,6 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
-      x-business-service-ref: business/service/payment-processing
       x-apm-sla-target-latency: 500ms
       x-apm-sla-target-availability: 99.99%
       x-apm-criticality: critical
@@ -554,9 +559,12 @@ dr add api operation "process-payment" \
   --properties path=/payments,method=POST,operation-id=processPayment \
   --description "Processes a payment transaction"
 
-# Add custom extensions for cross-layer traceability
+# Add APM and security extensions
 dr add api operation "process-payment" \
-  --properties x-business-service-ref=business/service/payment-processing,x-apm-sla-target-latency=500ms,x-apm-sla-target-availability=99.99%,x-apm-criticality=critical,x-required-permissions=payments.write
+  --properties x-apm-sla-target-latency=500ms,x-apm-sla-target-availability=99.99%,x-apm-criticality=critical,x-required-permissions=payments.write
+
+# Link to business layer via relationship
+dr relationship add api.operation.process-payment business.service.payment-processing --predicate realizes
 
 # GET operation
 dr add api operation "get-payment" \
@@ -696,7 +704,7 @@ x-apm-criticality: "low"
 4. **Define Reusable Components** - Schemas, responses, parameters in Components section
 5. **Document Examples** - Include request/response examples for testing and documentation
 6. **Security at Operation Level** - Different operations can have different security requirements
-7. **Link to Business Services** - Use x-business-service-ref for traceability
+7. **Link to Business Services** - Use `dr relationship add` to link API operations to business services for traceability
 8. **Define SLA Targets** - Use x-apm-sla-target-\* for monitoring
 9. **Version APIs Properly** - Use semantic versioning (major.minor.patch)
 10. **Generate from Code** - Use FastAPI, NestJS decorators, or Springdoc to auto-generate OpenAPI specs
@@ -734,16 +742,16 @@ x-apm-criticality: "low"
 
 ## Validation Tips
 
-| Issue                | Cause                                  | Fix                                            |
-| -------------------- | -------------------------------------- | ---------------------------------------------- |
-| Missing Operations   | Paths defined but no operations        | Add HTTP methods (GET, POST, etc.)             |
-| Unlinked Schemas     | Schemas not referenced by operations   | Link schemas to request/response bodies        |
-| Missing Security     | Operations lack security requirements  | Add securitySchemes and apply to operations    |
-| No Cross-Layer Links | API not linked to business/application | Add x-business-service-ref and x-archimate-ref |
-| Missing SLA Targets  | Operations lack performance targets    | Add x-apm-sla-target-\* extensions             |
-| Untagged Operations  | Operations not organized by tags       | Add tags for grouping                          |
-| No Examples          | Schemas lack examples                  | Add example values for documentation           |
-| Invalid OpenAPI      | Spec doesn't validate                  | Use Spectral or openapi-validator              |
+| Issue                | Cause                                  | Fix                                                                           |
+| -------------------- | -------------------------------------- | ----------------------------------------------------------------------------- |
+| Missing Operations   | Paths defined but no operations        | Add HTTP methods (GET, POST, etc.)                                            |
+| Unlinked Schemas     | Schemas not referenced by operations   | Link schemas to request/response bodies                                       |
+| Missing Security     | Operations lack security requirements  | Add securitySchemes and apply to operations                                   |
+| No Cross-Layer Links | API not linked to business/application | Run `dr relationship add <api-element> <target-element> --predicate realizes` |
+| Missing SLA Targets  | Operations lack performance targets    | Add x-apm-sla-target-\* extensions                                            |
+| Untagged Operations  | Operations not organized by tags       | Add tags for grouping                                                         |
+| No Examples          | Schemas lack examples                  | Add example values for documentation                                          |
+| Invalid OpenAPI      | Spec doesn't validate                  | Use Spectral or openapi-validator                                             |
 
 ---
 
@@ -807,12 +815,9 @@ x-fulfills-requirements: [motivation/requirement/id1]
 x-governed-by-principles: [motivation/principle/id1]
 x-constrained-by: [motivation/constraint/id1]
 
-# Business Layer Links
-x-business-service-ref: business/service/id
-x-business-interface-ref: business/interface/id
-
-# Application Layer Links
-x-archimate-ref: application/service/id
+# Business and Application Layer Links — use dr relationship add (not x-* properties)
+# dr relationship add api.<type>.<name> business.<type>.<name> --predicate realizes
+# dr relationship add api.<type>.<name> application.<type>.<name> --predicate realizes
 
 # Security Layer Links
 x-security-resource: security/secure-resource/id
