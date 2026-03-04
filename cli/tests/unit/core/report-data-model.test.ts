@@ -1,22 +1,27 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect, afterAll } from "bun:test";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
 import { Model } from "@/core/model";
 import { ReportDataModel } from "@/core/report-data-model";
 
+// Lazy shared setup: initialized on first use, then cached for the rest of the suite.
+// This avoids beforeAll timeout issues since each test gets the full 30-second allowance.
+let _workdir: { path: string; cleanup: () => Promise<void> } | null = null;
+
+async function getWorkdir() {
+  if (!_workdir) {
+    _workdir = await createTestWorkdir();
+  }
+  return _workdir;
+}
+
+afterAll(async () => {
+  if (_workdir) await _workdir.cleanup();
+});
+
 describe("ReportDataModel", () => {
-  let workdir: { path: string; cleanup: () => Promise<void> };
-
-  beforeAll(async () => {
-    workdir = await createTestWorkdir();
-  });
-
-  afterAll(async () => {
-    if (workdir?.cleanup) {
-      await workdir.cleanup();
-    }
-  });
 
   it("should create a ReportDataModel instance", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -25,6 +30,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should collect statistics", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -40,6 +46,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should collect relationship analysis", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -54,6 +61,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should classify relationships correctly", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -74,6 +82,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should get data model insights", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -88,6 +97,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should calculate quality metrics", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -104,6 +114,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should collect complete report", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -118,6 +129,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should detect circular dependencies", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -134,6 +146,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should cache results", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -145,6 +158,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should clear cache", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -157,6 +171,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should filter relationships by category", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -176,6 +191,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should handle relationships with unknown predicates", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -197,6 +213,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should report zero metrics for empty model", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -210,6 +227,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should handle layer compliance with invalid layer names", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -222,6 +240,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should calculate documentation coverage based on element descriptions", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 
@@ -233,6 +252,7 @@ describe("ReportDataModel", () => {
   });
 
   it("should mark relationships as spec compliant only when predicate is known", async () => {
+    const workdir = await getWorkdir();
     const model = await Model.load(workdir.path);
     const reportModel = new ReportDataModel(model);
 

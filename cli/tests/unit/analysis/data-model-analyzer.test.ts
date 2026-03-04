@@ -1,29 +1,38 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect, afterAll } from "bun:test";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
 import { Model } from "@/core/model";
 import { DataModelAnalyzer } from "@/analysis/data-model-analyzer";
 
-describe("DataModelAnalyzer", () => {
-  let workdir: any;
-  let analyzer: DataModelAnalyzer;
+// Lazy shared setup: initialized on first use, then cached for the rest of the suite.
+// This avoids beforeAll timeout issues since each test gets the full 30-second allowance.
+let _setup: {
+  workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
+  analyzer: DataModelAnalyzer;
+} | null = null;
 
-  beforeAll(async () => {
-    workdir = await createTestWorkdir();
+async function getSetup() {
+  if (!_setup) {
+    const workdir = await createTestWorkdir();
     const model = await Model.load(workdir.path);
-    analyzer = new DataModelAnalyzer(model);
-  });
+    const analyzer = new DataModelAnalyzer(model);
+    _setup = { workdir, analyzer };
+  }
+  return _setup;
+}
 
-  afterAll(async () => {
-    if (workdir?.cleanup) {
-      await workdir.cleanup();
-    }
-  });
+afterAll(async () => {
+  if (_setup) await _setup.workdir.cleanup();
+});
 
-  it("should create an analyzer instance", () => {
+describe("DataModelAnalyzer", () => {
+
+  it("should create an analyzer instance", async () => {
+    const { analyzer } = await getSetup();
     expect(analyzer).toBeDefined();
   });
 
   it("should analyze entities", async () => {
+    const { analyzer } = await getSetup();
     const entities = await analyzer.analyzeEntities();
 
     expect(entities).toBeDefined();
@@ -40,6 +49,7 @@ describe("DataModelAnalyzer", () => {
   });
 
   it("should check constraints", async () => {
+    const { analyzer } = await getSetup();
     const constraints = await analyzer.checkConstraints();
 
     expect(constraints).toBeDefined();
@@ -54,6 +64,7 @@ describe("DataModelAnalyzer", () => {
   });
 
   it("should check cardinality", async () => {
+    const { analyzer } = await getSetup();
     const cardinalities = await analyzer.checkCardinality();
 
     expect(cardinalities).toBeDefined();
@@ -68,6 +79,7 @@ describe("DataModelAnalyzer", () => {
   });
 
   it("should identify data quality issues", async () => {
+    const { analyzer } = await getSetup();
     const issues = await analyzer.identifyIssues();
 
     expect(issues).toBeDefined();
@@ -84,6 +96,7 @@ describe("DataModelAnalyzer", () => {
   });
 
   it("should calculate coverage metrics", async () => {
+    const { analyzer } = await getSetup();
     const coverage = await analyzer.calculateCoverage();
 
     expect(coverage).toBeDefined();
@@ -103,6 +116,7 @@ describe("DataModelAnalyzer", () => {
   });
 
   it("should calculate complexity metrics", async () => {
+    const { analyzer } = await getSetup();
     const complexity = await analyzer.calculateComplexity();
 
     expect(complexity).toBeDefined();
@@ -118,6 +132,7 @@ describe("DataModelAnalyzer", () => {
   });
 
   it("should get entity dependency graph", async () => {
+    const { analyzer } = await getSetup();
     const graph = await analyzer.getEntityDependencyGraph();
 
     expect(graph).toBeDefined();
@@ -130,6 +145,7 @@ describe("DataModelAnalyzer", () => {
   });
 
   it("should find entity clusters", async () => {
+    const { analyzer } = await getSetup();
     const clusters = await analyzer.findClusters();
 
     expect(clusters).toBeDefined();
@@ -142,6 +158,7 @@ describe("DataModelAnalyzer", () => {
   });
 
   it("should handle empty data model layer", async () => {
+    const { analyzer } = await getSetup();
     const entities = await analyzer.analyzeEntities();
     const constraints = await analyzer.checkConstraints();
     const cardinalities = await analyzer.checkCardinality();
@@ -153,6 +170,7 @@ describe("DataModelAnalyzer", () => {
   });
 
   it("should handle zero entities in complexity calculation", async () => {
+    const { analyzer } = await getSetup();
     const complexity = await analyzer.calculateComplexity();
 
     // Should return zeros for empty data model, not throw
