@@ -356,7 +356,9 @@ function loadRelationshipSchemasForLayer(layerId: string): Record<string, Relati
 // ─── Phase 2-5: Compile and write ─────────────────────────────────────────────
 
 function writeJsonFile(filepath: string, data: unknown): void {
-  fs.writeFileSync(filepath, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  // Write JSON with proper formatting (2-space indent + final newline)
+  const json = JSON.stringify(data, null, 2);
+  fs.writeFileSync(filepath, json + "\n", "utf-8");
 }
 
 function ensureDistDir(): void {

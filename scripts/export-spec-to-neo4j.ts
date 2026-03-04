@@ -676,7 +676,7 @@ async function exportCsv(
     nodeLines.push(`${id},${labels},"${properties}"`);
   }
 
-  await fs.writeFile(path.join(outputDir, "nodes.csv"), nodeLines.join("\n"));
+  await fs.writeFile(path.join(outputDir, "nodes.csv"), nodeLines.join("\n") + "\n");
 
   // Generate edges CSV
   const edgeLines: string[] = [];
@@ -690,7 +690,7 @@ async function exportCsv(
     edgeLines.push(`${source},${type},${target},"${properties}"`);
   }
 
-  await fs.writeFile(path.join(outputDir, "edges.csv"), edgeLines.join("\n"));
+  await fs.writeFile(path.join(outputDir, "edges.csv"), edgeLines.join("\n") + "\n");
 
   // Generate import script
   const importScript = `#!/bin/bash
