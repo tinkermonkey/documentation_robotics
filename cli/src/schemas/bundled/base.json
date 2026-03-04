@@ -7,21 +7,14 @@
       "title": "SpecNode",
       "description": "Base schema for all spec node types. Each node type schema extends this with type-specific attribute constraints via allOf.",
       "type": "object",
-      "required": [
-        "id",
-        "spec_node_id",
-        "type",
-        "name"
-      ],
+      "required": ["id", "spec_node_id", "type", "name"],
       "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string",
           "format": "uuid",
           "description": "Unique node instance identifier (UUIDv4). Globally unique across the entire model.",
-          "examples": [
-            "550e8400-e29b-41d4-a716-446655440000"
-          ]
+          "examples": ["550e8400-e29b-41d4-a716-446655440000"]
         },
         "spec_node_id": {
           "type": "string",
@@ -31,12 +24,7 @@
         "type": {
           "type": "string",
           "description": "Denormalized node type for efficient filtering and queries. Extracted from spec_node_id (the part after the dot).",
-          "examples": [
-            "goal",
-            "requirement",
-            "endpoint",
-            "table"
-          ]
+          "examples": ["goal", "requirement", "endpoint", "table"]
         },
         "layer_id": {
           "type": "string",
@@ -46,11 +34,7 @@
         "name": {
           "type": "string",
           "description": "Human-readable instance name",
-          "examples": [
-            "Improve Customer Satisfaction",
-            "User Login API",
-            "Customer Table"
-          ]
+          "examples": ["Improve Customer Satisfaction", "User Login API", "Customer Table"]
         },
         "description": {
           "type": "string",
@@ -98,12 +82,7 @@
       "title": "SpecNodeRelationship",
       "description": "Base type for relationship type definitions in the specification. Defines valid relationships between node types, including cardinality, strength, and semantic properties.",
       "type": "object",
-      "required": [
-        "id",
-        "source_spec_node_id",
-        "destination_spec_node_id",
-        "predicate"
-      ],
+      "required": ["id", "source_spec_node_id", "destination_spec_node_id", "predicate"],
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -139,34 +118,17 @@
         "predicate": {
           "type": "string",
           "description": "Semantic predicate from PredicateCatalog describing the relationship type. Must be a valid predicate name.",
-          "examples": [
-            "supports",
-            "realizes",
-            "fulfills",
-            "implements",
-            "uses",
-            "consumes"
-          ]
+          "examples": ["supports", "realizes", "fulfills", "implements", "uses", "consumes"]
         },
         "cardinality": {
           "type": "string",
-          "enum": [
-            "one-to-one",
-            "one-to-many",
-            "many-to-one",
-            "many-to-many"
-          ],
+          "enum": ["one-to-one", "one-to-many", "many-to-one", "many-to-many"],
           "description": "Multiplicity constraint on this relationship type. Defines how many source nodes can relate to how many destination nodes.",
           "default": "many-to-many"
         },
         "strength": {
           "type": "string",
-          "enum": [
-            "critical",
-            "high",
-            "medium",
-            "low"
-          ],
+          "enum": ["critical", "high", "medium", "low"],
           "description": "Typical importance or strength of this relationship type",
           "default": "medium"
         },
@@ -190,12 +152,7 @@
               },
               "strength_override": {
                 "type": "enum",
-                "enum_values": [
-                  "critical",
-                  "high",
-                  "medium",
-                  "low"
-                ],
+                "enum_values": ["critical", "high", "medium", "low"],
                 "description": "Instance-specific strength override"
               }
             }
@@ -212,20 +169,13 @@
       "definitions": {
         "ProvenanceType": {
           "type": "string",
-          "enum": [
-            "extracted",
-            "manual",
-            "inferred",
-            "generated"
-          ],
+          "enum": ["extracted", "manual", "inferred", "generated"],
           "description": "How this reference was created: extracted (automated ingestion), manual (human added), inferred (pattern matching), generated (code generated from model)"
         },
         "SourceLocation": {
           "type": "object",
           "description": "A specific location in source code, identified by file path and optional symbol",
-          "required": [
-            "file"
-          ],
+          "required": ["file"],
           "properties": {
             "file": {
               "type": "string",
@@ -257,10 +207,7 @@
         "SourceReference": {
           "type": "object",
           "description": "Links entity to source code location(s) with provenance tracking",
-          "required": [
-            "provenance",
-            "locations"
-          ],
+          "required": ["provenance", "locations"],
           "properties": {
             "provenance": {
               "$ref": "#/definitions/ProvenanceType"
@@ -290,23 +237,12 @@
           "type": "object",
           "title": "AttributeSpec",
           "description": "Specification for a single attribute that can appear on node or relationship instances",
-          "required": [
-            "type",
-            "description"
-          ],
+          "required": ["type", "description"],
           "additionalProperties": false,
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "string",
-                "integer",
-                "number",
-                "boolean",
-                "array",
-                "object",
-                "enum"
-              ],
+              "enum": ["string", "integer", "number", "boolean", "array", "object", "enum"],
               "description": "The JSON type of this attribute"
             },
             "description": {
@@ -320,27 +256,14 @@
               },
               "description": "Required when type is 'enum'. Lists the valid string values for this attribute.",
               "examples": [
-                [
-                  "high",
-                  "medium",
-                  "low"
-                ],
-                [
-                  "active",
-                  "inactive",
-                  "archived"
-                ]
+                ["high", "medium", "low"],
+                ["active", "inactive", "archived"]
               ]
             },
             "format": {
               "type": "string",
               "description": "Optional format constraint for string types (e.g., 'email', 'uri', 'date-time')",
-              "examples": [
-                "email",
-                "uri",
-                "date-time",
-                "uuid"
-              ]
+              "examples": ["email", "uri", "date-time", "uuid"]
             },
             "default": {
               "description": "Default value for this attribute when not provided on a node instance. Can be any JSON value."
@@ -352,16 +275,10 @@
                 "const": "enum"
               }
             },
-            "required": [
-              "type"
-            ]
+            "required": ["type"]
           },
           "then": {
-            "required": [
-              "type",
-              "description",
-              "enum_values"
-            ]
+            "required": ["type", "description", "enum_values"]
           }
         }
       }
@@ -385,9 +302,7 @@
           "type": "string",
           "format": "uuid",
           "description": "Unique relationship instance identifier (UUIDv4). Globally unique across the entire model.",
-          "examples": [
-            "660e9500-f39c-52e5-b827-557766551111"
-          ]
+          "examples": ["660e9500-f39c-52e5-b827-557766551111"]
         },
         "spec_relationship_id": {
           "type": "string",
@@ -417,13 +332,7 @@
         "predicate": {
           "type": "string",
           "description": "The semantic predicate describing this relationship (e.g., 'supports', 'realizes'). Must be a valid predicate from PredicateCatalog.",
-          "examples": [
-            "supports",
-            "realizes",
-            "fulfills",
-            "implements",
-            "uses"
-          ]
+          "examples": ["supports", "realizes", "fulfills", "implements", "uses"]
         },
         "attributes": {
           "type": "object",
@@ -474,9 +383,7 @@
       "title": "PredicateCatalog",
       "description": "Master catalog of all semantic predicates used in the model. Consolidates predicate definitions with their semantics, inverse relationships, and standard alignments. Single source of truth for valid predicates.",
       "type": "object",
-      "required": [
-        "predicates"
-      ],
+      "required": ["predicates"],
       "additionalProperties": false,
       "properties": {
         "predicates": {
@@ -510,12 +417,7 @@
           "type": "object",
           "title": "PredicateDefinition",
           "description": "Complete definition of a semantic predicate including its semantics and relationships",
-          "required": [
-            "predicate",
-            "inverse",
-            "category",
-            "description"
-          ],
+          "required": ["predicate", "inverse", "category", "description"],
           "additionalProperties": false,
           "properties": {
             "predicate": {
@@ -573,20 +475,12 @@
             "semantics": {
               "type": "object",
               "description": "Semantic properties describing the nature of this relationship",
-              "required": [
-                "directionality",
-                "transitivity",
-                "symmetry",
-                "reflexivity"
-              ],
+              "required": ["directionality", "transitivity", "symmetry", "reflexivity"],
               "additionalProperties": false,
               "properties": {
                 "directionality": {
                   "type": "string",
-                  "enum": [
-                    "unidirectional",
-                    "bidirectional"
-                  ],
+                  "enum": ["unidirectional", "bidirectional"],
                   "description": "Whether the relationship is unidirectional (one-way) or bidirectional (navigable both ways)"
                 },
                 "transitivity": {
@@ -605,12 +499,7 @@
             },
             "default_strength": {
               "type": "string",
-              "enum": [
-                "critical",
-                "high",
-                "medium",
-                "low"
-              ],
+              "enum": ["critical", "high", "medium", "low"],
               "description": "Default strength/importance level for relationships using this predicate"
             }
           }
@@ -623,53 +512,31 @@
       "title": "SpecLayer",
       "description": "Base type for layer definitions in the specification. Defines the structure and metadata of a layer that contains nodes and relationships.",
       "type": "object",
-      "required": [
-        "id",
-        "number",
-        "name",
-        "description"
-      ],
+      "required": ["id", "number", "name", "description"],
       "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$",
           "description": "Unique layer identifier using lowercase letters, numbers, and hyphens (e.g., 'motivation', 'data-model', 'data-store')",
-          "examples": [
-            "motivation",
-            "business",
-            "data-model",
-            "data-store",
-            "apm"
-          ]
+          "examples": ["motivation", "business", "data-model", "data-store", "apm"]
         },
         "number": {
           "type": "integer",
           "minimum": 1,
           "maximum": 99,
           "description": "Layer number for ordering and cross-layer references. Maps to layer position in the 12-layer model.",
-          "examples": [
-            1,
-            2,
-            3,
-            12
-          ]
+          "examples": [1, 2, 3, 12]
         },
         "name": {
           "type": "string",
           "description": "Human-readable layer name",
-          "examples": [
-            "Motivation Layer",
-            "Business Layer",
-            "Data Model Layer"
-          ]
+          "examples": ["Motivation Layer", "Business Layer", "Data Model Layer"]
         },
         "description": {
           "type": "string",
           "description": "Purpose and scope of this layer within the architecture model",
-          "examples": [
-            "Captures stakeholder concerns, goals, requirements, and constraints"
-          ]
+          "examples": ["Captures stakeholder concerns, goals, requirements, and constraints"]
         },
         "inspired_by": {
           "type": "object",
@@ -679,28 +546,18 @@
             "standard": {
               "type": "string",
               "description": "Name of the standard (e.g., 'ArchiMate', 'OpenAPI')",
-              "examples": [
-                "ArchiMate 3.2",
-                "OpenAPI 3.0",
-                "JSON Schema Draft 7"
-              ]
+              "examples": ["ArchiMate 3.2", "OpenAPI 3.0", "JSON Schema Draft 7"]
             },
             "version": {
               "type": "string",
               "description": "Version of the standard",
-              "examples": [
-                "3.2",
-                "3.0",
-                "Draft 7"
-              ]
+              "examples": ["3.2", "3.0", "Draft 7"]
             },
             "url": {
               "type": "string",
               "format": "uri",
               "description": "URL to the standard specification",
-              "examples": [
-                "https://pubs.opengroup.org/architecture/archimate32-doc/"
-              ]
+              "examples": ["https://pubs.opengroup.org/architecture/archimate32-doc/"]
             }
           }
         },
@@ -712,13 +569,7 @@
             "description": "Reference to a SpecNode ID"
           },
           "description": "List of SpecNode IDs that are valid in this layer. Used to define which node types can belong to this layer.",
-          "examples": [
-            [
-              "motivation.goal",
-              "motivation.requirement",
-              "motivation.constraint"
-            ]
-          ]
+          "examples": [["motivation.goal", "motivation.requirement", "motivation.constraint"]]
         }
       }
     }

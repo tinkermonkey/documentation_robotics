@@ -51,20 +51,11 @@
             },
             "assessmentType": {
               "type": "string",
-              "enum": [
-                "SWOT",
-                "risk",
-                "gap",
-                "feasibility",
-                "readiness",
-                "impact"
-              ],
+              "enum": ["SWOT", "risk", "gap", "feasibility", "readiness", "impact"],
               "description": "Classification of the assessment method or framework used"
             }
           },
-          "required": [
-            "assessmentType"
-          ],
+          "required": ["assessmentType"],
           "additionalProperties": false
         }
       },
@@ -97,13 +88,7 @@
             },
             "constraintType": {
               "type": "string",
-              "enum": [
-                "regulatory",
-                "technical",
-                "organizational",
-                "time-based",
-                "financial"
-              ],
+              "enum": ["regulatory", "technical", "organizational", "time-based", "financial"],
               "description": "Category of constraint restricting the solution space"
             },
             "properties": {
@@ -111,9 +96,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "constraintType"
-          ],
+          "required": ["constraintType"],
           "additionalProperties": false
         }
       },
@@ -157,9 +140,7 @@
               "description": "Category of the motivating condition or force"
             }
           },
-          "required": [
-            "category"
-          ],
+          "required": ["category"],
           "additionalProperties": false
         }
       },
@@ -192,13 +173,7 @@
             },
             "priority": {
               "type": "string",
-              "enum": [
-                "critical",
-                "high",
-                "medium",
-                "low",
-                "informational"
-              ],
+              "enum": ["critical", "high", "medium", "low", "informational"],
               "description": "Priority level of this goal"
             },
             "properties": {
@@ -206,9 +181,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "priority"
-          ],
+          "required": ["priority"],
           "additionalProperties": false
         }
       },
@@ -272,13 +245,7 @@
             },
             "status": {
               "type": "string",
-              "enum": [
-                "planned",
-                "in-progress",
-                "achieved",
-                "abandoned",
-                "at-risk"
-              ],
+              "enum": ["planned", "in-progress", "achieved", "abandoned", "at-risk"],
               "description": "Lifecycle state of the outcome"
             },
             "properties": {
@@ -286,9 +253,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "status"
-          ],
+          "required": ["status"],
           "additionalProperties": false
         }
       },
@@ -336,9 +301,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "category"
-          ],
+          "required": ["category"],
           "additionalProperties": false
         }
       },
@@ -371,24 +334,12 @@
             },
             "requirementType": {
               "type": "string",
-              "enum": [
-                "functional",
-                "non-functional",
-                "regulatory",
-                "business",
-                "quality"
-              ],
+              "enum": ["functional", "non-functional", "regulatory", "business", "quality"],
               "description": "Classification of what aspect of the system this requirement addresses"
             },
             "priority": {
               "type": "string",
-              "enum": [
-                "critical",
-                "high",
-                "medium",
-                "low",
-                "informational"
-              ],
+              "enum": ["critical", "high", "medium", "low", "informational"],
               "description": "Priority level of this requirement"
             },
             "properties": {
@@ -396,10 +347,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "requirementType",
-            "priority"
-          ],
+          "required": ["requirementType", "priority"],
           "additionalProperties": false
         }
       },
@@ -432,20 +380,11 @@
             },
             "type": {
               "type": "string",
-              "enum": [
-                "internal",
-                "external",
-                "regulatory",
-                "customer",
-                "sponsor",
-                "end-user"
-              ],
+              "enum": ["internal", "external", "regulatory", "customer", "sponsor", "end-user"],
               "description": "Classification of the stakeholder's relationship to the organization"
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": false
         }
       },
@@ -478,13 +417,7 @@
             },
             "valueType": {
               "type": "string",
-              "enum": [
-                "financial",
-                "strategic",
-                "operational",
-                "reputational",
-                "social"
-              ],
+              "enum": ["financial", "strategic", "operational", "reputational", "social"],
               "description": "Category of worth or utility this value represents"
             },
             "properties": {
@@ -492,9 +425,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "valueType"
-          ],
+          "required": ["valueType"],
           "additionalProperties": false
         }
       },

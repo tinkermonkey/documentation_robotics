@@ -70,16 +70,7 @@
             },
             "operator": {
               "type": "string",
-              "enum": [
-                "eq",
-                "neq",
-                "gt",
-                "lt",
-                "in",
-                "contains",
-                "matches",
-                "exists"
-              ],
+              "enum": ["eq", "neq", "gt", "lt", "in", "contains", "matches", "exists"],
               "description": "Comparison operator applied to the field value, per XACML 3.0 match function semantics."
             },
             "value": {
@@ -92,13 +83,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "field",
-            "operator",
-            "value",
-            "message",
-            "source"
-          ],
+          "required": ["field", "operator", "value", "message", "source"],
           "additionalProperties": false
         }
       },
@@ -178,12 +163,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "human",
-                "service",
-                "system",
-                "external-entity"
-              ],
+              "enum": ["human", "service", "system", "external-entity"],
               "description": "Category of actor, per NIST AC-2 (Account Management) subject classification."
             },
             "description": {
@@ -191,13 +171,7 @@
             },
             "trustLevel": {
               "type": "string",
-              "enum": [
-                "zero",
-                "low",
-                "medium",
-                "high",
-                "full"
-              ],
+              "enum": ["zero", "low", "medium", "high", "full"],
               "description": "Zero-trust assurance level assigned to this actor, per NIST SP 800-207."
             },
             "objectives": {
@@ -209,9 +183,7 @@
               "description": "References actor or delegation nodes this actor depends on for trust chain or access delegation analysis."
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": false
         }
       },
@@ -244,13 +216,7 @@
             },
             "level": {
               "type": "string",
-              "enum": [
-                "none",
-                "basic",
-                "standard",
-                "detailed",
-                "verbose"
-              ],
+              "enum": ["none", "basic", "standard", "detailed", "verbose"],
               "description": "Verbosity of audit event capture, from no logging to full payload-level tracing, per NIST SP 800-53 AU-2 Event Logging."
             },
             "includePayload": {
@@ -267,10 +233,7 @@
               "description": "Source code reference"
             }
           },
-          "required": [
-            "level",
-            "sanitizeFields"
-          ],
+          "required": ["level", "sanitizeFields"],
           "additionalProperties": false
         }
       },
@@ -300,23 +263,12 @@
           "properties": {
             "provider": {
               "type": "string",
-              "enum": [
-                "oauth2",
-                "saml",
-                "ldap",
-                "openid-connect",
-                "local",
-                "fido2"
-              ],
+              "enum": ["oauth2", "saml", "ldap", "openid-connect", "local", "fido2"],
               "description": "Authentication protocol or provider type."
             },
             "verificationLevel": {
               "type": "string",
-              "enum": [
-                "ial1",
-                "ial2",
-                "ial3"
-              ],
+              "enum": ["ial1", "ial2", "ial3"],
               "description": "Identity Assurance Level, per NIST SP 800-63A: IAL1 (self-asserted), IAL2 (remote identity proofing), IAL3 (in-person proofing)."
             },
             "sessionTimeout": {
@@ -333,10 +285,7 @@
               "description": "Source code reference"
             }
           },
-          "required": [
-            "provider",
-            "sessionTimeout"
-          ],
+          "required": ["provider", "sessionTimeout"],
           "additionalProperties": false
         }
       },
@@ -375,9 +324,7 @@
               "description": "Organizational or operational boundary within which this binding of duty constraint applies (e.g., a project, department, or system)."
             }
           },
-          "required": [
-            "message"
-          ],
+          "required": ["message"],
           "additionalProperties": false
         }
       },
@@ -413,25 +360,12 @@
             },
             "operator": {
               "type": "string",
-              "enum": [
-                "eq",
-                "neq",
-                "gt",
-                "lt",
-                "in",
-                "contains",
-                "matches"
-              ],
+              "enum": ["eq", "neq", "gt", "lt", "in", "contains", "matches"],
               "description": "Comparison operator for the condition expression, aligned with XACML MatchType values."
             },
             "evaluationType": {
               "type": "string",
-              "enum": [
-                "static",
-                "dynamic",
-                "runtime",
-                "compile-time"
-              ],
+              "enum": ["static", "dynamic", "runtime", "compile-time"],
               "description": "When the condition is evaluated: at build time, at policy load, or at runtime during access enforcement."
             },
             "source": {
@@ -439,9 +373,7 @@
               "description": "Source code reference"
             }
           },
-          "required": [
-            "expression"
-          ],
+          "required": ["expression"],
           "additionalProperties": false
         }
       },
@@ -471,12 +403,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "technical",
-                "operational",
-                "management",
-                "physical"
-              ],
+              "enum": ["technical", "operational", "management", "physical"],
               "description": "NIST SP 800-53 control family classification: technical (hardware/software mechanisms), operational (people and procedures), management (governance), or physical (facility/environmental)."
             },
             "description": {
@@ -484,12 +411,7 @@
             },
             "effectiveness": {
               "type": "string",
-              "enum": [
-                "high",
-                "medium",
-                "low",
-                "unknown"
-              ],
+              "enum": ["high", "medium", "low", "unknown"],
               "description": "Assessed effectiveness of the countermeasure in reducing threat risk, per NIST SP 800-30 risk treatment evaluation."
             },
             "implemented": {
@@ -500,9 +422,7 @@
               "description": "Source code reference"
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": false
         }
       },
@@ -535,24 +455,12 @@
             },
             "encryptionRequirement": {
               "type": "string",
-              "enum": [
-                "none",
-                "in-transit",
-                "at-rest",
-                "end-to-end",
-                "field-level"
-              ],
+              "enum": ["none", "in-transit", "at-rest", "end-to-end", "field-level"],
               "description": "Minimum encryption obligation for data within this classification scheme, per NIST SP 800-53 SC-28 and SC-8 controls."
             },
             "classificationLevel": {
               "type": "string",
-              "enum": [
-                "public",
-                "internal",
-                "confidential",
-                "restricted",
-                "top-secret"
-              ],
+              "enum": ["public", "internal", "confidential", "restricted", "top-secret"],
               "description": "Data sensitivity tier applied by this scheme, aligned with NIST FIPS 199 security categorization levels."
             }
           },
@@ -591,13 +499,7 @@
             },
             "delegationType": {
               "type": "string",
-              "enum": [
-                "full",
-                "partial",
-                "temporary",
-                "conditional",
-                "revocable"
-              ],
+              "enum": ["full", "partial", "temporary", "conditional", "revocable"],
               "description": "Scope and constraints of the delegation grant, per OAuth 2.0 token delegation and NIST SP 800-162 attribute delegation models."
             },
             "validUntil": {
@@ -608,11 +510,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "delegator",
-            "delegatee",
-            "delegationType"
-          ],
+          "required": ["delegator", "delegatee", "delegationType"],
           "additionalProperties": false
         }
       },
@@ -642,24 +540,12 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "log",
-                "signature",
-                "timestamp",
-                "hash",
-                "certificate",
-                "audit-trail"
-              ],
+              "enum": ["log", "signature", "timestamp", "hash", "certificate", "audit-trail"],
               "description": "Category of evidence artifact, per NIST AU-10 (Non-repudiation)."
             },
             "strength": {
               "type": "string",
-              "enum": [
-                "strong",
-                "moderate",
-                "weak",
-                "cryptographic"
-              ],
+              "enum": ["strong", "moderate", "weak", "cryptographic"],
               "description": "Assurance strength of the evidence, per NIST SP 800-63-3 assurance levels."
             },
             "source": {
@@ -667,10 +553,7 @@
               "description": "Origin or location of this evidence artifact, such as a system identifier, log stream name, or storage URI."
             }
           },
-          "required": [
-            "type",
-            "source"
-          ],
+          "required": ["type", "source"],
           "additionalProperties": false
         }
       },
@@ -703,23 +586,14 @@
             },
             "maskingStrategy": {
               "type": "string",
-              "enum": [
-                "redact",
-                "hash",
-                "tokenize",
-                "truncate",
-                "blur",
-                "none"
-              ],
+              "enum": ["redact", "hash", "tokenize", "truncate", "blur", "none"],
               "description": "Technique used to protect sensitive field values when exposed to unauthorized principals, per NIST SP 800-53 SC-28 data-at-rest protection controls."
             },
             "description": {
               "type": "string"
             }
           },
-          "required": [
-            "field"
-          ],
+          "required": ["field"],
           "additionalProperties": false
         }
       },
@@ -759,9 +633,7 @@
               "description": "References InformationRight nodes defining which actors may access this entity and under what constraints."
             }
           },
-          "required": [
-            "classification"
-          ],
+          "required": ["classification"],
           "additionalProperties": false
         }
       },
@@ -801,22 +673,12 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": [
-                  "read",
-                  "write",
-                  "delete",
-                  "share",
-                  "export",
-                  "approve"
-                ]
+                "enum": ["read", "write", "delete", "share", "export", "approve"]
               },
               "description": "Permitted operations on the information entity granted by this right."
             }
           },
-          "required": [
-            "actor",
-            "constraint"
-          ],
+          "required": ["actor", "constraint"],
           "additionalProperties": false
         }
       },
@@ -858,12 +720,7 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "resource",
-            "objective",
-            "message",
-            "justificationRequired"
-          ],
+          "required": ["resource", "objective", "message", "justificationRequired"],
           "additionalProperties": false
         }
       },
@@ -922,9 +779,7 @@
               "type": "integer"
             }
           },
-          "required": [
-            "expiryDays"
-          ],
+          "required": ["expiryDays"],
           "additionalProperties": false
         }
       },
@@ -957,13 +812,7 @@
             },
             "scope": {
               "type": "string",
-              "enum": [
-                "read-only",
-                "write",
-                "admin",
-                "delegated",
-                "conditional"
-              ],
+              "enum": ["read-only", "write", "admin", "delegated", "conditional"],
               "description": "Breadth of access granted by this permission, from narrow read-only to full administrative control."
             },
             "resource": {
@@ -971,22 +820,11 @@
             },
             "action": {
               "type": "string",
-              "enum": [
-                "create",
-                "read",
-                "update",
-                "delete",
-                "execute",
-                "list"
-              ],
+              "enum": ["create", "read", "update", "delete", "execute", "list"],
               "description": "CRUD-plus operation type this permission governs, per NIST SP 800-53 AC-3 Access Enforcement."
             }
           },
-          "required": [
-            "scope",
-            "resource",
-            "action"
-          ],
+          "required": ["scope", "resource", "action"],
           "additionalProperties": false
         }
       },
@@ -1040,10 +878,7 @@
               "description": "Source code reference"
             }
           },
-          "required": [
-            "type",
-            "parameters"
-          ],
+          "required": ["type", "parameters"],
           "additionalProperties": false
         }
       },
@@ -1076,12 +911,7 @@
             },
             "effect": {
               "type": "string",
-              "enum": [
-                "permit",
-                "deny",
-                "indeterminate",
-                "not-applicable"
-              ],
+              "enum": ["permit", "deny", "indeterminate", "not-applicable"],
               "description": "Policy decision outcome, per XACML 3.0 Rule element effect values."
             },
             "message": {
@@ -1092,10 +922,7 @@
               "description": "Source code reference"
             }
           },
-          "required": [
-            "condition",
-            "effect"
-          ],
+          "required": ["condition", "effect"],
           "additionalProperties": false
         }
       },
@@ -1155,9 +982,7 @@
               "description": "References AuditConfig nodes specifying how this operation is logged for accountability."
             }
           },
-          "required": [
-            "operation"
-          ],
+          "required": ["operation"],
           "additionalProperties": false
         }
       },
@@ -1190,34 +1015,19 @@
             },
             "destination": {
               "type": "string",
-              "enum": [
-                "siem",
-                "database",
-                "file",
-                "cloud",
-                "stream",
-                "archive"
-              ],
+              "enum": ["siem", "database", "file", "cloud", "stream", "archive"],
               "description": "Storage or forwarding target for retained security data, per NIST SP 800-53 AU-9 Protection of Audit Information."
             },
             "deletionMethod": {
               "type": "string",
-              "enum": [
-                "secure-erase",
-                "crypto-shred",
-                "overwrite",
-                "logical-delete",
-                "archive"
-              ],
+              "enum": ["secure-erase", "crypto-shred", "overwrite", "logical-delete", "archive"],
               "description": "Secure disposal technique applied when data reaches end of retention period, per NIST SP 800-88 Guidelines for Media Sanitization."
             },
             "description": {
               "type": "string"
             }
           },
-          "required": [
-            "period"
-          ],
+          "required": ["period"],
           "additionalProperties": false
         }
       },
@@ -1259,11 +1069,7 @@
               "description": "Name of the parent role this role inherits permissions from. Supports single inheritance; the child accumulates all permissions of the referenced role in addition to its own."
             }
           },
-          "required": [
-            "displayName",
-            "level",
-            "inheritsFrom"
-          ],
+          "required": ["displayName", "level", "inheritsFrom"],
           "additionalProperties": false
         }
       },
@@ -1296,24 +1102,14 @@
             },
             "type": {
               "type": "string",
-              "enum": [
-                "api",
-                "database",
-                "file",
-                "service",
-                "ui",
-                "stream"
-              ],
+              "enum": ["api", "database", "file", "service", "ui", "stream"],
               "description": "Category of protected resource, used to apply appropriate access control and audit policies per NIST SP 800-53 AC-3."
             },
             "description": {
               "type": "string"
             }
           },
-          "required": [
-            "resource",
-            "type"
-          ],
+          "required": ["resource", "type"],
           "additionalProperties": false
         }
       },
@@ -1381,20 +1177,11 @@
             },
             "accessControlModel": {
               "type": "string",
-              "enum": [
-                "dac",
-                "mac",
-                "rbac",
-                "abac",
-                "rebac"
-              ],
+              "enum": ["dac", "mac", "rbac", "abac", "rebac"],
               "description": "Access control paradigm in use: DAC (discretionary), MAC (mandatory), RBAC (role-based), ABAC (attribute-based), ReBAC (relationship-based). Per NIST SP 800-162 and SP 800-207."
             }
           },
-          "required": [
-            "version",
-            "application"
-          ],
+          "required": ["version", "application"],
           "additionalProperties": false
         }
       },
@@ -1433,24 +1220,12 @@
             },
             "target": {
               "type": "string",
-              "enum": [
-                "endpoint",
-                "service",
-                "data",
-                "user",
-                "role",
-                "resource"
-              ],
+              "enum": ["endpoint", "service", "data", "user", "role", "resource"],
               "description": "The category of entity this policy governs, aligned with XACML target element semantics."
             },
             "requirementLevel": {
               "type": "string",
-              "enum": [
-                "mandatory",
-                "recommended",
-                "optional",
-                "conditional"
-              ],
+              "enum": ["mandatory", "recommended", "optional", "conditional"],
               "description": "Compliance obligation of this policy, indicating whether enforcement is required by regulation, recommended best practice, or situationally applicable."
             },
             "source": {
@@ -1458,10 +1233,7 @@
               "description": "Source code reference"
             }
           },
-          "required": [
-            "priority",
-            "target"
-          ],
+          "required": ["priority", "target"],
           "additionalProperties": false
         }
       },
@@ -1500,9 +1272,7 @@
               "description": "When true, the roles in this constraint cannot be held simultaneously by the same subject. Enforces strict role exclusivity within the separation of duty rule."
             }
           },
-          "required": [
-            "message"
-          ],
+          "required": ["message"],
           "additionalProperties": false
         }
       },
@@ -1538,30 +1308,17 @@
             },
             "likelihood": {
               "type": "string",
-              "enum": [
-                "low",
-                "moderate",
-                "high"
-              ],
+              "enum": ["low", "moderate", "high"],
               "description": "Probability the threat will be exploited, per NIST SP 800-30 Table E-2."
             },
             "impact": {
               "type": "string",
-              "enum": [
-                "low",
-                "moderate",
-                "high"
-              ],
+              "enum": ["low", "moderate", "high"],
               "description": "Potential adverse impact if the threat is realized, per NIST FIPS 199."
             },
             "criticality": {
               "type": "string",
-              "enum": [
-                "low",
-                "medium",
-                "high",
-                "critical"
-              ],
+              "enum": ["low", "medium", "high", "critical"],
               "description": "Combined severity rating reflecting both likelihood and impact for prioritization."
             },
             "source": {
@@ -1569,11 +1326,7 @@
               "description": "Source code reference"
             }
           },
-          "required": [
-            "threatens",
-            "likelihood",
-            "impact"
-          ],
+          "required": ["threatens", "likelihood", "impact"],
           "additionalProperties": false
         }
       },
@@ -1603,13 +1356,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "regex",
-                "range",
-                "length",
-                "enum",
-                "custom"
-              ],
+              "enum": ["regex", "range", "length", "enum", "custom"],
               "description": "Validation mechanism type, per NIST SI-10 (Information Input Validation)."
             },
             "value": {
@@ -1622,11 +1369,7 @@
             },
             "severity": {
               "type": "string",
-              "enum": [
-                "error",
-                "warning",
-                "info"
-              ],
+              "enum": ["error", "warning", "info"],
               "description": "Severity of a validation rule violation."
             },
             "source": {
@@ -1634,11 +1377,7 @@
               "description": "Source code reference"
             }
           },
-          "required": [
-            "type",
-            "value",
-            "message"
-          ],
+          "required": ["type", "value", "message"],
           "additionalProperties": false
         }
       },
