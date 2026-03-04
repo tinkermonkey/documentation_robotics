@@ -299,7 +299,17 @@ jobs:
           done
 
       - name: Regenerate spec/dist if needed
-        run: npm run build:spec
+        run: |
+          npm run build:spec
+          # Verify no changes were made (spec/dist must match committed versions)
+          if ! git diff --quiet spec/dist/; then
+            echo "❌ spec/dist files have been modified by the build"
+            echo "This indicates the committed spec/dist files don't match Prettier formatting"
+            echo "Run 'npm run build:spec' locally and commit the changes"
+            git diff --stat spec/dist/
+            exit 1
+          fi
+          echo "✓ spec/dist files match Prettier formatting"
 
       - name: Cross-validate spec schemas with CLI bundled schemas
         working-directory: ./cli
