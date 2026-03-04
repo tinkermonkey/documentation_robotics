@@ -64,7 +64,9 @@
               "type": "string"
             }
           },
-          "required": ["label"],
+          "required": [
+            "label"
+          ],
           "additionalProperties": false
         }
       },
@@ -97,12 +99,22 @@
             },
             "scope": {
               "type": "string",
-              "enum": ["global", "flow", "step", "session"],
+              "enum": [
+                "global",
+                "flow",
+                "step",
+                "session"
+              ],
               "description": "Lifetime and visibility of the variable across navigation flow execution."
             },
             "persistedIn": {
               "type": "string",
-              "enum": ["sessionStorage", "localStorage", "memory", "url-param"],
+              "enum": [
+                "sessionStorage",
+                "localStorage",
+                "memory",
+                "url-param"
+              ],
               "description": "Storage mechanism used to persist the variable across route transitions: sessionStorage (browser session), localStorage (cross-session), memory (in-process only), url-param (serialized into the URL query string)."
             },
             "defaultValue": {
@@ -113,7 +125,11 @@
               "description": "When true, the flow cannot proceed if this variable is unset or null. Used to enforce mandatory input collection before advancing to dependent steps."
             }
           },
-          "required": ["schemaRef", "scope", "persistedIn"],
+          "required": [
+            "schemaRef",
+            "scope",
+            "persistedIn"
+          ],
           "additionalProperties": false
         }
       },
@@ -155,11 +171,19 @@
             },
             "waitBehavior": {
               "type": "string",
-              "enum": ["blocking", "non-blocking", "timeout", "async"],
+              "enum": [
+                "blocking",
+                "non-blocking",
+                "timeout",
+                "async"
+              ],
               "description": "Execution model governing how the flow waits for this step to complete before advancing."
             }
           },
-          "required": ["sequence", "route"],
+          "required": [
+            "sequence",
+            "route"
+          ],
           "additionalProperties": false
         }
       },
@@ -189,7 +213,12 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["redirect", "block", "notify", "prompt"],
+              "enum": [
+                "redirect",
+                "block",
+                "notify",
+                "prompt"
+              ],
               "description": "The action taken when the guard denies access to the target route."
             },
             "target": {
@@ -205,7 +234,12 @@
               "description": "When true, the originally attempted route is stored (e.g., in session state) so the user can be redirected back to it after successfully authenticating."
             }
           },
-          "required": ["action", "target", "message", "preserveRoute"],
+          "required": [
+            "action",
+            "target",
+            "message",
+            "preserveRoute"
+          ],
           "additionalProperties": false
         }
       },
@@ -246,7 +280,10 @@
               "description": "Maximum milliseconds to wait for an async condition to resolve. On timeout, the guard treats the condition as false (access denied) to fail securely."
             }
           },
-          "required": ["expression", "timeout"],
+          "required": [
+            "expression",
+            "timeout"
+          ],
           "additionalProperties": false
         }
       },
@@ -320,7 +357,10 @@
               "type": "string"
             }
           },
-          "required": ["version", "application"],
+          "required": [
+            "version",
+            "application"
+          ],
           "additionalProperties": false
         }
       },
@@ -350,7 +390,13 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": ["auth", "role", "permission", "feature-flag", "custom"],
+              "enum": [
+                "auth",
+                "role",
+                "permission",
+                "feature-flag",
+                "custom"
+              ],
               "description": "Classification of the guard mechanism: auth (authentication check), role (role membership), permission (fine-grained permission), feature-flag (feature toggle), custom (arbitrary condition)."
             },
             "description": {
@@ -364,7 +410,10 @@
               "description": "Source code reference"
             }
           },
-          "required": ["type", "order"],
+          "required": [
+            "type",
+            "order"
+          ],
           "additionalProperties": false
         }
       },
@@ -400,14 +449,24 @@
             },
             "trigger": {
               "type": "string",
-              "enum": ["user-click", "programmatic", "timeout", "browser-back", "redirect"],
+              "enum": [
+                "user-click",
+                "programmatic",
+                "timeout",
+                "browser-back",
+                "redirect"
+              ],
               "description": "Mechanism that initiates the route transition: user-click (explicit user interaction), programmatic (code-driven), timeout (time-based), browser-back (browser history navigation), redirect (automatic server/guard redirect)."
             },
             "description": {
               "type": "string"
             }
           },
-          "required": ["from", "to", "trigger"],
+          "required": [
+            "from",
+            "to",
+            "trigger"
+          ],
           "additionalProperties": false
         }
       },
@@ -443,7 +502,13 @@
             },
             "type": {
               "type": "string",
-              "enum": ["public", "protected", "redirect", "alias", "lazy"],
+              "enum": [
+                "public",
+                "protected",
+                "redirect",
+                "alias",
+                "lazy"
+              ],
               "description": "Access and loading classification: public (no auth), protected (requires auth), redirect (auto-forwards), alias (multiple paths to same component), lazy (code-split, loaded on demand)."
             },
             "source": {
@@ -451,7 +516,9 @@
               "description": "Source code reference"
             }
           },
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "additionalProperties": false
         }
       },
@@ -508,7 +575,13 @@
               "description": "Name of the CSS transition or animation applied when entering or leaving this route (e.g., 'fade', 'slide-left')."
             }
           },
-          "required": ["roles", "permissions", "layout", "keepAlive", "transition"],
+          "required": [
+            "roles",
+            "permissions",
+            "layout",
+            "keepAlive",
+            "transition"
+          ],
           "additionalProperties": false
         }
       },

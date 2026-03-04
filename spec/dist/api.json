@@ -262,7 +262,9 @@
               "type": "string"
             }
           },
-          "required": ["url"],
+          "required": [
+            "url"
+          ],
           "additionalProperties": false
         }
       },
@@ -385,7 +387,10 @@
               "description": "Reference to an api.license node specifying the API's license terms."
             }
           },
-          "required": ["title", "version"],
+          "required": [
+            "title",
+            "version"
+          ],
           "additionalProperties": false
         }
       },
@@ -417,7 +422,9 @@
               "type": "string"
             }
           },
-          "required": ["name"],
+          "required": [
+            "name"
+          ],
           "additionalProperties": false
         }
       },
@@ -501,7 +508,9 @@
               "description": "An inline example value. Mutually exclusive with 'examples' — only one may be specified per MediaType."
             }
           },
-          "required": ["contentType"],
+          "required": [
+            "contentType"
+          ],
           "additionalProperties": false
         }
       },
@@ -543,7 +552,9 @@
               "description": "Map of scope name to human-readable description string"
             }
           },
-          "required": ["scopes"],
+          "required": [
+            "scopes"
+          ],
           "additionalProperties": false
         }
       },
@@ -625,7 +636,11 @@
               "type": "string"
             }
           },
-          "required": ["openapi", "info", "paths"],
+          "required": [
+            "openapi",
+            "info",
+            "paths"
+          ],
           "additionalProperties": false
         }
       },
@@ -670,7 +685,11 @@
               "type": "boolean"
             }
           },
-          "required": ["operationId", "summary", "tags"],
+          "required": [
+            "operationId",
+            "summary",
+            "tags"
+          ],
           "additionalProperties": false
         }
       },
@@ -700,7 +719,12 @@
           "properties": {
             "in": {
               "type": "string",
-              "enum": ["query", "header", "path", "cookie"],
+              "enum": [
+                "query",
+                "header",
+                "path",
+                "cookie"
+              ],
               "description": "Location of the parameter. Path parameters must always have required: true. Default serialization style: 'form' for query/cookie, 'simple' for path/header."
             },
             "description": {
@@ -752,7 +776,10 @@
               "description": "Alternative to 'schema' for complex serialization. Mutually exclusive with 'schema'; must contain exactly one map entry keyed by media type string."
             }
           },
-          "required": ["name", "in"],
+          "required": [
+            "name",
+            "in"
+          ],
           "additionalProperties": false
         }
       },
@@ -852,12 +879,23 @@
             },
             "scope": {
               "type": "string",
-              "enum": ["global", "per-user", "per-ip", "per-api-key"],
+              "enum": [
+                "global",
+                "per-user",
+                "per-ip",
+                "per-api-key"
+              ],
               "description": "Scope at which the rate limit is applied."
             },
             "action": {
               "type": "string",
-              "enum": ["block", "throttle", "queue", "log", "challenge"],
+              "enum": [
+                "block",
+                "throttle",
+                "queue",
+                "log",
+                "challenge"
+              ],
               "description": "Action taken when the rate limit is exceeded, per NIST SC-5 (Denial-of-Service Protection)."
             },
             "keyBy": {
@@ -869,7 +907,11 @@
               "description": "Source code reference"
             }
           },
-          "required": ["requests", "window", "keyBy"],
+          "required": [
+            "requests",
+            "window",
+            "keyBy"
+          ],
           "additionalProperties": false
         }
       },
@@ -935,7 +977,9 @@
               "type": "string"
             }
           },
-          "required": ["description"],
+          "required": [
+            "description"
+          ],
           "additionalProperties": false
         }
       },
@@ -1094,7 +1138,12 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": ["apiKey", "http", "oauth2", "openIdConnect"],
+              "enum": [
+                "apiKey",
+                "http",
+                "oauth2",
+                "openIdConnect"
+              ],
               "description": "Type of security scheme"
             },
             "description": {
@@ -1114,7 +1163,9 @@
               "description": "OpenID Connect discovery URL, required when type is openIdConnect"
             }
           },
-          "required": ["type"],
+          "required": [
+            "type"
+          ],
           "additionalProperties": false
         }
       },
@@ -1153,7 +1204,9 @@
               "description": "Map of {placeholder} names (from the url template) to api.servervariable nodes defining allowed values and defaults."
             }
           },
-          "required": ["url"],
+          "required": [
+            "url"
+          ],
           "additionalProperties": false
         }
       },
@@ -1193,7 +1246,9 @@
               "type": "string"
             }
           },
-          "required": ["default"],
+          "required": [
+            "default"
+          ],
           "additionalProperties": false
         }
       },
