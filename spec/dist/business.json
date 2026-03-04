@@ -120,12 +120,7 @@
             },
             "type": {
               "type": "string",
-              "enum": [
-                "internal",
-                "external",
-                "message",
-                "timer"
-              ],
+              "enum": ["internal", "external", "message", "timer"],
               "description": "Classification of the business event trigger"
             },
             "properties": {
@@ -133,9 +128,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": false
         }
       },
@@ -467,20 +460,11 @@
             },
             "format": {
               "type": "string",
-              "enum": [
-                "pdf",
-                "html",
-                "xml",
-                "json",
-                "plain-text",
-                "binary"
-              ],
+              "enum": ["pdf", "html", "xml", "json", "plain-text", "binary"],
               "description": "The media format of this representation"
             }
           },
-          "required": [
-            "format"
-          ],
+          "required": ["format"],
           "additionalProperties": false
         }
       },

@@ -85,12 +85,7 @@
             },
             "type": {
               "type": "string",
-              "enum": [
-                "generic",
-                "external",
-                "internal",
-                "service-component"
-              ],
+              "enum": ["generic", "external", "internal", "service-component"],
               "description": "Classification of the application component kind."
             },
             "properties": {
@@ -98,9 +93,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": false
         }
       },
@@ -133,11 +126,7 @@
             },
             "eventType": {
               "type": "string",
-              "enum": [
-                "domain",
-                "integration",
-                "system"
-              ],
+              "enum": ["domain", "integration", "system"],
               "description": "Classification of the application event: domain (business logic), integration (cross-system), or system (infrastructure/runtime)."
             },
             "properties": {
@@ -145,9 +134,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "eventType"
-          ],
+          "required": ["eventType"],
           "additionalProperties": false
         }
       },
@@ -215,18 +202,11 @@
             },
             "pattern": {
               "type": "string",
-              "enum": [
-                "request-reply",
-                "publish-subscribe",
-                "event-driven",
-                "fire-and-forget"
-              ],
+              "enum": ["request-reply", "publish-subscribe", "event-driven", "fire-and-forget"],
               "description": "Interaction pattern used by this application collaboration."
             }
           },
-          "required": [
-            "pattern"
-          ],
+          "required": ["pattern"],
           "additionalProperties": false
         }
       },
@@ -259,16 +239,7 @@
             },
             "protocol": {
               "type": "string",
-              "enum": [
-                "HTTP",
-                "HTTPS",
-                "gRPC",
-                "AMQP",
-                "WebSocket",
-                "REST",
-                "GraphQL",
-                "SOAP"
-              ],
+              "enum": ["HTTP", "HTTPS", "gRPC", "AMQP", "WebSocket", "REST", "GraphQL", "SOAP"],
               "description": "Application-level communication protocol used to expose the service. Use application-level protocols only; network/transport-level protocols (TCP, TLS) belong in the Technology Layer."
             },
             "properties": {
@@ -276,9 +247,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "protocol"
-          ],
+          "required": ["protocol"],
           "additionalProperties": false
         }
       },
@@ -346,12 +315,7 @@
             },
             "serviceType": {
               "type": "string",
-              "enum": [
-                "synchronous",
-                "asynchronous",
-                "event-driven",
-                "batch"
-              ],
+              "enum": ["synchronous", "asynchronous", "event-driven", "batch"],
               "description": "Classification of how the service exposes its functionality to consumers."
             },
             "properties": {
@@ -359,9 +323,7 @@
               "description": "Cross-layer properties"
             }
           },
-          "required": [
-            "serviceType"
-          ],
+          "required": ["serviceType"],
           "additionalProperties": false
         }
       },

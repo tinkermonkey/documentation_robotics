@@ -19,6 +19,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
+import prettier from "prettier";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -355,10 +356,21 @@ function loadRelationshipSchemasForLayer(layerId: string): Record<string, Relati
 
 // ─── Phase 2-5: Compile and write ─────────────────────────────────────────────
 
-function writeJsonFile(filepath: string, data: unknown): void {
-  // Write JSON with proper formatting (2-space indent + final newline)
+async function writeJsonFile(filepath: string, data: unknown): Promise<void> {
+  // Write JSON with Prettier formatting to match project's prettier config
   const json = JSON.stringify(data, null, 2);
-  fs.writeFileSync(filepath, json + "\n", "utf-8");
+  const formatted = await prettier.format(json, {
+    parser: "json",
+    printWidth: 100,
+    tabWidth: 2,
+    useTabs: false,
+    singleQuote: false,
+    trailingComma: "es5",
+    bracketSpacing: true,
+    arrowParens: "always",
+    endOfLine: "lf",
+  });
+  fs.writeFileSync(filepath, formatted, "utf-8");
 }
 
 function ensureDistDir(): void {
@@ -367,7 +379,7 @@ function ensureDistDir(): void {
   }
 }
 
-function build(validate: boolean = false): void {
+async function build(validate: boolean = false): Promise<void> {
   console.log("Building spec distribution...");
 
   ensureDistDir();
@@ -387,7 +399,7 @@ function build(validate: boolean = false): void {
     schemas: baseSchemas,
     predicates,
   };
-  writeJsonFile(path.join(DIST_DIR, "base.json"), baseOutput);
+  await writeJsonFile(path.join(DIST_DIR, "base.json"), baseOutput);
   console.log(`  [OK] spec/dist/base.json`);
 
   // Phase 4: Build each layer file
@@ -424,7 +436,7 @@ function build(validate: boolean = false): void {
       relationshipSchemas,
     };
 
-    writeJsonFile(path.join(DIST_DIR, `${layerId}.json`), layerOutput);
+    await writeJsonFile(path.join(DIST_DIR, `${layerId}.json`), layerOutput);
     console.log(
       `  [OK] spec/dist/${layerId}.json (${nodeCount} node types, ${relCount} relationships)`
     );
@@ -451,7 +463,7 @@ function build(validate: boolean = false): void {
     },
   };
 
-  writeJsonFile(path.join(DIST_DIR, "manifest.json"), manifestOutput);
+  await writeJsonFile(path.join(DIST_DIR, "manifest.json"), manifestOutput);
   console.log(`  [OK] spec/dist/manifest.json`);
 
   console.log("");
@@ -546,4 +558,4 @@ function validateOutput(): void {
 // ─── Entry point ───────────────────────────────────────────────────────────────
 
 const validate = process.argv.includes("--validate");
-build(validate);
+await build(validate);

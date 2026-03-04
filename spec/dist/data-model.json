@@ -93,15 +93,7 @@
             },
             "type": {
               "type": "string",
-              "enum": [
-                "string",
-                "number",
-                "integer",
-                "boolean",
-                "array",
-                "object",
-                "null"
-              ],
+              "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
               "description": "JSON Schema Draft 7 primitive type"
             },
             "definitions": {
@@ -109,11 +101,7 @@
               "description": "Reusable subschemas keyed by name, referenced elsewhere in the schema via $ref: '#/definitions/{name}'"
             }
           },
-          "required": [
-            "$schema",
-            "$id",
-            "type"
-          ],
+          "required": ["$schema", "$id", "type"],
           "additionalProperties": false
         }
       },
@@ -143,10 +131,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "number",
-                "integer"
-              ],
+              "enum": ["number", "integer"],
               "description": "JSON Schema Draft 7 numeric type: 'number' for any numeric value, 'integer' for whole numbers only"
             },
             "minimum": {
@@ -165,9 +150,7 @@
               "type": "number"
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": false
         }
       },
@@ -223,9 +206,7 @@
               "type": "integer"
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": false
         }
       },
@@ -343,15 +324,7 @@
             },
             "type": {
               "type": "string",
-              "enum": [
-                "string",
-                "number",
-                "integer",
-                "boolean",
-                "array",
-                "object",
-                "null"
-              ],
+              "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
               "description": "JSON Schema Draft 7 primitive type"
             },
             "description": {
@@ -377,10 +350,7 @@
               "description": "Sample values illustrating valid instances of this definition (JSON Schema Draft 7 annotation keyword)"
             }
           },
-          "required": [
-            "title",
-            "type"
-          ],
+          "required": ["title", "type"],
           "additionalProperties": false
         }
       },
@@ -410,15 +380,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "string",
-                "number",
-                "integer",
-                "boolean",
-                "array",
-                "object",
-                "null"
-              ],
+              "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
               "description": "JSON Schema Draft 7 primitive type"
             },
             "title": {
@@ -454,15 +416,7 @@
               "description": "URI reference to a reusable schema definition (e.g., #/definitions/MyType)"
             }
           },
-          "required": [
-            "type",
-            "title",
-            "format",
-            "default",
-            "enum",
-            "const",
-            "examples"
-          ],
+          "required": ["type", "title", "format", "default", "enum", "const", "examples"],
           "additionalProperties": false
         }
       },
