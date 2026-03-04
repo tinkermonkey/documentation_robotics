@@ -20,7 +20,10 @@
     "test:fs-compatibility:low": "cd cli-validation/test-suite && npm run test:compatibility:low"
   },
   "devDependencies": {
+    "ajv-cli": "^5.0.0",
+    "ajv-formats": "^3.0.1",
     "markdownlint-cli": "^0.47.0",
+    "markdownlint-cli2": "^0.21.0",
     "prettier": "^3.8.1",
     "tsx": "^4.0.0"
   }
