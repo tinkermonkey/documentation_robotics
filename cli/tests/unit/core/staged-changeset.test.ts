@@ -208,7 +208,7 @@ describe("StagedChangesetStorage", () => {
       expect(changeset.id).toBe("test-001");
       expect(changeset.name).toBe("Test Changeset");
       expect(changeset.baseSnapshot).toBe("sha256:abc123");
-      expect(changeset.status).toBe("draft");
+      expect(changeset.status).toBe("staged");
     });
   });
 
