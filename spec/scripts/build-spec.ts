@@ -359,16 +359,10 @@ function loadRelationshipSchemasForLayer(layerId: string): Record<string, Relati
 async function writeJsonFile(filepath: string, data: unknown): Promise<void> {
   // Write JSON with Prettier formatting to match project's prettier config
   const json = JSON.stringify(data, null, 2);
+  const options = await prettier.resolveConfig(filepath);
   const formatted = await prettier.format(json, {
+    ...options,
     parser: "json",
-    printWidth: 100,
-    tabWidth: 2,
-    useTabs: false,
-    singleQuote: false,
-    trailingComma: "es5",
-    bracketSpacing: true,
-    arrowParens: "always",
-    endOfLine: "lf",
   });
   fs.writeFileSync(filepath, formatted, "utf-8");
 }
