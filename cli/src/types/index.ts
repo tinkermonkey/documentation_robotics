@@ -131,7 +131,7 @@ export interface ChangesetHistoryEntry {
   /** Name of the changeset that was committed or discarded */
   name: string;
   /** ISO 8601 timestamp when the action occurred */
-  applied_at: string;
+  committed_at: string;
   /** Type of action performed */
   action: "committed" | "discarded";
 }

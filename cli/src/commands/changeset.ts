@@ -272,7 +272,7 @@ export async function changesetApplyCommand(
     }
     model.manifest.changeset_history.push({
       name,
-      applied_at: new Date().toISOString(),
+      committed_at: new Date().toISOString(),
       action: "committed",
     });
 
