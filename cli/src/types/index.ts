@@ -125,15 +125,15 @@ export interface CrossReferenceStatistics {
 
 /**
  * Changeset application history entry
- * Records when changesets were applied or reverted to the model
+ * Records when changesets were committed or discarded in the model
  */
 export interface ChangesetHistoryEntry {
-  /** Name of the changeset that was applied or reverted */
+  /** Name of the changeset that was committed or discarded */
   name: string;
   /** ISO 8601 timestamp when the action occurred */
   applied_at: string;
   /** Type of action performed */
-  action: "applied" | "reverted";
+  action: "committed" | "discarded";
 }
 
 /**

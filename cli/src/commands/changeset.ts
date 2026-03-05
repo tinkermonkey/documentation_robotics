@@ -129,11 +129,11 @@ export async function changesetListCommand(): Promise<void> {
 
     for (const changeset of changesets) {
       const statusColor =
-        changeset.status === "applied"
+        changeset.status === "committed"
           ? ansis.green
-          : changeset.status === "reverted"
+          : changeset.status === "discarded"
             ? ansis.gray
-            : ansis.yellow; // "draft" status shows yellow
+            : ansis.yellow; // "staged" status shows yellow
 
       console.log(`${statusColor(changeset.status.toUpperCase())} ${ansis.bold(changeset.name)}`);
 
@@ -273,7 +273,7 @@ export async function changesetApplyCommand(
     model.manifest.changeset_history.push({
       name,
       applied_at: new Date().toISOString(),
-      action: "applied",
+      action: "committed",
     });
 
     // Always save the model and manifest, even if 0 changes
@@ -282,7 +282,7 @@ export async function changesetApplyCommand(
     await model.saveManifest();
 
     if (result.failed === 0) {
-      console.log(ansis.dim(`Changeset marked as applied`));
+      console.log(ansis.dim(`Changeset marked as committed`));
     }
 
     if (isTelemetryEnabled && span) {

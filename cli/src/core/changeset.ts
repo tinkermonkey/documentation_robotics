@@ -33,11 +33,11 @@ export interface StagedChange extends Change {
 /**
  * Status values for changesets in the staging workflow.
  *
- * - 'draft': Created and active for staging changes (can accept new changes)
- * - 'applied': Changes have been applied to base model
- * - 'reverted': Changes were reverted without applying
+ * - 'staged': Created and active for staging changes (can accept new changes)
+ * - 'committed': Changes have been committed to base model
+ * - 'discarded': Changes were discarded without committing
  */
-export type ChangesetStatus = "draft" | "applied" | "reverted";
+export type ChangesetStatus = "staged" | "committed" | "discarded";
 
 /**
  * Changeset data with staging semantics and metadata.
@@ -71,7 +71,7 @@ export class Changeset {
   created: string;
   modified: string;
   changes: Change[] = [];
-  status: ChangesetStatus = "draft";
+  status: ChangesetStatus = "staged";
 
   // Staging workflow fields (required)
   id: string;
@@ -117,20 +117,20 @@ export class Changeset {
       }
       return result as Change;
     });
-    this.status = data.status || "draft";
+    this.status = data.status || "staged";
     this.id = data.id;
     this.baseSnapshot = data.baseSnapshot;
     // Note: Stats are computed from changes array via getter; ignore any stored stats
   }
 
   /**
-   * Create a new changeset with draft status.
+   * Create a new changeset with staged status.
    *
    * @param name - Human-readable name for the changeset
    * @param description - Optional description of changes
    * @param id - Unique changeset ID (required)
    * @param baseSnapshot - SHA256 hash of base model at creation (required)
-   * @returns New Changeset instance in draft status
+   * @returns New Changeset instance in staged status
    */
   static create(
     name: string,
@@ -145,7 +145,7 @@ export class Changeset {
       created: now,
       modified: now,
       changes: [],
-      status: "draft",
+      status: "staged",
       id,
       baseSnapshot,
     });
@@ -207,32 +207,32 @@ export class Changeset {
   }
 
   /**
-   * Mark changeset as draft.
+   * Mark changeset as staged.
    * Enables the changeset to accept new changes via staging operations.
    * Updates status and modified timestamp.
    */
   markStaged(): void {
-    this.status = "draft";
+    this.status = "staged";
     this.updateModified();
   }
 
   /**
-   * Mark changeset as applied.
-   * Indicates changes have been applied to the base model.
+   * Mark changeset as committed.
+   * Indicates changes have been committed to the base model.
    * Updates status and modified timestamp.
    */
   markCommitted(): void {
-    this.status = "applied";
+    this.status = "committed";
     this.updateModified();
   }
 
   /**
-   * Mark changeset as reverted.
-   * Indicates changes have been reverted without applying.
+   * Mark changeset as discarded.
+   * Indicates changes have been discarded without committing.
    * Updates status and modified timestamp.
    */
   markDiscarded(): void {
-    this.status = "reverted";
+    this.status = "discarded";
     this.updateModified();
   }
 

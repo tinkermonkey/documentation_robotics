@@ -362,7 +362,7 @@ export class ChangesetExporter {
     }
 
     // Reconstruct changeset with defaults for optional fields
-    const changesetStatus = (typeof status === "string" ? status : "draft") as ChangesetStatus;
+    const changesetStatus = (typeof status === "string" ? status : "staged") as ChangesetStatus;
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
       additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
@@ -414,7 +414,7 @@ export class ChangesetExporter {
     }
 
     // Reconstruct changeset with defaults for optional fields
-    const changesetStatus = (typeof status === "string" ? status : "draft") as ChangesetStatus;
+    const changesetStatus = (typeof status === "string" ? status : "staged") as ChangesetStatus;
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
       additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
@@ -498,7 +498,7 @@ export class ChangesetExporter {
       description: metadata.description,
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
-      status: "draft",
+      status: "staged",
       baseSnapshot: metadata.baseSnapshot || "unknown",
       changes,
       stats: {

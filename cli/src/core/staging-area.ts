@@ -222,7 +222,7 @@ export class StagingAreaManager {
     }
 
     // Only allow staging when status is 'staged' (not 'committed' or 'discarded')
-    if (changeset.status !== "draft") {
+    if (changeset.status !== "staged") {
       throw new Error(
         `Cannot stage changes on changeset with status '${changeset.status}'. ` +
           `Changeset must have status 'staged' to accept new changes.`
@@ -258,7 +258,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    if (changeset.status !== "draft") {
+    if (changeset.status !== "staged") {
       throw new Error(
         `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
           `Changeset must have status 'staged'.`
@@ -291,7 +291,7 @@ export class StagingAreaManager {
 
     // Clear all staged changes and update status
     changeset.changes = [];
-    changeset.status = "reverted";
+    changeset.status = "discarded";
     // Note: stats are auto-computed from changes array (will be 0/0/0 after clearing)
     changeset.updateModified();
 
@@ -628,8 +628,8 @@ export class StagingAreaManager {
           }
         }
 
-        // Step 7: Update changeset status to applied ONLY AFTER successful saves
-        changeset.status = "applied";
+        // Step 7: Update changeset status to committed ONLY AFTER successful saves
+        changeset.status = "committed";
         changeset.updateModified();
 
         try {
@@ -649,7 +649,7 @@ export class StagingAreaManager {
         model.manifest.changeset_history.push({
           name: changeset.name,
           applied_at: new Date().toISOString(),
-          action: "applied",
+          action: "committed",
         });
 
         // Step 9: Save manifest with updated changeset history
@@ -877,7 +877,7 @@ export class StagingAreaManager {
     }
 
     // Transition to 'staged' status to enable interception
-    if (changeset.status !== "draft") {
+    if (changeset.status !== "staged") {
       changeset.markStaged();
       await this.storage.save(changeset);
     }
