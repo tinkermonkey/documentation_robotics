@@ -879,4 +879,4 @@ Routable grouping of components (a complete user experience)
 
 ---
 
-_Generated: 2026-03-05T22:32:24.191Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-05T22:44:13.383Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

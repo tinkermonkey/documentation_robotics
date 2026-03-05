@@ -154,9 +154,8 @@ describe("Changeset Storage Location", () => {
       expect(metadata.id).toBe(changesetId);
       expect(metadata.name).toBe("Metadata Test");
       expect(metadata.description).toBe("Test metadata file structure");
-      // Status is 'draft' at the StagedChangesetStorage level (low-level storage layer).
-      // StagingAreaManager maps this to 'staged' for user-facing operations.
-      expect(metadata.status).toBe("draft");
+      // Status is 'staged' at the StagedChangesetStorage level (low-level storage layer).
+      expect(metadata.status).toBe("staged");
       expect(metadata.baseSnapshot).toBe(baseSnapshot);
       expect(metadata.stats).toEqual({
         additions: 0,

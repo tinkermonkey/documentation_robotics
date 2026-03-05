@@ -294,7 +294,7 @@ describe("Export/Import Workflow", () => {
       expect(loaded?.name).toBe("Metadata Test Changeset");
       expect(loaded?.description).toBe("A detailed description of this test changeset");
       expect(loaded?.created).toBe(originalCreated);
-      expect(loaded?.status).toBe("draft");
+      expect(loaded?.status).toBe("staged");
       // Verify changes are preserved
       expect(loaded?.changes.length).toBe(1);
       expect(loaded?.changes[0].elementId).toBe("api-endpoint-metadata");
