@@ -467,4 +467,4 @@ A derived or virtual collection that presents data from one or more source colle
 
 ---
 
-_Generated: 2026-03-05T13:44:40.904Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-05T13:46:37.264Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
