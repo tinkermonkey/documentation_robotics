@@ -309,4 +309,4 @@ Defines validation rules for JSON string instances, including length bounds (min
 
 ---
 
-_Generated: 2026-03-04T13:20:52.912Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-05T13:42:44.166Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
