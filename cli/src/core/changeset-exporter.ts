@@ -44,6 +44,37 @@ export class ChangesetExporter {
   }
 
   /**
+   * Migrate legacy status values to new narrowed ChangesetStatus type
+   * Legacy values: "draft" → "staged", "applied" → "committed", "reverted" → "discarded"
+   * Validates against unexpected values to prevent silent corruption from invalid/corrupted data
+   */
+  private migrateStatus(status: unknown): ChangesetStatus {
+    if (typeof status !== "string") {
+      return "staged";
+    }
+
+    // Map legacy values to new narrowed type
+    switch (status) {
+      case "draft":
+        return "staged";
+      case "applied":
+        return "committed";
+      case "reverted":
+        return "discarded";
+      case "staged":
+      case "committed":
+      case "discarded":
+        return status as ChangesetStatus;
+      default:
+        // Reject unrecognized status values — corrupted data should be detected
+        throw new Error(
+          `Unrecognized changeset status '${status}' in imported file. Expected: staged, committed, or discarded. ` +
+          `If this is legacy data, ensure it uses one of the supported status values.`
+        );
+    }
+  }
+
+  /**
    * Export changeset to string in specified format
    */
   async export(changesetId: string, format: ExportFormat = "yaml"): Promise<string> {
@@ -361,8 +392,8 @@ export class ChangesetExporter {
       throw new Error("Missing required fields: id, name, created, modified");
     }
 
-    // Reconstruct changeset with defaults for optional fields
-    const changesetStatus = (typeof status === "string" ? status : "staged") as ChangesetStatus;
+    // Reconstruct changeset with migration for legacy status values
+    const changesetStatus = this.migrateStatus(status);
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
       additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
@@ -413,8 +444,8 @@ export class ChangesetExporter {
       throw new Error("Missing required fields: id, name, created, modified");
     }
 
-    // Reconstruct changeset with defaults for optional fields
-    const changesetStatus = (typeof status === "string" ? status : "staged") as ChangesetStatus;
+    // Reconstruct changeset with migration for legacy status values
+    const changesetStatus = this.migrateStatus(status);
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
       additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
