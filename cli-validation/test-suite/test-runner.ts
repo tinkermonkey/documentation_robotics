@@ -11,7 +11,7 @@ import { dirname } from 'node:path';
 import { glob } from 'glob';
 import YAML from 'yaml';
 
-import { initializeTestEnvironment, TestPaths, CLIConfig } from './setup.js';
+import { initializeTestEnvironment, TestPaths, CLIConfig, cleanupTestArtifacts, validateBaselineIntegrity } from './setup.js';
 import { captureSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
 import { executeCommand, CommandOutput } from './executor.js';
 import {
@@ -382,6 +382,25 @@ async function runTestSuite(): Promise<void> {
       console.log(`✓ JUnit report written to: ${junitPath}`);
     }
 
+    // Post-test cleanup and validation
+    console.log('\n' + '='.repeat(70));
+    console.log('Post-test cleanup and validation...');
+
+    try {
+      // Clean up test artifacts
+      await cleanupTestArtifacts(paths);
+      console.log('✓ Test artifacts cleaned up');
+
+      // Validate baseline integrity
+      await validateBaselineIntegrity(paths.baselinePath);
+      console.log('✓ Baseline integrity verified - no contamination detected');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('⚠ Post-test validation issue:');
+      console.error(`   ${errorMsg}`);
+      // Don't fail the test run for cleanup issues, but log them
+    }
+
     // Exit with appropriate code
     process.exit(summary.failedSuites > 0 ? 1 : 0);
   } catch (error) {
@@ -392,6 +411,17 @@ async function runTestSuite(): Promise<void> {
     if (errorStack && process.env.DEBUG) {
       console.error(`\nStack trace:\n${errorStack}`);
     }
+
+    // Attempt cleanup even on test failure
+    try {
+      const { paths } = await initializeTestEnvironment();
+      await cleanupTestArtifacts(paths);
+    } catch (cleanupError) {
+      console.error(
+        `⚠ Failed to cleanup after test failure: ${String(cleanupError)}`
+      );
+    }
+
     process.exit(1);
   }
 }

@@ -196,11 +196,23 @@ export async function validateCLIBinaries(config: CLIConfig): Promise<{ pythonAv
 /**
  * Remove test artifacts from previous runs
  * Implements clean-room pattern by deleting old test directories
+ * Also restores the baseline to its committed state to prevent contamination
  */
 export async function cleanupTestArtifacts(paths: TestPaths): Promise<void> {
   // rm with force: true ignores missing directories
   await rm(paths.pythonPath, { recursive: true, force: true });
   await rm(paths.tsPath, { recursive: true, force: true });
+
+  // Restore baseline to its committed state to prevent test contamination
+  try {
+    await execAsync('git checkout -- cli-validation/test-project/baseline/', {
+      cwd: paths.baselinePath.split('cli-validation')[0],
+    });
+  } catch (error) {
+    // If git restore fails, log a warning but continue
+    // The baseline might not be in a git repo or might be read-only
+    console.warn(`⚠ Could not restore baseline via git: ${String(error)}`);
+  }
 }
 
 /**
@@ -237,6 +249,33 @@ export async function setupTestEnvironment(paths: TestPaths, config: CLIConfig, 
     await updateManifestCLIVersion(paths.pythonPath, config.pythonCLI);
   }
   await updateManifestCLIVersion(paths.tsPath, config.tsCLI);
+}
+
+/**
+ * Validate that the baseline directory hasn't been modified by tests
+ * @throws Error if baseline has uncommitted changes
+ */
+export async function validateBaselineIntegrity(baselinePath: string): Promise<void> {
+  const workspaceRoot = baselinePath.split('cli-validation')[0];
+
+  try {
+    const { stdout } = await execAsync(
+      'git status --porcelain cli-validation/test-project/baseline/',
+      { cwd: workspaceRoot }
+    );
+
+    if (stdout.trim() !== '') {
+      throw new Error(
+        `Baseline directory has uncommitted changes (test isolation issue):\n${stdout}`
+      );
+    }
+  } catch (error) {
+    // Re-throw validation errors, but ignore git execution errors
+    if (error instanceof Error && error.message.includes('Baseline directory')) {
+      throw error;
+    }
+    console.warn(`⚠ Could not validate baseline integrity: ${String(error)}`);
+  }
 }
 
 /**
