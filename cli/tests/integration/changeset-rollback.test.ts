@@ -478,6 +478,7 @@ describe("Changeset Rollback Verification", () => {
           layerName: "application",
           timestamp: new Date().toISOString(),
           after: {
+            id: "application.service.test-service",
             type: "service",
             name: "Test Service",
           },
