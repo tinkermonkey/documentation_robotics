@@ -61,8 +61,10 @@ export class Element implements IElement {
       // Use elementId as fallback for backward compatibility
       this.id = dataAny.elementId;
     } else {
-      // Fallback: this shouldn't happen in normal usage
-      this.id = "";
+      // Throw error: missing ID is a critical error that causes silent data loss
+      throw new Error(
+        "Element must have either 'id' or 'elementId' field. Missing ID prevents proper element tracking and causes silent data loss."
+      );
     }
 
     this.spec_node_id = data.spec_node_id || "";

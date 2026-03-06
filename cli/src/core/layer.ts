@@ -121,7 +121,7 @@ export class Layer {
         source_reference: node.source_reference,
         metadata: node.metadata,
         properties: userProperties,
-        elementId: (node as any).elementId, // Preserve bridge field for semantic ID lookup
+        elementId: node.elementId, // Preserve bridge field for semantic ID lookup
         layer: node.layer,
         references: (node.properties["__references__"] ?? []) as Reference[],
         relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
@@ -236,7 +236,7 @@ export class Layer {
       source_reference: node.source_reference,
       metadata: node.metadata,
       properties: userProperties,
-      elementId: (node as any).elementId, // Preserve bridge field for semantic ID lookup
+      elementId: node.elementId, // Preserve bridge field for semantic ID lookup
       layer: node.layer,
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
@@ -290,15 +290,32 @@ export class Layer {
 
   /**
    * Delete an element by ID from the graph
+   *
+   * Performance notes:
+   * - Fast path (O(1)): Direct UUID lookup via graph.nodes Map
+   * - Fallback path (O(n)): Semantic ID lookup by elementId field
    */
   deleteElement(id: string): boolean {
-    const node = this.graph.nodes.get(id);
+    // Direct UUID lookup (O(1))
+    let node = this.graph.nodes.get(id);
+
+    // If not found by UUID, try semantic ID lookup (O(n), fallback)
+    // This supports deleting elements by their semantic ID format (e.g., "motivation.goal.test-goal")
+    if (!node) {
+      // Iterate through all nodes in this layer searching for matching elementId
+      for (const n of this.graph.nodes.values()) {
+        if (n.layer === this.name && n.elementId === id) {
+          node = n;
+          break;
+        }
+      }
+    }
 
     if (!node || node.layer !== this.name) {
       return false;
     }
 
-    const result = this.graph.removeNode(id);
+    const result = this.graph.removeNode(node.id);
     if (result) {
       this.dirty = true;
     }
@@ -323,6 +340,7 @@ export class Layer {
           source_reference: node.source_reference,
           metadata: node.metadata,
           properties: filterGraphMetadata(node.properties),
+          elementId: node.elementId, // Preserve bridge field for semantic ID lookup
           layer: node.layer,
           references: (node.properties["__references__"] ?? []) as Reference[],
           relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
