@@ -75,10 +75,6 @@ export interface Element {
   layer?: string;
   filePath?: string;
   rawData?: any;
-  /** @deprecated Use attributes instead. Will be removed in next major version. */
-  properties?: Record<string, unknown>;
-  /** @deprecated Use id and spec_node_id instead. Semantic ID like "api.endpoint.create-customer" */
-  elementId?: string;
 }
 
 /**

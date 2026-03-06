@@ -319,7 +319,6 @@ export class VirtualProjectionEngine {
                 layer: layerName,
                 source_reference: existing.source_reference,
                 metadata: existing.metadata,
-                elementId: existing.elementId,
               });
 
               projectedLayer.updateElement(updatedElement);

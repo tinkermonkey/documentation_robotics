@@ -149,8 +149,6 @@ export async function addCommand(
       },
       layer, // Set layer so setSourceReference can use it
     });
-    // Preserve semantic ID as bridge field for human-readable YAML keys and duplicate checks
-    element.elementId = elementId;
 
     // Add source reference if provided
     const sourceRef = buildSourceReference(options);

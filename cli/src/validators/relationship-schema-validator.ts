@@ -470,21 +470,14 @@ export class RelationshipValidator {
   }
 
   /**
-   * Find an element in the model by ID (supports both UUID and semantic ID)
+   * Find an element in the model by ID (UUID lookup)
    */
   private findElementInModel(model: Model, elementId: string) {
     for (const layer of model.layers.values()) {
-      // First try direct lookup (UUID)
+      // Direct lookup by UUID
       const element = layer.elements.get(elementId);
       if (element) {
         return element;
-      }
-
-      // If not found, search by semantic ID (elementId field)
-      for (const elem of layer.elements.values()) {
-        if (elem.elementId === elementId) {
-          return elem;
-        }
       }
     }
     return null;

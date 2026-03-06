@@ -167,9 +167,9 @@ export class ReferenceRegistry {
       }
     }
 
-    // Scan properties for known reference properties
-    if (element.properties) {
-      for (const [propName, propValue] of Object.entries(element.properties)) {
+    // Scan attributes for known reference properties
+    if (element.attributes) {
+      for (const [propName, propValue] of Object.entries(element.attributes)) {
         if (ReferenceRegistry.KNOWN_REF_PROPERTIES.has(propName)) {
           // Handle string value
           if (typeof propValue === "string") {
@@ -194,8 +194,8 @@ export class ReferenceRegistry {
         }
       }
 
-      // Scan nested properties for *Ref/*Reference properties
-      const nestedRefs = this.scanNestedReferences(elementId, element.properties);
+      // Scan nested attributes for *Ref/*Reference properties
+      const nestedRefs = this.scanNestedReferences(elementId, element.attributes);
       for (const ref of nestedRefs) {
         this.addReference(ref);
       }

@@ -406,9 +406,8 @@ export class Model {
             )
           : undefined;
 
-        // Use last segment of semantic ID as YAML key for human readability;
-        // fall back to UUID for elements without a semantic ID
-        const key = element.elementId?.split(".").pop() ?? element.id;
+        // Use UUID as YAML key; elements no longer have semantic IDs
+        const key = element.id;
         yamlData[key] = {
           id: json.id,
           spec_node_id: json.spec_node_id,
@@ -417,11 +416,8 @@ export class Model {
           name: json.name,
           ...(json.description && { description: json.description }),
           ...(cleanAttrs && Object.keys(cleanAttrs).length > 0 && { attributes: cleanAttrs }),
-          ...(json.properties && Object.keys(json.properties).length > 0 && { properties: json.properties }),
           ...(json.source_reference && { source_reference: json.source_reference }),
           ...(json.metadata && { metadata: json.metadata }),
-          // Bridge field: preserves semantic ID so old-format readers can still identify elements
-          ...(json.elementId && { elementId: json.elementId }),
           ...(json.references && json.references.length > 0 && { references: json.references }),
           // Relationships are now stored in centralized relationships.yaml, not inline
         };

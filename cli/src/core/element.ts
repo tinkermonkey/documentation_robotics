@@ -35,12 +35,6 @@ export class Element implements IElement {
   filePath?: string;
   rawData?: any;
 
-  // Deprecated fields (for backward compatibility)
-  /** @deprecated Use attributes instead. Will be removed in next major version. */
-  properties?: Record<string, unknown>;
-  /** @deprecated Use id and spec_node_id instead. Semantic ID like "api.endpoint.create-customer" */
-  elementId?: string;
-
   constructor(data: any) {
     this.initializeFromSpecNode(data);
   }
@@ -103,10 +97,6 @@ export class Element implements IElement {
     this.layer = data.layer || data.layer_id;
     this.filePath = data.filePath;
     this.rawData = data.rawData;
-
-    // Deprecated fields
-    this.properties = data.properties ?? {};
-    this.elementId = data.elementId;
   }
 
   /**
@@ -228,15 +218,6 @@ export class Element implements IElement {
 
     if (this.relationships.length > 0) {
       result.relationships = this.relationships;
-    }
-
-    // Include deprecated fields if present (for backward compatibility during migration)
-    if (this.elementId) {
-      result.elementId = this.elementId;
-    }
-
-    if (this.properties && Object.keys(this.properties).length > 0) {
-      result.properties = this.properties;
     }
 
     return result;

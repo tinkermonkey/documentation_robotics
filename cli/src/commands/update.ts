@@ -132,9 +132,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       }
 
       if (parsedProperties) {
-        elem.properties = { ...elem.properties, ...parsedProperties };
-        after.properties = {
-          ...(after.properties as Record<string, unknown>),
+        elem.attributes = { ...elem.attributes, ...parsedProperties };
+        after.attributes = {
+          ...(after.attributes as Record<string, unknown>),
           ...parsedProperties,
         };
       }

@@ -1462,7 +1462,6 @@ export class VisualizationServer {
       for (const e of layer.listElements()) {
         const layerId = e.layer_id || layerName;
         if (e.id) elementLayerMap.set(e.id, layerId);
-        if (e.elementId) elementLayerMap.set(e.elementId, layerId);
       }
     }
 
@@ -1478,12 +1477,10 @@ export class VisualizationServer {
           layer_id: layerId,
           name: e.name,
         };
-        if (e.elementId) node.elementId = e.elementId;
         if (e.description) node.description = e.description;
         if (e.attributes && Object.keys(e.attributes).length > 0) node.attributes = e.attributes;
         if (e.source_reference) node.source_reference = e.source_reference;
         if (e.metadata) node.metadata = e.metadata;
-        if (e.properties && Object.keys(e.properties).length > 0) node.properties = e.properties;
         nodes.push(node);
 
         // Intra-layer links from relationships
