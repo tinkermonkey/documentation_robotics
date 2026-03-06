@@ -82,7 +82,7 @@ describe("Chat Command Integration", () => {
   describe("Client Preference Storage", () => {
     it("should not persist client preference (feature removed)", async () => {
       // Chat client preference is no longer persisted in manifest
-      // The property was removed from Manifest class in Phase 7 cleanup
+      // The property was removed from Manifest class during legacy cleanup
       expect(model.manifest.preferred_chat_client).toBeUndefined();
 
       // Verify it cannot be set (property does not exist)

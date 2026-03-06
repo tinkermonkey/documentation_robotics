@@ -88,7 +88,7 @@ describe("Chat Command with Explicit Client Selection", () => {
   describe("Preference Saving", () => {
     it("should not save preference (feature removed)", async () => {
       // Chat client preference is no longer persisted in manifest
-      // The property was removed from Manifest class in Phase 7 cleanup
+      // The property was removed from Manifest class during legacy cleanup
 
       // Set initial state - no preference
       expect(model.manifest.preferred_chat_client).toBeUndefined();
@@ -138,7 +138,7 @@ describe("Chat Command with Explicit Client Selection", () => {
   describe("Manifest Structure", () => {
     it("should not include preferred_chat_client in JSON", async () => {
       // Chat client preference is no longer part of manifest structure
-      // The property was removed from Manifest class in Phase 7 cleanup
+      // The property was removed from Manifest class during legacy cleanup
 
       // Read the manifest directly
       const manifestJson = model.manifest.toJSON();
