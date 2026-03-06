@@ -284,49 +284,39 @@ export class VirtualProjectionEngine {
 
         case "update":
           if (change.after) {
-            // Use updateNode on the graph to persist changes
-            const updates: Partial<GraphNode> = {};
-
-            if (typeof change.after.name === "string") {
-              updates.name = change.after.name;
-            }
-
-            if (typeof change.after.type === "string") {
-              updates.type = change.after.type;
-            }
-
-            if (typeof change.after.description === "string") {
-              updates.description = change.after.description;
-            }
-
-            if (
-              typeof change.after.properties === "object" ||
-              Array.isArray(change.after.references) ||
-              Array.isArray(change.after.relationships)
-            ) {
-              const existing = projectedLayer.getElement(change.elementId);
-              const existingProps = existing?.properties || {};
-
-              const mergedProperties: Record<string, unknown> = {
-                ...existingProps,
-                ...(change.after.properties || {}),
+            // Get the existing element to preserve all state
+            const existing = projectedLayer.getElement(change.elementId);
+            if (existing) {
+              // Create updated element with merged attributes
+              const mergedAttributes: Record<string, unknown> = {
+                ...existing.attributes,
+                ...(typeof change.after.properties === "object" ? change.after.properties : {}),
               };
 
-              // Wrap references and relationships in the correct property keys
-              // to match how layer.ts stores them
-              if (Array.isArray(change.after.references)) {
-                mergedProperties["__references__"] = change.after.references;
-              }
+              const updatedElement = new ElementClass({
+                id: existing.id,
+                spec_node_id: existing.spec_node_id,
+                layer_id: existing.layer_id,
+                type: typeof change.after.type === "string" ? change.after.type : existing.type,
+                name: typeof change.after.name === "string" ? change.after.name : existing.name,
+                description:
+                  typeof change.after.description === "string"
+                    ? change.after.description
+                    : existing.description,
+                attributes: mergedAttributes,
+                references: Array.isArray(change.after.references)
+                  ? change.after.references
+                  : existing.references,
+                relationships: Array.isArray(change.after.relationships)
+                  ? change.after.relationships
+                  : existing.relationships,
+                layer: layerName,
+                source_reference: existing.source_reference,
+                metadata: existing.metadata,
+                elementId: existing.elementId,
+              });
 
-              if (Array.isArray(change.after.relationships)) {
-                mergedProperties["__relationships__"] = change.after.relationships;
-              }
-
-              updates.properties = mergedProperties;
-            }
-
-            if (Object.keys(updates).length > 0) {
-              projectedLayer.graph.updateNode(change.elementId, updates);
+              projectedLayer.updateElement(updatedElement);
             }
           }
           break;

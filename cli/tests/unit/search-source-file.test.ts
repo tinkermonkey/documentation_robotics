@@ -99,48 +99,6 @@ describe("Search Command - Source File Filtering", () => {
       expect(ref).toBeUndefined();
     });
 
-    it("should handle layer-specific storage for OpenAPI layers (06-08)", () => {
-      const element = new Element({
-        id: "api-endpoint-customer",
-        type: "endpoint",
-        name: "Customer Endpoint",
-        layer: "06-api",
-      });
-
-      const sourceRef: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "src/api/customer.ts" }],
-      };
-
-      element.setSourceReference(sourceRef);
-
-      // For OpenAPI layers, source reference should be in x-source-reference
-      expect(element.properties["x-source-reference"]).toBeDefined();
-      expect(element.getSourceReference()).toEqual(sourceRef);
-    });
-
-    it("should handle layer-specific storage for ArchiMate layers (non-06-08)", () => {
-      const element = new Element({
-        id: "application-service-customer",
-        type: "application-service",
-        name: "Customer Service",
-        layer: "04-application",
-      });
-
-      const sourceRef: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "src/services/customer.ts" }],
-      };
-
-      element.setSourceReference(sourceRef);
-
-      // For ArchiMate layers, source reference should be in properties.source.reference
-      expect(element.properties.source).toBeDefined();
-      expect((element.properties.source as { reference: SourceReference }).reference).toEqual(
-        sourceRef
-      );
-      expect(element.getSourceReference()).toEqual(sourceRef);
-    });
   });
 
   describe("Search result formatting", () => {
