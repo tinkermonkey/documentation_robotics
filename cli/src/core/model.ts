@@ -199,10 +199,16 @@ export class Model {
                   // Determine semantic/elementId for this element:
                   // - New format YAML: el.elementId is the bridge field written by saveLayer()
                   // - Old format YAML: __elementId__ is stored in el.properties
+                  // - Legacy format YAML: el.id itself can be a semantic ID (contains dots)
                   const isNewFormat = !!el.spec_node_id;
-                  const semanticId = isNewFormat
+                  let semanticId = isNewFormat
                     ? el.elementId
                     : (el.properties?.["__elementId__"] as string | undefined);
+
+                  // If semanticId not found yet, check if el.id is a semantic ID (contains dots)
+                  if (!semanticId && typeof el.id === 'string' && el.id.includes('.')) {
+                    semanticId = el.id;
+                  }
 
                   const newElement = new Element({
                     id: elementUUID,
