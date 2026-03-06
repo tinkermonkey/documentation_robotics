@@ -62,6 +62,7 @@ export class Manifest {
    *
    * @param history - Changeset history from manifest (may use legacy field names)
    * @returns Migrated changeset history using new field names
+   * @throws Error if action value is unrecognized (not "committed", "discarded", "applied", or "reverted")
    */
   private migrateChangesetHistory(
     history: ChangesetHistoryEntry[] | undefined
@@ -70,13 +71,27 @@ export class Manifest {
       return [];
     }
 
-    return history.map((entry: any) => ({
-      name: entry.name,
-      // Handle legacy field name: applied_at → committed_at
-      committed_at: entry.committed_at || entry.applied_at || new Date().toISOString(),
-      // Handle legacy action value: "applied" → "committed"
-      action: (entry.action === "applied" ? "committed" : entry.action) as "committed" | "discarded",
-    }));
+    return history.map((entry: any) => {
+      // Validate action value to prevent silent data corruption
+      let action: "committed" | "discarded";
+      if (entry.action === "applied" || entry.action === "committed") {
+        action = "committed";
+      } else if (entry.action === "reverted" || entry.action === "discarded") {
+        action = "discarded";
+      } else {
+        throw new Error(
+          `Invalid changeset history action '${entry.action}' for changeset '${entry.name}'. ` +
+          `Expected: committed, discarded, applied (legacy), or reverted (legacy).`
+        );
+      }
+
+      return {
+        name: entry.name,
+        // Handle legacy field name: applied_at → committed_at
+        committed_at: entry.committed_at || entry.applied_at || new Date().toISOString(),
+        action,
+      };
+    });
   }
 
   /**

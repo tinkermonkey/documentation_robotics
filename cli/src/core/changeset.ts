@@ -10,6 +10,47 @@
  */
 
 /**
+ * Migrate legacy status values to new narrowed ChangesetStatus type.
+ *
+ * Handles migration of legacy status strings from older changeset YAML files:
+ * - "draft" → "staged"
+ * - "applied" → "committed"
+ * - "reverted" → "discarded"
+ *
+ * Current valid status values pass through unchanged. Non-string values default to "staged".
+ * Unrecognized string values are rejected to prevent silent corruption from invalid data.
+ *
+ * @param status - Status value from changeset storage (may be legacy or new format)
+ * @returns Migrated ChangesetStatus value
+ * @throws Error if status is an unrecognized string value indicating data corruption
+ */
+export function migrateChangesetStatus(status: unknown): ChangesetStatus {
+  if (typeof status !== "string") {
+    return "staged";
+  }
+
+  // Map legacy values to new narrowed type
+  switch (status) {
+    case "draft":
+      return "staged";
+    case "applied":
+      return "committed";
+    case "reverted":
+      return "discarded";
+    case "staged":
+    case "committed":
+    case "discarded":
+      return status as ChangesetStatus;
+    default:
+      // Reject unrecognized status values — corrupted data should be detected
+      throw new Error(
+        `Unrecognized changeset status '${status}'. Expected: staged, committed, or discarded. ` +
+        `If this is legacy data, ensure it uses one of the supported status values.`
+      );
+  }
+}
+
+/**
  * Represents a single change in a changeset.
  * Records element mutations with before/after snapshots for audit purposes.
  */

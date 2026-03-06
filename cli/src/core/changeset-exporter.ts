@@ -10,7 +10,7 @@
 import { readFile, writeFile } from "fs/promises";
 import { fileExists } from "../utils/file-io.js";
 import yaml from "yaml";
-import { Changeset, type ChangesetStatus, type Change } from "./changeset.js";
+import { Changeset, type Change, migrateChangesetStatus } from "./changeset.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import type { Model } from "./model.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
@@ -43,36 +43,6 @@ export class ChangesetExporter {
     this.snapshotManager = new BaseSnapshotManager();
   }
 
-  /**
-   * Migrate legacy status values to new narrowed ChangesetStatus type
-   * Legacy values: "draft" → "staged", "applied" → "committed", "reverted" → "discarded"
-   * Validates against unexpected values to prevent silent corruption from invalid/corrupted data
-   */
-  private migrateStatus(status: unknown): ChangesetStatus {
-    if (typeof status !== "string") {
-      return "staged";
-    }
-
-    // Map legacy values to new narrowed type
-    switch (status) {
-      case "draft":
-        return "staged";
-      case "applied":
-        return "committed";
-      case "reverted":
-        return "discarded";
-      case "staged":
-      case "committed":
-      case "discarded":
-        return status as ChangesetStatus;
-      default:
-        // Reject unrecognized status values — corrupted data should be detected
-        throw new Error(
-          `Unrecognized changeset status '${status}' in imported file. Expected: staged, committed, or discarded. ` +
-          `If this is legacy data, ensure it uses one of the supported status values.`
-        );
-    }
-  }
 
   /**
    * Export changeset to string in specified format
@@ -410,7 +380,7 @@ export class ChangesetExporter {
     }
 
     // Reconstruct changeset with migration for legacy status values
-    const changesetStatus = this.migrateStatus(status);
+    const changesetStatus = migrateChangesetStatus(status);
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
       additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
@@ -462,7 +432,7 @@ export class ChangesetExporter {
     }
 
     // Reconstruct changeset with migration for legacy status values
-    const changesetStatus = this.migrateStatus(status);
+    const changesetStatus = migrateChangesetStatus(status);
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
       additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
