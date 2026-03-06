@@ -17,7 +17,7 @@ import yaml from "yaml";
 import { createTempWorkdir, runDr, assertOutputContains } from "../helpers/cli-runner.js";
 import { fileExists } from "../../src/utils/file-io.js";
 
-let tempDir: { path: string; cleanup: () => Promise<void> };
+let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
 // ============================================================================
 // Helper Functions

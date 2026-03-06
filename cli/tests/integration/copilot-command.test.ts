@@ -11,7 +11,7 @@ import { join } from "node:path";
 import * as yaml from "yaml";
 import { readFile } from "node:fs/promises";
 
-let tempDir: { path: string; cleanup: () => Promise<void> };
+let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
 /**
  * Wrapper around the cli-runner helper

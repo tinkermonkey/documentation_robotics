@@ -9,7 +9,7 @@ import { fileExists } from "../../src/utils/file-io.js";
 import { runDr as runDrHelper } from "../helpers/cli-runner.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 
-let tempDir: { path: string; cleanup: () => Promise<void> };
+let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
 /**
  * Wrapper around the cli-runner helper

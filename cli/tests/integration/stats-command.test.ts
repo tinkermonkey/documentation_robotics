@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTempWorkdir, runDr, stripAnsi } from "../helpers/cli-runner.js";
 
-let tempDir: { path: string; cleanup: () => Promise<void> };
+let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
 describe("stats command", () => {
   beforeEach(async () => {

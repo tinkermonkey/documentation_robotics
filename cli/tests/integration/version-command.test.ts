@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTempWorkdir, runDr } from "../helpers/cli-runner.js";
 import { readJSON } from "../../src/utils/file-io.js";
 
-let tempDir: { path: string; cleanup: () => Promise<void> };
+let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
 describe("version command", () => {
   beforeEach(async () => {
