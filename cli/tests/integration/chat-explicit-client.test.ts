@@ -86,36 +86,36 @@ describe("Chat Command with Explicit Client Selection", () => {
   });
 
   describe("Preference Saving", () => {
-    it("should save preference when client is explicitly specified", async () => {
-      // Mock the client availability to avoid actual CLI checks
-      const originalIsAvailable = ClaudeCodeClient.prototype.isAvailable;
-      const originalSendMessage = ClaudeCodeClient.prototype.sendMessage;
+    it("should not save preference (feature removed)", async () => {
+      // Chat client preference is no longer persisted in manifest
+      // The property was removed from Manifest class in Phase 7 cleanup
 
       // Set initial state - no preference
       expect(model.manifest.preferred_chat_client).toBeUndefined();
 
-      // The actual chatCommand would attempt to detect clients and run interactive mode
-      // For this test, we verify the manifest structure supports the preference
-      model.manifest.preferred_chat_client = "Claude Code";
+      // Attempt to set preference (works in-memory for backward compat, not persisted)
+      const testManifest = model.manifest as any;
+      testManifest.preferred_chat_client = "Claude Code";
       await model.save();
 
-      // Verify preference was saved
+      // Verify preference was NOT saved (undefined after reload)
       const reloadedModel = await Model.load(testDir);
-      expect(reloadedModel?.manifest.preferred_chat_client).toBe("Claude Code");
+      expect(reloadedModel?.manifest.preferred_chat_client).toBeUndefined();
     });
 
-    it("should allow updating preference with different client", async () => {
-      // Set initial preference
-      model.manifest.preferred_chat_client = "Claude Code";
+    it("should not persist updates to preference", async () => {
+      // Chat client preference no longer persists
+      const testManifest = model.manifest as any;
+      testManifest.preferred_chat_client = "Claude Code";
       await model.save();
 
       // Update to different client
-      model.manifest.preferred_chat_client = "GitHub Copilot";
+      testManifest.preferred_chat_client = "GitHub Copilot";
       await model.save();
 
-      // Verify update
+      // Verify neither preference was persisted
       const reloadedModel = await Model.load(testDir);
-      expect(reloadedModel?.manifest.preferred_chat_client).toBe("GitHub Copilot");
+      expect(reloadedModel?.manifest.preferred_chat_client).toBeUndefined();
     });
   });
 
@@ -136,21 +136,27 @@ describe("Chat Command with Explicit Client Selection", () => {
   });
 
   describe("Manifest Structure", () => {
-    it("should persist preferred_chat_client in JSON", async () => {
-      model.manifest.preferred_chat_client = "GitHub Copilot";
-      await model.save();
+    it("should not include preferred_chat_client in JSON", async () => {
+      // Chat client preference is no longer part of manifest structure
+      // The property was removed from Manifest class in Phase 7 cleanup
 
       // Read the manifest directly
       const manifestJson = model.manifest.toJSON();
-      expect(manifestJson.preferred_chat_client).toBe("GitHub Copilot");
+      expect(manifestJson.preferred_chat_client).toBeUndefined();
+
+      // Verify property doesn't exist on Manifest class
+      expect(model.manifest.preferred_chat_client).toBeUndefined();
     });
 
-    it("should handle undefined preferred_chat_client", async () => {
-      // Ensure undefined is handled properly
-      model.manifest.preferred_chat_client = undefined;
+    it("should maintain core manifest fields without preference", async () => {
+      // Verify manifest contains required fields but not preferred_chat_client
       await model.save();
 
       const manifestJson = model.manifest.toJSON();
+      expect(manifestJson.name).toBeDefined();
+      expect(manifestJson.version).toBeDefined();
+      expect(manifestJson.created).toBeDefined();
+      expect(manifestJson.modified).toBeDefined();
       expect(manifestJson.preferred_chat_client).toBeUndefined();
     });
   });

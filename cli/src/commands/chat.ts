@@ -18,24 +18,6 @@ import {
   SeverityNumber,
 } from "../telemetry/index.js";
 
-/**
- * Get the preferred chat client from manifest metadata
- * @param model The model instance
- * @returns The preferred client name or null
- */
-function getPreferredClient(model: Model): string | null {
-  return model.manifest.getCodingAgent() || null;
-}
-
-/**
- * Set the preferred chat client in manifest metadata
- * @param model The model instance
- * @param clientName The client name to set as preferred
- */
-async function setPreferredClient(model: Model, clientName: string): Promise<void> {
-  model.manifest.setCodingAgent(clientName);
-  await model.save();
-}
 
 /**
  * Map CLI-friendly client names to internal client names
@@ -130,45 +112,28 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
       }
 
       selectedClient = requestedClient;
-
-      // Save as preference
-      await setPreferredClient(model, selectedClient.getClientName());
     } else {
-      // Auto-select based on preference or availability
-      const preferredClientName = getPreferredClient(model);
-
+      // Auto-select based on availability
       if (availableClients.length === 1) {
         selectedClient = availableClients[0];
       } else {
-        // Multiple clients available - check for preference
-        const preferredClient = availableClients.find(
-          (c) => c.getClientName() === preferredClientName
-        );
+        // Multiple clients available - ask user to choose
+        const choice = await select({
+          message: "Select AI chat client:",
+          options: availableClients.map((c) => ({
+            value: c.getClientName(),
+            label: c.getClientName(),
+          })),
+        });
 
-        if (preferredClient) {
-          selectedClient = preferredClient;
-        } else {
-          // Ask user to choose
-          const choice = await select({
-            message: "Select AI chat client:",
-            options: availableClients.map((c) => ({
-              value: c.getClientName(),
-              label: c.getClientName(),
-            })),
-          });
-
-          if (typeof choice !== "string") {
-            console.log("");
-            await logger.logEvent("chat_session_cancelled");
-            outro(ansis.yellow("Chat cancelled"));
-            return;
-          }
-
-          selectedClient = availableClients.find((c) => c.getClientName() === choice)!;
-
-          // Save preference
-          await setPreferredClient(model, selectedClient.getClientName());
+        if (typeof choice !== "string") {
+          console.log("");
+          await logger.logEvent("chat_session_cancelled");
+          outro(ansis.yellow("Chat cancelled"));
+          return;
         }
+
+        selectedClient = availableClients.find((c) => c.getClientName() === choice)!;
       }
     }
 

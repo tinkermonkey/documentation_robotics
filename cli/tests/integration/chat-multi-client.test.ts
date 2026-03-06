@@ -80,28 +80,29 @@ describe("Chat Command Integration", () => {
   });
 
   describe("Client Preference Storage", () => {
-    it("should store preferred client in manifest", async () => {
-      // Set preferred client using the proper property
-      model.manifest.preferred_chat_client = "GitHub Copilot";
-      await model.save();
+    it("should not persist client preference (feature removed)", async () => {
+      // Chat client preference is no longer persisted in manifest
+      // The property was removed from Manifest class in Phase 7 cleanup
+      expect(model.manifest.preferred_chat_client).toBeUndefined();
 
-      // Reload model
+      // Verify it cannot be set (property does not exist)
+      const testManifest = model.manifest as any;
+      testManifest.preferred_chat_client = "GitHub Copilot";
+
+      // Reload model and verify preference is not persisted
+      await model.save();
       const reloadedModel = await Model.load(testDir);
-      expect(reloadedModel?.manifest.preferred_chat_client).toBe("GitHub Copilot");
+      expect(reloadedModel?.manifest.preferred_chat_client).toBeUndefined();
     });
 
-    it("should update preference", async () => {
-      // Set initial preference
-      model.manifest.preferred_chat_client = "Claude Code";
+    it("should handle missing preference gracefully", async () => {
+      // Client selection no longer relies on persisted preference
+      expect(model.manifest.preferred_chat_client).toBeUndefined();
       await model.save();
 
-      // Update preference
-      model.manifest.preferred_chat_client = "GitHub Copilot";
-      await model.save();
-
-      // Verify update
+      // Verify reload also shows undefined
       const reloadedModel = await Model.load(testDir);
-      expect(reloadedModel?.manifest.preferred_chat_client).toBe("GitHub Copilot");
+      expect(reloadedModel?.manifest.preferred_chat_client).toBeUndefined();
     });
   });
 

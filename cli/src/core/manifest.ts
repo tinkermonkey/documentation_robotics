@@ -1,7 +1,5 @@
 import type {
   ManifestData,
-  ModelStatistics,
-  CrossReferenceStatistics,
   ChangesetHistoryEntry,
 } from "../types/index.js";
 
@@ -9,15 +7,13 @@ import type {
  * Manifest representing model metadata and configuration
  *
  * The Manifest class manages all metadata about a Documentation Robotics model,
- * including project information, statistics, changeset history, and Python CLI
- * compatibility fields for migration scenarios.
+ * including project information, changeset history, and Python CLI compatibility
+ * fields for migration scenarios.
  *
  * This class handles:
  * - Project metadata (name, version, description, author)
- * - Model statistics and cross-reference tracking
  * - Changeset application history
- * - Chat client preferences
- * - Backward compatibility with Python CLI format
+ * - Backward compatibility with Python CLI format for layer migration
  */
 export class Manifest {
   name: string;
@@ -27,10 +23,7 @@ export class Manifest {
   created: string;
   modified: string;
   specVersion?: string;
-  statistics?: ModelStatistics;
-  cross_references?: CrossReferenceStatistics;
   changeset_history?: ChangesetHistoryEntry[];
-  preferred_chat_client?: string;
 
   /**
    * Python CLI compatibility field - layer configuration mapping
@@ -55,10 +48,7 @@ export class Manifest {
     this.created = data.created ?? new Date().toISOString();
     this.modified = data.modified ?? new Date().toISOString();
     this.specVersion = data.specVersion;
-    this.statistics = data.statistics;
-    this.cross_references = data.cross_references;
     this.changeset_history = data.changeset_history || [];
-    this.preferred_chat_client = data.preferred_chat_client;
 
     // Python CLI compatibility field
     this.layers = data.layers;
@@ -72,26 +62,10 @@ export class Manifest {
   }
 
   /**
-   * Get the coding agent preference
-   * @returns The coding agent name or undefined
-   */
-  getCodingAgent(): string | undefined {
-    return this.preferred_chat_client;
-  }
-
-  /**
-   * Set the coding agent preference
-   * @param agentName The coding agent name (e.g., "Claude Code", "GitHub Copilot")
-   */
-  setCodingAgent(agentName: string | undefined): void {
-    this.preferred_chat_client = agentName;
-  }
-
-  /**
    * Serialize to JSON representation
    *
-   * Converts the Manifest to a JSON-serializable object that includes all
-   * populated fields and Python CLI compatibility data for migration scenarios.
+   * Converts the Manifest to a JSON-serializable object that includes project
+   * metadata, changeset history, and Python CLI compatibility data for migration scenarios.
    *
    * @returns ManifestData object suitable for JSON serialization
    */
@@ -115,20 +89,8 @@ export class Manifest {
       result.specVersion = this.specVersion;
     }
 
-    if (this.statistics) {
-      result.statistics = this.statistics;
-    }
-
-    if (this.cross_references) {
-      result.cross_references = this.cross_references;
-    }
-
     if (this.changeset_history && this.changeset_history.length > 0) {
       result.changeset_history = this.changeset_history;
-    }
-
-    if (this.preferred_chat_client) {
-      result.preferred_chat_client = this.preferred_chat_client;
     }
 
     // Include Python CLI compatibility fields for migration scenarios

@@ -272,20 +272,9 @@ export class VisualizationServer {
   private async initializeChatClients(): Promise<void> {
     const clients = await detectAvailableClients();
 
-    // Select the chat client based on manifest preference
-    const preferredAgent = this.model.manifest.getCodingAgent();
-    this.selectedChatClient = selectChatClient(clients, preferredAgent);
-
-    // Log warnings/info if needed
-    if (
-      preferredAgent &&
-      this.selectedChatClient &&
-      this.selectedChatClient.getClientName() !== preferredAgent
-    ) {
-      console.warn(
-        `[Chat] Preferred client "${preferredAgent}" not available, using ${this.selectedChatClient.getClientName()}`
-      );
-    }
+    // Select the chat client from available clients
+    // Note: Chat client preference is no longer persisted in manifest
+    this.selectedChatClient = selectChatClient(clients, null);
 
     if (this.selectedChatClient && process.env.VERBOSE) {
       console.log(`[Chat] Using chat client: ${this.selectedChatClient.getClientName()}`);

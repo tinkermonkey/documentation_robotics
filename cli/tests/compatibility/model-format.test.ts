@@ -143,7 +143,7 @@ describe("Model Format Regression Tests", () => {
       const model = await Model.load(join(TEST_MODEL_DIR, "metadata"));
 
       // Statistics and cross_references are no longer loaded from manifest
-      // They are removed as part of Phase 7 cleanup
+      // Legacy Python CLI fields are no longer loaded from manifest
       expect(model.manifest.statistics).toBeUndefined();
       expect(model.manifest.cross_references).toBeUndefined();
     });

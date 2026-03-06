@@ -383,7 +383,9 @@ export class Model {
           layer_id: json.layer_id,
           name: json.name,
           ...(json.description && { description: json.description }),
-          ...(element.elementId && { elementId: element.elementId }), // Preserve semantic ID bridge field
+          // Preserve elementId for backward compatibility with previously-written files,
+          // even though loadLayer() no longer reads it
+          ...(element.elementId && { elementId: element.elementId }),
           ...(cleanAttrs && Object.keys(cleanAttrs).length > 0 && { attributes: cleanAttrs }),
           ...(json.source_reference && { source_reference: json.source_reference }),
           ...(json.metadata && { metadata: json.metadata }),
@@ -439,15 +441,14 @@ export class Model {
   }
 
   /**
-   * Save the manifest to disk (Python CLI format: documentation-robotics/model/manifest.yaml)
-   * Preserves Python CLI metadata fields for compatibility
+   * Save the manifest to disk (documentation-robotics/model/manifest.yaml)
    */
   async saveManifest(): Promise<void> {
     this.manifest.updateModified();
     const yaml = await import("yaml");
     const manifestPath = `${this.rootPath}/documentation-robotics/model/manifest.yaml`;
 
-    // Convert to legacy YAML format, preserving Python CLI fields
+    // Convert to YAML format
     const yamlData: any = {
       version: this.manifest.version,
       schema: "documentation-robotics-v1",
