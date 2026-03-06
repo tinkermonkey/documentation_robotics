@@ -921,5 +921,94 @@ describe("RelationshipValidator", () => {
       );
       expect(fieldErrors).toHaveLength(0);
     });
+
+    it("should find elements by semantic ID (elementId fallback)", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+
+      const layer = new Layer("motivation", [
+        new Element({
+          id: "uuid-goal-1",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Customer Satisfaction",
+          elementId: "motivation.goal.customer-satisfaction", // Semantic ID
+        }),
+        new Element({
+          id: "uuid-goal-2",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Revenue Growth",
+          elementId: "motivation.goal.revenue-growth", // Semantic ID
+        }),
+      ]);
+
+      model.addLayer(layer);
+
+      // Add relationship using semantic IDs instead of UUIDs
+      // This tests that findElementInModel supports semantic ID fallback
+      model.relationships.add({
+        source: "motivation.goal.customer-satisfaction",
+        target: "motivation.goal.revenue-growth",
+        predicate: "aggregates",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should not produce "element not found" errors when using semantic IDs
+      const notFoundErrors = result.errors.filter((e) =>
+        e.message.includes("not found")
+      );
+      expect(notFoundErrors).toHaveLength(0);
+    });
+
+    it("should validate relationships with mixed UUID and semantic ID references", async () => {
+      const validator = new RelationshipValidator();
+      await validator.initialize();
+
+      const model = createTestModel();
+
+      const layer = new Layer("motivation", [
+        new Element({
+          id: "uuid-goal-3",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Goal 3",
+          elementId: "motivation.goal.goal-3",
+        }),
+        new Element({
+          id: "uuid-goal-4",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "Goal 4",
+          elementId: "motivation.goal.goal-4",
+        }),
+      ]);
+
+      model.addLayer(layer);
+
+      // Mix UUID and semantic ID references in same layer
+      model.relationships.add({
+        source: "uuid-goal-3", // UUID
+        target: "motivation.goal.goal-4", // Semantic ID
+        predicate: "depends-on",
+        layer: "motivation",
+      });
+
+      const result = await validator.validateModel(model);
+
+      // Should validate successfully with mixed references
+      const notFoundErrors = result.errors.filter((e) =>
+        e.message.includes("not found")
+      );
+      expect(notFoundErrors).toHaveLength(0);
+    });
   });
 });
