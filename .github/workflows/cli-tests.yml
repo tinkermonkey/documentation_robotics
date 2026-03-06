@@ -62,8 +62,9 @@ jobs:
   test-full:
     name: Full Suite
     runs-on: ubuntu-latest
-    # Run full tests on main, develop, and push events
-    if: github.event_name != 'pull_request' || github.base_ref == 'main'
+    # Run full tests on PRs with main as base branch only
+    # Direct pushes to main/develop use test-comprehensive instead
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
 
     strategy:
       matrix:
