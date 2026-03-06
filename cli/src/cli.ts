@@ -170,7 +170,7 @@ program
   .description("Add an element to a layer")
   .option("--name <name>", "Element display name (defaults to the name argument)")
   .option("--description <desc>", "Element description")
-  .option("--properties <json>", "Element properties as JSON object")
+  .option("--attributes <json>", "Element type-specific attributes as JSON object")
   .option("--source-file <path>", "Source file path (relative from repository root)")
   .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file")
   .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")
@@ -181,7 +181,7 @@ program
     `
 Examples:
   $ dr add business service "Customer Management"
-  $ dr add api operation "Create Customer" --properties '{"method":"POST","path":"/customers"}'
+  $ dr add api operation "Create Customer" --attributes '{"method":"POST","path":"/customers"}'
   $ dr add application component "Customer API" --description "REST API for customer operations"
   $ dr add security policy "Auth Validator" --source-file "src/auth/validator.ts" --source-symbol "validateToken" --source-provenance "extracted"
 
@@ -194,7 +194,7 @@ program
   .description("Update an element")
   .option("--name <name>", "New element name")
   .option("--description <desc>", "New description")
-  .option("--properties <json>", "Updated properties (JSON)")
+  .option("--attributes <json>", "Updated type-specific attributes (JSON)")
   .option("--source-file <path>", "Source file path (relative from repository root)")
   .option("--source-symbol <name>", "Symbol name (class, function, variable) in source file")
   .option("--source-provenance <type>", "Provenance type: extracted, manual, inferred, generated")

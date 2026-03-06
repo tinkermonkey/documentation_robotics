@@ -186,7 +186,7 @@ export class InvalidJSONError extends CLIError {
     const message = context ? `Invalid JSON in ${context}` : "Invalid JSON format";
     super(message, ErrorCategory.USER, [
       `Check your JSON syntax: ${input}`,
-      'Use single quotes to wrap JSON: --properties \'{"key":"value"}\'',
+      'Use single quotes to wrap JSON: --attributes \'{"key":"value"}\'',
       "Escape special characters properly",
     ]);
     this.name = "InvalidJSONError";

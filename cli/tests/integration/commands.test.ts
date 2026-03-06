@@ -105,7 +105,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation",
         "goal",
         "Test Goal",
-        "--properties",
+        "--attributes",
         JSON.stringify({ required: true })
       );
 
@@ -133,7 +133,7 @@ describe("CLI Commands Integration Tests", () => {
         "motivation",
         "goal",
         "Test Goal",
-        "--properties",
+        "--attributes",
         "not-json"
       );
 
@@ -171,7 +171,7 @@ describe("CLI Commands Integration Tests", () => {
         "api",
         "operation",
         "Create User",
-        "--properties",
+        "--attributes",
         JSON.stringify(complexProps)
       );
 
@@ -195,7 +195,7 @@ describe("CLI Commands Integration Tests", () => {
         "Test Service",
         "--description",
         "A comprehensive service test",
-        "--properties",
+        "--attributes",
         JSON.stringify(props)
       );
 

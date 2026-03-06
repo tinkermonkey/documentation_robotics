@@ -43,7 +43,7 @@ describe("Error Message Scenarios", () => {
     it("should use exit code 1 for invalid JSON properties", async () => {
       await runDr("init", "--name", "Test Model");
       // Invalid JSON properties
-      const result = await runDr("add", "api", "endpoint", "test", "--properties", "invalid-json");
+      const result = await runDr("add", "api", "endpoint", "test", "--attributes", "invalid-json");
       expect(result.exitCode).toBe(1); // JSON parsing is user error
     });
 
@@ -99,14 +99,14 @@ describe("Error Message Scenarios", () => {
     });
 
     it("should error on invalid JSON properties", async () => {
-      const result = await runDr("add", "motivation", "goal", "test", "--properties", "{invalid}");
+      const result = await runDr("add", "motivation", "goal", "test", "--attributes", "{invalid}");
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("Invalid JSON");
       expect(result.stderr).toContain("Suggestions");
     });
 
     it("should error on invalid JSON properties with helpful guidance", async () => {
-      const result = await runDr("add", "motivation", "goal", "test", "--properties", "not-json");
+      const result = await runDr("add", "motivation", "goal", "test", "--attributes", "not-json");
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("Invalid JSON");
       // Should explain proper quoting/escaping
@@ -276,7 +276,7 @@ describe("Error Message Scenarios", () => {
     });
 
     it("should include layer and element context in errors", async () => {
-      const result = await runDr("add", "api", "endpoint", "test", "--properties", "bad-json");
+      const result = await runDr("add", "api", "endpoint", "test", "--attributes", "bad-json");
       expect(result.exitCode).toBe(1);
       // Error should reference the layer and element being added
       const stderr = result.stderr;
