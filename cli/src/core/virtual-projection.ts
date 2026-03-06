@@ -327,7 +327,10 @@ export class VirtualProjectionEngine {
           break;
 
         case "delete":
-          projectedLayer.deleteElement(change.elementId);
+          const existingForDelete = projectedLayer.getElement(change.elementId);
+          if (existingForDelete) {
+            projectedLayer.deleteElement(existingForDelete.id);
+          }
           break;
       }
     }

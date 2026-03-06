@@ -230,6 +230,11 @@ export class Element implements IElement {
       result.relationships = this.relationships;
     }
 
+    // Include elementId bridge field for semantic ID lookup compatibility
+    if (this.elementId) {
+      (result as any).elementId = this.elementId;
+    }
+
     return result;
   }
 

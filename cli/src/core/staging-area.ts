@@ -578,7 +578,7 @@ export class StagingAreaManager {
               } else if (change.type === "delete") {
                 const element = layer.getElement(change.elementId);
                 if (element) {
-                  layer.deleteElement(change.elementId);
+                  layer.deleteElement(element.id);
                   result.committed++;
                 }
               }

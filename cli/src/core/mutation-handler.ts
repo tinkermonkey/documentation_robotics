@@ -194,7 +194,7 @@ export class MutationHandler {
 
     // Base model path: delete from model
     const layer = (await this.context.model.getLayer(this.context.layerName))!;
-    const deleted = layer.deleteElement(this.context.elementId);
+    const deleted = layer.deleteElement(element.id);
 
     if (!deleted) {
       throw new CLIError(`Failed to delete element ${this.context.elementId}`, 1, [
