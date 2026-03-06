@@ -18,7 +18,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import { execSync } from "child_process";
 import prettier from "prettier";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -470,21 +469,6 @@ async function build(validate: boolean = false): Promise<void> {
     console.log("Running validation...");
     validateOutput();
   }
-
-  // Phase 6: Generate downstream artifacts from compiled dist
-  console.log("");
-  console.log("Generating browser reports (spec/browser/)...");
-  execSync(`npx tsx ${path.join(REPO_ROOT, "scripts/generate-layer-reports.ts")}`, {
-    cwd: REPO_ROOT,
-    stdio: "inherit",
-  });
-
-  console.log("");
-  console.log("Generating Neo4j export (spec/neo4j/)...");
-  execSync(`npx tsx ${path.join(REPO_ROOT, "scripts/export-spec-to-neo4j.ts")}`, {
-    cwd: REPO_ROOT,
-    stdio: "inherit",
-  });
 }
 
 function validateOutput(): void {
