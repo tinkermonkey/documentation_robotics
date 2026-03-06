@@ -48,10 +48,35 @@ export class Manifest {
     this.created = data.created ?? new Date().toISOString();
     this.modified = data.modified ?? new Date().toISOString();
     this.specVersion = data.specVersion;
-    this.changeset_history = data.changeset_history || [];
+
+    // Migrate changeset history from legacy format (if present)
+    this.changeset_history = this.migrateChangesetHistory(data.changeset_history);
 
     // Python CLI compatibility field
     this.layers = data.layers;
+  }
+
+  /**
+   * Migrate changeset history from legacy field names to new format
+   * Legacy format: applied_at → committed_at, action: "applied" → action: "committed"
+   *
+   * @param history - Changeset history from manifest (may use legacy field names)
+   * @returns Migrated changeset history using new field names
+   */
+  private migrateChangesetHistory(
+    history: ChangesetHistoryEntry[] | undefined
+  ): ChangesetHistoryEntry[] {
+    if (!history || history.length === 0) {
+      return [];
+    }
+
+    return history.map((entry: any) => ({
+      name: entry.name,
+      // Handle legacy field name: applied_at → committed_at
+      committed_at: entry.committed_at || entry.applied_at || new Date().toISOString(),
+      // Handle legacy action value: "applied" → "committed"
+      action: (entry.action === "applied" ? "committed" : entry.action) as "committed" | "discarded",
+    }));
   }
 
   /**

@@ -11,7 +11,7 @@
 
 /**
  * Represents a single change in a changeset.
- * Records element mutations with before/after snapshots for audit and reversion.
+ * Records element mutations with before/after snapshots for audit purposes.
  */
 export interface Change {
   type: "add" | "update" | "delete";
@@ -153,7 +153,7 @@ export class Changeset {
 
   /**
    * Add a change to the changeset.
-   * Records element mutation with before/after snapshots for audit and reversion.
+   * Records element mutation with before/after snapshots for audit purposes.
    *
    * @param type - Type of change (add, update, delete)
    * @param elementId - ID of the element being changed

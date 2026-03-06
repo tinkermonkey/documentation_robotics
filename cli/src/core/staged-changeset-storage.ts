@@ -13,7 +13,7 @@ import { FileLock } from "../utils/file-lock.js";
 import path from "path";
 import yaml from "yaml";
 import ansis from "ansis";
-import type { StagedChangesetData, StagedChange } from "./changeset.js";
+import type { StagedChangesetData, StagedChange, ChangesetStatus } from "./changeset.js";
 import { Changeset } from "./changeset.js";
 import { getErrorMessage } from "../utils/errors.js";
 
@@ -26,6 +26,41 @@ export class StagedChangesetStorage {
   constructor(rootPath: string) {
     // Store changesets in documentation-robotics/changesets/ directory
     this.changesetsDir = path.join(rootPath, "documentation-robotics", "changesets");
+  }
+
+  /**
+   * Migrate legacy status values to new narrowed ChangesetStatus type
+   * Legacy values: "draft" → "staged", "applied" → "committed", "reverted" → "discarded"
+   * Validates against unexpected values to prevent silent corruption from invalid/corrupted data
+   *
+   * @param status - Status value from metadata.yaml (may be legacy or new format)
+   * @returns Migrated ChangesetStatus value
+   * @throws Error if status is an unrecognized value indicating corruption
+   */
+  private migrateStatus(status: unknown): ChangesetStatus {
+    if (typeof status !== "string") {
+      return "staged";
+    }
+
+    // Map legacy values to new narrowed type
+    switch (status) {
+      case "draft":
+        return "staged";
+      case "applied":
+        return "committed";
+      case "reverted":
+        return "discarded";
+      case "staged":
+      case "committed":
+      case "discarded":
+        return status as ChangesetStatus;
+      default:
+        // Reject unrecognized status values — corrupted data should be detected
+        throw new Error(
+          `Unrecognized changeset status '${status}' in metadata. Expected: staged, committed, or discarded. ` +
+          `If this is legacy data, ensure it uses one of the supported status values.`
+        );
+    }
   }
 
   /**
@@ -116,6 +151,9 @@ export class StagedChangesetStorage {
       const changesContent = await readFile(changesPath, "utf-8");
       const changes = yaml.parse(changesContent) || [];
 
+      // Migrate legacy status values if needed
+      const migratedStatus = this.migrateStatus(metadata.status);
+
       // Construct changeset object
       const data: StagedChangesetData = {
         id: metadata.id,
@@ -123,7 +161,7 @@ export class StagedChangesetStorage {
         description: metadata.description,
         created: metadata.created,
         modified: metadata.modified,
-        status: metadata.status,
+        status: migratedStatus,
         baseSnapshot: metadata.baseSnapshot,
         changes: changes as StagedChange[],
         stats: metadata.stats || { additions: 0, modifications: 0, deletions: 0 },

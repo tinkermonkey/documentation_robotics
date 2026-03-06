@@ -333,6 +333,10 @@ export class ChangesetExporter {
             if (afterData.properties) {
               lines.push(`+   properties: ${JSON.stringify(afterData.properties)}`);
             }
+            // Also check attributes (newly created elements may use attributes instead of properties)
+            if (afterData.attributes) {
+              lines.push(`+   attributes: ${JSON.stringify(afterData.attributes)}`);
+            }
           }
         } else if (change.type === "delete") {
           lines.push(`- - id: ${change.elementId}`);
@@ -344,6 +348,10 @@ export class ChangesetExporter {
             if (beforeData.type) {
               lines.push(`-   type: ${beforeData.type}`);
             }
+            // Also check attributes for consistency
+            if (beforeData.attributes) {
+              lines.push(`-   attributes: ${JSON.stringify(beforeData.attributes)}`);
+            }
           }
         } else if (change.type === "update") {
           // Show context line and changes
@@ -354,6 +362,15 @@ export class ChangesetExporter {
             if (beforeData.name !== afterData.name) {
               lines.push(`-   name: "${beforeData.name}"`);
               lines.push(`+   name: "${afterData.name}"`);
+            }
+            // Also check attributes if they changed
+            if (JSON.stringify(beforeData.attributes) !== JSON.stringify(afterData.attributes)) {
+              if (beforeData.attributes) {
+                lines.push(`-   attributes: ${JSON.stringify(beforeData.attributes)}`);
+              }
+              if (afterData.attributes) {
+                lines.push(`+   attributes: ${JSON.stringify(afterData.attributes)}`);
+              }
             }
           }
         }
