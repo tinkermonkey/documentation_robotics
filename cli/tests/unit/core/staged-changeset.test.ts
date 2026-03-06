@@ -49,7 +49,7 @@ describe("Staged Changeset Data Model", () => {
         name: "test",
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
-        status: "draft",
+        status: "staged",
         baseSnapshot: "sha256:abc",
         changes: [
           { type: "add", elementId: "elem-1", layerName: "api", after: { name: "New" } },
@@ -62,6 +62,87 @@ describe("Staged Changeset Data Model", () => {
       expect(changeset.stats.additions).toBe(2);
       expect(changeset.stats.modifications).toBe(1);
       expect(changeset.stats.deletions).toBe(1);
+    });
+
+    it("should support status transition methods", () => {
+      const changeset = new Changeset({
+        id: "test-001",
+        name: "test",
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        status: "staged",
+        baseSnapshot: "sha256:abc",
+        changes: [],
+      });
+
+      // Test initial status
+      expect(changeset.status).toBe("staged");
+
+      // Test markCommitted
+      changeset.markCommitted();
+      expect(changeset.status).toBe("committed");
+
+      // Test markDiscarded
+      changeset.markDiscarded();
+      expect(changeset.status).toBe("discarded");
+
+      // Test markStaged
+      changeset.markStaged();
+      expect(changeset.status).toBe("staged");
+    });
+
+    it("should update modified timestamp on status transitions", () => {
+      const changeset = new Changeset({
+        id: "test-001",
+        name: "test",
+        created: "2024-01-01T00:00:00Z",
+        modified: "2024-01-01T00:00:00Z",
+        status: "staged",
+        baseSnapshot: "sha256:abc",
+        changes: [],
+      });
+
+      const initialModified = changeset.modified;
+
+      // Add a small delay to ensure timestamp changes
+      const beforeTransition = changeset.modified;
+      changeset.markCommitted();
+      const afterTransition = changeset.modified;
+
+      expect(afterTransition).not.toBe(beforeTransition);
+      expect(new Date(afterTransition) > new Date(beforeTransition)).toBe(true);
+    });
+
+    it("should create changeset with factory method and required parameters", () => {
+      const id = "test-factory-001";
+      const baseSnapshot = "sha256:xyz789";
+      const name = "Factory Test Changeset";
+      const description = "Test description";
+
+      const changeset = Changeset.create(name, description, id, baseSnapshot);
+
+      expect(changeset.id).toBe(id);
+      expect(changeset.baseSnapshot).toBe(baseSnapshot);
+      expect(changeset.name).toBe(name);
+      expect(changeset.description).toBe(description);
+      expect(changeset.status).toBe("staged");
+      expect(changeset.changes).toHaveLength(0);
+      expect(changeset.created).toBeDefined();
+      expect(changeset.modified).toBeDefined();
+    });
+
+    it("should create changeset with factory method without description", () => {
+      const id = "test-factory-002";
+      const baseSnapshot = "sha256:abc123";
+      const name = "Factory Test Changeset";
+
+      const changeset = Changeset.create(name, undefined, id, baseSnapshot);
+
+      expect(changeset.id).toBe(id);
+      expect(changeset.baseSnapshot).toBe(baseSnapshot);
+      expect(changeset.name).toBe(name);
+      expect(changeset.description).toBeUndefined();
+      expect(changeset.status).toBe("staged");
     });
   });
 });
