@@ -89,33 +89,6 @@ export interface LayerData {
   };
 }
 
-/**
- * Model statistics metadata
- * Tracks aggregate statistics about the model across all layers
- */
-export interface ModelStatistics {
-  /** Total number of elements across all layers */
-  total_elements: number;
-  /** Total number of intra-layer relationships */
-  total_relationships: number;
-  /** Model completeness percentage (0-100) */
-  completeness?: number;
-  /** ISO 8601 timestamp of last validation */
-  last_validation?: string;
-  /** Status of last validation ('passed', 'failed', 'warning') */
-  validation_status?: string;
-}
-
-/**
- * Cross-layer reference statistics
- * Tracks references between different layers
- */
-export interface CrossReferenceStatistics {
-  /** Total number of cross-layer references */
-  total: number;
-  /** Breakdown of references by type */
-  by_type: Record<string, number>;
-}
 
 /**
  * Changeset application history entry
@@ -141,14 +114,8 @@ export interface ManifestData {
   created?: string;
   modified?: string;
   specVersion?: string;
-  /** Statistics about the model */
-  statistics?: ModelStatistics;
-  /** Cross-layer reference tracking */
-  cross_references?: CrossReferenceStatistics;
   /** Changeset history for the model */
   changeset_history?: ChangesetHistoryEntry[];
-  /** Chat client preference (e.g., "Claude Code", "GitHub Copilot") */
-  preferred_chat_client?: string;
 }
 
 /**

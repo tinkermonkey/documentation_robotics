@@ -36,8 +36,8 @@ export class Element implements IElement {
   rawData?: any;
   elementId?: string; // Bridge field: semantic ID for lookup compatibility
 
-  constructor(data: any) {
-    this.initializeFromSpecNode(data);
+  constructor(data: Partial<IElement>) {
+    this.initializeFromSpecNode(data as IElement);
   }
 
   /**
@@ -51,7 +51,7 @@ export class Element implements IElement {
   /**
    * Initialize Element from spec-node aligned format
    */
-  private initializeFromSpecNode(data: IElement): void {
+  private initializeFromSpecNode(data: Partial<IElement>): void {
     // Handle backward compatibility: if id is not provided but elementId is,
     // derive id from elementId or use a generated ID
     const dataAny = data as any;

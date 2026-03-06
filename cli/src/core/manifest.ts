@@ -31,7 +31,7 @@ export class Manifest {
    * Used when loading models that were created by Python CLI.
    * Contains path information for layer directories in old format.
    *
-   * @deprecated Only used during migration from Python CLI format
+   * @internal Used by model loading logic for Python CLI compatibility and migration
    */
   layers?: Record<string, unknown>;
 
