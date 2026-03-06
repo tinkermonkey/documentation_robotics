@@ -37,7 +37,7 @@ export class Element implements IElement {
   elementId?: string; // Bridge field: semantic ID for lookup compatibility
 
   constructor(data: Partial<IElement>) {
-    this.initializeFromSpecNode(data as IElement);
+    this.initializeFromSpecNode(data);
   }
 
   /**
