@@ -102,13 +102,12 @@ describe("Staged Changeset Data Model", () => {
         changes: [],
       });
 
-      const initialModified = changeset.modified;
-
-      // Add a small delay to ensure timestamp changes
+      // Capture initial state before calling markCommitted()
       const beforeTransition = changeset.modified;
       changeset.markCommitted();
       const afterTransition = changeset.modified;
 
+      // Verify the timestamp was updated to a new value
       expect(afterTransition).not.toBe(beforeTransition);
       expect(new Date(afterTransition) > new Date(beforeTransition)).toBe(true);
     });

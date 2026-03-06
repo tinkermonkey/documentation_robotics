@@ -111,6 +111,7 @@ describe("Element Subcommand Group", () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Goal One");
       expect(result.stdout).toContain("Goal Two");
+      expect(result.stdout).not.toContain("Stakeholder One");
     });
 
     it("should fail to list elements in invalid layer", async () => {

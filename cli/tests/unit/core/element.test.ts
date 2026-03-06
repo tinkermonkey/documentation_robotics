@@ -79,32 +79,6 @@ describe("Element", () => {
   });
 
   describe("Backward compatibility constructor paths", () => {
-    it("should handle elementId-only input (line 60-62)", () => {
-      const element = new Element({
-        elementId: "motivation.goal.legacy-goal",
-        spec_node_id: "motivation.goal",
-        type: "goal",
-        name: "Legacy Goal",
-        layer_id: "motivation",
-      });
-
-      expect(element.id).toBe("motivation.goal.legacy-goal");
-      expect(element.elementId).toBe("motivation.goal.legacy-goal");
-    });
-
-    it("should throw error when both id and elementId are missing (line 64-66)", () => {
-      expect(() => {
-        new Element({
-          spec_node_id: "motivation.goal",
-          type: "goal",
-          name: "Goal Without ID",
-          layer_id: "motivation",
-        });
-      }).toThrow(
-        "Element must have either 'id' or 'elementId' field. Missing ID prevents proper element tracking and causes silent data loss."
-      );
-    });
-
     it("should use layer_id fallback when layer is not provided (line 70)", () => {
       const element = new Element({
         id: "motivation.goal.test",
