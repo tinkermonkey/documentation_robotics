@@ -12,7 +12,6 @@ import type { Model } from "./model.js";
 import type { Layer } from "./layer.js";
 import type { Element } from "./element.js";
 import type { Manifest } from "./manifest.js";
-import type { GraphNode } from "./graph-model.js";
 import { Layer as LayerClass } from "./layer.js";
 import { Element as ElementClass } from "./element.js";
 import type { StagedChange, Change } from "./changeset.js";
