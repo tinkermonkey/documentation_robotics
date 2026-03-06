@@ -143,14 +143,14 @@ export class MarkdownExporter implements Exporter {
             }
           }
 
-          // Properties
-          if (Object.keys(element.properties).length > 0) {
+          // Properties (attributes)
+          if (Object.keys(element.attributes).length > 0) {
             lines.push("**Properties:**");
             lines.push("");
             lines.push(`| Property | Value |`);
             lines.push(`| -------- | ----- |`);
 
-            for (const [key, value] of Object.entries(element.properties)) {
+            for (const [key, value] of Object.entries(element.attributes)) {
               const displayValue = this.valueToMarkdownLocal(value);
               lines.push(`| \`${key}\` | ${displayValue} |`);
             }

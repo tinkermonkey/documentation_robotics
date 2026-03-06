@@ -539,7 +539,7 @@ export class GraphModel implements IGraphModel {
       type: element.type,
       name: element.name,
       description: element.description,
-      properties: element.properties,
+      properties: element.properties || element.attributes || {},
       spec_node_id: element.spec_node_id || undefined,
       layer_id: element.layer_id || undefined,
       attributes: element.attributes && Object.keys(element.attributes).length > 0

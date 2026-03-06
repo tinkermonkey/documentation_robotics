@@ -164,7 +164,7 @@ export async function conformanceCommand(options: {
         }
 
         // Check for name field (recommended in v0.4.0+)
-        if (!element.properties.name && !element.properties.description) {
+        if (!element.name && !element.description) {
           issues.push({
             severity: "warning",
             message: `Element ${element.id} should have a name or description`,

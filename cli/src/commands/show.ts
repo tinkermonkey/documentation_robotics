@@ -73,11 +73,11 @@ export async function showCommand(id: string, options: { model?: string } = {}):
       console.log(`${ansis.gray("Description:")} ${element.description}`);
     }
 
-    // Display properties
-    if (Object.keys(element.properties).length > 0) {
+    // Display properties (attributes)
+    if (Object.keys(element.attributes).length > 0) {
       console.log("");
       console.log(ansis.bold("Properties:"));
-      for (const [key, value] of Object.entries(element.properties)) {
+      for (const [key, value] of Object.entries(element.attributes)) {
         const displayValue = typeof value === "string" ? value : JSON.stringify(value, null, 2);
         console.log(`  ${ansis.cyan(key)}: ${displayValue}`);
       }
