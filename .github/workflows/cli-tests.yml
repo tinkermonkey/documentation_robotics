@@ -3,7 +3,7 @@ name: CLI Tests
 on:
   workflow_dispatch: # Allow manual trigger
   push:
-    branches: [main, develop]
+    branches: ["**"] # Allow all branches
     paths:
       - "cli/**"
       - "spec/**"
