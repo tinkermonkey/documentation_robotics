@@ -452,4 +452,4 @@ Per-route rendering and access configuration attached to a Route node and consum
 
 ---
 
-_Generated: 2026-03-06T04:55:58.189Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-06T05:05:31.273Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
