@@ -427,7 +427,7 @@ export class GoldenCopyCacheManager {
       type: string,
       id: string,
       name: string,
-      properties?: Record<string, unknown>
+      attributes?: Record<string, unknown>
     ) => {
       let layer = await this.goldenModel!.getLayer(layerName);
       if (!layer) {
@@ -440,7 +440,7 @@ export class GoldenCopyCacheManager {
         type,
         name,
         description: `Golden copy element: ${name}`,
-        attributes: properties || {},
+        attributes: attributes || {},
       });
 
       layer.addElement(element);

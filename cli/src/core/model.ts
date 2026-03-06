@@ -391,7 +391,6 @@ export class Model {
           layer_id: json.layer_id,
           name: json.name,
           ...(json.description && { description: json.description }),
-          // Preserve elementId for backward compatibility with previously-written files;
           ...(cleanAttrs && Object.keys(cleanAttrs).length > 0 && { attributes: cleanAttrs }),
           ...(json.source_reference && { source_reference: json.source_reference }),
           ...(json.metadata && { metadata: json.metadata }),

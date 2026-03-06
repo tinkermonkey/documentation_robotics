@@ -1471,21 +1471,6 @@ export class VisualizationServer {
         if (e.source_reference) node.source_reference = e.source_reference;
         if (e.metadata) node.metadata = e.metadata;
 
-        // Legacy format support: detect semantic IDs (3-part dotted format)
-        // and include elementId and properties fields for backward compatibility
-        if (e.id && e.id.includes('.')) {
-          const parts = e.id.split('.');
-          // Semantic ID format: {layer}.{type}.{name}
-          if (parts.length === 3) {
-            node.elementId = e.id;
-          }
-        }
-
-        // Include properties as alias for attributes when non-empty (backward compatibility)
-        if (e.attributes && Object.keys(e.attributes).length > 0) {
-          node.properties = e.attributes;
-        }
-
         nodes.push(node);
 
         // Intra-layer links from relationships

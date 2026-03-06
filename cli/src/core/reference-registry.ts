@@ -128,9 +128,6 @@ export class ReferenceRegistry {
   /**
    * Register an element and all its references
    * Scans element properties for known reference names
-   *
-   * Uses semantic ID (elementId) for legacy format elements or ID for spec-aligned elements
-   * This ensures compatibility with Python CLI behavior which uses semantic IDs
    */
   registerElement(element: Element): void {
     // Validate required element properties
