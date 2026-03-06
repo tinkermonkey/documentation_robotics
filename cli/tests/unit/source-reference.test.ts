@@ -120,17 +120,17 @@ describe("Element Source Reference Methods", () => {
     });
   });
 
-  describe("getSourceReference() for OpenAPI layers (06-08)", () => {
+  describe("getSourceReference()", () => {
     it("should return undefined when no source reference exists", () => {
       expect(element.getSourceReference()).toBeUndefined();
     });
 
-    it("should return source reference from x-source-reference property for layer 06", () => {
+    it("should return source reference when set", () => {
       const reference: SourceReference = {
         provenance: "manual",
         locations: [{ file: "src/routes/users.ts", symbol: "POST /users" }],
       };
-      element.properties["x-source-reference"] = reference;
+      element.source_reference = reference;
 
       const result = element.getSourceReference();
       expect(result).toEqual(reference);
@@ -138,195 +138,98 @@ describe("Element Source Reference Methods", () => {
       expect(result?.locations[0].file).toBe("src/routes/users.ts");
     });
 
-    it("should return source reference from x-source-reference for layer 07", () => {
-      element.layer = "07-data-model";
-      const reference: SourceReference = {
-        provenance: "extracted",
-        locations: [{ file: "src/models/user.ts", symbol: "User" }],
-      };
-      element.properties["x-source-reference"] = reference;
+    it("should return source reference from different provenance types", () => {
+      const provenances: Array<{ type: SourceReference["provenance"]; name: string }> = [
+        { type: "manual", name: "manual" },
+        { type: "extracted", name: "extracted" },
+        { type: "inferred", name: "inferred" },
+        { type: "generated", name: "generated" },
+      ];
 
-      expect(element.getSourceReference()).toEqual(reference);
-    });
+      provenances.forEach(({ type }) => {
+        const reference: SourceReference = {
+          provenance: type,
+          locations: [{ file: "src/test.ts" }],
+        };
+        element.source_reference = reference;
 
-    it("should return source reference from x-source-reference for layer 08", () => {
-      element.layer = "08-data-store";
-      const reference: SourceReference = {
-        provenance: "generated",
-        locations: [{ file: "migrations/001_create_users.sql" }],
-      };
-      element.properties["x-source-reference"] = reference;
-
-      expect(element.getSourceReference()).toEqual(reference);
+        expect(element.getSourceReference()).toEqual(reference);
+        expect(element.getSourceReference()?.provenance).toBe(type);
+      });
     });
   });
 
-  describe("getSourceReference() for ArchiMate layers (non-06-08)", () => {
-    it("should return undefined when no source reference exists for layer 01", () => {
-      element.layer = "01-motivation";
-      expect(element.getSourceReference()).toBeUndefined();
-    });
-
-    it("should return source reference from properties.source.reference for layer 01", () => {
-      element.layer = "01-motivation";
-      const reference: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "requirements.md" }],
-      };
-      element.properties.source = { reference };
-
-      expect(element.getSourceReference()).toEqual(reference);
-    });
-
-    it("should return source reference from properties.source.reference for layer 04", () => {
-      element.layer = "04-application";
-      const reference: SourceReference = {
-        provenance: "inferred",
-        locations: [{ file: "src/services/auth.ts", symbol: "AuthService" }],
-      };
-      element.properties.source = { reference };
-
-      expect(element.getSourceReference()).toEqual(reference);
-    });
-
-    it("should return undefined when properties.source exists but no reference", () => {
-      element.layer = "04-application";
-      element.properties.source = { someOtherField: "value" };
-
-      expect(element.getSourceReference()).toBeUndefined();
-    });
-
-    it("should handle undefined properties.source gracefully", () => {
-      element.layer = "04-application";
-      element.properties.source = undefined;
-
-      expect(element.getSourceReference()).toBeUndefined();
-    });
-  });
-
-  describe("setSourceReference() for OpenAPI layers (06-08)", () => {
-    it("should set source reference to x-source-reference for layer 06", () => {
-      element.layer = "06-api";
+  describe("setSourceReference()", () => {
+    it("should set source reference when provided", () => {
       const reference: SourceReference = {
         provenance: "manual",
         locations: [{ file: "src/routes/users.ts" }],
       };
 
       element.setSourceReference(reference);
-      expect(element.properties["x-source-reference"]).toEqual(reference);
+      expect(element.source_reference).toEqual(reference);
+      expect(element.getSourceReference()).toEqual(reference);
     });
 
-    it("should set source reference to x-source-reference for layer 07", () => {
-      element.layer = "07-data-model";
+    it("should set source reference with multiple locations", () => {
       const reference: SourceReference = {
         provenance: "extracted",
-        locations: [{ file: "src/models/user.ts" }],
+        locations: [
+          { file: "src/models/user.ts", symbol: "User" },
+          { file: "src/models/user-utils.ts", symbol: "validateUser" },
+        ],
       };
 
       element.setSourceReference(reference);
-      expect(element.properties["x-source-reference"]).toEqual(reference);
+      expect(element.getSourceReference()).toEqual(reference);
+      expect(element.getSourceReference()?.locations).toHaveLength(2);
     });
 
-    it("should set source reference to x-source-reference for layer 08", () => {
-      element.layer = "08-data-store";
+    it("should set source reference with repository context", () => {
       const reference: SourceReference = {
         provenance: "generated",
         locations: [{ file: "migrations/001_create_users.sql" }],
+        repository: {
+          url: "https://github.com/example/repo.git",
+          commit: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b",
+        },
       };
 
       element.setSourceReference(reference);
-      expect(element.properties["x-source-reference"]).toEqual(reference);
-    });
-
-    it("should overwrite existing x-source-reference", () => {
-      element.layer = "06-api";
-      const oldReference: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "old.ts" }],
-      };
-      const newReference: SourceReference = {
-        provenance: "extracted",
-        locations: [{ file: "new.ts" }],
-      };
-
-      element.setSourceReference(oldReference);
-      expect(element.properties["x-source-reference"]).toEqual(oldReference);
-
-      element.setSourceReference(newReference);
-      expect(element.properties["x-source-reference"]).toEqual(newReference);
-    });
-  });
-
-  describe("setSourceReference() for ArchiMate layers (non-06-08)", () => {
-    it("should set source reference to properties.source.reference for layer 01", () => {
-      element.layer = "01-motivation";
-      const reference: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "requirements.md" }],
-      };
-
-      element.setSourceReference(reference);
-      expect((element.properties.source as any).reference).toEqual(reference);
-    });
-
-    it("should create properties.source if it does not exist", () => {
-      element.layer = "04-application";
-      expect(element.properties.source).toBeUndefined();
-
-      const reference: SourceReference = {
-        provenance: "inferred",
-        locations: [{ file: "src/services/auth.ts" }],
-      };
-      element.setSourceReference(reference);
-
-      expect(element.properties.source).toBeDefined();
-      expect((element.properties.source as any).reference).toEqual(reference);
-    });
-
-    it("should preserve existing properties.source fields when setting reference", () => {
-      element.layer = "04-application";
-      element.properties.source = { someField: "value" };
-
-      const reference: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "src/main.ts" }],
-      };
-      element.setSourceReference(reference);
-
-      expect((element.properties.source as any).someField).toBe("value");
-      expect((element.properties.source as any).reference).toEqual(reference);
-    });
-
-    it("should overwrite existing reference in properties.source", () => {
-      element.layer = "04-application";
-      const oldReference: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "old.ts" }],
-      };
-      const newReference: SourceReference = {
-        provenance: "extracted",
-        locations: [{ file: "new.ts" }],
-      };
-
-      element.setSourceReference(oldReference);
-      expect((element.properties.source as any).reference).toEqual(oldReference);
-
-      element.setSourceReference(newReference);
-      expect((element.properties.source as any).reference).toEqual(newReference);
-    });
-  });
-
-  describe("setSourceReference() error handling", () => {
-    it("should throw error when element has no layer assigned", () => {
-      element.layer = undefined;
-      const reference: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "src/main.ts" }],
-      };
-
-      expect(() => element.setSourceReference(reference)).toThrow(
-        "Cannot set source reference: element has no layer assigned"
+      expect(element.getSourceReference()).toEqual(reference);
+      expect(element.getSourceReference()?.repository?.url).toBe(
+        "https://github.com/example/repo.git"
       );
+    });
+
+    it("should overwrite existing source reference", () => {
+      const oldReference: SourceReference = {
+        provenance: "manual",
+        locations: [{ file: "old.ts" }],
+      };
+      const newReference: SourceReference = {
+        provenance: "extracted",
+        locations: [{ file: "new.ts" }],
+      };
+
+      element.setSourceReference(oldReference);
+      expect(element.getSourceReference()).toEqual(oldReference);
+
+      element.setSourceReference(newReference);
+      expect(element.getSourceReference()).toEqual(newReference);
+    });
+
+    it("should clear source reference when set to undefined", () => {
+      const reference: SourceReference = {
+        provenance: "manual",
+        locations: [{ file: "src/main.ts" }],
+      };
+
+      element.setSourceReference(reference);
+      expect(element.getSourceReference()).toEqual(reference);
+
+      element.setSourceReference(undefined);
+      expect(element.getSourceReference()).toBeUndefined();
     });
   });
 
@@ -335,85 +238,26 @@ describe("Element Source Reference Methods", () => {
       expect(element.hasSourceReference()).toBe(false);
     });
 
-    it("should return true when source reference exists for OpenAPI layer", () => {
-      element.layer = "06-api";
+    it("should return true when source reference exists", () => {
       const reference: SourceReference = {
         provenance: "manual",
         locations: [{ file: "src/main.ts" }],
       };
-      element.properties["x-source-reference"] = reference;
+      element.setSourceReference(reference);
 
       expect(element.hasSourceReference()).toBe(true);
     });
 
-    it("should return true when source reference exists for ArchiMate layer", () => {
-      element.layer = "04-application";
+    it("should return false after clearing source reference", () => {
       const reference: SourceReference = {
         provenance: "manual",
         locations: [{ file: "src/main.ts" }],
       };
-      element.properties.source = { reference };
-
+      element.setSourceReference(reference);
       expect(element.hasSourceReference()).toBe(true);
-    });
 
-    it("should return false when properties.source exists but no reference for ArchiMate layer", () => {
-      element.layer = "04-application";
-      element.properties.source = { someField: "value" };
-
+      element.setSourceReference(undefined);
       expect(element.hasSourceReference()).toBe(false);
-    });
-  });
-
-  describe("Layer-aware behavior across different layers", () => {
-    it("should use x-source-reference for layer 06", () => {
-      element.layer = "06-api";
-      const reference: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "api.ts" }],
-      };
-
-      element.setSourceReference(reference);
-      expect(element.getSourceReference()).toEqual(reference);
-      expect(element.properties["x-source-reference"]).toEqual(reference);
-      expect((element.properties.source as any)?.reference).toBeUndefined();
-    });
-
-    it("should use properties.source.reference for layer 01", () => {
-      element.layer = "01-motivation";
-      const reference: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "main.ts" }],
-      };
-
-      element.setSourceReference(reference);
-      expect(element.getSourceReference()).toEqual(reference);
-      expect((element.properties.source as any).reference).toEqual(reference);
-      expect(element.properties["x-source-reference"]).toBeUndefined();
-    });
-
-    it("should switch storage correctly when layer changes", () => {
-      // Start with layer 06 (OpenAPI)
-      element.layer = "06-api";
-      const ref1: SourceReference = {
-        provenance: "manual",
-        locations: [{ file: "api.ts" }],
-      };
-      element.setSourceReference(ref1);
-      expect(element.properties["x-source-reference"]).toEqual(ref1);
-
-      // Change to layer 04 (ArchiMate)
-      element.layer = "04-application";
-      const ref2: SourceReference = {
-        provenance: "extracted",
-        locations: [{ file: "app.ts" }],
-      };
-      element.setSourceReference(ref2);
-
-      // New layer should have reference in its storage location
-      expect((element.properties.source as any).reference).toEqual(ref2);
-      // Old reference should still be there (not cleaned up by setSourceReference)
-      expect(element.properties["x-source-reference"]).toEqual(ref1);
     });
   });
 });
