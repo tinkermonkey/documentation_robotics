@@ -194,7 +194,7 @@ export class VirtualProjectionEngine {
       // New element being added
       return new ElementClass({
         id: elementId,
-        spec_node_id: lastChange.after?.spec_node_id || "",
+        spec_node_id: (lastChange.after?.spec_node_id as string) || "",
         type: (projectedData.type as string) || "unknown",
         layer_id: lastChange.layerName,
         name: (projectedData.name as string) || elementId,
@@ -278,7 +278,7 @@ export class VirtualProjectionEngine {
           if (change.after) {
             const newElement = new ElementClass({
               id: change.elementId,
-              spec_node_id: change.after.spec_node_id || "",
+              spec_node_id: (change.after.spec_node_id as string) || "",
               type: (change.after.type as string) || "unknown",
               layer_id: layerName,
               name: (change.after.name as string) || change.elementId,

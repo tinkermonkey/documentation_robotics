@@ -17,7 +17,19 @@ let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanu
 async function runDr(
   ...args: string[]
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  if (!tempDir.path) {
+    throw new Error("tempDir.path is not initialized. Parent beforeEach may not have completed.");
+  }
   return runDrHelper(args, { cwd: tempDir.path });
+}
+
+/**
+ * Ensure parent beforeEach has completed before running nested setup
+ */
+async function ensureSetup() {
+  if (!tempDir.path) {
+    throw new Error("Parent setup has not completed. Cannot proceed with test.");
+  }
 }
 
 describe("CLI Commands Integration Tests", () => {
@@ -235,6 +247,8 @@ describe("CLI Commands Integration Tests", () => {
 
   describe("update command", () => {
     beforeEach(async () => {
+      // Ensure parent setup has completed before this nested setup runs
+      await ensureSetup();
       // Model is already initialized; add test data
       await runDr("add", "motivation", "goal", "Original Name");
     });
@@ -264,6 +278,8 @@ describe("CLI Commands Integration Tests", () => {
 
   describe("delete command", () => {
     beforeEach(async () => {
+      // Ensure parent setup has completed before this nested setup runs
+      await ensureSetup();
       // Model is already initialized; add test data
       await runDr("add", "motivation", "goal", "Test Goal");
     });
@@ -319,6 +335,8 @@ describe("CLI Commands Integration Tests", () => {
 
   describe("show command", () => {
     beforeEach(async () => {
+      // Ensure parent setup has completed before this nested setup runs
+      await ensureSetup();
       // Model is already initialized; add test data
       await runDr("add", "motivation", "goal", "Test Goal");
     });
@@ -338,6 +356,8 @@ describe("CLI Commands Integration Tests", () => {
 
   describe("list command", () => {
     beforeEach(async () => {
+      // Ensure parent setup has completed before this nested setup runs
+      await ensureSetup();
       // Model is already initialized; add test data
       await runDr("add", "motivation", "goal", "Goal 1");
       await runDr("add", "motivation", "goal", "Goal 2");
@@ -414,6 +434,8 @@ describe("CLI Commands Integration Tests", () => {
 
   describe("search command", () => {
     beforeEach(async () => {
+      // Ensure parent setup has completed before this nested setup runs
+      await ensureSetup();
       // Model is already initialized; add test data
       await runDr("add", "motivation", "goal", "Improve System");
       await runDr("add", "motivation", "goal", "Enhance Security");
@@ -520,6 +542,8 @@ describe("CLI Commands Integration Tests", () => {
 
   describe("validate command", () => {
     beforeEach(async () => {
+      // Ensure parent setup has completed before this nested setup runs
+      await ensureSetup();
       // Model is already initialized; add test data
       await runDr("add", "motivation", "goal", "Test Goal");
     });
@@ -634,6 +658,8 @@ describe("CLI Commands Integration Tests", () => {
 
   describe("relationship subcommands", () => {
     beforeEach(async () => {
+      // Ensure parent setup has completed before this nested setup runs
+      await ensureSetup();
       // Model is already initialized; add test data
       await runDr("add", "motivation", "goal", "Goal 1");
       await runDr("add", "motivation", "goal", "Goal 2");
