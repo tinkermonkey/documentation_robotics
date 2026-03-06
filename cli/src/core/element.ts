@@ -26,6 +26,10 @@ export class Element implements IElement {
   source_reference?: SourceReference;
   metadata?: ElementMetadata;
 
+  // Legacy compatibility fields
+  elementId?: string;
+  properties?: Record<string, unknown>;
+
   // Relationship tracking (unchanged)
   references: Reference[] = [];
   relationships: Relationship[] = [];
@@ -50,25 +54,44 @@ export class Element implements IElement {
    * Initialize Element from spec-node aligned format
    */
   private initializeFromSpecNode(data: Partial<IElement>): void {
-    // Require id field (no fallback to legacy elementId)
-    if (!data.id) {
+    // Allow id or elementId (legacy fallback)
+    if (!data.id && !data.elementId) {
       throw new Error(
-        "Element must have 'id' field. Missing ID prevents proper element tracking."
+        "Element must have either 'id' or 'elementId' field. Missing ID prevents proper element tracking and causes silent data loss."
       );
     }
 
-    this.id = data.id;
+    this.id = data.id || (data.elementId as string);
     this.spec_node_id = data.spec_node_id || "";
     this.type = data.type || "";
     this.layer_id = data.layer_id || "";
     this.name = data.name || "";
     this.description = data.description;
 
-    // Use attributes field directly (no fallback to deprecated properties)
-    this.attributes = data.attributes || {};
+    // Handle attributes with fallback from properties (legacy migration)
+    if (data.attributes) {
+      this.attributes = data.attributes;
+    } else if (data.properties) {
+      this.attributes = data.properties;
+    } else {
+      this.attributes = {};
+    }
 
-    // Use source_reference field directly (no extraction from properties)
-    this.source_reference = data.source_reference;
+    // Store properties as alias for attributes (for backward compatibility when properties is passed)
+    if (data.properties) {
+      this.properties = data.properties;
+    } else if (data.attributes) {
+      this.properties = data.attributes;
+    }
+
+    // Extract source_reference: prefer explicit field, then try legacy paths
+    if (data.source_reference) {
+      this.source_reference = data.source_reference;
+    } else if (data.properties?.source?.reference) {
+      this.source_reference = data.properties.source.reference;
+    } else if (data.properties?.["x-source-reference"]) {
+      this.source_reference = data.properties["x-source-reference"];
+    }
 
     this.metadata = data.metadata;
 
@@ -76,8 +99,9 @@ export class Element implements IElement {
     this.references = data.references || [];
     this.relationships = data.relationships || [];
 
-    // Internal tracking
-    this.layer = data.layer_id || data.layer;
+    // Internal tracking: prefer explicit layer property, fall back to layer_id
+    this.layer = data.layer || data.layer_id;
+    this.elementId = data.elementId;
     this.filePath = data.filePath;
     this.rawData = data.rawData;
   }

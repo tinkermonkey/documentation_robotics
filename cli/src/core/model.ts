@@ -182,7 +182,17 @@ export class Model {
                 if (element && typeof element === "object") {
                   const el: any = element;
 
-                  const elementUUID = el.id;
+                  let elementUUID = el.id;
+                  let elementSemanticId: string | undefined = undefined;
+
+                  // Legacy format detection: 3-part semantic IDs (e.g., "motivation.goal.test-goal")
+                  // If id looks like a semantic ID (has 2+ dots), treat as elementId instead
+                  if (typeof elementUUID === "string" && (elementUUID.match(/\./g) || []).length >= 2) {
+                    elementSemanticId = elementUUID;
+                    // Generate a UUID-like ID for the element
+                    elementUUID = key || `${name}-${Math.random().toString(36).substr(2, 9)}`;
+                  }
+
                   const elementName = el.name || key;
                   const elementType = el.type;
                   const layerId = el.layer_id || name;
@@ -192,6 +202,7 @@ export class Model {
                     spec_node_id: el.spec_node_id,
                     layer_id: layerId,
                     attributes: el.attributes,
+                    properties: el.properties, // Legacy properties field
                     source_reference: el.source_reference,
                     metadata: el.metadata,
                     name: elementName,
@@ -200,6 +211,7 @@ export class Model {
                     relationships: el.relationships || [],
                     references: el.references || [],
                     layer: layerId,
+                    elementId: elementSemanticId, // Store semantic ID if detected
                   });
                   layer.addElement(newElement);
                 }

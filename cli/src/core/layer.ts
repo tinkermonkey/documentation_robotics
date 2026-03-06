@@ -100,6 +100,7 @@ export class Layer {
         source_reference: node.source_reference,
         metadata: node.metadata,
         layer: node.layer,
+        elementId: node.elementId,
         references: (node.properties["__references__"] ?? []) as Reference[],
         relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
       });
@@ -194,6 +195,7 @@ export class Layer {
       source_reference: node.source_reference,
       metadata: node.metadata,
       layer: node.layer,
+      elementId: node.elementId,
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
     });
@@ -246,13 +248,24 @@ export class Layer {
 
   /**
    * Delete an element by ID from the graph
+   * Supports both UUID and semantic ID (elementId) lookup
    *
-   * @param id - UUID of the element to delete
+   * @param id - UUID or semantic ID of the element to delete
    * @returns true if element was deleted, false if not found
    */
   deleteElement(id: string): boolean {
-    // UUID lookup (O(1))
-    const node = this.graph.nodes.get(id);
+    // First try direct UUID lookup (O(1))
+    let node = this.graph.nodes.get(id);
+
+    // If not found by UUID, try semantic ID (elementId) lookup
+    if (!node) {
+      for (const candidate of this.graph.nodes.values()) {
+        if (candidate.layer === this.name && candidate.elementId === id) {
+          node = candidate;
+          break;
+        }
+      }
+    }
 
     if (!node || node.layer !== this.name) {
       return false;
@@ -283,6 +296,7 @@ export class Layer {
           source_reference: node.source_reference,
           metadata: node.metadata,
           layer: node.layer,
+          elementId: node.elementId,
           references: (node.properties["__references__"] ?? []) as Reference[],
           relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
         })

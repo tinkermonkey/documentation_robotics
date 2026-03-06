@@ -55,7 +55,7 @@ export interface ElementMetadata {
  */
 export interface Element {
   // Spec-node aligned fields (required in new format)
-  id: string; // UUIDv4 format (e.g., "550e8400-e29b-41d4-a716-446655440000")
+  id?: string; // UUIDv4 format (e.g., "550e8400-e29b-41d4-a716-446655440000")
   spec_node_id: string; // Reference to spec node type (e.g., "motivation.goal")
   type: string; // Denormalized node type (e.g., "goal", "endpoint")
   layer_id: string; // Denormalized layer ID (e.g., "motivation", "api")
@@ -66,6 +66,10 @@ export interface Element {
   attributes?: Record<string, unknown>; // Type-specific properties
   source_reference?: SourceReference; // Provenance tracking
   metadata?: ElementMetadata; // Lifecycle tracking
+
+  // Legacy compatibility fields
+  elementId?: string; // Legacy semantic ID (e.g., "motivation.goal.test-goal") - fallback for id
+  properties?: Record<string, unknown>; // Legacy field name for attributes
 
   // Relationship tracking (unchanged)
   references?: Reference[];
