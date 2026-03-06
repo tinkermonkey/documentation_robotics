@@ -18,6 +18,7 @@ export interface GraphNode {
   attributes?: Record<string, unknown>;
   source_reference?: SourceReference;
   metadata?: ElementMetadata;
+  elementId?: string; // Bridge field: semantic ID for lookup compatibility
 }
 
 /**
@@ -547,6 +548,7 @@ export class GraphModel implements IGraphModel {
         : undefined,
       source_reference: element.source_reference,
       metadata: element.metadata,
+      elementId: element.elementId, // Preserve bridge field for semantic ID lookup
     };
   }
 

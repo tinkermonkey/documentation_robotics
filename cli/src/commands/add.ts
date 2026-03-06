@@ -142,6 +142,7 @@ export async function addCommand(
       description: options.description,
       attributes: {},
       properties: properties,
+      elementId: elementId, // Bridge field for semantic ID lookup
       metadata: {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

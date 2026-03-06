@@ -74,7 +74,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "motivation-goal-digital-transform",
             name: "Digital Transformation",
             type: "goal",
-            properties: { priority: "high", timeline: "24-months" },
+            attributes: { priority: "high", timeline: "24-months" },
           },
           sequenceNumber: 0,
         },
@@ -86,7 +86,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "motivation-goal-improve-security",
             name: "Improve Security Posture",
             type: "goal",
-            properties: { priority: "critical" },
+            attributes: { priority: "critical" },
           },
           sequenceNumber: 1,
         },
@@ -100,7 +100,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "application-service-auth-service",
             name: "Authentication Service",
             type: "service",
-            properties: { version: "1.0.0", status: "active" },
+            attributes: { version: "1.0.0", status: "active" },
           },
           sequenceNumber: 2,
         },
@@ -112,7 +112,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "application-service-api-gateway",
             name: "API Gateway",
             type: "service",
-            properties: { version: "2.0.0", replicas: 3 },
+            attributes: { version: "2.0.0", replicas: 3 },
           },
           sequenceNumber: 3,
         },
@@ -126,7 +126,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "api-endpoint-post-login",
             name: "POST /auth/login",
             type: "endpoint",
-            properties: { method: "POST", status: "active" },
+            attributes: { method: "POST", status: "active" },
           },
           sequenceNumber: 4,
         },
@@ -138,7 +138,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "api-endpoint-get-user",
             name: "GET /users/{id}",
             type: "endpoint",
-            properties: { method: "GET", auth: "required" },
+            attributes: { method: "GET", auth: "required" },
           },
           sequenceNumber: 5,
         },
@@ -152,7 +152,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "data-model-entity-user",
             name: "User",
             type: "entity",
-            properties: { fields: ["id", "email", "password"] },
+            attributes: { fields: ["id", "email", "password"] },
           },
           sequenceNumber: 6,
         },
@@ -164,7 +164,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "data-model-entity-session",
             name: "Session",
             type: "entity",
-            properties: { fields: ["token", "userId", "expiresAt"] },
+            attributes: { fields: ["token", "userId", "expiresAt"] },
           },
           sequenceNumber: 7,
         },
@@ -178,7 +178,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "business-process-user-auth",
             name: "User Authentication Process",
             type: "process",
-            properties: { status: "designed" },
+            attributes: { status: "designed" },
           },
           sequenceNumber: 8,
         },
@@ -190,7 +190,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: "business-process-session-management",
             name: "Session Management Process",
             type: "process",
-            properties: { status: "designed" },
+            attributes: { status: "designed" },
           },
           sequenceNumber: 9,
         },
@@ -234,7 +234,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
       // Verify element properties are preserved
       const authEndpoint = apiLayer.getElement("api-endpoint-post-login")!;
       expect(authEndpoint.name).toBe("POST /auth/login");
-      expect(authEndpoint.properties.method).toBe("POST");
+      expect(authEndpoint.attributes.method).toBe("POST");
 
       // Compute diff and verify
       const diff = await engine.computeDiff(baseModel, changesetId);
@@ -257,7 +257,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
         after: {
           name: "Order Processing Service v1",
           type: "service",
-          properties: { version: "1.0.0" },
+          attributes: { version: "1.0.0" },
         },
         sequenceNumber: 0,
       });
@@ -269,7 +269,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
         before: { name: "Order Processing Service v1" },
         after: {
           name: "Order Processing Service v2",
-          properties: { version: "2.0.0" },
+          attributes: { version: "2.0.0" },
         },
         sequenceNumber: 1,
       });
@@ -343,7 +343,7 @@ describe("VirtualProjectionEngine Integration Tests", () => {
             id: `large-layer-element-${i}`,
             name: `Element ${i}`,
             type: "component",
-            properties: { index: i },
+            attributes: { index: i },
           })
         );
       }

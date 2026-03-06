@@ -75,6 +75,7 @@ export interface Element {
   layer?: string;
   filePath?: string;
   rawData?: any;
+  elementId?: string; // Bridge field: semantic ID for lookup compatibility
 }
 
 /**

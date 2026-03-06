@@ -121,6 +121,7 @@ export class Layer {
         source_reference: node.source_reference,
         metadata: node.metadata,
         properties: userProperties,
+        elementId: (node as any).elementId, // Preserve bridge field for semantic ID lookup
         layer: node.layer,
         references: (node.properties["__references__"] ?? []) as Reference[],
         relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
@@ -199,7 +200,19 @@ export class Layer {
    */
   getElement(id: string): Element | undefined {
     // Direct UUID lookup (O(1))
-    const node = this.graph.nodes.get(id);
+    let node = this.graph.nodes.get(id);
+
+    // If not found by UUID, try semantic ID lookup (O(n), fallback)
+    // This supports looking up elements by their semantic ID format (e.g., "motivation.goal.test-goal")
+    if (!node) {
+      // Iterate through all nodes in this layer searching for matching elementId
+      for (const n of this.graph.nodes.values()) {
+        if (n.layer === this.name && (n as any).elementId === id) {
+          node = n;
+          break;
+        }
+      }
+    }
 
     if (!node || node.layer !== this.name) {
       return undefined;
@@ -223,6 +236,7 @@ export class Layer {
       source_reference: node.source_reference,
       metadata: node.metadata,
       properties: userProperties,
+      elementId: (node as any).elementId, // Preserve bridge field for semantic ID lookup
       layer: node.layer,
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],

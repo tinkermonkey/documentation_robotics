@@ -102,7 +102,7 @@ describe("CLI Commands Integration Tests", () => {
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
       const element = layer!.getElement("motivation.goal.test-goal");
-      expect(element!.properties.required).toBe(true);
+      expect(element!.attributes.required).toBe(true);
     });
 
     it("should fail if element already exists", async () => {
@@ -168,9 +168,9 @@ describe("CLI Commands Integration Tests", () => {
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("api");
       const element = layer!.getElement("api.operation.create-user");
-      expect(element!.properties.method).toBe("POST");
-      expect(element!.properties.path).toBe("/api/users");
-      expect((element!.properties.parameters as any[]).length).toBe(1);
+      expect(element!.attributes.method).toBe("POST");
+      expect(element!.attributes.path).toBe("/api/users");
+      expect((element!.attributes.parameters as any[]).length).toBe(1);
     });
 
     it("should support all options together", async () => {
@@ -194,7 +194,7 @@ describe("CLI Commands Integration Tests", () => {
       const element = layer!.getElement("business.businessservice.test-service");
       expect(element!.name).toBe("Test Service");
       expect(element!.description).toBe("A comprehensive service test");
-      expect(element!.properties.version).toBe("1.0");
+      expect(element!.attributes.version).toBe("1.0");
     });
 
     it("should fail when --name is missing", async () => {

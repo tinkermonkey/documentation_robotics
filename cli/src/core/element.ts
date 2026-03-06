@@ -34,9 +34,18 @@ export class Element implements IElement {
   layer?: string;
   filePath?: string;
   rawData?: any;
+  elementId?: string; // Bridge field: semantic ID for lookup compatibility
 
   constructor(data: any) {
     this.initializeFromSpecNode(data);
+  }
+
+  /**
+   * Backward compatibility getter for properties
+   * Maps to attributes for code that still uses the old property name
+   */
+  get properties(): Record<string, unknown> {
+    return this.attributes;
   }
 
   /**
@@ -97,6 +106,7 @@ export class Element implements IElement {
     this.layer = data.layer || data.layer_id;
     this.filePath = data.filePath;
     this.rawData = data.rawData;
+    this.elementId = dataAny.elementId; // Bridge field: semantic ID for lookup compatibility
   }
 
   /**
