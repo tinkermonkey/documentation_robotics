@@ -52,4 +52,29 @@ describe("Element", () => {
 
     expect(element.toString()).toBe("Element(motivation-goal-test-goal)");
   });
+
+  it("should throw error when creating element without id or elementId", () => {
+    expect(() => {
+      new Element({
+        spec_node_id: "motivation.goal",
+        type: "goal",
+        name: "Test Goal",
+        layer_id: "motivation",
+      });
+    }).toThrow(
+      "Element must have either 'id' or 'elementId' field. Missing ID prevents proper element tracking and causes silent data loss."
+    );
+  });
+
+  it("should use elementId as fallback when id is not provided", () => {
+    const element = new Element({
+      elementId: "motivation.goal.test-goal",
+      spec_node_id: "motivation.goal",
+      type: "goal",
+      name: "Test Goal",
+      layer_id: "motivation",
+    });
+
+    expect(element.id).toBe("motivation.goal.test-goal");
+  });
 });

@@ -207,7 +207,7 @@ export class Layer {
     if (!node) {
       // Iterate through all nodes in this layer searching for matching elementId
       for (const n of this.graph.nodes.values()) {
-        if (n.layer === this.name && (n as any).elementId === id) {
+        if (n.layer === this.name && n.elementId === id) {
           node = n;
           break;
         }
