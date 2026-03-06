@@ -157,6 +157,14 @@ export class VirtualProjectionEngine {
 
     if (baseElement) {
       // Create a new element with projected data merged with base
+      // Handle both 'attributes' (spec-aligned) and 'properties' (legacy) field names
+      const projectedAttributes =
+        typeof projectedData.attributes === "object"
+          ? projectedData.attributes
+          : typeof projectedData.properties === "object"
+            ? projectedData.properties
+            : {};
+
       const mergedData = {
         id: baseElement.id,
         spec_node_id: baseElement.spec_node_id,
@@ -169,7 +177,7 @@ export class VirtualProjectionEngine {
             : baseElement.description,
         attributes: {
           ...baseElement.attributes,
-          ...(typeof projectedData.attributes === "object" ? projectedData.attributes : {}),
+          ...projectedAttributes,
         },
         references: Array.isArray(projectedData.references)
           ? projectedData.references
@@ -294,9 +302,17 @@ export class VirtualProjectionEngine {
             const existing = projectedLayer.getElement(change.elementId);
             if (existing) {
               // Create updated element with merged attributes
+              // Handle both 'attributes' (spec-aligned) and 'properties' (legacy) field names
+              const afterAttributes =
+                typeof change.after.attributes === "object"
+                  ? change.after.attributes
+                  : typeof change.after.properties === "object"
+                    ? change.after.properties
+                    : {};
+
               const mergedAttributes: Record<string, unknown> = {
                 ...existing.attributes,
-                ...(typeof change.after.attributes === "object" ? change.after.attributes : {}),
+                ...afterAttributes,
               };
 
               const updatedElement = new ElementClass({
