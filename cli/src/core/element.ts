@@ -10,8 +10,7 @@ import type {
  * Element class representing an individual architecture item
  *
  * Aligns with spec-node.schema.json structure for direct validation.
- * Provides type-safe access to element properties with layer-aware handling
- * for source references (different storage patterns for different layer types).
+ * Provides type-safe access to spec-node aligned fields with source reference support.
  */
 export class Element implements IElement {
   // Spec-node aligned required fields
@@ -40,8 +39,6 @@ export class Element implements IElement {
     this.initializeFromSpecNode(data);
   }
 
-
-
   /**
    * Initialize Element from spec-node aligned format
    */
@@ -65,8 +62,6 @@ export class Element implements IElement {
     this.filePath = data.filePath;
     this.rawData = data.rawData;
   }
-
-
 
   /**
    * Convert Element to spec-node format for validation
@@ -102,7 +97,6 @@ export class Element implements IElement {
       metadata: data.metadata as ElementMetadata | undefined,
     });
   }
-
 
   /**
    * Get metadata with defensive copy for audit integrity
