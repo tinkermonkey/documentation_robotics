@@ -138,6 +138,10 @@ RUN node --version && \
     npm --version && \
     bun --version
 
+# Verify critical Node.js dependencies are installed
+RUN cd /workspace/cli && \
+    node -e "require.resolve('ansis'); require.resolve('commander'); require.resolve('yaml'); console.log('CLI dependencies verified')"
+
 # Verify project-specific tools - core Python dependencies
 RUN python3 --version && \
     pip --version && \
