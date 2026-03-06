@@ -10,6 +10,7 @@ import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getNodeType } from "../generated/node-types.js";
+import { generateElementId } from "../utils/id-generator.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
 import path from "node:path";
@@ -183,21 +184,28 @@ export class Model {
                   const el: any = element;
 
                   const elementUUID = el.id;
+                  const elementName = el.name || key;
+                  const elementType = el.type;
+                  const layerId = el.layer_id || name;
+
+                  // Reconstruct elementId from layer, type, and name (semantic ID for lookup)
+                  const elementId = el.elementId || generateElementId(layerId, elementType, elementName);
 
                   const newElement = new Element({
                     id: elementUUID,
                     spec_node_id: el.spec_node_id,
-                    layer_id: el.layer_id,
+                    layer_id: layerId,
                     attributes: el.attributes,
                     source_reference: el.source_reference,
                     metadata: el.metadata,
-                    name: el.name || key,
-                    type: el.type,
+                    name: elementName,
+                    type: elementType,
                     description: el.description || "",
                     properties: el.properties || {},
                     relationships: el.relationships || [],
                     references: el.references || [],
-                    layer: el.layer_id || name,
+                    layer: layerId,
+                    elementId: elementId,
                   });
                   layer.addElement(newElement);
                 }

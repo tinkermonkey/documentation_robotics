@@ -24,6 +24,7 @@ export class Manifest {
   modified: string;
   specVersion?: string;
   changeset_history?: ChangesetHistoryEntry[];
+  preferred_chat_client?: string;
 
   /**
    * Python CLI compatibility field - layer configuration mapping
@@ -39,6 +40,7 @@ export class Manifest {
   constructor(
     data: ManifestData & {
       layers?: Record<string, unknown>;
+      preferred_chat_client?: string;
     }
   ) {
     this.name = data.name;
@@ -49,6 +51,7 @@ export class Manifest {
     this.modified = data.modified ?? new Date().toISOString();
     this.specVersion = data.specVersion;
     this.changeset_history = data.changeset_history || [];
+    this.preferred_chat_client = data.preferred_chat_client;
 
     // Python CLI compatibility field
     this.layers = data.layers;
@@ -59,6 +62,24 @@ export class Manifest {
    */
   updateModified(): void {
     this.modified = new Date().toISOString();
+  }
+
+  /**
+   * Get the preferred coding agent
+   *
+   * @returns The preferred chat client/coding agent if set, undefined otherwise
+   */
+  getCodingAgent(): string | undefined {
+    return this.preferred_chat_client;
+  }
+
+  /**
+   * Set the preferred coding agent
+   *
+   * @param agent The name of the coding agent (e.g., "Claude Code", "GitHub Copilot")
+   */
+  setCodingAgent(agent: string): void {
+    this.preferred_chat_client = agent;
   }
 
   /**
@@ -91,6 +112,10 @@ export class Manifest {
 
     if (this.changeset_history && this.changeset_history.length > 0) {
       result.changeset_history = this.changeset_history;
+    }
+
+    if (this.preferred_chat_client) {
+      result.preferred_chat_client = this.preferred_chat_client;
     }
 
     // Include Python CLI compatibility fields for migration scenarios
