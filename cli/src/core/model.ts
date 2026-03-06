@@ -345,7 +345,13 @@ export class Model {
         }
       }
     } catch (err) {
-      // Directory might not exist yet, that's okay
+      // Only ignore "directory not found" errors — re-throw permission/I/O errors
+      const isNotFoundError = (err as any)?.code === "ENOENT";
+      if (!isNotFoundError) {
+        throw new Error(
+          `Failed to clean existing YAML files: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
     }
 
     // Group elements by type, computing the snake_case file stem from the spec node title
@@ -361,7 +367,7 @@ export class Model {
 
     // Internal graph fields stored in properties/attributes — never written to YAML
     const INTERNAL_FIELDS = new Set([
-      "__elementId__", "__references__", "__relationships__",
+      "__references__", "__relationships__",
       "source", "x-source-reference",
     ]);
 
@@ -391,8 +397,8 @@ export class Model {
           layer_id: json.layer_id,
           name: json.name,
           ...(json.description && { description: json.description }),
-          // Preserve elementId for backward compatibility with previously-written files,
-          // even though loadLayer() no longer reads it
+          // Preserve elementId for backward compatibility with previously-written files;
+          // loadLayer() at line 192 reads and uses it to generate consistent IDs
           ...(element.elementId && { elementId: element.elementId }),
           ...(cleanAttrs && Object.keys(cleanAttrs).length > 0 && { attributes: cleanAttrs }),
           ...(json.source_reference && { source_reference: json.source_reference }),
@@ -720,13 +726,15 @@ export class Model {
             }
           }
         } catch (e) {
-          // If layers directory doesn't exist or can't be read, just continue
-          if (process.env.DEBUG) {
-            const error = e instanceof Error ? e.message : String(e);
-            if (!error.includes("ENOENT")) {
-              console.debug(`Warning: Failed to load layers directory: ${error}`);
-            }
+          // Check if this is a "directory not found" error (expected case)
+          const isNotFoundError = (e as any)?.code === "ENOENT";
+          if (!isNotFoundError) {
+            // Re-throw non-ENOENT errors: permission errors, YAML parsing failures, I/O errors, etc.
+            throw new Error(
+              `Failed to load layers: ${e instanceof Error ? e.message : String(e)}`
+            );
           }
+          // ENOENT is expected if layer directory doesn't exist yet, so just continue
         }
       }
 
