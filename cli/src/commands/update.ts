@@ -16,7 +16,7 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
 export interface UpdateOptions {
   name?: string;
   description?: string;
-  properties?: string;
+  attributes?: string;
   sourceFile?: string;
   sourceSymbol?: string;
   sourceProvenance?: string;
@@ -56,7 +56,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   const changedFields: string[] = [];
   if (options.name) changedFields.push("name");
   if (options.description) changedFields.push("description");
-  if (options.properties) changedFields.push("properties");
+  if (options.attributes) changedFields.push("attributes");
   if (options.sourceFile || options.clearSourceReference) changedFields.push("sourceReference");
 
   const span = isTelemetryEnabled
@@ -93,7 +93,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     const hasUpdates =
       options.name ||
       options.description !== undefined ||
-      options.properties ||
+      options.attributes ||
       options.sourceFile ||
       options.clearSourceReference;
 
@@ -109,12 +109,12 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     // The mutator function applies all updates in a single pass with validated JSON parsing
     await handler.executeUpdate(element, async (elem, after) => {
       // Parse JSON once here in the mutator - shared by both staging and base paths
-      let parsedProperties: Record<string, unknown> | undefined;
-      if (options.properties) {
+      let parsedAttributes: Record<string, unknown> | undefined;
+      if (options.attributes) {
         try {
-          parsedProperties = JSON.parse(options.properties);
+          parsedAttributes = JSON.parse(options.attributes);
         } catch (e) {
-          throw new CLIError("Invalid JSON in --properties", 1, [
+          throw new CLIError("Invalid JSON in --attributes", 1, [
             "Ensure your JSON is valid and properly formatted",
           ]);
         }
@@ -131,11 +131,11 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
         after.description = options.description || undefined;
       }
 
-      if (parsedProperties) {
-        elem.attributes = { ...elem.attributes, ...parsedProperties };
+      if (parsedAttributes) {
+        elem.attributes = { ...elem.attributes, ...parsedAttributes };
         after.attributes = {
           ...(after.attributes as Record<string, unknown>),
-          ...parsedProperties,
+          ...parsedAttributes,
         };
       }
 

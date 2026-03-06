@@ -32,7 +32,7 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
 export interface AddOptions {
   name?: string;
   description?: string;
-  properties?: string;
+  attributes?: string;
   sourceFile?: string;
   sourceSymbol?: string;
   sourceProvenance?: string;
@@ -121,13 +121,13 @@ export async function addCommand(
       model.addLayer(layerObj);
     }
 
-    // Parse properties if provided
-    let properties: Record<string, unknown> = {};
-    if (options.properties) {
+    // Parse attributes if provided
+    let attributes: Record<string, unknown> = {};
+    if (options.attributes) {
       try {
-        properties = JSON.parse(options.properties);
+        attributes = JSON.parse(options.attributes);
       } catch (e) {
-        throw new InvalidJSONError(options.properties, "--properties");
+        throw new InvalidJSONError(options.attributes, "--attributes");
       }
     }
 
@@ -140,8 +140,7 @@ export async function addCommand(
       type: type,
       name: options.name || name,
       description: options.description,
-      attributes: {},
-      properties: properties,
+      attributes: attributes,
       elementId: elementId, // Bridge field for semantic ID lookup
       metadata: {
         created_at: new Date().toISOString(),
