@@ -42,25 +42,10 @@ export class Manifest {
    */
   layers?: Record<string, unknown>;
 
-  /**
-   * Python CLI compatibility field - conventions metadata
-   *
-   * @deprecated Only used during migration from Python CLI format
-   */
-  conventions?: unknown;
-
-  /**
-   * Python CLI compatibility field - upgrade history tracking
-   *
-   * @deprecated Only used during migration from Python CLI format
-   */
-  upgrade_history?: unknown[];
 
   constructor(
     data: ManifestData & {
       layers?: Record<string, unknown>;
-      conventions?: unknown;
-      upgrade_history?: unknown[];
     }
   ) {
     this.name = data.name;
@@ -75,10 +60,8 @@ export class Manifest {
     this.changeset_history = data.changeset_history || [];
     this.preferred_chat_client = data.preferred_chat_client;
 
-    // Python CLI compatibility fields
+    // Python CLI compatibility field
     this.layers = data.layers;
-    this.conventions = data.conventions;
-    this.upgrade_history = data.upgrade_history;
   }
 
   /**
@@ -151,14 +134,6 @@ export class Manifest {
     // Include Python CLI compatibility fields for migration scenarios
     if (this.layers) {
       result.layers = this.layers;
-    }
-
-    if (this.conventions) {
-      result.conventions = this.conventions;
-    }
-
-    if (this.upgrade_history) {
-      result.upgrade_history = this.upgrade_history;
     }
 
     return result;

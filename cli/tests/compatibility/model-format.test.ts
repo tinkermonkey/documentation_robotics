@@ -133,10 +133,6 @@ describe("Model Format Regression Tests", () => {
             implements: 1,
           },
         },
-        conventions: {
-          id_format: "{layer}.{type}.{kebab-case-name}",
-        },
-        upgrade_history: [{ version: "0.6.0", date: "2025-01-01" }],
       };
 
       await writeFile(
@@ -146,13 +142,10 @@ describe("Model Format Regression Tests", () => {
 
       const model = await Model.load(join(TEST_MODEL_DIR, "metadata"));
 
-      expect(model.manifest.statistics).toBeDefined();
-      expect(model.manifest.statistics?.total_elements).toBe(10);
-      expect(model.manifest.cross_references).toBeDefined();
-      expect(model.manifest.cross_references?.total).toBe(3);
-      expect(model.manifest.conventions).toBeDefined();
-      expect(model.manifest.upgrade_history).toBeDefined();
-      expect(model.manifest.upgrade_history?.length).toBe(1);
+      // Statistics and cross_references are no longer loaded from manifest
+      // They are removed as part of Phase 7 cleanup
+      expect(model.manifest.statistics).toBeUndefined();
+      expect(model.manifest.cross_references).toBeUndefined();
     });
   });
 

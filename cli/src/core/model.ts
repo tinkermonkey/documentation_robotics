@@ -182,54 +182,22 @@ export class Model {
                 if (element && typeof element === "object") {
                   const el: any = element;
 
-                  // Use UUID from file if present; fall back to layer-prefixed key for very old format
-                  const elementUUID = el.id || `${name}.${key}`;
-
-                  // Infer type from filename if not specified (Python CLI compatibility)
-                  // Filenames are now singular snake_case (e.g., "application_component.yaml")
-                  // Old-style filenames had trailing 's' and no separators (e.g., "applicationcomponents.yaml")
-                  let elementType = el.type;
-                  if (!elementType) {
-                    const stem = file.replace(/\.ya?ml$/, "");
-                    // Strip underscores/hyphens and trailing 's' to recover the raw type name
-                    const compact = stem.replace(/[_-]/g, "");
-                    elementType = compact.endsWith("s") ? compact.slice(0, -1) : compact;
-                  }
-
-                  // Determine semantic/elementId for this element:
-                  // - New format YAML: el.elementId is the bridge field written by saveLayer()
-                  // - Old format YAML: __elementId__ is stored in el.properties
-                  // - Legacy format YAML: el.id itself can be a semantic ID (contains dots)
-                  const isNewFormat = !!el.spec_node_id;
-                  let semanticId = isNewFormat
-                    ? el.elementId
-                    : (el.properties?.["__elementId__"] as string | undefined);
-
-                  // If semanticId not found yet, check if el.id is a semantic ID (contains dots)
-                  if (!semanticId && typeof el.id === 'string' && el.id.includes('.')) {
-                    semanticId = el.id;
-                  }
+                  const elementUUID = el.id;
 
                   const newElement = new Element({
                     id: elementUUID,
-                    // Spec-node fields (present in new format, absent in old)
                     spec_node_id: el.spec_node_id,
                     layer_id: el.layer_id,
                     attributes: el.attributes,
                     source_reference: el.source_reference,
                     metadata: el.metadata,
-                    // Legacy fields for backward compat
                     name: el.name || key,
-                    type: elementType,
-                    description: el.description || el.documentation || "",
+                    type: el.type,
+                    description: el.description || "",
                     properties: el.properties || {},
                     relationships: el.relationships || [],
                     references: el.references || [],
-                    layer: el.layer_id || el.layer || name,
-                    filePath: filePath,
-                    rawData: el,
-                    // elementId triggers legacy path for old format; acts as bridge field for new format
-                    elementId: semanticId,
+                    layer: el.layer_id || name,
                   });
                   layer.addElement(newElement);
                 }
@@ -536,35 +504,8 @@ export class Model {
       }
     }
 
-    // Preserve Python CLI metadata fields
-    if (this.manifest.statistics) {
-      // Update statistics with current counts
-      const stats = { ...this.manifest.statistics };
-      stats.total_elements = Array.from(this.layers.values()).reduce(
-        (sum, layer) => sum + layer.elements.size,
-        0
-      );
-      yamlData.statistics = stats;
-    }
-
-    if (this.manifest.cross_references) {
-      yamlData.cross_references = this.manifest.cross_references;
-    }
-
-    if (this.manifest.conventions) {
-      yamlData.conventions = this.manifest.conventions;
-    }
-
-    if (this.manifest.upgrade_history) {
-      yamlData.upgrade_history = this.manifest.upgrade_history;
-    }
-
     if (this.manifest.changeset_history && this.manifest.changeset_history.length > 0) {
       yamlData.changeset_history = this.manifest.changeset_history;
-    }
-
-    if (this.manifest.preferred_chat_client) {
-      yamlData.preferred_chat_client = this.manifest.preferred_chat_client;
     }
 
     await ensureDir(`${this.rootPath}/documentation-robotics/model`);
@@ -719,7 +660,7 @@ export class Model {
     const span = isTelemetryEnabled
       ? startSpan("model.load", {
           "model.path": startPath || process.cwd(),
-          "model.type": "dr-legacy",
+          "model.type": "dr",
         })
       : null;
 
@@ -731,32 +672,17 @@ export class Model {
 
       // Load manifest from resolved path
       const yamlContent = await fs.readFile(manifestPath, "utf-8");
-      const legacyData = yaml.parse(yamlContent);
+      const manifestYaml = yaml.parse(yamlContent);
 
-      // Convert legacy format to internal format
+      // Convert manifest to internal format
       const manifestData: any = {
-        name: legacyData.project?.name || "Unnamed Model",
-        description: legacyData.project?.description || "",
-        version: legacyData.project?.version || legacyData.version || "0.1.0",
-        specVersion: legacyData.spec_version || "0.6.0",
-        created: legacyData.created || new Date().toISOString(),
-        modified: legacyData.updated || new Date().toISOString(),
-        // Preserve Python CLI metadata fields
-        layers: legacyData.layers,
-        statistics: legacyData.statistics || {
-          total_elements: 0,
-          total_relationships: 0,
-          completeness: 0.0,
-          last_validation: null,
-          validation_status: "not_validated",
-        },
-        cross_references: legacyData.cross_references || {
-          total: 0,
-          by_type: {},
-        },
-        conventions: legacyData.conventions,
-        upgrade_history: legacyData.upgrade_history || [],
-        preferred_chat_client: legacyData.preferred_chat_client,
+        name: manifestYaml.project?.name || "Unnamed Model",
+        description: manifestYaml.project?.description || "",
+        version: manifestYaml.project?.version || manifestYaml.version || "0.1.0",
+        specVersion: manifestYaml.spec_version || "0.6.0",
+        created: manifestYaml.created || new Date().toISOString(),
+        modified: manifestYaml.updated || new Date().toISOString(),
+        layers: manifestYaml.layers,
       };
       const manifest = new Manifest(manifestData);
       const model = new Model(projectRoot, manifest, options);
@@ -765,9 +691,9 @@ export class Model {
       if (!options.lazyLoad) {
         try {
           // If manifest has layer definitions, use those
-          if (legacyData.layers) {
-            for (const layerName of Object.keys(legacyData.layers)) {
-              const layerConfig = legacyData.layers[layerName];
+          if (manifestYaml.layers) {
+            for (const layerName of Object.keys(manifestYaml.layers)) {
+              const layerConfig = manifestYaml.layers[layerName];
               if (layerConfig.enabled !== false) {
                 await model.loadLayer(layerName);
               }
