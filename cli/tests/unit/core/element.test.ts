@@ -1,6 +1,5 @@
 import { describe, it, expect } from "bun:test";
 import { Element } from "@/core/element";
-import type { Reference, Relationship } from "@/types/index";
 
 describe("Element", () => {
   it("should create an element with required fields", () => {
