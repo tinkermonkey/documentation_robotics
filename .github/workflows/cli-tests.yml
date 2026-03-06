@@ -55,7 +55,9 @@ jobs:
           # Run fast-track tests WITHOUT --concurrent flag
           # Many tests use filesystem operations, singletons, and shared state that don't work with concurrent execution
           # The full test suite uses --concurrent with proper sharding for parallelism
-          time bun test tests/unit/**/*.test.ts tests/integration/add-*.test.ts tests/integration/delete-*.test.ts tests/integration/validate-*.test.ts
+          # Exclude visualization server tests (require serial execution, slow) and performance tests
+          FAST_TRACK_TESTS=$(find tests -name "*.test.ts" | grep -v "visualization-server" | grep -v "telemetry-config-integration" | grep -v "/performance/" | tr '\n' ' ')
+          time bun test $FAST_TRACK_TESTS
 
   test-full:
     name: Full Suite
@@ -103,9 +105,12 @@ jobs:
         run: |
           echo "Running test shard ${{ matrix.shard }} of 4"
           # Distribute tests across shards using modulo arithmetic on file list
+          # Exclude visualization server tests (require serial execution, slow) and performance tests
           SHARD=${{ matrix.shard }}
           TOTAL_SHARDS=4
-          TEST_FILES=$(find tests -name "*.test.ts" | sort)
+
+          # Get all test files except visualization, telemetry-config, and performance tests
+          TEST_FILES=$(find tests -name "*.test.ts" | grep -v "visualization-server" | grep -v "telemetry-config-integration" | grep -v "/performance/" | sort)
           TEST_COUNT=$(echo "$TEST_FILES" | wc -l)
           echo "Total test files: $TEST_COUNT"
 
@@ -135,6 +140,45 @@ jobs:
           name: test-results-shard-${{ matrix.shard }}
           path: cli/test-results.json
           retention-days: 30
+
+  test-comprehensive:
+    name: Comprehensive Tests (Visualization + Performance)
+    runs-on: ubuntu-latest
+    # Only run on manual trigger or main branch pushes
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: ./cli
+        run: npm install
+
+      - name: Build CLI
+        working-directory: ./cli
+        run: npm run build:ci
+
+      - name: Run comprehensive tests (Visualization + Performance)
+        working-directory: ./cli
+        timeout-minutes: 45
+        run: |
+          echo "Running comprehensive test suite (visualization + performance tests)"
+          # These tests require special handling:
+          # - Visualization tests use describe.serial due to port conflicts and file watching
+          # - Performance tests create large data structures for benchmarking
+          time bun test tests/integration/visualization-server*.test.ts tests/integration/telemetry-config-integration.test.ts tests/performance/**/*.test.ts
 
   test-aggregate:
     name: Aggregate Test Results

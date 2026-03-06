@@ -36,7 +36,7 @@
     "test:perf": "bun test tests/performance/**/*.test.ts",
     "test:parallel": "bash scripts/run-parallel-tests.sh false",
     "test:parallel:coverage": "bash scripts/run-parallel-tests.sh true",
-    "test:fast-track": "bun test tests/unit/**/*.test.ts tests/integration/add-*.test.ts tests/integration/delete-*.test.ts tests/integration/validate-*.test.ts",
+    "test:fast-track": "bash -c 'FAST_TRACK_TESTS=$(find tests -name \"*.test.ts\" | grep -v \"visualization-server\" | grep -v \"telemetry-config-integration\" | grep -v \"/performance/\" | tr \"\\n\" \" \") && bun test $FAST_TRACK_TESTS'",
     "test:shard1": "bun test --concurrent $(find tests -name '*.test.ts' | sort | awk 'NR % 4 == 0')",
     "test:shard2": "bun test --concurrent $(find tests -name '*.test.ts' | sort | awk 'NR % 4 == 1')",
     "test:shard3": "bun test --concurrent $(find tests -name '*.test.ts' | sort | awk 'NR % 4 == 2')",
