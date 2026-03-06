@@ -75,11 +75,6 @@ export interface Element {
   layer?: string;
   filePath?: string;
   rawData?: any;
-  elementId?: string; // Bridge field: semantic ID for lookup compatibility
-
-  // Legacy field: backward compatibility for code that uses 'properties' instead of 'attributes'
-  // Mapped to attributes at runtime via the properties getter
-  properties?: Record<string, unknown>;
 }
 
 /**

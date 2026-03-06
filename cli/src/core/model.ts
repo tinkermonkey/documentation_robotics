@@ -10,7 +10,6 @@ import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getNodeType } from "../generated/node-types.js";
-import { generateElementId } from "../utils/id-generator.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
 import path from "node:path";
@@ -188,9 +187,6 @@ export class Model {
                   const elementType = el.type;
                   const layerId = el.layer_id || name;
 
-                  // Reconstruct elementId from layer, type, and name (semantic ID for lookup)
-                  const elementId = el.elementId || generateElementId(layerId, elementType, elementName);
-
                   const newElement = new Element({
                     id: elementUUID,
                     spec_node_id: el.spec_node_id,
@@ -201,11 +197,9 @@ export class Model {
                     name: elementName,
                     type: elementType,
                     description: el.description || "",
-                    properties: el.properties || {},
                     relationships: el.relationships || [],
                     references: el.references || [],
                     layer: layerId,
-                    elementId: elementId,
                   });
                   layer.addElement(newElement);
                 }
@@ -398,8 +392,6 @@ export class Model {
           name: json.name,
           ...(json.description && { description: json.description }),
           // Preserve elementId for backward compatibility with previously-written files;
-          // loadLayer() at line 192 reads and uses it to generate consistent IDs
-          ...(element.elementId && { elementId: element.elementId }),
           ...(cleanAttrs && Object.keys(cleanAttrs).length > 0 && { attributes: cleanAttrs }),
           ...(json.source_reference && { source_reference: json.source_reference }),
           ...(json.metadata && { metadata: json.metadata }),

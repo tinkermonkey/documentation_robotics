@@ -34,15 +34,13 @@ export class Element implements IElement {
   layer?: string;
   filePath?: string;
   rawData?: any;
-  elementId?: string; // Bridge field: semantic ID for lookup compatibility
 
   constructor(data: Partial<IElement>) {
     this.initializeFromSpecNode(data);
   }
 
   /**
-   * Backward compatibility getter for properties
-   * Maps to attributes for code that still uses the old property name
+   * Getter for properties (alias for attributes in new format)
    */
   get properties(): Record<string, unknown> {
     return this.attributes;
@@ -52,51 +50,25 @@ export class Element implements IElement {
    * Initialize Element from spec-node aligned format
    */
   private initializeFromSpecNode(data: Partial<IElement>): void {
-    // Handle backward compatibility: if id is not provided but elementId is,
-    // derive id from elementId or use a generated ID
-    const dataAny = data as any;
-    if (data.id) {
-      this.id = data.id;
-    } else if (dataAny.elementId) {
-      // Use elementId as fallback for backward compatibility
-      this.id = dataAny.elementId;
-    } else {
-      // Throw error: missing ID is a critical error that causes silent data loss
+    // Require id field (no fallback to legacy elementId)
+    if (!data.id) {
       throw new Error(
-        "Element must have either 'id' or 'elementId' field. Missing ID prevents proper element tracking and causes silent data loss."
+        "Element must have 'id' field. Missing ID prevents proper element tracking."
       );
     }
 
+    this.id = data.id;
     this.spec_node_id = data.spec_node_id || "";
     this.type = data.type || "";
-    this.layer_id = (data.layer_id || dataAny.layer) || "";
+    this.layer_id = data.layer_id || "";
     this.name = data.name || "";
     this.description = data.description;
 
-    // Handle backward compatibility: if properties are provided but not attributes,
-    // migrate deprecated properties to attributes
-    if (data.attributes && Object.keys(data.attributes).length > 0) {
-      this.attributes = data.attributes;
-    } else if ((data as any).properties && Object.keys((data as any).properties).length > 0) {
-      // Migrate deprecated properties to attributes for backward compatibility
-      this.attributes = (data as any).properties;
-    } else {
-      this.attributes = {};
-    }
+    // Use attributes field directly (no fallback to deprecated properties)
+    this.attributes = data.attributes || {};
 
-    // Handle backward compatibility: extract source_reference from properties if not provided
-    // at the top level (legacy format stored it under properties)
-    if (data.source_reference) {
-      this.source_reference = data.source_reference;
-    } else if ((data as any).properties) {
-      const props = (data as any).properties;
-      // Check for source reference under various legacy property keys
-      if (props.source?.reference) {
-        this.source_reference = props.source.reference;
-      } else if (props["x-source-reference"]) {
-        this.source_reference = props["x-source-reference"];
-      }
-    }
+    // Use source_reference field directly (no extraction from properties)
+    this.source_reference = data.source_reference;
 
     this.metadata = data.metadata;
 
@@ -105,10 +77,9 @@ export class Element implements IElement {
     this.relationships = data.relationships || [];
 
     // Internal tracking
-    this.layer = data.layer || data.layer_id;
+    this.layer = data.layer_id || data.layer;
     this.filePath = data.filePath;
     this.rawData = data.rawData;
-    this.elementId = dataAny.elementId; // Bridge field: semantic ID for lookup compatibility
   }
 
   /**
@@ -230,11 +201,6 @@ export class Element implements IElement {
 
     if (this.relationships.length > 0) {
       result.relationships = this.relationships;
-    }
-
-    // Include elementId bridge field for semantic ID lookup compatibility
-    if (this.elementId) {
-      (result as any).elementId = this.elementId;
     }
 
     return result;

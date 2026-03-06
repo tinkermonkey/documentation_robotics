@@ -440,7 +440,7 @@ export class GoldenCopyCacheManager {
         type,
         name,
         description: `Golden copy element: ${name}`,
-        properties: properties || {},
+        attributes: properties || {},
       });
 
       layer.addElement(element);

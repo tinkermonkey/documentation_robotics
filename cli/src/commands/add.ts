@@ -131,8 +131,8 @@ export async function addCommand(
       }
     }
 
-    // Create element in spec-node format directly
-    // Use UUID as the element's internal ID; keep semantic elementId as a bridge field
+    // Create element in spec-node format
+    // Use UUID as the element's internal ID
     const element = new Element({
       id: randomUUID(),
       spec_node_id: `${layer}.${type}`,
@@ -141,7 +141,6 @@ export async function addCommand(
       name: options.name || name,
       description: options.description,
       attributes: attributes,
-      elementId: elementId, // Bridge field for semantic ID lookup
       metadata: {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
