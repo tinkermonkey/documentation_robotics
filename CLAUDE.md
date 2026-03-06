@@ -396,18 +396,6 @@ Pipeline generates structured output in `audit-results/{timestamp}/`:
 - Graph: `cli/src/audit/graph/`
 - AI: `cli/src/audit/ai/`
 
-### Element Migration
-
-Migrate elements to spec-node aligned format:
-
-```bash
-dr migrate elements [--source dir] [--target dir] [--dry-run] [--no-backup]
-```
-
-This transforms elements from legacy format to the spec-node aligned structure with proper metadata and source references.
-
-Key files: `cli/src/commands/model-migrate.ts`, `cli/src/export/model-migration.ts`
-
 ### Staging Workflow
 
 Changesets provide a safe way to prepare model changes before committing:
@@ -419,7 +407,7 @@ dr changeset preview my-feature                             # Preview merged vie
 dr changeset commit my-feature                              # Commit (with drift detection)
 ```
 
-Key files: `cli/src/commands/changeset.ts`, `cli/src/core/changeset-migration.ts`
+Key files: `cli/src/commands/changeset.ts`, `cli/src/core/staged-changeset-storage.ts`, `cli/src/core/staging-area.ts`
 See `docs/STAGING_GUIDE.md` for full documentation.
 
 ### Testing
