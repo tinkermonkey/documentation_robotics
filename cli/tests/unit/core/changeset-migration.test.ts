@@ -55,12 +55,8 @@ describe("Changeset Status Migration", () => {
     });
   });
 
-  describe("StagedChangesetStorage.load() status migration", () => {
-    // These tests are integration tests in changeset-storage-location.test.ts
-    // They verify that legacy YAML files with old status values are properly migrated
-    // when loaded from disk through StagedChangesetStorage
-  });
 });
+
 
 describe("Changeset History Migration", () => {
   describe("Manifest.migrateChangesetHistory", () => {
@@ -276,11 +272,4 @@ describe("Changeset History Migration", () => {
       });
     });
   });
-});
-
-describe("Patch Export Attributes Handling", () => {
-  // Tests for exportToPatch method checking both properties and attributes
-  // These are integration tests in changeset-export-import.test.ts
-  // They verify that newly created elements using 'attributes' field
-  // are properly included in patch exports
 });

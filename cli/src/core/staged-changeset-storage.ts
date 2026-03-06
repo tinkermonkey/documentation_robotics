@@ -28,7 +28,6 @@ export class StagedChangesetStorage {
     this.changesetsDir = path.join(rootPath, "documentation-robotics", "changesets");
   }
 
-
   /**
    * Create a new staged changeset directory structure
    */

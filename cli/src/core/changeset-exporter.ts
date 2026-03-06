@@ -43,7 +43,6 @@ export class ChangesetExporter {
     this.snapshotManager = new BaseSnapshotManager();
   }
 
-
   /**
    * Export changeset to string in specified format
    */
