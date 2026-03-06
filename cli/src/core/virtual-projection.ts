@@ -159,15 +159,17 @@ export class VirtualProjectionEngine {
       // Create a new element with projected data merged with base
       const mergedData = {
         id: baseElement.id,
-        name: typeof projectedData.name === "string" ? projectedData.name : baseElement.name,
+        spec_node_id: baseElement.spec_node_id,
         type: typeof projectedData.type === "string" ? projectedData.type : baseElement.type,
+        layer_id: baseElement.layer_id,
+        name: typeof projectedData.name === "string" ? projectedData.name : baseElement.name,
         description:
           typeof projectedData.description === "string"
             ? projectedData.description
             : baseElement.description,
-        properties: {
-          ...baseElement.properties,
-          ...(typeof projectedData.properties === "object" ? projectedData.properties : {}),
+        attributes: {
+          ...baseElement.attributes,
+          ...(typeof projectedData.attributes === "object" ? projectedData.attributes : {}),
         },
         references: Array.isArray(projectedData.references)
           ? projectedData.references
@@ -175,7 +177,8 @@ export class VirtualProjectionEngine {
         relationships: Array.isArray(projectedData.relationships)
           ? projectedData.relationships
           : baseElement.relationships,
-        layer: baseElement.layer,
+        source_reference: baseElement.source_reference,
+        metadata: baseElement.metadata,
       };
 
       return new ElementClass(mergedData);
@@ -183,11 +186,13 @@ export class VirtualProjectionEngine {
       // New element being added
       return new ElementClass({
         id: elementId,
-        name: (projectedData.name as string) || elementId,
+        spec_node_id: lastChange.after?.spec_node_id || "",
         type: (projectedData.type as string) || "unknown",
+        layer_id: lastChange.layerName,
+        name: (projectedData.name as string) || elementId,
         description: (projectedData.description as string) || "",
-        properties: (typeof projectedData.properties === "object"
-          ? projectedData.properties
+        attributes: (typeof projectedData.attributes === "object"
+          ? projectedData.attributes
           : {}) as Record<string, unknown>,
         references: Array.isArray(projectedData.references) ? projectedData.references : [],
         relationships: Array.isArray(projectedData.relationships)
@@ -265,11 +270,13 @@ export class VirtualProjectionEngine {
           if (change.after) {
             const newElement = new ElementClass({
               id: change.elementId,
-              name: (change.after.name as string) || change.elementId,
+              spec_node_id: change.after.spec_node_id || "",
               type: (change.after.type as string) || "unknown",
+              layer_id: layerName,
+              name: (change.after.name as string) || change.elementId,
               description: (change.after.description as string) || "",
-              properties: (typeof change.after.properties === "object"
-                ? change.after.properties
+              attributes: (typeof change.after.attributes === "object"
+                ? change.after.attributes
                 : {}) as Record<string, unknown>,
               references: Array.isArray(change.after.references) ? change.after.references : [],
               relationships: Array.isArray(change.after.relationships)
@@ -289,7 +296,7 @@ export class VirtualProjectionEngine {
               // Create updated element with merged attributes
               const mergedAttributes: Record<string, unknown> = {
                 ...existing.attributes,
-                ...(typeof change.after.properties === "object" ? change.after.properties : {}),
+                ...(typeof change.after.attributes === "object" ? change.after.attributes : {}),
               };
 
               const updatedElement = new ElementClass({
@@ -632,13 +639,17 @@ export class VirtualProjectionEngine {
     for (const element of layer.listElements()) {
       const elementClone = new ElementClass({
         id: element.id,
-        name: element.name,
+        spec_node_id: element.spec_node_id,
         type: element.type,
+        layer_id: element.layer_id,
+        name: element.name,
         description: element.description,
-        properties: { ...element.properties }, // Shallow copy (properties are read-only in projection)
+        attributes: { ...element.attributes }, // Shallow copy (attributes are read-only in projection)
         references: [...(element.references || [])], // Shallow copy of array
         relationships: [...(element.relationships || [])], // Shallow copy of array
         layer: element.layer,
+        source_reference: element.source_reference,
+        metadata: element.metadata,
       });
       cloned.addElement(elementClone);
     }

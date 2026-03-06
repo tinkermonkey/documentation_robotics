@@ -52,7 +52,6 @@ export interface ElementMetadata {
  * Element representation
  *
  * Aligned with spec-node.schema.json structure for direct validation
- * Supports both new spec-aligned format and legacy format during migration
  */
 export interface Element {
   // Spec-node aligned fields (required in new format)
@@ -68,12 +67,6 @@ export interface Element {
   source_reference?: SourceReference; // Provenance tracking
   metadata?: ElementMetadata; // Lifecycle tracking
 
-  // Legacy fields (for backward compatibility during migration)
-  /** @deprecated Use attributes instead. Will be removed in next major version. */
-  properties?: Record<string, unknown>;
-  /** @deprecated Use id and spec_node_id instead. Semantic ID like "api.endpoint.create-customer" */
-  elementId?: string;
-
   // Relationship tracking (unchanged)
   references?: Reference[];
   relationships?: Relationship[];
@@ -82,6 +75,10 @@ export interface Element {
   layer?: string;
   filePath?: string;
   rawData?: any;
+  /** @deprecated Use attributes instead. Will be removed in next major version. */
+  properties?: Record<string, unknown>;
+  /** @deprecated Use id and spec_node_id instead. Semantic ID like "api.endpoint.create-customer" */
+  elementId?: string;
 }
 
 /**
@@ -155,8 +152,6 @@ export interface ManifestData {
   changeset_history?: ChangesetHistoryEntry[];
   /** Chat client preference (e.g., "Claude Code", "GitHub Copilot") */
   preferred_chat_client?: string;
-  /** Python CLI compatibility fields */
-  pythonCliCompat?: PythonCliCompat;
 }
 
 /**
@@ -222,50 +217,6 @@ export interface ToolDefinition {
 export interface ToolExecutionResult {
   [key: string]: unknown;
   error?: string;
-}
-
-/**
- * Python CLI Compatibility Fields
- *
- * This interface documents fields that exist for backward compatibility with the Python CLI.
- * These fields are not part of the core data model but are preserved for interoperability.
- *
- * NOTE: These fields should not be used in new code. They are maintained for:
- * - Changelog migrations from Python CLI v0.8.0 format
- * - Manifest compatibility when reading old models
- * - Migration scripts that bridge Python and TypeScript CLI versions
- *
- * See also: changeset-migration.ts for Python CLI format handling
- */
-export interface PythonCliCompat {
-  /**
-   * Layer catalog mapping from Python CLI format
-   *
-   * Python CLI v0.8.0 used a different layer storage structure.
-   * This field preserves that structure for migration purposes.
-   * Maps layer names to their element configurations.
-   *
-   * @deprecated Only used during migration from Python CLI format
-   */
-  layers?: Record<string, unknown>;
-
-  /**
-   * Legacy changeset tracking from Python CLI format
-   *
-   * Python CLI tracked changesets differently than the TypeScript CLI.
-   * This field preserves that structure for historical record.
-   *
-   * @deprecated Only used during migration from Python CLI format
-   */
-  changesets?: Record<string, unknown>;
-
-  /**
-   * Additional metadata from Python CLI that may not map to TypeScript model
-   *
-   * Catch-all for fields that existed in Python CLI format but don't have
-   * a direct equivalent in the TypeScript implementation.
-   */
-  [key: string]: unknown;
 }
 
 /**

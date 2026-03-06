@@ -1,11 +1,6 @@
 import { Element } from "./element.js";
 import { GraphModel } from "./graph-model.js";
 import type { LayerData, Reference, Relationship } from "../types/index.js";
-import { startSpan, endSpan, setSpanAttribute } from "../telemetry/index.js";
-
-// Performance monitoring: track when semantic ID lookup falls back to linear scan
-declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
  * Filter out graph metadata fields from node properties
@@ -85,11 +80,6 @@ export class Layer {
         node.properties["__relationships__"] = element.relationships;
       }
 
-      // Preserve elementId (semantic ID) if present
-      if (element.elementId) {
-        node.properties["__elementId__"] = element.elementId;
-      }
-
       this.graph.addNode(node);
       // Don't mark as dirty during construction - elements added in constructor are initial state
     }
@@ -134,7 +124,6 @@ export class Layer {
         layer: node.layer,
         references: (node.properties["__references__"] ?? []) as Reference[],
         relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
-        elementId: (node.properties["__elementId__"] as string | undefined),
       });
       result.set(node.id, element);
     }
@@ -162,11 +151,6 @@ export class Layer {
     }
     if (element.relationships && element.relationships.length > 0) {
       node.properties["__relationships__"] = element.relationships;
-    }
-
-    // Preserve elementId (semantic ID) if present
-    if (element.elementId) {
-      node.properties["__elementId__"] = element.elementId;
     }
 
     // Add node to graph first
@@ -208,49 +192,14 @@ export class Layer {
   }
 
   /**
-   * Get an element by ID from the graph
-   * Supports both UUID and semantic ID (for backward compatibility)
+   * Get an element by ID from the graph using UUID lookup.
    *
    * Performance notes:
    * - Fast path (O(1)): Direct UUID lookup via graph.nodes Map
-   * - Slow path (O(n)): Linear scan for semantic ID lookup (for backward compatibility)
-   *
-   * The linear scan fallback is monitored via telemetry to track usage of legacy
-   * semantic ID format and model migration progress.
    */
   getElement(id: string): Element | undefined {
-    // First try direct UUID lookup (O(1))
-    let node = this.graph.nodes.get(id);
-
-    // If not found by UUID and ID looks like a semantic ID (contains dots),
-    // search by elementId property for backward compatibility (O(n) linear scan)
-    if (!node && id.includes(".")) {
-      // Record performance monitoring for the linear scan fallback
-      const span = isTelemetryEnabled ? startSpan("layer.getElement.semantic-id-scan", {
-        "layer.name": this.name,
-        "lookup.id": id,
-        "graph.size": this.graph.nodes.size,
-        "fallback.type": "semantic-id-linear-scan"
-      }) : null;
-
-      const startTime = performance.now();
-
-      for (const candidate of this.graph.nodes.values()) {
-        if (candidate.layer === this.name && candidate.properties["__elementId__"] === id) {
-          node = candidate;
-          break;
-        }
-      }
-
-      const elapsed = performance.now() - startTime;
-
-      // Set span attributes to track performance
-      if (span) {
-        setSpanAttribute(span, "scan.duration_ms", Math.round(elapsed * 100) / 100);
-        setSpanAttribute(span, "scan.found", node !== undefined);
-        endSpan(span);
-      }
-    }
+    // Direct UUID lookup (O(1))
+    const node = this.graph.nodes.get(id);
 
     if (!node || node.layer !== this.name) {
       return undefined;
@@ -277,7 +226,6 @@ export class Layer {
       layer: node.layer,
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
-      elementId: (node.properties["__elementId__"] as string | undefined),
     });
   }
 
@@ -328,31 +276,15 @@ export class Layer {
 
   /**
    * Delete an element by ID from the graph
-   * Supports both UUID and semantic ID (for backward compatibility)
    */
   deleteElement(id: string): boolean {
-    // First try direct UUID lookup
-    let node = this.graph.nodes.get(id);
-    let actualId = id;
-
-    // If not found by UUID and ID looks like a semantic ID (contains dots),
-    // search by elementId property for backward compatibility
-    if (!node && id.includes(".")) {
-      for (const graphNode of this.graph.nodes.values()) {
-        const elementIdProp = graphNode.properties?.__elementId__;
-        if (elementIdProp === id && graphNode.layer === this.name) {
-          node = graphNode;
-          actualId = graphNode.id;
-          break;
-        }
-      }
-    }
+    const node = this.graph.nodes.get(id);
 
     if (!node || node.layer !== this.name) {
       return false;
     }
 
-    const result = this.graph.removeNode(actualId);
+    const result = this.graph.removeNode(id);
     if (result) {
       this.dirty = true;
     }
@@ -380,7 +312,6 @@ export class Layer {
           layer: node.layer,
           references: (node.properties["__references__"] ?? []) as Reference[],
           relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
-          elementId: (node.properties["__elementId__"] as string | undefined),
         })
     );
   }
@@ -434,7 +365,6 @@ export class Layer {
           references: e.references,
           relationships: e.relationships,
           layer: name,
-          elementId: e.elementId,
         })
     );
     const layer = new Layer(name, graph, elements);
