@@ -71,6 +71,10 @@ export class Layer {
     for (const element of elementsToAdd) {
       // Ensure element has the correct layer
       element.layer = this.name;
+      // Also set layer_id to maintain consistency with layer name
+      if (!element.layer_id || element.layer_id === "") {
+        element.layer_id = this.name;
+      }
       const node = GraphModel.fromElement(element);
 
       // Store references and relationships as node properties for preservation
@@ -146,6 +150,10 @@ export class Layer {
   addElement(element: Element): void {
     // Ensure element has the correct layer
     element.layer = this.name;
+    // Also set layer_id to maintain consistency with layer name
+    if (!element.layer_id || element.layer_id === "") {
+      element.layer_id = this.name;
+    }
     const node = GraphModel.fromElement(element);
 
     // Store references and relationships as node properties for preservation

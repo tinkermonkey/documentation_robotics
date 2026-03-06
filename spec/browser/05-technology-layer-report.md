@@ -588,4 +588,4 @@ Externally visible unit of technology functionality
 
 ---
 
-_Generated: 2026-03-06T03:27:01.474Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-06T04:55:58.182Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_

@@ -49,14 +49,50 @@ export class Element implements IElement {
    * Initialize Element from spec-node aligned format
    */
   private initializeFromSpecNode(data: IElement): void {
-    this.id = data.id;
-    this.spec_node_id = data.spec_node_id;
-    this.type = data.type;
-    this.layer_id = data.layer_id;
-    this.name = data.name;
+    // Handle backward compatibility: if id is not provided but elementId is,
+    // derive id from elementId or use a generated ID
+    const dataAny = data as any;
+    if (data.id) {
+      this.id = data.id;
+    } else if (dataAny.elementId) {
+      // Use elementId as fallback for backward compatibility
+      this.id = dataAny.elementId;
+    } else {
+      // Fallback: this shouldn't happen in normal usage
+      this.id = "";
+    }
+
+    this.spec_node_id = data.spec_node_id || "";
+    this.type = data.type || "";
+    this.layer_id = (data.layer_id || dataAny.layer) || "";
+    this.name = data.name || "";
     this.description = data.description;
-    this.attributes = data.attributes || {};
-    this.source_reference = data.source_reference;
+
+    // Handle backward compatibility: if properties are provided but not attributes,
+    // migrate deprecated properties to attributes
+    if (data.attributes && Object.keys(data.attributes).length > 0) {
+      this.attributes = data.attributes;
+    } else if ((data as any).properties && Object.keys((data as any).properties).length > 0) {
+      // Migrate deprecated properties to attributes for backward compatibility
+      this.attributes = (data as any).properties;
+    } else {
+      this.attributes = {};
+    }
+
+    // Handle backward compatibility: extract source_reference from properties if not provided
+    // at the top level (legacy format stored it under properties)
+    if (data.source_reference) {
+      this.source_reference = data.source_reference;
+    } else if ((data as any).properties) {
+      const props = (data as any).properties;
+      // Check for source reference under various legacy property keys
+      if (props.source?.reference) {
+        this.source_reference = props.source.reference;
+      } else if (props["x-source-reference"]) {
+        this.source_reference = props["x-source-reference"];
+      }
+    }
+
     this.metadata = data.metadata;
 
     // Relationship tracking
@@ -199,7 +235,7 @@ export class Element implements IElement {
       result.elementId = this.elementId;
     }
 
-    if (Object.keys(this.properties).length > 0) {
+    if (this.properties && Object.keys(this.properties).length > 0) {
       result.properties = this.properties;
     }
 
