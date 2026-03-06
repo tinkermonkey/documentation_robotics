@@ -81,3 +81,6 @@ cli-validation/test-suite/dist/
 cli-validation/test-suite/results/*.xml
 cli-validation/test-project/ts-cli/
 cli-validation/test-project/python-cli/
+
+# CLI runtime test artifacts (generated during test execution)
+cli/documentation-robotics/

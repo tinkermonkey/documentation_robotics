@@ -105,7 +105,7 @@ export class Model {
   }
 
   /**
-   * Load a layer from disk (legacy format: model/XX_layername/*.yaml files)
+   * Load a layer from disk (model/XX_layername/*.yaml files)
    * Supports reading layer paths from manifest for Python CLI compatibility
    */
   async loadLayer(name: string): Promise<void> {
@@ -268,7 +268,7 @@ export class Model {
   }
 
   /**
-   * Save a layer to disk (legacy format: model/XX_layername/*.yaml)
+   * Save a layer to disk (model/XX_layername/*.yaml)
    */
   async saveLayer(name: string): Promise<void> {
     const layer = this.layers.get(name);
@@ -753,7 +753,7 @@ export class Model {
   }
 
   /**
-   * Initialize a new model in a directory (legacy format)
+   * Initialize a new model in a directory
    */
   static async init(
     rootPath: string,

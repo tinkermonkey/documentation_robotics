@@ -87,35 +87,28 @@ describe("Chat Command with Explicit Client Selection", () => {
 
   describe("Preference Saving", () => {
     it("should not save preference (feature removed)", async () => {
-      // Chat client preference is no longer persisted in manifest
-      // The property was removed from Manifest class during legacy cleanup
+      // Chat client preference is no longer persisted in manifest.
+      // The property was removed from the Manifest class completely.
 
-      // Set initial state - no preference
-      expect(model.manifest.preferred_chat_client).toBeUndefined();
+      // Set initial state - no preference property exists
+      expect((model.manifest as Record<string, unknown>).preferred_chat_client).toBeUndefined();
 
-      // Attempt to set preference (works in-memory for backward compat, not persisted)
-      const testManifest = model.manifest as any;
-      testManifest.preferred_chat_client = "Claude Code";
+      // Save and reload - preferred_chat_client property should not exist
       await model.save();
-
-      // Verify preference was NOT saved (undefined after reload)
       const reloadedModel = await Model.load(testDir);
-      expect(reloadedModel?.manifest.preferred_chat_client).toBeUndefined();
+      expect((reloadedModel?.manifest as Record<string, unknown>).preferred_chat_client).toBeUndefined();
     });
 
     it("should not persist updates to preference", async () => {
-      // Chat client preference no longer persists
-      const testManifest = model.manifest as any;
-      testManifest.preferred_chat_client = "Claude Code";
+      // Chat client preference property does not exist on Manifest.
+      // Attempting to access or modify it will return undefined.
+      const result = (model.manifest as Record<string, unknown>).preferred_chat_client;
+      expect(result).toBeUndefined();
       await model.save();
 
-      // Update to different client
-      testManifest.preferred_chat_client = "GitHub Copilot";
-      await model.save();
-
-      // Verify neither preference was persisted
+      // Verify preference remains undefined after save
       const reloadedModel = await Model.load(testDir);
-      expect(reloadedModel?.manifest.preferred_chat_client).toBeUndefined();
+      expect((reloadedModel?.manifest as Record<string, unknown>).preferred_chat_client).toBeUndefined();
     });
   });
 
