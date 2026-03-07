@@ -386,13 +386,21 @@ export class ChangesetExporter {
     };
     const changesetSnapshot = typeof baseSnapshot === "string" ? baseSnapshot : "unknown";
 
+    // Validate status against known values
+    if (!["staged", "committed", "discarded"].includes(String(status))) {
+      throw new Error(
+        `Invalid changeset status '${status}' from YAML import. ` +
+        `Expected: staged, committed, or discarded.`
+      );
+    }
+
     const changeset = new Changeset({
       id: String(id),
       name: String(name),
       description: typeof description === "string" ? description : undefined,
       created: String(created),
       modified: String(modified),
-      status: status as any,
+      status: status as "staged" | "committed" | "discarded",
       baseSnapshot: changesetSnapshot,
       changes: (changes as Change[]) || [],
       stats: changesetStats,
@@ -436,13 +444,21 @@ export class ChangesetExporter {
     };
     const changesetSnapshot = typeof baseSnapshot === "string" ? baseSnapshot : "unknown";
 
+    // Validate status against known values
+    if (!["staged", "committed", "discarded"].includes(String(status))) {
+      throw new Error(
+        `Invalid changeset status '${status}' from JSON import. ` +
+        `Expected: staged, committed, or discarded.`
+      );
+    }
+
     const changeset = new Changeset({
       id: String(id),
       name: String(name),
       description: typeof description === "string" ? description : undefined,
       created: String(created),
       modified: String(modified),
-      status: status as any,
+      status: status as "staged" | "committed" | "discarded",
       baseSnapshot: changesetSnapshot,
       changes: (changes as Change[]) || [],
       stats: changesetStats,

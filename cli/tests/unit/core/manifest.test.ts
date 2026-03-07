@@ -158,5 +158,187 @@ describe("Manifest", () => {
 
     expect(manifest.toString()).toBe("Manifest(Test Model v1.0.0)");
   });
+});
 
+describe("Manifest.migrateChangesetHistory", () => {
+  it("should return empty array for undefined history", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      changeset_history: undefined,
+    });
+
+    expect(manifest.changeset_history).toEqual([]);
+  });
+
+  it("should return empty array for empty history", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      changeset_history: [],
+    });
+
+    expect(manifest.changeset_history).toEqual([]);
+  });
+
+  it("should migrate legacy 'applied' action to 'committed'", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      changeset_history: [
+        {
+          name: "legacy-changeset",
+          action: "applied" as any,
+          applied_at: "2024-01-01T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(manifest.changeset_history).toHaveLength(1);
+    expect(manifest.changeset_history![0].action).toBe("committed");
+    expect(manifest.changeset_history![0].committed_at).toBe("2024-01-01T00:00:00Z");
+    expect(manifest.changeset_history![0].name).toBe("legacy-changeset");
+  });
+
+  it("should migrate legacy 'reverted' action to 'discarded'", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      changeset_history: [
+        {
+          name: "reverted-changeset",
+          action: "reverted" as any,
+          applied_at: "2024-01-01T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(manifest.changeset_history).toHaveLength(1);
+    expect(manifest.changeset_history![0].action).toBe("discarded");
+    expect(manifest.changeset_history![0].committed_at).toBe("2024-01-01T00:00:00Z");
+  });
+
+  it("should preserve 'committed' action as-is", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      changeset_history: [
+        {
+          name: "new-changeset",
+          action: "committed",
+          committed_at: "2024-01-02T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(manifest.changeset_history).toHaveLength(1);
+    expect(manifest.changeset_history![0].action).toBe("committed");
+    expect(manifest.changeset_history![0].committed_at).toBe("2024-01-02T00:00:00Z");
+  });
+
+  it("should preserve 'discarded' action as-is", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      changeset_history: [
+        {
+          name: "discarded-changeset",
+          action: "discarded",
+          committed_at: "2024-01-02T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(manifest.changeset_history).toHaveLength(1);
+    expect(manifest.changeset_history![0].action).toBe("discarded");
+    expect(manifest.changeset_history![0].committed_at).toBe("2024-01-02T00:00:00Z");
+  });
+
+  it("should prefer committed_at over legacy applied_at field", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      changeset_history: [
+        {
+          name: "mixed-changeset",
+          action: "committed",
+          committed_at: "2024-01-02T00:00:00Z",
+          applied_at: "2024-01-01T00:00:00Z", // Older legacy field - should be ignored
+        },
+      ],
+    });
+
+    expect(manifest.changeset_history).toHaveLength(1);
+    expect(manifest.changeset_history![0].committed_at).toBe("2024-01-02T00:00:00Z");
+  });
+
+  it("should throw error for unrecognized action value", () => {
+    expect(() => {
+      new Manifest({
+        name: "Test Model",
+        version: "1.0.0",
+        changeset_history: [
+          {
+            name: "invalid-changeset",
+            action: "invalid" as any,
+            applied_at: "2024-01-01T00:00:00Z",
+          },
+        ],
+      });
+    }).toThrow(/Invalid changeset history action/);
+  });
+
+  it("should handle multiple changesets with mixed legacy and new formats", () => {
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      changeset_history: [
+        {
+          name: "legacy-changeset-1",
+          action: "applied" as any,
+          applied_at: "2024-01-01T00:00:00Z",
+        },
+        {
+          name: "new-changeset",
+          action: "committed",
+          committed_at: "2024-01-02T00:00:00Z",
+        },
+        {
+          name: "legacy-changeset-2",
+          action: "reverted" as any,
+          applied_at: "2024-01-03T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(manifest.changeset_history).toHaveLength(3);
+    expect(manifest.changeset_history![0].action).toBe("committed");
+    expect(manifest.changeset_history![0].name).toBe("legacy-changeset-1");
+    expect(manifest.changeset_history![1].action).toBe("committed");
+    expect(manifest.changeset_history![1].name).toBe("new-changeset");
+    expect(manifest.changeset_history![2].action).toBe("discarded");
+    expect(manifest.changeset_history![2].name).toBe("legacy-changeset-2");
+  });
+
+  it("should use current timestamp if neither committed_at nor applied_at is provided", () => {
+    const beforeTime = new Date().toISOString();
+
+    const manifest = new Manifest({
+      name: "Test Model",
+      version: "1.0.0",
+      changeset_history: [
+        {
+          name: "undated-changeset",
+          action: "committed",
+        },
+      ],
+    });
+
+    const afterTime = new Date().toISOString();
+
+    expect(manifest.changeset_history).toHaveLength(1);
+    const timestamp = manifest.changeset_history![0].committed_at;
+    expect(timestamp).toBeGreaterThanOrEqual(beforeTime);
+    expect(timestamp).toBeLessThanOrEqual(afterTime);
+  });
 });
