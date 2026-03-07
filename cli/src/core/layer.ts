@@ -59,19 +59,20 @@ export class Layer {
       const node = GraphModel.fromElement(element);
 
       // Store references and relationships as node properties for preservation
-      if (!node.properties) {
-        node.properties = {};
-      }
+      // Ensure properties object exists; fromElement always initializes it, but type is optional
+      const nodeProperties = node.properties || {};
+      node.properties = nodeProperties;
+
       if (element.references && element.references.length > 0) {
-        node.properties["__references__"] = element.references;
+        nodeProperties["__references__"] = element.references;
       }
       if (element.relationships && element.relationships.length > 0) {
-        node.properties["__relationships__"] = element.relationships;
+        nodeProperties["__relationships__"] = element.relationships;
       }
 
       // Store semantic ID if present (for legacy format elements converted to UUID)
       if ((element as any).semanticId) {
-        node.properties["__semanticId__"] = (element as any).semanticId;
+        nodeProperties["__semanticId__"] = (element as any).semanticId;
       }
 
       this.graph.addNode(node);
@@ -133,16 +134,20 @@ export class Layer {
     const node = GraphModel.fromElement(element);
 
     // Store references and relationships as node properties for preservation
+    // Ensure properties object exists; fromElement always initializes it, but type is optional
+    const nodeProperties = node.properties || {};
+    node.properties = nodeProperties;
+
     if (element.references && element.references.length > 0) {
-      node.properties["__references__"] = element.references;
+      nodeProperties["__references__"] = element.references;
     }
     if (element.relationships && element.relationships.length > 0) {
-      node.properties["__relationships__"] = element.relationships;
+      nodeProperties["__relationships__"] = element.relationships;
     }
 
     // Store semantic ID if present (for legacy format elements converted to UUID)
     if ((element as any).semanticId) {
-      node.properties["__semanticId__"] = (element as any).semanticId;
+      nodeProperties["__semanticId__"] = (element as any).semanticId;
     }
 
     // Add node to graph first
@@ -198,10 +203,7 @@ export class Layer {
       // Fallback to semantic ID lookup for legacy format elements
       // Iterate through all nodes to find one with matching semanticId
       for (const candidate of this.graph.nodes.values()) {
-        if (
-          candidate.layer === this.name &&
-          candidate.properties["__semanticId__"] === id
-        ) {
+        if (candidate.layer === this.name && candidate.properties?.["__semanticId__"] === id) {
           node = candidate;
           break;
         }
