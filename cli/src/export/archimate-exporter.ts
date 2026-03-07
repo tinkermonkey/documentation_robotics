@@ -84,7 +84,7 @@ export class ArchiMateExporter implements Exporter {
         const propKeys = Object.keys(node.properties || {});
         if (propKeys.length > 0) {
           for (const key of propKeys) {
-            const val = node.properties[key];
+            const val = node.properties?.[key];
 
             // Special handling for source reference structure in properties
             if (key === "source" && val && typeof val === "object" && "reference" in val) {

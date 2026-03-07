@@ -109,6 +109,7 @@ describe("generate-validators.ts - Critical Fixes", () => {
       const circularObj: any = {
         name: "Test",
         attributes: {},
+        properties: {},
       };
       circularObj.properties.self = circularObj; // Creates circular ref
 
@@ -415,7 +416,7 @@ describe("generate-validators.ts - Critical Fixes", () => {
       // Parsed back correctly
       const parsed = JSON.parse(stringified);
       expect(parsed.example).toBe(null);
-      expect(parsed.properties.optional.default).toBe(null);
+      expect(parsed.attributes.optional.default).toBe(null);
     });
 
     it("should fail gracefully with non-serializable values", () => {
@@ -450,6 +451,11 @@ describe("generate-validators.ts - Critical Fixes", () => {
       const circularSchema: any = {
         type: "object",
         attributes: {
+          nested: {
+            type: "object",
+          },
+        },
+        properties: {
           nested: {
             type: "object",
           },

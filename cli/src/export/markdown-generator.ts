@@ -375,7 +375,7 @@ export class MarkdownGenerator {
       details.push("");
 
       // Properties
-      if (Object.keys(node.properties).length > 0) {
+      if (node.properties && Object.keys(node.properties).length > 0) {
         details.push("**Properties:**");
         details.push("");
 

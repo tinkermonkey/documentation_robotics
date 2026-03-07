@@ -59,6 +59,9 @@ export class Layer {
       const node = GraphModel.fromElement(element);
 
       // Store references and relationships as node properties for preservation
+      if (!node.properties) {
+        node.properties = {};
+      }
       if (element.references && element.references.length > 0) {
         node.properties["__references__"] = element.references;
       }
@@ -105,9 +108,9 @@ export class Layer {
         source_reference: node.source_reference,
         metadata: node.metadata,
         layer: node.layer,
-        references: (node.properties["__references__"] ?? []) as Reference[],
-        relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
-        semanticId: node.properties["__semanticId__"],
+        references: (node.properties?.["__references__"] ?? []) as Reference[],
+        relationships: (node.properties?.["__relationships__"] ?? []) as Relationship[],
+        semanticId: node.properties?.["__semanticId__"],
       } as any);
       result.set(node.id, element);
     }
@@ -220,8 +223,8 @@ export class Layer {
       source_reference: node.source_reference,
       metadata: node.metadata,
       layer: node.layer,
-      references: (node.properties["__references__"] ?? []) as Reference[],
-      relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
+      references: (node.properties?.["__references__"] ?? []) as Reference[],
+      relationships: (node.properties?.["__relationships__"] ?? []) as Relationship[],
     });
   }
 
@@ -236,7 +239,7 @@ export class Layer {
 
     // Prepare properties including references and relationships
     // Start with existing node properties to preserve graph metadata fields like __references__ and __relationships__
-    const properties = { ...node.properties };
+    const properties = { ...(node.properties || {}) };
 
     // Persist references and relationships as node properties
     if (element.references && element.references.length > 0) {
@@ -308,8 +311,8 @@ export class Layer {
           source_reference: node.source_reference,
           metadata: node.metadata,
           layer: node.layer,
-          references: (node.properties["__references__"] ?? []) as Reference[],
-          relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
+          references: (node.properties?.["__references__"] ?? []) as Reference[],
+          relationships: (node.properties?.["__relationships__"] ?? []) as Relationship[],
         })
     );
   }

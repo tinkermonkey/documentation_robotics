@@ -11,7 +11,7 @@ export interface GraphNode {
   type: string; // Element type
   name: string; // Display name
   description?: string; // Optional description
-  properties: Record<string, unknown>; // Custom properties
+  properties?: Record<string, unknown>; // Custom properties
   // Spec-node aligned fields (preserved through graph round-trip)
   spec_node_id?: string;
   layer_id?: string;

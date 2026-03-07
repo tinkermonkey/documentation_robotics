@@ -29,6 +29,7 @@ describe("MarkdownGenerator", () => {
         name: "Improve Quality",
         description: "Improve overall product quality",
         attributes: { priority: "high" },
+        properties: { priority: "high", status: "active" },
       },
       {
         id: "business.capability.quality-management",
@@ -37,6 +38,7 @@ describe("MarkdownGenerator", () => {
         name: "Quality Management",
         description: "Manage quality processes",
         attributes: { owner: "QA Team" },
+        properties: { owner: "QA Team", criticality: "high" },
       },
       {
         id: "application.service.quality-service",
@@ -45,6 +47,7 @@ describe("MarkdownGenerator", () => {
         name: "Quality Service",
         description: "Service for quality management",
         attributes: { technology: "Node.js" },
+        properties: { technology: "Node.js", version: "1.0.0" },
       },
       {
         id: "api.endpoint.quality-report",
@@ -53,6 +56,7 @@ describe("MarkdownGenerator", () => {
         name: "Quality Report",
         description: "Generate quality reports",
         attributes: { method: "GET", path: "/reports/quality" },
+        properties: { method: "GET", path: "/reports/quality", deprecated: false },
       },
       {
         id: "data-model.schema.quality-data",
@@ -61,6 +65,7 @@ describe("MarkdownGenerator", () => {
         name: "Quality Data",
         description: "Quality metrics schema",
         attributes: { format: "JSON" },
+        properties: { format: "JSON", version: "1.0" },
       },
     ];
 
@@ -421,6 +426,12 @@ describe("MarkdownGenerator", () => {
         type: "endpoint",
         name: "Complex Endpoint",
         attributes: {
+          methods: ["GET", "POST"],
+          config: { timeout: 5000, retries: 3 },
+          active: true,
+          count: 42,
+        },
+        properties: {
           methods: ["GET", "POST"],
           config: { timeout: 5000, retries: 3 },
           active: true,

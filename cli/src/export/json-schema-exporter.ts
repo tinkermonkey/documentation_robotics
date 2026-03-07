@@ -34,8 +34,8 @@ export class JsonSchemaExporter implements Exporter {
       for (const node of nodes) {
         if (node.type === "entity") {
           const entityName = node.name;
-          const properties = node.properties.properties as Record<string, unknown>;
-          const required = node.properties.required as string[];
+          const properties = node.properties?.attributes as Record<string, unknown>;
+          const required = node.properties?.required as string[];
           const description = node.description;
 
           const entitySchema: Record<string, unknown> = {
@@ -47,20 +47,20 @@ export class JsonSchemaExporter implements Exporter {
           };
 
           // Add additional metadata
-          const additionalProperties = node.properties.additionalProperties as boolean;
+          const additionalProperties = node.properties?.additionalProperties as boolean;
           if (additionalProperties !== undefined) {
             entitySchema.additionalProperties = additionalProperties;
           }
 
           // Add constraints if present
-          const constraints = node.properties.constraints as Record<string, unknown>;
+          const constraints = node.properties?.constraints as Record<string, unknown>;
           if (constraints) {
             Object.assign(entitySchema, constraints);
           }
 
           // Add source reference if present (check both naming conventions)
           const sourceRef =
-            node.properties["x-source-reference"] || node.properties["source-reference"];
+            node.properties?.["x-source-reference"] || node.properties?.["source-reference"];
           if (sourceRef) {
             entitySchema["x-source-reference"] = sourceRef;
           }
