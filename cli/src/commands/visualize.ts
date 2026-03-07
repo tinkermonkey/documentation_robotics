@@ -132,27 +132,108 @@ export async function visualizeCommand(
     // Capture output from server process
     if (serverProcess.stdout) {
       serverProcess.stdout.on("data", async (data) => {
-        const output = data.toString().trim()
-        serverOutput += output + "\n"
+        const chunk = data.toString()
+        serverOutput += chunk
 
-        // Extract token from output
-        if (output.startsWith("TOKEN:")) {
-          authTokenFromServer = output.substring(6)
-          logDebug(`Received auth token from server: ${authTokenFromServer.substring(0, 8)}...`)
+        // Process each line individually: Bun's pipe buffering often batches multiple
+        // console.log calls (e.g. "running at" + "TOKEN:") into a single data event.
+        // Using startsWith/substring on the whole chunk would either miss the TOKEN line
+        // (when "running at" is first) or extract a malformed token (when trailing lines
+        // are appended), causing the browser to open with the wrong token and get a 403.
+        const lines = chunk.split("\n")
+        for (const rawLine of lines) {
+          const line = rawLine.trim()
+          if (!line) continue
 
-          // If we haven't shown startup info yet and now have the token, show it
-          if (serverStartupShown && authEnabled && authTokenFromServer) {
-            // Update the URL display with actual token
+          // Extract token from output
+          if (line.startsWith("TOKEN:")) {
+            authTokenFromServer = line.substring(6)
+            logDebug(`Received auth token from server: ${authTokenFromServer.substring(0, 8)}...`)
+
+            // If we haven't shown startup info yet and now have the token, show it
+            if (serverStartupShown && authEnabled && authTokenFromServer) {
+              // Update the URL display with actual token
+              console.log(
+                ansis.cyan(`   Access URL: http://localhost:${port}?token=${authTokenFromServer}`)
+              )
+              console.log(ansis.dim(`   Auth token: ${authTokenFromServer}`))
+
+              // Now that we have the token, open browser if needed
+              if (!options.noBrowser) {
+                try {
+                  const command = getOpenCommand()
+                  const url = `http://localhost:${port}?token=${authTokenFromServer}`
+                  logDebug(`Opening browser with command: ${command} ${url}`)
+                  spawn(command, [url], {
+                    detached: true,
+                    stdio: "ignore",
+                  })
+                } catch (error) {
+                  logVerbose("Could not auto-open browser (not critical)")
+                }
+              }
+            }
+          }
+
+          // Server started message - defer detailed output if auth enabled
+          if (line.includes("running at http://localhost")) {
+            serverStartupShown = true
+
+            // End telemetry span for server startup
+            if (isTelemetryEnabled && serverStartupSpan) {
+              logDebug(
+                "[Telemetry] Ending visualize.server.startup span (server started successfully)"
+              )
+              const { endSpan } = await import("../telemetry/index.js")
+              endSpan(serverStartupSpan)
+              serverStartupSpan = null
+              logDebug("[Telemetry] Span ended")
+            }
+
+            console.log(ansis.green(`✓ Visualization server started`))
+
+            // Display access information (but may be incomplete if auth enabled and token not yet received)
+            if (authEnabled) {
+              const token = authTokenFromServer || authToken || "(pending)"
+              if (authTokenFromServer) {
+                // Token already received (same chunk), show full info immediately
+                console.log(ansis.cyan(`   Access URL: http://localhost:${port}?token=${token}`))
+                console.log(ansis.dim(`   Auth token: ${token}`))
+              } else {
+                // Token not yet received, just show port for now
+                console.log(ansis.dim(`   Open http://localhost:${port} in your browser`))
+                logDebug(`   (waiting for auth token...)`)
+              }
+            } else {
+              console.log(ansis.dim(`   Open http://localhost:${port} in your browser`))
+              console.log(ansis.yellow(`   ⚠ Authentication disabled`))
+            }
+
+            if (withDanger) {
+              console.log(
+                ansis.yellow(`   ⚠ Danger mode enabled - chat permissions will be skipped`)
+              )
+            }
+
+            console.log(ansis.blueBright(`Model name: ${model.manifest.name}`))
+            const drFolder = await getSpecReferencePath()
             console.log(
-              ansis.cyan(`   Access URL: http://localhost:${port}?token=${authTokenFromServer}`)
+              `DR folder:    ${ansis.cyan(drFolder || "Not found")}`
             )
-            console.log(ansis.dim(`   Auth token: ${authTokenFromServer}`))
+            console.log(`Model path:   ${ansis.cyan((await getModelPath()) || "Not found")}`)
 
-            // Now that we have the token, open browser if needed
-            if (!options.noBrowser) {
+            // Optionally open browser
+            // If auth is enabled, delay opening until we have the token
+            const shouldOpenBrowser = !options.noBrowser
+            logDebug(
+              `Browser auto-open: ${shouldOpenBrowser ? "enabled" : "disabled"} (noBrowser=${options.noBrowser})`
+            )
+
+            if (shouldOpenBrowser && !authEnabled) {
+              // Auth disabled: open immediately
               try {
                 const command = getOpenCommand()
-                const url = `http://localhost:${port}?token=${authTokenFromServer}`
+                const url = `http://localhost:${port}`
                 logDebug(`Opening browser with command: ${command} ${url}`)
                 spawn(command, [url], {
                   detached: true,
@@ -161,88 +242,18 @@ export async function visualizeCommand(
               } catch (error) {
                 logVerbose("Could not auto-open browser (not critical)")
               }
-            }
-          }
-        }
-
-        // Server started message - defer detailed output if auth enabled
-        if (output.includes("running at http://localhost")) {
-          serverStartupShown = true
-
-          // End telemetry span for server startup
-          if (isTelemetryEnabled && serverStartupSpan) {
-            logDebug(
-              "[Telemetry] Ending visualize.server.startup span (server started successfully)"
-            )
-            const { endSpan } = await import("../telemetry/index.js")
-            endSpan(serverStartupSpan)
-            serverStartupSpan = null
-            logDebug("[Telemetry] Span ended")
-          }
-
-          console.log(ansis.green(`✓ Visualization server started`))
-
-          // Display access information (but may be incomplete if auth enabled and token not yet received)
-          if (authEnabled) {
-            const token = authTokenFromServer || authToken || "(pending)"
-            if (authTokenFromServer) {
-              // Token already received, show full info
-              console.log(ansis.cyan(`   Access URL: http://localhost:${port}?token=${token}`))
-              console.log(ansis.dim(`   Auth token: ${token}`))
+            } else if (shouldOpenBrowser && authEnabled && !authTokenFromServer) {
+              // Auth enabled but token not yet in this chunk: will open when TOKEN line is processed
+              logDebug("Browser auto-open deferred until token is received")
             } else {
-              // Token not yet received, just show port for now
-              console.log(ansis.dim(`   Open http://localhost:${port} in your browser`))
-              logDebug(`   (waiting for auth token...)`)
+              logDebug("Browser auto-open disabled")
             }
-          } else {
-            console.log(ansis.dim(`   Open http://localhost:${port} in your browser`))
-            console.log(ansis.yellow(`   ⚠ Authentication disabled`))
           }
 
-          if (withDanger) {
-            console.log(
-              ansis.yellow(`   ⚠ Danger mode enabled - chat permissions will be skipped`)
-            )
+          // Log other output
+          if (!line.startsWith("TOKEN:")) {
+            logDebug(`[server] ${line}`)
           }
-
-          console.log(ansis.blueBright(`Model name: ${model.manifest.name}`))
-          const drFolder = await getSpecReferencePath()
-          console.log(
-            `DR folder:    ${ansis.cyan(drFolder || "Not found")}`
-          )
-          console.log(`Model path:   ${ansis.cyan((await getModelPath()) || "Not found")}`)
-
-          // Optionally open browser
-          // If auth is enabled, delay opening until we have the token
-          const shouldOpenBrowser = !options.noBrowser
-          logDebug(
-            `Browser auto-open: ${shouldOpenBrowser ? "enabled" : "disabled"} (noBrowser=${options.noBrowser})`
-          )
-
-          if (shouldOpenBrowser && !authEnabled) {
-            // Auth disabled: open immediately
-            try {
-              const command = getOpenCommand()
-              const url = `http://localhost:${port}`
-              logDebug(`Opening browser with command: ${command} ${url}`)
-              spawn(command, [url], {
-                detached: true,
-                stdio: "ignore",
-              })
-            } catch (error) {
-              logVerbose("Could not auto-open browser (not critical)")
-            }
-          } else if (shouldOpenBrowser && authEnabled && !authTokenFromServer) {
-            // Auth enabled but token not ready: will open when token arrives
-            logDebug("Browser auto-open deferred until token is received")
-          } else {
-            logDebug("Browser auto-open disabled")
-          }
-        }
-
-        // Log other output
-        if (!output.startsWith("TOKEN:")) {
-          logDebug(`[server] ${output}`)
         }
       })
     }
