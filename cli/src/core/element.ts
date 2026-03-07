@@ -61,8 +61,8 @@ export class Element implements IElement {
     this.name = data.name || "";
     this.description = data.description;
 
-    // Handle attributes - support both 'attributes' and 'properties' for backward compatibility with tests
-    this.attributes = data.attributes || (data as any).properties || {};
+    // Handle attributes - spec requires 'attributes' field only
+    this.attributes = data.attributes || {};
 
     // Extract source_reference
     if (data.source_reference) {

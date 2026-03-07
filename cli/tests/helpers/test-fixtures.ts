@@ -138,7 +138,7 @@ export async function addTestElement(
   options?: {
     name?: string;
     description?: string;
-    properties?: Record<string, unknown>;
+    attributes?: Record<string, unknown>;
   }
 ): Promise<Element> {
   let layer = await model.getLayer(layerName);
@@ -153,7 +153,7 @@ export async function addTestElement(
     type,
     name: options?.name ?? `Test ${type}`,
     description: options?.description ?? `Test element of type ${type}`,
-    properties: options?.properties ?? {},
+    attributes: options?.attributes ?? {},
   });
 
   layer.addElement(element);
@@ -178,7 +178,7 @@ export async function addTestElements(
     id: string;
     name?: string;
     description?: string;
-    properties?: Record<string, unknown>;
+    attributes?: Record<string, unknown>;
   }>
 ): Promise<Element[]> {
   const created: Element[] = [];
@@ -187,7 +187,7 @@ export async function addTestElements(
     const element = await addTestElement(model, layerName, elementDef.type, elementDef.id, {
       name: elementDef.name,
       description: elementDef.description,
-      properties: elementDef.properties,
+      attributes: elementDef.attributes,
     });
     created.push(element);
   }
@@ -237,7 +237,7 @@ export async function populateTestModel(model: Model): Promise<void> {
       type: "endpoint",
       id: "api.endpoint.test-1",
       name: "Test Endpoint 1",
-      properties: { method: "GET", path: "/test" },
+      attributes: { method: "GET", path: "/test" },
     },
   ]);
 

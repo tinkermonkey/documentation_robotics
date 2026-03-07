@@ -299,10 +299,6 @@ export class ChangesetExporter {
             if (afterData.type) {
               lines.push(`+   type: ${afterData.type}`);
             }
-            if (afterData.properties) {
-              lines.push(`+   properties: ${JSON.stringify(afterData.properties)}`);
-            }
-            // Also check attributes (newly created elements may use attributes instead of properties)
             if (afterData.attributes) {
               lines.push(`+   attributes: ${JSON.stringify(afterData.attributes)}`);
             }
