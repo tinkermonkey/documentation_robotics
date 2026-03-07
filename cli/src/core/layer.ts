@@ -222,7 +222,6 @@ export class Layer {
       layer: node.layer,
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
-      semanticId: node.properties["__semanticId__"],
     });
   }
 
