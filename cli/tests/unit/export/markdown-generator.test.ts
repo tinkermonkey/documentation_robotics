@@ -660,10 +660,12 @@ describe("MarkdownGenerator", () => {
       // Add 15 elements (more than MAX_DETAIL_ELEMENTS which is 10)
       for (let i = 1; i <= 15; i++) {
         const elem = new Element({
-          elementId: `api.endpoint.endpoint-${i}`,
+          id: `api-endpoint-endpoint-${i}`,
           name: `Endpoint ${i}`,
+          layer_id: "api",
           layer: "api",
           description: `Test endpoint ${i}`,
+          type: "endpoint",
         });
         testModel.layers.get("api")?.addElement(elem);
       }
@@ -693,10 +695,12 @@ describe("MarkdownGenerator", () => {
       // Add only 3 elements (less than MAX_DETAIL_ELEMENTS)
       for (let i = 1; i <= 3; i++) {
         const elem = new Element({
-          elementId: `api.endpoint.endpoint-${i}`,
+          id: `api-endpoint-endpoint-${i}`,
           name: `Endpoint ${i}`,
+          layer_id: "api",
           layer: "api",
           description: `Test endpoint ${i}`,
+          type: "endpoint",
         });
         testModel.layers.get("api")?.addElement(elem);
       }

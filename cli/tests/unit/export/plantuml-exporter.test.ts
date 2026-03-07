@@ -230,18 +230,14 @@ describe("PlantUMLExporter", () => {
       id: "application-component-test",
       type: "application-component",
       name: "Test Component",
-      properties: {
-        source: {
-          reference: {
-            provenance: "extracted",
-            locations: [
-              {
-                file: "src/components/test.ts",
-                symbol: "TestComponent",
-              },
-            ],
+      source_reference: {
+        provenance: "extracted",
+        locations: [
+          {
+            file: "src/components/test.ts",
+            symbol: "TestComponent",
           },
-        },
+        ],
       },
     });
 
@@ -264,18 +260,14 @@ describe("PlantUMLExporter", () => {
       id: "application-component-test",
       type: "application-component",
       name: "Test Component",
-      properties: {
-        source: {
-          reference: {
-            provenance: "extracted",
-            locations: [
-              {
-                file: "src/components/test.ts",
-                symbol: "TestComponent",
-              },
-            ],
+      source_reference: {
+        provenance: "extracted",
+        locations: [
+          {
+            file: "src/components/test.ts",
+            symbol: "TestComponent",
           },
-        },
+        ],
       },
     });
 
@@ -296,15 +288,13 @@ describe("PlantUMLExporter", () => {
       id: "api-endpoint-test",
       type: "endpoint",
       name: "Test Endpoint",
-      properties: {
-        "x-source-reference": {
-          provenance: "manual",
-          locations: [
-            {
-              file: "src/api/test.ts",
-            },
-          ],
-        },
+      source_reference: {
+        provenance: "manual",
+        locations: [
+          {
+            file: "src/api/test.ts",
+          },
+        ],
       },
     });
 
@@ -325,18 +315,14 @@ describe("PlantUMLExporter", () => {
       id: "application-component-quotes",
       type: "application-component",
       name: "Component with quotes",
-      properties: {
-        source: {
-          reference: {
-            provenance: "extracted",
-            locations: [
-              {
-                file: 'src/components/"special"/test.ts',
-                symbol: "TestComponent",
-              },
-            ],
+      source_reference: {
+        provenance: "extracted",
+        locations: [
+          {
+            file: 'src/components/"special"/test.ts',
+            symbol: "TestComponent",
           },
-        },
+        ],
       },
     });
 

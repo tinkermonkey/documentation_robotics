@@ -225,9 +225,7 @@ describe("ArchiMateExporter", () => {
       id: "application-component-test",
       type: "application-component",
       name: "Test Component",
-      properties: {
-        source: {
-          reference: {
+      source_reference: {
             provenance: "extracted",
             locations: [
               {
@@ -272,9 +270,7 @@ describe("ArchiMateExporter", () => {
       id: "application-component-test",
       type: "application-component",
       name: "Test Component",
-      properties: {
-        source: {
-          reference: {
+      source_reference: {
             provenance: "manual",
             locations: [
               {
@@ -304,9 +300,7 @@ describe("ArchiMateExporter", () => {
       id: "application-component-multi",
       type: "application-component",
       name: "Multi-file Component",
-      properties: {
-        source: {
-          reference: {
+      source_reference: {
             provenance: "extracted",
             locations: [
               {
@@ -342,9 +336,7 @@ describe("ArchiMateExporter", () => {
       id: "application-component-test",
       type: "application-component",
       name: "Test Component",
-      properties: {
-        source: {
-          reference: {
+      source_reference: {
             provenance: "manual",
             locations: [
               {
