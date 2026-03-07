@@ -214,9 +214,17 @@ export class Layer {
 
             // Also check stored semanticName if it differs from computed name
             if (semanticNameAttr && typeof semanticNameAttr === "string") {
+              // Apply kebab-case normalization to stored semanticName as well
+              const semanticKebabName = semanticNameAttr
+                .replace(/[\s_]+/g, "-")
+                .replace(/([a-z])([A-Z])/g, "$1-$2")
+                .toLowerCase()
+                .replace(/-+/g, "-")
+                .replace(/^-+|-+$/g, "");
+
               semanticIds.push(
-                `${candidate.layer_id || this.name}.${candidate.type}.${semanticNameAttr}`,
-                `${candidate.layer_id || this.name}-${candidate.type}-${semanticNameAttr}`
+                `${candidate.layer_id || this.name}.${candidate.type}.${semanticKebabName}`,
+                `${candidate.layer_id || this.name}-${candidate.type}-${semanticKebabName}`
               );
             }
 
