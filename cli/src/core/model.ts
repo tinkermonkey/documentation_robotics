@@ -161,37 +161,17 @@ export class Model {
 
                   let elementUUID = el.id;
                   let extractedType: string | undefined = undefined;
-                  let originalSemanticId: string | undefined = undefined;
 
-                  // Legacy format detection:
-                  // 1. Dot-separated semantic IDs (e.g., "motivation.goal.test-goal") with 2+ dots
-                  // 2. Hyphen-separated legacy format (e.g., "motivation-goal-test-goal")
-                  if (typeof elementUUID === "string") {
-                    const dotCount = (elementUUID.match(/\./g) || []).length;
-                    const isSemanticId = dotCount >= 2;
-                    const isLegacyHyphenFormat =
-                      !isSemanticId && // Not a semantic ID
-                      elementUUID.includes("-") && // Has hyphens
-                      elementUUID.startsWith(name) && // Starts with layer name
-                      elementUUID.length > name.length + 1; // Has more than just layer name
-
-                    if (isSemanticId || isLegacyHyphenFormat) {
-                      // Store original semantic ID before converting to UUID
-                      originalSemanticId = elementUUID;
-
-                      // Extract type from semantic ID format: "layer.type.kebab-case-name"
-                      // or legacy format: "layer-type-kebab-case-name"
-                      const parts = elementUUID.split(/[.-]/);
-                      if (parts.length >= 3) {
-                        // Skip first part (layer name), get second part (type)
-                        extractedType = parts[1];
-                      } else if (parts.length === 2) {
-                        // Fallback for simple format
-                        extractedType = parts[1];
-                      }
-
-                      // Generate a UUID for the element
-                      elementUUID = crypto.randomUUID();
+                  // Extract type from semantic ID format: "layer.type.kebab-case-name"
+                  // No UUID migration needed - semantic IDs are the current format
+                  if (typeof elementUUID === "string" && elementUUID.includes(".")) {
+                    const parts = elementUUID.split(/\./);
+                    if (parts.length >= 3) {
+                      // Skip first part (layer name), get second part (type)
+                      extractedType = parts[1];
+                    } else if (parts.length === 2) {
+                      // Fallback for simple format
+                      extractedType = parts[1];
                     }
                   }
 
@@ -212,7 +192,6 @@ export class Model {
                     relationships: el.relationships || [],
                     references: el.references || [],
                     layer: layerId,
-                    semanticId: originalSemanticId,
                   } as any);
                   layer.addElement(newElement);
                 }
