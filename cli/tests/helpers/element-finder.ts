@@ -27,7 +27,7 @@ export function findElementBySemanticId(
   }
 
   // Search all nodes in the layer
-  for (const candidate of layer.nodes) {
+  for (const candidate of layer.elements.values()) {
     // Build semantic IDs from element name
     const kebabName = candidate.name
       .replace(/[\s_]+/g, "-")

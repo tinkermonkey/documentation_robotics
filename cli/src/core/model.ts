@@ -161,6 +161,7 @@ export class Model {
 
                   let elementUUID = el.id;
                   let extractedType: string | undefined = undefined;
+                  let originalSemanticId: string | undefined = undefined;
 
                   // Legacy format detection:
                   // 1. Dot-separated semantic IDs (e.g., "motivation.goal.test-goal") with 2+ dots
@@ -175,6 +176,9 @@ export class Model {
                       elementUUID.length > name.length + 1; // Has more than just layer name
 
                     if (isSemanticId || isLegacyHyphenFormat) {
+                      // Store original semantic ID before converting to UUID
+                      originalSemanticId = elementUUID;
+
                       // Extract type from semantic ID format: "layer.type.kebab-case-name"
                       // or legacy format: "layer-type-kebab-case-name"
                       const parts = elementUUID.split(/[.-]/);
@@ -208,7 +212,8 @@ export class Model {
                     relationships: el.relationships || [],
                     references: el.references || [],
                     layer: layerId,
-                  });
+                    semanticId: originalSemanticId,
+                  } as any);
                   layer.addElement(newElement);
                 }
               }

@@ -66,6 +66,11 @@ export class Layer {
         node.properties["__relationships__"] = element.relationships;
       }
 
+      // Store semantic ID if present (for legacy format elements converted to UUID)
+      if ((element as any).semanticId) {
+        node.properties["__semanticId__"] = (element as any).semanticId;
+      }
+
       this.graph.addNode(node);
       // Don't mark as dirty during construction - elements added in constructor are initial state
     }
@@ -102,7 +107,8 @@ export class Layer {
         layer: node.layer,
         references: (node.properties["__references__"] ?? []) as Reference[],
         relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
-      });
+        semanticId: node.properties["__semanticId__"],
+      } as any);
       result.set(node.id, element);
     }
 
@@ -129,6 +135,11 @@ export class Layer {
     }
     if (element.relationships && element.relationships.length > 0) {
       node.properties["__relationships__"] = element.relationships;
+    }
+
+    // Store semantic ID if present (for legacy format elements converted to UUID)
+    if ((element as any).semanticId) {
+      node.properties["__semanticId__"] = (element as any).semanticId;
     }
 
     // Add node to graph first
@@ -170,14 +181,29 @@ export class Layer {
   }
 
   /**
-   * Get an element by UUID from the graph.
-   * Only direct UUID lookup is supported; semantic ID lookup has been removed.
+   * Get an element by UUID or semantic ID from the graph.
+   * Supports direct UUID lookup, and falls back to semantic ID lookup for legacy elements.
    *
-   * @param id - UUID of the element to get
+   * @param id - UUID or semantic ID of the element to get
    * @returns The element if found, undefined if not found
    */
   getElement(id: string): Element | undefined {
-    const node = this.graph.nodes.get(id);
+    // First try direct UUID lookup
+    let node = this.graph.nodes.get(id);
+
+    if (!node) {
+      // Fallback to semantic ID lookup for legacy format elements
+      // Iterate through all nodes to find one with matching semanticId
+      for (const candidate of this.graph.nodes.values()) {
+        if (
+          candidate.layer === this.name &&
+          candidate.properties["__semanticId__"] === id
+        ) {
+          node = candidate;
+          break;
+        }
+      }
+    }
 
     if (!node || node.layer !== this.name) {
       return undefined;
@@ -196,6 +222,7 @@ export class Layer {
       layer: node.layer,
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
+      semanticId: node.properties["__semanticId__"],
     });
   }
 

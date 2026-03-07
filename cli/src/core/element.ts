@@ -35,6 +35,10 @@ export class Element implements IElement {
   filePath?: string;
   rawData?: any;
 
+  // Original semantic ID mapping (for legacy format elements converted to UUID)
+  // Used to look up elements by their original semantic ID after UUID conversion
+  semanticId?: string;
+
   constructor(data: Partial<IElement>) {
     this.initializeFromSpecNode(data);
   }
@@ -75,6 +79,9 @@ export class Element implements IElement {
     this.layer = data.layer || data.layer_id;
     this.filePath = data.filePath;
     this.rawData = data.rawData;
+
+    // Semantic ID (for legacy format elements converted to UUID)
+    this.semanticId = (data as any).semanticId;
   }
 
   /**
