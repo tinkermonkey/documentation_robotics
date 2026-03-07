@@ -82,10 +82,11 @@ export class Model {
 
   /**
    * Get an element by ID across all layers
+   * Supports both UUID and semantic ID (layer.type.kebab-name) lookup
    */
   getElementById(id: string): Element | undefined {
     for (const layer of this.layers.values()) {
-      const element = layer.elements.get(id);
+      const element = layer.getElement(id);
       if (element) {
         return element;
       }
@@ -158,7 +159,28 @@ export class Model {
                 if (element && typeof element === "object") {
                   const el: any = element;
 
-                  const elementUUID = el.id;
+                  let elementUUID = el.id;
+                  let elementSemanticId: string | undefined = undefined;
+
+                  // Legacy format detection:
+                  // 1. Dot-separated semantic IDs (e.g., "motivation.goal.test-goal") with 2+ dots
+                  // 2. Hyphen-separated legacy format (e.g., "motivation-goal-test-goal")
+                  if (typeof elementUUID === "string") {
+                    const dotCount = (elementUUID.match(/\./g) || []).length;
+                    const isSemanticId = dotCount >= 2;
+                    const isLegacyHyphenFormat =
+                      !isSemanticId && // Not a semantic ID
+                      elementUUID.includes("-") && // Has hyphens
+                      elementUUID.startsWith(name) && // Starts with layer name
+                      elementUUID.length > name.length + 1; // Has more than just layer name
+
+                    if (isSemanticId || isLegacyHyphenFormat) {
+                      elementSemanticId = elementUUID;
+                      // Generate a UUID for the element
+                      elementUUID = crypto.randomUUID();
+                    }
+                  }
+
                   const elementName = el.name || key;
                   const elementType = el.type;
                   const layerId = el.layer_id || name;

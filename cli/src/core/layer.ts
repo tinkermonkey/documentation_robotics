@@ -171,12 +171,50 @@ export class Layer {
 
   /**
    * Get an element by ID from the graph.
+   * Supports both UUID and semantic ID (layer.type.kebab-name or layer-type-kebab-name) lookup.
    *
-   * @param id - UUID of the element to get
+   * @param id - UUID or semantic ID of the element to get
    * @returns The element if found, undefined if not found
    */
   getElement(id: string): Element | undefined {
-    const node = this.graph.nodes.get(id);
+    // First try direct UUID lookup (O(1))
+    let node = this.graph.nodes.get(id);
+
+    // If not found by UUID, try semantic ID (elementId) lookup
+    // Semantic IDs have format:
+    // 1. Dot-separated: {layer}.{type}.{kebab-name} (contains 2+ dots)
+    // 2. Hyphen-separated legacy: {layer}-{type}-{kebab-name}
+    if (!node) {
+      const dotCount = (id.match(/\./g) || []).length;
+      const isDotSeparated = dotCount >= 2;
+      const isHyphenSeparated = id.includes("-") && id.startsWith(this.name) && id.length > this.name.length + 1;
+
+      if (isDotSeparated || isHyphenSeparated) {
+        // Try to find by semantic ID by searching all nodes
+        for (const candidate of this.graph.nodes.values()) {
+          if (candidate.layer === this.name) {
+            // Build both formats and compare
+            const kebabName = candidate.name
+              .replace(/[\s_]+/g, "-")
+              .replace(/([a-z])([A-Z])/g, "$1-$2")
+              .toLowerCase()
+              .replace(/-+/g, "-")
+              .replace(/^-+|-+$/g, "");
+
+            // Dot-separated semantic ID: layer.type.kebab-name
+            const dotSemanticId = `${candidate.layer_id || this.name}.${candidate.type}.${kebabName}`;
+
+            // Hyphen-separated legacy ID: layer-type-kebab-name
+            const hyphenSemanticId = `${candidate.layer_id || this.name}-${candidate.type}-${kebabName}`;
+
+            if (dotSemanticId === id || hyphenSemanticId === id) {
+              node = candidate;
+              break;
+            }
+          }
+        }
+      }
+    }
 
     if (!node || node.layer !== this.name) {
       return undefined;
