@@ -11,7 +11,7 @@ import { dirname } from 'node:path';
 import { glob } from 'glob';
 import YAML from 'yaml';
 
-import { initializeTestEnvironment, TestPaths, CLIConfig, cleanupTestArtifacts, validateBaselineIntegrity } from './setup.js';
+import { initializeTestEnvironment, getTestPaths, TestPaths, CLIConfig, cleanupTestArtifacts, validateBaselineIntegrity } from './setup.js';
 import { captureSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
 import { executeCommand, CommandOutput } from './executor.js';
 import {
@@ -387,13 +387,15 @@ async function runTestSuite(): Promise<void> {
     console.log('Post-test cleanup and validation...');
 
     try {
+      // Validate baseline integrity before cleanup
+      // This must run BEFORE cleanupTestArtifacts to detect contamination,
+      // as cleanup uses git checkout to restore the baseline
+      await validateBaselineIntegrity(paths.baselinePath);
+      console.log('✓ Baseline integrity verified - no contamination detected');
+
       // Clean up test artifacts
       await cleanupTestArtifacts(paths);
       console.log('✓ Test artifacts cleaned up');
-
-      // Validate baseline integrity
-      await validateBaselineIntegrity(paths.baselinePath);
-      console.log('✓ Baseline integrity verified - no contamination detected');
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error('⚠ Post-test validation issue:');
@@ -414,7 +416,7 @@ async function runTestSuite(): Promise<void> {
 
     // Attempt cleanup even on test failure
     try {
-      const { paths } = await initializeTestEnvironment();
+      const paths = getTestPaths();
       await cleanupTestArtifacts(paths);
     } catch (cleanupError) {
       console.error(
