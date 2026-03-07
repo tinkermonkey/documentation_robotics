@@ -1,6 +1,4 @@
 import { Element } from "../../src/core/element.js";
-import { Reference } from "../../src/core/reference-registry.js";
-import { Relationship } from "../../src/core/relationship-registry.js";
 import { Layer } from "../../src/core/layer.js";
 
 /**

@@ -199,7 +199,6 @@ export class Layer {
     });
   }
 
-
   /**
    * Update an element in the graph
    */
