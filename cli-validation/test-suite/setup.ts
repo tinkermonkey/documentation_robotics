@@ -194,14 +194,38 @@ export async function validateCLIBinaries(config: CLIConfig): Promise<{ pythonAv
 }
 
 /**
+ * Result of cleanup operation
+ */
+export interface CleanupResult {
+  directoryDeleteSuccess: boolean;
+  baselineRestoreSuccess: boolean;
+  errors: string[];
+}
+
+/**
  * Remove test artifacts from previous runs
  * Implements clean-room pattern by deleting old test directories
  * Also restores the baseline to its committed state to prevent contamination
+ * @returns CleanupResult with status of each operation
+ * @throws Error only if directory deletion fails; baseline restore failures are reported in result
  */
-export async function cleanupTestArtifacts(paths: TestPaths): Promise<void> {
+export async function cleanupTestArtifacts(paths: TestPaths): Promise<CleanupResult> {
+  const result: CleanupResult = {
+    directoryDeleteSuccess: true,
+    baselineRestoreSuccess: true,
+    errors: [],
+  };
+
   // rm with force: true ignores missing directories
-  await rm(paths.pythonPath, { recursive: true, force: true });
-  await rm(paths.tsPath, { recursive: true, force: true });
+  try {
+    await rm(paths.pythonPath, { recursive: true, force: true });
+    await rm(paths.tsPath, { recursive: true, force: true });
+  } catch (error) {
+    result.directoryDeleteSuccess = false;
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    result.errors.push(`Directory deletion failed: ${errorMsg}`);
+    throw new Error(`Failed to delete test directories: ${errorMsg}`);
+  }
 
   // Restore baseline to its committed state to prevent test contamination
   try {
@@ -209,10 +233,15 @@ export async function cleanupTestArtifacts(paths: TestPaths): Promise<void> {
       cwd: paths.baselinePath.split('cli-validation')[0],
     });
   } catch (error) {
-    // If git restore fails, log a warning but continue
+    // If git restore fails, record it but don't throw
     // The baseline might not be in a git repo or might be read-only
-    console.warn(`⚠ Could not restore baseline via git: ${String(error)}`);
+    result.baselineRestoreSuccess = false;
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    result.errors.push(`Baseline restore failed: ${errorMsg}`);
+    console.warn(`⚠ Could not restore baseline via git: ${errorMsg}`);
   }
+
+  return result;
 }
 
 /**
@@ -252,29 +281,42 @@ export async function setupTestEnvironment(paths: TestPaths, config: CLIConfig, 
 }
 
 /**
+ * Validation error that indicates baseline contamination
+ */
+export class BaselineContaminationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BaselineContaminationError';
+  }
+}
+
+/**
  * Validate that the baseline directory hasn't been modified by tests
- * @throws Error if baseline has uncommitted changes
+ * @throws BaselineContaminationError if baseline has uncommitted changes
+ * @throws Error if validation cannot be performed due to git/system errors
  */
 export async function validateBaselineIntegrity(baselinePath: string): Promise<void> {
   const workspaceRoot = baselinePath.split('cli-validation')[0];
 
+  let gitResult: string;
   try {
     const { stdout } = await execAsync(
       'git status --porcelain cli-validation/test-project/baseline/',
       { cwd: workspaceRoot }
     );
-
-    if (stdout.trim() !== '') {
-      throw new Error(
-        `Baseline directory has uncommitted changes (test isolation issue):\n${stdout}`
-      );
-    }
+    gitResult = stdout;
   } catch (error) {
-    // Re-throw validation errors, but ignore git execution errors
-    if (error instanceof Error && error.message.includes('Baseline directory')) {
-      throw error;
-    }
-    console.warn(`⚠ Could not validate baseline integrity: ${String(error)}`);
+    // Git command itself failed - cannot validate
+    throw new Error(
+      `Failed to check baseline integrity: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  // Check if there are uncommitted changes
+  if (gitResult.trim() !== '') {
+    throw new BaselineContaminationError(
+      `Baseline directory has uncommitted changes (test isolation issue):\n${gitResult}`
+    );
   }
 }
 
