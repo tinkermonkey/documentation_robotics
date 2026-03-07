@@ -480,17 +480,10 @@ export class RelationshipValidator {
    */
   private findElementInModel(model: Model, elementId: string) {
     for (const layer of model.layers.values()) {
-      // First try UUID lookup via getElement
-      let element = layer.getElement(elementId);
+      // Lookup element by UUID
+      const element = layer.getElement(elementId);
       if (element) {
         return element;
-      }
-
-      // If not found by UUID, try semantic ID (elementId) lookup
-      for (const candidate of layer.listElements()) {
-        if (candidate.elementId === elementId) {
-          return candidate;
-        }
       }
     }
     return null;

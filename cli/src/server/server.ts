@@ -1468,8 +1468,6 @@ export class VisualizationServer {
         };
         if (e.description) node.description = e.description;
         if (e.attributes && Object.keys(e.attributes).length > 0) node.attributes = e.attributes;
-        if (e.elementId) node.elementId = e.elementId;
-        if (e.properties && Object.keys(e.properties).length > 0) node.properties = e.properties;
         if (e.source_reference) node.source_reference = e.source_reference;
         if (e.metadata) node.metadata = e.metadata;
 

@@ -421,11 +421,11 @@ export class Model {
         version: this.manifest.version,
       },
       documentation: ".dr/README.md",
-      layers: this.manifest.layers || ({} as any),
+      layers: {},
     };
 
-    // If layers not preserved from load, generate default structure
-    if (!this.manifest.layers || Object.keys(this.manifest.layers).length === 0) {
+    // Generate layer structure from current model state
+    {
       const layerOrder = [
         "motivation",
         "business",
@@ -453,14 +453,6 @@ export class Model {
           enabled: true,
           ...(layer && { elements: this.getLayerElementCounts(layer) }),
         };
-      }
-    } else {
-      // Update element counts in existing layer configs
-      for (const [layerName, layerConfig] of Object.entries(yamlData.layers)) {
-        const layer = this.layers.get(layerName);
-        if (layer) {
-          (layerConfig as any).elements = this.getLayerElementCounts(layer);
-        }
       }
     }
 
@@ -641,7 +633,6 @@ export class Model {
         specVersion: manifestYaml.spec_version || "0.6.0",
         created: manifestYaml.created || new Date().toISOString(),
         modified: manifestYaml.updated || new Date().toISOString(),
-        layers: manifestYaml.layers,
       };
       const manifest = new Manifest(manifestData);
       const model = new Model(projectRoot, manifest, options);

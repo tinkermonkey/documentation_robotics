@@ -281,7 +281,6 @@ export class Layer {
           source_reference: node.source_reference,
           metadata: node.metadata,
           layer: node.layer,
-          elementId: node.elementId,
           references: (node.properties["__references__"] ?? []) as Reference[],
           relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
         })
