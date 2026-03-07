@@ -70,13 +70,23 @@ export class ArchiMateExporter implements Exporter {
         // Add properties section
         lines.push("      <properties>");
 
+        // Handle source_reference from node (if present)
+        if (node.source_reference) {
+          const flattenedProps = this.flattenSourceReference(node.source_reference);
+          for (const [flatKey, flatValue] of Object.entries(flattenedProps)) {
+            lines.push(
+              `        <property key="${escapeXml(flatKey)}" value="${escapeXml(String(flatValue))}" />`
+            );
+          }
+        }
+
         // Add node properties
         const propKeys = Object.keys(node.properties || {});
         if (propKeys.length > 0) {
           for (const key of propKeys) {
             const val = node.properties[key];
 
-            // Special handling for source reference structure
+            // Special handling for source reference structure in properties
             if (key === "source" && val && typeof val === "object" && "reference" in val) {
               const flattenedProps = this.flattenSourceReference(val.reference);
               for (const [flatKey, flatValue] of Object.entries(flattenedProps)) {

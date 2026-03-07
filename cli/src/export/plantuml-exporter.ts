@@ -177,8 +177,13 @@ export class PlantUMLExporter implements Exporter {
   private extractSourceReference(node: any): string | null {
     if (!node) return null;
 
-    // Try x-source-reference first (standardized format)
-    let sourceRef = node.properties?.["x-source-reference"];
+    // Try node.source_reference first (primary field on GraphNode)
+    let sourceRef = node.source_reference;
+
+    // Fall back to x-source-reference in properties
+    if (!sourceRef) {
+      sourceRef = node.properties?.["x-source-reference"];
+    }
 
     // Fall back to nested source.reference format
     if (!sourceRef && node.properties?.source?.reference) {

@@ -226,18 +226,16 @@ describe("ArchiMateExporter", () => {
       type: "application-component",
       name: "Test Component",
       source_reference: {
-            provenance: "extracted",
-            locations: [
-              {
-                file: "src/components/test.ts",
-                symbol: "TestComponent",
-              },
-            ],
-            repository: {
-              url: "https://github.com/example/repo",
-              commit: "abc123def456789012345678901234567890abcd",
-            },
+        provenance: "extracted",
+        locations: [
+          {
+            file: "src/components/test.ts",
+            symbol: "TestComponent",
           },
+        ],
+        repository: {
+          url: "https://github.com/example/repo",
+          commit: "abc123def456789012345678901234567890abcd",
         },
       },
     });
@@ -271,14 +269,12 @@ describe("ArchiMateExporter", () => {
       type: "application-component",
       name: "Test Component",
       source_reference: {
-            provenance: "manual",
-            locations: [
-              {
-                file: "src/test.ts",
-              },
-            ],
+        provenance: "manual",
+        locations: [
+          {
+            file: "src/test.ts",
           },
-        },
+        ],
       },
     });
 
@@ -301,19 +297,17 @@ describe("ArchiMateExporter", () => {
       type: "application-component",
       name: "Multi-file Component",
       source_reference: {
-            provenance: "extracted",
-            locations: [
-              {
-                file: "src/main.ts",
-                symbol: "MainClass",
-              },
-              {
-                file: "src/helper.ts",
-                symbol: "HelperClass",
-              },
-            ],
+        provenance: "extracted",
+        locations: [
+          {
+            file: "src/main.ts",
+            symbol: "MainClass",
           },
-        },
+          {
+            file: "src/helper.ts",
+            symbol: "HelperClass",
+          },
+        ],
       },
     });
 
@@ -337,14 +331,12 @@ describe("ArchiMateExporter", () => {
       type: "application-component",
       name: "Test Component",
       source_reference: {
-            provenance: "manual",
-            locations: [
-              {
-                file: 'src/test<>&"file.ts',
-              },
-            ],
+        provenance: "manual",
+        locations: [
+          {
+            file: 'src/test<>&"file.ts',
           },
-        },
+        ],
       },
     });
 

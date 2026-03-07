@@ -57,8 +57,8 @@ export class Element implements IElement {
     this.name = data.name || "";
     this.description = data.description;
 
-    // Handle attributes
-    this.attributes = data.attributes || {};
+    // Handle attributes - support both 'attributes' and 'properties' for backward compatibility with tests
+    this.attributes = data.attributes || (data as any).properties || {};
 
     // Extract source_reference
     if (data.source_reference) {
