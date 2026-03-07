@@ -14,13 +14,13 @@ export const specNodeExamples = {
     description:
       "A goal is an end state or outcome that a stakeholder wants to achieve",
     allOf: [{ $ref: "../../schemas/base/spec-node.schema.json" }],
-    attributes: {
+    properties: {
       spec_node_id: { const: "motivation.goal" },
       layer_id: { const: "motivation" },
       type: { const: "goal" },
       attributes: {
         type: "object",
-        attributes: {
+        properties: {
           priority: {
             type: "string",
             enum: ["critical", "high", "medium", "low"],
@@ -48,13 +48,13 @@ export const specNodeExamples = {
     title: "Requirement",
     description: "A specific, measurable requirement derived from a goal",
     allOf: [{ $ref: "../../schemas/base/spec-node.schema.json" }],
-    attributes: {
+    properties: {
       spec_node_id: { const: "motivation.requirement" },
       layer_id: { const: "motivation" },
       type: { const: "requirement" },
       attributes: {
         type: "object",
-        attributes: {
+        properties: {
           type: {
             type: "string",
             enum: ["functional", "non-functional", "constraint"],
@@ -78,13 +78,13 @@ export const specNodeExamples = {
     title: "Endpoint",
     description: "A REST API endpoint",
     allOf: [{ $ref: "../../schemas/base/spec-node.schema.json" }],
-    attributes: {
+    properties: {
       spec_node_id: { const: "api.endpoint" },
       layer_id: { const: "api" },
       type: { const: "endpoint" },
       attributes: {
         type: "object",
-        attributes: {
+        properties: {
           method: {
             type: "string",
             enum: ["GET", "POST", "PUT", "DELETE", "PATCH"],
@@ -112,13 +112,13 @@ export const specNodeExamples = {
     title: "Table",
     description: "A database table",
     allOf: [{ $ref: "../../schemas/base/spec-node.schema.json" }],
-    attributes: {
+    properties: {
       spec_node_id: { const: "data-store.table" },
       layer_id: { const: "data-store" },
       type: { const: "table" },
       attributes: {
         type: "object",
-        attributes: {
+        properties: {
           columns: {
             type: "integer",
             description: "Number of columns",
@@ -139,13 +139,13 @@ export const specNodeExamples = {
     title: "Test Case",
     description: "A single test case",
     allOf: [{ $ref: "../../schemas/base/spec-node.schema.json" }],
-    attributes: {
+    properties: {
       spec_node_id: { const: "testing.test-case" },
       layer_id: { const: "testing" },
       type: { const: "test-case" },
       attributes: {
         type: "object",
-        attributes: {
+        properties: {
           status: {
             type: "string",
             enum: ["active", "inactive", "archived"],
@@ -169,7 +169,7 @@ export const specNodeExamples = {
     title: "Minimal Node",
     description: "Node with minimal attributes",
     allOf: [{ $ref: "../../schemas/base/spec-node.schema.json" }],
-    attributes: {
+    properties: {
       spec_node_id: { const: "custom.minimal" },
       layer_id: { const: "custom" },
       type: { const: "minimal" },
@@ -186,13 +186,13 @@ export const specNodeExamples = {
     title: "Entity",
     description: "A logical data entity",
     allOf: [{ $ref: "../../schemas/base/spec-node.schema.json" }],
-    attributes: {
+    properties: {
       spec_node_id: { const: "data-model.entity" },
       layer_id: { const: "data-model" },
       type: { const: "entity" },
       attributes: {
         type: "object",
-        attributes: {
+        properties: {
           abstract: {
             type: "boolean",
             description: "Whether this is an abstract entity",

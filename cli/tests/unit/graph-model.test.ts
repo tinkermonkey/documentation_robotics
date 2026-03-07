@@ -124,7 +124,7 @@ describe("GraphModel", () => {
 
       const updated = graph.updateNode("node-1", {
         name: "Updated Name",
-        attributes: { key: "value" },
+        properties: { key: "value" },
       });
 
       expect(updated).toBe(true);
@@ -318,7 +318,7 @@ describe("GraphModel", () => {
       graph.addEdge(edge);
 
       const updated = graph.updateEdge("edge-1", {
-        attributes: { key: "value" },
+        properties: { key: "value" },
       });
 
       expect(updated).toBe(true);
