@@ -53,7 +53,7 @@ describe("Element", () => {
     expect(element.toString()).toBe("Element(motivation-goal-test-goal)");
   });
 
-  it("should throw error when creating element without id or elementId", () => {
+  it("should throw error when creating element without id", () => {
     expect(() => {
       new Element({
         spec_node_id: "motivation.goal",
@@ -62,23 +62,11 @@ describe("Element", () => {
         layer_id: "motivation",
       });
     }).toThrow(
-      "Element must have either 'id' or 'elementId' field. Missing ID prevents proper element tracking and causes silent data loss."
+      "Element must have an 'id' field. Missing ID prevents proper element tracking and causes silent data loss."
     );
   });
 
-  it("should use elementId as fallback when id is not provided", () => {
-    const element = new Element({
-      elementId: "motivation.goal.test-goal",
-      spec_node_id: "motivation.goal",
-      type: "goal",
-      name: "Test Goal",
-      layer_id: "motivation",
-    });
-
-    expect(element.id).toBe("motivation.goal.test-goal");
-  });
-
-  describe("Backward compatibility constructor paths", () => {
+  describe("Constructor behavior", () => {
     it("should use layer_id fallback when layer is not provided (line 70)", () => {
       const element = new Element({
         id: "motivation.goal.test",
@@ -108,51 +96,6 @@ describe("Element", () => {
       expect(element.layer).toBe("motivation");
     });
 
-    it("should migrate properties to attributes (line 76-83)", () => {
-      const element = new Element({
-        id: "api.endpoint.test",
-        spec_node_id: "api.endpoint",
-        type: "endpoint",
-        name: "Test Endpoint",
-        layer_id: "api",
-        properties: {
-          method: "GET",
-          path: "/test",
-        },
-      });
-
-      expect(element.attributes).toEqual({
-        method: "GET",
-        path: "/test",
-      });
-      expect(element.properties).toEqual({
-        method: "GET",
-        path: "/test",
-      });
-    });
-
-    it("should prefer attributes over properties", () => {
-      const element = new Element({
-        id: "api.endpoint.test",
-        spec_node_id: "api.endpoint",
-        type: "endpoint",
-        name: "Test Endpoint",
-        layer_id: "api",
-        attributes: {
-          method: "POST",
-          path: "/api/test",
-        },
-        properties: {
-          method: "GET",
-          path: "/test",
-        },
-      });
-
-      expect(element.attributes).toEqual({
-        method: "POST",
-        path: "/api/test",
-      });
-    });
 
     it("should extract source_reference from top level (line 89-90)", () => {
       const sourceRef = {
@@ -172,95 +115,6 @@ describe("Element", () => {
 
       expect(element.source_reference).toEqual(sourceRef);
       expect(element.getSourceReference()).toEqual(sourceRef);
-    });
-
-    it("should extract source_reference from legacy properties.source.reference (line 94-95)", () => {
-      const sourceRef = {
-        file: "src/api.ts",
-        symbol: "createEndpoint",
-        provenance: "manual",
-      };
-
-      const element = new Element({
-        id: "api.endpoint.test",
-        spec_node_id: "api.endpoint",
-        type: "endpoint",
-        name: "Test Endpoint",
-        layer_id: "api",
-        properties: {
-          source: {
-            reference: sourceRef,
-          },
-        },
-      });
-
-      expect(element.source_reference).toEqual(sourceRef);
-    });
-
-    it("should extract source_reference from legacy properties['x-source-reference'] (line 96-98)", () => {
-      const sourceRef = {
-        file: "src/api.ts",
-        symbol: "endpoint",
-        provenance: "generated",
-      };
-
-      const element = new Element({
-        id: "api.endpoint.test",
-        spec_node_id: "api.endpoint",
-        type: "endpoint",
-        name: "Test Endpoint",
-        layer_id: "api",
-        properties: {
-          "x-source-reference": sourceRef,
-        },
-      });
-
-      expect(element.source_reference).toEqual(sourceRef);
-    });
-
-    it("should prefer top-level source_reference over legacy properties format", () => {
-      const topLevelRef = {
-        file: "new.ts",
-        symbol: "newEndpoint",
-        provenance: "manual",
-      };
-
-      const legacyRef = {
-        file: "old.ts",
-        symbol: "oldEndpoint",
-        provenance: "generated",
-      };
-
-      const element = new Element({
-        id: "api.endpoint.test",
-        spec_node_id: "api.endpoint",
-        type: "endpoint",
-        name: "Test Endpoint",
-        layer_id: "api",
-        source_reference: topLevelRef,
-        properties: {
-          source: {
-            reference: legacyRef,
-          },
-        },
-      });
-
-      expect(element.source_reference).toEqual(topLevelRef);
-    });
-
-    it("should handle empty properties and attributes gracefully", () => {
-      const element = new Element({
-        id: "api.endpoint.test",
-        spec_node_id: "api.endpoint",
-        type: "endpoint",
-        name: "Test Endpoint",
-        layer_id: "api",
-        properties: {},
-        attributes: {},
-      });
-
-      expect(element.attributes).toEqual({});
-      expect(element.properties).toEqual({});
     });
   });
 

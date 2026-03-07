@@ -272,39 +272,4 @@ describe("Layer", () => {
     expect(retrieved?.references).toEqual([reference]);
   });
 
-  it("should delete element by semantic ID (elementId fallback)", () => {
-    const element = new Element({
-      id: "motivation-goal-test",
-      type: "Goal",
-      name: "Test Goal",
-      elementId: "motivation.goal.test-goal",
-    });
-
-    const layer = new Layer("motivation", [element]);
-
-    expect(layer.listElements()).toHaveLength(1);
-
-    // Delete using semantic ID instead of UUID
-    const deleted = layer.deleteElement("motivation.goal.test-goal");
-
-    expect(deleted).toBe(true);
-    expect(layer.listElements()).toHaveLength(0);
-    expect(layer.isDirty()).toBe(true);
-  });
-
-  it("should preserve elementId bridge field in listElements", () => {
-    const element = new Element({
-      id: "motivation-goal-test",
-      type: "Goal",
-      name: "Test Goal",
-      elementId: "motivation.goal.test-goal",
-    });
-
-    const layer = new Layer("motivation", [element]);
-
-    const listedElements = layer.listElements();
-
-    expect(listedElements).toHaveLength(1);
-    expect(listedElements[0].elementId).toBe("motivation.goal.test-goal");
-  });
 });

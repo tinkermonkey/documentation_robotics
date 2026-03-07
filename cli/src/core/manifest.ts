@@ -7,13 +7,11 @@ import type {
  * Manifest representing model metadata and configuration
  *
  * The Manifest class manages all metadata about a Documentation Robotics model,
- * including project information, changeset history, and Python CLI compatibility
- * fields for migration scenarios.
+ * including project information, changeset history, and layer configuration.
  *
  * This class handles:
  * - Project metadata (name, version, description, author)
  * - Changeset application history
- * - Backward compatibility with Python CLI format for layer migration
  */
 export class Manifest {
   name: string;
@@ -25,22 +23,7 @@ export class Manifest {
   specVersion?: string;
   changeset_history?: ChangesetHistoryEntry[];
 
-  /**
-   * Python CLI compatibility field - layer configuration mapping
-   *
-   * Used when loading models that were created by Python CLI.
-   * Contains path information for layer directories in old format.
-   *
-   * @internal Used by model loading logic for Python CLI compatibility and migration
-   */
-  layers?: Record<string, unknown>;
-
-
-  constructor(
-    data: ManifestData & {
-      layers?: Record<string, unknown>;
-    }
-  ) {
+  constructor(data: ManifestData) {
     this.name = data.name;
     this.version = data.version;
     this.description = data.description;
@@ -51,9 +34,6 @@ export class Manifest {
 
     // Migrate changeset history from legacy format (if present)
     this.changeset_history = this.migrateChangesetHistory(data.changeset_history);
-
-    // Python CLI compatibility field
-    this.layers = data.layers;
   }
 
   /**
@@ -105,7 +85,7 @@ export class Manifest {
    * Serialize to JSON representation
    *
    * Converts the Manifest to a JSON-serializable object that includes project
-   * metadata, changeset history, and Python CLI compatibility data for migration scenarios.
+   * metadata and changeset history.
    *
    * @returns ManifestData object suitable for JSON serialization
    */
@@ -131,11 +111,6 @@ export class Manifest {
 
     if (this.changeset_history && this.changeset_history.length > 0) {
       result.changeset_history = this.changeset_history;
-    }
-
-    // Include Python CLI compatibility fields for migration scenarios
-    if (this.layers) {
-      result.layers = this.layers;
     }
 
     return result;

@@ -157,13 +157,8 @@ export class VirtualProjectionEngine {
 
     if (baseElement) {
       // Create a new element with projected data merged with base
-      // Handle both 'attributes' (spec-aligned) and 'properties' (legacy) field names
       const projectedAttributes =
-        typeof projectedData.attributes === "object"
-          ? projectedData.attributes
-          : typeof projectedData.properties === "object"
-            ? projectedData.properties
-            : {};
+        typeof projectedData.attributes === "object" ? projectedData.attributes : {};
 
       const mergedData = {
         id: baseElement.id,
@@ -302,13 +297,8 @@ export class VirtualProjectionEngine {
             const existing = projectedLayer.getElement(change.elementId);
             if (existing) {
               // Create updated element with merged attributes
-              // Handle both 'attributes' (spec-aligned) and 'properties' (legacy) field names
               const afterAttributes =
-                typeof change.after.attributes === "object"
-                  ? change.after.attributes
-                  : typeof change.after.properties === "object"
-                    ? change.after.properties
-                    : {};
+                typeof change.after.attributes === "object" ? change.after.attributes : {};
 
               const mergedAttributes: Record<string, unknown> = {
                 ...existing.attributes,
@@ -662,9 +652,9 @@ export class VirtualProjectionEngine {
         layer_id: element.layer_id,
         name: element.name,
         description: element.description,
-        attributes: { ...element.attributes }, // Shallow copy (attributes are read-only in projection)
-        references: [...(element.references || [])], // Shallow copy of array
-        relationships: [...(element.relationships || [])], // Shallow copy of array
+        attributes: { ...element.attributes },
+        references: [...(element.references || [])],
+        relationships: [...(element.relationships || [])],
         layer: element.layer,
         source_reference: element.source_reference,
         metadata: element.metadata,

@@ -105,7 +105,6 @@ export class Model {
 
   /**
    * Load a layer from disk (model/XX_layername/*.yaml files)
-   * Supports reading layer paths from manifest for Python CLI compatibility
    */
   async loadLayer(name: string): Promise<void> {
     const layerSpan = isTelemetryEnabled
@@ -120,44 +119,21 @@ export class Model {
 
       let layerPath: string | null = null;
 
-      // PRIORITY 1: Read layer path from manifest (Python CLI compatibility)
-      if (this.manifest.layers && this.manifest.layers[name]) {
-        const layerConfig = this.manifest.layers[name];
-        if (layerConfig && typeof layerConfig === "object" && "path" in layerConfig) {
-          const configPath = (layerConfig as Record<string, unknown>).path;
-          if (typeof configPath === "string") {
-            // Path in manifest is relative to root
-            const fullPath = `${this.rootPath}/${configPath.replace(/\/$/, "")}`;
-            try {
-              await fs.access(fullPath);
-              layerPath = fullPath;
-            } catch (err) {
-              // Path in manifest doesn't exist - this is an error
-              if (process.env.DEBUG) {
-                console.debug(`Manifest specifies path ${configPath} but it doesn't exist`);
-              }
-            }
-          }
+      // Auto-discover by scanning directory with naming convention
+      const modelDir = `${this.rootPath}/documentation-robotics/model`;
+
+      try {
+        const entries = await fs.readdir(modelDir, { withFileTypes: true });
+        const layerDir = entries.find(
+          (e) =>
+            e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
+        );
+
+        if (layerDir) {
+          layerPath = `${modelDir}/${layerDir.name}`;
         }
-      }
-
-      // FALLBACK: Auto-discover by scanning directory with naming convention
-      if (!layerPath) {
-        const modelDir = `${this.rootPath}/documentation-robotics/model`;
-
-        try {
-          const entries = await fs.readdir(modelDir, { withFileTypes: true });
-          const layerDir = entries.find(
-            (e) =>
-              e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
-          );
-
-          if (layerDir) {
-            layerPath = `${modelDir}/${layerDir.name}`;
-          }
-        } catch {
-          // Model directory doesn't exist or can't be read
-        }
+      } catch {
+        // Model directory doesn't exist or can't be read
       }
 
       if (!layerPath) {
@@ -182,30 +158,16 @@ export class Model {
                 if (element && typeof element === "object") {
                   const el: any = element;
 
-                  let elementUUID = el.id;
-                  let elementSemanticId: string | undefined = undefined;
-
-                  // Legacy format detection: 3-part semantic IDs (e.g., "motivation.goal.test-goal")
-                  // If id looks like a semantic ID (has 2+ dots), treat as elementId instead
-                  if (typeof elementUUID === "string" && (elementUUID.match(/\./g) || []).length >= 2) {
-                    elementSemanticId = elementUUID;
-                    // Generate a UUID-like ID for the element
-                    elementUUID = key || `${name}-${Math.random().toString(36).substr(2, 9)}`;
-                  }
-
+                  const elementUUID = el.id;
                   const elementName = el.name || key;
                   const elementType = el.type;
                   const layerId = el.layer_id || name;
-
-                  // Use explicit elementId field if present in YAML, otherwise use detected semantic ID
-                  const finalElementId = el.elementId || elementSemanticId;
 
                   const newElement = new Element({
                     id: elementUUID,
                     spec_node_id: el.spec_node_id,
                     layer_id: layerId,
                     attributes: el.attributes,
-                    properties: el.properties, // Legacy properties field
                     source_reference: el.source_reference,
                     metadata: el.metadata,
                     name: elementName,
@@ -214,7 +176,6 @@ export class Model {
                     relationships: el.relationships || [],
                     references: el.references || [],
                     layer: layerId,
-                    elementId: finalElementId, // Store semantic ID from YAML or legacy detection
                   });
                   layer.addElement(newElement);
                 }
@@ -290,42 +251,21 @@ export class Model {
 
     let layerPath: string | null = null;
 
-    // Try to get layer path from manifest first (Python CLI compatibility)
-    if (this.manifest.layers && this.manifest.layers[name]) {
-      const layerConfig = this.manifest.layers[name];
-      if (layerConfig && typeof layerConfig === "object" && "path" in layerConfig) {
-        const configPath = (layerConfig as Record<string, unknown>).path;
-        if (typeof configPath === "string") {
-          const fullPath = `${this.rootPath}/${configPath.replace(/\/$/, "")}`;
-          try {
-            await fs.access(fullPath);
-            layerPath = fullPath;
-          } catch {
-            // Path doesn't exist, create it
-            await ensureDir(fullPath);
-            layerPath = fullPath;
-          }
-        }
+    // Discover by scanning directory
+    const modelDir = `${this.rootPath}/documentation-robotics/model`;
+
+    try {
+      const entries = await fs.readdir(modelDir, { withFileTypes: true });
+      const layerDir = entries.find(
+        (e) =>
+          e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
+      );
+
+      if (layerDir) {
+        layerPath = `${modelDir}/${layerDir.name}`;
       }
-    }
-
-    // If manifest path not found, try discovery by scanning directory
-    if (!layerPath) {
-      const modelDir = `${this.rootPath}/documentation-robotics/model`;
-
-      try {
-        const entries = await fs.readdir(modelDir, { withFileTypes: true });
-        const layerDir = entries.find(
-          (e) =>
-            e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
-        );
-
-        if (layerDir) {
-          layerPath = `${modelDir}/${layerDir.name}`;
-        }
-      } catch {
-        // Model directory doesn't exist or can't be read
-      }
+    } catch {
+      // Model directory doesn't exist or can't be read
     }
 
     // If still not found, create using default format
@@ -336,7 +276,6 @@ export class Model {
       const index = CANONICAL_LAYER_NAMES.indexOf(layerNameWithoutPrefix as typeof CANONICAL_LAYER_NAMES[number]);
       if (index >= 0) {
         const orderNum = String(index + 1).padStart(2, "0");
-        // Use Python CLI structure
         layerPath = `${this.rootPath}/documentation-robotics/model/${orderNum}_${layerNameWithoutPrefix}`;
         await ensureDir(layerPath);
       } else {
@@ -374,7 +313,7 @@ export class Model {
       elementsByType.get(typeKey)!.elements.push(element);
     }
 
-    // Internal graph fields stored in properties/attributes — never written to YAML
+    // Internal graph fields — never written to YAML
     const INTERNAL_FIELDS = new Set([
       "__references__", "__relationships__",
       "source", "x-source-reference",
@@ -411,8 +350,6 @@ export class Model {
           ...(json.metadata && { metadata: json.metadata }),
           ...(json.references && json.references.length > 0 && { references: json.references }),
           // Relationships are now stored in centralized relationships.yaml, not inline
-          // Semantic ID (elementId) is persisted via element.toJSON() for lookup operations
-          ...(json.elementId && { elementId: json.elementId }),
         };
       }
 
@@ -595,7 +532,6 @@ export class Model {
     const data = this.relationships.toArray();
 
     // Add header comment with timestamp to ensure file always changes
-    // This matches Python CLI behavior
     const timestamp = new Date().toISOString();
     const header = `# Intra-layer relationships
 # Format: source_id -> predicate -> target_id
@@ -776,7 +712,7 @@ export class Model {
     manifestData: ManifestData,
     options: ModelOptions = {}
   ): Promise<Model> {
-    // Create model directory using Python CLI structure: documentation-robotics/model/
+    // Create model directory structure
     await ensureDir(`${rootPath}/documentation-robotics/model`);
 
     for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {

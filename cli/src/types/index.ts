@@ -67,11 +67,7 @@ export interface Element {
   source_reference?: SourceReference; // Provenance tracking
   metadata?: ElementMetadata; // Lifecycle tracking
 
-  // Legacy compatibility fields
-  elementId?: string; // Legacy semantic ID (e.g., "motivation.goal.test-goal") - fallback for id
-  properties?: Record<string, unknown>; // Legacy field name for attributes
-
-  // Relationship tracking (unchanged)
+  // Relationship tracking
   references?: Reference[];
   relationships?: Relationship[];
 

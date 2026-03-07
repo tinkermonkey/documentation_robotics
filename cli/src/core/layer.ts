@@ -100,7 +100,6 @@ export class Layer {
         source_reference: node.source_reference,
         metadata: node.metadata,
         layer: node.layer,
-        elementId: node.elementId,
         references: (node.properties["__references__"] ?? []) as Reference[],
         relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
       });
@@ -172,28 +171,12 @@ export class Layer {
 
   /**
    * Get an element by ID from the graph.
-   * Supports both UUID and semantic ID (elementId) lookup.
    *
-   * @param id - UUID or semantic ID of the element to get
+   * @param id - UUID of the element to get
    * @returns The element if found, undefined if not found
-   *
-   * Performance notes:
-   * - Fast path (O(1)): Direct UUID lookup via graph.nodes Map
-   * - Fallback (O(n)): Semantic ID lookup when UUID lookup fails
    */
   getElement(id: string): Element | undefined {
-    // First try direct UUID lookup (O(1))
-    let node = this.graph.nodes.get(id);
-
-    // If not found by UUID, try semantic ID (elementId) lookup
-    if (!node) {
-      for (const candidate of this.graph.nodes.values()) {
-        if (candidate.layer === this.name && candidate.elementId === id) {
-          node = candidate;
-          break;
-        }
-      }
-    }
+    const node = this.graph.nodes.get(id);
 
     if (!node || node.layer !== this.name) {
       return undefined;
@@ -210,7 +193,6 @@ export class Layer {
       source_reference: node.source_reference,
       metadata: node.metadata,
       layer: node.layer,
-      elementId: node.elementId,
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
     });
@@ -263,24 +245,12 @@ export class Layer {
 
   /**
    * Delete an element by ID from the graph
-   * Supports both UUID and semantic ID (elementId) lookup
    *
-   * @param id - UUID or semantic ID of the element to delete
+   * @param id - UUID of the element to delete
    * @returns true if element was deleted, false if not found
    */
   deleteElement(id: string): boolean {
-    // First try direct UUID lookup (O(1))
-    let node = this.graph.nodes.get(id);
-
-    // If not found by UUID, try semantic ID (elementId) lookup
-    if (!node) {
-      for (const candidate of this.graph.nodes.values()) {
-        if (candidate.layer === this.name && candidate.elementId === id) {
-          node = candidate;
-          break;
-        }
-      }
-    }
+    const node = this.graph.nodes.get(id);
 
     if (!node || node.layer !== this.name) {
       return false;

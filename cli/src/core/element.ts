@@ -26,10 +26,7 @@ export class Element implements IElement {
   source_reference?: SourceReference;
   metadata?: ElementMetadata;
 
-  // Legacy compatibility fields
-  elementId?: string;
-
-  // Relationship tracking (unchanged)
+  // Relationship tracking
   references: Reference[] = [];
   relationships: Relationship[] = [];
 
@@ -43,46 +40,29 @@ export class Element implements IElement {
   }
 
   /**
-   * Getter for properties (alias for attributes in new format)
-   */
-  get properties(): Record<string, unknown> {
-    return this.attributes;
-  }
-
-  /**
    * Initialize Element from spec-node aligned format
    */
   private initializeFromSpecNode(data: Partial<IElement>): void {
-    // Allow id or elementId (legacy fallback)
-    if (!data.id && !data.elementId) {
+    // ID is required
+    if (!data.id) {
       throw new Error(
-        "Element must have either 'id' or 'elementId' field. Missing ID prevents proper element tracking and causes silent data loss."
+        "Element must have an 'id' field. Missing ID prevents proper element tracking and causes silent data loss."
       );
     }
 
-    this.id = data.id || (data.elementId as string);
+    this.id = data.id;
     this.spec_node_id = data.spec_node_id || "";
     this.type = data.type || "";
     this.layer_id = data.layer_id || "";
     this.name = data.name || "";
     this.description = data.description;
 
-    // Handle attributes with fallback from properties (legacy migration)
-    if (data.attributes) {
-      this.attributes = data.attributes;
-    } else if (data.properties) {
-      this.attributes = data.properties;
-    } else {
-      this.attributes = {};
-    }
+    // Handle attributes
+    this.attributes = data.attributes || {};
 
-    // Extract source_reference: prefer explicit field, then try legacy paths
+    // Extract source_reference
     if (data.source_reference) {
       this.source_reference = data.source_reference;
-    } else if ((data.properties as any)?.source?.reference) {
-      this.source_reference = (data.properties as any).source.reference;
-    } else if ((data.properties as any)?.["x-source-reference"]) {
-      this.source_reference = (data.properties as any)["x-source-reference"];
     }
 
     this.metadata = data.metadata;
@@ -91,9 +71,8 @@ export class Element implements IElement {
     this.references = data.references || [];
     this.relationships = data.relationships || [];
 
-    // Internal tracking: prefer explicit layer property, fall back to layer_id
+    // Internal tracking
     this.layer = data.layer || data.layer_id;
-    this.elementId = data.elementId;
     this.filePath = data.filePath;
     this.rawData = data.rawData;
   }
@@ -185,7 +164,6 @@ export class Element implements IElement {
 
   /**
    * Serialize to JSON representation (spec-node aligned format)
-   * Note: elementId is included for backward compatibility and to enable semantic ID lookups
    */
   toJSON(): IElement {
     const result: IElement = {
@@ -218,10 +196,6 @@ export class Element implements IElement {
 
     if (this.relationships.length > 0) {
       result.relationships = this.relationships;
-    }
-
-    if (this.elementId) {
-      result.elementId = this.elementId;
     }
 
     return result;
