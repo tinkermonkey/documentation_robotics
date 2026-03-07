@@ -160,7 +160,7 @@ export class Model {
                   const el: any = element;
 
                   let elementUUID = el.id;
-                  let elementSemanticId: string | undefined = undefined;
+                  let extractedType: string | undefined = undefined;
 
                   // Legacy format detection:
                   // 1. Dot-separated semantic IDs (e.g., "motivation.goal.test-goal") with 2+ dots
@@ -175,14 +175,24 @@ export class Model {
                       elementUUID.length > name.length + 1; // Has more than just layer name
 
                     if (isSemanticId || isLegacyHyphenFormat) {
-                      elementSemanticId = elementUUID;
+                      // Extract type from semantic ID format: "layer.type.kebab-case-name"
+                      // or legacy format: "layer-type-kebab-case-name"
+                      const parts = elementUUID.split(/[.-]/);
+                      if (parts.length >= 3) {
+                        // Skip first part (layer name), get second part (type)
+                        extractedType = parts[1];
+                      } else if (parts.length === 2) {
+                        // Fallback for simple format
+                        extractedType = parts[1];
+                      }
+
                       // Generate a UUID for the element
                       elementUUID = crypto.randomUUID();
                     }
                   }
 
                   const elementName = el.name || key;
-                  const elementType = el.type;
+                  const elementType = el.type || extractedType;
                   const layerId = el.layer_id || name;
 
                   const newElement = new Element({

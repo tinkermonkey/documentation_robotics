@@ -265,7 +265,8 @@ describe("CLI Commands Integration Tests", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      const element = layer!.getElement("motivation.goal.original-name");
+      // Use the new semantic ID after the name change
+      const element = layer!.getElement("motivation.goal.updated-name");
       expect(element!.name).toBe("Updated Name");
     });
 

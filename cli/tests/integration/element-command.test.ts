@@ -189,10 +189,10 @@ describe("Element Subcommand Group", () => {
 
       expect(result.exitCode).toBe(0);
 
-      // Verify name was updated
+      // Verify name was updated (use the new semantic ID after name change)
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      const element = layer!.getElement("motivation.goal.original-goal");
+      const element = layer!.getElement("motivation.goal.updated-goal");
       expect(element!.name).toBe("Updated Goal");
     });
 
