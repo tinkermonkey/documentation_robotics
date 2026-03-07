@@ -193,7 +193,13 @@ export class Layer {
         // Try to find by semantic ID by searching all nodes
         for (const candidate of this.graph.nodes.values()) {
           if (candidate.layer === this.name) {
-            // Build both formats and compare
+            // Check if element has a stored semanticName attribute (when --name differs from third param)
+            const semanticNameAttr = candidate.properties?.["semanticName"] ||
+              candidate.attributes?.["semanticName"];
+
+            let semanticIds: string[] = [];
+
+            // Build semantic IDs from element name
             const kebabName = candidate.name
               .replace(/[\s_]+/g, "-")
               .replace(/([a-z])([A-Z])/g, "$1-$2")
@@ -201,13 +207,20 @@ export class Layer {
               .replace(/-+/g, "-")
               .replace(/^-+|-+$/g, "");
 
-            // Dot-separated semantic ID: layer.type.kebab-name
-            const dotSemanticId = `${candidate.layer_id || this.name}.${candidate.type}.${kebabName}`;
+            semanticIds.push(
+              `${candidate.layer_id || this.name}.${candidate.type}.${kebabName}`, // Dot-separated
+              `${candidate.layer_id || this.name}-${candidate.type}-${kebabName}` // Hyphen-separated legacy
+            );
 
-            // Hyphen-separated legacy ID: layer-type-kebab-name
-            const hyphenSemanticId = `${candidate.layer_id || this.name}-${candidate.type}-${kebabName}`;
+            // Also check stored semanticName if it differs from computed name
+            if (semanticNameAttr && typeof semanticNameAttr === "string") {
+              semanticIds.push(
+                `${candidate.layer_id || this.name}.${candidate.type}.${semanticNameAttr}`,
+                `${candidate.layer_id || this.name}-${candidate.type}-${semanticNameAttr}`
+              );
+            }
 
-            if (dotSemanticId === id || hyphenSemanticId === id) {
+            if (semanticIds.includes(id)) {
               node = candidate;
               break;
             }

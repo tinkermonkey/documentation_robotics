@@ -149,6 +149,11 @@ export async function addCommand(
       layer, // Set layer so setSourceReference can use it
     });
 
+    // Store the semantic name component (third positional arg) for semantic ID lookup
+    if (options.name && options.name !== name) {
+      element.attributes["semanticName"] = name;
+    }
+
     // Add source reference if provided
     const sourceRef = buildSourceReference(options);
     if (sourceRef) {
