@@ -221,9 +221,7 @@ export async function cleanupTestArtifacts(paths: TestPaths): Promise<CleanupRes
     await rm(paths.pythonPath, { recursive: true, force: true });
     await rm(paths.tsPath, { recursive: true, force: true });
   } catch (error) {
-    result.directoryDeleteSuccess = false;
     const errorMsg = error instanceof Error ? error.message : String(error);
-    result.errors.push(`Directory deletion failed: ${errorMsg}`);
     throw new Error(`Failed to delete test directories: ${errorMsg}`);
   }
 
@@ -253,7 +251,15 @@ export async function cleanupTestArtifacts(paths: TestPaths): Promise<CleanupRes
  */
 export async function setupTestEnvironment(paths: TestPaths, config: CLIConfig, pythonAvailable: boolean = true): Promise<void> {
   // Clean up previous test artifacts
-  await cleanupTestArtifacts(paths);
+  const cleanupResult = await cleanupTestArtifacts(paths);
+  if (!cleanupResult.baselineRestoreSuccess) {
+    // Log warning if baseline restore failed, but proceed - setup will use potentially contaminated baseline
+    // This is acceptable here since setup will create fresh test copies
+    console.warn('⚠ Baseline restore failed during setup cleanup');
+    for (const error of cleanupResult.errors) {
+      console.warn(`   - ${error}`);
+    }
+  }
 
   // Create fresh copies of baseline
   try {

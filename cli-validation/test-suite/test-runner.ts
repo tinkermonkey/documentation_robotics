@@ -395,13 +395,15 @@ async function runTestSuite(): Promise<void> {
       console.log('✓ Baseline integrity verified - no contamination detected');
     } catch (error) {
       if (error instanceof BaselineContaminationError) {
+        // Contamination is a test failure - uncommitted baseline changes indicate test isolation issues
         baselineContaminated = true;
         console.error('⚠ Baseline contamination detected:');
         console.error(`   ${error.message}`);
       } else {
-        // Other errors (git failures, etc.) are logged but don't fail the run
+        // Git infrastructure failures (repo not found, git not installed, etc.) are diagnostic warnings
+        // These are environmental issues, not test isolation failures, so don't fail the run
         const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error('⚠ Could not validate baseline integrity:');
+        console.error('⚠ Could not validate baseline integrity (may indicate missing git or workspace issue):');
         console.error(`   ${errorMsg}`);
       }
     }
