@@ -472,9 +472,7 @@ export class RelationshipValidator {
   /**
    * Find an element in the model by ID (supports both UUID and semantic ID)
    *
-   * Supports two lookup modes:
-   * 1. UUID: Direct lookup using element's id field
-   * 2. Semantic ID: Fallback lookup using element's elementId field (e.g., "motivation.goal.test-goal")
+   * Performs element lookup by UUID using the element's id field.
    *
    * This matches the behavior of Layer.getElement() which relationships need for proper validation.
    */

@@ -425,35 +425,33 @@ export class Model {
     };
 
     // Generate layer structure from current model state
-    {
-      const layerOrder = [
-        "motivation",
-        "business",
-        "security",
-        "application",
-        "technology",
-        "api",
-        "data-model",
-        "data-store",
-        "ux",
-        "navigation",
-        "apm",
-        "testing",
-      ];
+    const layerOrder = [
+      "motivation",
+      "business",
+      "security",
+      "application",
+      "technology",
+      "api",
+      "data-model",
+      "data-store",
+      "ux",
+      "navigation",
+      "apm",
+      "testing",
+    ];
 
-      for (let i = 0; i < layerOrder.length; i++) {
-        const layerName = layerOrder[i];
-        const layer = this.layers.get(layerName);
-        const orderNum = String(i + 1).padStart(2, "0");
+    for (let i = 0; i < layerOrder.length; i++) {
+      const layerName = layerOrder[i];
+      const layer = this.layers.get(layerName);
+      const orderNum = String(i + 1).padStart(2, "0");
 
-        yamlData.layers[layerName] = {
-          order: i + 1,
-          name: layerName.charAt(0).toUpperCase() + layerName.slice(1).replace("-", " "),
-          path: `documentation-robotics/model/${orderNum}_${layerName}/`,
-          enabled: true,
-          ...(layer && { elements: this.getLayerElementCounts(layer) }),
-        };
-      }
+      yamlData.layers[layerName] = {
+        order: i + 1,
+        name: layerName.charAt(0).toUpperCase() + layerName.slice(1).replace("-", " "),
+        path: `documentation-robotics/model/${orderNum}_${layerName}/`,
+        enabled: true,
+        ...(layer && { elements: this.getLayerElementCounts(layer) }),
+      };
     }
 
     if (this.manifest.changeset_history && this.manifest.changeset_history.length > 0) {
