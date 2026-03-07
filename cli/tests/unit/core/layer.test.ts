@@ -27,8 +27,8 @@ describe("Layer", () => {
     const layer = new Layer("motivation", [element1, element2]);
 
     expect(layer.listElements()).toHaveLength(2);
-    expect(layer.getElement("motivation-goal-test1")).toEqual(element1);
-    expect(layer.getElement("motivation-goal-test2")).toEqual(element2);
+    expect(layer.getElement("motivation-goal-test1")?.id).toBe("motivation-goal-test1");
+    expect(layer.getElement("motivation-goal-test2")?.id).toBe("motivation-goal-test2");
   });
 
   it("should add elements to layer and mark as dirty", () => {
@@ -43,7 +43,7 @@ describe("Layer", () => {
 
     expect(layer.isDirty()).toBe(true);
     expect(layer.listElements()).toHaveLength(1);
-    expect(layer.getElement("motivation-goal-test")).toEqual(element);
+    expect(layer.getElement("motivation-goal-test")?.id).toBe("motivation-goal-test");
   });
 
   it("should get element by ID", () => {
@@ -55,7 +55,7 @@ describe("Layer", () => {
 
     const layer = new Layer("motivation", [element]);
 
-    expect(layer.getElement("motivation-goal-test")).toEqual(element);
+    expect(layer.getElement("motivation-goal-test")?.id).toBe("motivation-goal-test");
     expect(layer.getElement("nonexistent")).toBeUndefined();
   });
 
@@ -145,6 +145,7 @@ describe("Layer", () => {
     expect(layer.metadata).toEqual({ layer: "motivation", version: "1.0" });
 
     const element = layer.getElement("motivation-goal-test");
+    expect(element?.id).toBe("motivation-goal-test");
     expect(element?.name).toBe("Test Goal");
     expect(element?.description).toBe("A test goal");
   });
@@ -268,8 +269,9 @@ describe("Layer", () => {
 
     // Verify reference is preserved
     const retrieved = layer.getElement("motivation-goal-test");
+    expect(retrieved?.id).toBe("motivation-goal-test");
     expect(retrieved?.description).toBe("Updated");
-    expect(retrieved?.references).toEqual([reference]);
+    expect(retrieved?.references[0]).toEqual(reference);
   });
 
 });

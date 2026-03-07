@@ -94,7 +94,7 @@ describe("CLI Commands Integration Tests", () => {
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
       expect(layer).toBeDefined();
-      const element = layer!.getElement("motivation.goal.test-goal");
+      const element = layer!.findBySemanticId("motivation.goal.test-goal");
       expect(element).toBeDefined();
       expect(element!.name).toBe("Test Goal");
     });
@@ -113,7 +113,7 @@ describe("CLI Commands Integration Tests", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      const element = layer!.getElement("motivation.goal.test-goal");
+      const element = layer!.findBySemanticId("motivation.goal.test-goal");
       expect(element!.attributes.required).toBe(true);
     });
 
@@ -154,7 +154,7 @@ describe("CLI Commands Integration Tests", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("api");
-      const element = layer!.getElement("api.operation.test-operation");
+      const element = layer!.findBySemanticId("api.operation.test-operation");
       expect(element!.description).toBe("A test operation");
     });
 
@@ -179,7 +179,7 @@ describe("CLI Commands Integration Tests", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("api");
-      const element = layer!.getElement("api.operation.create-user");
+      const element = layer!.findBySemanticId("api.operation.create-user");
       expect(element!.attributes.method).toBe("POST");
       expect(element!.attributes.path).toBe("/api/users");
       expect((element!.attributes.parameters as any[]).length).toBe(1);
@@ -203,7 +203,7 @@ describe("CLI Commands Integration Tests", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("business");
-      const element = layer!.getElement("business.businessservice.test-service");
+      const element = layer!.findBySemanticId("business.businessservice.test-service");
       expect(element!.name).toBe("Test Service");
       expect(element!.description).toBe("A comprehensive service test");
       expect(element!.attributes.version).toBe("1.0");
@@ -239,7 +239,7 @@ describe("CLI Commands Integration Tests", () => {
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
       // Note: toKebabCase preserves special chars but removes spaces
-      const element = layer!.getElement("motivation.goal.test-goal-(priority:-critical)");
+      const element = layer!.findBySemanticId("motivation.goal.test-goal-(priority:-critical)");
       expect(element!.name).toContain("Priority");
       expect(element!.description).toContain("special");
     });
@@ -266,7 +266,7 @@ describe("CLI Commands Integration Tests", () => {
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
       // Use the new semantic ID after the name change
-      const element = layer!.getElement("motivation.goal.updated-name");
+      const element = layer!.findBySemanticId("motivation.goal.updated-name");
       expect(element!.name).toBe("Updated Name");
     });
 
@@ -317,7 +317,7 @@ describe("CLI Commands Integration Tests", () => {
       // Element should still exist after dry run
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      expect(layer!.getElement("motivation.goal.test-goal")).toBeDefined();
+      expect(layer!.findBySemanticId("motivation.goal.test-goal")).toBeDefined();
     });
 
     it("should show cascade deletion preview with --cascade --dry-run flags", async () => {
@@ -330,7 +330,7 @@ describe("CLI Commands Integration Tests", () => {
       // Element should still exist after dry run
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      expect(layer!.getElement("motivation.goal.test-goal")).toBeDefined();
+      expect(layer!.findBySemanticId("motivation.goal.test-goal")).toBeDefined();
     });
   });
 
@@ -572,7 +572,7 @@ describe("CLI Commands Integration Tests", () => {
       expect(result.exitCode).toBe(0);
 
       const model = await Model.load(tempDir.path);
-      const element = (await model.getLayer("motivation"))!.getElement("motivation.goal.test-goal");
+      const element = (await model.getLayer("motivation"))!.findBySemanticId("motivation.goal.test-goal");
       expect(element).toBeDefined();
     });
 

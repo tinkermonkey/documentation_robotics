@@ -170,72 +170,14 @@ export class Layer {
   }
 
   /**
-   * Get an element by ID from the graph.
-   * Supports both UUID and semantic ID (layer.type.kebab-name or layer-type-kebab-name) lookup.
+   * Get an element by UUID from the graph.
+   * Only direct UUID lookup is supported; semantic ID lookup has been removed.
    *
-   * @param id - UUID or semantic ID of the element to get
+   * @param id - UUID of the element to get
    * @returns The element if found, undefined if not found
    */
   getElement(id: string): Element | undefined {
-    // First try direct UUID lookup (O(1))
-    let node = this.graph.nodes.get(id);
-
-    // If not found by UUID, try semantic ID (elementId) lookup
-    // Semantic IDs have format:
-    // 1. Dot-separated: {layer}.{type}.{kebab-name} (contains 2+ dots)
-    // 2. Hyphen-separated legacy: {layer}-{type}-{kebab-name}
-    if (!node) {
-      const dotCount = (id.match(/\./g) || []).length;
-      const isDotSeparated = dotCount >= 2;
-      const isHyphenSeparated = id.includes("-") && id.startsWith(this.name) && id.length > this.name.length + 1;
-
-      if (isDotSeparated || isHyphenSeparated) {
-        // Try to find by semantic ID by searching all nodes
-        for (const candidate of this.graph.nodes.values()) {
-          if (candidate.layer === this.name) {
-            // Check if element has a stored semanticName attribute (when --name differs from third param)
-            const semanticNameAttr = candidate.properties?.["semanticName"] ||
-              candidate.attributes?.["semanticName"];
-
-            let semanticIds: string[] = [];
-
-            // Build semantic IDs from element name
-            const kebabName = candidate.name
-              .replace(/[\s_]+/g, "-")
-              .replace(/([a-z])([A-Z])/g, "$1-$2")
-              .toLowerCase()
-              .replace(/-+/g, "-")
-              .replace(/^-+|-+$/g, "");
-
-            semanticIds.push(
-              `${candidate.layer_id || this.name}.${candidate.type}.${kebabName}`, // Dot-separated
-              `${candidate.layer_id || this.name}-${candidate.type}-${kebabName}` // Hyphen-separated legacy
-            );
-
-            // Also check stored semanticName if it differs from computed name
-            if (semanticNameAttr && typeof semanticNameAttr === "string") {
-              // Apply kebab-case normalization to stored semanticName as well
-              const semanticKebabName = semanticNameAttr
-                .replace(/[\s_]+/g, "-")
-                .replace(/([a-z])([A-Z])/g, "$1-$2")
-                .toLowerCase()
-                .replace(/-+/g, "-")
-                .replace(/^-+|-+$/g, "");
-
-              semanticIds.push(
-                `${candidate.layer_id || this.name}.${candidate.type}.${semanticKebabName}`,
-                `${candidate.layer_id || this.name}-${candidate.type}-${semanticKebabName}`
-              );
-            }
-
-            if (semanticIds.includes(id)) {
-              node = candidate;
-              break;
-            }
-          }
-        }
-      }
-    }
+    const node = this.graph.nodes.get(id);
 
     if (!node || node.layer !== this.name) {
       return undefined;
@@ -255,6 +197,64 @@ export class Layer {
       references: (node.properties["__references__"] ?? []) as Reference[],
       relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
     });
+  }
+
+  /**
+   * Find an element by semantic ID (for testing/compatibility).
+   * This is a helper method for finding elements by semantic ID format:
+   * - Dot-separated: {layer}.{type}.{kebab-name}
+   * - Hyphen-separated legacy: {layer}-{type}-{kebab-name}
+   *
+   * @param semanticId - Semantic ID of the element to find
+   * @returns The element if found, undefined if not found
+   */
+  findBySemanticId(semanticId: string): Element | undefined {
+    const dotCount = (semanticId.match(/\./g) || []).length;
+    const isDotSeparated = dotCount >= 2;
+    const isHyphenSeparated = semanticId.includes("-") && semanticId.startsWith(this.name) && semanticId.length > this.name.length + 1;
+
+    if (!isDotSeparated && !isHyphenSeparated) {
+      return undefined;
+    }
+
+    // Search all nodes in the layer
+    for (const candidate of this.graph.nodes.values()) {
+      if (candidate.layer !== this.name) {
+        continue;
+      }
+
+      // Build semantic IDs from element name
+      const kebabName = candidate.name
+        .replace(/[\s_]+/g, "-")
+        .replace(/([a-z])([A-Z])/g, "$1-$2")
+        .toLowerCase()
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      const semanticIds = [
+        `${candidate.layer_id || this.name}.${candidate.type}.${kebabName}`,
+        `${candidate.layer_id || this.name}-${candidate.type}-${kebabName}`,
+      ];
+
+      if (semanticIds.includes(semanticId)) {
+        return new Element({
+          id: candidate.id,
+          spec_node_id: candidate.spec_node_id,
+          layer_id: candidate.layer_id,
+          type: candidate.type,
+          name: candidate.name,
+          description: candidate.description,
+          attributes: candidate.attributes,
+          source_reference: candidate.source_reference,
+          metadata: candidate.metadata,
+          layer: candidate.layer,
+          references: (candidate.properties["__references__"] ?? []) as Reference[],
+          relationships: (candidate.properties["__relationships__"] ?? []) as Relationship[],
+        });
+      }
+    }
+
+    return undefined;
   }
 
   /**
