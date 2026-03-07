@@ -470,7 +470,7 @@ export class RelationshipValidator {
   }
 
   /**
-   * Find an element in the model by ID (supports both UUID and semantic ID)
+   * Find an element in the model by ID
    *
    * Performs element lookup by UUID using the element's id field.
    *
