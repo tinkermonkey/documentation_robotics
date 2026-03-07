@@ -14,7 +14,7 @@ import path from "path";
 import yaml from "yaml";
 import ansis from "ansis";
 import type { StagedChangesetData, StagedChange } from "./changeset.js";
-import { Changeset, migrateChangesetStatus } from "./changeset.js";
+import { Changeset } from "./changeset.js";
 import { getErrorMessage } from "../utils/errors.js";
 
 /**
@@ -116,9 +116,6 @@ export class StagedChangesetStorage {
       const changesContent = await readFile(changesPath, "utf-8");
       const changes = yaml.parse(changesContent) || [];
 
-      // Migrate legacy status values if needed
-      const migratedStatus = migrateChangesetStatus(metadata.status);
-
       // Construct changeset object
       const data: StagedChangesetData = {
         id: metadata.id,
@@ -126,7 +123,7 @@ export class StagedChangesetStorage {
         description: metadata.description,
         created: metadata.created,
         modified: metadata.modified,
-        status: migratedStatus,
+        status: metadata.status,
         baseSnapshot: metadata.baseSnapshot,
         changes: changes as StagedChange[],
         stats: metadata.stats || { additions: 0, modifications: 0, deletions: 0 },

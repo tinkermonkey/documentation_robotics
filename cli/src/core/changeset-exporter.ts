@@ -10,7 +10,7 @@
 import { readFile, writeFile } from "fs/promises";
 import { fileExists } from "../utils/file-io.js";
 import yaml from "yaml";
-import { Changeset, type Change, migrateChangesetStatus } from "./changeset.js";
+import { Changeset, type Change } from "./changeset.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import type { Model } from "./model.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
@@ -378,8 +378,6 @@ export class ChangesetExporter {
       throw new Error("Missing required fields: id, name, created, modified");
     }
 
-    // Reconstruct changeset with migration for legacy status values
-    const changesetStatus = migrateChangesetStatus(status);
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
       additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
@@ -394,7 +392,7 @@ export class ChangesetExporter {
       description: typeof description === "string" ? description : undefined,
       created: String(created),
       modified: String(modified),
-      status: changesetStatus,
+      status: status as any,
       baseSnapshot: changesetSnapshot,
       changes: (changes as Change[]) || [],
       stats: changesetStats,
@@ -430,8 +428,6 @@ export class ChangesetExporter {
       throw new Error("Missing required fields: id, name, created, modified");
     }
 
-    // Reconstruct changeset with migration for legacy status values
-    const changesetStatus = migrateChangesetStatus(status);
     const statsRecord = stats as Record<string, unknown> | undefined;
     const changesetStats = {
       additions: typeof statsRecord?.additions === "number" ? statsRecord.additions : 0,
@@ -446,7 +442,7 @@ export class ChangesetExporter {
       description: typeof description === "string" ? description : undefined,
       created: String(created),
       modified: String(modified),
-      status: changesetStatus,
+      status: status as any,
       baseSnapshot: changesetSnapshot,
       changes: (changes as Change[]) || [],
       stats: changesetStats,
