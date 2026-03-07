@@ -338,7 +338,8 @@ describe("Manifest.migrateChangesetHistory", () => {
 
     expect(manifest.changeset_history).toHaveLength(1);
     const timestamp = manifest.changeset_history![0].committed_at;
-    expect(timestamp).toBeGreaterThanOrEqual(beforeTime);
-    expect(timestamp).toBeLessThanOrEqual(afterTime);
+    // ISO strings can be compared lexicographically since format is fixed (YYYY-MM-DDTHH:mm:ss.sssZ)
+    expect(timestamp! >= beforeTime).toBe(true);
+    expect(timestamp! <= afterTime).toBe(true);
   });
 });
