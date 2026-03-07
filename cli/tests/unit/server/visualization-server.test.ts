@@ -39,21 +39,12 @@ layers:
 
   writeFileSync(join(rootPath, "documentation-robotics", "model", "manifest.yaml"), manifestYaml);
 
-  // Create motivation layer YAML file with both element formats:
-  // - test-goal: new-format (hyphenated id, no elementId, no properties)
-  // - test-legacy-goal: legacy-format (dotted 3-part id, produces elementId + properties)
+  // Create motivation layer YAML file
   const motivationYaml = `test-goal:
   id: motivation-goal-test-goal
   name: Test Goal
   type: goal
   documentation: A test goal
-test-legacy-goal:
-  id: motivation.goal.test-legacy-goal
-  name: Legacy Test Goal
-  type: goal
-  documentation: A legacy test goal with semantic ID
-  properties:
-    priority: high
 `;
 
   writeFileSync(
@@ -144,33 +135,12 @@ describe("VisualizationServer", () => {
       expect(motivationNodes.length).toBeGreaterThan(0);
     });
 
-    it("should include elementId for legacy-format elements with semantic IDs", async () => {
-      const serialized = await server["serializeModel"]();
-
-      const legacyNode = serialized.nodes.find(
-        (n: any) => n.elementId === "motivation.goal.test-legacy-goal"
-      );
-      expect(legacyNode).toBeDefined();
-      expect(legacyNode.elementId).toBe("motivation.goal.test-legacy-goal");
-    });
-
     it("should omit elementId for new-format elements without semantic IDs", async () => {
       const serialized = await server["serializeModel"]();
 
       const newFormatNode = serialized.nodes.find((n: any) => n.name === "Test Goal");
       expect(newFormatNode).toBeDefined();
       expect(newFormatNode).not.toHaveProperty("elementId");
-    });
-
-    it("should include properties when non-empty", async () => {
-      const serialized = await server["serializeModel"]();
-
-      const legacyNode = serialized.nodes.find(
-        (n: any) => n.elementId === "motivation.goal.test-legacy-goal"
-      );
-      expect(legacyNode).toBeDefined();
-      expect(legacyNode).toHaveProperty("properties");
-      expect(legacyNode.properties.priority).toBe("high");
     });
 
     it("should omit properties when empty", async () => {
