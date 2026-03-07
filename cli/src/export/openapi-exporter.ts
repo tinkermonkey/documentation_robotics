@@ -132,8 +132,8 @@ export class OpenAPIExporter implements Exporter {
       // Query graph for endpoint nodes
       for (const node of nodes) {
         if (node.type === "endpoint") {
-          const path = (node.properties.path as string) || "/";
-          const method = ((node.properties.method as string) || "get").toLowerCase();
+          const path = (node.properties?.path as string) || "/";
+          const method = ((node.properties?.method as string) || "get").toLowerCase();
 
           if (!pathGroups.has(path)) {
             pathGroups.set(path, []);
@@ -144,8 +144,8 @@ export class OpenAPIExporter implements Exporter {
             name: node.name,
             id: node.id,
             description: node.description,
-            getProperty: (key: string) => node.properties[key],
-            getSourceReference: () => node.properties["x-source-reference"],
+            getProperty: (key: string) => node.properties?.[key],
+            getSourceReference: () => node.properties?.["x-source-reference"],
           };
 
           pathGroups.get(path)!.push({ method, element: endpointData as any });
@@ -220,8 +220,8 @@ export class OpenAPIExporter implements Exporter {
       // Collect all schema definitions from nodes
       for (const node of nodes) {
         if (node.type === "schema") {
-          const schemaName = (node.properties.schemaName as string) || node.id;
-          const schema = node.properties.schema;
+          const schemaName = (node.properties?.schemaName as string) || node.id;
+          const schema = node.properties?.schema;
           if (schema) {
             spec.components.schemas![schemaName] = schema;
           }
@@ -232,28 +232,28 @@ export class OpenAPIExporter implements Exporter {
       for (const node of nodes) {
         if (node.type === "security-scheme") {
           const schemeName = node.name;
-          const schemeType = node.properties.type as string;
+          const schemeType = node.properties?.type as string;
           if (schemeType) {
             const scheme: Record<string, unknown> = {
               type: schemeType,
             };
 
-            const schemeProp = node.properties.scheme;
+            const schemeProp = node.properties?.scheme;
             if (schemeProp) {
               scheme.scheme = schemeProp;
             }
 
-            const bearerFormat = node.properties.bearerFormat;
+            const bearerFormat = node.properties?.bearerFormat;
             if (bearerFormat) {
               scheme.bearerFormat = bearerFormat;
             }
 
-            const flows = node.properties.flows;
+            const flows = node.properties?.flows;
             if (flows) {
               scheme.flows = flows;
             }
 
-            const openIdConnectUrl = node.properties.openIdConnectUrl;
+            const openIdConnectUrl = node.properties?.openIdConnectUrl;
             if (openIdConnectUrl) {
               scheme.openIdConnectUrl = openIdConnectUrl;
             }

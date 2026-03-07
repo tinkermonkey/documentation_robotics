@@ -45,7 +45,7 @@ describe("End-to-End Staging Workflow", () => {
       type: "endpoint",
       name: "List Users",
       description: "List all users",
-      properties: { method: "GET", path: "/users" },
+      attributes: { method: "GET", path: "/users" },
     });
     apiLayer.addElement(endpoint1);
 
@@ -54,7 +54,7 @@ describe("End-to-End Staging Workflow", () => {
       type: "endpoint",
       name: "Create User",
       description: "Create a new user",
-      properties: { method: "POST", path: "/users" },
+      attributes: { method: "POST", path: "/users" },
     });
     apiLayer.addElement(endpoint2);
 

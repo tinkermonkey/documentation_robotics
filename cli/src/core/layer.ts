@@ -3,20 +3,6 @@ import { GraphModel } from "./graph-model.js";
 import type { LayerData, Reference, Relationship } from "../types/index.js";
 
 /**
- * Filter out graph metadata fields from node properties
- * Graph metadata fields (starting with __) should not be exposed as user properties
- */
-function filterGraphMetadata(properties: Record<string, unknown> = {}): Record<string, unknown> {
-  const filtered: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(properties)) {
-    if (!key.startsWith("__")) {
-      filtered[key] = value;
-    }
-  }
-  return filtered;
-}
-
-/**
  * Layer class - thin wrapper over graph model for backward compatibility
  * Queries the graph for elements in a specific layer
  */
@@ -73,11 +59,20 @@ export class Layer {
       const node = GraphModel.fromElement(element);
 
       // Store references and relationships as node properties for preservation
+      // Ensure properties object exists; fromElement always initializes it, but type is optional
+      const nodeProperties = node.properties || {};
+      node.properties = nodeProperties;
+
       if (element.references && element.references.length > 0) {
-        node.properties["__references__"] = element.references;
+        nodeProperties["__references__"] = element.references;
       }
       if (element.relationships && element.relationships.length > 0) {
-        node.properties["__relationships__"] = element.relationships;
+        nodeProperties["__relationships__"] = element.relationships;
+      }
+
+      // Store semantic ID if present (for legacy format elements converted to UUID)
+      if ((element as any).semanticId) {
+        nodeProperties["__semanticId__"] = (element as any).semanticId;
       }
 
       this.graph.addNode(node);
@@ -103,13 +98,6 @@ export class Layer {
     const nodes = this.graph.getNodesByLayer(this.name);
 
     for (const node of nodes) {
-      // Merge properties from both node.properties and node.attributes
-      // node.attributes takes precedence (from spec-node aligned storage)
-      const userProperties = {
-        ...filterGraphMetadata(node.properties),
-        ...(node.attributes || {}),
-      };
-
       const element = new Element({
         id: node.id,
         spec_node_id: node.spec_node_id,
@@ -120,12 +108,11 @@ export class Layer {
         attributes: node.attributes,
         source_reference: node.source_reference,
         metadata: node.metadata,
-        properties: userProperties,
-        elementId: node.elementId, // Preserve bridge field for semantic ID lookup
         layer: node.layer,
-        references: (node.properties["__references__"] ?? []) as Reference[],
-        relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
-      });
+        references: (node.properties?.["__references__"] ?? []) as Reference[],
+        relationships: (node.properties?.["__relationships__"] ?? []) as Relationship[],
+        semanticId: node.properties?.["__semanticId__"],
+      } as any);
       result.set(node.id, element);
     }
 
@@ -147,11 +134,20 @@ export class Layer {
     const node = GraphModel.fromElement(element);
 
     // Store references and relationships as node properties for preservation
+    // Ensure properties object exists; fromElement always initializes it, but type is optional
+    const nodeProperties = node.properties || {};
+    node.properties = nodeProperties;
+
     if (element.references && element.references.length > 0) {
-      node.properties["__references__"] = element.references;
+      nodeProperties["__references__"] = element.references;
     }
     if (element.relationships && element.relationships.length > 0) {
-      node.properties["__relationships__"] = element.relationships;
+      nodeProperties["__relationships__"] = element.relationships;
+    }
+
+    // Store semantic ID if present (for legacy format elements converted to UUID)
+    if ((element as any).semanticId) {
+      nodeProperties["__semanticId__"] = (element as any).semanticId;
     }
 
     // Add node to graph first
@@ -193,22 +189,22 @@ export class Layer {
   }
 
   /**
-   * Get an element by ID from the graph using UUID lookup.
+   * Get an element by UUID or semantic ID from the graph.
+   * Supports direct UUID lookup, and falls back to semantic ID lookup for legacy elements.
    *
-   * Performance notes:
-   * - Fast path (O(1)): Direct UUID lookup via graph.nodes Map
+   * @param id - UUID or semantic ID of the element to get
+   * @returns The element if found, undefined if not found
    */
   getElement(id: string): Element | undefined {
-    // Direct UUID lookup (O(1))
+    // First try direct UUID lookup
     let node = this.graph.nodes.get(id);
 
-    // If not found by UUID, try semantic ID lookup (O(n), fallback)
-    // This supports looking up elements by their semantic ID format (e.g., "motivation.goal.test-goal")
     if (!node) {
-      // Iterate through all nodes in this layer searching for matching elementId
-      for (const n of this.graph.nodes.values()) {
-        if (n.layer === this.name && n.elementId === id) {
-          node = n;
+      // Fallback to semantic ID lookup for legacy format elements
+      // Iterate through all nodes to find one with matching semanticId
+      for (const candidate of this.graph.nodes.values()) {
+        if (candidate.layer === this.name && candidate.properties?.["__semanticId__"] === id) {
+          node = candidate;
           break;
         }
       }
@@ -217,13 +213,6 @@ export class Layer {
     if (!node || node.layer !== this.name) {
       return undefined;
     }
-
-    // Merge properties from both node.properties and node.attributes
-    // node.attributes takes precedence (from spec-node aligned storage)
-    const userProperties = {
-      ...filterGraphMetadata(node.properties),
-      ...(node.attributes || {}),
-    };
 
     return new Element({
       id: node.id,
@@ -235,11 +224,9 @@ export class Layer {
       attributes: node.attributes,
       source_reference: node.source_reference,
       metadata: node.metadata,
-      properties: userProperties,
-      elementId: node.elementId, // Preserve bridge field for semantic ID lookup
       layer: node.layer,
-      references: (node.properties["__references__"] ?? []) as Reference[],
-      relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
+      references: (node.properties?.["__references__"] ?? []) as Reference[],
+      relationships: (node.properties?.["__relationships__"] ?? []) as Relationship[],
     });
   }
 
@@ -254,7 +241,7 @@ export class Layer {
 
     // Prepare properties including references and relationships
     // Start with existing node properties to preserve graph metadata fields like __references__ and __relationships__
-    const properties = { ...node.properties };
+    const properties = { ...(node.properties || {}) };
 
     // Persist references and relationships as node properties
     if (element.references && element.references.length > 0) {
@@ -291,25 +278,11 @@ export class Layer {
   /**
    * Delete an element by ID from the graph
    *
-   * Performance notes:
-   * - Fast path (O(1)): Direct UUID lookup via graph.nodes Map
-   * - Fallback path (O(n)): Semantic ID lookup by elementId field
+   * @param id - UUID of the element to delete
+   * @returns true if element was deleted, false if not found
    */
   deleteElement(id: string): boolean {
-    // Direct UUID lookup (O(1))
-    let node = this.graph.nodes.get(id);
-
-    // If not found by UUID, try semantic ID lookup (O(n), fallback)
-    // This supports deleting elements by their semantic ID format (e.g., "motivation.goal.test-goal")
-    if (!node) {
-      // Iterate through all nodes in this layer searching for matching elementId
-      for (const n of this.graph.nodes.values()) {
-        if (n.layer === this.name && n.elementId === id) {
-          node = n;
-          break;
-        }
-      }
-    }
+    const node = this.graph.nodes.get(id);
 
     if (!node || node.layer !== this.name) {
       return false;
@@ -339,11 +312,9 @@ export class Layer {
           attributes: node.attributes,
           source_reference: node.source_reference,
           metadata: node.metadata,
-          properties: filterGraphMetadata(node.properties),
-          elementId: node.elementId, // Preserve bridge field for semantic ID lookup
           layer: node.layer,
-          references: (node.properties["__references__"] ?? []) as Reference[],
-          relationships: (node.properties["__relationships__"] ?? []) as Relationship[],
+          references: (node.properties?.["__references__"] ?? []) as Reference[],
+          relationships: (node.properties?.["__relationships__"] ?? []) as Relationship[],
         })
     );
   }

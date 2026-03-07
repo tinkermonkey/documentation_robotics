@@ -15,7 +15,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test Goal",
-        properties: { key: "value" },
+        attributes: { key: "value" },
       };
 
       graph.addNode(node);
@@ -29,7 +29,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test Goal",
-        properties: {},
+        attributes: {},
       };
 
       graph.addNode(node);
@@ -44,7 +44,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test Goal",
-        properties: {},
+        attributes: {},
       };
 
       graph.addNode(node);
@@ -59,7 +59,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Original",
-        properties: {},
+        attributes: {},
       };
 
       const node2: GraphNode = {
@@ -67,7 +67,7 @@ describe("GraphModel", () => {
         layer: "business",
         type: "service",
         name: "Updated",
-        properties: {},
+        attributes: {},
       };
 
       graph.addNode(node1);
@@ -98,7 +98,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test Goal",
-        properties: {},
+        attributes: {},
       };
 
       graph.addNode(node);
@@ -117,7 +117,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Original",
-        properties: {},
+        attributes: {},
       };
 
       graph.addNode(node);
@@ -139,7 +139,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test",
-        properties: {},
+        attributes: {},
       };
 
       graph.addNode(node);
@@ -159,7 +159,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test",
-        properties: {},
+        attributes: {},
       };
 
       graph.addNode(node);
@@ -192,14 +192,14 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Source",
-        properties: {},
+        attributes: {},
       });
       graph.addNode({
         id: "dest-1",
         layer: "business",
         type: "service",
         name: "Destination",
-        properties: {},
+        attributes: {},
       });
     });
 
@@ -209,7 +209,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       graph.addEdge(edge);
@@ -223,7 +223,7 @@ describe("GraphModel", () => {
         source: "nonexistent",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       expect(() => graph.addEdge(edge)).toThrow("source node");
@@ -235,7 +235,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "nonexistent",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       expect(() => graph.addEdge(edge)).toThrow("destination node");
@@ -247,7 +247,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       graph.addEdge(edge);
@@ -262,7 +262,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       graph.addEdge(edge);
@@ -277,7 +277,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       graph.addEdge(edge);
@@ -293,7 +293,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       graph.addEdge(edge);
@@ -312,7 +312,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       graph.addEdge(edge);
@@ -332,7 +332,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       graph.addEdge(edge);
@@ -349,7 +349,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       };
 
       graph.addEdge(edge);
@@ -365,7 +365,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "references",
-        properties: {},
+        attributes: {},
       });
 
       graph.addEdge({
@@ -373,7 +373,7 @@ describe("GraphModel", () => {
         source: "source-1",
         destination: "dest-1",
         predicate: "extends",
-        properties: {},
+        attributes: {},
       });
 
       const references = graph.getEdgesFrom("source-1", "references");
@@ -394,14 +394,14 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "A",
-        properties: {},
+        attributes: {},
       });
       graph.addNode({
         id: "b",
         layer: "business",
         type: "service",
         name: "B",
-        properties: {},
+        attributes: {},
       });
 
       graph.addEdge({
@@ -409,7 +409,7 @@ describe("GraphModel", () => {
         source: "a",
         destination: "b",
         predicate: "references",
-        properties: {},
+        attributes: {},
       });
 
       const edges = graph.getEdgesBetween("a", "b");
@@ -425,21 +425,21 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "A",
-        properties: {},
+        attributes: {},
       });
       graph.addNode({
         id: "b",
         layer: "business",
         type: "service",
         name: "B",
-        properties: {},
+        attributes: {},
       });
       graph.addNode({
         id: "c",
         layer: "application",
         type: "component",
         name: "C",
-        properties: {},
+        attributes: {},
       });
 
       graph.addEdge({
@@ -447,7 +447,7 @@ describe("GraphModel", () => {
         source: "a",
         destination: "b",
         predicate: "references",
-        properties: {},
+        attributes: {},
       });
 
       graph.addEdge({
@@ -455,7 +455,7 @@ describe("GraphModel", () => {
         source: "b",
         destination: "c",
         predicate: "references",
-        properties: {},
+        attributes: {},
       });
 
       const visited = graph.traverse("a");
@@ -473,7 +473,7 @@ describe("GraphModel", () => {
           layer: "motivation",
           type: "goal",
           name: id.toUpperCase(),
-          properties: {},
+          attributes: {},
         });
       });
 
@@ -512,7 +512,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test",
-        properties: {},
+        attributes: {},
       });
 
       const version2 = graph.getNodesVersion();
@@ -525,7 +525,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test",
-        properties: {},
+        attributes: {},
       });
 
       const version1 = graph.getNodesVersion();
@@ -541,7 +541,7 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test",
-        properties: {},
+        attributes: {},
       });
 
       const version1 = graph.getNodesVersion();
@@ -587,14 +587,14 @@ describe("GraphModel", () => {
         layer: "motivation",
         type: "goal",
         name: "Test",
-        properties: {},
+        attributes: {},
       });
       graph.addNode({
         id: "node-2",
         layer: "business",
         type: "service",
         name: "Test",
-        properties: {},
+        attributes: {},
       });
 
       expect(graph.getNodeCount()).toBe(2);

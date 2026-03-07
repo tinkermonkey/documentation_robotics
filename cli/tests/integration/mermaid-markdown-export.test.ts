@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { randomUUID } from "crypto";
 import { Model } from "@/core/model";
 import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
@@ -30,11 +31,11 @@ describe("Mermaid Markdown Export Integration", () => {
     // Add motivation layer with elements
     const motivationLayer = new Layer("motivation");
     const goal = new Element({
-      id: "motivation.goal.improve-quality",
+      id: randomUUID(),
       type: "goal",
       name: "Improve Quality",
       description: "Improve overall product quality",
-      properties: { priority: "high", owner: "CEO" },
+      attributes: { priority: "high", owner: "CEO" },
     });
 
     motivationLayer.addElement(goal);
@@ -43,11 +44,11 @@ describe("Mermaid Markdown Export Integration", () => {
     // Add business layer
     const businessLayer = new Layer("business");
     const capability = new Element({
-      id: "business.capability.quality-management",
+      id: randomUUID(),
       type: "capability",
       name: "Quality Management",
       description: "Manage quality processes and metrics",
-      properties: { owner: "QA Team", criticality: "HIGH" },
+      attributes: { owner: "QA Team", criticality: "HIGH" },
     });
 
     businessLayer.addElement(capability);
@@ -56,11 +57,11 @@ describe("Mermaid Markdown Export Integration", () => {
     // Add application layer
     const appLayer = new Layer("application");
     const service = new Element({
-      id: "application.service.quality-service",
+      id: randomUUID(),
       type: "service",
       name: "Quality Service",
       description: "Microservice for quality management",
-      properties: { framework: "Node.js", status: "production" },
+      attributes: { framework: "Node.js", status: "production" },
     });
 
     appLayer.addElement(service);
@@ -69,11 +70,11 @@ describe("Mermaid Markdown Export Integration", () => {
     // Add API layer
     const apiLayer = new Layer("api");
     const endpoint = new Element({
-      id: "api.endpoint.quality-metrics",
+      id: randomUUID(),
       type: "endpoint",
       name: "Quality Metrics",
       description: "Retrieve quality metrics and reports",
-      properties: {
+      attributes: {
         method: "GET",
         path: "/api/quality/metrics",
         authentication: "JWT",
@@ -86,11 +87,11 @@ describe("Mermaid Markdown Export Integration", () => {
     // Add data-model layer
     const dataModelLayer = new Layer("data-model");
     const schema = new Element({
-      id: "data-model.object-schema.metric",
+      id: randomUUID(),
       type: "object-schema",
       name: "Metric",
       description: "Quality metric data structure",
-      properties: { format: "JSON", version: "1.0" },
+      attributes: { format: "JSON", version: "1.0" },
     });
 
     dataModelLayer.addElement(schema);

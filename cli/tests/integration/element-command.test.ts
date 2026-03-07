@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Model } from "../../src/core/model.js";
 import { runDr as runDrHelper } from "../helpers/cli-runner.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { findElementBySemanticId } from "../helpers/element-finder.js";
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
@@ -38,7 +39,7 @@ describe("Element Subcommand Group", () => {
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
       expect(layer).toBeDefined();
-      const element = layer!.getElement("motivation.goal.test-goal");
+      const element = findElementBySemanticId(layer!,"motivation.goal.test-goal");
       expect(element).toBeDefined();
       expect(element!.name).toBe("Test Goal");
     });
@@ -59,7 +60,7 @@ describe("Element Subcommand Group", () => {
       // Verify element with description
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      const element = layer!.getElement("motivation.goal.customer-satisfaction");
+      const element = findElementBySemanticId(layer!,"motivation.goal.customer-satisfaction");
       expect(element!.description).toBe("Ensure customers are satisfied");
     });
 
@@ -157,11 +158,11 @@ describe("Element Subcommand Group", () => {
       // Verify element was deleted
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      const deleted = layer!.getElement("motivation.goal.goal-to-delete");
+      const deleted = findElementBySemanticId(layer!,"motivation.goal.goal-to-delete");
       expect(deleted).toBeUndefined();
 
       // Verify other element still exists
-      const kept = layer!.getElement("motivation.goal.goal-to-keep");
+      const kept = findElementBySemanticId(layer!,"motivation.goal.goal-to-keep");
       expect(kept).toBeDefined();
     });
 
@@ -189,10 +190,10 @@ describe("Element Subcommand Group", () => {
 
       expect(result.exitCode).toBe(0);
 
-      // Verify name was updated
+      // Verify name was updated (use the new semantic ID after name change)
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      const element = layer!.getElement("motivation.goal.original-goal");
+      const element = findElementBySemanticId(layer!,"motivation.goal.updated-goal");
       expect(element!.name).toBe("Updated Goal");
     });
 
@@ -209,7 +210,7 @@ describe("Element Subcommand Group", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      const element = layer!.getElement("motivation.goal.original-goal");
+      const element = findElementBySemanticId(layer!,"motivation.goal.original-goal");
       expect(element!.description).toBe("New description");
     });
 
@@ -234,7 +235,7 @@ describe("Element Subcommand Group", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("business");
-      const element = layer!.getElement("business.process.process-a");
+      const element = findElementBySemanticId(layer!,"business.process.process-a");
 
       expect(element).toBeDefined();
       expect(element!.name).toBe("Process A");

@@ -10,7 +10,7 @@ describe("Element Class - Spec-Node Conversion", () => {
         elementId: "api.endpoint.create-customer",
         type: "endpoint",
         name: "Create Customer",
-        properties: { method: "POST" },
+        attributes: { method: "POST" },
       });
 
       expect(legacyElement.spec_node_id).toBe("api.endpoint");
@@ -25,7 +25,7 @@ describe("Element Class - Spec-Node Conversion", () => {
         id: "motivation.goal.customer-satisfaction",
         type: "goal",
         name: "Customer Satisfaction",
-        properties: { priority: "high" },
+        attributes: { priority: "high" },
       });
 
       expect(legacyElement.spec_node_id).toBe("motivation.goal");
@@ -205,7 +205,7 @@ describe("Element Class - Spec-Node Conversion", () => {
         id: "api.endpoint.create-customer",
         type: "endpoint",
         name: "Create Customer",
-        properties: { method: "POST" },
+        attributes: { method: "POST" },
       });
 
       const json = element.toJSON();
@@ -258,7 +258,7 @@ describe("Element Class - Spec-Node Conversion", () => {
         id: "api.endpoint.create-customer",
         type: "endpoint",
         name: "Create Customer",
-        properties: { method: "POST", status: "active" },
+        attributes: { method: "POST", status: "active" },
       });
 
       // Old code accessing properties should still work
@@ -297,7 +297,7 @@ describe("Element Class - Spec-Node Conversion", () => {
         type: "endpoint",
         layer_id: "api",
         name: "Create Customer",
-        properties: { "x-source-reference": sourceRef },
+        attributes: { "x-source-reference": sourceRef },
         layer: "api",
       });
 
@@ -316,7 +316,7 @@ describe("Element Class - Spec-Node Conversion", () => {
         type: "goal",
         layer_id: "motivation",
         name: "Customer Satisfaction",
-        properties: {
+        attributes: {
           source: { reference: sourceRef },
         },
         layer: "motivation",

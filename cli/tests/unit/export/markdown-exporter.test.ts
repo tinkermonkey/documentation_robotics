@@ -29,7 +29,7 @@ describe("MarkdownExporter", () => {
       type: "goal",
       name: "Test Goal",
       description: "A strategic goal for the organization",
-      properties: { priority: "high", owner: "leadership" },
+      attributes: { priority: "high", owner: "leadership" },
       references: [
         {
           source: "motivation-goal-test",
@@ -250,21 +250,17 @@ describe("MarkdownExporter", () => {
       type: "application-component",
       name: "Test Component",
       description: "Component with source reference",
-      properties: {
-        source: {
-          reference: {
-            provenance: "extracted",
-            locations: [
-              {
-                file: "src/components/test.ts",
-                symbol: "TestComponent",
-              },
-            ],
-            repository: {
-              url: "https://github.com/example/repo",
-              commit: "abc123def456789012345678901234567890abcd",
-            },
+      source_reference: {
+        provenance: "extracted",
+        locations: [
+          {
+            file: "src/components/test.ts",
+            symbol: "TestComponent",
           },
+        ],
+        repository: {
+          url: "https://github.com/example/repo",
+          commit: "abc123def456789012345678901234567890abcd",
         },
       },
     });
@@ -292,15 +288,13 @@ describe("MarkdownExporter", () => {
       id: "api-endpoint-test",
       type: "endpoint",
       name: "Test Endpoint",
-      properties: {
-        "x-source-reference": {
-          provenance: "manual",
-          locations: [
-            {
-              file: "src/api/test.ts",
-            },
-          ],
-        },
+      source_reference: {
+        provenance: "manual",
+        locations: [
+          {
+            file: "src/api/test.ts",
+          },
+        ],
       },
     });
 
@@ -323,22 +317,18 @@ describe("MarkdownExporter", () => {
       id: "application-component-multi",
       type: "application-component",
       name: "Multi-file Component",
-      properties: {
-        source: {
-          reference: {
-            provenance: "extracted",
-            locations: [
-              {
-                file: "src/components/main.ts",
-                symbol: "MainComponent",
-              },
-              {
-                file: "src/components/helper.ts",
-                symbol: "HelperClass",
-              },
-            ],
+      source_reference: {
+        provenance: "extracted",
+        locations: [
+          {
+            file: "src/components/main.ts",
+            symbol: "MainComponent",
           },
-        },
+          {
+            file: "src/components/helper.ts",
+            symbol: "HelperClass",
+          },
+        ],
       },
     });
 

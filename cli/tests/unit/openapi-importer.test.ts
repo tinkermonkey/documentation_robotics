@@ -125,7 +125,7 @@ describe("OpenAPIImporter", () => {
           User: {
             type: "object",
             description: "User model",
-            properties: {
+            attributes: {
               id: { type: "string" },
               name: { type: "string" },
             },

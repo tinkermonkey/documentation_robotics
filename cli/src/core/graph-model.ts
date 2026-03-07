@@ -11,14 +11,13 @@ export interface GraphNode {
   type: string; // Element type
   name: string; // Display name
   description?: string; // Optional description
-  properties: Record<string, unknown>; // Custom properties
+  properties?: Record<string, unknown>; // Custom properties
   // Spec-node aligned fields (preserved through graph round-trip)
   spec_node_id?: string;
   layer_id?: string;
   attributes?: Record<string, unknown>;
   source_reference?: SourceReference;
   metadata?: ElementMetadata;
-  elementId?: string; // Bridge field: semantic ID for lookup compatibility
 }
 
 /**
@@ -548,7 +547,6 @@ export class GraphModel implements IGraphModel {
         : undefined,
       source_reference: element.source_reference,
       metadata: element.metadata,
-      elementId: element.elementId, // Preserve bridge field for semantic ID lookup
     };
   }
 

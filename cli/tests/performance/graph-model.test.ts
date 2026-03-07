@@ -17,7 +17,7 @@ describe("GraphModel Performance", () => {
         layer,
         type: "element",
         name: `Node ${i}`,
-        properties: { index: i },
+        attributes: { index: i },
       };
       graph.addNode(node);
     }
@@ -32,7 +32,7 @@ describe("GraphModel Performance", () => {
           source: `node-${sourceIdx}`,
           destination: `node-${destIdx}`,
           predicate: "references",
-          properties: {},
+          attributes: {},
         };
         graph.addEdge(edge);
       }

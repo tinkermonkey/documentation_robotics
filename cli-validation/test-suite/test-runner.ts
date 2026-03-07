@@ -11,7 +11,7 @@ import { dirname } from 'node:path';
 import { glob } from 'glob';
 import YAML from 'yaml';
 
-import { initializeTestEnvironment, TestPaths, CLIConfig } from './setup.js';
+import { initializeTestEnvironment, getTestPaths, TestPaths, CLIConfig, cleanupTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
 import { captureSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
 import { executeCommand, CommandOutput } from './executor.js';
 import {
@@ -382,6 +382,57 @@ async function runTestSuite(): Promise<void> {
       console.log(`✓ JUnit report written to: ${junitPath}`);
     }
 
+    // Post-test cleanup and validation
+    console.log('\n' + '='.repeat(70));
+    console.log('Post-test cleanup and validation...');
+
+    // Validate baseline integrity before cleanup
+    // This must run BEFORE cleanupTestArtifacts to detect contamination,
+    // as cleanup uses git checkout to restore the baseline
+    let baselineContaminated = false;
+    try {
+      await validateBaselineIntegrity(paths.baselinePath);
+      console.log('✓ Baseline integrity verified - no contamination detected');
+    } catch (error) {
+      if (error instanceof BaselineContaminationError) {
+        // Contamination is a test failure - uncommitted baseline changes indicate test isolation issues
+        baselineContaminated = true;
+        console.error('⚠ Baseline contamination detected:');
+        console.error(`   ${error.message}`);
+      } else {
+        // Git infrastructure failures (repo not found, git not installed, etc.) are diagnostic warnings
+        // These are environmental issues, not test isolation failures, so don't fail the run
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error('⚠ Could not validate baseline integrity (may indicate missing git or workspace issue):');
+        console.error(`   ${errorMsg}`);
+      }
+    }
+
+    // Clean up test artifacts
+    let cleanupFailed = false;
+    try {
+      const cleanupResult = await cleanupTestArtifacts(paths);
+      console.log('✓ Test artifacts cleaned up');
+
+      // Warn if baseline restore failed, but don't fail the run
+      if (!cleanupResult.baselineRestoreSuccess) {
+        console.error('⚠ Baseline restoration failed during cleanup (may require manual git checkout):');
+        for (const error of cleanupResult.errors) {
+          console.error(`   - ${error}`);
+        }
+      }
+    } catch (error) {
+      cleanupFailed = true;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('⚠ Cleanup failed:');
+      console.error(`   ${errorMsg}`);
+    }
+
+    // Exit with failure if baseline was contaminated or cleanup failed
+    if (baselineContaminated || cleanupFailed) {
+      process.exit(1);
+    }
+
     // Exit with appropriate code
     process.exit(summary.failedSuites > 0 ? 1 : 0);
   } catch (error) {
@@ -392,6 +443,25 @@ async function runTestSuite(): Promise<void> {
     if (errorStack && process.env.DEBUG) {
       console.error(`\nStack trace:\n${errorStack}`);
     }
+
+    // Attempt cleanup even on test failure
+    try {
+      const paths = getTestPaths();
+      const cleanupResult = await cleanupTestArtifacts(paths);
+      if (!cleanupResult.baselineRestoreSuccess) {
+        console.error(
+          '⚠ Baseline restoration failed during cleanup (may require manual git checkout)'
+        );
+        for (const error of cleanupResult.errors) {
+          console.error(`   - ${error}`);
+        }
+      }
+    } catch (cleanupError) {
+      console.error(
+        `⚠ Failed to cleanup after test failure: ${String(cleanupError)}`
+      );
+    }
+
     process.exit(1);
   }
 }

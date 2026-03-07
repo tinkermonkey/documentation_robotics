@@ -136,7 +136,7 @@ pipelines:
 
   - name: "Add API operation with update"
     steps:
-      - command: 'add api operation test-operation --name ''Test Operation'' --description ''GET /api/test'' --properties ''{"method":"GET","path":"/api/test"}'''
+      - command: 'add api operation test-operation --name ''Test Operation'' --description ''GET /api/test'' --attributes ''{"method":"GET","path":"/api/test"}'''
         files_to_compare:
           - manifest.yaml
           - 06_api/operation.yaml
@@ -240,7 +240,7 @@ pipelines:
 
   - name: "Add navigation route with update"
     steps:
-      - command: 'add navigation route test-route --name ''Test Route'' --description ''Test navigation route'' --properties ''{"path":"/test"}'''
+      - command: 'add navigation route test-route --name ''Test Route'' --description ''Test navigation route'' --attributes ''{"path":"/test"}'''
         files_to_compare:
           - manifest.yaml
           - 10_navigation/route.yaml
@@ -295,7 +295,7 @@ pipelines:
       - command: "add testing testcasesketch test-case --name 'Test Case' --description 'Test case sketch for verification'"
         files_to_compare:
           - manifest.yaml
-          - 12_testing/test_case_sketch.yaml
+          - 12_testing/testcasesketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -303,7 +303,7 @@ pipelines:
 
       - command: "update testing.testcasesketch.test-case --name 'Updated Test Case'"
         files_to_compare:
-          - 12_testing/test_case_sketch.yaml
+          - 12_testing/testcasesketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -311,7 +311,7 @@ pipelines:
       - command: "delete testing.testcasesketch.test-case --force"
         files_to_compare:
           - manifest.yaml
-          - 12_testing/test_case_sketch.yaml
+          - 12_testing/testcasesketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"

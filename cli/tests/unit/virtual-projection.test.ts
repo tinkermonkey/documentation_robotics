@@ -45,7 +45,7 @@ describe("VirtualProjectionEngine", () => {
         name: "Increase Efficiency",
         type: "goal",
         description: "Main business goal",
-        properties: { priority: "high" },
+        attributes: { priority: "high" },
       })
     );
     baseModel.addLayer(motivationLayer);
@@ -57,7 +57,7 @@ describe("VirtualProjectionEngine", () => {
         name: "Order Service",
         type: "service",
         description: "Manages orders",
-        properties: { version: "1.0.0" },
+        attributes: { version: "1.0.0" },
       })
     );
     applicationLayer.addElement(
@@ -66,7 +66,7 @@ describe("VirtualProjectionEngine", () => {
         name: "Payment Service",
         type: "service",
         description: "Processes payments",
-        properties: { version: "2.0.0" },
+        attributes: { version: "2.0.0" },
       })
     );
     baseModel.addLayer(applicationLayer);
@@ -129,7 +129,7 @@ describe("VirtualProjectionEngine", () => {
 
       const update = {
         name: "Updated Efficiency Goal",
-        properties: { priority: "critical" },
+        attributes: { priority: "critical" },
       };
 
       await storage.addChange(changesetId, {
@@ -149,7 +149,7 @@ describe("VirtualProjectionEngine", () => {
 
       expect(result).toBeDefined();
       expect(result?.name).toBe("Updated Efficiency Goal");
-      expect(result?.properties.priority).toBe("critical");
+      expect(result?.attributes.priority).toBe("critical");
     });
 
     it("should return null when element is deleted", async () => {
@@ -200,7 +200,7 @@ describe("VirtualProjectionEngine", () => {
         id: "application-service-notification-service",
         name: "Notification Service",
         type: "service",
-        properties: { version: "1.0.0" },
+        attributes: { version: "1.0.0" },
       };
 
       await storage.addChange(changesetId, {
@@ -225,8 +225,8 @@ describe("VirtualProjectionEngine", () => {
         type: "update",
         elementId: "application-service-order-service",
         layerName: "application",
-        before: { name: "Order Service", properties: { version: "1.0.0" } },
-        after: { name: "Updated Order Service", properties: { version: "2.0.0" } },
+        before: { name: "Order Service", attributes: { version: "1.0.0" } },
+        after: { name: "Updated Order Service", attributes: { version: "2.0.0" } },
         sequenceNumber: 0,
       });
 
@@ -234,7 +234,7 @@ describe("VirtualProjectionEngine", () => {
 
       const element = result.getElement("application-service-order-service");
       expect(element?.name).toBe("Updated Order Service");
-      expect(element?.properties.version).toBe("2.0.0");
+      expect(element?.attributes.version).toBe("2.0.0");
     });
 
     it("should apply delete changes to layer", async () => {

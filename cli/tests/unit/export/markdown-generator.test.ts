@@ -28,7 +28,8 @@ describe("MarkdownGenerator", () => {
         type: "goal",
         name: "Improve Quality",
         description: "Improve overall product quality",
-        properties: { priority: "high" },
+        attributes: { priority: "high" },
+        properties: { priority: "high", status: "active" },
       },
       {
         id: "business.capability.quality-management",
@@ -36,7 +37,8 @@ describe("MarkdownGenerator", () => {
         type: "capability",
         name: "Quality Management",
         description: "Manage quality processes",
-        properties: { owner: "QA Team" },
+        attributes: { owner: "QA Team" },
+        properties: { owner: "QA Team", criticality: "high" },
       },
       {
         id: "application.service.quality-service",
@@ -44,7 +46,8 @@ describe("MarkdownGenerator", () => {
         type: "service",
         name: "Quality Service",
         description: "Service for quality management",
-        properties: { technology: "Node.js" },
+        attributes: { technology: "Node.js" },
+        properties: { technology: "Node.js", version: "1.0.0" },
       },
       {
         id: "api.endpoint.quality-report",
@@ -52,7 +55,8 @@ describe("MarkdownGenerator", () => {
         type: "endpoint",
         name: "Quality Report",
         description: "Generate quality reports",
-        properties: { method: "GET", path: "/reports/quality" },
+        attributes: { method: "GET", path: "/reports/quality" },
+        properties: { method: "GET", path: "/reports/quality", deprecated: false },
       },
       {
         id: "data-model.schema.quality-data",
@@ -60,7 +64,8 @@ describe("MarkdownGenerator", () => {
         type: "schema",
         name: "Quality Data",
         description: "Quality metrics schema",
-        properties: { format: "JSON" },
+        attributes: { format: "JSON" },
+        properties: { format: "JSON", version: "1.0" },
       },
     ];
 
@@ -171,7 +176,7 @@ describe("MarkdownGenerator", () => {
         type: "goal",
         name: "Goal | With * Special",
         description: "Description [with] {special} chars",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -263,7 +268,7 @@ describe("MarkdownGenerator", () => {
           layer: "motivation",
           type: "goal",
           name: `Goal ${i}`,
-          properties: {},
+          attributes: {},
         });
       }
 
@@ -381,7 +386,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Goal without description",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -401,7 +406,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Goal without properties",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -420,6 +425,12 @@ describe("MarkdownGenerator", () => {
         layer: "api",
         type: "endpoint",
         name: "Complex Endpoint",
+        attributes: {
+          methods: ["GET", "POST"],
+          config: { timeout: 5000, retries: 3 },
+          active: true,
+          count: 42,
+        },
         properties: {
           methods: ["GET", "POST"],
           config: { timeout: 5000, retries: 3 },
@@ -457,7 +468,7 @@ describe("MarkdownGenerator", () => {
           layer: "motivation",
           type: "goal",
           name: `Test ${i}`,
-          properties: {},
+          attributes: {},
         });
       }
 
@@ -487,7 +498,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Customer Satisfaction",
-        properties: {},
+        attributes: {},
       });
 
       testModel.graph.addNode({
@@ -495,7 +506,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Cost Reduction",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -517,7 +528,7 @@ describe("MarkdownGenerator", () => {
         layer: "business",
         type: "capability",
         name: "Order Management",
-        properties: {},
+        attributes: {},
       });
 
       testModel.graph.addNode({
@@ -525,7 +536,7 @@ describe("MarkdownGenerator", () => {
         layer: "api",
         type: "endpoint",
         name: "Create Order",
-        properties: {},
+        attributes: {},
       });
 
       testModel.graph.addNode({
@@ -533,7 +544,7 @@ describe("MarkdownGenerator", () => {
         layer: "data-store",
         type: "table",
         name: "Orders Table",
-        properties: {},
+        attributes: {},
       });
 
       // Add multiple edges from same source
@@ -568,7 +579,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Goal Without Properties",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -588,7 +599,7 @@ describe("MarkdownGenerator", () => {
         layer: "unknown-layer",
         type: "unknown-type",
         name: "Unknown Layer Element",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -609,7 +620,7 @@ describe("MarkdownGenerator", () => {
         layer: "business",
         type: "capability",
         name: "Capability A",
-        properties: {},
+        attributes: {},
       });
 
       testModel.graph.addNode({
@@ -617,7 +628,7 @@ describe("MarkdownGenerator", () => {
         layer: "business",
         type: "capability",
         name: "Capability B",
-        properties: {},
+        attributes: {},
       });
 
       // Create edges in both directions
@@ -660,10 +671,12 @@ describe("MarkdownGenerator", () => {
       // Add 15 elements (more than MAX_DETAIL_ELEMENTS which is 10)
       for (let i = 1; i <= 15; i++) {
         const elem = new Element({
-          elementId: `api.endpoint.endpoint-${i}`,
+          id: `api-endpoint-endpoint-${i}`,
           name: `Endpoint ${i}`,
+          layer_id: "api",
           layer: "api",
           description: `Test endpoint ${i}`,
+          type: "endpoint",
         });
         testModel.layers.get("api")?.addElement(elem);
       }
@@ -693,10 +706,12 @@ describe("MarkdownGenerator", () => {
       // Add only 3 elements (less than MAX_DETAIL_ELEMENTS)
       for (let i = 1; i <= 3; i++) {
         const elem = new Element({
-          elementId: `api.endpoint.endpoint-${i}`,
+          id: `api-endpoint-endpoint-${i}`,
           name: `Endpoint ${i}`,
+          layer_id: "api",
           layer: "api",
           description: `Test endpoint ${i}`,
+          type: "endpoint",
         });
         testModel.layers.get("api")?.addElement(elem);
       }

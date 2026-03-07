@@ -106,7 +106,7 @@ describe("Golden Copy Integration", () => {
       // Should be able to add elements
       const element = await addTestElement(model, "api", "endpoint", "api.endpoint.test", {
         name: "Test Endpoint",
-        properties: { method: "GET", path: "/test" },
+        attributes: { method: "GET", path: "/test" },
       });
 
       expect(element).toBeDefined();

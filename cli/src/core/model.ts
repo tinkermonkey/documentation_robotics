@@ -10,7 +10,6 @@ import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getNodeType } from "../generated/node-types.js";
-import { generateElementId } from "../utils/id-generator.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
 import path from "node:path";
@@ -83,10 +82,11 @@ export class Model {
 
   /**
    * Get an element by ID across all layers
+   * Supports both UUID and semantic ID (layer.type.kebab-name) lookup
    */
   getElementById(id: string): Element | undefined {
     for (const layer of this.layers.values()) {
-      const element = layer.elements.get(id);
+      const element = layer.getElement(id);
       if (element) {
         return element;
       }
@@ -106,7 +106,6 @@ export class Model {
 
   /**
    * Load a layer from disk (model/XX_layername/*.yaml files)
-   * Supports reading layer paths from manifest for Python CLI compatibility
    */
   async loadLayer(name: string): Promise<void> {
     const layerSpan = isTelemetryEnabled
@@ -121,44 +120,21 @@ export class Model {
 
       let layerPath: string | null = null;
 
-      // PRIORITY 1: Read layer path from manifest (Python CLI compatibility)
-      if (this.manifest.layers && this.manifest.layers[name]) {
-        const layerConfig = this.manifest.layers[name];
-        if (layerConfig && typeof layerConfig === "object" && "path" in layerConfig) {
-          const configPath = (layerConfig as Record<string, unknown>).path;
-          if (typeof configPath === "string") {
-            // Path in manifest is relative to root
-            const fullPath = `${this.rootPath}/${configPath.replace(/\/$/, "")}`;
-            try {
-              await fs.access(fullPath);
-              layerPath = fullPath;
-            } catch (err) {
-              // Path in manifest doesn't exist - this is an error
-              if (process.env.DEBUG) {
-                console.debug(`Manifest specifies path ${configPath} but it doesn't exist`);
-              }
-            }
-          }
+      // Auto-discover by scanning directory with naming convention
+      const modelDir = `${this.rootPath}/documentation-robotics/model`;
+
+      try {
+        const entries = await fs.readdir(modelDir, { withFileTypes: true });
+        const layerDir = entries.find(
+          (e) =>
+            e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
+        );
+
+        if (layerDir) {
+          layerPath = `${modelDir}/${layerDir.name}`;
         }
-      }
-
-      // FALLBACK: Auto-discover by scanning directory with naming convention
-      if (!layerPath) {
-        const modelDir = `${this.rootPath}/documentation-robotics/model`;
-
-        try {
-          const entries = await fs.readdir(modelDir, { withFileTypes: true });
-          const layerDir = entries.find(
-            (e) =>
-              e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
-          );
-
-          if (layerDir) {
-            layerPath = `${modelDir}/${layerDir.name}`;
-          }
-        } catch {
-          // Model directory doesn't exist or can't be read
-        }
+      } catch {
+        // Model directory doesn't exist or can't be read
       }
 
       if (!layerPath) {
@@ -183,13 +159,25 @@ export class Model {
                 if (element && typeof element === "object") {
                   const el: any = element;
 
-                  const elementUUID = el.id;
-                  const elementName = el.name || key;
-                  const elementType = el.type;
-                  const layerId = el.layer_id || name;
+                  let elementUUID = el.id;
+                  let extractedType: string | undefined = undefined;
 
-                  // Reconstruct elementId from layer, type, and name (semantic ID for lookup)
-                  const elementId = el.elementId || generateElementId(layerId, elementType, elementName);
+                  // Extract type from semantic ID format: "layer.type.kebab-case-name"
+                  // No UUID migration needed - semantic IDs are the current format
+                  if (typeof elementUUID === "string" && elementUUID.includes(".")) {
+                    const parts = elementUUID.split(/\./);
+                    if (parts.length >= 3) {
+                      // Skip first part (layer name), get second part (type)
+                      extractedType = parts[1];
+                    } else if (parts.length === 2) {
+                      // Fallback for simple format
+                      extractedType = parts[1];
+                    }
+                  }
+
+                  const elementName = el.name || key;
+                  const elementType = el.type || extractedType;
+                  const layerId = el.layer_id || name;
 
                   const newElement = new Element({
                     id: elementUUID,
@@ -201,12 +189,10 @@ export class Model {
                     name: elementName,
                     type: elementType,
                     description: el.description || "",
-                    properties: el.properties || {},
                     relationships: el.relationships || [],
                     references: el.references || [],
                     layer: layerId,
-                    elementId: elementId,
-                  });
+                  } as any);
                   layer.addElement(newElement);
                 }
               }
@@ -281,42 +267,21 @@ export class Model {
 
     let layerPath: string | null = null;
 
-    // Try to get layer path from manifest first (Python CLI compatibility)
-    if (this.manifest.layers && this.manifest.layers[name]) {
-      const layerConfig = this.manifest.layers[name];
-      if (layerConfig && typeof layerConfig === "object" && "path" in layerConfig) {
-        const configPath = (layerConfig as Record<string, unknown>).path;
-        if (typeof configPath === "string") {
-          const fullPath = `${this.rootPath}/${configPath.replace(/\/$/, "")}`;
-          try {
-            await fs.access(fullPath);
-            layerPath = fullPath;
-          } catch {
-            // Path doesn't exist, create it
-            await ensureDir(fullPath);
-            layerPath = fullPath;
-          }
-        }
+    // Discover by scanning directory
+    const modelDir = `${this.rootPath}/documentation-robotics/model`;
+
+    try {
+      const entries = await fs.readdir(modelDir, { withFileTypes: true });
+      const layerDir = entries.find(
+        (e) =>
+          e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
+      );
+
+      if (layerDir) {
+        layerPath = `${modelDir}/${layerDir.name}`;
       }
-    }
-
-    // If manifest path not found, try discovery by scanning directory
-    if (!layerPath) {
-      const modelDir = `${this.rootPath}/documentation-robotics/model`;
-
-      try {
-        const entries = await fs.readdir(modelDir, { withFileTypes: true });
-        const layerDir = entries.find(
-          (e) =>
-            e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, "") === name
-        );
-
-        if (layerDir) {
-          layerPath = `${modelDir}/${layerDir.name}`;
-        }
-      } catch {
-        // Model directory doesn't exist or can't be read
-      }
+    } catch {
+      // Model directory doesn't exist or can't be read
     }
 
     // If still not found, create using default format
@@ -327,7 +292,6 @@ export class Model {
       const index = CANONICAL_LAYER_NAMES.indexOf(layerNameWithoutPrefix as typeof CANONICAL_LAYER_NAMES[number]);
       if (index >= 0) {
         const orderNum = String(index + 1).padStart(2, "0");
-        // Use Python CLI structure
         layerPath = `${this.rootPath}/documentation-robotics/model/${orderNum}_${layerNameWithoutPrefix}`;
         await ensureDir(layerPath);
       } else {
@@ -365,7 +329,7 @@ export class Model {
       elementsByType.get(typeKey)!.elements.push(element);
     }
 
-    // Internal graph fields stored in properties/attributes — never written to YAML
+    // Internal graph fields — never written to YAML
     const INTERNAL_FIELDS = new Set([
       "__references__", "__relationships__",
       "source", "x-source-reference",
@@ -388,7 +352,7 @@ export class Model {
             )
           : undefined;
 
-        // Use UUID as YAML key; elements no longer have semantic IDs
+        // Use UUID as YAML key
         const key = element.id;
         yamlData[key] = {
           id: json.id,
@@ -397,9 +361,6 @@ export class Model {
           layer_id: json.layer_id,
           name: json.name,
           ...(json.description && { description: json.description }),
-          // Preserve elementId for backward compatibility with previously-written files;
-          // loadLayer() at line 192 reads and uses it to generate consistent IDs
-          ...(element.elementId && { elementId: element.elementId }),
           ...(cleanAttrs && Object.keys(cleanAttrs).length > 0 && { attributes: cleanAttrs }),
           ...(json.source_reference && { source_reference: json.source_reference }),
           ...(json.metadata && { metadata: json.metadata }),
@@ -476,47 +437,37 @@ export class Model {
         version: this.manifest.version,
       },
       documentation: ".dr/README.md",
-      layers: this.manifest.layers || ({} as any),
+      layers: {},
     };
 
-    // If layers not preserved from load, generate default structure
-    if (!this.manifest.layers || Object.keys(this.manifest.layers).length === 0) {
-      const layerOrder = [
-        "motivation",
-        "business",
-        "security",
-        "application",
-        "technology",
-        "api",
-        "data-model",
-        "data-store",
-        "ux",
-        "navigation",
-        "apm",
-        "testing",
-      ];
+    // Generate layer structure from current model state
+    const layerOrder = [
+      "motivation",
+      "business",
+      "security",
+      "application",
+      "technology",
+      "api",
+      "data-model",
+      "data-store",
+      "ux",
+      "navigation",
+      "apm",
+      "testing",
+    ];
 
-      for (let i = 0; i < layerOrder.length; i++) {
-        const layerName = layerOrder[i];
-        const layer = this.layers.get(layerName);
-        const orderNum = String(i + 1).padStart(2, "0");
+    for (let i = 0; i < layerOrder.length; i++) {
+      const layerName = layerOrder[i];
+      const layer = this.layers.get(layerName);
+      const orderNum = String(i + 1).padStart(2, "0");
 
-        yamlData.layers[layerName] = {
-          order: i + 1,
-          name: layerName.charAt(0).toUpperCase() + layerName.slice(1).replace("-", " "),
-          path: `documentation-robotics/model/${orderNum}_${layerName}/`,
-          enabled: true,
-          ...(layer && { elements: this.getLayerElementCounts(layer) }),
-        };
-      }
-    } else {
-      // Update element counts in existing layer configs
-      for (const [layerName, layerConfig] of Object.entries(yamlData.layers)) {
-        const layer = this.layers.get(layerName);
-        if (layer) {
-          (layerConfig as any).elements = this.getLayerElementCounts(layer);
-        }
-      }
+      yamlData.layers[layerName] = {
+        order: i + 1,
+        name: layerName.charAt(0).toUpperCase() + layerName.slice(1).replace("-", " "),
+        path: `documentation-robotics/model/${orderNum}_${layerName}/`,
+        enabled: true,
+        ...(layer && { elements: this.getLayerElementCounts(layer) }),
+      };
     }
 
     if (this.manifest.changeset_history && this.manifest.changeset_history.length > 0) {
@@ -587,7 +538,6 @@ export class Model {
     const data = this.relationships.toArray();
 
     // Add header comment with timestamp to ensure file always changes
-    // This matches Python CLI behavior
     const timestamp = new Date().toISOString();
     const header = `# Intra-layer relationships
 # Format: source_id -> predicate -> target_id
@@ -697,7 +647,6 @@ export class Model {
         specVersion: manifestYaml.spec_version || "0.6.0",
         created: manifestYaml.created || new Date().toISOString(),
         modified: manifestYaml.updated || new Date().toISOString(),
-        layers: manifestYaml.layers,
       };
       const manifest = new Manifest(manifestData);
       const model = new Model(projectRoot, manifest, options);
@@ -768,7 +717,7 @@ export class Model {
     manifestData: ManifestData,
     options: ModelOptions = {}
   ): Promise<Model> {
-    // Create model directory using Python CLI structure: documentation-robotics/model/
+    // Create model directory structure
     await ensureDir(`${rootPath}/documentation-robotics/model`);
 
     for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {

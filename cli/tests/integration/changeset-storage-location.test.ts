@@ -65,7 +65,7 @@ describe("Changeset Storage Location", () => {
       type: "endpoint",
       name: "List Items",
       description: "List all items",
-      properties: { method: "GET", path: "/items" },
+      attributes: { method: "GET", path: "/items" },
     });
     apiLayer.addElement(endpoint);
 
@@ -254,7 +254,7 @@ describe("Changeset Storage Location", () => {
             id: "api-endpoint-new",
             type: "endpoint",
             name: "New Endpoint",
-            properties: { method: "POST", path: "/items" },
+            attributes: { method: "POST", path: "/items" },
           },
         },
       ];
@@ -447,7 +447,7 @@ describe("Changeset Storage Location", () => {
         id: "api-endpoint-test",
         type: "endpoint",
         name: "Test Endpoint",
-        properties: { method: "GET", path: "/test" },
+        attributes: { method: "GET", path: "/test" },
       });
       testLayer.addElement(endpoint);
       testModel.addLayer(testLayer);

@@ -220,7 +220,7 @@ export const invalidSpecNodeExamples = {
     $id: "https://example.com/test.node.schema.json",
     title: "Invalid",
     description: "Missing allOf reference to base schema",
-    properties: {
+    attributes: {
       spec_node_id: { const: "test.node" },
       layer_id: { const: "test" },
       type: { const: "node" },
@@ -238,13 +238,13 @@ export const invalidSpecNodeExamples = {
     title: "Invalid",
     description: "Invalid attribute property type",
     allOf: [{ $ref: "../../schemas/base/spec-node.schema.json" }],
-    properties: {
+    attributes: {
       spec_node_id: { const: "test.node" },
       layer_id: { const: "test" },
       type: { const: "node" },
       attributes: {
         type: "object",
-        properties: {
+        attributes: {
           bad_attr: {
             type: "invalid-type",
             description: "Bad type",

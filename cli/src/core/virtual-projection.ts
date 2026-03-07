@@ -30,7 +30,7 @@ export interface ProjectedModel {
 
 /**
  * Model diff categorizing changeset changes by type.
- * Separates staged changes into additions (new elements), modifications (updated properties),
+ * Separates staged changes into additions (new elements), modifications (updated attributes),
  * and deletions (removed elements). Used for preview and diff display operations.
  */
 export interface ModelDiff {
@@ -122,7 +122,7 @@ export class VirtualProjectionEngine {
    * If multiple changes exist for the element, the last change determines final state.
    * For 'delete' operations, returns null.
    * For 'add' operations without base element, creates new element from staged data.
-   * For 'update' operations, merges staged changes with base element properties.
+   * For 'update' operations, merges staged changes with base element attributes.
    */
   async projectElement(
     baseModel: Model,
@@ -157,13 +157,8 @@ export class VirtualProjectionEngine {
 
     if (baseElement) {
       // Create a new element with projected data merged with base
-      // Handle both 'attributes' (spec-aligned) and 'properties' (legacy) field names
       const projectedAttributes =
-        typeof projectedData.attributes === "object"
-          ? projectedData.attributes
-          : typeof projectedData.properties === "object"
-            ? projectedData.properties
-            : {};
+        typeof projectedData.attributes === "object" ? projectedData.attributes : {};
 
       const mergedData = {
         id: baseElement.id,
@@ -302,13 +297,8 @@ export class VirtualProjectionEngine {
             const existing = projectedLayer.getElement(change.elementId);
             if (existing) {
               // Create updated element with merged attributes
-              // Handle both 'attributes' (spec-aligned) and 'properties' (legacy) field names
               const afterAttributes =
-                typeof change.after.attributes === "object"
-                  ? change.after.attributes
-                  : typeof change.after.properties === "object"
-                    ? change.after.properties
-                    : {};
+                typeof change.after.attributes === "object" ? change.after.attributes : {};
 
               const mergedAttributes: Record<string, unknown> = {
                 ...existing.attributes,
@@ -644,11 +634,11 @@ export class VirtualProjectionEngine {
    * @remarks
    * Cloning strategy:
    * 1. Create new Layer with same name
-   * 2. Clone each element: shallow copy properties object and array references
+   * 2. Clone each element: shallow copy attributes object and array references
    * 3. Copy layer metadata if present
    * 4. Mark cloned layer as clean to prevent automatic saves
    * This ensures changes to projection don't affect base layer.
-   * Note: Shallow cloning is sufficient since properties are read-only in projections.
+   * Note: Shallow cloning is sufficient since attributes are read-only in projections.
    */
   private cloneLayer(layer: Layer): Layer {
     const cloned = new LayerClass(layer.name);
@@ -662,9 +652,9 @@ export class VirtualProjectionEngine {
         layer_id: element.layer_id,
         name: element.name,
         description: element.description,
-        attributes: { ...element.attributes }, // Shallow copy (attributes are read-only in projection)
-        references: [...(element.references || [])], // Shallow copy of array
-        relationships: [...(element.relationships || [])], // Shallow copy of array
+        attributes: { ...element.attributes },
+        references: [...(element.references || [])],
+        relationships: [...(element.relationships || [])],
         layer: element.layer,
         source_reference: element.source_reference,
         metadata: element.metadata,
