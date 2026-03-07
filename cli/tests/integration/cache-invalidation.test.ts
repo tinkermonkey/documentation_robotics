@@ -47,7 +47,7 @@ describe("Cache Invalidation Optimization", () => {
         type: "endpoint",
         name: "Users Endpoint",
         description: "Manage users",
-        properties: { method: "GET", path: "/users" },
+        attributes: { method: "GET", path: "/users" },
       })
     );
 
@@ -57,7 +57,7 @@ describe("Cache Invalidation Optimization", () => {
         type: "endpoint",
         name: "Posts Endpoint",
         description: "Manage posts",
-        properties: { method: "GET", path: "/posts" },
+        attributes: { method: "GET", path: "/posts" },
       })
     );
 
@@ -527,7 +527,7 @@ describe("Cache Invalidation Optimization", () => {
             id: "api-endpoint-new-resource",
             name: "New Resource Endpoint",
             type: "endpoint",
-            properties: { method: "POST", path: "/resources" },
+            attributes: { method: "POST", path: "/resources" },
           },
         },
       ];
@@ -568,7 +568,7 @@ describe("Cache Invalidation Optimization", () => {
           after: {
             name: "Users Endpoint V2",
             description: "Updated to handle pagination",
-            properties: { method: "GET", path: "/users?page=1" },
+            attributes: { method: "GET", path: "/users?page=1" },
           },
         },
       ];

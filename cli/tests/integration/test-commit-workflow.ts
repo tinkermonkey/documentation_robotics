@@ -101,7 +101,7 @@ describe("Atomic Commit Workflow", () => {
         id: "api-endpoint-drift",
         type: "endpoint",
         name: "Drift Element",
-        properties: {},
+        attributes: {},
       });
       apiLayer.addElement(newElement);
       await model.saveLayer("api");
@@ -138,7 +138,7 @@ describe("Atomic Commit Workflow", () => {
         id: "api-endpoint-drift-2",
         type: "endpoint",
         name: "Drift Element 2",
-        properties: {},
+        attributes: {},
       });
       apiLayer.addElement(driftElement);
       await model.saveLayer("api");
@@ -186,7 +186,7 @@ describe("Atomic Commit Workflow", () => {
         id: "api-endpoint-existing",
         type: "endpoint",
         name: "Existing",
-        properties: {},
+        attributes: {},
       });
       apiLayer.addElement(initialElement);
       await model.saveLayer("api");

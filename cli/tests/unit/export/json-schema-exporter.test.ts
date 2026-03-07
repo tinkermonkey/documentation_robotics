@@ -26,8 +26,8 @@ describe("JsonSchemaExporter", () => {
       type: "entity",
       name: "User",
       description: "User entity",
-      properties: {
-        properties: {
+      attributes: {
+        attributes: {
           id: { type: "string" },
           name: { type: "string" },
         },
@@ -54,8 +54,8 @@ describe("JsonSchemaExporter", () => {
       type: "entity",
       name: "Customer",
       layer: "07-data-model-layer",
-      properties: {
-        properties: {
+      attributes: {
+        attributes: {
           id: { type: "string" },
           email: { type: "string" },
         },
@@ -110,8 +110,8 @@ describe("JsonSchemaExporter", () => {
       type: "entity",
       name: "Product",
       layer: "07-data-model-layer",
-      properties: {
-        properties: {
+      attributes: {
+        attributes: {
           id: { type: "string" },
         },
         "x-source-reference": {
@@ -150,8 +150,8 @@ describe("JsonSchemaExporter", () => {
       type: "entity",
       name: "Order",
       layer: "07-data-model-layer",
-      properties: {
-        properties: {
+      attributes: {
+        attributes: {
           id: { type: "string" },
         },
         "x-source-reference": {
@@ -166,8 +166,8 @@ describe("JsonSchemaExporter", () => {
       type: "entity",
       name: "Invoice",
       layer: "07-data-model-layer",
-      properties: {
-        properties: {
+      attributes: {
+        attributes: {
           id: { type: "string" },
         },
         // No source reference
@@ -194,8 +194,8 @@ describe("JsonSchemaExporter", () => {
       type: "entity",
       name: "Complex",
       layer: "07-data-model-layer",
-      properties: {
-        properties: {
+      attributes: {
+        attributes: {
           id: { type: "string" },
         },
         "x-source-reference": {

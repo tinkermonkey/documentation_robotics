@@ -29,7 +29,7 @@ describe("MarkdownExporter", () => {
       type: "goal",
       name: "Test Goal",
       description: "A strategic goal for the organization",
-      properties: { priority: "high", owner: "leadership" },
+      attributes: { priority: "high", owner: "leadership" },
       references: [
         {
           source: "motivation-goal-test",

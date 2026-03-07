@@ -96,7 +96,7 @@ describe("Export Command Integration Tests", () => {
       name: "Order",
       description: "Order data entity",
       attributes: {
-        properties: {
+        attributes: {
           id: { type: "string", description: "Order ID" },
           customerId: { type: "string", description: "Customer ID" },
           amount: { type: "number", description: "Order amount" },

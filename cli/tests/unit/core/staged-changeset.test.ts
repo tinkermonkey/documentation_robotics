@@ -170,7 +170,7 @@ describe("BaseSnapshotManager", () => {
         id: "api-endpoint-test",
         type: "endpoint",
         name: "Test Endpoint",
-        properties: { method: "GET", path: "/test" },
+        attributes: { method: "GET", path: "/test" },
       })
     );
     testModel.layers.set("api", apiLayer);
@@ -181,7 +181,7 @@ describe("BaseSnapshotManager", () => {
         id: "app-component-test",
         type: "component",
         name: "Test Component",
-        properties: {},
+        attributes: {},
       })
     );
     testModel.layers.set("application", appLayer);
@@ -233,7 +233,7 @@ describe("BaseSnapshotManager", () => {
           id: "api-endpoint-new",
           type: "endpoint",
           name: "New Endpoint",
-          properties: { method: "POST", path: "/new" },
+          attributes: { method: "POST", path: "/new" },
         })
       );
     }

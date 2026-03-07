@@ -42,7 +42,7 @@ describe("ArchiMateExporter", () => {
       type: "goal",
       name: "Test Goal",
       description: "A test goal",
-      properties: { priority: "high" },
+      attributes: { priority: "high" },
     });
 
     const requirement = new Element({

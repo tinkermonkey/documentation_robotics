@@ -108,7 +108,7 @@ describe("generate-validators.ts - Critical Fixes", () => {
       // Test hasCircularReference logic
       const circularObj: any = {
         name: "Test",
-        properties: {},
+        attributes: {},
       };
       circularObj.properties.self = circularObj; // Creates circular ref
 
@@ -193,13 +193,13 @@ describe("generate-validators.ts - Critical Fixes", () => {
       // Complex but non-circular structure
       const schema = {
         type: "object",
-        properties: {
+        attributes: {
           name: { type: "string" },
           items: {
             type: "array",
             items: {
               type: "object",
-              properties: {
+              attributes: {
                 id: { type: "string" },
                 tags: {
                   type: "array",
@@ -289,7 +289,7 @@ describe("generate-validators.ts - Critical Fixes", () => {
       // Test that we validate serializability before JSON.stringify
       const validSchema = {
         type: "object",
-        properties: {
+        attributes: {
           name: { type: "string" },
         },
       };
@@ -315,7 +315,7 @@ describe("generate-validators.ts - Critical Fixes", () => {
       const schemaWithBackticks = {
         type: "object",
         title: "Schema with `backticks` in title",
-        properties: {
+        attributes: {
           description: {
             type: "string",
             pattern: "^`test`$",
@@ -347,7 +347,7 @@ describe("generate-validators.ts - Critical Fixes", () => {
             `type${i}`,
             {
               type: "object",
-              properties: {
+              attributes: {
                 id: { type: "string" },
                 name: { type: "string" },
                 items: {
@@ -374,7 +374,7 @@ describe("generate-validators.ts - Critical Fixes", () => {
         type: "object",
         title: 'Schema with "quotes" and \\ backslashes',
         description: "Line 1\nLine 2\rLine 3",
-        properties: {
+        attributes: {
           regex: {
             type: "string",
             pattern: "^[a-z]+$", // Regex with special chars
@@ -400,7 +400,7 @@ describe("generate-validators.ts - Critical Fixes", () => {
         type: "object",
         nullable: true,
         example: null,
-        properties: {
+        attributes: {
           optional: {
             type: "string",
             default: null,
@@ -449,7 +449,7 @@ describe("generate-validators.ts - Critical Fixes", () => {
       // Simulate the full flow: detect circular refs before writing
       const circularSchema: any = {
         type: "object",
-        properties: {
+        attributes: {
           nested: {
             type: "object",
           },
@@ -497,11 +497,11 @@ describe("generate-validators.ts - Critical Fixes", () => {
       // Full integration test
       const validSchema = {
         type: "object",
-        properties: {
+        attributes: {
           id: { type: "string" },
           nested: {
             type: "object",
-            properties: {
+            attributes: {
               value: { type: "number" },
             },
           },

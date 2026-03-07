@@ -24,7 +24,7 @@ describe("MermaidMarkdownExporter", () => {
       type: "goal",
       name: "Test Goal",
       description: "A test goal",
-      properties: { priority: "high" },
+      attributes: { priority: "high" },
     });
 
     model.graph.addNode({
@@ -33,7 +33,7 @@ describe("MermaidMarkdownExporter", () => {
       type: "capability",
       name: "Test Capability",
       description: "A test capability",
-      properties: { owner: "Team A" },
+      attributes: { owner: "Team A" },
     });
 
     model.graph.addNode({
@@ -42,7 +42,7 @@ describe("MermaidMarkdownExporter", () => {
       type: "service",
       name: "Test Service",
       description: "A test service",
-      properties: { technology: "Node.js" },
+      attributes: { technology: "Node.js" },
     });
 
     // Add relationships
@@ -209,7 +209,7 @@ describe("MermaidMarkdownExporter", () => {
         type: "goal",
         name: "Goal | With * [Special]",
         description: "Description with {brackets}",
-        properties: {},
+        attributes: {},
       });
 
       const markdown = await exporter.export(testModel);
@@ -251,7 +251,7 @@ describe("MermaidMarkdownExporter", () => {
           layer: "motivation",
           type: "goal",
           name: `Goal ${i}`,
-          properties: { index: i },
+          attributes: { index: i },
         });
       }
 

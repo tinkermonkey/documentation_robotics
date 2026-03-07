@@ -188,7 +188,7 @@ describe("ChangesetValidator - Validation on Projected Models", () => {
         id: "api-endpoint-test",
         type: "endpoint",
         name: "Test Endpoint",
-        properties: {},
+        attributes: {},
       });
       apiLayer.addElement(testElement);
       await model.saveLayer("api");
@@ -217,7 +217,7 @@ describe("ChangesetValidator - Validation on Projected Models", () => {
         id: "api-endpoint-users",
         type: "endpoint",
         name: "GET /users",
-        properties: { method: "GET", path: "/users" },
+        attributes: { method: "GET", path: "/users" },
       });
       apiLayer.addElement(testElement);
       await model.saveLayer("api");

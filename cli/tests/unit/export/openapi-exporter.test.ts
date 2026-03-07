@@ -26,7 +26,7 @@ describe("OpenAPIExporter", () => {
       type: "endpoint",
       name: "Get Users",
       description: "Retrieve list of users",
-      properties: {
+      attributes: {
         path: "/users",
         method: "GET",
         responses: {
@@ -56,7 +56,7 @@ describe("OpenAPIExporter", () => {
       id: "api-endpoint-create-user",
       type: "endpoint",
       name: "Create User",
-      properties: {
+      attributes: {
         path: "/users",
         method: "POST",
         "x-source-reference": {
@@ -97,7 +97,7 @@ describe("OpenAPIExporter", () => {
       id: "api-endpoint-get-users",
       type: "endpoint",
       name: "Get Users",
-      properties: {
+      attributes: {
         path: "/users",
         method: "GET",
         "x-source-reference": {
@@ -140,7 +140,7 @@ describe("OpenAPIExporter", () => {
       id: "api-endpoint-get-users",
       type: "endpoint",
       name: "Get Users",
-      properties: {
+      attributes: {
         path: "/users",
         method: "GET",
         "x-source-reference": {
@@ -154,7 +154,7 @@ describe("OpenAPIExporter", () => {
       id: "api-endpoint-post-users",
       type: "endpoint",
       name: "Create User",
-      properties: {
+      attributes: {
         path: "/users",
         method: "POST",
         // No source reference

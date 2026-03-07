@@ -28,7 +28,7 @@ describe("MarkdownGenerator", () => {
         type: "goal",
         name: "Improve Quality",
         description: "Improve overall product quality",
-        properties: { priority: "high" },
+        attributes: { priority: "high" },
       },
       {
         id: "business.capability.quality-management",
@@ -36,7 +36,7 @@ describe("MarkdownGenerator", () => {
         type: "capability",
         name: "Quality Management",
         description: "Manage quality processes",
-        properties: { owner: "QA Team" },
+        attributes: { owner: "QA Team" },
       },
       {
         id: "application.service.quality-service",
@@ -44,7 +44,7 @@ describe("MarkdownGenerator", () => {
         type: "service",
         name: "Quality Service",
         description: "Service for quality management",
-        properties: { technology: "Node.js" },
+        attributes: { technology: "Node.js" },
       },
       {
         id: "api.endpoint.quality-report",
@@ -52,7 +52,7 @@ describe("MarkdownGenerator", () => {
         type: "endpoint",
         name: "Quality Report",
         description: "Generate quality reports",
-        properties: { method: "GET", path: "/reports/quality" },
+        attributes: { method: "GET", path: "/reports/quality" },
       },
       {
         id: "data-model.schema.quality-data",
@@ -60,7 +60,7 @@ describe("MarkdownGenerator", () => {
         type: "schema",
         name: "Quality Data",
         description: "Quality metrics schema",
-        properties: { format: "JSON" },
+        attributes: { format: "JSON" },
       },
     ];
 
@@ -171,7 +171,7 @@ describe("MarkdownGenerator", () => {
         type: "goal",
         name: "Goal | With * Special",
         description: "Description [with] {special} chars",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -263,7 +263,7 @@ describe("MarkdownGenerator", () => {
           layer: "motivation",
           type: "goal",
           name: `Goal ${i}`,
-          properties: {},
+          attributes: {},
         });
       }
 
@@ -381,7 +381,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Goal without description",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -401,7 +401,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Goal without properties",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -420,7 +420,7 @@ describe("MarkdownGenerator", () => {
         layer: "api",
         type: "endpoint",
         name: "Complex Endpoint",
-        properties: {
+        attributes: {
           methods: ["GET", "POST"],
           config: { timeout: 5000, retries: 3 },
           active: true,
@@ -457,7 +457,7 @@ describe("MarkdownGenerator", () => {
           layer: "motivation",
           type: "goal",
           name: `Test ${i}`,
-          properties: {},
+          attributes: {},
         });
       }
 
@@ -487,7 +487,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Customer Satisfaction",
-        properties: {},
+        attributes: {},
       });
 
       testModel.graph.addNode({
@@ -495,7 +495,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Cost Reduction",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -517,7 +517,7 @@ describe("MarkdownGenerator", () => {
         layer: "business",
         type: "capability",
         name: "Order Management",
-        properties: {},
+        attributes: {},
       });
 
       testModel.graph.addNode({
@@ -525,7 +525,7 @@ describe("MarkdownGenerator", () => {
         layer: "api",
         type: "endpoint",
         name: "Create Order",
-        properties: {},
+        attributes: {},
       });
 
       testModel.graph.addNode({
@@ -533,7 +533,7 @@ describe("MarkdownGenerator", () => {
         layer: "data-store",
         type: "table",
         name: "Orders Table",
-        properties: {},
+        attributes: {},
       });
 
       // Add multiple edges from same source
@@ -568,7 +568,7 @@ describe("MarkdownGenerator", () => {
         layer: "motivation",
         type: "goal",
         name: "Goal Without Properties",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -588,7 +588,7 @@ describe("MarkdownGenerator", () => {
         layer: "unknown-layer",
         type: "unknown-type",
         name: "Unknown Layer Element",
-        properties: {},
+        attributes: {},
       });
 
       const gen = new MarkdownGenerator(testModel);
@@ -609,7 +609,7 @@ describe("MarkdownGenerator", () => {
         layer: "business",
         type: "capability",
         name: "Capability A",
-        properties: {},
+        attributes: {},
       });
 
       testModel.graph.addNode({
@@ -617,7 +617,7 @@ describe("MarkdownGenerator", () => {
         layer: "business",
         type: "capability",
         name: "Capability B",
-        properties: {},
+        attributes: {},
       });
 
       // Create edges in both directions

@@ -48,7 +48,7 @@ describe("Performance Requirements", () => {
           id: `api-endpoint-perf-${i}`,
           type: "endpoint",
           name: `Endpoint ${i}`,
-          properties: { method: "GET", path: `/api/resource/${i}` },
+          attributes: { method: "GET", path: `/api/resource/${i}` },
         });
         apiLayer.addElement(endpoint);
       }

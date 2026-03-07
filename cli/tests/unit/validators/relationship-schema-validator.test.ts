@@ -515,7 +515,7 @@ describe("RelationshipValidator", () => {
         target: "d8b0d8b0-d8b0-4d8b-a8b0-d8b0d8b0d8d2",
         predicate: "aggregates",
         layer: "motivation",
-        properties: {
+        attributes: {
           reason: "Business requirement",
           impact: "High",
         },
