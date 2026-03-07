@@ -2,7 +2,6 @@
  * Add an element to a layer
  */
 
-import { randomUUID } from "crypto";
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { Layer } from "../core/layer.js";
@@ -132,9 +131,9 @@ export async function addCommand(
     }
 
     // Create element in spec-node format
-    // Use UUID as the element's internal ID
+    // Use semantic ID as the element's primary identifier
     const element = new Element({
-      id: randomUUID(),
+      id: elementId,
       spec_node_id: `${layer}.${type}`,
       layer_id: layer,
       type: type,
@@ -149,10 +148,6 @@ export async function addCommand(
       layer, // Set layer so setSourceReference can use it
     });
 
-    // Store the semantic name component (third positional arg) for semantic ID lookup
-    if (options.name && options.name !== name) {
-      element.attributes["semanticName"] = name;
-    }
 
     // Add source reference if provided
     const sourceRef = buildSourceReference(options);
