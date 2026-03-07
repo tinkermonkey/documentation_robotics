@@ -199,63 +199,6 @@ export class Layer {
     });
   }
 
-  /**
-   * Find an element by semantic ID (for testing/compatibility).
-   * This is a helper method for finding elements by semantic ID format:
-   * - Dot-separated: {layer}.{type}.{kebab-name}
-   * - Hyphen-separated legacy: {layer}-{type}-{kebab-name}
-   *
-   * @param semanticId - Semantic ID of the element to find
-   * @returns The element if found, undefined if not found
-   */
-  findBySemanticId(semanticId: string): Element | undefined {
-    const dotCount = (semanticId.match(/\./g) || []).length;
-    const isDotSeparated = dotCount >= 2;
-    const isHyphenSeparated = semanticId.includes("-") && semanticId.startsWith(this.name) && semanticId.length > this.name.length + 1;
-
-    if (!isDotSeparated && !isHyphenSeparated) {
-      return undefined;
-    }
-
-    // Search all nodes in the layer
-    for (const candidate of this.graph.nodes.values()) {
-      if (candidate.layer !== this.name) {
-        continue;
-      }
-
-      // Build semantic IDs from element name
-      const kebabName = candidate.name
-        .replace(/[\s_]+/g, "-")
-        .replace(/([a-z])([A-Z])/g, "$1-$2")
-        .toLowerCase()
-        .replace(/-+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
-      const semanticIds = [
-        `${candidate.layer_id || this.name}.${candidate.type}.${kebabName}`,
-        `${candidate.layer_id || this.name}-${candidate.type}-${kebabName}`,
-      ];
-
-      if (semanticIds.includes(semanticId)) {
-        return new Element({
-          id: candidate.id,
-          spec_node_id: candidate.spec_node_id,
-          layer_id: candidate.layer_id,
-          type: candidate.type,
-          name: candidate.name,
-          description: candidate.description,
-          attributes: candidate.attributes,
-          source_reference: candidate.source_reference,
-          metadata: candidate.metadata,
-          layer: candidate.layer,
-          references: (candidate.properties["__references__"] ?? []) as Reference[],
-          relationships: (candidate.properties["__relationships__"] ?? []) as Relationship[],
-        });
-      }
-    }
-
-    return undefined;
-  }
 
   /**
    * Update an element in the graph
