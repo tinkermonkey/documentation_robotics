@@ -46,6 +46,9 @@ await esbuild.build({
 rmSync('dist', { recursive: true, force: true });
 renameSync('dist.tmp', 'dist');
 
+// Copy viewer bundle to dist/viewer/
+cpSync('src/viewer', join('dist', 'viewer'), { recursive: true, force: true });
+
 // Copy integration directories to dist/integrations/
 // These are bundled with the CLI so they're available in production
 const integrationDirs = ['claude_code', 'github_copilot'];

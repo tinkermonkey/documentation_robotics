@@ -177,7 +177,9 @@ export class VisualizationServer {
     this.authEnabled = options?.authEnabled ?? process.env.DR_AUTH_ENABLED !== "false";
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
     this.withDanger = options?.withDanger || false;
-    this.viewerPath = options?.viewerPath;
+    // Use explicit viewerPath if provided, otherwise fall back to the bundled viewer
+    this.viewerPath = options?.viewerPath ||
+      new URL("../viewer", import.meta.url).pathname;
 
     // Validate cross-field configuration
     if (!this.authEnabled && options?.authToken) {

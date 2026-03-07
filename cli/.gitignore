@@ -12,6 +12,9 @@ tests/**/*.test.js
 # Generated artifacts (built from spec at build time)
 src/generated/
 
+# Viewer bundle (downloaded at build time via scripts/download-viewer.sh)
+src/viewer/
+
 # Test coverage
 coverage/
 .nyc_output/
