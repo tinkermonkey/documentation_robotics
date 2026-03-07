@@ -197,6 +197,9 @@ export class Model {
                   const elementType = el.type;
                   const layerId = el.layer_id || name;
 
+                  // Use explicit elementId field if present in YAML, otherwise use detected semantic ID
+                  const finalElementId = el.elementId || elementSemanticId;
+
                   const newElement = new Element({
                     id: elementUUID,
                     spec_node_id: el.spec_node_id,
@@ -211,7 +214,7 @@ export class Model {
                     relationships: el.relationships || [],
                     references: el.references || [],
                     layer: layerId,
-                    elementId: elementSemanticId, // Store semantic ID if detected
+                    elementId: finalElementId, // Store semantic ID from YAML or legacy detection
                   });
                   layer.addElement(newElement);
                 }
@@ -394,7 +397,7 @@ export class Model {
             )
           : undefined;
 
-        // Use UUID as YAML key; elements no longer have semantic IDs
+        // Use UUID as YAML key
         const key = element.id;
         yamlData[key] = {
           id: json.id,
@@ -408,6 +411,8 @@ export class Model {
           ...(json.metadata && { metadata: json.metadata }),
           ...(json.references && json.references.length > 0 && { references: json.references }),
           // Relationships are now stored in centralized relationships.yaml, not inline
+          // Semantic ID (elementId) is persisted via element.toJSON() for lookup operations
+          ...(json.elementId && { elementId: json.elementId }),
         };
       }
 

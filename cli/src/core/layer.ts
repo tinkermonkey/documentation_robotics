@@ -171,14 +171,29 @@ export class Layer {
   }
 
   /**
-   * Get an element by ID from the graph using UUID lookup.
+   * Get an element by ID from the graph.
+   * Supports both UUID and semantic ID (elementId) lookup.
+   *
+   * @param id - UUID or semantic ID of the element to get
+   * @returns The element if found, undefined if not found
    *
    * Performance notes:
    * - Fast path (O(1)): Direct UUID lookup via graph.nodes Map
+   * - Fallback (O(n)): Semantic ID lookup when UUID lookup fails
    */
   getElement(id: string): Element | undefined {
-    // UUID lookup (O(1))
-    const node = this.graph.nodes.get(id);
+    // First try direct UUID lookup (O(1))
+    let node = this.graph.nodes.get(id);
+
+    // If not found by UUID, try semantic ID (elementId) lookup
+    if (!node) {
+      for (const candidate of this.graph.nodes.values()) {
+        if (candidate.layer === this.name && candidate.elementId === id) {
+          node = candidate;
+          break;
+        }
+      }
+    }
 
     if (!node || node.layer !== this.name) {
       return undefined;

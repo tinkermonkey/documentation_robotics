@@ -28,7 +28,6 @@ export class Element implements IElement {
 
   // Legacy compatibility fields
   elementId?: string;
-  properties?: Record<string, unknown>;
 
   // Relationship tracking (unchanged)
   references: Reference[] = [];
@@ -77,20 +76,13 @@ export class Element implements IElement {
       this.attributes = {};
     }
 
-    // Store properties as alias for attributes (for backward compatibility when properties is passed)
-    if (data.properties) {
-      this.properties = data.properties;
-    } else if (data.attributes) {
-      this.properties = data.attributes;
-    }
-
     // Extract source_reference: prefer explicit field, then try legacy paths
     if (data.source_reference) {
       this.source_reference = data.source_reference;
-    } else if (data.properties?.source?.reference) {
-      this.source_reference = data.properties.source.reference;
-    } else if (data.properties?.["x-source-reference"]) {
-      this.source_reference = data.properties["x-source-reference"];
+    } else if ((data.properties as any)?.source?.reference) {
+      this.source_reference = (data.properties as any).source.reference;
+    } else if ((data.properties as any)?.["x-source-reference"]) {
+      this.source_reference = (data.properties as any)["x-source-reference"];
     }
 
     this.metadata = data.metadata;
@@ -193,6 +185,7 @@ export class Element implements IElement {
 
   /**
    * Serialize to JSON representation (spec-node aligned format)
+   * Note: elementId is included for backward compatibility and to enable semantic ID lookups
    */
   toJSON(): IElement {
     const result: IElement = {
@@ -225,6 +218,10 @@ export class Element implements IElement {
 
     if (this.relationships.length > 0) {
       result.relationships = this.relationships;
+    }
+
+    if (this.elementId) {
+      result.elementId = this.elementId;
     }
 
     return result;

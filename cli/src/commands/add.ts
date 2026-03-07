@@ -146,6 +146,7 @@ export async function addCommand(
         updated_at: new Date().toISOString(),
         version: 1,
       },
+      elementId, // Set semantic ID for lookups
       layer, // Set layer so setSourceReference can use it
     });
 
