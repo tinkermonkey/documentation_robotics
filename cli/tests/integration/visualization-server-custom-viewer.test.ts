@@ -158,9 +158,10 @@ describe("Visualization Server - Custom Viewer", () => {
     const html = await response.text();
 
     expect(response.status).toBe(200);
-    // Should contain default viewer elements
+    // Should serve the bundled React viewer
     expect(html).toContain("Documentation Robotics Viewer");
-    expect(html).toContain("model-tree");
+    expect(html).toContain('<div id="root">');
+    expect(html).toContain(".js");
 
     // Stop server
     serverProcess.kill();

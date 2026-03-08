@@ -27,6 +27,20 @@ export interface VisualizeOptions {
   viewerPath?: string
 }
 
+async function findAvailablePort(startPort: number): Promise<number> {
+  const { createServer } = await import("net")
+  for (let port = startPort; port <= 65535; port++) {
+    const available = await new Promise<boolean>((resolve) => {
+      const server = createServer()
+      server.once("error", () => resolve(false))
+      server.once("listening", () => { server.close(); resolve(true) })
+      server.listen(port, "127.0.0.1")
+    })
+    if (available) return port
+  }
+  throw new Error("No available ports found")
+}
+
 export async function visualizeCommand(
   options: VisualizeOptions & { port?: string }
 ): Promise<void> {
@@ -46,6 +60,12 @@ export async function visualizeCommand(
         throw new Error(`Invalid port number: ${options.port}. Port must be between 1 and 65535.`)
       }
       port = portNum
+    }
+
+    // Find an available port starting from the requested port
+    port = await findAvailablePort(port)
+    if (port !== (options.port ? parseInt(String(options.port), 10) : 8080)) {
+      console.log(ansis.yellow(`   Port ${options.port ?? 8080} is in use, using port ${port} instead`))
     }
 
     // Determine auth settings
