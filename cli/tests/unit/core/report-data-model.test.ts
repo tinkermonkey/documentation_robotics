@@ -1,22 +1,24 @@
-import { describe, it, expect, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { createTestWorkdir } from "../../helpers/golden-copy.js";
 import { Model } from "@/core/model";
 import { ReportDataModel } from "@/core/report-data-model";
 
-// Lazy shared setup: initialized on first use, then cached for the rest of the suite.
-// This avoids beforeAll timeout issues since each test gets the full 30-second allowance.
 let _workdir: { path: string; cleanup: () => Promise<void> } | null = null;
 
-async function getWorkdir() {
-  if (!_workdir) {
-    _workdir = await createTestWorkdir();
-  }
-  return _workdir;
-}
+// Use beforeAll with a 30s timeout so golden-copy filesystem setup does not race
+// against the default 5s per-test timeout during concurrent test file execution.
+beforeAll(async () => {
+  _workdir = await createTestWorkdir();
+}, 30000);
 
 afterAll(async () => {
   if (_workdir) await _workdir.cleanup();
 });
+
+function getWorkdir() {
+  if (!_workdir) throw new Error("Workdir not initialized — beforeAll must have failed");
+  return _workdir;
+}
 
 describe("ReportDataModel", () => {
 

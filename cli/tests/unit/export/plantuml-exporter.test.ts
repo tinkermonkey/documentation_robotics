@@ -248,7 +248,7 @@ describe("PlantUMLExporter", () => {
 
     const output = await exporter.export(testModel, { includeSources: true });
 
-    expect(output.includes("note right of application-component-test")).toBe(true);
+    expect(output.includes("note right of application_component_test")).toBe(true);
     expect(output.includes("Source: src/components/test.ts")).toBe(true);
     expect(output.includes("Symbol: TestComponent")).toBe(true);
     expect(output.includes("end note")).toBe(true);
