@@ -103,7 +103,7 @@ export class SemanticValidator {
           if (!this.validPredicates.has(rel.predicate)) {
             result.addWarning({
               layer: layerName,
-              elementId: element.id,
+              elementId: element.path || element.id,
               message: `Unknown relationship predicate '${rel.predicate}' — not in spec predicate catalog`,
               fixSuggestion: "Use `dr catalog types` to list valid predicates",
             });

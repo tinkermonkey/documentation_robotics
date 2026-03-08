@@ -37,7 +37,7 @@ export class ReferenceValidator {
     for (const [layerName, layer] of model.layers) {
       for (const element of layer.listElements()) {
         this.validateReferences(
-          element.id,
+          element.path || element.id,
           element.references || [],
           layerName,
           allElementIds,
@@ -57,6 +57,8 @@ export class ReferenceValidator {
 
     for (const layer of model.layers.values()) {
       for (const element of layer.listElements()) {
+        ids.add(element.path || element.id);
+        // Also add raw UUID so references stored by UUID still resolve
         ids.add(element.id);
       }
     }

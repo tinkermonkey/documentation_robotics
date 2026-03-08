@@ -55,7 +55,8 @@ export interface ElementMetadata {
  */
 export interface Element {
   // Spec-node aligned fields (required in new format)
-  id?: string; // UUIDv4 format (e.g., "550e8400-e29b-41d4-a716-446655440000")
+  id?: string; // UUIDv4 (e.g., "550e8400-e29b-41d4-a716-446655440000")
+  path?: string; // Human-readable path: {layer}.{type}.{kebab-name} (e.g., "motivation.goal.increase-revenue")
   spec_node_id: string; // Reference to spec node type (e.g., "motivation.goal")
   type: string; // Denormalized node type (e.g., "goal", "endpoint")
   layer_id: string; // Denormalized layer ID (e.g., "motivation", "api")

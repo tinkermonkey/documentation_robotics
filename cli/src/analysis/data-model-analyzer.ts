@@ -115,12 +115,12 @@ export class DataModelAnalyzer {
       const relationships = element.relationships ? element.relationships : [];
 
       entities.push({
-        id: element.id || "",
+        id: element.path || element.id || "",
         name: element.name,
         layer: "data-model",
         attributes,
         relatedEntities: relationships.map((r) => r.target),
-        isReferenced: referencesFrom.has(element.id || ""),
+        isReferenced: referencesFrom.has(element.path || element.id || ""),
       });
     }
 
@@ -142,7 +142,7 @@ export class DataModelAnalyzer {
       // Check if element has attributes
       if (!element.attributes || Object.keys(element.attributes).length === 0) {
         constraints.push({
-          entityId: element.id || "",
+          entityId: element.path || element.id || "",
           constraintType: "not-null",
           description: "Entity has no attributes defined",
           isValid: false,
@@ -152,7 +152,7 @@ export class DataModelAnalyzer {
       // Check if entity is documented
       if (!element.description || element.description.length === 0) {
         constraints.push({
-          entityId: element.id || "",
+          entityId: element.path || element.id || "",
           constraintType: "check",
           description: "Entity has no description",
           isValid: false,
@@ -189,7 +189,7 @@ export class DataModelAnalyzer {
         }
 
         cardinalities.push({
-          sourceEntity: element.id || "",
+          sourceEntity: element.path || element.id || "",
           targetEntity: rel.target,
           cardinality,
           isOptional: rel.properties?.optional === true || false,

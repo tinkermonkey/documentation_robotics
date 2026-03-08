@@ -167,7 +167,7 @@ export async function conformanceCommand(options: {
         if (!element.name && !element.description) {
           issues.push({
             severity: "warning",
-            message: `Element ${element.id} should have a name or description`,
+            message: `Element ${element.path || element.id} should have a name or description`,
           });
         }
       }

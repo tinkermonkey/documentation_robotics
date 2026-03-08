@@ -337,7 +337,7 @@ export class VirtualProjectionEngine {
         case "delete":
           const existingForDelete = projectedLayer.getElement(change.elementId);
           if (existingForDelete) {
-            projectedLayer.deleteElement(existingForDelete.id);
+            projectedLayer.deleteElement(existingForDelete.path || existingForDelete.id);
           }
           break;
       }
@@ -650,6 +650,7 @@ export class VirtualProjectionEngine {
     for (const element of layer.listElements()) {
       const elementClone = new ElementClass({
         id: element.id,
+        path: element.path,
         spec_node_id: element.spec_node_id,
         type: element.type,
         layer_id: element.layer_id,

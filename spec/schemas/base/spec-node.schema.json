@@ -4,7 +4,7 @@
   "title": "SpecNode",
   "description": "Base schema for all spec node types. Each node type schema extends this with type-specific attribute constraints via allOf.",
   "type": "object",
-  "required": ["id", "spec_node_id", "type", "name"],
+  "required": ["id", "path", "spec_node_id", "type", "name"],
   "additionalProperties": false,
   "properties": {
     "id": {
@@ -12,6 +12,11 @@
       "format": "uuid",
       "description": "Unique node instance identifier (UUIDv4). Globally unique across the entire model.",
       "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*$",
+      "description": "Human-readable element path in format {layer}.{type}.{name} (e.g., 'motivation.goal.increase-revenue')"
     },
     "spec_node_id": {
       "type": "string",

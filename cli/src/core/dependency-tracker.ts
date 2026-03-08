@@ -573,9 +573,10 @@ export class DependencyTracker {
 
     for (const layer of this.model.layers.values()) {
       for (const element of layer.elements.values()) {
-        if (!graph.hasNode(element.id)) {
+        const nodeKey = element.path || element.id;
+        if (!graph.hasNode(nodeKey)) {
           orphaned.push(element);
-        } else if (graph.degree(element.id) === 0) {
+        } else if (graph.degree(nodeKey) === 0) {
           orphaned.push(element);
         }
       }

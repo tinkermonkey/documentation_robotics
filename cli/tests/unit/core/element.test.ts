@@ -4,14 +4,16 @@ import { Element } from "@/core/element";
 describe("Element", () => {
   it("should create an element with required fields", () => {
     const element = new Element({
-      id: "motivation-goal-test-goal",
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      path: "motivation.goal.test-goal",
       spec_node_id: "motivation.goal",
       type: "goal",
       name: "Test Goal",
       layer_id: "motivation",
     });
 
-    expect(element.id).toBe("motivation-goal-test-goal");
+    expect(element.id).toBe("550e8400-e29b-41d4-a716-446655440000");
+    expect(element.path).toBe("motivation.goal.test-goal");
     expect(element.spec_node_id).toBe("motivation.goal");
     expect(element.type).toBe("goal");
     expect(element.name).toBe("Test Goal");
@@ -21,7 +23,8 @@ describe("Element", () => {
 
   it("should serialize to JSON with optional fields omitted", () => {
     const element = new Element({
-      id: "motivation-goal-test-goal",
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      path: "motivation.goal.test-goal",
       spec_node_id: "motivation.goal",
       type: "goal",
       name: "Test Goal",
@@ -30,7 +33,8 @@ describe("Element", () => {
 
     const json = element.toJSON();
 
-    expect(json.id).toBe("motivation-goal-test-goal");
+    expect(json.id).toBe("550e8400-e29b-41d4-a716-446655440000");
+    expect(json.path).toBe("motivation.goal.test-goal");
     expect(json.spec_node_id).toBe("motivation.goal");
     expect(json.type).toBe("goal");
     expect(json.name).toBe("Test Goal");
@@ -41,7 +45,20 @@ describe("Element", () => {
     expect(json.relationships).toBeUndefined();
   });
 
-  it("should return correct toString representation", () => {
+  it("should return correct toString representation using path", () => {
+    const element = new Element({
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      path: "motivation.goal.test-goal",
+      spec_node_id: "motivation.goal",
+      type: "goal",
+      name: "Test Goal",
+      layer_id: "motivation",
+    });
+
+    expect(element.toString()).toBe("Element(motivation.goal.test-goal)");
+  });
+
+  it("should fall back to id in toString when path is not set", () => {
     const element = new Element({
       id: "motivation-goal-test-goal",
       spec_node_id: "motivation.goal",

@@ -310,7 +310,7 @@ Examples:
           }
 
           for (const [, element] of layer.elements) {
-            const elementRelationships = model.relationships.getForElement(element.id);
+            const elementRelationships = model.relationships.getForElement(element.path || element.id);
 
             // Check both outgoing and incoming relationships
             const allRelationships = [

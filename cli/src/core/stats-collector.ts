@@ -260,7 +260,7 @@ export class StatsCollector {
       if (!layer) continue;
 
       for (const element of layer.listElements()) {
-        allElements.add(element.id);
+        allElements.add(element.path || element.id);
       }
     }
 

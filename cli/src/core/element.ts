@@ -15,6 +15,7 @@ import type {
 export class Element implements IElement {
   // Spec-node aligned required fields
   id: string = "";
+  path: string = "";
   spec_node_id: string = "";
   type: string = "";
   layer_id: string = "";
@@ -55,6 +56,7 @@ export class Element implements IElement {
     }
 
     this.id = data.id;
+    this.path = data.path || "";
     this.spec_node_id = data.spec_node_id || "";
     this.type = data.type || "";
     this.layer_id = data.layer_id || "";
@@ -91,6 +93,7 @@ export class Element implements IElement {
   toSpecNode(): Record<string, unknown> {
     return {
       id: this.id,
+      path: this.path,
       spec_node_id: this.spec_node_id,
       type: this.type,
       layer_id: this.layer_id,
@@ -108,6 +111,7 @@ export class Element implements IElement {
   static fromSpecNode(data: Record<string, unknown>): Element {
     return new Element({
       id: data.id as string,
+      path: data.path as string | undefined,
       spec_node_id: data.spec_node_id as string,
       type: data.type as string,
       layer_id: data.layer_id as string,
@@ -175,6 +179,7 @@ export class Element implements IElement {
   toJSON(): IElement {
     const result: IElement = {
       id: this.id,
+      path: this.path,
       spec_node_id: this.spec_node_id,
       type: this.type,
       layer_id: this.layer_id,
@@ -212,6 +217,6 @@ export class Element implements IElement {
    * String representation
    */
   toString(): string {
-    return `Element(${this.id})`;
+    return `Element(${this.path || this.id})`;
   }
 }

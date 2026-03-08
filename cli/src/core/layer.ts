@@ -99,7 +99,8 @@ export class Layer {
 
     for (const node of nodes) {
       const element = new Element({
-        id: node.id,
+        id: node.uuid || node.id,
+        path: node.id,
         spec_node_id: node.spec_node_id,
         layer_id: node.layer_id,
         type: node.type,
@@ -196,14 +197,18 @@ export class Layer {
    * @returns The element if found, undefined if not found
    */
   getElement(id: string): Element | undefined {
-    // First try direct UUID lookup
+    // First try direct lookup by path (graph key) or UUID
     let node = this.graph.nodes.get(id);
 
     if (!node) {
-      // Fallback to semantic ID lookup for legacy format elements
-      // Iterate through all nodes to find one with matching semanticId
+      // Fallback: look up by UUID (node.uuid === id) or legacy semanticId
       for (const candidate of this.graph.nodes.values()) {
-        if (candidate.layer === this.name && candidate.properties?.["__semanticId__"] === id) {
+        if (
+          candidate.layer === this.name &&
+          (candidate.uuid === id ||
+            candidate.properties?.["__semanticId__"] === id ||
+            candidate.id === id)
+        ) {
           node = candidate;
           break;
         }
@@ -215,7 +220,8 @@ export class Layer {
     }
 
     return new Element({
-      id: node.id,
+      id: node.uuid || node.id,
+      path: node.id,
       spec_node_id: node.spec_node_id,
       layer_id: node.layer_id,
       type: node.type,
@@ -234,7 +240,7 @@ export class Layer {
    * Update an element in the graph
    */
   updateElement(element: Element): boolean {
-    const node = this.graph.nodes.get(element.id);
+    const node = this.graph.nodes.get(element.path || element.id);
     if (!node || node.layer !== this.name) {
       return false;
     }
@@ -258,7 +264,7 @@ export class Layer {
 
     // Convert element to graph node and update in place, including spec-node fields
     // so that source_reference and attributes changes aren't lost on the next save cycle
-    const updated = this.graph.updateNode(element.id, {
+    const updated = this.graph.updateNode(element.path || element.id, {
       name: element.name,
       description: element.description,
       properties,
@@ -282,7 +288,22 @@ export class Layer {
    * @returns true if element was deleted, false if not found
    */
   deleteElement(id: string): boolean {
-    const node = this.graph.nodes.get(id);
+    let node = this.graph.nodes.get(id);
+
+    if (!node || node.layer !== this.name) {
+      // Fallback: search by UUID or semanticId if direct path lookup failed
+      for (const candidate of this.graph.nodes.values()) {
+        if (
+          candidate.layer === this.name &&
+          (candidate.uuid === id ||
+            candidate.properties?.["__semanticId__"] === id ||
+            candidate.id === id)
+        ) {
+          node = candidate;
+          break;
+        }
+      }
+    }
 
     if (!node || node.layer !== this.name) {
       return false;
@@ -303,7 +324,8 @@ export class Layer {
     return nodes.map(
       (node) =>
         new Element({
-          id: node.id,
+          id: node.uuid || node.id,
+          path: node.id,
           spec_node_id: node.spec_node_id,
           layer_id: node.layer_id,
           type: node.type,
@@ -356,6 +378,7 @@ export class Layer {
       (e) =>
         new Element({
           id: e.id,
+          path: e.path,
           spec_node_id: e.spec_node_id,
           layer_id: e.layer_id,
           type: e.type,

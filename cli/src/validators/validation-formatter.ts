@@ -236,13 +236,13 @@ export class ValidationFormatter {
     for (const [layerName, layer] of model.layers) {
       let layerCount = 0;
       for (const element of layer.listElements()) {
-        elementIds.add(element.id);
+        elementIds.add(element.path || element.id);
         layerCount++;
         stats.totalElements++;
 
         // Count relationships
         const refCount = (element.references || []).length;
-        elementRelationships.set(element.id, refCount);
+        elementRelationships.set(element.path || element.id, refCount);
         stats.totalRelationships += refCount;
 
         // Track relationship predicates

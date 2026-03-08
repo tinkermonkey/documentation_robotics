@@ -6,7 +6,8 @@ import type { ElementMetadata, Relationship, SourceReference } from "../types/in
  * Replaces Element class for graph-based storage
  */
 export interface GraphNode {
-  id: string; // Unique identifier
+  id: string; // Path (slug) used as graph key: {layer}.{type}.{kebab-name}
+  uuid?: string; // UUIDv4 preserved for round-tripping (element.id)
   layer: string; // Layer this node belongs to
   type: string; // Element type
   name: string; // Display name
@@ -532,9 +533,17 @@ export class GraphModel implements IGraphModel {
    * Convert Element to GraphNode
    * Preserves spec-node fields so they survive graph round-trips
    */
+  /** UUID pattern for detecting actual UUIDs vs slug IDs */
+  private static readonly UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   static fromElement(element: Element): GraphNode {
+    // path is the graph key; fall back to id for elements without a path
+    const graphId = element.path || element.id;
+    // Only preserve UUID when the id is actually a UUID (not a slug)
+    const isUUID = GraphModel.UUID_PATTERN.test(element.id);
     return {
-      id: element.id,
+      id: graphId,
+      uuid: isUUID ? element.id : undefined,   // preserve UUID for round-tripping
       layer: element.layer || "unknown",
       type: element.type,
       name: element.name,

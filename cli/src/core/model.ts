@@ -17,6 +17,21 @@ import fs from "node:fs/promises";
 import crypto from "node:crypto";
 
 /**
+ * Derive a deterministic UUID from a path string using SHA-256.
+ * Produces a stable UUID4-like value so migration doesn't regenerate UUIDs on every load.
+ */
+function deterministicUUID(path: string): string {
+  const hash = crypto.createHash("sha256").update(path).digest("hex");
+  return [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    "4" + hash.slice(13, 16), // version 4 marker
+    ((parseInt(hash.slice(16, 18), 16) & 0x3f) | 0x80).toString(16) + hash.slice(18, 20), // variant
+    hash.slice(20, 32),
+  ].join("-");
+}
+
+/**
  * Convert a PascalCase title to snake_case.
  * Handles acronyms correctly: "UXApplication" → "ux_application", "OpenAPIDocument" → "open_api_document".
  */
@@ -159,19 +174,56 @@ export class Model {
                 if (element && typeof element === "object") {
                   const el: any = element;
 
-                  let elementUUID = el.id;
+                  // Derive id, path, and type using the 3-case migration logic:
+                  // Case 1: element already has both id (UUID) and path → use as-is
+                  // Case 2: element.id looks like a slug (layer.type.name) → move to path, generate UUID
+                  // Case 3: element has UUID id but no path → derive path from layer_id.type.kebab(name)
+                  const isSlugPattern = /^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/.test(el.id || "");
+                  const isUUIDPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(el.id || "");
+
+                  let elementId: string;
+                  let elementPath: string;
                   let extractedType: string | undefined = undefined;
 
-                  // Extract type from semantic ID format: "layer.type.kebab-case-name"
-                  // No UUID migration needed - semantic IDs are the current format
-                  if (typeof elementUUID === "string" && elementUUID.includes(".")) {
-                    const parts = elementUUID.split(/\./);
-                    if (parts.length >= 3) {
-                      // Skip first part (layer name), get second part (type)
-                      extractedType = parts[1];
-                    } else if (parts.length === 2) {
-                      // Fallback for simple format
-                      extractedType = parts[1];
+                  if (el.path && isUUIDPattern) {
+                    // Case 1: already has both path and UUID id
+                    elementId = el.id;
+                    elementPath = el.path;
+                    const pathParts = el.path.split(".");
+                    if (pathParts.length >= 3) extractedType = pathParts[1];
+                  } else if (el.path && !isUUIDPattern) {
+                    // Has a path but id is not a UUID — migrate id to deterministic UUID
+                    elementPath = el.path;
+                    elementId = deterministicUUID(el.path);
+                    const pathParts = el.path.split(".");
+                    if (pathParts.length >= 3) extractedType = pathParts[1];
+                  } else if (isSlugPattern) {
+                    // Case 2: slug-looking id → move to path, generate deterministic UUID
+                    elementPath = el.id;
+                    elementId = deterministicUUID(el.id);
+                    const parts = el.id.split(".");
+                    if (parts.length >= 3) extractedType = parts[1];
+                  } else if (isUUIDPattern) {
+                    // Case 3: UUID id, no path → derive path
+                    elementId = el.id;
+                    const layerId = el.layer_id || name;
+                    const rawType = el.type || "";
+                    const rawName = el.name || key;
+                    const kebabName = rawName.toLowerCase().replace(/[\s_]+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+                    elementPath = `${layerId}.${rawType}.${kebabName}`;
+                    extractedType = rawType || undefined;
+                  } else {
+                    // Fallback: derive a path from available data, generate deterministic UUID
+                    const layerId = el.layer_id || name;
+                    const rawType = el.type || (typeof el.id === "string" && el.id.includes(".") ? el.id.split(".")[1] : "") || "";
+                    const rawName = el.name || key;
+                    const kebabName = rawName.toLowerCase().replace(/[\s_]+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").replace(/^-+|-+$/g, "") || "unknown";
+                    elementPath = `${layerId}.${rawType || "element"}.${kebabName}`;
+                    elementId = deterministicUUID(elementPath);
+                    if (rawType) extractedType = rawType;
+                    else if (typeof el.id === "string" && el.id.includes(".")) {
+                      const parts = el.id.split(".");
+                      if (parts.length >= 3) extractedType = parts[1];
                     }
                   }
 
@@ -180,7 +232,8 @@ export class Model {
                   const layerId = el.layer_id || name;
 
                   const newElement = new Element({
-                    id: elementUUID,
+                    id: elementId,
+                    path: elementPath,
                     spec_node_id: el.spec_node_id,
                     layer_id: layerId,
                     attributes: el.attributes,
@@ -352,10 +405,11 @@ export class Model {
             )
           : undefined;
 
-        // Use UUID as YAML key
-        const key = element.id;
+        // Use path as YAML key (human-readable); fall back to id for elements without path
+        const key = element.path || element.id;
         yamlData[key] = {
           id: json.id,
+          path: json.path,
           spec_node_id: json.spec_node_id,
           type: json.type,
           layer_id: json.layer_id,
@@ -880,7 +934,7 @@ export class Model {
 
           // Write layer elements to temp directory
           for (const element of layer.elements.values()) {
-            const elementPath = path.join(tempPath, `${element.id}.json`);
+            const elementPath = path.join(tempPath, `${element.path || element.id}.json`);
             const content = JSON.stringify(element.toJSON(), null, 2);
             await writeFile(elementPath, content);
           }

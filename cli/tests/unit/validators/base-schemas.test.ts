@@ -208,6 +208,7 @@ describe("Base Schema Validation", () => {
       const validate = ajv.compile(specNodeSchema);
       const minimalNode = {
         id: "550e8400-e29b-41d4-a716-446655440000",
+        path: "test.element.test-node",
         spec_node_id: "test.element",
         type: "element",
         name: "Test Node",

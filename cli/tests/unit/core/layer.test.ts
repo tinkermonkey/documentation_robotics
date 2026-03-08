@@ -187,7 +187,12 @@ describe("Layer", () => {
     const elements2 = layer.elements;
 
     expect(elements1).toBe(elements2); // Same object reference
-    expect(elements1.get("motivation-goal-test1")).toEqual(element1);
+    const retrieved = elements1.get("motivation-goal-test1");
+    expect(retrieved).not.toBeUndefined();
+    expect(retrieved?.name).toBe("Goal 1");
+    expect(retrieved?.type).toBe("Goal");
+    // id is reconstructed as uuid || graphKey; path is set to the graphKey
+    expect(retrieved?.path).toBe("motivation-goal-test1");
   });
 
   it("should invalidate elements cache when graph changes", () => {
@@ -244,6 +249,54 @@ describe("Layer", () => {
     const retrieved = layer.elements.get("motivation-goal-test");
     expect(retrieved?.references).toEqual([reference]);
     expect(retrieved?.relationships).toEqual([relationship]);
+  });
+
+  it("should delete an element by UUID when element was added with UUID id and slug path", () => {
+    // Simulates the post-migration world: element.id is a UUID, element.path is the slug.
+    // The layer's graph key is the path (slug), but deleteElement should also accept the UUID
+    // via the fallback search in deleteElement (candidate.uuid === id).
+    const uuid = "550e8400-e29b-41d4-a716-446655440000";
+    const slugPath = "motivation.goal.test-by-uuid";
+
+    const element = new Element({
+      id: uuid,
+      path: slugPath,
+      type: "Goal",
+      name: "Test By UUID",
+    });
+
+    const layer = new Layer("motivation", [element]);
+    expect(layer.listElements()).toHaveLength(1);
+
+    // Sanity: stored element should have UUID as id and slug as path
+    const stored = layer.listElements()[0];
+    expect(stored.id).toBe(uuid);
+    expect(stored.path).toBe(slugPath);
+
+    // Deleting by UUID (the element.id) should succeed via the fallback UUID search
+    const deleted = layer.deleteElement(uuid);
+    expect(deleted).toBe(true);
+    expect(layer.listElements()).toHaveLength(0);
+  });
+
+  it("should delete an element by path (slug) when element has UUID id", () => {
+    // Primary key in the graph is the path (slug); deleteElement by path should work directly
+    const uuid = "550e8400-e29b-41d4-a716-446655440001";
+    const slugPath = "motivation.goal.test-by-path";
+
+    const element = new Element({
+      id: uuid,
+      path: slugPath,
+      type: "Goal",
+      name: "Test By Path",
+    });
+
+    const layer = new Layer("motivation", [element]);
+
+    // Deleting by path (slug = graph key) should succeed directly
+    const deleted = layer.deleteElement(slugPath);
+    expect(deleted).toBe(true);
+    expect(layer.listElements()).toHaveLength(0);
   });
 
   it("should preserve references and relationships through update", () => {

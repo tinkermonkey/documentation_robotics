@@ -77,7 +77,8 @@ export class MarkdownExporter implements Exporter {
         lines.push(`| -- | ---- | ---- | ----------- |`);
 
         for (const element of elements) {
-          const id = this.escapeMarkdownLocal(element.id);
+          const displayId = element.path || element.id;
+          const id = this.escapeMarkdownLocal(displayId);
           const name = this.escapeMarkdownLocal(element.name);
           const type = this.escapeMarkdownLocal(element.type);
           const desc = element.description
@@ -94,7 +95,8 @@ export class MarkdownExporter implements Exporter {
         lines.push("");
 
         for (const element of elements) {
-          lines.push(`#### ${this.escapeMarkdownLocal(element.name)} (\`${element.id}\`)`);
+          const displayId = element.path || element.id;
+          lines.push(`#### ${this.escapeMarkdownLocal(element.name)} (\`${displayId}\`)`);
           lines.push("");
 
           if (element.description) {

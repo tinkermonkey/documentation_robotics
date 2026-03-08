@@ -9,7 +9,7 @@ import { Element } from "../core/element.js";
 import { MutationHandler } from "../core/mutation-handler.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
-import { generateElementId } from "../utils/id-generator.js";
+import { generateElementId, generateUUID } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType, getNodeTypesForLayer } from "../generated/node-types.js";
 import {
@@ -84,17 +84,18 @@ export async function addCommand(
       );
     }
 
-    // Generate full element ID: {layer}.{type}.{kebab-name}
+    // Generate slug path: {layer}.{type}.{kebab-name}
     // Use the user-provided type (abbreviated form like "service") for backwards compatibility
     // Type normalization for schema validation is handled by isValidNodeType() above
     // This matches Python CLI format for compatibility
-    const elementId = generateElementId(layer, type, name);
+    const elementPath = generateElementId(layer, type, name);  // slug
+    const elementUUID = generateUUID();                         // UUIDv4
 
     span = isTelemetryEnabled
       ? startSpan("element.add", {
           "layer.name": layer,
           "element.type": type,
-          "element.id": elementId,
+          "element.id": elementPath,
         })
       : null;
 
@@ -131,9 +132,10 @@ export async function addCommand(
     }
 
     // Create element in spec-node format
-    // Use semantic ID as the element's primary identifier
+    // id = UUIDv4 for schema compliance; path = slug for human-readable identifier
     const element = new Element({
-      id: elementId,
+      id: elementUUID,          // UUIDv4
+      path: elementPath,        // slug: {layer}.{type}.{kebab-name}
       spec_node_id: `${layer}.${type}`,
       layer_id: layer,
       type: type,
@@ -155,22 +157,22 @@ export async function addCommand(
       element.setSourceReference(sourceRef);
     }
 
-    // Check if element already exists
-    if (layerObj.getElement(elementId)) {
+    // Check if element already exists (look up by path)
+    if (layerObj.getElement(elementPath)) {
       throw new CLIError(
-        `Element ${elementId} already exists in ${layer} layer`,
+        `Element ${elementPath} already exists in ${layer} layer`,
         ErrorCategory.USER,
         [
-          `Use "dr show ${elementId}" to view the existing element`,
-          `Use "dr update ${elementId}" to modify it`,
-          `Use "dr delete ${elementId}" to remove it first if you want to recreate it`,
+          `Use "dr show ${elementPath}" to view the existing element`,
+          `Use "dr update ${elementPath}" to modify it`,
+          `Use "dr delete ${elementPath}" to remove it first if you want to recreate it`,
         ],
-        { operation: "add", context: `Duplicate element ID` }
+        { operation: "add", context: `Duplicate element path` }
       );
     }
 
     // Unified mutation handler for add operation
-    const handler = new MutationHandler(model, elementId, layer);
+    const handler = new MutationHandler(model, elementPath, layer);
 
     // Execute add through unified path (handles staging and base model consistently)
     await handler.executeAdd(element, (elem) => {
@@ -186,7 +188,7 @@ export async function addCommand(
       if (activeChangeset && activeChangeset.status === "staged") {
         // Staging path
         handleSuccess(
-          `Staged element ${ansis.bold(elementId)} to ${ansis.bold(activeChangeset.name)}`,
+          `Staged element ${ansis.bold(elementPath)} to ${ansis.bold(activeChangeset.name)}`,
           {
             status: "staged",
             changeset: activeChangeset.name,
@@ -196,7 +198,7 @@ export async function addCommand(
         );
       } else {
         // Base model path
-        handleSuccess(`Added element ${ansis.bold(elementId)} to ${ansis.bold(layer)} layer`, {
+        handleSuccess(`Added element ${ansis.bold(elementPath)} to ${ansis.bold(layer)} layer`, {
           type,
           name: options.name || name,
           description: options.description || "(none)",

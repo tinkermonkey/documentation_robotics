@@ -135,8 +135,8 @@ export class ReferenceRegistry {
       return;
     }
 
-    // Use element's UUID
-    const elementId = element.id;
+    // Use element's path (slug) as the registry key; fall back to id for legacy elements
+    const elementId = element.path || element.id;
 
     // Skip if element has no ID
     if (!elementId) {

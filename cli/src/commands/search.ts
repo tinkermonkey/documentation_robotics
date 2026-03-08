@@ -95,8 +95,9 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
             continue;
           }
         } else {
-          // Match query against id and name
-          const idMatch = element.id.toLowerCase().includes(queryLower);
+          // Match query against path/id and name
+          const displayId = element.path || element.id;
+          const idMatch = displayId.toLowerCase().includes(queryLower);
           const nameMatch = element.name.toLowerCase().includes(queryLower);
 
           if (!idMatch && !nameMatch) {
@@ -115,7 +116,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
 
         results.push({
           layer: layerName,
-          id: element.id,
+          id: element.path || element.id,
           type: element.type,
           name: element.name,
           description: element.description,

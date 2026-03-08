@@ -351,12 +351,12 @@ export class ReportDataModel {
         attributeCount += attributes.length;
 
         entities.push({
-          id: element.id || "",
+          id: element.path || element.id || "",
           name: element.name,
           layer: "data-model",
           attributes,
           relatedEntities: element.relationships ? element.relationships.map((r) => r.target) : [],
-          isReferenced: referencesFrom.has(element.id || ""),
+          isReferenced: referencesFrom.has(element.path || element.id || ""),
         });
       }
     }

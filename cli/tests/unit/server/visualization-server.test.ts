@@ -154,7 +154,8 @@ describe("VisualizationServer", () => {
 
   describe("findElement", () => {
     it("should find element by ID", async () => {
-      const element = await server["findElement"]("motivation-goal-test-goal");
+      // After path/id separation, elements loaded from YAML use dot-separated path as key
+      const element = await server["findElement"]("motivation.goal.test-goal");
 
       expect(element).toBeDefined();
       // Element ID is a UUID after loading from model

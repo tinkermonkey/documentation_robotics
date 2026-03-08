@@ -2,6 +2,8 @@
  * Element ID generation utilities matching Python CLI implementation.
  */
 
+import crypto from "node:crypto";
+
 /**
  * Convert text to kebab-case.
  * Matches Python implementation in utils/id_generator.py
@@ -41,4 +43,14 @@ export function toKebabCase(text: string): string {
 export function generateElementId(layer: string, elementType: string, name: string): string {
   const kebabName = toKebabCase(name);
   return `${layer}.${elementType}.${kebabName}`;
+}
+
+/**
+ * Generate a new UUIDv4 using the Node.js built-in crypto module.
+ *
+ * @example
+ * generateUUID() // "550e8400-e29b-41d4-a716-446655440000"
+ */
+export function generateUUID(): string {
+  return crypto.randomUUID();
 }

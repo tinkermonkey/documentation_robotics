@@ -2848,12 +2848,13 @@ export class VisualizationServer {
         for (const element of layerData.elements) {
           const elemDiv = document.createElement('div');
           elemDiv.className = 'element-item';
-          if (element.id === selectedElementId) {
+          const elementSlug = element.path || element.id;
+          if (elementSlug === selectedElementId) {
             elemDiv.classList.add('selected');
           }
-          elemDiv.innerHTML = \`\${escapeHtml(element.id)}<br><span style="font-size: 11px; color: #999;">\${escapeHtml(element.name)}</span>\`;
+          elemDiv.innerHTML = \`\${escapeHtml(elementSlug)}<br><span style="font-size: 11px; color: #999;">\${escapeHtml(element.name)}</span>\`;
           elemDiv.addEventListener('click', () => {
-            selectedElementId = element.id;
+            selectedElementId = elementSlug;
             document.querySelectorAll('.element-item').forEach(el => el.classList.remove('selected'));
             elemDiv.classList.add('selected');
             renderSelectedElement();
@@ -2877,7 +2878,7 @@ export class VisualizationServer {
       // Find element in model
       let element = null;
       for (const layer of Object.values(currentModel.layers)) {
-        element = layer.elements.find(e => e.id === selectedElementId);
+        element = layer.elements.find(e => (e.path || e.id) === selectedElementId);
         if (element) break;
       }
 
@@ -2890,7 +2891,7 @@ export class VisualizationServer {
         <div class="detail-header">
           <div class="element-type">\${escapeHtml(element.type)}</div>
           <h2>\${escapeHtml(element.name)}</h2>
-          <div style="font-size: 12px; color: #666; margin-top: 4px;"><code>\${escapeHtml(element.id)}</code></div>
+          <div style="font-size: 12px; color: #666; margin-top: 4px;"><code>\${escapeHtml(element.path || element.id)}</code></div>
         </div>
       \`;
 
@@ -2932,7 +2933,7 @@ export class VisualizationServer {
       html += \`
         <div class="detail-section">
           <h3>Add Annotation</h3>
-          <form class="annotation-form" onsubmit="addAnnotation(event, '\${escapeHtml(element.id)}')">
+          <form class="annotation-form" onsubmit="addAnnotation(event, '\${escapeHtml(element.path || element.id)}')">
             <input type="text" placeholder="Author name" id="ann-author" required>
             <textarea placeholder="Annotation text" id="ann-text" required></textarea>
             <button type="submit">Add Annotation</button>

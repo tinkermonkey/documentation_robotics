@@ -251,7 +251,7 @@ export class SchemaValidator {
           for (const error of elementResult.errors) {
             result.addError({
               layer: layer.name,
-              elementId: element.id,
+              elementId: element.path || element.id,
               message: error.message,
               location: error.location,
               fixSuggestion: error.fixSuggestion,
@@ -305,7 +305,7 @@ export class SchemaValidator {
       result.validated = true;
       for (const error of validateSpecNode.errors) {
         result.errors.push({
-          message: `Element '${element.id}': ${this.formatAjvError(error)}`,
+          message: `Element '${element.path || element.id}': ${this.formatAjvError(error)}`,
           location: error.instancePath || "/",
           fixSuggestion: this.generateFixSuggestion(error),
         });
@@ -332,7 +332,7 @@ export class SchemaValidator {
       result.hasErrors = true;
       for (const error of validate.errors) {
         result.errors.push({
-          message: `Element '${element.id}': ${this.formatAjvError(error)}`,
+          message: `Element '${element.path || element.id}': ${this.formatAjvError(error)}`,
           location: error.instancePath || "/",
           fixSuggestion: this.generateFixSuggestion(error),
         });

@@ -101,7 +101,8 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
 
     // Print rows
     for (const element of elements) {
-      const id = element.id.substring(0, idWidth - 1).padEnd(idWidth);
+      const displayId = element.path || element.id;
+      const id = displayId.substring(0, idWidth - 1).padEnd(idWidth);
       const type = element.type.substring(0, typeWidth - 1).padEnd(typeWidth);
       const name = element.name.substring(0, nameWidth);
 

@@ -55,8 +55,9 @@ export class GraphMLExporter implements Exporter {
 
         for (const element of layer.listElements()) {
           const color = `#${LAYER_COLORS[layerName] || "FFFFFF"}`;
+          const elementId = element.path || element.id;
 
-          lines.push(`    <node id="${element.id}">`);
+          lines.push(`    <node id="${elementId}">`);
           lines.push(`      <data key="name">${escapeXml(element.name)}</data>`);
           lines.push(`      <data key="node_layer">${layerName}</data>`);
           lines.push(`      <data key="node_type">${element.type}</data>`);
@@ -79,7 +80,7 @@ export class GraphMLExporter implements Exporter {
 
           lines.push(`    </node>`);
 
-          elementMap.set(element.id, {
+          elementMap.set(elementId, {
             layer: layerName,
             type: element.type,
             description: element.description,
@@ -95,6 +96,7 @@ export class GraphMLExporter implements Exporter {
         if (!layer) continue;
 
         for (const element of layer.listElements()) {
+          const elementId = element.path || element.id;
           // Cross-layer references
           for (const ref of element.references) {
             if (!elementMap.has(ref.target)) {
@@ -102,7 +104,7 @@ export class GraphMLExporter implements Exporter {
               continue;
             }
             lines.push(
-              `    <edge id="e${edgeCounter}" source="${element.id}" target="${ref.target}">`
+              `    <edge id="e${edgeCounter}" source="${elementId}" target="${ref.target}">`
             );
             lines.push(`      <data key="edge_type">${ref.type}</data>`);
             lines.push(`      <data key="name">${escapeXml(ref.type)}</data>`);
@@ -122,7 +124,7 @@ export class GraphMLExporter implements Exporter {
               continue;
             }
             lines.push(
-              `    <edge id="e${edgeCounter}" source="${element.id}" target="${rel.target}">`
+              `    <edge id="e${edgeCounter}" source="${elementId}" target="${rel.target}">`
             );
             lines.push(`      <data key="edge_type">${rel.predicate}</data>`);
             lines.push(`      <data key="name">${escapeXml(rel.predicate)}</data>`);

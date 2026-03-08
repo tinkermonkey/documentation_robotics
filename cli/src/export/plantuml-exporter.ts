@@ -49,6 +49,8 @@ export class PlantUMLExporter implements Exporter {
       const layersToExport = options.layers || this.supportedLayers;
       const elementsByLayer = new Map<string, PlantUMLElementEntry[]>();
       const nodesByLayer = new Map<string, any[]>();
+      // Map from raw graph node ID → sanitized PlantUML ID for edge rendering
+      const rawToPlantUMLId = new Map<string, string>();
 
       // Collect nodes by layer from graph model
       for (const layerName of layersToExport) {
@@ -59,8 +61,10 @@ export class PlantUMLExporter implements Exporter {
         nodesByLayer.set(layerName, nodes);
 
         for (const node of nodes) {
+          const pumlId = this.toPlantUMLId(node.id);
+          rawToPlantUMLId.set(node.id, pumlId);
           layerElements.push({
-            id: node.id,
+            id: pumlId,
             name: node.name,
             type: node.type,
             description: node.description,
@@ -77,12 +81,14 @@ export class PlantUMLExporter implements Exporter {
         const color = LAYER_COLORS[layerName] || "FFFFFF";
         lines.push(`package "${layerName}" #${color} {`);
 
-        for (const element of elements) {
+        const nodes = nodesByLayer.get(layerName) || [];
+        for (let i = 0; i < elements.length; i++) {
+          const element = elements[i];
           lines.push(`  component "${this.escapeQuotes(element.name)}" as ${element.id}`);
 
           // Add source reference as note if includeSources option is enabled
           if (options.includeSources) {
-            const node = nodesByLayer.get(layerName)?.find((n) => n.id === element.id);
+            const node = nodes[i];
             const sourceRef = this.extractSourceReference(node);
             if (sourceRef) {
               lines.push(`  note right of ${element.id}`);
@@ -98,19 +104,15 @@ export class PlantUMLExporter implements Exporter {
 
       // Add relationships from graph edges
       const edges = model.graph.getAllEdges();
-      const exportedNodeIds = new Set<string>();
-      for (const elements of elementsByLayer.values()) {
-        for (const elem of elements) {
-          exportedNodeIds.add(elem.id);
-        }
-      }
 
       for (const edge of edges) {
-        // Only include edges between exported nodes
-        if (exportedNodeIds.has(edge.source) && exportedNodeIds.has(edge.destination)) {
+        // Only include edges between exported nodes (check raw IDs)
+        const srcPuml = rawToPlantUMLId.get(edge.source);
+        const dstPuml = rawToPlantUMLId.get(edge.destination);
+        if (srcPuml && dstPuml) {
           const arrow = this.getArrowType(edge.predicate);
           lines.push(
-            `${edge.source} ${arrow} ${edge.destination} : ${this.escapeQuotes(edge.predicate)}`
+            `${srcPuml} ${arrow} ${dstPuml} : ${this.escapeQuotes(edge.predicate)}`
           );
         }
       }
@@ -130,7 +132,7 @@ export class PlantUMLExporter implements Exporter {
         }
 
         for (const edge of edges) {
-          if (exportedNodeIds.has(edge.source) && exportedNodeIds.has(edge.destination)) {
+          if (rawToPlantUMLId.has(edge.source) && rawToPlantUMLId.has(edge.destination)) {
             totalEdges++;
           }
         }
@@ -221,5 +223,13 @@ export class PlantUMLExporter implements Exporter {
   private escapeQuotes(str: string): string {
     // Escape double quotes within strings for PlantUML
     return str.replace(/"/g, '\\"');
+  }
+
+  /**
+   * Convert a raw element ID (path or UUID) to a valid PlantUML identifier.
+   * PlantUML identifiers cannot contain dots or hyphens, so replace with underscores.
+   */
+  private toPlantUMLId(id: string): string {
+    return id.replace(/[.\-]/g, "_");
   }
 }
