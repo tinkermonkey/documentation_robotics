@@ -134,6 +134,25 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.8.1 to v0.8.2: UUID/Path identifier separation
+    this.migrations.push({
+      fromVersion: "0.8.1",
+      toVersion: "0.8.2",
+      description: "UUID/Path identifier separation (Spec v0.8.2)",
+      apply: async () => {
+        // The path field is now required on all spec nodes (spec-node.schema.json).
+        // Existing elements are migrated automatically on load in model.ts (loadLayer):
+        // - Elements with slug-format id: slug moved to path, deterministic UUID assigned to id
+        // - Elements with UUID id but no path: path derived from layer_id.type.kebab(name)
+        // No manual data file changes needed; migration runs transparently on next load/save.
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: "Spec version updated to 0.8.2 (UUID/Path identifier separation)",
+        };
+      },
+    });
   }
 
   /**

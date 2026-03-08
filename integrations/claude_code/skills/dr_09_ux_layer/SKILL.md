@@ -13,13 +13,13 @@ triggers:
     "user experience",
     "state machine",
   ]
-version: 0.8.1
+version: 0.8.2
 ---
 
 # UX Layer Skill
 
 **Layer Number:** 09
-**Specification:** Metadata Model Spec v0.8.1
+**Specification:** Metadata Model Spec v0.8.2
 **Purpose:** Defines user experience using Three-Tier Architecture, specifying views, components, state machines, and interactions.
 
 ---

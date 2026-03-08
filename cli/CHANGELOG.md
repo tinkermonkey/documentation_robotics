@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-03-08
+
+**Specification Support:** v0.8.2
+
 ### Added
 
 #### Enhanced Delete Command
@@ -70,6 +74,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Old system used deprecated `link-registry.json` (removed in spec v0.8.0)
   - New system uses `relationship-catalog.json` v2.1.0+
   - Migration: Use `dr catalog types` instead of `dr links types`
+
+### Fixed
+
+- **UUID/path identifier separation** — Elements now carry two distinct identifiers: `id`
+  (UUIDv4, schema-compliant) and `path` (`{layer}.{type}.{kebab-name}` slug, graph key and
+  user-facing identifier). Resolves 241 schema validation errors caused by slug-format ids
+  failing `format: uuid` validation and UUID ids failing naming convention checks.
+  - Migration-on-load handles all existing model data automatically — no manual steps required
+  - All CLI lookups, exports (ArchiMate, OpenAPI, PlantUML, GraphML, Markdown), display
+    commands, and validators updated to use `path` as the human-readable identifier
+  - Deterministic UUID derivation (SHA-256-based) ensures stable ids across repeated loads
+    during migration
+- **Changeset commit crash** — Fixed crash when relationships registry is missing from
+  projected model during changeset commit
+- **Visualize command port detection** — `dr visualize` now auto-detects an available port
+  when the default port is already in use
+- **Visualization server hang** — Fixed hang caused by incorrect `spec_node_id` derivation
+  for elements in the viewer-compatible spec format
+- **dr-viewer bundled** — Visualization UI updated to dr-viewer v0.3.0
 
 ## [0.1.1] - 2026-02-28
 

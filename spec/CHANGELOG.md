@@ -7,6 +7,23 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-03-08
+
+### Changed
+
+- **`path` field added to `spec-node` base schema** — All spec nodes now carry a `path`
+  field (`{layer}.{type}.{kebab-name}` format) alongside the UUID `id` field. `path` is the
+  human-readable element identifier and graph key; `id` is strictly UUIDv4 for schema
+  compliance and global uniqueness. The `path` field is required and must match pattern
+  `^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$`.
+
+### Migration
+
+Existing model elements that carry a slug-format `id` (e.g., `motivation.goal.my-goal`) are
+automatically migrated on load: the slug is moved to `path` and a deterministic UUID is
+assigned to `id`. Elements with a UUID `id` and no `path` have `path` derived from their
+`layer_id`, `type`, and `name` fields. No manual migration steps are required.
+
 ## [0.8.1] - 2026-02-28
 
 ### Added

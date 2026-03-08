@@ -15,13 +15,13 @@ triggers:
     "terraform",
     "archimate technology",
   ]
-version: 0.8.1
+version: 0.8.2
 ---
 
 # Technology Layer Skill
 
 **Layer Number:** 05
-**Specification:** Metadata Model Spec v0.8.1
+**Specification:** Metadata Model Spec v0.8.2
 **Purpose:** Describes the technology infrastructure including hardware, software, networks, and facilities that support applications.
 
 ---

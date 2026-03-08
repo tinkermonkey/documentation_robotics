@@ -11,13 +11,13 @@ triggers:
     "microservice",
     "archimate application",
   ]
-version: 0.8.1
+version: 0.8.2
 ---
 
 # Application Layer Skill
 
 **Layer Number:** 04
-**Specification:** Metadata Model Spec v0.8.1
+**Specification:** Metadata Model Spec v0.8.2
 **Purpose:** Describes application services, components, and interfaces that support business processes and bridge requirements with technical implementation.
 
 ---

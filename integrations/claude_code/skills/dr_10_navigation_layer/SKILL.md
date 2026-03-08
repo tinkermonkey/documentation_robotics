@@ -3,13 +3,13 @@ name: LAYER_10_NAVIGATION
 description: Expert knowledge for Navigation Layer modeling in Documentation Robotics
 triggers:
   ["navigation", "routing", "route", "flow", "navigation guard", "redirect", "navigation flow"]
-version: 0.8.1
+version: 0.8.2
 ---
 
 # Navigation Layer Skill
 
 **Layer Number:** 10
-**Specification:** Metadata Model Spec v0.8.1
+**Specification:** Metadata Model Spec v0.8.2
 **Purpose:** Defines multi-modal navigation flows, routes, guards, and transitions between views.
 
 ---
