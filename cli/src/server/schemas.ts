@@ -306,10 +306,9 @@ export const SpecResponseSchema = z.object({
 
 export const ChangesetMetadataSchema = z.object({
   name: z.string(),
-  status: z.enum(['active', 'applied', 'abandoned'] as const),
-  type: z.enum(['feature', 'bugfix', 'exploration'] as const),
-  created_at: z.string(),
-  elements_count: z.number(),
+  status: z.enum(['staged', 'committed', 'discarded'] as const),
+  created: z.string(),
+  changes_count: z.number(),
 });
 
 export const ChangesetsListSchema = z.object({
@@ -318,34 +317,26 @@ export const ChangesetsListSchema = z.object({
 });
 
 export const ChangesetDetailSchema = z.object({
-  metadata: z.object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string().optional(),
-    type: z.enum(['feature', 'bugfix', 'exploration'] as const),
-    status: z.enum(['active', 'applied', 'abandoned'] as const),
-    created_at: z.string(),
-    updated_at: z.string().optional(),
-    workflow: z.string().optional(),
-    summary: z.object({
-      elements_added: z.number(),
-      elements_updated: z.number(),
-      elements_deleted: z.number(),
-    }),
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  status: z.enum(['staged', 'committed', 'discarded'] as const),
+  created: z.string(),
+  modified: z.string(),
+  baseSnapshot: z.string().optional(),
+  stats: z.object({
+    additions: z.number(),
+    modifications: z.number(),
+    deletions: z.number(),
   }),
-  changes: z.object({
-    version: z.string(),
-    changes: z.array(z.object({
-      timestamp: z.string(),
-      operation: z.enum(['add', 'update', 'delete'] as const),
-      element_id: z.string(),
-      layer: z.string(),
-      element_type: z.string(),
-      data: z.unknown().optional().describe('Element data (varies by element type)'),
-      before: z.unknown().optional().describe('Previous element state (for update operations)'),
-      after: z.unknown().optional().describe('New element state (for update operations)'),
-    })),
-  }),
+  changes: z.array(z.object({
+    type: z.enum(['add', 'update', 'delete'] as const),
+    elementId: z.string(),
+    layerName: z.string(),
+    timestamp: z.string().optional(),
+    before: z.unknown().optional().describe('Previous element state (for update/delete operations)'),
+    after: z.unknown().optional().describe('New element state (for add/update operations)'),
+  })),
 });
 
 // Type inference from input schemas

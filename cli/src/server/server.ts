@@ -49,6 +49,8 @@ let websocket: any;
 const require = createRequire(import.meta.url);
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
+import { Changeset as StagedChangeset } from "../core/changeset.js";
+import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { telemetryMiddleware } from "./telemetry-middleware.js";
 import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
@@ -128,8 +130,6 @@ type AnnotationReply = z.infer<typeof AnnotationReplySchema>;
 // Derive ClientAnnotation type from AnnotationSchema with proper serialization
 type ClientAnnotation = z.infer<typeof AnnotationSchema>;
 
-type Changeset = z.infer<typeof ChangesetDetailSchema>;
-
 // Type for WebSocket context from Hono/Bun
 // Defines the interface for WebSocket operations within the Hono/Bun environment
 interface HonoWSContext {
@@ -156,7 +156,8 @@ export class VisualizationServer {
   private annotations: Map<string, ClientAnnotation> = new Map(); // annotationId -> annotation
   private annotationsByElement: Map<string, Set<string>> = new Map(); // elementId -> Set<annotationId>
   private replies: Map<string, AnnotationReply[]> = new Map(); // annotationId -> replies[]
-  private changesets: Map<string, Changeset> = new Map(); // changesetId -> changeset
+  private changesets: Map<string, StagedChangeset> = new Map(); // changesetId -> changeset
+  private changesetStorage?: StagedChangesetStorage;
   private authToken: string;
   private authEnabled: boolean = true;
   private withDanger: boolean = false; // Danger mode disabled by default
@@ -1109,11 +1110,10 @@ export class VisualizationServer {
 
       for (const [id, changeset] of this.changesets) {
         changesets[id] = {
-          name: changeset.metadata.name,
-          status: changeset.metadata.status,
-          type: changeset.metadata.type,
-          created_at: changeset.metadata.created_at,
-          elements_count: changeset.changes.changes.length,
+          name: changeset.name,
+          status: changeset.status,
+          created: changeset.created,
+          changes_count: changeset.changes.length,
         };
       }
 
@@ -1163,7 +1163,17 @@ export class VisualizationServer {
         return c.json({ error: "Changeset not found" }, 404);
       }
 
-      return c.json(changeset);
+      return c.json({
+        id: changeset.id,
+        name: changeset.name,
+        description: changeset.description,
+        status: changeset.status,
+        created: changeset.created,
+        modified: changeset.modified,
+        baseSnapshot: changeset.baseSnapshot,
+        stats: changeset.stats,
+        changes: changeset.changes,
+      });
     }) as any);
 
     // OpenAPI documentation endpoint
@@ -1574,6 +1584,33 @@ export class VisualizationServer {
             });
           }
         }
+      }
+    }
+
+    // Central relationships.yaml links (added via `dr relationship add`)
+    // These are NOT attached to individual elements, so the per-element loop
+    // above misses them entirely. Emit them here using the same linksMap so
+    // duplicates are naturally de-duplicated.
+    for (const rel of this.model.relationships.getAll()) {
+      const linkId = `rel:${rel.source}:${rel.target}:${rel.predicate}`;
+      if (!linksMap.has(linkId)) {
+        const layerId = rel.layer || elementLayerMap.get(rel.source) || 'unknown';
+        const link: any = {
+          id: linkId,
+          source: rel.source,
+          target: rel.target,
+          type: rel.predicate,
+        };
+        // Defensive: `dr relationship add` enforces intra-layer only and never
+        // sets targetLayer, so this branch is unreachable through normal CLI
+        // usage. It handles hand-edited YAML that may set targetLayer explicitly.
+        if (rel.targetLayer) {
+          link.source_layer_id = layerId;
+          link.target_layer_id = rel.targetLayer;
+        } else {
+          link.layer_id = layerId;
+        }
+        linksMap.set(linkId, link);
       }
     }
 
@@ -2289,7 +2326,7 @@ export class VisualizationServer {
    * Setup file watcher for model changes
    */
   private setupFileWatcher(): void {
-    const drPath = `${this.model.rootPath}/.dr`;
+    const modelPath = `${this.model.rootPath}/documentation-robotics/model`;
 
     // Use Bun's global watch API (cast to any due to type definitions)
     const bunWatch = (globalThis as any).Bun?.watch;
@@ -2298,39 +2335,44 @@ export class VisualizationServer {
       return;
     }
 
-    this.watcher = bunWatch(drPath, {
-      recursive: true,
-      onChange: async (_event: string, path: string) => {
-        if (process.env.VERBOSE) {
-          console.log(`[Watcher] File changed: ${path}`);
-        }
-
-        try {
-          // Reload model
-          this.model = await Model.load(this.model.rootPath, { lazyLoad: false });
-
-          // Broadcast update to all clients
-          const modelData = await this.serializeModel();
-          const message = JSON.stringify({
-            type: "model.updated",
-            data: modelData,
-            timestamp: new Date().toISOString(),
-          });
-
-          for (const client of this.clients) {
-            try {
-              client.send(message);
-            } catch (error) {
-              const msg = getErrorMessage(error);
-              console.warn(`[Watcher] Failed to send update: ${msg}`);
-            }
+    try {
+      this.watcher = bunWatch(modelPath, {
+        recursive: true,
+        onChange: async (_event: string, path: string) => {
+          if (process.env.VERBOSE) {
+            console.log(`[Watcher] File changed: ${path}`);
           }
-        } catch (error) {
-          const message = getErrorMessage(error);
-          console.error(`[Watcher] Failed to reload model: ${message}`);
-        }
-      },
-    });
+
+          try {
+            // Reload model and changesets
+            this.model = await Model.load(this.model.rootPath, { lazyLoad: false });
+            await this.loadChangesetsFromDisk();
+
+            // Broadcast update to all clients
+            const modelData = await this.serializeModel();
+            const message = JSON.stringify({
+              type: "model.updated",
+              data: modelData,
+              timestamp: new Date().toISOString(),
+            });
+
+            for (const client of this.clients) {
+              try {
+                client.send(message);
+              } catch (error) {
+                const msg = getErrorMessage(error);
+                console.warn(`[Watcher] Failed to send update: ${msg}`);
+              }
+            }
+          } catch (error) {
+            const message = getErrorMessage(error);
+            console.error(`[Watcher] Failed to reload model: ${message}`);
+          }
+        },
+      });
+    } catch (err) {
+      console.warn(`[Watcher] Could not watch ${modelPath}: ${err}`);
+    }
   }
 
   /**
@@ -3059,9 +3101,32 @@ export class VisualizationServer {
   }
 
   /**
+   * Load all changesets from disk into the in-memory map
+   */
+  private async loadChangesetsFromDisk(): Promise<void> {
+    if (!this.changesetStorage) return;
+    try {
+      const changesets = await this.changesetStorage.list();
+      this.changesets.clear();
+      for (const cs of changesets) {
+        this.changesets.set(cs.id, cs);
+      }
+      if (process.env.VERBOSE) {
+        console.log(`[Changesets] Loaded ${changesets.length} changeset(s) from disk`);
+      }
+    } catch (err) {
+      console.warn(`[Changesets] Warning: Failed to load changesets from disk: ${err}`);
+    }
+  }
+
+  /**
    * Start the server
    */
   async start(port: number = 8080): Promise<void> {
+    // Initialize changeset storage and load from disk
+    this.changesetStorage = new StagedChangesetStorage(this.model.rootPath);
+    await this.loadChangesetsFromDisk();
+
     this.setupFileWatcher();
 
     // Dynamically import serve from bun to allow usage with non-Bun runtimes

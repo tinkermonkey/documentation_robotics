@@ -150,6 +150,31 @@ describe("VisualizationServer", () => {
       expect(newFormatNode).toBeDefined();
       expect(newFormatNode).not.toHaveProperty("properties");
     });
+
+    it("should include relationships from central relationships store in links", async () => {
+      // Relationships added via `dr relationship add` go to model.relationships
+      // (backed by relationships.yaml), NOT to element.relationships arrays.
+      // serializeModel() must read both stores.
+      const node = model.layers.get("motivation")!.listElements()[0];
+
+      model.relationships.add({
+        source: node.id,
+        target: node.id, // self-loop is fine for this test
+        predicate: "depends-on",
+        layer: "motivation",
+      });
+
+      const serialized = await server["serializeModel"]();
+
+      const centralLink = serialized.links.find(
+        (l: any) => l.source === node.id && l.type === "depends-on"
+      );
+      expect(centralLink).toBeDefined();
+      expect(centralLink.layer_id).toBe("motivation");
+
+      // Cleanup so this test doesn't pollute others
+      model.relationships.delete(node.id, node.id, "depends-on");
+    });
   });
 
   describe("findElement", () => {

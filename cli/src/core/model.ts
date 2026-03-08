@@ -554,7 +554,7 @@ export class Model {
 
       if (Array.isArray(data)) {
         this.relationships = Relationships.fromArray(data);
-        // Sync relationships to graph
+        // Sync relationships to graph (per-edge, so a bad edge doesn't abort the rest)
         for (let i = 0; i < data.length; i++) {
           const rel = data[i];
           const edge: GraphEdge = {
@@ -565,16 +565,20 @@ export class Model {
             properties: rel.properties,
             category: rel.category,
           };
-          this.graph.addEdge(edge);
+          try {
+            this.graph.addEdge(edge);
+          } catch (edgeErr) {
+            if (process.env.DEBUG) {
+              console.debug(`Warning: Failed to sync relationship to graph (${rel.source} → ${rel.target}): ${edgeErr}`);
+            }
+          }
         }
       }
     } catch (err) {
       // If file doesn't exist, that's okay - start with empty relationships
       if ((err as any).code !== "ENOENT") {
-        // But if it's a different error, we should know about it
-        if (process.env.DEBUG) {
-          console.debug(`Warning: Failed to load relationships.yaml: ${err}`);
-        }
+        // Non-ENOENT errors (parse failures, permission errors) are always surfaced
+        console.warn(`Warning: Failed to load relationships.yaml: ${err}`);
       }
     }
   }
