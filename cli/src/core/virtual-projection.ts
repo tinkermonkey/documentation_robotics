@@ -12,6 +12,7 @@ import type { Model } from "./model.js";
 import type { Layer } from "./layer.js";
 import type { Element } from "./element.js";
 import type { Manifest } from "./manifest.js";
+import type { Relationships } from "./relationships.js";
 import { Layer as LayerClass } from "./layer.js";
 import { Element as ElementClass } from "./element.js";
 import type { StagedChange, Change } from "./changeset.js";
@@ -25,6 +26,7 @@ import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 export interface ProjectedModel {
   manifest: Manifest;
   layers: Map<string, Layer>;
+  relationships: Relationships;
   isProjection: true; // Always true; marks this as a temporary virtual projection
 }
 
@@ -399,6 +401,7 @@ export class VirtualProjectionEngine {
     const projectedModel: ProjectedModel = {
       manifest: baseModel.manifest,
       layers: projectedLayers,
+      relationships: baseModel.relationships,
       isProjection: true,
     };
 
