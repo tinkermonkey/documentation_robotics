@@ -19,7 +19,8 @@ jobs:
     name: Fast-Track Suite
     runs-on: ubuntu-latest
     # Only run fast-track on PRs; full test runs separately
-    if: github.event_name == 'pull_request'
+    # Skip draft PRs - CI does not run on draft status
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
 
     steps:
       - uses: actions/checkout@v4
@@ -64,7 +65,8 @@ jobs:
     runs-on: ubuntu-latest
     # Run full tests on PRs with main as base branch only
     # Direct pushes to main/develop use test-comprehensive instead
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    # Skip draft PRs - CI does not run on draft status
+    if: github.event_name == 'pull_request' && github.base_ref == 'main' && !github.event.pull_request.draft
 
     strategy:
       matrix:
