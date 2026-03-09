@@ -9,7 +9,7 @@ on:
       - "spec/**"
       - ".github/workflows/cli-tests.yml"
   pull_request:
-    branches: [main, develop]
+    branches: ["**"]
     paths:
       - "cli/**"
       - "spec/**"
