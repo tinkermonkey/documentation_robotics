@@ -522,7 +522,6 @@ describe.serial("Visualization Server - WebSocket", () => {
           expect(testWs.readyState).toBe(WebSocket.OPEN);
           expect(message.version).toBe("0.1.0");
           clearTimeout(timer);
-          testWs.close();
           ws = testWs;
           resolve(undefined);
         }
