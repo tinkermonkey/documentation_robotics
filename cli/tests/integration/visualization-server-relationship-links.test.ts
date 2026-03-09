@@ -29,8 +29,17 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
     // Create isolated test directory from golden copy
     workdir = await createTestWorkdir();
 
+    // Manifest data for model initialization
+    const manifestData = {
+      name: "Relationship Links Test Model",
+      version: "0.1.0",
+      description: "Model for relationship link testing",
+      specVersion: "0.6.0",
+      created: new Date().toISOString(),
+    };
+
     // Initialize model with eager loading (required for server to render all layers)
-    model = await Model.init(workdir.path, { lazyLoad: false });
+    model = await Model.init(workdir.path, manifestData, { lazyLoad: false });
 
     // Create motivation layer if it doesn't exist
     let motivationLayer = await model.getLayer("motivation");
@@ -81,9 +90,6 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
     // Start server with the reloaded model
     server = new VisualizationServer(loadedModel, { authEnabled: false });
     await server.start(port);
-
-    // Give server time to fully initialize
-    await new Promise((resolve) => setTimeout(resolve, 100));
   });
 
   afterAll(async () => {
@@ -144,7 +150,7 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
     }
   });
 
-  it("should preserve relationship data through server reload", async () => {
+  it("should return consistent relationship data across multiple requests", async () => {
     // First call to /api/model
     const response1 = await fetch(`http://localhost:${port}/api/model`);
     const data1 = await response1.json();
