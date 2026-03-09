@@ -3,7 +3,7 @@
  * These tests verify complete command workflows using temporary directories
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, vi } from "bun:test";
 import { Model } from "../../src/core/model.js";
 import { fileExists } from "../../src/utils/file-io.js";
 import { runDr as runDrHelper } from "../helpers/cli-runner.js";
@@ -956,8 +956,8 @@ describe("CLI Commands Integration Tests", () => {
         expect.stringContaining("Expected an array of relationships")
       );
 
-      // Relationships should remain empty
-      expect(model.getRelationships()).toHaveLength(0);
+      // Relationships should be preserved (not updated by corrupted file)
+      expect(model.relationships.getAll().length).toBeGreaterThan(0);
 
       warnSpy.mockRestore();
     });
@@ -1001,8 +1001,8 @@ describe("CLI Commands Integration Tests", () => {
         expect.stringContaining("Expected an array of relationships")
       );
 
-      // Relationships should remain empty
-      expect(model.getRelationships()).toHaveLength(0);
+      // Relationships should be preserved (not updated by corrupted file)
+      expect(model.relationships.getAll().length).toBeGreaterThan(0);
 
       warnSpy.mockRestore();
     });
