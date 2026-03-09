@@ -279,10 +279,11 @@ describe.serial("Model.load() relationships behavior with lazyLoad: true", () =>
 
     // Allocate port for this test
     const port = await portAllocator.allocatePort();
+    let server: VisualizationServer | undefined;
 
     try {
       // Start server with lazy-loaded model
-      const server = new VisualizationServer(lazyModel, { authEnabled: false });
+      server = new VisualizationServer(lazyModel, { authEnabled: false });
       await server.start(port);
 
       // Call /api/model endpoint
@@ -304,10 +305,11 @@ describe.serial("Model.load() relationships behavior with lazyLoad: true", () =>
 
       expect(link).toBeDefined();
       expect(link.type).toBe("depends-on");
-
-      // Stop server
-      server.stop();
     } finally {
+      // Stop server in finally block to ensure cleanup even if assertions fail
+      if (server) {
+        server.stop();
+      }
       // Release port
       portAllocator.releasePort(port);
     }
