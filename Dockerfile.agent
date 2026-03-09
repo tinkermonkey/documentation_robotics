@@ -18,6 +18,12 @@ COPY docker-entrypoint-agent.sh /usr/local/bin/docker-entrypoint-agent.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint-agent.sh
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint-agent.sh"]
 
+# GitHub authentication: The orchestrator passes GITHUB_TOKEN at runtime
+# via `docker run -e GITHUB_TOKEN=...`. The base image entrypoint
+# (/usr/local/bin/docker-entrypoint.sh) runs `gh auth login --with-token`
+# when GITHUB_TOKEN is set. No ENV declaration needed here — runtime
+# environment variables are picked up automatically.
+
 # ============================================================================
 # Stage 2: Install Project-Specific Runtimes
 # ============================================================================
@@ -139,7 +145,7 @@ RUN node --version && \
     bun --version
 
 # Verify critical Node.js dependencies are installed
-RUN cd /workspace/cli && \
+RUN cd /workspace/documentation_robotics/cli && \
     node -e "require.resolve('ansis'); require.resolve('commander'); require.resolve('yaml'); console.log('CLI dependencies verified')"
 
 # Verify project-specific tools - core Python dependencies
