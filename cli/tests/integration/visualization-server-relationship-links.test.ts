@@ -203,9 +203,10 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
  *
  * CRITICAL: This test guards the behavior that Model.load() calls
  * loadRelationships() unconditionally, regardless of the lazyLoad option.
- * This is essential because dr visualize (server entry point) loads with
- * lazyLoad: true. If loadRelationships() were ever moved inside the lazy
- * guard block, the visualization would silently lose all relationship links.
+ * The VisualizationServer loads the model with lazyLoad: false (server-entry.ts:67),
+ * requiring relationships to be loaded. If loadRelationships() were ever moved
+ * inside the lazy guard block, the visualization would silently lose all
+ * relationship links.
  *
  * This test ensures that regression is caught immediately.
  */
