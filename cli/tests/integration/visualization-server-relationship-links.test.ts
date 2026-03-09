@@ -339,19 +339,19 @@ describe.serial("Model.load() relationships behavior with lazyLoad: true", () =>
 /**
  * Integration test for VisualizationServer relationship deduplication guard
  *
- * CRITICAL: Tests the deduplication guard at server.ts:1525 (`if (!linksMap.has(linkId))`)
+ * CRITICAL: Tests the deduplication guard in serializeModel() (`if (!linksMap.has(linkId))`)
  * that prevents relationships from appearing twice in /api/model.
  *
- * The serializeModel() function has two code paths that add relationships to linksMap:
- * 1. Line 1492: Iterates over e.relationships[] (inline on each element)
- * 2. Line 1523: Iterates over model.relationships.toArray() (centralized relationships.yaml)
+ * The serializeModel() method has multiple code paths that add relationships to linksMap:
+ * 1. Loop over e.relationships[] - Iterates inline relationships on each element
+ * 2. Loop over model.relationships.toArray() - Iterates centralized relationships (relationships.yaml)
  *
  * If the same relationship exists in BOTH places, the inline loop adds it first to linksMap.
- * When the centralized loop encounters the same relationship, the guard at line 1525 checks
+ * When the centralized loop encounters the same relationship, the guard checks
  * `if (!linksMap.has(linkId))` and skips duplicate insertion.
  *
  * This test creates the dual-storage condition by:
- * 1. Creating and saving elements (which don't include inline relationships per model.ts:407)
+ * 1. Creating and saving elements (which don't include inline relationships)
  * 2. Adding relationship to centralized model.relationships and persisting
  * 3. Reloading model (populates model.relationships from relationships.yaml, elements get empty arrays)
  * 4. Manually injecting the same relationship into element.relationships[] (simulates legacy/migration data)
@@ -450,7 +450,7 @@ describe.serial("VisualizationServer relationship deduplication guard", () => {
 
     // Start server with the dual-storage relationship condition
     // serializeModel() will now process this relationship twice (once inline, once centralized)
-    // and the guard at line 1525 must prevent duplicate insertion
+    // and the deduplication guard in linksMap must prevent duplicate insertion
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(port);
   });
@@ -486,7 +486,7 @@ describe.serial("VisualizationServer relationship deduplication guard", () => {
     );
 
     // CRITICAL ASSERTION: Guard must prevent duplicate insertion
-    // Without guard at server.ts:1525: Would be 2 (one from inline loop, one from centralized)
+    // Without guard: Would be 2 (one from inline loop, one from centralized)
     // With guard: Should be 1 (inline added first, centralized skipped by guard)
     expect(matchingLinks.length).toBe(1);
   });
