@@ -16,6 +16,12 @@ async function createTestModel(rootPath: string): Promise<Model> {
   mkdirSync(join(rootPath, "documentation-robotics", "model", "01_motivation"), {
     recursive: true,
   });
+  mkdirSync(join(rootPath, "documentation-robotics", "model", "04_application"), {
+    recursive: true,
+  });
+  mkdirSync(join(rootPath, "documentation-robotics", "model", "05_technology"), {
+    recursive: true,
+  });
 
   // Create manifest.yaml
   const manifestYaml = `version: '0.1.0'
@@ -35,6 +41,18 @@ layers:
     path: documentation-robotics/model/01_motivation/
     schema: .dr/schemas/01-motivation-layer.schema.json
     enabled: true
+  application:
+    order: 4
+    name: Application
+    path: documentation-robotics/model/04_application/
+    schema: .dr/schemas/04-application-layer.schema.json
+    enabled: true
+  technology:
+    order: 5
+    name: Technology
+    path: documentation-robotics/model/05_technology/
+    schema: .dr/schemas/05-technology-layer.schema.json
+    enabled: true
 `;
 
   writeFileSync(join(rootPath, "documentation-robotics", "model", "manifest.yaml"), manifestYaml);
@@ -50,6 +68,36 @@ layers:
   writeFileSync(
     join(rootPath, "documentation-robotics", "model", "01_motivation", "goals.yaml"),
     motivationYaml
+  );
+
+  // Create application layer YAML file with a component that references a technology service
+  const applicationYaml = `test-component:
+  id: application-component-test-component
+  name: Test Component
+  type: component
+  description: A test component that references a technology service
+  references:
+    - source: application-component-test-component
+      target: technology-service-test-service
+      type: uses
+`;
+
+  writeFileSync(
+    join(rootPath, "documentation-robotics", "model", "04_application", "components.yaml"),
+    applicationYaml
+  );
+
+  // Create technology layer YAML file with a service
+  const technologyYaml = `test-service:
+  id: technology-service-test-service
+  name: Test Service
+  type: service
+  description: A test service
+`;
+
+  writeFileSync(
+    join(rootPath, "documentation-robotics", "model", "05_technology", "services.yaml"),
+    technologyYaml
   );
 
   // Eager loading required: Visualization server rendering requires all layers
@@ -174,6 +222,24 @@ describe("VisualizationServer", () => {
 
       // Cleanup so this test doesn't pollute others
       model.relationships.delete(node.id, node.id, "depends-on");
+    });
+
+    it("should include source_layer_id and target_layer_id on cross-layer reference links", async () => {
+      const serialized = await server["serializeModel"]();
+
+      // Find the cross-layer reference link from application component to technology service
+      const refLink = serialized.links.find(
+        (l: any) =>
+          l.id.startsWith("ref:") &&
+          l.source === "application-component-test-component" &&
+          l.target === "technology-service-test-service"
+      );
+
+      expect(refLink).toBeDefined();
+      expect(refLink.source_layer_id).toBe("application");
+      expect(refLink.target_layer_id).toBe("technology");
+      expect(refLink.id).toMatch(/^ref:/);
+      expect(refLink.type).toBe("uses");
     });
   });
 
