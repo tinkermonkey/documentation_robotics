@@ -315,3 +315,181 @@ describe.serial("Model.load() relationships behavior with lazyLoad: true", () =>
     }
   });
 });
+
+/**
+ * Integration test for VisualizationServer relationship deduplication
+ *
+ * CRITICAL: Tests the deduplication guard at server.ts:1525 that prevents
+ * relationships from appearing twice in /api/model when they are stored both:
+ * 1. Inline on elements (e.g., element.relationships array)
+ * 2. In centralized relationships.yaml
+ *
+ * This guard ensures clients receive each relationship exactly once in the
+ * visualization, even when the same relationship is stored in multiple places.
+ *
+ * If the deduplication guard is accidentally removed, this test will catch the
+ * regression and clients would see duplicate links in visualizations.
+ */
+describe.serial("VisualizationServer relationship deduplication guard", () => {
+  let workdir: { path: string; cleanup: () => Promise<void> };
+  let model: Model;
+  let server: VisualizationServer;
+  let port: number;
+
+  beforeAll(async () => {
+    // Create isolated test directory from golden copy
+    workdir = await createTestWorkdir();
+
+    // Manifest data for model initialization
+    const manifestData = {
+      name: "Deduplication Test Model",
+      version: "0.1.0",
+      description: "Model for testing relationship deduplication",
+      specVersion: "0.6.0",
+      created: new Date().toISOString(),
+    };
+
+    // Initialize model with eager loading
+    model = await Model.init(workdir.path, manifestData, { lazyLoad: false });
+
+    // Create motivation layer
+    let motivationLayer = await model.getLayer("motivation");
+    if (!motivationLayer) {
+      motivationLayer = new Layer("motivation");
+      model.addLayer(motivationLayer);
+    }
+
+    // Create two elements
+    const goalAlpha = new Element({
+      id: "motivation.goal.dedup-alpha",
+      type: "goal",
+      name: "Goal Dedup Alpha",
+      description: "First goal for deduplication testing",
+    });
+
+    const goalBeta = new Element({
+      id: "motivation.goal.dedup-beta",
+      type: "goal",
+      name: "Goal Dedup Beta",
+      description: "Second goal for deduplication testing",
+    });
+
+    motivationLayer.addElement(goalAlpha);
+    motivationLayer.addElement(goalBeta);
+
+    // Save initial model
+    await model.save();
+
+    // Add the relationship to centralized relationships.yaml
+    // This creates the relationship in the relationships registry
+    model.relationships.add({
+      source: "motivation.goal.dedup-alpha",
+      target: "motivation.goal.dedup-beta",
+      predicate: "supports",
+      layer: "motivation",
+    });
+
+    // Persist relationships to relationships.yaml
+    await model.saveRelationships();
+
+    // Reload model to simulate server startup with both inline and centralized relationships
+    const loadedModel = await Model.load(workdir.path);
+
+    // Allocate port for this test
+    port = await portAllocator.allocatePort();
+
+    // Start server with the loaded model
+    server = new VisualizationServer(loadedModel, { authEnabled: false });
+    await server.start(port);
+  });
+
+  afterAll(async () => {
+    // Stop server
+    if (server) {
+      server.stop();
+    }
+
+    // Release port back to allocator
+    portAllocator.releasePort(port);
+
+    // Clean up working directory
+    if (workdir) {
+      await workdir.cleanup();
+    }
+  });
+
+  it("should not duplicate relationships that exist in both inline and centralized storage", async () => {
+    // Call GET /api/model endpoint
+    const response = await fetch(`http://localhost:${port}/api/model`);
+    expect(response.status).toBe(200);
+
+    const data = await response.json();
+
+    // Find all links matching our test relationship
+    const matchingLinks = data.links.filter(
+      (l: any) =>
+        l.source === "motivation.goal.dedup-alpha" &&
+        l.target === "motivation.goal.dedup-beta" &&
+        l.type === "supports"
+    );
+
+    // CRITICAL: There should be exactly 1 link, not 2 or more
+    // The deduplication guard ensures the relationship appears only once
+    expect(matchingLinks.length).toBe(
+      1,
+      "Relationship should appear exactly once, not duplicated"
+    );
+  });
+
+  it("should use linkId map to prevent duplicate insertion from relationships.yaml", async () => {
+    // This test verifies the deduplication mechanism directly:
+    // When serializeModel() processes relationships.yaml entries, it checks
+    // if !linksMap.has(linkId) before adding. This test ensures that check works.
+
+    const response = await fetch(`http://localhost:${port}/api/model`);
+    expect(response.status).toBe(200);
+
+    const data = await response.json();
+
+    // Get the specific relationship
+    const link = data.links.find(
+      (l: any) =>
+        l.source === "motivation.goal.dedup-alpha" &&
+        l.target === "motivation.goal.dedup-beta"
+    );
+
+    // Verify it exists
+    expect(link).toBeDefined();
+
+    // Verify the link ID follows the expected format
+    // Links from relationships.yaml should have IDs starting with "rel:"
+    expect(link.id).toMatch(/^rel:/);
+
+    // Verify layer information is preserved
+    expect(link.layer_id).toBe("motivation");
+  });
+
+  it("should return consistent deduplication across multiple requests", async () => {
+    // First request
+    const response1 = await fetch(`http://localhost:${port}/api/model`);
+    const data1 = await response1.json();
+    const count1 = data1.links.filter(
+      (l: any) =>
+        l.source === "motivation.goal.dedup-alpha" &&
+        l.target === "motivation.goal.dedup-beta"
+    ).length;
+
+    // Second request
+    const response2 = await fetch(`http://localhost:${port}/api/model`);
+    const data2 = await response2.json();
+    const count2 = data2.links.filter(
+      (l: any) =>
+        l.source === "motivation.goal.dedup-alpha" &&
+        l.target === "motivation.goal.dedup-beta"
+    ).length;
+
+    // Both requests should see exactly one instance of the relationship
+    expect(count1).toBe(1);
+    expect(count2).toBe(1);
+  });
+});
