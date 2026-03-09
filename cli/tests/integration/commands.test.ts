@@ -916,5 +916,95 @@ describe("CLI Commands Integration Tests", () => {
         }
       }
     });
+
+    it("should warn and skip loading when relationships.yaml contains non-array content (null)", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Add a valid relationship first
+      await runDr(
+        "relationship",
+        "add",
+        "motivation.goal.goal-1",
+        "motivation.goal.goal-2",
+        "--predicate",
+        "aggregates"
+      );
+
+      // Create a model to work with
+      let model = await Model.load(tempDir.path);
+
+      const relationshipsPath = path.join(
+        tempDir.path,
+        "documentation-robotics/model/relationships.yaml"
+      );
+
+      // Write null content (empty YAML file produces null)
+      await fs.writeFile(relationshipsPath, "");
+
+      // Capture console output
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      // Load relationships - should not throw, but should warn
+      await model.loadRelationships();
+
+      // Verify warning was logged
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("relationships.yaml contains non-array content")
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Expected an array of relationships")
+      );
+
+      // Relationships should remain empty
+      expect(model.getRelationships()).toHaveLength(0);
+
+      warnSpy.mockRestore();
+    });
+
+    it("should warn and skip loading when relationships.yaml contains non-array content (object)", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Add a valid relationship first
+      await runDr(
+        "relationship",
+        "add",
+        "motivation.goal.goal-1",
+        "motivation.goal.goal-2",
+        "--predicate",
+        "aggregates"
+      );
+
+      // Create a model to work with
+      let model = await Model.load(tempDir.path);
+
+      const relationshipsPath = path.join(
+        tempDir.path,
+        "documentation-robotics/model/relationships.yaml"
+      );
+
+      // Write YAML object instead of array
+      await fs.writeFile(relationshipsPath, "key: value\nanother: data");
+
+      // Capture console output
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      // Load relationships - should not throw, but should warn
+      await model.loadRelationships();
+
+      // Verify warning was logged
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("relationships.yaml contains non-array content")
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Expected an array of relationships")
+      );
+
+      // Relationships should remain empty
+      expect(model.getRelationships()).toHaveLength(0);
+
+      warnSpy.mockRestore();
+    });
   });
 });
