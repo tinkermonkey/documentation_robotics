@@ -509,49 +509,63 @@ describe.serial("Visualization Server - WebSocket", () => {
 
   it("should connect to WebSocket at /ws", async () => {
     return new Promise((resolve, reject) => {
-      ws = new WebSocket(`ws://localhost:${wsPort}/ws`);
+      const testWs = new WebSocket(`ws://localhost:${wsPort}/ws`);
+      const timer = setTimeout(() => {
+        testWs.close();
+        reject(new Error("WebSocket connection timeout"));
+      }, 10000);
 
-      ws.onmessage = (event) => {
+      testWs.onmessage = (event) => {
         const message = JSON.parse(event.data);
         // Should receive connected message on connect
         if (message.type === "connected") {
-          expect(ws.readyState).toBe(WebSocket.OPEN);
+          expect(testWs.readyState).toBe(WebSocket.OPEN);
           expect(message.version).toBe("0.1.0");
+          clearTimeout(timer);
+          testWs.close();
+          ws = testWs;
           resolve(undefined);
         }
       };
 
-      ws.onerror = (error) => {
+      testWs.onerror = (error) => {
+        clearTimeout(timer);
         reject(error);
       };
-
-      setTimeout(() => reject(new Error("WebSocket connection timeout")), 5000);
     });
   }, 10000);
 
   it("should receive pong response to ping", async () => {
     return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("Pong timeout"));
+      }, 10000);
+
       // Set up message handler before sending
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === "pong") {
+          clearTimeout(timer);
           resolve(undefined);
         }
       };
 
       // Send ping after handler is set
       ws.send(JSON.stringify({ type: "ping" }));
-
-      setTimeout(() => reject(new Error("Pong timeout")), 5000);
     });
   }, 10000);
 
   it("should subscribe to model updates", async () => {
     return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("Subscribe timeout"));
+      }, 10000);
+
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === "subscribed") {
           expect(message.topics).toContain("model");
+          clearTimeout(timer);
           resolve(undefined);
         }
       };
@@ -562,13 +576,15 @@ describe.serial("Visualization Server - WebSocket", () => {
           topics: ["model", "annotations"],
         })
       );
-
-      setTimeout(() => reject(new Error("Subscribe timeout")), 5000);
     });
   }, 10000);
 
   it("should receive annotation events via WebSocket", async () => {
     return new Promise(async (resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("Annotation event timeout"));
+      }, 10000);
+
       // Set up message handler first
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
@@ -576,6 +592,7 @@ describe.serial("Visualization Server - WebSocket", () => {
         if (message.type === "annotation.added") {
           expect(message.annotationId).toBeDefined();
           expect(message.elementId).toBe("motivation.goal.g1");
+          clearTimeout(timer);
           resolve(undefined);
         }
       };
@@ -590,8 +607,6 @@ describe.serial("Visualization Server - WebSocket", () => {
           content: "WebSocket test annotation",
         }),
       });
-
-      setTimeout(() => reject(new Error("Annotation event timeout")), 5000);
     });
   }, 10000);
 });

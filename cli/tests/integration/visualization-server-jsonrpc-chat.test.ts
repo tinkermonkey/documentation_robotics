@@ -71,6 +71,10 @@ describe.serial("JSON-RPC Chat Methods", () => {
     it("should respond with chat status when no client is available", async () => {
       return new Promise<void>((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error("Test timeout - WebSocket never opened or response never received"));
+        }, 10000);
 
         ws.onopen = async () => {
           try {
@@ -94,15 +98,18 @@ describe.serial("JSON-RPC Chat Methods", () => {
             // error_message is null when client is available, string when not
             expect(result.error_message === null || typeof result.error_message === "string").toBe(true);
 
+            clearTimeout(timer);
             ws.close();
             resolve();
           } catch (error) {
+            clearTimeout(timer);
             ws.close();
             reject(error);
           }
         };
 
         ws.onerror = () => {
+          clearTimeout(timer);
           reject(new Error("WebSocket connection failed"));
         };
       });
@@ -111,6 +118,10 @@ describe.serial("JSON-RPC Chat Methods", () => {
     it("should include error message in status response when no client available", async () => {
       return new Promise<void>((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error("Test timeout - WebSocket never opened or response never received"));
+        }, 10000);
 
         ws.onopen = async () => {
           try {
@@ -136,15 +147,18 @@ describe.serial("JSON-RPC Chat Methods", () => {
               expect(result.error_message).toBe(null);
             }
 
+            clearTimeout(timer);
             ws.close();
             resolve();
           } catch (error) {
+            clearTimeout(timer);
             ws.close();
             reject(error);
           }
         };
 
         ws.onerror = () => {
+          clearTimeout(timer);
           reject(new Error("WebSocket connection failed"));
         };
       });
@@ -155,6 +169,10 @@ describe.serial("JSON-RPC Chat Methods", () => {
     it("should reject chat.send with missing message parameter", async () => {
       return new Promise<void>((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error("Test timeout - WebSocket never opened or response never received"));
+        }, 10000);
 
         ws.onopen = async () => {
           try {
@@ -175,15 +193,18 @@ describe.serial("JSON-RPC Chat Methods", () => {
             expect(response.error).toHaveProperty("code");
             expect(response.error).toHaveProperty("message");
 
+            clearTimeout(timer);
             ws.close();
             resolve();
           } catch (error) {
+            clearTimeout(timer);
             ws.close();
             reject(error);
           }
         };
 
         ws.onerror = () => {
+          clearTimeout(timer);
           reject(new Error("WebSocket connection failed"));
         };
       });
@@ -192,6 +213,10 @@ describe.serial("JSON-RPC Chat Methods", () => {
     it("should reject chat.send with empty message parameter", async () => {
       return new Promise<void>((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error("Test timeout - WebSocket never opened or response never received"));
+        }, 10000);
 
         ws.onopen = async () => {
           try {
@@ -210,15 +235,18 @@ describe.serial("JSON-RPC Chat Methods", () => {
             expect(response.error).toHaveProperty("code");
             expect(response.error.message).toContain("empty");
 
+            clearTimeout(timer);
             ws.close();
             resolve();
           } catch (error) {
+            clearTimeout(timer);
             ws.close();
             reject(error);
           }
         };
 
         ws.onerror = () => {
+          clearTimeout(timer);
           reject(new Error("WebSocket connection failed"));
         };
       });
@@ -227,6 +255,10 @@ describe.serial("JSON-RPC Chat Methods", () => {
     it("should reject chat.send with non-string message parameter", async () => {
       return new Promise<void>((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error("Test timeout - WebSocket never opened or response never received"));
+        }, 10000);
 
         ws.onopen = async () => {
           try {
@@ -244,15 +276,18 @@ describe.serial("JSON-RPC Chat Methods", () => {
             expect(response).toHaveProperty("error");
             expect(response.error).toHaveProperty("code");
 
+            clearTimeout(timer);
             ws.close();
             resolve();
           } catch (error) {
+            clearTimeout(timer);
             ws.close();
             reject(error);
           }
         };
 
         ws.onerror = () => {
+          clearTimeout(timer);
           reject(new Error("WebSocket connection failed"));
         };
       });
@@ -264,6 +299,10 @@ describe.serial("JSON-RPC Chat Methods", () => {
     it("should respond to chat.cancel when no conversation active", async () => {
       return new Promise<void>((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error("Test timeout - WebSocket never opened or response never received"));
+        }, 10000);
 
         ws.onopen = async () => {
           try {
@@ -281,15 +320,18 @@ describe.serial("JSON-RPC Chat Methods", () => {
             expect(response.result).toHaveProperty("cancelled");
             expect(typeof response.result.cancelled).toBe("boolean");
 
+            clearTimeout(timer);
             ws.close();
             resolve();
           } catch (error) {
+            clearTimeout(timer);
             ws.close();
             reject(error);
           }
         };
 
         ws.onerror = () => {
+          clearTimeout(timer);
           reject(new Error("WebSocket connection failed"));
         };
       });
@@ -298,6 +340,10 @@ describe.serial("JSON-RPC Chat Methods", () => {
     it("should include conversation_id in cancel response structure", async () => {
       return new Promise<void>((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error("Test timeout - WebSocket never opened or response never received"));
+        }, 10000);
 
         ws.onopen = async () => {
           try {
@@ -315,15 +361,18 @@ describe.serial("JSON-RPC Chat Methods", () => {
             // conversation_id can be null when no conversation was active
             expect(response.result.conversation_id === null || typeof response.result.conversation_id === "string").toBe(true);
 
+            clearTimeout(timer);
             ws.close();
             resolve();
           } catch (error) {
+            clearTimeout(timer);
             ws.close();
             reject(error);
           }
         };
 
         ws.onerror = () => {
+          clearTimeout(timer);
           reject(new Error("WebSocket connection failed"));
         };
       });
@@ -334,6 +383,10 @@ describe.serial("JSON-RPC Chat Methods", () => {
     it("should reject chat.status with invalid params", async () => {
       return new Promise<void>((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error("Test timeout - WebSocket never opened or response never received"));
+        }, 10000);
 
         ws.onopen = async () => {
           try {
@@ -350,15 +403,18 @@ describe.serial("JSON-RPC Chat Methods", () => {
             // Should still respond successfully (JSON-RPC allows extra params)
             expect(response).toHaveProperty("result");
 
+            clearTimeout(timer);
             ws.close();
             resolve();
           } catch (error) {
+            clearTimeout(timer);
             ws.close();
             reject(error);
           }
         };
 
         ws.onerror = () => {
+          clearTimeout(timer);
           reject(new Error("WebSocket connection failed"));
         };
       });

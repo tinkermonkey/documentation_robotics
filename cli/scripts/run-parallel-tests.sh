@@ -26,8 +26,9 @@ rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
 # Get all test files and sort them (same as CI)
-# This includes all tests that will be distributed across shards
-TEST_FILES=$(find tests -name "*.test.ts" | sort)
+# Exclude visualization server tests, telemetry config integration tests, and performance tests
+# These require special handling and run in the comprehensive test suite
+TEST_FILES=$(find tests -name "*.test.ts" | grep -v "visualization-server" | grep -v "telemetry-config-integration" | grep -v "/performance/" | sort)
 TEST_COUNT=$(echo "$TEST_FILES" | wc -l)
 
 echo "Total test files: $TEST_COUNT"
