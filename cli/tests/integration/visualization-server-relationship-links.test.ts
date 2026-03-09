@@ -141,12 +141,31 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
     const response = await fetch(`http://localhost:${port}/api/model`);
     const data = await response.json();
 
-    // Verify all links have required fields
+    // Verify all links have required fields with valid values
     for (const link of data.links) {
+      // Check that fields are defined and not sentinel/fallback values
       expect(link.id).toBeDefined();
+      expect(typeof link.id).toBe("string");
+      expect(link.id).not.toBe("undefined");
+      expect(link.id.length).toBeGreaterThan(0);
+
       expect(link.source).toBeDefined();
+      expect(typeof link.source).toBe("string");
+      expect(link.source).not.toBe("undefined");
+      expect(link.source).not.toBe("unknown");
+      expect(link.source.length).toBeGreaterThan(0);
+
       expect(link.target).toBeDefined();
+      expect(typeof link.target).toBe("string");
+      expect(link.target).not.toBe("undefined");
+      expect(link.target).not.toBe("unknown");
+      expect(link.target.length).toBeGreaterThan(0);
+
       expect(link.type).toBeDefined();
+      expect(typeof link.type).toBe("string");
+      expect(link.type).not.toBe("undefined");
+      expect(link.type).not.toBe("unknown");
+      expect(link.type.length).toBeGreaterThan(0);
     }
   });
 
