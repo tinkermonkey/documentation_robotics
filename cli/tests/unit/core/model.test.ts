@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "bun:test";
+import { describe, it, expect, beforeEach, vi } from "bun:test";
 import { Model } from "@/core/model";
 import { Layer } from "@/core/layer";
 import { Manifest } from "@/core/manifest";
@@ -128,12 +128,28 @@ describe("Model.loadRelationships — Graph Sync Logging", () => {
   });
 
   it("should warn when graph.addEdge fails during relationship sync", async () => {
+    const { mkdir, writeFile } = await import("fs/promises");
+    const path = await import("path");
+
+    // Set up test directory with proper model structure
+    const modelDir = path.join(testDir, "documentation-robotics", "model");
+    await mkdir(modelDir, { recursive: true });
+
     const manifest = new Manifest({
       name: "Test Model",
       version: "1.0.0",
     });
 
     const model = new Model(testDir, manifest);
+
+    // Create a relationships.yaml file with test data in the correct location
+    const relationshipsYaml = `- source: motivation.goal.test-goal
+  target: business.service.test-service
+  predicate: aggregates
+  category: structural
+  properties: {}
+`;
+    await writeFile(path.join(modelDir, "relationships.yaml"), relationshipsYaml);
 
     // Mock graph.addEdge to throw an error
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -144,35 +160,10 @@ describe("Model.loadRelationships — Graph Sync Logging", () => {
     });
 
     try {
-      // Create a minimal test by directly calling the code path
-      // that would be triggered when relationships are loaded
-      const testRelationship = {
-        source: "motivation.goal.test-goal",
-        target: "business.service.test-service",
-        predicate: "aggregates",
-        properties: {},
-        category: "structural",
-      };
+      // Call the actual loadRelationships method
+      await model.loadRelationships();
 
-      // Simulate the edge sync logic from loadRelationships
-      const edge = {
-        id: "test-edge-id",
-        source: testRelationship.source,
-        destination: testRelationship.target,
-        predicate: testRelationship.predicate,
-        properties: testRelationship.properties,
-        category: testRelationship.category,
-      };
-
-      try {
-        model.graph.addEdge(edge);
-      } catch (err) {
-        console.warn(
-          `Warning: Failed to sync relationship to graph (source: ${testRelationship.source}, target: ${testRelationship.target}): ${err instanceof Error ? err.message : String(err)}`
-        );
-      }
-
-      // Verify warning was logged (not just in DEBUG mode)
+      // Verify warning was logged from the production code (not just in DEBUG mode)
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining("Failed to sync relationship to graph")
       );
