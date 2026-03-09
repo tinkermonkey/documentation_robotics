@@ -847,6 +847,9 @@ describe("CLI Commands Integration Tests", () => {
         "aggregates"
       );
 
+      // Create a temporary model to work with
+      let model = await Model.load(tempDir.path);
+
       // Corrupt the relationships.yaml file with invalid YAML
       const relationshipsPath = path.join(
         tempDir.path,
@@ -854,16 +857,13 @@ describe("CLI Commands Integration Tests", () => {
       );
       await fs.writeFile(relationshipsPath, "invalid: yaml: content: [");
 
-      // Attempt to load the model and relationships
-      const model = await Model.load(tempDir.path);
-      const loadError = await (async () => {
-        try {
-          await model.loadRelationships();
-          return null;
-        } catch (err) {
-          return err;
-        }
-      })();
+      // Attempt to reload relationships from the corrupted file
+      let loadError: any = null;
+      try {
+        await model.loadRelationships();
+      } catch (err) {
+        loadError = err;
+      }
 
       expect(loadError).toBeTruthy();
       expect(loadError instanceof Error).toBe(true);
@@ -884,6 +884,9 @@ describe("CLI Commands Integration Tests", () => {
         "aggregates"
       );
 
+      // Create a model to work with
+      let model = await Model.load(tempDir.path);
+
       const relationshipsPath = path.join(
         tempDir.path,
         "documentation-robotics/model/relationships.yaml"
@@ -893,16 +896,13 @@ describe("CLI Commands Integration Tests", () => {
       try {
         await fs.chmod(relationshipsPath, 0o000);
 
-        // Attempt to load the model and relationships
-        const model = await Model.load(tempDir.path);
-        const loadError = await (async () => {
-          try {
-            await model.loadRelationships();
-            return null;
-          } catch (err) {
-            return err;
-          }
-        })();
+        // Attempt to reload relationships from the unreadable file
+        let loadError: any = null;
+        try {
+          await model.loadRelationships();
+        } catch (err) {
+          loadError = err;
+        }
 
         expect(loadError).toBeTruthy();
         expect(loadError instanceof Error).toBe(true);
