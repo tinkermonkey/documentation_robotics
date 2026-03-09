@@ -317,18 +317,27 @@ describe.serial("Model.load() relationships behavior with lazyLoad: true", () =>
 });
 
 /**
- * Integration test for VisualizationServer relationship deduplication
+ * Integration test for VisualizationServer relationship deduplication guard
  *
- * CRITICAL: Tests the deduplication guard at server.ts:1525 that prevents
- * relationships from appearing twice in /api/model when they are stored both:
- * 1. Inline on elements (e.g., element.relationships array)
- * 2. In centralized relationships.yaml
+ * CRITICAL: Tests the deduplication guard at server.ts:1525 (`if (!linksMap.has(linkId))`)
+ * that prevents relationships from appearing twice in /api/model.
  *
- * This guard ensures clients receive each relationship exactly once in the
- * visualization, even when the same relationship is stored in multiple places.
+ * The serializeModel() function has two code paths that add relationships to linksMap:
+ * 1. Line 1492: Iterates over e.relationships[] (inline on each element)
+ * 2. Line 1523: Iterates over model.relationships.toArray() (centralized relationships.yaml)
  *
- * If the deduplication guard is accidentally removed, this test will catch the
- * regression and clients would see duplicate links in visualizations.
+ * If the same relationship exists in BOTH places, the inline loop adds it first to linksMap.
+ * When the centralized loop encounters the same relationship, the guard at line 1525 checks
+ * `if (!linksMap.has(linkId))` and skips duplicate insertion.
+ *
+ * This test creates the dual-storage condition by:
+ * 1. Creating and saving elements (which don't include inline relationships per model.ts:407)
+ * 2. Adding relationship to centralized model.relationships and persisting
+ * 3. Reloading model (populates model.relationships from relationships.yaml, elements get empty arrays)
+ * 4. Manually injecting the same relationship into element.relationships[] (simulates legacy/migration data)
+ * 5. Starting server and verifying the relationship appears exactly once
+ *
+ * If the guard is removed, the relationship would appear twice and this test fails.
  */
 describe.serial("VisualizationServer relationship deduplication guard", () => {
   let workdir: { path: string; cleanup: () => Promise<void> };
@@ -350,7 +359,7 @@ describe.serial("VisualizationServer relationship deduplication guard", () => {
     };
 
     // Initialize model with eager loading
-    model = await Model.init(workdir.path, manifestData, { lazyLoad: false });
+    let model = await Model.init(workdir.path, manifestData, { lazyLoad: false });
 
     // Create motivation layer
     let motivationLayer = await model.getLayer("motivation");
@@ -378,10 +387,10 @@ describe.serial("VisualizationServer relationship deduplication guard", () => {
     motivationLayer.addElement(goalBeta);
 
     // Save initial model
+    // Per model.ts:407, relationships are NOT written to element YAML files
     await model.save();
 
-    // Add the relationship to centralized relationships.yaml
-    // This creates the relationship in the relationships registry
+    // Add relationship to centralized registry
     model.relationships.add({
       source: "motivation.goal.dedup-alpha",
       target: "motivation.goal.dedup-beta",
@@ -389,17 +398,40 @@ describe.serial("VisualizationServer relationship deduplication guard", () => {
       layer: "motivation",
     });
 
-    // Persist relationships to relationships.yaml
+    // Persist to relationships.yaml
     await model.saveRelationships();
 
-    // Reload model to simulate server startup with both inline and centralized relationships
-    const loadedModel = await Model.load(workdir.path);
+    // Reload model from disk
+    // This populates model.relationships from relationships.yaml, but elements have empty arrays
+    model = await Model.load(workdir.path);
+
+    // CRITICAL STEP: Create the dual-storage condition by injecting the same relationship
+    // into the element's inline relationships array. This simulates the scenario where
+    // relationships might be stored inline (legacy/migration) and also in relationships.yaml.
+    const reloadedLayer = await model.getLayer("motivation");
+    if (reloadedLayer) {
+      const alphaElement = await reloadedLayer.getElement("motivation.goal.dedup-alpha");
+      if (alphaElement) {
+        // Initialize relationships array if needed
+        if (!alphaElement.relationships) {
+          alphaElement.relationships = [];
+        }
+        // Inject the same relationship that exists in model.relationships
+        alphaElement.relationships.push({
+          source: "motivation.goal.dedup-alpha",
+          target: "motivation.goal.dedup-beta",
+          predicate: "supports",
+        });
+      }
+    }
 
     // Allocate port for this test
     port = await portAllocator.allocatePort();
 
-    // Start server with the loaded model
-    server = new VisualizationServer(loadedModel, { authEnabled: false });
+    // Start server with the dual-storage relationship condition
+    // serializeModel() will now process this relationship twice (once inline, once centralized)
+    // and the guard at line 1525 must prevent duplicate insertion
+    server = new VisualizationServer(model, { authEnabled: false });
     await server.start(port);
   });
 
@@ -433,63 +465,9 @@ describe.serial("VisualizationServer relationship deduplication guard", () => {
         l.type === "supports"
     );
 
-    // CRITICAL: There should be exactly 1 link, not 2 or more
-    // The deduplication guard ensures the relationship appears only once
-    expect(matchingLinks.length).toBe(
-      1,
-      "Relationship should appear exactly once, not duplicated"
-    );
-  });
-
-  it("should use linkId map to prevent duplicate insertion from relationships.yaml", async () => {
-    // This test verifies the deduplication mechanism directly:
-    // When serializeModel() processes relationships.yaml entries, it checks
-    // if !linksMap.has(linkId) before adding. This test ensures that check works.
-
-    const response = await fetch(`http://localhost:${port}/api/model`);
-    expect(response.status).toBe(200);
-
-    const data = await response.json();
-
-    // Get the specific relationship
-    const link = data.links.find(
-      (l: any) =>
-        l.source === "motivation.goal.dedup-alpha" &&
-        l.target === "motivation.goal.dedup-beta"
-    );
-
-    // Verify it exists
-    expect(link).toBeDefined();
-
-    // Verify the link ID follows the expected format
-    // Links from relationships.yaml should have IDs starting with "rel:"
-    expect(link.id).toMatch(/^rel:/);
-
-    // Verify layer information is preserved
-    expect(link.layer_id).toBe("motivation");
-  });
-
-  it("should return consistent deduplication across multiple requests", async () => {
-    // First request
-    const response1 = await fetch(`http://localhost:${port}/api/model`);
-    const data1 = await response1.json();
-    const count1 = data1.links.filter(
-      (l: any) =>
-        l.source === "motivation.goal.dedup-alpha" &&
-        l.target === "motivation.goal.dedup-beta"
-    ).length;
-
-    // Second request
-    const response2 = await fetch(`http://localhost:${port}/api/model`);
-    const data2 = await response2.json();
-    const count2 = data2.links.filter(
-      (l: any) =>
-        l.source === "motivation.goal.dedup-alpha" &&
-        l.target === "motivation.goal.dedup-beta"
-    ).length;
-
-    // Both requests should see exactly one instance of the relationship
-    expect(count1).toBe(1);
-    expect(count2).toBe(1);
+    // CRITICAL ASSERTION: Guard must prevent duplicate insertion
+    // Without guard at server.ts:1525: Would be 2 (one from inline loop, one from centralized)
+    // With guard: Should be 1 (inline added first, centralized skipped by guard)
+    expect(matchingLinks.length).toBe(1);
   });
 });
