@@ -672,8 +672,8 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        // Falls back to default fallback (motivation is not in LAYER_FALLBACK, so uses default)
-        expect(result).toBe("data-store.database");
+        // When elementId is empty but type is valid, should use type parameter
+        expect(result).toBe("motivation.goal");
       });
 
       it("should prioritize valid specNodeId over extraction", () => {

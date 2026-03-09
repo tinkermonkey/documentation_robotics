@@ -1792,9 +1792,11 @@ export class VisualizationServer {
       }
     }
 
-    // Strategy 4: If type param was provided and we extracted a different type, try with provided type
-    // Only do this if we actually extracted something from elementId
-    if (extractedType && type && extractedType !== type) {
+    // Strategy 4: If type param was provided, try with provided type
+    // This applies when:
+    // - extractedType is null (e.g., unparseable elementId) but type is valid
+    // - extractedType differs from type (prefer extracted over provided)
+    if (type && (!extractedType || extractedType !== type)) {
       const candidate = `${layer}.${type}`;
       const layerIds = VisualizationServer.VALID_SPEC_NODE_IDS[layer] || [];
       if (layerIds.includes(candidate)) {
