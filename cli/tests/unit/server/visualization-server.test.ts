@@ -165,14 +165,12 @@ describe("VisualizationServer", () => {
       expect(node).toHaveProperty("name");
     });
 
-    it("should include annotations on nodes that have them", async () => {
+    it("should not embed annotations directly on serialized nodes", async () => {
       const serialized = await server["serializeModel"]();
 
-      // Nodes without annotations omit the field; those with annotations carry an array
+      // Annotations are stored server-side in the annotations map, not on serialized nodes
       for (const node of serialized.nodes) {
-        if (Object.prototype.hasOwnProperty.call(node, "annotations")) {
-          expect(Array.isArray(node.annotations)).toBe(true);
-        }
+        expect(node).not.toHaveProperty("annotations");
       }
     });
 
