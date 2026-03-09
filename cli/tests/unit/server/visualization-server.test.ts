@@ -413,6 +413,18 @@ describe("VisualizationServer", () => {
 
         expect(result).toBe("application.applicationcomponent");
       });
+
+      it("should pass through security.threat when provided as specNodeId", () => {
+        const result = server["resolveViewerSpecNodeId"](
+          "security.threat.sql-injection",
+          "security",
+          "",
+          "security.threat"
+        );
+
+        // security.threat is a valid spec node ID, should be passed through (Strategy 1)
+        expect(result).toBe("security.threat");
+      });
     });
 
     describe("dot-format extraction", () => {
@@ -421,10 +433,11 @@ describe("VisualizationServer", () => {
           "security.threat.sql-injection",
           "security",
           "",
-          "security.threat"
+          ""
         );
 
-        // security layer has threat in VALID_SPEC_NODE_IDS, should match
+        // Extracts 'threat' from second segment of "security.threat.sql-injection"
+        // Constructs 'security.threat' which is valid
         expect(result).toBe("security.threat");
       });
 
@@ -657,6 +670,49 @@ describe("VisualizationServer", () => {
 
         // Should extract 'businessservice' from elementId and construct 'business.businessservice' which is valid
         expect(result).toBe("business.businessservice");
+      });
+    });
+
+    describe("type-parameter fallback (Strategy 4)", () => {
+      it("should fall back to type parameter when extracted type is invalid but type parameter is valid", () => {
+        const result = server["resolveViewerSpecNodeId"](
+          "business.invalidtype.something",
+          "business",
+          "businessprocess",
+          ""
+        );
+
+        // Extracts 'invalidtype' from elementId, but 'business.invalidtype' is NOT valid
+        // Falls back to type parameter 'businessprocess', constructs 'business.businessprocess' which IS valid
+        expect(result).toBe("business.businessprocess");
+      });
+
+      it("should not reach type-parameter fallback if extracted type is valid", () => {
+        const result = server["resolveViewerSpecNodeId"](
+          "business.businessservice.test",
+          "business",
+          "businessprocess",
+          ""
+        );
+
+        // Extracts 'businessservice' from elementId, 'business.businessservice' IS valid
+        // Returns immediately without trying type parameter fallback
+        expect(result).toBe("business.businessservice");
+      });
+
+      it("should use layer fallback when both extracted and type-param candidates are invalid", () => {
+        const result = server["resolveViewerSpecNodeId"](
+          "business.invalidtype.test",
+          "business",
+          "anothertype",
+          ""
+        );
+
+        // Extracts 'invalidtype' from elementId -> 'business.invalidtype' is invalid
+        // Type parameter 'anothertype' -> 'business.anothertype' is invalid
+        // Falls back to LAYER_FALLBACK["business"] but business is not in fallback map
+        // So defaults to "data-store.database"
+        expect(result).toBe("data-store.database");
       });
     });
   });

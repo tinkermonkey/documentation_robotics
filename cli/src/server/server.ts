@@ -286,7 +286,17 @@ export class VisualizationServer {
       "api.servervariable",
       "api.tag",
     ],
-    "data-model": [],
+    "data-model": [
+      "data-model.arrayschema",
+      "data-model.jsonschema",
+      "data-model.numericschema",
+      "data-model.objectschema",
+      "data-model.reference",
+      "data-model.schemacomposition",
+      "data-model.schemadefinition",
+      "data-model.schemaproperty",
+      "data-model.stringschema",
+    ],
     "data-store": [
       "data-store.accesspattern",
       "data-store.collection",
@@ -374,8 +384,9 @@ export class VisualizationServer {
   };
 
   /**
-   * Fallback spec node IDs for layers with limited viewer support
-   * Used when no valid spec node ID can be extracted or found
+   * Fallback spec node IDs used when type extraction from elementId fails
+   * These are used when no valid spec node ID can be extracted from the elementId
+   * or found through other resolution strategies
    */
   private static readonly LAYER_FALLBACK: Record<string, string> = {
     security: "business.businessprocess",
