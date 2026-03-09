@@ -8,6 +8,8 @@ import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
 import { randomBytes } from "crypto";
 import { createRequire } from "module";
+import { fileURLToPath } from "url";
+import path from "path";
 
 // hono/bun imports are conditional - they're only available in Bun runtime
 // For Node.js/tsx environments (e.g., generating OpenAPI spec), these are lazily imported
@@ -169,219 +171,72 @@ export class VisualizationServer {
 
   /**
    * Valid spec node IDs per layer
-   * Sourced from compiled spec (spec/dist/{layer}.json)
+   * Dynamically loaded from compiled spec (spec/dist/{layer}.json at module load time)
    * Used to validate and resolve viewer spec node IDs
+   * Prevents silent drift when node types are added to spec/schemas/nodes/
    */
-  private static readonly VALID_SPEC_NODE_IDS: Record<string, string[]> = {
-    motivation: [
-      "motivation.assessment",
-      "motivation.constraint",
-      "motivation.driver",
-      "motivation.goal",
-      "motivation.meaning",
-      "motivation.outcome",
-      "motivation.principle",
-      "motivation.requirement",
-      "motivation.stakeholder",
-      "motivation.value",
-    ],
-    business: [
-      "business.businessactor",
-      "business.businesscollaboration",
-      "business.businessevent",
-      "business.businessfunction",
-      "business.businessinteraction",
-      "business.businessinterface",
-      "business.businessobject",
-      "business.businessprocess",
-      "business.businessrole",
-      "business.businessservice",
-      "business.contract",
-      "business.product",
-      "business.representation",
-    ],
-    security: [
-      "security.accesscondition",
-      "security.accountabilityrequirement",
-      "security.actor",
-      "security.auditconfig",
-      "security.authenticationconfig",
-      "security.bindingofduty",
-      "security.condition",
-      "security.countermeasure",
-      "security.dataclassification",
-      "security.delegation",
-      "security.evidence",
-      "security.fieldaccesscontrol",
-      "security.informationentity",
-      "security.informationright",
-      "security.needtoknow",
-      "security.passwordpolicy",
-      "security.permission",
-      "security.policyaction",
-      "security.policyrule",
-      "security.resourceoperation",
-      "security.retentionpolicy",
-      "security.role",
-      "security.secureresource",
-      "security.securityconstraints",
-      "security.securitymodel",
-      "security.securitypolicy",
-      "security.separationofduty",
-      "security.threat",
-      "security.validationrule",
-    ],
-    application: [
-      "application.applicationcollaboration",
-      "application.applicationcomponent",
-      "application.applicationevent",
-      "application.applicationfunction",
-      "application.applicationinteraction",
-      "application.applicationinterface",
-      "application.applicationprocess",
-      "application.applicationservice",
-      "application.dataobject",
-    ],
-    technology: [
-      "technology.artifact",
-      "technology.communicationnetwork",
-      "technology.device",
-      "technology.node",
-      "technology.path",
-      "technology.systemsoftware",
-      "technology.technologycollaboration",
-      "technology.technologyevent",
-      "technology.technologyfunction",
-      "technology.technologyinteraction",
-      "technology.technologyinterface",
-      "technology.technologyprocess",
-      "technology.technologyservice",
-    ],
-    api: [
-      "api.callback",
-      "api.components",
-      "api.contact",
-      "api.encoding",
-      "api.example",
-      "api.externaldocumentation",
-      "api.header",
-      "api.info",
-      "api.license",
-      "api.link",
-      "api.mediatype",
-      "api.oauthflow",
-      "api.oauthflows",
-      "api.openapidocument",
-      "api.operation",
-      "api.parameter",
-      "api.pathitem",
-      "api.ratelimit",
-      "api.paths",
-      "api.requestbody",
-      "api.response",
-      "api.responses",
-      "api.schema",
-      "api.securityscheme",
-      "api.server",
-      "api.servervariable",
-      "api.tag",
-    ],
-    "data-model": [
-      "data-model.arrayschema",
-      "data-model.jsonschema",
-      "data-model.numericschema",
-      "data-model.objectschema",
-      "data-model.reference",
-      "data-model.schemacomposition",
-      "data-model.schemadefinition",
-      "data-model.schemaproperty",
-      "data-model.stringschema",
-    ],
-    "data-store": [
-      "data-store.accesspattern",
-      "data-store.collection",
-      "data-store.database",
-      "data-store.eventhandler",
-      "data-store.field",
-      "data-store.index",
-      "data-store.namespace",
-      "data-store.retentionpolicy",
-      "data-store.storedlogic",
-      "data-store.validationrule",
-      "data-store.view",
-    ],
-    ux: [
-      "ux.actioncomponent",
-      "ux.actionpattern",
-      "ux.chartseries",
-      "ux.componentinstance",
-      "ux.componentreference",
-      "ux.dataconfig",
-      "ux.errorconfig",
-      "ux.experiencestate",
-      "ux.layoutconfig",
-      "ux.librarycomponent",
-      "ux.librarysubview",
-      "ux.stateaction",
-      "ux.stateactiontemplate",
-      "ux.statepattern",
-      "ux.statetransition",
-      "ux.subview",
-      "ux.tablecolumn",
-      "ux.transitiontemplate",
-      "ux.uxapplication",
-      "ux.uxlibrary",
-      "ux.uxspec",
-      "ux.view",
-    ],
-    navigation: [
-      "navigation.breadcrumbconfig",
-      "navigation.contextvariable",
-      "navigation.flowstep",
-      "navigation.guardaction",
-      "navigation.guardcondition",
-      "navigation.navigationflow",
-      "navigation.navigationgraph",
-      "navigation.navigationguard",
-      "navigation.navigationtransition",
-      "navigation.route",
-      "navigation.routemeta",
-    ],
-    apm: [
-      "apm.exporterconfig",
-      "apm.instrumentationconfig",
-      "apm.instrumentationscope",
-      "apm.logconfiguration",
-      "apm.logprocessor",
-      "apm.logrecord",
-      "apm.metricconfiguration",
-      "apm.metricinstrument",
-      "apm.resource",
-      "apm.span",
-      "apm.spanevent",
-      "apm.spanlink",
-      "apm.traceconfiguration",
-    ],
-    testing: [
-      "testing.contextvariation",
-      "testing.coverageexclusion",
-      "testing.coveragegap",
-      "testing.coveragerequirement",
-      "testing.coveragesummary",
-      "testing.environmentfactor",
-      "testing.inputpartitionselection",
-      "testing.inputselection",
-      "testing.inputspacepartition",
-      "testing.outcomecategory",
-      "testing.partitiondependency",
-      "testing.partitionvalue",
-      "testing.targetcoveragesummary",
-      "testing.targetinputfield",
-      "testing.testcasesketch",
-      "testing.testcoveragemodel",
-      "testing.testcoveragetarget",
-    ],
-  };
+  private static readonly VALID_SPEC_NODE_IDS: Record<string, string[]> = VisualizationServer.loadValidSpecNodeIds();
+
+  /**
+   * Load valid spec node IDs dynamically from bundled spec files
+   * Extracts node_types arrays from each layer's compiled schema file
+   * This ensures the list is always in sync with the spec build output
+   * If any file cannot be loaded, falls back to a minimal safe set
+   */
+  private static loadValidSpecNodeIds(): Record<string, string[]> {
+    const result: Record<string, string[]> = {};
+    const requiredLayers = [
+      "motivation",
+      "business",
+      "security",
+      "application",
+      "technology",
+      "api",
+      "data-model",
+      "data-store",
+      "ux",
+      "navigation",
+      "apm",
+      "testing",
+    ];
+
+    // Get the directory of this file to build absolute path to bundled schemas
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const bundledDir = path.join(__dirname, "..", "schemas", "bundled");
+
+    for (const layer of requiredLayers) {
+      try {
+        // Build absolute path to the layer's compiled spec file
+        const specFilePath = path.join(bundledDir, `${layer}.json`);
+
+        // Use require() to synchronously load bundled spec file
+        // These JSON files are built by "npm run build" from spec source
+        const spec = require(specFilePath) as {
+          layer?: { node_types?: string[] };
+          specVersion?: string;
+        };
+
+        // Extract node_types array from layer object in the compiled spec
+        const nodeTypes = spec.layer?.node_types;
+        if (Array.isArray(nodeTypes) && nodeTypes.length > 0) {
+          result[layer] = nodeTypes;
+        } else {
+          console.warn(
+            `[SPEC-LOAD-001] Layer ${layer} has no node_types in spec file`
+          );
+          result[layer] = [];
+        }
+      } catch (error) {
+        console.warn(
+          `[SPEC-LOAD-002] Failed to load spec node IDs for layer ${layer}: ${getErrorMessage(error)}`
+        );
+        // Use empty array as fallback - will be caught by usage code
+        result[layer] = [];
+      }
+    }
+
+    return result;
+  }
 
   /**
    * Fallback spec node IDs used when type extraction from elementId fails

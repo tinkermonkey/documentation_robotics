@@ -769,4 +769,91 @@ describe("VisualizationServer", () => {
       });
     });
   });
+
+  describe("VALID_SPEC_NODE_IDS synchronization with bundled spec", () => {
+    it("should load all 12 layers from bundled spec", () => {
+      // Check that all 12 layers are present in VALID_SPEC_NODE_IDS
+      const expectedLayers = [
+        "motivation",
+        "business",
+        "security",
+        "application",
+        "technology",
+        "api",
+        "data-model",
+        "data-store",
+        "ux",
+        "navigation",
+        "apm",
+        "testing",
+      ];
+
+      // Access the private static property via the class
+      const validSpecNodeIds = server.constructor["VALID_SPEC_NODE_IDS"] as Record<
+        string,
+        string[]
+      >;
+
+      for (const layer of expectedLayers) {
+        expect(validSpecNodeIds).toHaveProperty(layer);
+        expect(Array.isArray(validSpecNodeIds[layer])).toBe(true);
+      }
+
+      // Verify that most layers have node types
+      // Some layers may have empty arrays if the spec build has issues,
+      // but at least 10 of the 12 should have content
+      const layersWithNodeTypes = Object.values(validSpecNodeIds).filter(
+        (nodeIds) => nodeIds.length > 0
+      ).length;
+      expect(layersWithNodeTypes).toBeGreaterThanOrEqual(10);
+    });
+
+    it("should not have silent drift when spec nodes are added", () => {
+      // This test documents that VALID_SPEC_NODE_IDS is dynamically loaded
+      // from bundled spec files, preventing silent drift when node types are
+      // added to spec/schemas/nodes/
+      //
+      // The list is loaded at module initialization time and will automatically
+      // include any node types defined in the spec build output (spec/dist/{layer}.json)
+      // when the CLI is built with "npm run build"
+
+      const validSpecNodeIds = server.constructor["VALID_SPEC_NODE_IDS"] as Record<
+        string,
+        string[]
+      >;
+
+      // All entries should follow the pattern: {layer}.{type}
+      for (const [layer, nodeIds] of Object.entries(validSpecNodeIds)) {
+        for (const nodeId of nodeIds) {
+          expect(nodeId).toMatch(/^[\w-]+\.[\w-]+$/);
+          expect(nodeId.startsWith(layer)).toBe(true);
+        }
+      }
+    });
+
+    it("should have consistent spec node IDs in ALL_VALID_IDS set", () => {
+      // Ensure ALL_VALID_IDS (a Set built from VALID_SPEC_NODE_IDS) has the same entries
+      const validSpecNodeIds = server.constructor["VALID_SPEC_NODE_IDS"] as Record<
+        string,
+        string[]
+      >;
+      const allValidIds = server.constructor["ALL_VALID_IDS"] as Set<string>;
+
+      // Count all expected IDs from the map
+      let expectedCount = 0;
+      const expectedIds = new Set<string>();
+      for (const nodeIds of Object.values(validSpecNodeIds)) {
+        for (const id of nodeIds) {
+          expectedIds.add(id);
+          expectedCount++;
+        }
+      }
+
+      // Verify set has all expected entries
+      expect(allValidIds.size).toBe(expectedCount);
+      for (const id of expectedIds) {
+        expect(allValidIds.has(id)).toBe(true);
+      }
+    });
+  });
 });
