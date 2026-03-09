@@ -281,18 +281,16 @@ describe("VisualizationServer", () => {
 
       const serialized = await server["serializeModel"]();
 
-      // Should have created a link (either by inferring layer or skipping gracefully)
-      // If inferred, it should have the correct layer_id
+      // Find the link that should have been inferred from the source element
       const link = serialized.links.find(
         (l: any) =>
           l.source === sourceId &&
           l.target === "motivation-goal-inferred-goal"
       );
 
-      // Link may or may not exist depending on whether inference succeeded
-      // But the function should NOT throw, which is the critical requirement
-      expect(serialized).toBeDefined();
-      expect(Array.isArray(serialized.links)).toBe(true);
+      // Verify the link was created with the inferred layer from the source element
+      expect(link).toBeDefined();
+      expect(link.layer_id).toBe("motivation");
     });
   });
 
