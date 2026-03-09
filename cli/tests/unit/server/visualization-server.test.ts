@@ -392,26 +392,26 @@ describe("VisualizationServer", () => {
         expect(result).toBe("motivation.goal");
       });
 
-      it("should pass through other valid spec_node_ids like business.service", () => {
+      it("should pass through other valid spec_node_ids like business.businessservice", () => {
         const result = server["resolveViewerSpecNodeId"](
           "business-service-test",
           "business",
           "service",
-          "business.service"
+          "business.businessservice"
         );
 
-        expect(result).toBe("business.service");
+        expect(result).toBe("business.businessservice");
       });
 
-      it("should pass through application.component", () => {
+      it("should pass through application.applicationcomponent", () => {
         const result = server["resolveViewerSpecNodeId"](
           "application-component-test",
           "application",
           "component",
-          "application.component"
+          "application.applicationcomponent"
         );
 
-        expect(result).toBe("application.component");
+        expect(result).toBe("application.applicationcomponent");
       });
     });
 
@@ -424,8 +424,8 @@ describe("VisualizationServer", () => {
           "security.threat"
         );
 
-        // security layer doesn't match valid IDs, should fallback to LAYER_FALLBACK['security']
-        expect(result).toBe("business.process");
+        // security layer has threat in VALID_SPEC_NODE_IDS, should match
+        expect(result).toBe("security.threat");
       });
 
       it("should extract type and construct valid candidate from dot-format", () => {
@@ -442,14 +442,14 @@ describe("VisualizationServer", () => {
 
       it("should extract type from dot-format with numeric segments", () => {
         const result = server["resolveViewerSpecNodeId"](
-          "application.component.api-gateway",
+          "application.applicationcomponent.api-gateway",
           "application",
           "",
           ""
         );
 
-        // Extracted type is 'component', candidate is 'application.component' which is valid
-        expect(result).toBe("application.component");
+        // Extracted type is 'applicationcomponent', candidate is 'application.applicationcomponent' which is valid
+        expect(result).toBe("application.applicationcomponent");
       });
     });
 
@@ -474,8 +474,8 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        // Layer fallback for 'data-model' is 'data.model'
-        expect(result).toBe("data.model");
+        // Layer fallback for 'data-model' is 'data-store.database'
+        expect(result).toBe("data-store.database");
       });
 
       it("should extract type from hyphen-format for multi-word layer (data-store)", () => {
@@ -486,8 +486,8 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        // Layer fallback for 'data-store' is 'data.model'
-        expect(result).toBe("data.model");
+        // Layer fallback for 'data-store' is 'data-store.database'
+        expect(result).toBe("data-store.database");
       });
 
       it("should handle technology layer hyphen-format extraction", () => {
@@ -499,7 +499,7 @@ describe("VisualizationServer", () => {
         );
 
         // technology layer doesn't match valid IDs, should fallback to LAYER_FALLBACK['technology']
-        expect(result).toBe("application.service");
+        expect(result).toBe("application.applicationservice");
       });
 
       it("should correctly identify layer prefix with similar names (api vs apm)", () => {
@@ -511,8 +511,8 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        // Layer fallback for 'api' is 'business.process'
-        expect(resultApi).toBe("business.process");
+        // Layer fallback for 'api' is 'business.businessprocess'
+        expect(resultApi).toBe("business.businessprocess");
       });
     });
 
@@ -525,7 +525,7 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        expect(result).toBe("business.process");
+        expect(result).toBe("business.businessprocess");
       });
 
       it("should use LAYER_FALLBACK for ux layer", () => {
@@ -536,7 +536,7 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        expect(result).toBe("application.component");
+        expect(result).toBe("application.applicationcomponent");
       });
 
       it("should use LAYER_FALLBACK for navigation layer", () => {
@@ -547,7 +547,8 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        expect(result).toBe("application.component");
+        // navigation has route in VALID_SPEC_NODE_IDS, so should construct navigation.route
+        expect(result).toBe("navigation.route");
       });
 
       it("should use LAYER_FALLBACK for apm layer", () => {
@@ -558,7 +559,7 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        expect(result).toBe("application.service");
+        expect(result).toBe("application.applicationservice");
       });
 
       it("should use LAYER_FALLBACK for testing layer", () => {
@@ -569,10 +570,10 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        expect(result).toBe("business.process");
+        expect(result).toBe("business.businessprocess");
       });
 
-      it("should default to data.model for unknown layer", () => {
+      it("should default to data-store.database for unknown layer", () => {
         const result = server["resolveViewerSpecNodeId"](
           "unknown-layer-element",
           "unknown-layer",
@@ -580,7 +581,7 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        expect(result).toBe("data.model");
+        expect(result).toBe("data-store.database");
       });
     });
 
@@ -605,8 +606,8 @@ describe("VisualizationServer", () => {
           ""
         );
 
-        // Falls back to layer fallback
-        expect(result).toBe("data.model");
+        // Falls back to default fallback (motivation is not in LAYER_FALLBACK, so uses default)
+        expect(result).toBe("data-store.database");
       });
 
       it("should prioritize valid specNodeId over extraction", () => {
@@ -648,14 +649,14 @@ describe("VisualizationServer", () => {
       it("should construct valid candidate even when elementId and type don't match", () => {
         // Type is provided but different from extracted type; should try with extracted type
         const result = server["resolveViewerSpecNodeId"](
-          "business.service.payment",
+          "business.businessservice.payment",
           "business",
           "process",
           ""
         );
 
-        // Should extract 'service' from elementId and construct 'business.service' which is valid
-        expect(result).toBe("business.service");
+        // Should extract 'businessservice' from elementId and construct 'business.businessservice' which is valid
+        expect(result).toBe("business.businessservice");
       });
     });
   });

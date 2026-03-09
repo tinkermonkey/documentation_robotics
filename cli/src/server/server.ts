@@ -167,6 +167,239 @@ export class VisualizationServer {
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
   private chatInitializationError?: Error; // Store initialization error for status endpoint
 
+  /**
+   * Valid spec node IDs per layer
+   * Sourced from compiled spec (spec/dist/{layer}.json)
+   * Used to validate and resolve viewer spec node IDs
+   */
+  private static readonly VALID_SPEC_NODE_IDS: Record<string, string[]> = {
+    motivation: [
+      "motivation.assessment",
+      "motivation.constraint",
+      "motivation.driver",
+      "motivation.goal",
+      "motivation.meaning",
+      "motivation.outcome",
+      "motivation.principle",
+      "motivation.requirement",
+      "motivation.stakeholder",
+      "motivation.value",
+    ],
+    business: [
+      "business.businessactor",
+      "business.businesscollaboration",
+      "business.businessevent",
+      "business.businessfunction",
+      "business.businessinteraction",
+      "business.businessinterface",
+      "business.businessobject",
+      "business.businessprocess",
+      "business.businessrole",
+      "business.businessservice",
+      "business.contract",
+      "business.product",
+      "business.representation",
+    ],
+    security: [
+      "security.accesscondition",
+      "security.accountabilityrequirement",
+      "security.actor",
+      "security.auditconfig",
+      "security.authenticationconfig",
+      "security.bindingofduty",
+      "security.condition",
+      "security.countermeasure",
+      "security.dataclassification",
+      "security.delegation",
+      "security.evidence",
+      "security.fieldaccesscontrol",
+      "security.informationentity",
+      "security.informationright",
+      "security.needtoknow",
+      "security.passwordpolicy",
+      "security.permission",
+      "security.policyaction",
+      "security.policyrule",
+      "security.resourceoperation",
+      "security.retentionpolicy",
+      "security.role",
+      "security.secureresource",
+      "security.securityconstraints",
+      "security.securitymodel",
+      "security.securitypolicy",
+      "security.separationofduty",
+      "security.threat",
+      "security.validationrule",
+    ],
+    application: [
+      "application.applicationcollaboration",
+      "application.applicationcomponent",
+      "application.applicationevent",
+      "application.applicationfunction",
+      "application.applicationinteraction",
+      "application.applicationinterface",
+      "application.applicationprocess",
+      "application.applicationservice",
+      "application.dataobject",
+    ],
+    technology: [
+      "technology.artifact",
+      "technology.communicationnetwork",
+      "technology.device",
+      "technology.node",
+      "technology.path",
+      "technology.systemsoftware",
+      "technology.technologycollaboration",
+      "technology.technologyevent",
+      "technology.technologyfunction",
+      "technology.technologyinteraction",
+      "technology.technologyinterface",
+      "technology.technologyprocess",
+      "technology.technologyservice",
+    ],
+    api: [
+      "api.callback",
+      "api.components",
+      "api.contact",
+      "api.encoding",
+      "api.example",
+      "api.externaldocumentation",
+      "api.header",
+      "api.info",
+      "api.license",
+      "api.link",
+      "api.mediatype",
+      "api.oauthflow",
+      "api.oauthflows",
+      "api.openapidocument",
+      "api.operation",
+      "api.parameter",
+      "api.pathitem",
+      "api.ratelimit",
+      "api.paths",
+      "api.requestbody",
+      "api.response",
+      "api.responses",
+      "api.schema",
+      "api.securityscheme",
+      "api.server",
+      "api.servervariable",
+      "api.tag",
+    ],
+    "data-model": [],
+    "data-store": [
+      "data-store.accesspattern",
+      "data-store.collection",
+      "data-store.database",
+      "data-store.eventhandler",
+      "data-store.field",
+      "data-store.index",
+      "data-store.namespace",
+      "data-store.retentionpolicy",
+      "data-store.storedlogic",
+      "data-store.validationrule",
+      "data-store.view",
+    ],
+    ux: [
+      "ux.actioncomponent",
+      "ux.actionpattern",
+      "ux.chartseries",
+      "ux.componentinstance",
+      "ux.componentreference",
+      "ux.dataconfig",
+      "ux.errorconfig",
+      "ux.experiencestate",
+      "ux.layoutconfig",
+      "ux.librarycomponent",
+      "ux.librarysubview",
+      "ux.stateaction",
+      "ux.stateactiontemplate",
+      "ux.statepattern",
+      "ux.statetransition",
+      "ux.subview",
+      "ux.tablecolumn",
+      "ux.transitiontemplate",
+      "ux.uxapplication",
+      "ux.uxlibrary",
+      "ux.uxspec",
+      "ux.view",
+    ],
+    navigation: [
+      "navigation.breadcrumbconfig",
+      "navigation.contextvariable",
+      "navigation.flowstep",
+      "navigation.guardaction",
+      "navigation.guardcondition",
+      "navigation.navigationflow",
+      "navigation.navigationgraph",
+      "navigation.navigationguard",
+      "navigation.navigationtransition",
+      "navigation.route",
+      "navigation.routemeta",
+    ],
+    apm: [
+      "apm.exporterconfig",
+      "apm.instrumentationconfig",
+      "apm.instrumentationscope",
+      "apm.logconfiguration",
+      "apm.logprocessor",
+      "apm.logrecord",
+      "apm.metricconfiguration",
+      "apm.metricinstrument",
+      "apm.resource",
+      "apm.span",
+      "apm.spanevent",
+      "apm.spanlink",
+      "apm.traceconfiguration",
+    ],
+    testing: [
+      "testing.contextvariation",
+      "testing.coverageexclusion",
+      "testing.coveragegap",
+      "testing.coveragerequirement",
+      "testing.coveragesummary",
+      "testing.environmentfactor",
+      "testing.inputpartitionselection",
+      "testing.inputselection",
+      "testing.inputspacepartition",
+      "testing.outcomecategory",
+      "testing.partitiondependency",
+      "testing.partitionvalue",
+      "testing.targetcoveragesummary",
+      "testing.targetinputfield",
+      "testing.testcasesketch",
+      "testing.testcoveragemodel",
+      "testing.testcoveragetarget",
+    ],
+  };
+
+  /**
+   * Fallback spec node IDs for layers with limited viewer support
+   * Used when no valid spec node ID can be extracted or found
+   */
+  private static readonly LAYER_FALLBACK: Record<string, string> = {
+    security: "business.businessprocess",
+    technology: "application.applicationservice",
+    api: "business.businessprocess",
+    "data-model": "data-store.database",
+    "data-store": "data-store.database",
+    ux: "application.applicationcomponent",
+    navigation: "application.applicationcomponent",
+    apm: "application.applicationservice",
+    testing: "business.businessprocess",
+  };
+
+  /**
+   * All valid spec node IDs across all layers (cached Set for O(1) lookup)
+   */
+  private static readonly ALL_VALID_IDS: Set<string> = (() => {
+    const ids = new Set<string>();
+    Object.values(VisualizationServer.VALID_SPEC_NODE_IDS).forEach((layerIds) => {
+      layerIds.forEach((id) => ids.add(id));
+    });
+    return ids;
+  })();
+
   constructor(model: Model, options?: VisualizationServerOptions) {
     this.app = new OpenAPIHono();
     this.model = model;
@@ -1622,10 +1855,12 @@ export class VisualizationServer {
 
   /**
    * Resolve viewer spec node ID with fallback logic
-   * Handles three resolution strategies:
+   * Handles multiple resolution strategies:
    * 1. Valid pass-through: Return specNodeId if it's already a valid spec node ID
-   * 2. Dot-format extraction: Extract type from elementId in "layer.type.name" format
-   * 3. Hyphen-format extraction: Extract type from elementId in "layer-type-name" format
+   * 2. Dot-format extraction: Extract type from elementId in "layer.type.name" format and construct candidate
+   * 3. Hyphen-format extraction: Extract type from elementId in "layer-type-name" format and construct candidate
+   * 4. Type-parameter fallback: If extracted type differs from type parameter, retry with type parameter
+   * 5. Layer-specific fallback: Use LAYER_FALLBACK map for layers with limited viewer support
    *
    * @param elementId - The element ID (can be in dot-format or hyphen-format)
    * @param layer - The layer name (canonical form)
@@ -1639,43 +1874,8 @@ export class VisualizationServer {
     type: string,
     specNodeId: string
   ): string {
-    // Map of valid spec node IDs by layer
-    const VALID_SPEC_NODE_IDS: Record<string, string[]> = {
-      motivation: ["motivation.goal", "motivation.requirement"],
-      business: ["business.process", "business.service", "business.actor"],
-      application: ["application.component", "application.service"],
-      technology: [], // technology layer doesn't have valid IDs
-      api: [], // api layer doesn't have valid IDs
-      "data-model": [], // data-model layer doesn't have valid IDs
-      "data-store": [], // data-store layer doesn't have valid IDs
-      security: [], // security layer doesn't have valid IDs
-      ux: [], // ux layer doesn't have valid IDs
-      navigation: [], // navigation layer doesn't have valid IDs
-      apm: [], // apm layer doesn't have valid IDs
-      testing: [], // testing layer doesn't have valid IDs
-    };
-
-    // Fallback mappings for layers without valid spec node IDs
-    const LAYER_FALLBACK: Record<string, string> = {
-      security: "business.process",
-      technology: "application.service",
-      api: "business.process",
-      "data-model": "data.model",
-      "data-store": "data.model",
-      ux: "application.component",
-      navigation: "application.component",
-      apm: "application.service",
-      testing: "business.process",
-    };
-
-    // Build a set of all valid spec node IDs (across all layers)
-    const allValidIds = new Set<string>();
-    Object.values(VALID_SPEC_NODE_IDS).forEach((ids) => {
-      ids.forEach((id) => allValidIds.add(id));
-    });
-
     // Strategy 1: Valid pass-through - return if specNodeId is valid (anywhere in the model)
-    if (specNodeId && allValidIds.has(specNodeId)) {
+    if (specNodeId && VisualizationServer.ALL_VALID_IDS.has(specNodeId)) {
       return specNodeId;
     }
 
@@ -1720,29 +1920,29 @@ export class VisualizationServer {
     // If we extracted a type, try to construct a valid candidate
     if (extractedType) {
       const candidate = `${layer}.${extractedType}`;
-      const layerIds = VALID_SPEC_NODE_IDS[layer] || [];
+      const layerIds = VisualizationServer.VALID_SPEC_NODE_IDS[layer] || [];
       if (layerIds.includes(candidate)) {
         return candidate;
       }
     }
 
-    // If type param was provided and we extracted a different type, try with provided type
+    // Strategy 4: If type param was provided and we extracted a different type, try with provided type
     // Only do this if we actually extracted something from elementId
     if (extractedType && type && extractedType !== type) {
       const candidate = `${layer}.${type}`;
-      const layerIds = VALID_SPEC_NODE_IDS[layer] || [];
+      const layerIds = VisualizationServer.VALID_SPEC_NODE_IDS[layer] || [];
       if (layerIds.includes(candidate)) {
         return candidate;
       }
     }
 
-    // Strategy 4: Fall back to layer-specific fallback
-    if (layer in LAYER_FALLBACK) {
-      return LAYER_FALLBACK[layer];
+    // Strategy 5: Fall back to layer-specific fallback
+    if (layer in VisualizationServer.LAYER_FALLBACK) {
+      return VisualizationServer.LAYER_FALLBACK[layer];
     }
 
     // Default fallback for unknown layers
-    return "data.model";
+    return "data-store.database";
   }
 
   /**
