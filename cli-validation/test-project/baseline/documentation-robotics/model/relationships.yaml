@@ -2,49 +2,27 @@
 # Format: source_id -> predicate -> target_id
 
 # Datastore layer: Table composition relationships
-- source: todos-table
+- source: datastore-table-todos
   predicate: composes
-  target: todos-id-column
+  target: datastore-column-todos-id
   category: structural
-  layer: datastore
+  layer: data-store
 
-- source: todos-table
+- source: datastore-table-todos
   predicate: composes
-  target: todos-title-column
+  target: datastore-column-todos-title
   category: structural
-  layer: datastore
+  layer: data-store
 
-- source: todos-table
+- source: datastore-table-todos
   predicate: composes
-  target: todos-done-column
+  target: datastore-column-todos-done
   category: structural
-  layer: datastore
-
-# Business layer: Process flows
-- source: create-task-process
-  predicate: serves
-  target: end-user
-  category: behavioral
-  layer: business
-
-- source: complete-task-process
-  predicate: serves
-  target: end-user
-  category: behavioral
-  layer: business
-
-# Cross-layer relationships
-# Application realizes Business
-- source: todo-api-service
-  predicate: realizes
-  target: task-management
-  category: structural
-  layer: application
-  targetLayer: business
+  layer: data-store
 
 # Datastore primary key definition
-- source: todos-table
+- source: datastore-table-todos
   predicate: has-primary-key
-  target: todos-id-column
+  target: datastore-column-todos-id
   category: structural
-  layer: datastore
+  layer: data-store

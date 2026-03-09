@@ -832,5 +832,89 @@ describe("CLI Commands Integration Tests", () => {
       expect(result.stdout).toContain("motivation.goal.goal-2");
       expect(result.stdout).toContain("motivation.goal.goal-3");
     });
+
+    it("should throw error when relationships.yaml is corrupted", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Add a valid relationship first
+      await runDr(
+        "relationship",
+        "add",
+        "motivation.goal.goal-1",
+        "motivation.goal.goal-2",
+        "--predicate",
+        "aggregates"
+      );
+
+      // Corrupt the relationships.yaml file with invalid YAML
+      const relationshipsPath = path.join(
+        tempDir.path,
+        "documentation-robotics/model/relationships.yaml"
+      );
+      await fs.writeFile(relationshipsPath, "invalid: yaml: content: [");
+
+      // Attempt to load the model and relationships
+      const model = await Model.load(tempDir.path);
+      const loadError = await (async () => {
+        try {
+          await model.loadRelationships();
+          return null;
+        } catch (err) {
+          return err;
+        }
+      })();
+
+      expect(loadError).toBeTruthy();
+      expect(loadError instanceof Error).toBe(true);
+      expect((loadError as Error).message).toContain("Failed to load relationships.yaml");
+    });
+
+    it("should throw error when relationships.yaml is not readable due to permissions", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Add a valid relationship first
+      await runDr(
+        "relationship",
+        "add",
+        "motivation.goal.goal-1",
+        "motivation.goal.goal-2",
+        "--predicate",
+        "aggregates"
+      );
+
+      const relationshipsPath = path.join(
+        tempDir.path,
+        "documentation-robotics/model/relationships.yaml"
+      );
+
+      // Remove read permissions
+      try {
+        await fs.chmod(relationshipsPath, 0o000);
+
+        // Attempt to load the model and relationships
+        const model = await Model.load(tempDir.path);
+        const loadError = await (async () => {
+          try {
+            await model.loadRelationships();
+            return null;
+          } catch (err) {
+            return err;
+          }
+        })();
+
+        expect(loadError).toBeTruthy();
+        expect(loadError instanceof Error).toBe(true);
+        expect((loadError as Error).message).toContain("Failed to load relationships.yaml");
+      } finally {
+        // Restore permissions for cleanup
+        try {
+          await fs.chmod(relationshipsPath, 0o644);
+        } catch {
+          // Ignore errors during cleanup
+        }
+      }
+    });
   });
 });
