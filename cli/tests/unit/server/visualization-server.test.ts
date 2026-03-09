@@ -239,6 +239,47 @@ describe("VisualizationServer", () => {
       expect(refLink.id).toMatch(/^ref:/);
       expect(refLink.type).toBe("uses");
     });
+
+  });
+
+  describe("serializeModel - data integrity", () => {
+    let isolatedTestDir: string;
+    let isolatedModel: Model;
+    let isolatedServer: VisualizationServer;
+
+    beforeAll(async () => {
+      // Create isolated test directory to avoid polluting other tests
+      isolatedTestDir = join(tmpdir(), `dr-integrity-test-${randomUUID()}`);
+      mkdirSync(isolatedTestDir, { recursive: true });
+      isolatedModel = await createTestModel(isolatedTestDir);
+      isolatedServer = new VisualizationServer(isolatedModel, { authEnabled: false });
+    });
+
+    afterAll(() => {
+      isolatedServer.stop();
+      rmSync(isolatedTestDir, { recursive: true, force: true });
+    });
+
+    it("should throw error for malformed relationships missing required layer field", async () => {
+      // Create a malformed relationship without the required 'layer' field
+      // This simulates data corruption or a bug in relationship loading
+      const malformedRel = {
+        source: "motivation.goal.test",
+        target: "motivation.goal.other",
+        predicate: "depends-on",
+        // Intentionally missing the required 'layer' field
+      };
+
+      // Manually inject malformed relationship into the model's relationships
+      // to simulate what would happen if relationships.yaml was corrupted
+      isolatedServer["model"].relationships.add(malformedRel as any);
+
+      // Attempting to serialize the model should throw an error, not silently mask the data
+      // serializeModel is async, so we need to use rejects.toThrow()
+      await expect(isolatedServer["serializeModel"]()).rejects.toThrow(
+        /Relationship data integrity error.*Missing required 'layer' field/
+      );
+    });
   });
 
   describe("findElement", () => {
