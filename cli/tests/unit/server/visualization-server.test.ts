@@ -327,40 +327,32 @@ describe("VisualizationServer", () => {
       // Test the fallback path at line 1614 where elementLayerMap.get(ref.target) returns undefined
       // This exercises the 'unknown' fallback for target_layer_id when target element is not found
 
-      // Create a cross-layer reference to a non-existent element
+      // Get the application layer and test component
+      const appLayer = server["model"].layers.get("application");
+      expect(appLayer).toBeDefined();
+      const testComponent = appLayer!.listElements().find((e) => e.id === "application-component-test-component");
+      expect(testComponent).toBeDefined();
+
+      // Add a reference to a non-existent element
+      testComponent!.references.push({
+        source: "application-component-test-component",
+        target: "technology-nonexistent-service",
+        type: "uses",
+      });
+
       const serialized = await server["serializeModel"]();
 
-      // Find or verify there's at least one reference link where target might not be in elementLayerMap
-      // For this test, we check that serialization completes and target_layer_id is set to 'unknown'
-      // when the referenced element cannot be found
+      // Find the reference link to the non-existent element
+      const refLink = serialized.links.find(
+        (l: any) =>
+          l.id.startsWith("ref:") &&
+          l.source === "application-component-test-component" &&
+          l.target === "technology-nonexistent-service"
+      );
 
-      // We'll create a reference to a non-existent element by directly manipulating the element
-      const appLayer = server["model"].layers.get("application");
-      if (appLayer) {
-        const testComponent = appLayer.listElements().find((e) => e.id === "application-component-test-component");
-        if (testComponent) {
-          // Add a reference to a non-existent element
-          testComponent.references.push({
-            source: "application-component-test-component",
-            target: "technology-nonexistent-service",
-            type: "uses",
-          });
-
-          const reserialized = await server["serializeModel"]();
-
-          // Find the reference link to the non-existent element
-          const refLink = reserialized.links.find(
-            (l: any) =>
-              l.id.startsWith("ref:") &&
-              l.source === "application-component-test-component" &&
-              l.target === "technology-nonexistent-service"
-          );
-
-          expect(refLink).toBeDefined();
-          // Should have 'unknown' as fallback for target_layer_id
-          expect(refLink.target_layer_id).toBe("unknown");
-        }
-      }
+      expect(refLink).toBeDefined();
+      // Should have 'unknown' as fallback for target_layer_id
+      expect(refLink.target_layer_id).toBe("unknown");
     });
   });
 
