@@ -292,6 +292,76 @@ describe("VisualizationServer", () => {
       expect(link).toBeDefined();
       expect(link.layer_id).toBe("motivation");
     });
+
+    it("should gracefully skip relationship with unresolvable source and missing layer", async () => {
+      // Test the skip-path where source element cannot be resolved and layer is missing
+      // This exercises the diagnostic logging path at line 1641-1644 in server.ts
+      server["model"].relationships.add({
+        source: "unknown-unresolvable-source-element",
+        target: "motivation-goal-test-goal",
+        predicate: "depends-on",
+        // Intentionally omit layer field - cannot infer from unresolvable source
+      } as any);
+
+      // Should NOT throw
+      let error: Error | null = null;
+      let serialized: any = null;
+      try {
+        serialized = await server["serializeModel"]();
+      } catch (err) {
+        error = err as Error;
+      }
+
+      expect(error).toBeNull();
+      expect(serialized).toBeDefined();
+      expect(serialized.links).toBeDefined();
+
+      // The relationship should be skipped (not added to links) since source cannot be resolved
+      const skippedLink = serialized.links.find(
+        (l: any) => l.source === "unknown-unresolvable-source-element"
+      );
+      expect(skippedLink).toBeUndefined();
+    });
+
+    it("should handle cross-layer reference with unknown target_layer_id fallback", async () => {
+      // Test the fallback path at line 1614 where elementLayerMap.get(ref.target) returns undefined
+      // This exercises the 'unknown' fallback for target_layer_id when target element is not found
+
+      // Create a cross-layer reference to a non-existent element
+      const serialized = await server["serializeModel"]();
+
+      // Find or verify there's at least one reference link where target might not be in elementLayerMap
+      // For this test, we check that serialization completes and target_layer_id is set to 'unknown'
+      // when the referenced element cannot be found
+
+      // We'll create a reference to a non-existent element by directly manipulating the element
+      const appLayer = server["model"].layers.get("application");
+      if (appLayer) {
+        const testComponent = appLayer.listElements().find((e) => e.id === "application-component-test-component");
+        if (testComponent) {
+          // Add a reference to a non-existent element
+          testComponent.references.push({
+            source: "application-component-test-component",
+            target: "technology-nonexistent-service",
+            type: "uses",
+          });
+
+          const reserialized = await server["serializeModel"]();
+
+          // Find the reference link to the non-existent element
+          const refLink = reserialized.links.find(
+            (l: any) =>
+              l.id.startsWith("ref:") &&
+              l.source === "application-component-test-component" &&
+              l.target === "technology-nonexistent-service"
+          );
+
+          expect(refLink).toBeDefined();
+          // Should have 'unknown' as fallback for target_layer_id
+          expect(refLink.target_layer_id).toBe("unknown");
+        }
+      }
+    });
   });
 
   describe("findElement", () => {
@@ -554,6 +624,19 @@ describe("VisualizationServer", () => {
 
         // Layer fallback for 'data-store' is 'data-store.database'
         expect(result).toBe("data-store.database");
+      });
+
+      it("should extract type from hyphen-format for multi-word layer with valid type (data-store)", () => {
+        const result = server["resolveViewerSpecNodeId"](
+          "data-store-collection-orders",
+          "data-store",
+          "",
+          ""
+        );
+
+        // Extracted type is 'collection' from "data-store-collection-orders"
+        // Constructs candidate 'data-store.collection' which IS valid in VALID_SPEC_NODE_IDS
+        expect(result).toBe("data-store.collection");
       });
 
       it("should handle technology layer hyphen-format extraction", () => {
