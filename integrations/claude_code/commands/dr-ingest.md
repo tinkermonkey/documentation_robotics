@@ -242,10 +242,37 @@ Task(
    - Database tables (if applicable)
    - Business capabilities (infer from code)
 
-3. Create DR model elements:
+3. Create DR model elements with **mandatory source provenance**:
    - Use `dr add` commands for each element
+   - **Always** pass `--source-file <relative-path>` pointing to the file the element was extracted from (relative to the repository root, e.g. `src/services/OrderService.ts`)
+   - Pass `--source-symbol <name>` when the element maps to a specific class, function, or exported symbol
+   - Pass `--source-provenance extracted` for all elements identified directly from code; use `inferred` for elements reasoned from patterns rather than a specific file
    - Establish cross-layer references (realizes, exposes, stores, etc.)
    - Set appropriate properties (criticality, descriptions, etc.)
+
+   Source provenance is not optional metadata — it is the traceability link that makes the model useful:
+   - `/dr-sync` uses `source_reference` to detect drift when code changes
+   - `dr validate` can verify referenced files still exist
+   - Without provenance, the model is a snapshot with no connection back to the code that produced it
+
+   Example `dr add` invocations with provenance:
+   ```bash
+   dr add application service "Order Service" \
+     --description "Handles order lifecycle" \
+     --source-file "src/services/OrderService.ts" \
+     --source-symbol "OrderService" \
+     --source-provenance extracted
+
+   dr add api operation "Create Order" \
+     --description "POST /api/v1/orders" \
+     --source-file "src/routes/orders.ts" \
+     --source-symbol "createOrder" \
+     --source-provenance extracted
+
+   dr add business capability "Order Management" \
+     --description "Inferred from OrderService and order routes" \
+     --source-provenance inferred
+   ```
 
 4. Validate the extracted model:
    - Run `dr validate` after extraction
@@ -253,8 +280,9 @@ Task(
 
 5. Provide extraction report:
    - Elements created per layer
+   - Source files referenced (list unique files)
    - Confidence scores (high/medium/low)
-   - Warnings about uncertain mappings
+   - Warnings about uncertain mappings or missing provenance
    - Recommendations for manual review
 
 **Analysis Guidelines:**
@@ -318,6 +346,7 @@ Recommendations:
 **Important:**
 - Create realistic, meaningful descriptions
 - Use proper kebab-case for IDs
+- **Every `dr add` call must include `--source-file` and `--source-provenance`** — elements without provenance are untraceable and will fail the `source_files_exist` assertion in the test suite
 - Establish cross-layer references where clear
 - Flag uncertain mappings for review
 - Run validation and fix obvious errors
