@@ -3,7 +3,7 @@
  * These tests verify complete command workflows using temporary directories
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, vi } from "bun:test";
 import { Model } from "../../src/core/model.js";
 import { fileExists } from "../../src/utils/file-io.js";
 import { runDr as runDrHelper } from "../helpers/cli-runner.js";
@@ -831,6 +831,180 @@ describe("CLI Commands Integration Tests", () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("motivation.goal.goal-2");
       expect(result.stdout).toContain("motivation.goal.goal-3");
+    });
+
+    it("should throw error when relationships.yaml is corrupted", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Add a valid relationship first
+      await runDr(
+        "relationship",
+        "add",
+        "motivation.goal.goal-1",
+        "motivation.goal.goal-2",
+        "--predicate",
+        "aggregates"
+      );
+
+      // Create a temporary model to work with
+      let model = await Model.load(tempDir.path);
+
+      // Corrupt the relationships.yaml file with invalid YAML
+      const relationshipsPath = path.join(
+        tempDir.path,
+        "documentation-robotics/model/relationships.yaml"
+      );
+      await fs.writeFile(relationshipsPath, "invalid: yaml: content: [");
+
+      // Attempt to reload relationships from the corrupted file
+      let loadError: any = null;
+      try {
+        await model.loadRelationships();
+      } catch (err) {
+        loadError = err;
+      }
+
+      expect(loadError).toBeTruthy();
+      expect(loadError instanceof Error).toBe(true);
+      expect((loadError as Error).message).toContain("Failed to load relationships.yaml");
+    });
+
+    it("should throw error when relationships.yaml is not readable due to permissions", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Add a valid relationship first
+      await runDr(
+        "relationship",
+        "add",
+        "motivation.goal.goal-1",
+        "motivation.goal.goal-2",
+        "--predicate",
+        "aggregates"
+      );
+
+      // Create a model to work with
+      let model = await Model.load(tempDir.path);
+
+      const relationshipsPath = path.join(
+        tempDir.path,
+        "documentation-robotics/model/relationships.yaml"
+      );
+
+      // Remove read permissions
+      try {
+        await fs.chmod(relationshipsPath, 0o000);
+
+        // Attempt to reload relationships from the unreadable file
+        let loadError: any = null;
+        try {
+          await model.loadRelationships();
+        } catch (err) {
+          loadError = err;
+        }
+
+        expect(loadError).toBeTruthy();
+        expect(loadError instanceof Error).toBe(true);
+        expect((loadError as Error).message).toContain("Failed to load relationships.yaml");
+      } finally {
+        // Restore permissions for cleanup
+        try {
+          await fs.chmod(relationshipsPath, 0o644);
+        } catch {
+          // Ignore errors during cleanup
+        }
+      }
+    });
+
+    it("should warn and skip loading when relationships.yaml contains non-array content (null)", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Add a valid relationship first
+      await runDr(
+        "relationship",
+        "add",
+        "motivation.goal.goal-1",
+        "motivation.goal.goal-2",
+        "--predicate",
+        "aggregates"
+      );
+
+      // Create a model to work with
+      let model = await Model.load(tempDir.path);
+
+      const relationshipsPath = path.join(
+        tempDir.path,
+        "documentation-robotics/model/relationships.yaml"
+      );
+
+      // Write null content (empty YAML file produces null)
+      await fs.writeFile(relationshipsPath, "");
+
+      // Capture console output
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      // Load relationships - should not throw, but should warn
+      await model.loadRelationships();
+
+      // Verify warning was logged
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("relationships.yaml contains non-array content")
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Expected an array of relationships")
+      );
+
+      // Relationships should be preserved (not updated by corrupted file)
+      expect(model.relationships.getAll().length).toBeGreaterThan(0);
+
+      warnSpy.mockRestore();
+    });
+
+    it("should warn and skip loading when relationships.yaml contains non-array content (object)", async () => {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Add a valid relationship first
+      await runDr(
+        "relationship",
+        "add",
+        "motivation.goal.goal-1",
+        "motivation.goal.goal-2",
+        "--predicate",
+        "aggregates"
+      );
+
+      // Create a model to work with
+      let model = await Model.load(tempDir.path);
+
+      const relationshipsPath = path.join(
+        tempDir.path,
+        "documentation-robotics/model/relationships.yaml"
+      );
+
+      // Write YAML object instead of array
+      await fs.writeFile(relationshipsPath, "key: value\nanother: data");
+
+      // Capture console output
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      // Load relationships - should not throw, but should warn
+      await model.loadRelationships();
+
+      // Verify warning was logged
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("relationships.yaml contains non-array content")
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Expected an array of relationships")
+      );
+
+      // Relationships should be preserved (not updated by corrupted file)
+      expect(model.relationships.getAll().length).toBeGreaterThan(0);
+
+      warnSpy.mockRestore();
     });
   });
 });

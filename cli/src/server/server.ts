@@ -8,6 +8,8 @@ import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
 import { randomBytes } from "crypto";
 import { createRequire } from "module";
+import { fileURLToPath } from "url";
+import path from "path";
 
 // hono/bun imports are conditional - they're only available in Bun runtime
 // For Node.js/tsx environments (e.g., generating OpenAPI spec), these are lazily imported
@@ -166,6 +168,103 @@ export class VisualizationServer {
   private chatConversationCounter: number = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
   private chatInitializationError?: Error; // Store initialization error for status endpoint
+
+  /**
+   * Valid spec node IDs per layer
+   * Dynamically loaded from compiled spec (spec/dist/{layer}.json at module load time)
+   * Used to validate and resolve viewer spec node IDs
+   * Prevents silent drift when node types are added to spec/schemas/nodes/
+   */
+  private static readonly VALID_SPEC_NODE_IDS: Record<string, string[]> = VisualizationServer.loadValidSpecNodeIds();
+
+  /**
+   * Load valid spec node IDs dynamically from bundled spec files
+   * Extracts node_types arrays from each layer's compiled schema file
+   * This ensures the list is always in sync with the spec build output
+   * If any file cannot be loaded, falls back to a minimal safe set
+   */
+  private static loadValidSpecNodeIds(): Record<string, string[]> {
+    const result: Record<string, string[]> = {};
+    const requiredLayers = [
+      "motivation",
+      "business",
+      "security",
+      "application",
+      "technology",
+      "api",
+      "data-model",
+      "data-store",
+      "ux",
+      "navigation",
+      "apm",
+      "testing",
+    ];
+
+    // Get the directory of this file to build absolute path to bundled schemas
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const bundledDir = path.join(__dirname, "..", "schemas", "bundled");
+
+    for (const layer of requiredLayers) {
+      try {
+        // Build absolute path to the layer's compiled spec file
+        const specFilePath = path.join(bundledDir, `${layer}.json`);
+
+        // Use require() to synchronously load bundled spec file
+        // These JSON files are built by "npm run build" from spec source
+        const spec = require(specFilePath) as {
+          layer?: { node_types?: string[] };
+          specVersion?: string;
+        };
+
+        // Extract node_types array from layer object in the compiled spec
+        const nodeTypes = spec.layer?.node_types;
+        if (Array.isArray(nodeTypes) && nodeTypes.length > 0) {
+          result[layer] = nodeTypes;
+        } else {
+          console.warn(
+            `[SPEC-LOAD-001] Layer ${layer} has no node_types in spec file`
+          );
+          result[layer] = [];
+        }
+      } catch (error) {
+        console.warn(
+          `[SPEC-LOAD-002] Failed to load spec node IDs for layer ${layer}: ${getErrorMessage(error)}`
+        );
+        // Use empty array as fallback - will be caught by usage code
+        result[layer] = [];
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Fallback spec node IDs used when type extraction from elementId fails
+   * These are used when no valid spec node ID can be extracted from the elementId
+   * or found through other resolution strategies
+   */
+  private static readonly LAYER_FALLBACK: Record<string, string> = {
+    security: "business.businessprocess",
+    technology: "application.applicationservice",
+    api: "business.businessprocess",
+    "data-model": "data-store.database",
+    "data-store": "data-store.database",
+    ux: "application.applicationcomponent",
+    navigation: "application.applicationcomponent",
+    apm: "application.applicationservice",
+    testing: "business.businessprocess",
+  };
+
+  /**
+   * All valid spec node IDs across all layers (cached Set for O(1) lookup)
+   */
+  private static readonly ALL_VALID_IDS: Set<string> = (() => {
+    const ids = new Set<string>();
+    Object.values(VisualizationServer.VALID_SPEC_NODE_IDS).forEach((layerIds) => {
+      layerIds.forEach((id) => ids.add(id));
+    });
+    return ids;
+  })();
 
   constructor(model: Model, options?: VisualizationServerOptions) {
     this.app = new OpenAPIHono();
@@ -1451,73 +1550,6 @@ export class VisualizationServer {
    * Links are deduplicated: if the same relationship appears on multiple
    * elements (e.g. stored on both source and target), only one entry is kept.
    */
-  /**
-   * Derive a viewer-compatible spec_node_id for an element.
-   *
-   * The v0.3.0 viewer only has nodeStyles for a specific set of spec_node_ids.
-   * Elements whose spec_node_id is not in that set will cause a render crash.
-   * This method maps every element to a supported spec_node_id so the graph
-   * always renders, even for layers the viewer doesn't fully style yet.
-   */
-  private resolveViewerSpecNodeId(elementId: string, layerId: string, type: string, specNodeId: string): string {
-    // spec_node_ids with dedicated nodeStyles in the v0.3.0 viewer
-    const VALID_SPEC_NODE_IDS = new Set([
-      'motivation.stakeholder', 'motivation.goal', 'motivation.requirement',
-      'motivation.assessment', 'motivation.driver', 'motivation.outcome',
-      'motivation.principle', 'motivation.constraint', 'motivation.assumption',
-      'business.function', 'business.service', 'business.capability', 'business.process',
-      'application.component', 'application.service',
-      'data.model', 'layer.container',
-    ]);
-
-    // If the element already has a valid spec_node_id, use it as-is
-    if (specNodeId && VALID_SPEC_NODE_IDS.has(specNodeId)) {
-      return specNodeId;
-    }
-
-    // Extract the element category (goal, requirement, entity, etc.) from the ID
-    // when the type field is missing or stores a sub-type attribute instead.
-    let elementType = type;
-
-    if (elementId.includes('.')) {
-      // New dot-format: "layer.type.name"
-      const parts = elementId.split('.');
-      if (parts.length >= 2) elementType = parts[1];
-    } else if (elementId.includes('-')) {
-      // Old hyphen-format: "layer-type-name..." where layer can be multi-word
-      const knownLayers = ['motivation', 'business', 'security', 'application',
-                           'technology', 'api', 'data-model', 'data-store',
-                           'ux', 'navigation', 'apm', 'testing'];
-      for (const layer of knownLayers) {
-        if (elementId.startsWith(layer + '-')) {
-          elementType = elementId.slice(layer.length + 1).split('-')[0];
-          break;
-        }
-      }
-    }
-
-    // Try to construct a valid spec_node_id from layerId + extracted element type
-    if (elementType) {
-      const candidate = `${layerId}.${elementType}`;
-      if (VALID_SPEC_NODE_IDS.has(candidate)) return candidate;
-    }
-
-    // Layer-level fallbacks for layers the v0.3.0 viewer doesn't fully support yet
-    const LAYER_FALLBACK: Record<string, string> = {
-      'security':   'business.process',
-      'technology': 'application.service',
-      'api':        'business.process',
-      'data-model': 'data.model',
-      'data-store': 'data.model',
-      'ux':         'application.component',
-      'navigation': 'application.component',
-      'apm':        'application.service',
-      'testing':    'business.process',
-    };
-
-    return LAYER_FALLBACK[layerId] ?? 'data.model';
-  }
-
   private async serializeModel(): Promise<any> {
     const nodes: any[] = [];
     const linksMap = new Map<string, any>();
@@ -1618,6 +1650,100 @@ export class VisualizationServer {
       nodes,
       links: Array.from(linksMap.values()),
     };
+  }
+
+  /**
+   * Resolve viewer spec node ID with fallback logic
+   * Handles multiple resolution strategies:
+   * 1. Valid pass-through: Return specNodeId if it's already a valid spec node ID
+   * 2. Dot-format extraction: Extract type from elementId in "layer.type.name" format and construct candidate
+   * 3. Hyphen-format extraction: Extract type from elementId in "layer-type-name" format and construct candidate
+   * 4. Type-parameter fallback: If extracted type differs from type parameter, retry with type parameter
+   * 5. Layer-specific fallback: Use LAYER_FALLBACK map for layers with limited viewer support
+   *
+   * @param elementId - The element ID (can be in dot-format or hyphen-format)
+   * @param layer - The layer name (canonical form)
+   * @param type - The element type field
+   * @param specNodeId - The spec node ID if already known
+   * @returns The resolved spec node ID string
+   */
+  private resolveViewerSpecNodeId(
+    elementId: string,
+    layer: string,
+    type: string,
+    specNodeId: string
+  ): string {
+    // Strategy 1: Valid pass-through - return if specNodeId is valid (anywhere in the model)
+    if (specNodeId && VisualizationServer.ALL_VALID_IDS.has(specNodeId)) {
+      return specNodeId;
+    }
+
+    // Strategy 2 & 3: Extract type from elementId and construct candidate
+    // Only extract if elementId is not empty
+    let extractedType: string | null = null;
+
+    if (elementId) {
+      // Try dot-format extraction first (layer.type.name)
+      if (elementId.includes(".")) {
+        const parts = elementId.split(".");
+        if (parts.length >= 2) {
+          extractedType = parts[1]; // Second segment is the type
+        }
+      }
+
+      // If no dot-format extraction, try hyphen-format (layer-type-name)
+      if (!extractedType && elementId.includes("-")) {
+        // For multi-word layers like "data-model" or "data-store", handle specially
+        if (layer === "data-model" || layer === "data-store") {
+          // These layers have hyphens in their names
+          // For "data-model-entity-users", we need to extract after "data-model-"
+          const expectedPrefix = layer + "-";
+          if (elementId.startsWith(expectedPrefix)) {
+            const afterPrefix = elementId.substring(expectedPrefix.length);
+            const parts = afterPrefix.split("-");
+            if (parts.length >= 1) {
+              extractedType = parts[0]; // First segment after layer prefix is the type
+            }
+          }
+        } else {
+          // For single-word layers, split by hyphen and take second part
+          const parts = elementId.split("-");
+          if (parts.length >= 2) {
+            // Second segment is the type (first is layer)
+            extractedType = parts[1];
+          }
+        }
+      }
+    }
+
+    // If we extracted a type, try to construct a valid candidate
+    if (extractedType) {
+      const candidate = `${layer}.${extractedType}`;
+      const layerIds = VisualizationServer.VALID_SPEC_NODE_IDS[layer] || [];
+      if (layerIds.includes(candidate)) {
+        return candidate;
+      }
+    }
+
+    // Strategy 4: If type param was provided, try with provided type
+    // This applies when:
+    // - extractedType is null (e.g., unparseable elementId) but type is valid
+    // - extractedType differs from type (prefer extracted over provided)
+    if (type && (!extractedType || extractedType !== type)) {
+      const candidate = `${layer}.${type}`;
+      const layerIds = VisualizationServer.VALID_SPEC_NODE_IDS[layer] || [];
+      if (layerIds.includes(candidate)) {
+        return candidate;
+      }
+    }
+
+    // Strategy 5: Fall back to layer-specific fallback
+    if (layer in VisualizationServer.LAYER_FALLBACK) {
+      return VisualizationServer.LAYER_FALLBACK[layer];
+    }
+
+    // Default fallback for unknown layers
+    return "data-store.database";
   }
 
   /**
