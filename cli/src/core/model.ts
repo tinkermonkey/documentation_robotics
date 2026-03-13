@@ -548,37 +548,54 @@ export class Model {
     const yaml = await import("yaml");
     const relationshipsPath = `${this.rootPath}/documentation-robotics/model/relationships.yaml`;
 
+    let data: any;
     try {
       const yamlContent = await fs.readFile(relationshipsPath, "utf-8");
-      const data = yaml.parse(yamlContent);
-
-      if (Array.isArray(data)) {
-        this.relationships = Relationships.fromArray(data);
-        // Sync relationships to graph (per-edge, so a bad edge doesn't abort the rest)
-        for (let i = 0; i < data.length; i++) {
-          const rel = data[i];
-          const edge: GraphEdge = {
-            id: `rel-${i}-${crypto.randomBytes(4).toString("hex")}`,
-            source: rel.source,
-            destination: rel.target,
-            predicate: rel.predicate,
-            properties: rel.properties,
-            category: rel.category,
-          };
-          try {
-            this.graph.addEdge(edge);
-          } catch (edgeErr) {
-            if (process.env.DEBUG) {
-              console.debug(`Warning: Failed to sync relationship to graph (${rel.source} → ${rel.target}): ${edgeErr}`);
-            }
-          }
-        }
-      }
+      data = yaml.parse(yamlContent);
     } catch (err) {
       // If file doesn't exist, that's okay - start with empty relationships
       if ((err as any).code !== "ENOENT") {
-        // Non-ENOENT errors (parse failures, permission errors) are always surfaced
-        console.warn(`Warning: Failed to load relationships.yaml: ${err}`);
+        // But if it's a different error (YAML parse, permission denied, etc), throw it
+        // so the caller knows about the issue
+        throw new Error(
+          `Failed to load relationships.yaml: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+      // ENOENT: file doesn't exist, return with empty relationships
+      return;
+    }
+
+    // Validate that parsed content is an array
+    if (!Array.isArray(data)) {
+      const typeLabel = data === null ? "null" : typeof data;
+      console.warn(
+        `Warning: relationships.yaml contains non-array content (received ${typeLabel}). Expected an array of relationships. Skipping relationship loading.`
+      );
+      return;
+    }
+
+    this.relationships = Relationships.fromArray(data);
+    // Sync relationships to graph
+    // Note: addEdge may throw if graph nodes don't exist, but we log a warning
+    // and continue since it can occur during partial model construction
+    for (let i = 0; i < data.length; i++) {
+      const rel = data[i];
+      const edge: GraphEdge = {
+        id: `rel-${i}-${crypto.randomBytes(4).toString("hex")}`,
+        source: rel.source,
+        destination: rel.target,
+        predicate: rel.predicate,
+        properties: rel.properties,
+        category: rel.category,
+      };
+      try {
+        this.graph.addEdge(edge);
+      } catch (err) {
+        // Graph validation errors (e.g., node doesn't exist) are logged but not fatal
+        // This can happen during partial model construction
+        console.warn(
+          `Warning: Failed to sync relationship to graph (source: ${rel.source}, target: ${rel.target}): ${err instanceof Error ? err.message : String(err)}`
+        );
       }
     }
   }
