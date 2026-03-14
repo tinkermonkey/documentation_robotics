@@ -73,12 +73,15 @@ export async function changesetCreateCommand(
 
     const changeset = await manager.create(name, description || undefined);
 
+    // Activate immediately so add/update/delete commands stage into this changeset
+    await manager.setActive(changeset.id);
+
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute("changeset.id", changeset.id);
       (span as any).setStatus({ code: 0 });
     }
 
-    console.log(ansis.green(`✓ Created changeset: ${ansis.bold(name)}`));
+    console.log(ansis.green(`✓ Created and activated changeset: ${ansis.bold(name)}`));
     if (changeset.description) {
       console.log(ansis.dim(`  ${changeset.description}`));
     }
