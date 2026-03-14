@@ -29,7 +29,7 @@ async function getPackageVersion(): Promise<string> {
     }
   }
 
-  return "0.1.2";
+  return "0.1.3";
 }
 
 export async function versionCommand(): Promise<void> {

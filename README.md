@@ -7,7 +7,7 @@ A comprehensive toolkit for managing federated data models for modeling large so
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
 
 [![Specification](https://img.shields.io/badge/Specification-v0.8.3-blue)](spec/)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](cli/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.1.3-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview
@@ -255,7 +255,7 @@ We welcome contributions! See:
 | Component         | Version | Status           |
 | ----------------- | ------- | ---------------- |
 | **Specification** | 0.8.3   | Stable           |
-| **CLI Tool**      | 0.1.2   | Production-ready |
+| **CLI Tool**      | 0.1.3   | Production-ready |
 
 ## License
 
