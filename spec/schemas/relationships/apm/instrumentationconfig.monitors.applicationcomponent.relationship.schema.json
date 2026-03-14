@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Instrumentationconfig monitors Applicationcomponent",
+  "description": "Defines relationship: apm.instrumentationconfig monitors application.applicationcomponent",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "apm.instrumentationconfig.monitors.application.applicationcomponent"
+    },
+    "source_spec_node_id": {
+      "const": "apm.instrumentationconfig"
+    },
+    "source_layer": {
+      "const": "apm"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationcomponent"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "monitors"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Librarycomponent satisfies Requirement",
+  "description": "Defines relationship: ux.librarycomponent satisfies motivation.requirement",
+  "allOf": [{ "$ref": "../../base/spec-node-relationship.schema.json" }],
+  "properties": {
+    "id": { "const": "ux.librarycomponent.satisfies.motivation.requirement" },
+    "source_spec_node_id": { "const": "ux.librarycomponent" },
+    "source_layer": { "const": "ux" },
+    "destination_spec_node_id": { "const": "motivation.requirement" },
+    "destination_layer": { "const": "motivation" },
+    "predicate": { "const": "satisfies" },
+    "cardinality": { "const": "many-to-one" },
+    "strength": { "const": "medium" }
+  }
+}

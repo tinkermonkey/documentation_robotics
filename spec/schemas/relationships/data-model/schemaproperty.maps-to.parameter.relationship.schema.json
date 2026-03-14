@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Schemaproperty maps-to Parameter",
+  "description": "Defines relationship: data-model.schemaproperty maps-to api.parameter",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-model.schemaproperty.maps-to.api.parameter"
+    },
+    "source_spec_node_id": {
+      "const": "data-model.schemaproperty"
+    },
+    "source_layer": {
+      "const": "data-model"
+    },
+    "destination_spec_node_id": {
+      "const": "api.parameter"
+    },
+    "destination_layer": {
+      "const": "api"
+    },
+    "predicate": {
+      "const": "maps-to"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

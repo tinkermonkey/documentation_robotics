@@ -9,6 +9,8 @@
     "url": "https://opentelemetry.io/"
   },
   "node_types": [
+    "apm.alert",
+    "apm.dashboard",
     "apm.exporterconfig",
     "apm.instrumentationconfig",
     "apm.instrumentationscope",

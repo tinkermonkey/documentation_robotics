@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Testcoveragetarget tests Applicationcomponent",
+  "description": "Defines relationship: testing.testcoveragetarget tests application.applicationcomponent",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.testcoveragetarget.tests.application.applicationcomponent"
+    },
+    "source_spec_node_id": {
+      "const": "testing.testcoveragetarget"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationcomponent"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "tests"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

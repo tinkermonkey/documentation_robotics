@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Alert",
+  "description": "A named alerting rule that evaluates a condition against observed signals (metrics, traces, logs) on a schedule and fires a notification when the condition is met. Represents the alert definition in the monitoring backend (e.g., Prometheus alertmanager, Grafana alerting, Datadog monitors), not an individual alert event.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.alert"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "alert"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "warning", "info"],
+          "description": "Alert severity level, controlling routing and escalation policy."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Threshold or expression that triggers the alert when true (e.g., 'p99_latency_ms > 500', 'error_rate > 0.01'). Syntax is monitoring-platform-specific."
+        },
+        "evaluationInterval": {
+          "type": "string",
+          "description": "How frequently the condition is evaluated (e.g., '1m', '5m', '1h'), expressed as a duration string."
+        },
+        "notificationChannels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Identifiers of notification destinations (e.g., Slack channel names, PagerDuty service keys, email addresses) that receive alerts when the condition fires."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what the alert detects and why it matters."
+        }
+      },
+      "required": ["severity", "condition"],
+      "additionalProperties": false
+    }
+  }
+}

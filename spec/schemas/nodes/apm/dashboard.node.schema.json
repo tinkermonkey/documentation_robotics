@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dashboard",
+  "description": "A named monitoring dashboard that groups visualizations of APM signals (metrics, traces, logs) to provide operational visibility into system behavior. Represents the dashboard definition in the monitoring platform (e.g., Grafana, Datadog, CloudWatch), serving as the primary observability artifact teams consult during incidents and reviews.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "apm.dashboard"
+    },
+    "layer_id": {
+      "const": "apm"
+    },
+    "type": {
+      "const": "dashboard"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string",
+          "enum": ["grafana", "datadog", "newrelic", "cloudwatch", "dynatrace", "custom"],
+          "description": "Monitoring platform that hosts this dashboard."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this dashboard monitors and its intended audience."
+        },
+        "panels": {
+          "type": "array",
+          "description": "Ordered list of visualization panels on this dashboard. Each panel displays one signal or aggregation.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "Panel heading shown in the dashboard UI."
+              },
+              "signalType": {
+                "type": "string",
+                "enum": ["metric", "trace", "log", "alert"],
+                "description": "The APM signal type visualized by this panel."
+              },
+              "visualizationType": {
+                "type": "string",
+                "enum": ["timeseries", "gauge", "bar", "table", "heatmap", "logs", "traces", "stat"],
+                "description": "Visualization form used to render the panel data."
+              }
+            },
+            "required": ["title", "signalType"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["tool"],
+      "additionalProperties": false
+    }
+  }
+}
