@@ -13,81 +13,81 @@
       "number": 2,
       "name": "Business Layer",
       "nodeTypeCount": 13,
-      "relationshipCount": 56
+      "relationshipCount": 64
     },
     {
       "id": "security",
       "number": 3,
       "name": "Security Layer",
       "nodeTypeCount": 29,
-      "relationshipCount": 154
+      "relationshipCount": 170
     },
     {
       "id": "application",
       "number": 4,
       "name": "Application Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 42
+      "relationshipCount": 66
     },
     {
       "id": "technology",
       "number": 5,
       "name": "Technology Layer",
       "nodeTypeCount": 13,
-      "relationshipCount": 85
+      "relationshipCount": 116
     },
     {
       "id": "api",
       "number": 6,
       "name": "API Layer",
       "nodeTypeCount": 27,
-      "relationshipCount": 144
+      "relationshipCount": 183
     },
     {
       "id": "data-model",
       "number": 7,
       "name": "Data Model Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 15
+      "relationshipCount": 58
     },
     {
       "id": "data-store",
       "number": 8,
       "name": "Data Store Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 52
+      "relationshipCount": 97
     },
     {
       "id": "ux",
       "number": 9,
       "name": "UX Layer",
       "nodeTypeCount": 22,
-      "relationshipCount": 123
+      "relationshipCount": 183
     },
     {
       "id": "navigation",
       "number": 10,
       "name": "Navigation Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 51
+      "relationshipCount": 117
     },
     {
       "id": "apm",
       "number": 11,
       "name": "APM Observability Layer",
-      "nodeTypeCount": 13,
-      "relationshipCount": 55
+      "nodeTypeCount": 15,
+      "relationshipCount": 130
     },
     {
       "id": "testing",
       "number": 12,
       "name": "Testing Layer",
       "nodeTypeCount": 17,
-      "relationshipCount": 108
+      "relationshipCount": 193
     }
   ],
   "totals": {
-    "nodeTypes": 184,
-    "relationships": 955
+    "nodeTypes": 186,
+    "relationships": 1447
   }
 }

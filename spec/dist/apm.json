@@ -11,6 +11,8 @@
       "url": "https://opentelemetry.io/"
     },
     "node_types": [
+      "apm.alert",
+      "apm.dashboard",
       "apm.exporterconfig",
       "apm.instrumentationconfig",
       "apm.instrumentationscope",
@@ -27,6 +29,131 @@
     ]
   },
   "nodeSchemas": {
+    "alert": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Alert",
+      "description": "A named alerting rule that evaluates a condition against observed signals (metrics, traces, logs) on a schedule and fires a notification when the condition is met. Represents the alert definition in the monitoring backend (e.g., Prometheus alertmanager, Grafana alerting, Datadog monitors), not an individual alert event.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.alert"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "alert"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "severity": {
+              "type": "string",
+              "enum": ["critical", "warning", "info"],
+              "description": "Alert severity level, controlling routing and escalation policy."
+            },
+            "condition": {
+              "type": "string",
+              "description": "Threshold or expression that triggers the alert when true (e.g., 'p99_latency_ms > 500', 'error_rate > 0.01'). Syntax is monitoring-platform-specific."
+            },
+            "evaluationInterval": {
+              "type": "string",
+              "description": "How frequently the condition is evaluated (e.g., '1m', '5m', '1h'), expressed as a duration string."
+            },
+            "notificationChannels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Identifiers of notification destinations (e.g., Slack channel names, PagerDuty service keys, email addresses) that receive alerts when the condition fires."
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of what the alert detects and why it matters."
+            }
+          },
+          "required": ["severity", "condition"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.alert"
+    },
+    "dashboard": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Dashboard",
+      "description": "A named monitoring dashboard that groups visualizations of APM signals (metrics, traces, logs) to provide operational visibility into system behavior. Represents the dashboard definition in the monitoring platform (e.g., Grafana, Datadog, CloudWatch), serving as the primary observability artifact teams consult during incidents and reviews.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "apm.dashboard"
+        },
+        "layer_id": {
+          "const": "apm"
+        },
+        "type": {
+          "const": "dashboard"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "tool": {
+              "type": "string",
+              "enum": ["grafana", "datadog", "newrelic", "cloudwatch", "dynatrace", "custom"],
+              "description": "Monitoring platform that hosts this dashboard."
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of what this dashboard monitors and its intended audience."
+            },
+            "panels": {
+              "type": "array",
+              "description": "Ordered list of visualization panels on this dashboard. Each panel displays one signal or aggregation.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Panel heading shown in the dashboard UI."
+                  },
+                  "signalType": {
+                    "type": "string",
+                    "enum": ["metric", "trace", "log", "alert"],
+                    "description": "The APM signal type visualized by this panel."
+                  },
+                  "visualizationType": {
+                    "type": "string",
+                    "enum": [
+                      "timeseries",
+                      "gauge",
+                      "bar",
+                      "table",
+                      "heatmap",
+                      "logs",
+                      "traces",
+                      "stat"
+                    ],
+                    "description": "Visualization form used to render the panel data."
+                  }
+                },
+                "required": ["title", "signalType"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["tool"],
+          "additionalProperties": false
+        }
+      },
+      "$id": "urn:dr:spec:node:apm.dashboard"
+    },
     "exporterconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ExporterConfig",
@@ -701,6 +828,83 @@
     }
   },
   "relationshipSchemas": {
+    "apm.alert.monitors.api.operation": {
+      "id": "apm.alert.monitors.api.operation",
+      "source_spec_node_id": "apm.alert",
+      "source_layer": "apm",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.alert.monitors.api.ratelimit": {
+      "id": "apm.alert.monitors.api.ratelimit",
+      "source_spec_node_id": "apm.alert",
+      "source_layer": "apm",
+      "destination_spec_node_id": "api.ratelimit",
+      "destination_layer": "api",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.dashboard.monitors.api.operation": {
+      "id": "apm.dashboard.monitors.api.operation",
+      "source_spec_node_id": "apm.dashboard",
+      "source_layer": "apm",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.exporterconfig.depends-on.technology.technologyservice": {
+      "id": "apm.exporterconfig.depends-on.technology.technologyservice",
+      "source_spec_node_id": "apm.exporterconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.exporterconfig.satisfies.motivation.requirement": {
+      "id": "apm.exporterconfig.satisfies.motivation.requirement",
+      "source_spec_node_id": "apm.exporterconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.exporterconfig.satisfies.security.retentionpolicy": {
+      "id": "apm.exporterconfig.satisfies.security.retentionpolicy",
+      "source_spec_node_id": "apm.exporterconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "security.retentionpolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.exporterconfig.serves.data-store.database": {
+      "id": "apm.exporterconfig.serves.data-store.database",
+      "source_spec_node_id": "apm.exporterconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.exporterconfig.serves.apm.resource": {
       "id": "apm.exporterconfig.serves.apm.resource",
       "source_spec_node_id": "apm.exporterconfig",
@@ -709,6 +913,50 @@
       "destination_layer": "apm",
       "predicate": "serves",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationconfig.monitors.application.applicationcomponent": {
+      "id": "apm.instrumentationconfig.monitors.application.applicationcomponent",
+      "source_spec_node_id": "apm.instrumentationconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationconfig.monitors.navigation.route": {
+      "id": "apm.instrumentationconfig.monitors.navigation.route",
+      "source_spec_node_id": "apm.instrumentationconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationconfig.monitors.technology.systemsoftware": {
+      "id": "apm.instrumentationconfig.monitors.technology.systemsoftware",
+      "source_spec_node_id": "apm.instrumentationconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationconfig.satisfies.motivation.constraint": {
+      "id": "apm.instrumentationconfig.satisfies.motivation.constraint",
+      "source_spec_node_id": "apm.instrumentationconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -767,6 +1015,28 @@
       "strength": "medium",
       "required": false
     },
+    "apm.instrumentationscope.monitors.data-model.objectschema": {
+      "id": "apm.instrumentationscope.monitors.data-model.objectschema",
+      "source_spec_node_id": "apm.instrumentationscope",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationscope.monitors.ux.uxapplication": {
+      "id": "apm.instrumentationscope.monitors.ux.uxapplication",
+      "source_spec_node_id": "apm.instrumentationscope",
+      "source_layer": "apm",
+      "destination_spec_node_id": "ux.uxapplication",
+      "destination_layer": "ux",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.logconfiguration.aggregates.apm.exporterconfig": {
       "id": "apm.logconfiguration.aggregates.apm.exporterconfig",
       "source_spec_node_id": "apm.logconfiguration",
@@ -789,12 +1059,34 @@
       "strength": "medium",
       "required": false
     },
+    "apm.logconfiguration.depends-on.data-store.database": {
+      "id": "apm.logconfiguration.depends-on.data-store.database",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.logconfiguration.depends-on.apm.resource": {
       "id": "apm.logconfiguration.depends-on.apm.resource",
       "source_spec_node_id": "apm.logconfiguration",
       "source_layer": "apm",
       "destination_spec_node_id": "apm.resource",
       "destination_layer": "apm",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logconfiguration.depends-on.technology.technologyservice": {
+      "id": "apm.logconfiguration.depends-on.technology.technologyservice",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
       "predicate": "depends-on",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -811,6 +1103,17 @@
       "strength": "medium",
       "required": false
     },
+    "apm.logconfiguration.monitors.business.businessservice": {
+      "id": "apm.logconfiguration.monitors.business.businessservice",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.logconfiguration.references.apm.traceconfiguration": {
       "id": "apm.logconfiguration.references.apm.traceconfiguration",
       "source_spec_node_id": "apm.logconfiguration",
@@ -818,6 +1121,17 @@
       "destination_spec_node_id": "apm.traceconfiguration",
       "destination_layer": "apm",
       "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logconfiguration.satisfies.security.auditconfig": {
+      "id": "apm.logconfiguration.satisfies.security.auditconfig",
+      "source_spec_node_id": "apm.logconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "security.auditconfig",
+      "destination_layer": "security",
+      "predicate": "satisfies",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -877,6 +1191,17 @@
       "strength": "medium",
       "required": false
     },
+    "apm.logprocessor.satisfies.security.securityconstraints": {
+      "id": "apm.logprocessor.satisfies.security.securityconstraints",
+      "source_spec_node_id": "apm.logprocessor",
+      "source_layer": "apm",
+      "destination_spec_node_id": "security.securityconstraints",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.logrecord.depends-on.apm.instrumentationscope": {
       "id": "apm.logrecord.depends-on.apm.instrumentationscope",
       "source_spec_node_id": "apm.logrecord",
@@ -910,6 +1235,50 @@
       "strength": "medium",
       "required": false
     },
+    "apm.logrecord.monitors.application.applicationservice": {
+      "id": "apm.logrecord.monitors.application.applicationservice",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logrecord.references.data-model.objectschema": {
+      "id": "apm.logrecord.references.data-model.objectschema",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logrecord.references.navigation.route": {
+      "id": "apm.logrecord.references.navigation.route",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logrecord.references.data-model.schemadefinition": {
+      "id": "apm.logrecord.references.data-model.schemadefinition",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.logrecord.references.apm.span": {
       "id": "apm.logrecord.references.apm.span",
       "source_spec_node_id": "apm.logrecord",
@@ -918,6 +1287,28 @@
       "destination_layer": "apm",
       "predicate": "references",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logrecord.references.ux.view": {
+      "id": "apm.logrecord.references.ux.view",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.logrecord.satisfies.security.accountabilityrequirement": {
+      "id": "apm.logrecord.satisfies.security.accountabilityrequirement",
+      "source_spec_node_id": "apm.logrecord",
+      "source_layer": "apm",
+      "destination_spec_node_id": "security.accountabilityrequirement",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -950,6 +1341,17 @@
       "destination_spec_node_id": "apm.resource",
       "destination_layer": "apm",
       "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricconfiguration.references.data-model.jsonschema": {
+      "id": "apm.metricconfiguration.references.data-model.jsonschema",
+      "source_spec_node_id": "apm.metricconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-model.jsonschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1042,6 +1444,215 @@
       "strength": "medium",
       "required": false
     },
+    "apm.metricinstrument.maps-to.motivation.outcome": {
+      "id": "apm.metricinstrument.maps-to.motivation.outcome",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.ux.actioncomponent": {
+      "id": "apm.metricinstrument.monitors.ux.actioncomponent",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.application.applicationcomponent": {
+      "id": "apm.metricinstrument.monitors.application.applicationcomponent",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.application.applicationservice": {
+      "id": "apm.metricinstrument.monitors.application.applicationservice",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.business.businessprocess": {
+      "id": "apm.metricinstrument.monitors.business.businessprocess",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.business.businessservice": {
+      "id": "apm.metricinstrument.monitors.business.businessservice",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.data-store.collection": {
+      "id": "apm.metricinstrument.monitors.data-store.collection",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.data-store.database": {
+      "id": "apm.metricinstrument.monitors.data-store.database",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.ux.errorconfig": {
+      "id": "apm.metricinstrument.monitors.ux.errorconfig",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "ux.errorconfig",
+      "destination_layer": "ux",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.navigation.navigationtransition": {
+      "id": "apm.metricinstrument.monitors.navigation.navigationtransition",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "navigation.navigationtransition",
+      "destination_layer": "navigation",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.data-model.objectschema": {
+      "id": "apm.metricinstrument.monitors.data-model.objectschema",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.api.operation": {
+      "id": "apm.metricinstrument.monitors.api.operation",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.api.pathitem": {
+      "id": "apm.metricinstrument.monitors.api.pathitem",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.navigation.route": {
+      "id": "apm.metricinstrument.monitors.navigation.route",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.data-model.schemadefinition": {
+      "id": "apm.metricinstrument.monitors.data-model.schemadefinition",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.technology.technologyservice": {
+      "id": "apm.metricinstrument.monitors.technology.technologyservice",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.security.threat": {
+      "id": "apm.metricinstrument.monitors.security.threat",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.monitors.ux.view": {
+      "id": "apm.metricinstrument.monitors.ux.view",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.realizes.motivation.goal": {
+      "id": "apm.metricinstrument.realizes.motivation.goal",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.metricinstrument.references.apm.span": {
       "id": "apm.metricinstrument.references.apm.span",
       "source_spec_node_id": "apm.metricinstrument",
@@ -1049,6 +1660,17 @@
       "destination_spec_node_id": "apm.span",
       "destination_layer": "apm",
       "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.metricinstrument.satisfies.motivation.requirement": {
+      "id": "apm.metricinstrument.satisfies.motivation.requirement",
+      "source_spec_node_id": "apm.metricinstrument",
+      "source_layer": "apm",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1083,6 +1705,72 @@
       "destination_layer": "apm",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.resource.maps-to.application.applicationcomponent": {
+      "id": "apm.resource.maps-to.application.applicationcomponent",
+      "source_spec_node_id": "apm.resource",
+      "source_layer": "apm",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.resource.monitors.technology.node": {
+      "id": "apm.resource.monitors.technology.node",
+      "source_spec_node_id": "apm.resource",
+      "source_layer": "apm",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.resource.monitors.technology.systemsoftware": {
+      "id": "apm.resource.monitors.technology.systemsoftware",
+      "source_spec_node_id": "apm.resource",
+      "source_layer": "apm",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.resource.references.security.secureresource": {
+      "id": "apm.resource.references.security.secureresource",
+      "source_spec_node_id": "apm.resource",
+      "source_layer": "apm",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.resource.serves.business.businessprocess": {
+      "id": "apm.resource.serves.business.businessprocess",
+      "source_spec_node_id": "apm.resource",
+      "source_layer": "apm",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.accesses.data-store.collection": {
+      "id": "apm.span.accesses.data-store.collection",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1185,6 +1873,149 @@
       "strength": "medium",
       "required": false
     },
+    "apm.span.maps-to.business.businessprocess": {
+      "id": "apm.span.maps-to.business.businessprocess",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.application.applicationcomponent": {
+      "id": "apm.span.monitors.application.applicationcomponent",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.application.applicationservice": {
+      "id": "apm.span.monitors.application.applicationservice",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.data-store.database": {
+      "id": "apm.span.monitors.data-store.database",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.navigation.navigationflow": {
+      "id": "apm.span.monitors.navigation.navigationflow",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "navigation.navigationflow",
+      "destination_layer": "navigation",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.navigation.navigationguard": {
+      "id": "apm.span.monitors.navigation.navigationguard",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "navigation.navigationguard",
+      "destination_layer": "navigation",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.data-model.objectschema": {
+      "id": "apm.span.monitors.data-model.objectschema",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.api.operation": {
+      "id": "apm.span.monitors.api.operation",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.navigation.route": {
+      "id": "apm.span.monitors.navigation.route",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.security.secureresource": {
+      "id": "apm.span.monitors.security.secureresource",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.technology.technologyservice": {
+      "id": "apm.span.monitors.technology.technologyservice",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.monitors.ux.view": {
+      "id": "apm.span.monitors.ux.view",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.span.references.data-model.schemadefinition": {
+      "id": "apm.span.references.data-model.schemadefinition",
+      "source_spec_node_id": "apm.span",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.span.references.apm.span": {
       "id": "apm.span.references.apm.span",
       "source_spec_node_id": "apm.span",
@@ -1236,6 +2067,17 @@
       "destination_spec_node_id": "apm.exporterconfig",
       "destination_layer": "apm",
       "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.spanevent.monitors.ux.actioncomponent": {
+      "id": "apm.spanevent.monitors.ux.actioncomponent",
+      "source_spec_node_id": "apm.spanevent",
+      "source_layer": "apm",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "monitors",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1303,6 +2145,116 @@
       "destination_layer": "apm",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.depends-on.data-store.database": {
+      "id": "apm.traceconfiguration.depends-on.data-store.database",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.depends-on.technology.technologyservice": {
+      "id": "apm.traceconfiguration.depends-on.technology.technologyservice",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.monitors.application.applicationservice": {
+      "id": "apm.traceconfiguration.monitors.application.applicationservice",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.monitors.business.businessservice": {
+      "id": "apm.traceconfiguration.monitors.business.businessservice",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.monitors.navigation.route": {
+      "id": "apm.traceconfiguration.monitors.navigation.route",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.monitors.ux.uxapplication": {
+      "id": "apm.traceconfiguration.monitors.ux.uxapplication",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "ux.uxapplication",
+      "destination_layer": "ux",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.references.api.operation": {
+      "id": "apm.traceconfiguration.references.api.operation",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.references.api.server": {
+      "id": "apm.traceconfiguration.references.api.server",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.satisfies.motivation.requirement": {
+      "id": "apm.traceconfiguration.satisfies.motivation.requirement",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.traceconfiguration.satisfies.security.securitypolicy": {
+      "id": "apm.traceconfiguration.satisfies.security.securitypolicy",
+      "source_spec_node_id": "apm.traceconfiguration",
+      "source_layer": "apm",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     }

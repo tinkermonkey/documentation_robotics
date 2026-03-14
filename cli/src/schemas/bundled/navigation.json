@@ -571,6 +571,50 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.contextvariable.maps-to.api.parameter": {
+      "id": "navigation.contextvariable.maps-to.api.parameter",
+      "source_spec_node_id": "navigation.contextvariable",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.contextvariable.maps-to.data-model.schemaproperty": {
+      "id": "navigation.contextvariable.maps-to.data-model.schemaproperty",
+      "source_spec_node_id": "navigation.contextvariable",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-model.schemaproperty",
+      "destination_layer": "data-model",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.contextvariable.references.application.dataobject": {
+      "id": "navigation.contextvariable.references.application.dataobject",
+      "source_spec_node_id": "navigation.contextvariable",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.contextvariable.references.data-model.jsonschema": {
+      "id": "navigation.contextvariable.references.data-model.jsonschema",
+      "source_spec_node_id": "navigation.contextvariable",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-model.jsonschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.contextvariable.triggers.navigation.navigationtransition": {
       "id": "navigation.contextvariable.triggers.navigation.navigationtransition",
       "source_spec_node_id": "navigation.contextvariable",
@@ -578,6 +622,50 @@
       "destination_spec_node_id": "navigation.navigationtransition",
       "destination_layer": "navigation",
       "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.accesses.application.applicationservice": {
+      "id": "navigation.flowstep.accesses.application.applicationservice",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.accesses.data-store.collection": {
+      "id": "navigation.flowstep.accesses.data-store.collection",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.accesses.data-model.objectschema": {
+      "id": "navigation.flowstep.accesses.data-model.objectschema",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.accesses.api.operation": {
+      "id": "navigation.flowstep.accesses.api.operation",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "accesses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -593,6 +681,17 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.flowstep.maps-to.ux.view": {
+      "id": "navigation.flowstep.maps-to.ux.view",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.flowstep.navigates-to.navigation.route": {
       "id": "navigation.flowstep.navigates-to.navigation.route",
       "source_spec_node_id": "navigation.flowstep",
@@ -600,6 +699,17 @@
       "destination_spec_node_id": "navigation.route",
       "destination_layer": "navigation",
       "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.realizes.business.businessfunction": {
+      "id": "navigation.flowstep.realizes.business.businessfunction",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "realizes",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -622,6 +732,17 @@
       "destination_spec_node_id": "navigation.navigationguard",
       "destination_layer": "navigation",
       "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.flowstep.satisfies.motivation.requirement": {
+      "id": "navigation.flowstep.satisfies.motivation.requirement",
+      "source_spec_node_id": "navigation.flowstep",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -692,6 +813,28 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.guardcondition.references.data-model.objectschema": {
+      "id": "navigation.guardcondition.references.data-model.objectschema",
+      "source_spec_node_id": "navigation.guardcondition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.guardcondition.references.security.permission": {
+      "id": "navigation.guardcondition.references.security.permission",
+      "source_spec_node_id": "navigation.guardcondition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.guardcondition.references.navigation.routemeta": {
       "id": "navigation.guardcondition.references.navigation.routemeta",
       "source_spec_node_id": "navigation.guardcondition",
@@ -721,6 +864,39 @@
       "destination_spec_node_id": "navigation.contextvariable",
       "destination_layer": "navigation",
       "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.accesses.data-store.collection": {
+      "id": "navigation.navigationflow.accesses.data-store.collection",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.accesses.data-model.objectschema": {
+      "id": "navigation.navigationflow.accesses.data-model.objectschema",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.accesses.ux.view": {
+      "id": "navigation.navigationflow.accesses.ux.view",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "accesses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -769,6 +945,39 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.navigationflow.realizes.application.applicationprocess": {
+      "id": "navigation.navigationflow.realizes.application.applicationprocess",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.applicationprocess",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.realizes.business.businessprocess": {
+      "id": "navigation.navigationflow.realizes.business.businessprocess",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.realizes.motivation.goal": {
+      "id": "navigation.navigationflow.realizes.motivation.goal",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.navigationflow.requires.navigation.navigationguard": {
       "id": "navigation.navigationflow.requires.navigation.navigationguard",
       "source_spec_node_id": "navigation.navigationflow",
@@ -776,6 +985,72 @@
       "destination_spec_node_id": "navigation.navigationguard",
       "destination_layer": "navigation",
       "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.satisfies.motivation.requirement": {
+      "id": "navigation.navigationflow.satisfies.motivation.requirement",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.satisfies.security.securityconstraints": {
+      "id": "navigation.navigationflow.satisfies.security.securityconstraints",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.securityconstraints",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.serves.business.businessservice": {
+      "id": "navigation.navigationflow.serves.business.businessservice",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.triggers.application.applicationevent": {
+      "id": "navigation.navigationflow.triggers.application.applicationevent",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.applicationevent",
+      "destination_layer": "application",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.triggers.business.businessprocess": {
+      "id": "navigation.navigationflow.triggers.business.businessprocess",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationflow.uses.technology.systemsoftware": {
+      "id": "navigation.navigationflow.uses.technology.systemsoftware",
+      "source_spec_node_id": "navigation.navigationflow",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "uses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -857,6 +1132,39 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.navigationgraph.uses.technology.systemsoftware": {
+      "id": "navigation.navigationgraph.uses.technology.systemsoftware",
+      "source_spec_node_id": "navigation.navigationgraph",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.accesses.data-store.collection": {
+      "id": "navigation.navigationguard.accesses.data-store.collection",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.accesses.api.operation": {
+      "id": "navigation.navigationguard.accesses.api.operation",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.navigationguard.constrains.navigation.navigationtransition": {
       "id": "navigation.navigationguard.constrains.navigation.navigationtransition",
       "source_spec_node_id": "navigation.navigationguard",
@@ -879,6 +1187,17 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.navigationguard.implements.security.securitypolicy": {
+      "id": "navigation.navigationguard.implements.security.securitypolicy",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.navigationguard.protects.navigation.route": {
       "id": "navigation.navigationguard.protects.navigation.route",
       "source_spec_node_id": "navigation.navigationguard",
@@ -886,6 +1205,61 @@
       "destination_spec_node_id": "navigation.route",
       "destination_layer": "navigation",
       "predicate": "protects",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.realizes.motivation.principle": {
+      "id": "navigation.navigationguard.realizes.motivation.principle",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.references.business.businessrole": {
+      "id": "navigation.navigationguard.references.business.businessrole",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.requires.security.role": {
+      "id": "navigation.navigationguard.requires.security.role",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.satisfies.motivation.constraint": {
+      "id": "navigation.navigationguard.satisfies.motivation.constraint",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.triggers.ux.experiencestate": {
+      "id": "navigation.navigationguard.triggers.ux.experiencestate",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "triggers",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -901,12 +1275,56 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.navigationguard.uses.application.applicationservice": {
+      "id": "navigation.navigationguard.uses.application.applicationservice",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.navigationguard.uses.navigation.guardcondition": {
       "id": "navigation.navigationguard.uses.navigation.guardcondition",
       "source_spec_node_id": "navigation.navigationguard",
       "source_layer": "navigation",
       "destination_spec_node_id": "navigation.guardcondition",
       "destination_layer": "navigation",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.uses.data-model.objectschema": {
+      "id": "navigation.navigationguard.uses.data-model.objectschema",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.uses.api.securityscheme": {
+      "id": "navigation.navigationguard.uses.api.securityscheme",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.uses.technology.systemsoftware": {
+      "id": "navigation.navigationguard.uses.technology.systemsoftware",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
       "predicate": "uses",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -956,6 +1374,17 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.navigationtransition.triggers.ux.statetransition": {
+      "id": "navigation.navigationtransition.triggers.ux.statetransition",
+      "source_spec_node_id": "navigation.navigationtransition",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "ux.statetransition",
+      "destination_layer": "ux",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.navigationtransition.uses.navigation.contextvariable": {
       "id": "navigation.navigationtransition.uses.navigation.contextvariable",
       "source_spec_node_id": "navigation.navigationtransition",
@@ -963,6 +1392,61 @@
       "destination_spec_node_id": "navigation.contextvariable",
       "destination_layer": "navigation",
       "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.accesses.application.applicationinterface": {
+      "id": "navigation.route.accesses.application.applicationinterface",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.applicationinterface",
+      "destination_layer": "application",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.accesses.data-store.collection": {
+      "id": "navigation.route.accesses.data-store.collection",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.accesses.data-model.objectschema": {
+      "id": "navigation.route.accesses.data-model.objectschema",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.accesses.api.operation": {
+      "id": "navigation.route.accesses.api.operation",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.accesses.security.secureresource": {
+      "id": "navigation.route.accesses.security.secureresource",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "accesses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1000,6 +1484,39 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.route.depends-on.data-store.accesspattern": {
+      "id": "navigation.route.depends-on.data-store.accesspattern",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-store.accesspattern",
+      "destination_layer": "data-store",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.depends-on.application.applicationcomponent": {
+      "id": "navigation.route.depends-on.application.applicationcomponent",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.depends-on.technology.technologyservice": {
+      "id": "navigation.route.depends-on.technology.technologyservice",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.route.flows-to.navigation.navigationtransition": {
       "id": "navigation.route.flows-to.navigation.navigationtransition",
       "source_spec_node_id": "navigation.route",
@@ -1007,6 +1524,39 @@
       "destination_spec_node_id": "navigation.navigationtransition",
       "destination_layer": "navigation",
       "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.maps-to.business.businessfunction": {
+      "id": "navigation.route.maps-to.business.businessfunction",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.maps-to.api.pathitem": {
+      "id": "navigation.route.maps-to.api.pathitem",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "api.pathitem",
+      "destination_layer": "api",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.maps-to.ux.view": {
+      "id": "navigation.route.maps-to.ux.view",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "maps-to",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1022,6 +1572,83 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.route.realizes.business.businessprocess": {
+      "id": "navigation.route.realizes.business.businessprocess",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.realizes.motivation.outcome": {
+      "id": "navigation.route.realizes.motivation.outcome",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.references.data-model.schemadefinition": {
+      "id": "navigation.route.references.data-model.schemadefinition",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.requires.security.permission": {
+      "id": "navigation.route.requires.security.permission",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.requires.api.securityscheme": {
+      "id": "navigation.route.requires.api.securityscheme",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.satisfies.motivation.requirement": {
+      "id": "navigation.route.satisfies.motivation.requirement",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.serves.business.businessrole": {
+      "id": "navigation.route.serves.business.businessrole",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.route.triggers.navigation.navigationtransition": {
       "id": "navigation.route.triggers.navigation.navigationtransition",
       "source_spec_node_id": "navigation.route",
@@ -1029,6 +1656,72 @@
       "destination_spec_node_id": "navigation.navigationtransition",
       "destination_layer": "navigation",
       "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.uses.application.applicationservice": {
+      "id": "navigation.route.uses.application.applicationservice",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.uses.ux.errorconfig": {
+      "id": "navigation.route.uses.ux.errorconfig",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "ux.errorconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.uses.ux.layoutconfig": {
+      "id": "navigation.route.uses.ux.layoutconfig",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.uses.technology.systemsoftware": {
+      "id": "navigation.route.uses.technology.systemsoftware",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.uses.technology.technologyfunction": {
+      "id": "navigation.route.uses.technology.technologyfunction",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.uses.data-store.view": {
+      "id": "navigation.route.uses.data-store.view",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "uses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1055,6 +1748,28 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.routemeta.references.api.operation": {
+      "id": "navigation.routemeta.references.api.operation",
+      "source_spec_node_id": "navigation.routemeta",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.routemeta.references.security.securitypolicy": {
+      "id": "navigation.routemeta.references.security.securitypolicy",
+      "source_spec_node_id": "navigation.routemeta",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.routemeta.serves.navigation.route": {
       "id": "navigation.routemeta.serves.navigation.route",
       "source_spec_node_id": "navigation.routemeta",
@@ -1062,6 +1777,17 @@
       "destination_spec_node_id": "navigation.route",
       "destination_layer": "navigation",
       "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.routemeta.uses.ux.layoutconfig": {
+      "id": "navigation.routemeta.uses.ux.layoutconfig",
+      "source_spec_node_id": "navigation.routemeta",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "uses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

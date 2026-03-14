@@ -1881,6 +1881,61 @@
       "strength": "medium",
       "required": false
     },
+    "api.openapidocument.depends-on.technology.technologyservice": {
+      "id": "api.openapidocument.depends-on.technology.technologyservice",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.realizes.application.applicationservice": {
+      "id": "api.openapidocument.realizes.application.applicationservice",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.realizes.business.businessservice": {
+      "id": "api.openapidocument.realizes.business.businessservice",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.serves.application.applicationcomponent": {
+      "id": "api.openapidocument.serves.application.applicationcomponent",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.serves.motivation.stakeholder": {
+      "id": "api.openapidocument.serves.motivation.stakeholder",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.operation.aggregates.api.parameter": {
       "id": "api.operation.aggregates.api.parameter",
       "source_spec_node_id": "api.operation",
@@ -1969,6 +2024,50 @@
       "strength": "medium",
       "required": false
     },
+    "api.operation.realizes.application.applicationfunction": {
+      "id": "api.operation.realizes.application.applicationfunction",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.realizes.business.businessprocess": {
+      "id": "api.operation.realizes.business.businessprocess",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.realizes.motivation.goal": {
+      "id": "api.operation.realizes.motivation.goal",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.realizes.motivation.outcome": {
+      "id": "api.operation.realizes.motivation.outcome",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.operation.references.application.applicationservice": {
       "id": "api.operation.references.application.applicationservice",
       "source_spec_node_id": "api.operation",
@@ -2046,6 +2145,17 @@
       "strength": "medium",
       "required": false
     },
+    "api.operation.references.security.threat": {
+      "id": "api.operation.references.security.threat",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.operation.references.apm.traceconfiguration": {
       "id": "api.operation.references.apm.traceconfiguration",
       "source_spec_node_id": "api.operation",
@@ -2068,6 +2178,83 @@
       "strength": "medium",
       "required": false
     },
+    "api.operation.requires.security.securitypolicy": {
+      "id": "api.operation.requires.security.securitypolicy",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.satisfies.motivation.constraint": {
+      "id": "api.operation.satisfies.motivation.constraint",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.satisfies.security.countermeasure": {
+      "id": "api.operation.satisfies.security.countermeasure",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.satisfies.motivation.requirement": {
+      "id": "api.operation.satisfies.motivation.requirement",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.serves.business.businessrole": {
+      "id": "api.operation.serves.business.businessrole",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.triggers.application.applicationevent": {
+      "id": "api.operation.triggers.application.applicationevent",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationevent",
+      "destination_layer": "application",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.triggers.business.businessprocess": {
+      "id": "api.operation.triggers.business.businessprocess",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.operation.triggers.api.callback": {
       "id": "api.operation.triggers.api.callback",
       "source_spec_node_id": "api.operation",
@@ -2079,12 +2266,34 @@
       "strength": "medium",
       "required": false
     },
+    "api.operation.uses.application.applicationinterface": {
+      "id": "api.operation.uses.application.applicationinterface",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationinterface",
+      "destination_layer": "application",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.operation.uses.api.securityscheme": {
       "id": "api.operation.uses.api.securityscheme",
       "source_spec_node_id": "api.operation",
       "source_layer": "api",
       "destination_spec_node_id": "api.securityscheme",
       "destination_layer": "api",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.uses.technology.technologyservice": {
+      "id": "api.operation.uses.technology.technologyservice",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
       "predicate": "uses",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -2167,6 +2376,28 @@
       "strength": "medium",
       "required": false
     },
+    "api.pathitem.depends-on.technology.technologyservice": {
+      "id": "api.pathitem.depends-on.technology.technologyservice",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.pathitem.realizes.business.businessfunction": {
+      "id": "api.pathitem.realizes.business.businessfunction",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.pathitem.references.api.externaldocumentation": {
       "id": "api.pathitem.references.api.externaldocumentation",
       "source_spec_node_id": "api.pathitem",
@@ -2185,6 +2416,28 @@
       "destination_spec_node_id": "api.pathitem",
       "destination_layer": "api",
       "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.pathitem.requires.security.securitypolicy": {
+      "id": "api.pathitem.requires.security.securitypolicy",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.pathitem.serves.application.applicationcomponent": {
+      "id": "api.pathitem.serves.application.applicationcomponent",
+      "source_spec_node_id": "api.pathitem",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2299,6 +2552,28 @@
       "strength": "medium",
       "required": false
     },
+    "api.ratelimit.implements.security.countermeasure": {
+      "id": "api.ratelimit.implements.security.countermeasure",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.ratelimit.satisfies.motivation.constraint": {
+      "id": "api.ratelimit.satisfies.motivation.constraint",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.ratelimit.serves.api.operation": {
       "id": "api.ratelimit.serves.api.operation",
       "source_spec_node_id": "api.ratelimit",
@@ -2343,6 +2618,17 @@
       "strength": "medium",
       "required": false
     },
+    "api.ratelimit.uses.technology.systemsoftware": {
+      "id": "api.ratelimit.uses.technology.systemsoftware",
+      "source_spec_node_id": "api.ratelimit",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.requestbody.aggregates.api.example": {
       "id": "api.requestbody.aggregates.api.example",
       "source_spec_node_id": "api.requestbody",
@@ -2383,6 +2669,17 @@
       "destination_spec_node_id": "api.mediatype",
       "destination_layer": "api",
       "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.requestbody.maps-to.business.businessobject": {
+      "id": "api.requestbody.maps-to.business.businessobject",
+      "source_spec_node_id": "api.requestbody",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "maps-to",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2563,6 +2860,17 @@
       "strength": "medium",
       "required": false
     },
+    "api.schema.maps-to.business.businessobject": {
+      "id": "api.schema.maps-to.business.businessobject",
+      "source_spec_node_id": "api.schema",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.schema.maps-to.data-store.collection": {
       "id": "api.schema.maps-to.data-store.collection",
       "source_spec_node_id": "api.schema",
@@ -2640,6 +2948,28 @@
       "strength": "high",
       "required": false
     },
+    "api.securityscheme.implements.security.securitypolicy": {
+      "id": "api.securityscheme.implements.security.securitypolicy",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.maps-to.security.actor": {
+      "id": "api.securityscheme.maps-to.security.actor",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.actor",
+      "destination_layer": "security",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.securityscheme.maps-to.data-store.collection": {
       "id": "api.securityscheme.maps-to.data-store.collection",
       "source_spec_node_id": "api.securityscheme",
@@ -2647,6 +2977,17 @@
       "destination_spec_node_id": "data-store.collection",
       "destination_layer": "data-store",
       "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.references.application.applicationcomponent": {
+      "id": "api.securityscheme.references.application.applicationcomponent",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2706,6 +3047,39 @@
       "strength": "medium",
       "required": false
     },
+    "api.securityscheme.satisfies.motivation.principle": {
+      "id": "api.securityscheme.satisfies.motivation.principle",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.satisfies.motivation.requirement": {
+      "id": "api.securityscheme.satisfies.motivation.requirement",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.serves.business.businessrole": {
+      "id": "api.securityscheme.serves.business.businessrole",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.securityscheme.serves.api.operation": {
       "id": "api.securityscheme.serves.api.operation",
       "source_spec_node_id": "api.securityscheme",
@@ -2714,6 +3088,17 @@
       "destination_layer": "api",
       "predicate": "serves",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.securityscheme.uses.technology.systemsoftware": {
+      "id": "api.securityscheme.uses.technology.systemsoftware",
+      "source_spec_node_id": "api.securityscheme",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -2739,6 +3124,17 @@
       "strength": "medium",
       "required": false
     },
+    "api.server.depends-on.technology.node": {
+      "id": "api.server.depends-on.technology.node",
+      "source_spec_node_id": "api.server",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.server.references.api.securityscheme": {
       "id": "api.server.references.api.securityscheme",
       "source_spec_node_id": "api.server",
@@ -2750,6 +3146,28 @@
       "strength": "medium",
       "required": false
     },
+    "api.server.satisfies.security.securitypolicy": {
+      "id": "api.server.satisfies.security.securitypolicy",
+      "source_spec_node_id": "api.server",
+      "source_layer": "api",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.server.serves.application.applicationcomponent": {
+      "id": "api.server.serves.application.applicationcomponent",
+      "source_spec_node_id": "api.server",
+      "source_layer": "api",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.server.serves.api.pathitem": {
       "id": "api.server.serves.api.pathitem",
       "source_spec_node_id": "api.server",
@@ -2757,6 +3175,17 @@
       "destination_spec_node_id": "api.pathitem",
       "destination_layer": "api",
       "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.server.uses.technology.systemsoftware": {
+      "id": "api.server.uses.technology.systemsoftware",
+      "source_spec_node_id": "api.server",
+      "source_layer": "api",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "uses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

@@ -1484,6 +1484,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.accountabilityrequirement.satisfies.motivation.requirement": {
+      "id": "security.accountabilityrequirement.satisfies.motivation.requirement",
+      "source_spec_node_id": "security.accountabilityrequirement",
+      "source_layer": "security",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.actor.accesses.security.secureresource": {
       "id": "security.actor.accesses.security.secureresource",
       "source_spec_node_id": "security.actor",
@@ -1825,6 +1836,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.countermeasure.protects.business.businessprocess": {
+      "id": "security.countermeasure.protects.business.businessprocess",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "protects",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.countermeasure.protects.security.secureresource": {
       "id": "security.countermeasure.protects.security.secureresource",
       "source_spec_node_id": "security.countermeasure",
@@ -1836,6 +1858,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.countermeasure.realizes.motivation.goal": {
+      "id": "security.countermeasure.realizes.motivation.goal",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.countermeasure.requires.security.evidence": {
       "id": "security.countermeasure.requires.security.evidence",
       "source_spec_node_id": "security.countermeasure",
@@ -1843,6 +1876,17 @@
       "destination_spec_node_id": "security.evidence",
       "destination_layer": "security",
       "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.countermeasure.satisfies.motivation.requirement": {
+      "id": "security.countermeasure.satisfies.motivation.requirement",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2562,6 +2606,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.role.maps-to.business.businessrole": {
+      "id": "security.role.maps-to.business.businessrole",
+      "source_spec_node_id": "security.role",
+      "source_layer": "security",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.role.provides.security.permission": {
       "id": "security.role.provides.security.permission",
       "source_spec_node_id": "security.role",
@@ -2602,6 +2657,17 @@
       "destination_spec_node_id": "security.resourceoperation",
       "destination_layer": "security",
       "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.secureresource.references.business.businessobject": {
+      "id": "security.secureresource.references.business.businessobject",
+      "source_spec_node_id": "security.secureresource",
+      "source_layer": "security",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2657,6 +2723,17 @@
       "destination_spec_node_id": "security.securitypolicy",
       "destination_layer": "security",
       "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securityconstraints.implements.motivation.constraint": {
+      "id": "security.securityconstraints.implements.motivation.constraint",
+      "source_spec_node_id": "security.securityconstraints",
+      "source_layer": "security",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "implements",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2826,6 +2903,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.securitypolicy.constrains.business.businessprocess": {
+      "id": "security.securitypolicy.constrains.business.businessprocess",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.securitypolicy.constrains.security.permission": {
       "id": "security.securitypolicy.constrains.security.permission",
       "source_spec_node_id": "security.securitypolicy",
@@ -2859,6 +2947,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.securitypolicy.governs.business.businessservice": {
+      "id": "security.securitypolicy.governs.business.businessservice",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.securitypolicy.governs.security.passwordpolicy": {
       "id": "security.securitypolicy.governs.security.passwordpolicy",
       "source_spec_node_id": "security.securitypolicy",
@@ -2881,6 +2980,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.securitypolicy.realizes.motivation.principle": {
+      "id": "security.securitypolicy.realizes.motivation.principle",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.securitypolicy.requires.security.countermeasure": {
       "id": "security.securitypolicy.requires.security.countermeasure",
       "source_spec_node_id": "security.securitypolicy",
@@ -2892,6 +3002,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.securitypolicy.satisfies.motivation.requirement": {
+      "id": "security.securitypolicy.satisfies.motivation.requirement",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.separationofduty.associated-with.security.bindingofduty": {
       "id": "security.separationofduty.associated-with.security.bindingofduty",
       "source_spec_node_id": "security.separationofduty",
@@ -2899,6 +3020,17 @@
       "destination_spec_node_id": "security.bindingofduty",
       "destination_layer": "security",
       "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.separationofduty.constrains.business.businessrole": {
+      "id": "security.separationofduty.constrains.business.businessrole",
+      "source_spec_node_id": "security.separationofduty",
+      "source_layer": "security",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "constrains",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2998,6 +3130,50 @@
       "destination_spec_node_id": "security.securitypolicy",
       "destination_layer": "security",
       "predicate": "influence",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.maps-to.motivation.requirement": {
+      "id": "security.threat.maps-to.motivation.requirement",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.realizes.motivation.driver": {
+      "id": "security.threat.realizes.motivation.driver",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.targets.business.businessprocess": {
+      "id": "security.threat.targets.business.businessprocess",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "targets",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.targets.business.businessservice": {
+      "id": "security.threat.targets.business.businessservice",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "targets",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

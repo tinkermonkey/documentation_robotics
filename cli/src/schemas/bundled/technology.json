@@ -711,6 +711,28 @@
       "strength": "medium",
       "required": false
     },
+    "technology.device.satisfies.security.securitypolicy": {
+      "id": "technology.device.satisfies.security.securitypolicy",
+      "source_spec_node_id": "technology.device",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.device.serves.application.applicationcomponent": {
+      "id": "technology.device.serves.application.applicationcomponent",
+      "source_spec_node_id": "technology.device",
+      "source_layer": "technology",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "technology.node.assigned-to.technology.technologyfunction": {
       "id": "technology.node.assigned-to.technology.technologyfunction",
       "source_spec_node_id": "technology.node",
@@ -762,6 +784,50 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.satisfies.motivation.constraint": {
+      "id": "technology.node.satisfies.motivation.constraint",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.satisfies.security.securitypolicy": {
+      "id": "technology.node.satisfies.security.securitypolicy",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.serves.application.applicationcomponent": {
+      "id": "technology.node.serves.application.applicationcomponent",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.serves.business.businessprocess": {
+      "id": "technology.node.serves.business.businessprocess",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -898,6 +964,39 @@
       "strength": "medium",
       "required": false
     },
+    "technology.systemsoftware.implements.security.countermeasure": {
+      "id": "technology.systemsoftware.implements.security.countermeasure",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.implements.motivation.principle": {
+      "id": "technology.systemsoftware.implements.motivation.principle",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.mitigates.security.threat": {
+      "id": "technology.systemsoftware.mitigates.security.threat",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "mitigates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "technology.systemsoftware.provides.technology.technologyinterface": {
       "id": "technology.systemsoftware.provides.technology.technologyinterface",
       "source_spec_node_id": "technology.systemsoftware",
@@ -909,6 +1008,50 @@
       "strength": "medium",
       "required": false
     },
+    "technology.systemsoftware.realizes.application.applicationservice": {
+      "id": "technology.systemsoftware.realizes.application.applicationservice",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.realizes.business.businessservice": {
+      "id": "technology.systemsoftware.realizes.business.businessservice",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.realizes.motivation.goal": {
+      "id": "technology.systemsoftware.realizes.motivation.goal",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.realizes.security.securitypolicy": {
+      "id": "technology.systemsoftware.realizes.security.securitypolicy",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "technology.systemsoftware.realizes.technology.technologyservice": {
       "id": "technology.systemsoftware.realizes.technology.technologyservice",
       "source_spec_node_id": "technology.systemsoftware",
@@ -916,6 +1059,50 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.satisfies.motivation.constraint": {
+      "id": "technology.systemsoftware.satisfies.motivation.constraint",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.satisfies.motivation.requirement": {
+      "id": "technology.systemsoftware.satisfies.motivation.requirement",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.serves.application.applicationcomponent": {
+      "id": "technology.systemsoftware.serves.application.applicationcomponent",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.systemsoftware.serves.business.businessprocess": {
+      "id": "technology.systemsoftware.serves.business.businessprocess",
+      "source_spec_node_id": "technology.systemsoftware",
+      "source_layer": "technology",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1162,6 +1349,17 @@
       "strength": "medium",
       "required": false
     },
+    "technology.technologyfunction.implements.security.countermeasure": {
+      "id": "technology.technologyfunction.implements.security.countermeasure",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "technology.technologyfunction.realizes.technology.technologyservice": {
       "id": "technology.technologyfunction.realizes.technology.technologyservice",
       "source_spec_node_id": "technology.technologyfunction",
@@ -1169,6 +1367,28 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.serves.application.applicationfunction": {
+      "id": "technology.technologyfunction.serves.application.applicationfunction",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyfunction.serves.business.businessservice": {
+      "id": "technology.technologyfunction.serves.business.businessservice",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1426,6 +1646,17 @@
       "strength": "medium",
       "required": false
     },
+    "technology.technologyservice.accesses.security.secureresource": {
+      "id": "technology.technologyservice.accesses.security.secureresource",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "technology.technologyservice.aggregates.technology.technologyfunction": {
       "id": "technology.technologyservice.aggregates.technology.technologyfunction",
       "source_spec_node_id": "technology.technologyservice",
@@ -1499,6 +1730,116 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.realizes.business.businessservice": {
+      "id": "technology.technologyservice.realizes.business.businessservice",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.realizes.motivation.goal": {
+      "id": "technology.technologyservice.realizes.motivation.goal",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.satisfies.motivation.requirement": {
+      "id": "technology.technologyservice.satisfies.motivation.requirement",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.satisfies.security.securitypolicy": {
+      "id": "technology.technologyservice.satisfies.security.securitypolicy",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.serves.application.applicationcomponent": {
+      "id": "technology.technologyservice.serves.application.applicationcomponent",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.serves.application.applicationservice": {
+      "id": "technology.technologyservice.serves.application.applicationservice",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.serves.business.businessfunction": {
+      "id": "technology.technologyservice.serves.business.businessfunction",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.serves.business.businessprocess": {
+      "id": "technology.technologyservice.serves.business.businessprocess",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.serves.business.businessservice": {
+      "id": "technology.technologyservice.serves.business.businessservice",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.serves.motivation.stakeholder": {
+      "id": "technology.technologyservice.serves.motivation.stakeholder",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

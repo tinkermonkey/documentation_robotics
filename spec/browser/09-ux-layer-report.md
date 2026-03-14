@@ -43,15 +43,15 @@ Layer 9: UX Layer
 | ------------------------- | ----- |
 | Node Types                | 22    |
 | Intra-Layer Relationships | 123   |
-| Inter-Layer Relationships | 0     |
-| Inbound Relationships     | 0     |
-| Outbound Relationships    | 0     |
+| Inter-Layer Relationships | 84    |
+| Inbound Relationships     | 24    |
+| Outbound Relationships    | 60    |
 
 ### Layer Dependencies
 
-**Depends On**: None
+**Depends On**: [Navigation](./10-navigation-layer-report.md), [APM](./11-apm-layer-report.md), [Testing](./12-testing-layer-report.md)
 
-**Depended On By**: None
+**Depended On By**: [Motivation](./01-motivation-layer-report.md), [Business](./02-business-layer-report.md), [Security](./03-security-layer-report.md), [Application](./04-application-layer-report.md), [Technology](./05-technology-layer-report.md), [API](./06-api-layer-report.md), [Data Model](./07-data-model-layer-report.md), [Data Store](./08-data-store-layer-report.md)
 
 ## Intra-Layer Relationships
 
@@ -227,22 +227,163 @@ flowchart TB
   api --> application
   api --> business
   api --> data_store
+  api --> motivation
   api --> security
+  api --> technology
+  apm --> api
+  apm --> application
+  apm --> business
+  apm --> data_model
+  apm --> data_store
+  apm --> motivation
+  apm --> navigation
+  apm --> security
+  apm --> technology
+  apm --> ux
   application --> apm
   application --> business
   application --> motivation
+  application --> security
   business --> application
   business --> motivation
   business --> security
+  data_model --> api
   data_model --> application
   data_model --> business
+  data_model --> motivation
+  data_model --> security
+  data_model --> technology
+  data_store --> api
+  data_store --> application
+  data_store --> business
+  data_store --> motivation
+  data_store --> security
+  data_store --> technology
+  navigation --> api
+  navigation --> application
+  navigation --> business
+  navigation --> data_model
+  navigation --> data_store
+  navigation --> motivation
+  navigation --> security
+  navigation --> technology
+  navigation --> ux
+  security --> business
+  security --> motivation
+  technology --> application
+  technology --> business
+  technology --> motivation
+  technology --> security
+  testing --> api
+  testing --> apm
+  testing --> application
+  testing --> business
+  testing --> data_model
+  testing --> data_store
   testing --> motivation
+  testing --> navigation
+  testing --> security
+  testing --> technology
+  testing --> ux
+  ux --> api
+  ux --> application
+  ux --> business
+  ux --> data_model
+  ux --> data_store
+  ux --> motivation
+  ux --> security
+  ux --> technology
   class ux current
 ```
 
 ## Inter-Layer Relationships Table
 
-No inter-layer relationships defined.
+| Relationship ID                                              | Source Node                                                                  | Dest Node                                                                     | Dest Layer                                      | Predicate  | Cardinality | Strength |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | ----------- | -------- |
+| apm.instrumentationscope.monitors.ux.uxapplication           | [Instrumentationscope](./11-apm-layer-report.md#instrumentationscope)        | [Uxapplication](./09-ux-layer-report.md#uxapplication)                        | [UX](./09-ux-layer-report.md)                   | monitors   | many-to-one | medium   |
+| apm.logrecord.references.ux.view                             | [Logrecord](./11-apm-layer-report.md#logrecord)                              | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | references | many-to-one | medium   |
+| apm.metricinstrument.monitors.ux.actioncomponent             | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                    | [UX](./09-ux-layer-report.md)                   | monitors   | many-to-one | medium   |
+| apm.metricinstrument.monitors.ux.errorconfig                 | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                | [Errorconfig](./09-ux-layer-report.md#errorconfig)                            | [UX](./09-ux-layer-report.md)                   | monitors   | many-to-one | medium   |
+| apm.metricinstrument.monitors.ux.view                        | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | monitors   | many-to-one | medium   |
+| apm.span.monitors.ux.view                                    | [Span](./11-apm-layer-report.md#span)                                        | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | monitors   | many-to-one | medium   |
+| apm.spanevent.monitors.ux.actioncomponent                    | [Spanevent](./11-apm-layer-report.md#spanevent)                              | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                    | [UX](./09-ux-layer-report.md)                   | monitors   | many-to-one | medium   |
+| apm.traceconfiguration.monitors.ux.uxapplication             | [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)            | [Uxapplication](./09-ux-layer-report.md#uxapplication)                        | [UX](./09-ux-layer-report.md)                   | monitors   | many-to-one | medium   |
+| navigation.flowstep.maps-to.ux.view                          | [Flowstep](./10-navigation-layer-report.md#flowstep)                         | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | maps-to    | many-to-one | medium   |
+| navigation.navigationflow.accesses.ux.view                   | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | accesses   | many-to-one | medium   |
+| navigation.navigationguard.triggers.ux.experiencestate       | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Experiencestate](./09-ux-layer-report.md#experiencestate)                    | [UX](./09-ux-layer-report.md)                   | triggers   | many-to-one | medium   |
+| navigation.navigationtransition.triggers.ux.statetransition  | [Navigationtransition](./10-navigation-layer-report.md#navigationtransition) | [Statetransition](./09-ux-layer-report.md#statetransition)                    | [UX](./09-ux-layer-report.md)                   | triggers   | many-to-one | medium   |
+| navigation.route.maps-to.ux.view                             | [Route](./10-navigation-layer-report.md#route)                               | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | maps-to    | many-to-one | medium   |
+| navigation.route.uses.ux.errorconfig                         | [Route](./10-navigation-layer-report.md#route)                               | [Errorconfig](./09-ux-layer-report.md#errorconfig)                            | [UX](./09-ux-layer-report.md)                   | uses       | many-to-one | medium   |
+| navigation.route.uses.ux.layoutconfig                        | [Route](./10-navigation-layer-report.md#route)                               | [Layoutconfig](./09-ux-layer-report.md#layoutconfig)                          | [UX](./09-ux-layer-report.md)                   | uses       | many-to-one | medium   |
+| navigation.routemeta.uses.ux.layoutconfig                    | [Routemeta](./10-navigation-layer-report.md#routemeta)                       | [Layoutconfig](./09-ux-layer-report.md#layoutconfig)                          | [UX](./09-ux-layer-report.md)                   | uses       | many-to-one | medium   |
+| testing.coveragerequirement.covers.ux.experiencestate        | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement)      | [Experiencestate](./09-ux-layer-report.md#experiencestate)                    | [UX](./09-ux-layer-report.md)                   | covers     | many-to-one | medium   |
+| testing.targetinputfield.maps-to.ux.actioncomponent          | [Targetinputfield](./12-testing-layer-report.md#targetinputfield)            | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                    | [UX](./09-ux-layer-report.md)                   | maps-to    | many-to-one | medium   |
+| testing.testcasesketch.tests.ux.actioncomponent              | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                    | [UX](./09-ux-layer-report.md)                   | tests      | many-to-one | medium   |
+| testing.testcasesketch.tests.ux.librarycomponent             | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                  | [UX](./09-ux-layer-report.md)                   | tests      | many-to-one | medium   |
+| testing.testcasesketch.tests.ux.view                         | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | tests      | many-to-one | medium   |
+| testing.testcoveragemodel.covers.ux.uxapplication            | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)          | [Uxapplication](./09-ux-layer-report.md#uxapplication)                        | [UX](./09-ux-layer-report.md)                   | covers     | many-to-one | medium   |
+| testing.testcoveragetarget.covers.ux.subview                 | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)        | [Subview](./09-ux-layer-report.md#subview)                                    | [UX](./09-ux-layer-report.md)                   | covers     | many-to-one | medium   |
+| testing.testcoveragetarget.covers.ux.view                    | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)        | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | covers     | many-to-one | medium   |
+| ux.actioncomponent.accesses.data-store.collection            | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| ux.actioncomponent.realizes.business.businessfunction        | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | realizes   | many-to-one | medium   |
+| ux.actioncomponent.references.security.secureresource        | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | references | many-to-one | medium   |
+| ux.actioncomponent.requires.security.permission              | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Permission](./03-security-layer-report.md#permission)                        | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
+| ux.actioncomponent.satisfies.motivation.requirement          | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
+| ux.actioncomponent.triggers.api.operation                    | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | triggers   | many-to-one | medium   |
+| ux.actioncomponent.triggers.application.applicationservice   | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | triggers   | many-to-one | medium   |
+| ux.actioncomponent.triggers.business.businessevent           | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Businessevent](./02-business-layer-report.md#businessevent)                  | [Business](./02-business-layer-report.md)       | triggers   | many-to-one | medium   |
+| ux.actioncomponent.triggers.data-store.storedlogic           | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Storedlogic](./08-data-store-layer-report.md#storedlogic)                    | [Data Store](./08-data-store-layer-report.md)   | triggers   | many-to-one | medium   |
+| ux.actioncomponent.uses.application.applicationfunction      | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Applicationfunction](./04-application-layer-report.md#applicationfunction)   | [Application](./04-application-layer-report.md) | uses       | many-to-one | medium   |
+| ux.actioncomponent.uses.technology.technologyservice         | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                   | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
+| ux.chartseries.accesses.data-store.collection                | [Chartseries](./09-ux-layer-report.md#chartseries)                           | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| ux.chartseries.maps-to.data-model.arrayschema                | [Chartseries](./09-ux-layer-report.md#chartseries)                           | [Arrayschema](./07-data-model-layer-report.md#arrayschema)                    | [Data Model](./07-data-model-layer-report.md)   | maps-to    | many-to-one | medium   |
+| ux.componentinstance.accesses.application.applicationservice | [Componentinstance](./09-ux-layer-report.md#componentinstance)               | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | accesses   | many-to-one | medium   |
+| ux.componentinstance.maps-to.data-model.objectschema         | [Componentinstance](./09-ux-layer-report.md#componentinstance)               | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | maps-to    | many-to-one | medium   |
+| ux.dataconfig.accesses.data-store.collection                 | [Dataconfig](./09-ux-layer-report.md#dataconfig)                             | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| ux.dataconfig.maps-to.api.requestbody                        | [Dataconfig](./09-ux-layer-report.md#dataconfig)                             | [Requestbody](./06-api-layer-report.md#requestbody)                           | [API](./06-api-layer-report.md)                 | maps-to    | many-to-one | medium   |
+| ux.dataconfig.maps-to.api.response                           | [Dataconfig](./09-ux-layer-report.md#dataconfig)                             | [Response](./06-api-layer-report.md#response)                                 | [API](./06-api-layer-report.md)                 | maps-to    | many-to-one | medium   |
+| ux.dataconfig.maps-to.api.schema                             | [Dataconfig](./09-ux-layer-report.md#dataconfig)                             | [Schema](./06-api-layer-report.md#schema)                                     | [API](./06-api-layer-report.md)                 | maps-to    | many-to-one | medium   |
+| ux.dataconfig.maps-to.data-model.objectschema                | [Dataconfig](./09-ux-layer-report.md#dataconfig)                             | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | maps-to    | many-to-one | medium   |
+| ux.dataconfig.references.data-model.schemadefinition         | [Dataconfig](./09-ux-layer-report.md#dataconfig)                             | [Schemadefinition](./07-data-model-layer-report.md#schemadefinition)          | [Data Model](./07-data-model-layer-report.md)   | references | many-to-one | medium   |
+| ux.errorconfig.maps-to.api.response                          | [Errorconfig](./09-ux-layer-report.md#errorconfig)                           | [Response](./06-api-layer-report.md#response)                                 | [API](./06-api-layer-report.md)                 | maps-to    | many-to-one | medium   |
+| ux.errorconfig.references.data-model.objectschema            | [Errorconfig](./09-ux-layer-report.md#errorconfig)                           | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | references | many-to-one | medium   |
+| ux.librarycomponent.depends-on.technology.systemsoftware     | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                 | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
+| ux.librarycomponent.requires.technology.technologyservice    | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                 | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | requires   | many-to-one | medium   |
+| ux.librarycomponent.satisfies.motivation.principle           | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                 | [Principle](./01-motivation-layer-report.md#principle)                        | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
+| ux.librarycomponent.satisfies.motivation.requirement         | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                 | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
+| ux.stateaction.triggers.api.operation                        | [Stateaction](./09-ux-layer-report.md#stateaction)                           | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | triggers   | many-to-one | medium   |
+| ux.subview.accesses.data-store.collection                    | [Subview](./09-ux-layer-report.md#subview)                                   | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| ux.subview.realizes.business.businessprocess                 | [Subview](./09-ux-layer-report.md#subview)                                   | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | realizes   | many-to-one | medium   |
+| ux.subview.references.data-model.objectschema                | [Subview](./09-ux-layer-report.md#subview)                                   | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | references | many-to-one | medium   |
+| ux.subview.requires.security.permission                      | [Subview](./09-ux-layer-report.md#subview)                                   | [Permission](./03-security-layer-report.md#permission)                        | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
+| ux.subview.serves.application.applicationservice             | [Subview](./09-ux-layer-report.md#subview)                                   | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | serves     | many-to-one | medium   |
+| ux.tablecolumn.maps-to.data-model.schemaproperty             | [Tablecolumn](./09-ux-layer-report.md#tablecolumn)                           | [Schemaproperty](./07-data-model-layer-report.md#schemaproperty)              | [Data Model](./07-data-model-layer-report.md)   | maps-to    | many-to-one | medium   |
+| ux.tablecolumn.maps-to.data-store.field                      | [Tablecolumn](./09-ux-layer-report.md#tablecolumn)                           | [Field](./08-data-store-layer-report.md#field)                                | [Data Store](./08-data-store-layer-report.md)   | maps-to    | many-to-one | medium   |
+| ux.tablecolumn.references.security.fieldaccesscontrol        | [Tablecolumn](./09-ux-layer-report.md#tablecolumn)                           | [Fieldaccesscontrol](./03-security-layer-report.md#fieldaccesscontrol)        | [Security](./03-security-layer-report.md)       | references | many-to-one | medium   |
+| ux.uxspec.satisfies.motivation.requirement                   | [Uxspec](./09-ux-layer-report.md#uxspec)                                     | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
+| ux.view.accesses.api.operation                               | [View](./09-ux-layer-report.md#view)                                         | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | accesses   | many-to-one | medium   |
+| ux.view.accesses.application.applicationcomponent            | [View](./09-ux-layer-report.md#view)                                         | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | accesses   | many-to-one | medium   |
+| ux.view.accesses.data-store.collection                       | [View](./09-ux-layer-report.md#view)                                         | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| ux.view.accesses.data-store.view                             | [View](./09-ux-layer-report.md#view)                                         | [View](./08-data-store-layer-report.md#view)                                  | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| ux.view.depends-on.technology.systemsoftware                 | [View](./09-ux-layer-report.md#view)                                         | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
+| ux.view.maps-to.business.businessobject                      | [View](./09-ux-layer-report.md#view)                                         | [Businessobject](./02-business-layer-report.md#businessobject)                | [Business](./02-business-layer-report.md)       | maps-to    | many-to-one | medium   |
+| ux.view.maps-to.motivation.outcome                           | [View](./09-ux-layer-report.md#view)                                         | [Outcome](./01-motivation-layer-report.md#outcome)                            | [Motivation](./01-motivation-layer-report.md)   | maps-to    | many-to-one | medium   |
+| ux.view.realizes.application.applicationinterface            | [View](./09-ux-layer-report.md#view)                                         | [Applicationinterface](./04-application-layer-report.md#applicationinterface) | [Application](./04-application-layer-report.md) | realizes   | many-to-one | medium   |
+| ux.view.realizes.business.businessprocess                    | [View](./09-ux-layer-report.md#view)                                         | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | realizes   | many-to-one | medium   |
+| ux.view.realizes.motivation.goal                             | [View](./09-ux-layer-report.md#view)                                         | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | many-to-one | medium   |
+| ux.view.references.data-model.objectschema                   | [View](./09-ux-layer-report.md#view)                                         | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | references | many-to-one | medium   |
+| ux.view.references.security.secureresource                   | [View](./09-ux-layer-report.md#view)                                         | [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | references | many-to-one | medium   |
+| ux.view.requires.security.permission                         | [View](./09-ux-layer-report.md#view)                                         | [Permission](./03-security-layer-report.md#permission)                        | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
+| ux.view.requires.security.role                               | [View](./09-ux-layer-report.md#view)                                         | [Role](./03-security-layer-report.md#role)                                    | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
+| ux.view.requires.technology.technologyservice                | [View](./09-ux-layer-report.md#view)                                         | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | requires   | many-to-one | medium   |
+| ux.view.satisfies.motivation.requirement                     | [View](./09-ux-layer-report.md#view)                                         | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
+| ux.view.satisfies.security.securitypolicy                    | [View](./09-ux-layer-report.md#view)                                         | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | many-to-one | medium   |
+| ux.view.serves.application.applicationservice                | [View](./09-ux-layer-report.md#view)                                         | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | serves     | many-to-one | medium   |
+| ux.view.serves.business.businessrole                         | [View](./09-ux-layer-report.md#view)                                         | [Businessrole](./02-business-layer-report.md#businessrole)                    | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
+| ux.view.serves.business.businessservice                      | [View](./09-ux-layer-report.md#view)                                         | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
+| ux.view.serves.motivation.stakeholder                        | [View](./09-ux-layer-report.md#view)                                         | [Stakeholder](./01-motivation-layer-report.md#stakeholder)                    | [Motivation](./01-motivation-layer-report.md)   | serves     | many-to-one | medium   |
+| ux.view.uses.api.securityscheme                              | [View](./09-ux-layer-report.md#view)                                         | [Securityscheme](./06-api-layer-report.md#securityscheme)                     | [API](./06-api-layer-report.md)                 | uses       | many-to-one | medium   |
+| ux.view.uses.application.applicationevent                    | [View](./09-ux-layer-report.md#view)                                         | [Applicationevent](./04-application-layer-report.md#applicationevent)         | [Application](./04-application-layer-report.md) | uses       | many-to-one | medium   |
 
 ## Node Reference
 
@@ -255,7 +396,7 @@ Interactive element that triggers actions (button, menu, link, voice command)
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 9 | Outbound: 9
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 4 | Outbound: 11
 
 #### Intra-Layer Relationships
 
@@ -278,6 +419,26 @@ Interactive element that triggers actions (button, menu, link, voice command)
 | [Librarycomponent](#librarycomponent)     | renders         | inbound   | many-to-one |
 | [Statetransition](#statetransition)       | associated-with | inbound   | many-to-one |
 | [View](#view)                             | aggregates      | inbound   | one-to-many |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                                | Layer                                           | Predicate  | Direction | Cardinality |
+| --------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
+| [Metricinstrument](./11-apm-layer-report.md#metricinstrument)               | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
+| [Spanevent](./11-apm-layer-report.md#spanevent)                             | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
+| [Targetinputfield](./12-testing-layer-report.md#targetinputfield)           | [Testing](./12-testing-layer-report.md)         | maps-to    | inbound   | many-to-one |
+| [Testcasesketch](./12-testing-layer-report.md#testcasesketch)               | [Testing](./12-testing-layer-report.md)         | tests      | inbound   | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)                    | [Data Store](./08-data-store-layer-report.md)   | accesses   | outbound  | many-to-one |
+| [Businessfunction](./02-business-layer-report.md#businessfunction)          | [Business](./02-business-layer-report.md)       | realizes   | outbound  | many-to-one |
+| [Secureresource](./03-security-layer-report.md#secureresource)              | [Security](./03-security-layer-report.md)       | references | outbound  | many-to-one |
+| [Permission](./03-security-layer-report.md#permission)                      | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
+| [Requirement](./01-motivation-layer-report.md#requirement)                  | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-one |
+| [Operation](./06-api-layer-report.md#operation)                             | [API](./06-api-layer-report.md)                 | triggers   | outbound  | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice)   | [Application](./04-application-layer-report.md) | triggers   | outbound  | many-to-one |
+| [Businessevent](./02-business-layer-report.md#businessevent)                | [Business](./02-business-layer-report.md)       | triggers   | outbound  | many-to-one |
+| [Storedlogic](./08-data-store-layer-report.md#storedlogic)                  | [Data Store](./08-data-store-layer-report.md)   | triggers   | outbound  | many-to-one |
+| [Applicationfunction](./04-application-layer-report.md#applicationfunction) | [Application](./04-application-layer-report.md) | uses       | outbound  | many-to-one |
+| [Technologyservice](./05-technology-layer-report.md#technologyservice)      | [Technology](./05-technology-layer-report.md)   | uses       | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -318,7 +479,7 @@ Configuration for a data series within a chart component, specifying data source
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 2 | Outbound: 3
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 2
 
 #### Intra-Layer Relationships
 
@@ -329,6 +490,13 @@ Configuration for a data series within a chart component, specifying data source
 | [Experiencestate](#experiencestate)     | uses       | outbound  | many-to-one |
 | [Componentinstance](#componentinstance) | aggregates | inbound   | many-to-one |
 | [Dataconfig](#dataconfig)               | composes   | inbound   | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                               | Layer                                         | Predicate | Direction | Cardinality |
+| ---------------------------------------------------------- | --------------------------------------------- | --------- | --------- | ----------- |
+| [Collection](./08-data-store-layer-report.md#collection)   | [Data Store](./08-data-store-layer-report.md) | accesses  | outbound  | many-to-one |
+| [Arrayschema](./07-data-model-layer-report.md#arrayschema) | [Data Model](./07-data-model-layer-report.md) | maps-to   | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -341,7 +509,7 @@ Instance of a LibraryComponent with application-specific configuration
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 11 | Outbound: 12
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 2
 
 #### Intra-Layer Relationships
 
@@ -369,6 +537,13 @@ Instance of a LibraryComponent with application-specific configuration
 | [Subview](#subview)                       | renders    | inbound   | many-to-one |
 | [Tablecolumn](#tablecolumn)               | renders    | inbound   | many-to-one |
 | [View](#view)                             | renders    | inbound   | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                              | Layer                                           | Predicate | Direction | Cardinality |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | --------- | --------- | ----------- |
+| [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | accesses  | outbound  | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)              | [Data Model](./07-data-model-layer-report.md)   | maps-to   | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -409,7 +584,7 @@ Configuration for data binding and state management within UI components, defini
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 8 | Outbound: 8
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 6
 
 #### Intra-Layer Relationships
 
@@ -432,6 +607,17 @@ Configuration for data binding and state management within UI components, defini
 | [Tablecolumn](#tablecolumn)             | binds-to        | inbound   | many-to-one |
 | [View](#view)                           | binds-to        | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                         | Layer                                         | Predicate  | Direction | Cardinality |
+| -------------------------------------------------------------------- | --------------------------------------------- | ---------- | --------- | ----------- |
+| [Collection](./08-data-store-layer-report.md#collection)             | [Data Store](./08-data-store-layer-report.md) | accesses   | outbound  | many-to-one |
+| [Requestbody](./06-api-layer-report.md#requestbody)                  | [API](./06-api-layer-report.md)               | maps-to    | outbound  | many-to-one |
+| [Response](./06-api-layer-report.md#response)                        | [API](./06-api-layer-report.md)               | maps-to    | outbound  | many-to-one |
+| [Schema](./06-api-layer-report.md#schema)                            | [API](./06-api-layer-report.md)               | maps-to    | outbound  | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)         | [Data Model](./07-data-model-layer-report.md) | maps-to    | outbound  | many-to-one |
+| [Schemadefinition](./07-data-model-layer-report.md#schemadefinition) | [Data Model](./07-data-model-layer-report.md) | references | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Errorconfig {#errorconfig}
@@ -443,7 +629,7 @@ Configuration for error handling and display within UI components, specifying er
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 6 | Outbound: 5
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 2 | Outbound: 2
 
 #### Intra-Layer Relationships
 
@@ -461,6 +647,15 @@ Configuration for error handling and display within UI components, specifying er
 | [Uxspec](#uxspec)                       | governs         | inbound   | many-to-one |
 | [View](#view)                           | requires        | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                  | Layer                                         | Predicate  | Direction | Cardinality |
+| ------------------------------------------------------------- | --------------------------------------------- | ---------- | --------- | ----------- |
+| [Metricinstrument](./11-apm-layer-report.md#metricinstrument) | [APM](./11-apm-layer-report.md)               | monitors   | inbound   | many-to-one |
+| [Route](./10-navigation-layer-report.md#route)                | [Navigation](./10-navigation-layer-report.md) | uses       | inbound   | many-to-one |
+| [Response](./06-api-layer-report.md#response)                 | [API](./06-api-layer-report.md)               | maps-to    | outbound  | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)  | [Data Model](./07-data-model-layer-report.md) | references | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Experiencestate {#experiencestate}
@@ -472,7 +667,7 @@ Distinct state that the experience can be in (works across all channels)
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 8 | Outbound: 7
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 2 | Outbound: 0
 
 #### Intra-Layer Relationships
 
@@ -493,6 +688,13 @@ Distinct state that the experience can be in (works across all channels)
 | [Transitiontemplate](#transitiontemplate)   | flows-to     | inbound   | many-to-one |
 | [Uxspec](#uxspec)                           | aggregates   | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                            | Layer                                         | Predicate | Direction | Cardinality |
+| ----------------------------------------------------------------------- | --------------------------------------------- | --------- | --------- | ----------- |
+| [Navigationguard](./10-navigation-layer-report.md#navigationguard)      | [Navigation](./10-navigation-layer-report.md) | triggers  | inbound   | many-to-one |
+| [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Testing](./12-testing-layer-report.md)       | covers    | inbound   | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Layoutconfig {#layoutconfig}
@@ -504,7 +706,7 @@ Configuration for UI layout structure, defining grid systems, responsive breakpo
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 7 | Outbound: 5
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 2 | Outbound: 0
 
 #### Intra-Layer Relationships
 
@@ -522,6 +724,13 @@ Configuration for UI layout structure, defining grid systems, responsive breakpo
 | [Tablecolumn](#tablecolumn)               | uses            | inbound   | many-to-one |
 | [View](#view)                             | uses            | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                           | Layer                                         | Predicate | Direction | Cardinality |
+| ------------------------------------------------------ | --------------------------------------------- | --------- | --------- | ----------- |
+| [Route](./10-navigation-layer-report.md#route)         | [Navigation](./10-navigation-layer-report.md) | uses      | inbound   | many-to-one |
+| [Routemeta](./10-navigation-layer-report.md#routemeta) | [Navigation](./10-navigation-layer-report.md) | uses      | inbound   | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Librarycomponent {#librarycomponent}
@@ -533,7 +742,7 @@ Reusable UI component definition that can be instantiated in multiple UXSpecs
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 14 | Outbound: 9
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 1 | Outbound: 4
 
 #### Intra-Layer Relationships
 
@@ -559,6 +768,16 @@ Reusable UI component definition that can be instantiated in multiple UXSpecs
 | [Statepattern](#statepattern)             | uses            | outbound  | many-to-one |
 | [Uxlibrary](#uxlibrary)                   | aggregates      | inbound   | many-to-one |
 | [Uxlibrary](#uxlibrary)                   | provides        | inbound   | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                           | Layer                                         | Predicate  | Direction | Cardinality |
+| ---------------------------------------------------------------------- | --------------------------------------------- | ---------- | --------- | ----------- |
+| [Testcasesketch](./12-testing-layer-report.md#testcasesketch)          | [Testing](./12-testing-layer-report.md)       | tests      | inbound   | many-to-one |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware)       | [Technology](./05-technology-layer-report.md) | depends-on | outbound  | many-to-one |
+| [Technologyservice](./05-technology-layer-report.md#technologyservice) | [Technology](./05-technology-layer-report.md) | requires   | outbound  | many-to-one |
+| [Principle](./01-motivation-layer-report.md#principle)                 | [Motivation](./01-motivation-layer-report.md) | satisfies  | outbound  | many-to-one |
+| [Requirement](./01-motivation-layer-report.md#requirement)             | [Motivation](./01-motivation-layer-report.md) | satisfies  | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -597,7 +816,7 @@ A concrete action bound to a specific ExperienceState lifecycle event. Instances
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 6 | Outbound: 3
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 1
 
 #### Intra-Layer Relationships
 
@@ -612,6 +831,12 @@ A concrete action bound to a specific ExperienceState lifecycle event. Instances
 | [Stateactiontemplate](#stateactiontemplate) | provides    | inbound   | many-to-one |
 | [Statetransition](#statetransition)         | triggers    | inbound   | many-to-one |
 | [Transitiontemplate](#transitiontemplate)   | triggers    | inbound   | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                    | Layer                           | Predicate | Direction | Cardinality |
+| ----------------------------------------------- | ------------------------------- | --------- | --------- | ----------- |
+| [Operation](./06-api-layer-report.md#operation) | [API](./06-api-layer-report.md) | triggers  | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -677,7 +902,7 @@ A directed edge in the ExperienceState machine, owned by its source ExperienceSt
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 6 | Outbound: 4
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 1 | Outbound: 0
 
 #### Intra-Layer Relationships
 
@@ -694,6 +919,12 @@ A directed edge in the ExperienceState machine, owned by its source ExperienceSt
 | [Transitiontemplate](#transitiontemplate)   | uses            | outbound  | many-to-one |
 | [Transitiontemplate](#transitiontemplate)   | governs         | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                                 | Layer                                         | Predicate | Direction | Cardinality |
+| ---------------------------------------------------------------------------- | --------------------------------------------- | --------- | --------- | ----------- |
+| [Navigationtransition](./10-navigation-layer-report.md#navigationtransition) | [Navigation](./10-navigation-layer-report.md) | triggers  | inbound   | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Subview {#subview}
@@ -705,7 +936,7 @@ A non-routable UI fragment embedded within a parent View. Two usage modes: (1) L
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 5 | Outbound: 7
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 1 | Outbound: 5
 
 #### Intra-Layer Relationships
 
@@ -724,6 +955,17 @@ A non-routable UI fragment embedded within a parent View. Two usage modes: (1) L
 | [View](#view)                             | aggregates | inbound   | many-to-one |
 | [View](#view)                             | composes   | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                              | Layer                                           | Predicate  | Direction | Cardinality |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
+| [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)     | [Testing](./12-testing-layer-report.md)         | covers     | inbound   | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | accesses   | outbound  | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)          | [Business](./02-business-layer-report.md)       | realizes   | outbound  | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)              | [Data Model](./07-data-model-layer-report.md)   | references | outbound  | many-to-one |
+| [Permission](./03-security-layer-report.md#permission)                    | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Tablecolumn {#tablecolumn}
@@ -735,7 +977,7 @@ Configuration for a single column within a data table component, specifying head
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 2 | Outbound: 4
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 3
 
 #### Intra-Layer Relationships
 
@@ -747,6 +989,14 @@ Configuration for a single column within a data table component, specifying head
 | [Actionpattern](#actionpattern)         | references | outbound  | many-to-one |
 | [Componentinstance](#componentinstance) | renders    | outbound  | many-to-one |
 | [Layoutconfig](#layoutconfig)           | uses       | outbound  | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                           | Layer                                         | Predicate  | Direction | Cardinality |
+| ---------------------------------------------------------------------- | --------------------------------------------- | ---------- | --------- | ----------- |
+| [Schemaproperty](./07-data-model-layer-report.md#schemaproperty)       | [Data Model](./07-data-model-layer-report.md) | maps-to    | outbound  | many-to-one |
+| [Field](./08-data-store-layer-report.md#field)                         | [Data Store](./08-data-store-layer-report.md) | maps-to    | outbound  | many-to-one |
+| [Fieldaccesscontrol](./03-security-layer-report.md#fieldaccesscontrol) | [Security](./03-security-layer-report.md)     | references | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -786,13 +1036,21 @@ Application-level UX configuration that groups UXSpecs and defines shared settin
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 0 | Outbound: 1
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 3 | Outbound: 0
 
 #### Intra-Layer Relationships
 
 | Related Node      | Predicate  | Direction | Cardinality |
 | ----------------- | ---------- | --------- | ----------- |
 | [Uxspec](#uxspec) | aggregates | outbound  | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                          | Layer                                   | Predicate | Direction | Cardinality |
+| --------------------------------------------------------------------- | --------------------------------------- | --------- | --------- | ----------- |
+| [Instrumentationscope](./11-apm-layer-report.md#instrumentationscope) | [APM](./11-apm-layer-report.md)         | monitors  | inbound   | many-to-one |
+| [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)     | [APM](./11-apm-layer-report.md)         | monitors  | inbound   | many-to-one |
+| [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)   | [Testing](./12-testing-layer-report.md) | covers    | inbound   | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -829,7 +1087,7 @@ Complete UX specification for a single experience (visual, voice, chat, SMS)
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 1 | Outbound: 4
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 1
 
 #### Intra-Layer Relationships
 
@@ -840,6 +1098,12 @@ Complete UX specification for a single experience (visual, voice, chat, SMS)
 | [View](#view)                       | aggregates | outbound  | many-to-one |
 | [Errorconfig](#errorconfig)         | governs    | outbound  | many-to-one |
 | [Uxlibrary](#uxlibrary)             | uses       | outbound  | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                               | Layer                                         | Predicate | Direction | Cardinality |
+| ---------------------------------------------------------- | --------------------------------------------- | --------- | --------- | ----------- |
+| [Requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | satisfies | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -852,7 +1116,7 @@ Routable grouping of components (a complete user experience)
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 9 | Outbound: 7
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 8 | Outbound: 23
 
 #### Intra-Layer Relationships
 
@@ -875,8 +1139,44 @@ Routable grouping of components (a complete user experience)
 | [Errorconfig](#errorconfig)               | requires     | outbound  | many-to-one |
 | [Layoutconfig](#layoutconfig)             | uses         | outbound  | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                                  | Layer                                           | Predicate  | Direction | Cardinality |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
+| [Logrecord](./11-apm-layer-report.md#logrecord)                               | [APM](./11-apm-layer-report.md)                 | references | inbound   | many-to-one |
+| [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                 | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
+| [Span](./11-apm-layer-report.md#span)                                         | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
+| [Flowstep](./10-navigation-layer-report.md#flowstep)                          | [Navigation](./10-navigation-layer-report.md)   | maps-to    | inbound   | many-to-one |
+| [Navigationflow](./10-navigation-layer-report.md#navigationflow)              | [Navigation](./10-navigation-layer-report.md)   | accesses   | inbound   | many-to-one |
+| [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | maps-to    | inbound   | many-to-one |
+| [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                 | [Testing](./12-testing-layer-report.md)         | tests      | inbound   | many-to-one |
+| [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)         | [Testing](./12-testing-layer-report.md)         | covers     | inbound   | many-to-one |
+| [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | accesses   | outbound  | many-to-one |
+| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | accesses   | outbound  | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | outbound  | many-to-one |
+| [View](./08-data-store-layer-report.md#view)                                  | [Data Store](./08-data-store-layer-report.md)   | accesses   | outbound  | many-to-one |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | outbound  | many-to-one |
+| [Businessobject](./02-business-layer-report.md#businessobject)                | [Business](./02-business-layer-report.md)       | maps-to    | outbound  | many-to-one |
+| [Outcome](./01-motivation-layer-report.md#outcome)                            | [Motivation](./01-motivation-layer-report.md)   | maps-to    | outbound  | many-to-one |
+| [Applicationinterface](./04-application-layer-report.md#applicationinterface) | [Application](./04-application-layer-report.md) | realizes   | outbound  | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | realizes   | outbound  | many-to-one |
+| [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | outbound  | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | references | outbound  | many-to-one |
+| [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | references | outbound  | many-to-one |
+| [Permission](./03-security-layer-report.md#permission)                        | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
+| [Role](./03-security-layer-report.md#role)                                    | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
+| [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | requires   | outbound  | many-to-one |
+| [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-one |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | outbound  | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-one |
+| [Businessrole](./02-business-layer-report.md#businessrole)                    | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-one |
+| [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-one |
+| [Stakeholder](./01-motivation-layer-report.md#stakeholder)                    | [Motivation](./01-motivation-layer-report.md)   | serves     | outbound  | many-to-one |
+| [Securityscheme](./06-api-layer-report.md#securityscheme)                     | [API](./06-api-layer-report.md)                 | uses       | outbound  | many-to-one |
+| [Applicationevent](./04-application-layer-report.md#applicationevent)         | [Application](./04-application-layer-report.md) | uses       | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-03-06T06:16:41.134Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-14T21:04:51.706Z | Spec Version: 0.8.2 | Generator: generate-layer-reports.ts_

@@ -857,6 +857,61 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.accesspattern.maps-to.api.operation": {
+      "id": "data-store.accesspattern.maps-to.api.operation",
+      "source_spec_node_id": "data-store.accesspattern",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.accesspattern.satisfies.security.accesscondition": {
+      "id": "data-store.accesspattern.satisfies.security.accesscondition",
+      "source_spec_node_id": "data-store.accesspattern",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.accesspattern.satisfies.motivation.requirement": {
+      "id": "data-store.accesspattern.satisfies.motivation.requirement",
+      "source_spec_node_id": "data-store.accesspattern",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.accesspattern.serves.application.applicationfunction": {
+      "id": "data-store.accesspattern.serves.application.applicationfunction",
+      "source_spec_node_id": "data-store.accesspattern",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.accesspattern.serves.business.businessfunction": {
+      "id": "data-store.accesspattern.serves.business.businessfunction",
+      "source_spec_node_id": "data-store.accesspattern",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.accesspattern.triggers.data-store.eventhandler": {
       "id": "data-store.accesspattern.triggers.data-store.eventhandler",
       "source_spec_node_id": "data-store.accesspattern",
@@ -956,6 +1011,50 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.collection.implements.security.secureresource": {
+      "id": "data-store.collection.implements.security.secureresource",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.collection.maps-to.api.requestbody": {
+      "id": "data-store.collection.maps-to.api.requestbody",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "api.requestbody",
+      "destination_layer": "api",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.collection.realizes.business.businessobject": {
+      "id": "data-store.collection.realizes.business.businessobject",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.collection.realizes.api.schema": {
+      "id": "data-store.collection.realizes.api.schema",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.collection.references.data-store.collection": {
       "id": "data-store.collection.references.data-store.collection",
       "source_spec_node_id": "data-store.collection",
@@ -963,6 +1062,50 @@
       "destination_spec_node_id": "data-store.collection",
       "destination_layer": "data-store",
       "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.collection.satisfies.security.dataclassification": {
+      "id": "data-store.collection.satisfies.security.dataclassification",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.collection.satisfies.motivation.requirement": {
+      "id": "data-store.collection.satisfies.motivation.requirement",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.collection.serves.application.applicationcomponent": {
+      "id": "data-store.collection.serves.application.applicationcomponent",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.collection.serves.api.operation": {
+      "id": "data-store.collection.serves.api.operation",
+      "source_spec_node_id": "data-store.collection",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1033,6 +1176,138 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.database.depends-on.technology.node": {
+      "id": "data-store.database.depends-on.technology.node",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.depends-on.technology.systemsoftware": {
+      "id": "data-store.database.depends-on.technology.systemsoftware",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.realizes.business.businessservice": {
+      "id": "data-store.database.realizes.business.businessservice",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.satisfies.motivation.constraint": {
+      "id": "data-store.database.satisfies.motivation.constraint",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.satisfies.motivation.requirement": {
+      "id": "data-store.database.satisfies.motivation.requirement",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.satisfies.security.securitypolicy": {
+      "id": "data-store.database.satisfies.security.securitypolicy",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.serves.application.applicationcomponent": {
+      "id": "data-store.database.serves.application.applicationcomponent",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.serves.application.applicationservice": {
+      "id": "data-store.database.serves.application.applicationservice",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.serves.business.businessprocess": {
+      "id": "data-store.database.serves.business.businessprocess",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.uses.technology.technologyservice": {
+      "id": "data-store.database.uses.technology.technologyservice",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.eventhandler.triggers.application.applicationevent": {
+      "id": "data-store.eventhandler.triggers.application.applicationevent",
+      "source_spec_node_id": "data-store.eventhandler",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationevent",
+      "destination_layer": "application",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.eventhandler.triggers.business.businessevent": {
+      "id": "data-store.eventhandler.triggers.business.businessevent",
+      "source_spec_node_id": "data-store.eventhandler",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "business.businessevent",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.eventhandler.triggers.data-store.storedlogic": {
       "id": "data-store.eventhandler.triggers.data-store.storedlogic",
       "source_spec_node_id": "data-store.eventhandler",
@@ -1051,6 +1326,39 @@
       "destination_spec_node_id": "data-store.field",
       "destination_layer": "data-store",
       "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.field.maps-to.api.parameter": {
+      "id": "data-store.field.maps-to.api.parameter",
+      "source_spec_node_id": "data-store.field",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.field.requires.security.fieldaccesscontrol": {
+      "id": "data-store.field.requires.security.fieldaccesscontrol",
+      "source_spec_node_id": "data-store.field",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.fieldaccesscontrol",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.field.satisfies.security.dataclassification": {
+      "id": "data-store.field.satisfies.security.dataclassification",
+      "source_spec_node_id": "data-store.field",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.dataclassification",
+      "destination_layer": "security",
+      "predicate": "satisfies",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1220,6 +1528,61 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.retentionpolicy.satisfies.motivation.constraint": {
+      "id": "data-store.retentionpolicy.satisfies.motivation.constraint",
+      "source_spec_node_id": "data-store.retentionpolicy",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.retentionpolicy.satisfies.business.contract": {
+      "id": "data-store.retentionpolicy.satisfies.business.contract",
+      "source_spec_node_id": "data-store.retentionpolicy",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "business.contract",
+      "destination_layer": "business",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.retentionpolicy.satisfies.motivation.principle": {
+      "id": "data-store.retentionpolicy.satisfies.motivation.principle",
+      "source_spec_node_id": "data-store.retentionpolicy",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.retentionpolicy.satisfies.motivation.requirement": {
+      "id": "data-store.retentionpolicy.satisfies.motivation.requirement",
+      "source_spec_node_id": "data-store.retentionpolicy",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.retentionpolicy.satisfies.security.retentionpolicy": {
+      "id": "data-store.retentionpolicy.satisfies.security.retentionpolicy",
+      "source_spec_node_id": "data-store.retentionpolicy",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.retentionpolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.retentionpolicy.triggers.data-store.eventhandler": {
       "id": "data-store.retentionpolicy.triggers.data-store.eventhandler",
       "source_spec_node_id": "data-store.retentionpolicy",
@@ -1238,6 +1601,17 @@
       "destination_spec_node_id": "data-store.storedlogic",
       "destination_layer": "data-store",
       "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.retentionpolicy.uses.technology.technologyservice": {
+      "id": "data-store.retentionpolicy.uses.technology.technologyservice",
+      "source_spec_node_id": "data-store.retentionpolicy",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "uses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1297,6 +1671,72 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.storedlogic.depends-on.technology.systemsoftware": {
+      "id": "data-store.storedlogic.depends-on.technology.systemsoftware",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.storedlogic.implements.application.applicationfunction": {
+      "id": "data-store.storedlogic.implements.application.applicationfunction",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.storedlogic.realizes.business.businessfunction": {
+      "id": "data-store.storedlogic.realizes.business.businessfunction",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.storedlogic.satisfies.security.securitypolicy": {
+      "id": "data-store.storedlogic.satisfies.security.securitypolicy",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.storedlogic.serves.application.applicationservice": {
+      "id": "data-store.storedlogic.serves.application.applicationservice",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.storedlogic.serves.api.operation": {
+      "id": "data-store.storedlogic.serves.api.operation",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.storedlogic.triggers.data-store.storedlogic": {
       "id": "data-store.storedlogic.triggers.data-store.storedlogic",
       "source_spec_node_id": "data-store.storedlogic",
@@ -1319,6 +1759,17 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.storedlogic.uses.technology.technologyservice": {
+      "id": "data-store.storedlogic.uses.technology.technologyservice",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.validationrule.aggregates.data-store.field": {
       "id": "data-store.validationrule.aggregates.data-store.field",
       "source_spec_node_id": "data-store.validationrule",
@@ -1327,6 +1778,17 @@
       "destination_layer": "data-store",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.validationrule.satisfies.motivation.requirement": {
+      "id": "data-store.validationrule.satisfies.motivation.requirement",
+      "source_spec_node_id": "data-store.validationrule",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1381,6 +1843,39 @@
       "destination_spec_node_id": "data-store.view",
       "destination_layer": "data-store",
       "predicate": "derives-from",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.view.realizes.api.response": {
+      "id": "data-store.view.realizes.api.response",
+      "source_spec_node_id": "data-store.view",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.view.serves.application.applicationservice": {
+      "id": "data-store.view.serves.application.applicationservice",
+      "source_spec_node_id": "data-store.view",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.view.serves.business.businessservice": {
+      "id": "data-store.view.serves.business.businessservice",
+      "source_spec_node_id": "data-store.view",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

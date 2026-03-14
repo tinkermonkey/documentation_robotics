@@ -494,6 +494,17 @@
       "strength": "medium",
       "required": false
     },
+    "business.businessactor.serves.motivation.stakeholder": {
+      "id": "business.businessactor.serves.motivation.stakeholder",
+      "source_spec_node_id": "business.businessactor",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "business.businesscollaboration.composes.business.businessrole": {
       "id": "business.businesscollaboration.composes.business.businessrole",
       "source_spec_node_id": "business.businesscollaboration",
@@ -577,6 +588,17 @@
       "source_layer": "business",
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessfunction.realizes.motivation.goal": {
+      "id": "business.businessfunction.realizes.motivation.goal",
+      "source_spec_node_id": "business.businessfunction",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
       "predicate": "realizes",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -835,6 +857,39 @@
       "strength": "medium",
       "required": false
     },
+    "business.businessprocess.realizes.motivation.goal": {
+      "id": "business.businessprocess.realizes.motivation.goal",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.realizes.motivation.outcome": {
+      "id": "business.businessprocess.realizes.motivation.outcome",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessprocess.satisfies.motivation.requirement": {
+      "id": "business.businessprocess.satisfies.motivation.requirement",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "business.businessprocess.triggers.business.businessevent": {
       "id": "business.businessprocess.triggers.business.businessevent",
       "source_spec_node_id": "business.businessprocess",
@@ -956,6 +1011,17 @@
       "strength": "medium",
       "required": false
     },
+    "business.businessrole.serves.motivation.stakeholder": {
+      "id": "business.businessrole.serves.motivation.stakeholder",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "business.businessrole.triggers.business.businessevent": {
       "id": "business.businessrole.triggers.business.businessevent",
       "source_spec_node_id": "business.businessrole",
@@ -996,6 +1062,28 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessservice.realizes.motivation.goal": {
+      "id": "business.businessservice.realizes.motivation.goal",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessservice.satisfies.motivation.requirement": {
+      "id": "business.businessservice.satisfies.motivation.requirement",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

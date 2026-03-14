@@ -1035,6 +1035,50 @@
       "strength": "medium",
       "required": false
     },
+    "testing.coveragerequirement.covers.application.applicationfunction": {
+      "id": "testing.coveragerequirement.covers.application.applicationfunction",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.covers.ux.experiencestate": {
+      "id": "testing.coveragerequirement.covers.ux.experiencestate",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.experiencestate",
+      "destination_layer": "ux",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.covers.navigation.navigationguard": {
+      "id": "testing.coveragerequirement.covers.navigation.navigationguard",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "navigation.navigationguard",
+      "destination_layer": "navigation",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.covers.data-model.schemaproperty": {
+      "id": "testing.coveragerequirement.covers.data-model.schemaproperty",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-model.schemaproperty",
+      "destination_layer": "data-model",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.coveragerequirement.depends-on.testing.contextvariation": {
       "id": "testing.coveragerequirement.depends-on.testing.contextvariation",
       "source_spec_node_id": "testing.coveragerequirement",
@@ -1101,6 +1145,17 @@
       "strength": "high",
       "required": false
     },
+    "testing.coveragerequirement.references.business.businessfunction": {
+      "id": "testing.coveragerequirement.references.business.businessfunction",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.coveragerequirement.references.testing.coveragerequirement": {
       "id": "testing.coveragerequirement.references.testing.coveragerequirement",
       "source_spec_node_id": "testing.coveragerequirement",
@@ -1109,6 +1164,28 @@
       "destination_layer": "testing",
       "predicate": "references",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.references.apm.metricinstrument": {
+      "id": "testing.coveragerequirement.references.apm.metricinstrument",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.references.api.operation": {
+      "id": "testing.coveragerequirement.references.api.operation",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1123,6 +1200,17 @@
       "strength": "medium",
       "required": false
     },
+    "testing.coveragerequirement.references.security.securitypolicy": {
+      "id": "testing.coveragerequirement.references.security.securitypolicy",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.coveragerequirement.references.testing.testcoveragetarget": {
       "id": "testing.coveragerequirement.references.testing.testcoveragetarget",
       "source_spec_node_id": "testing.coveragerequirement",
@@ -1131,6 +1219,17 @@
       "destination_layer": "testing",
       "predicate": "references",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragerequirement.supports-goals.motivation.goal": {
+      "id": "testing.coveragerequirement.supports-goals.motivation.goal",
+      "source_spec_node_id": "testing.coveragerequirement",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "supports-goals",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1185,6 +1284,39 @@
       "destination_spec_node_id": "testing.testcoveragetarget",
       "destination_layer": "testing",
       "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.fulfills-requirements.motivation.requirement": {
+      "id": "testing.coveragesummary.fulfills-requirements.motivation.requirement",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "fulfills-requirements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.measures-outcome.motivation.outcome": {
+      "id": "testing.coveragesummary.measures-outcome.motivation.outcome",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "measures-outcome",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.coveragesummary.references.business.businessprocess": {
+      "id": "testing.coveragesummary.references.business.businessprocess",
+      "source_spec_node_id": "testing.coveragesummary",
+      "source_layer": "testing",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1277,12 +1409,56 @@
       "strength": "medium",
       "required": false
     },
+    "testing.environmentfactor.references.apm.instrumentationconfig": {
+      "id": "testing.environmentfactor.references.apm.instrumentationconfig",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "apm.instrumentationconfig",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.references.technology.node": {
+      "id": "testing.environmentfactor.references.technology.node",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.environmentfactor.references.testing.partitionvalue": {
       "id": "testing.environmentfactor.references.testing.partitionvalue",
       "source_spec_node_id": "testing.environmentfactor",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.partitionvalue",
       "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.references.security.securitypolicy": {
+      "id": "testing.environmentfactor.references.security.securitypolicy",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.environmentfactor.references.technology.systemsoftware": {
+      "id": "testing.environmentfactor.references.technology.systemsoftware",
+      "source_spec_node_id": "testing.environmentfactor",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
       "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -1395,6 +1571,50 @@
       "destination_layer": "testing",
       "predicate": "depends-on",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputspacepartition.references.data-store.collection": {
+      "id": "testing.inputspacepartition.references.data-store.collection",
+      "source_spec_node_id": "testing.inputspacepartition",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputspacepartition.references.data-model.jsonschema": {
+      "id": "testing.inputspacepartition.references.data-model.jsonschema",
+      "source_spec_node_id": "testing.inputspacepartition",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-model.jsonschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputspacepartition.references.api.parameter": {
+      "id": "testing.inputspacepartition.references.api.parameter",
+      "source_spec_node_id": "testing.inputspacepartition",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.inputspacepartition.references.data-model.schemaproperty": {
+      "id": "testing.inputspacepartition.references.data-model.schemaproperty",
+      "source_spec_node_id": "testing.inputspacepartition",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-model.schemaproperty",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1651,12 +1871,45 @@
       "strength": "medium",
       "required": false
     },
+    "testing.targetinputfield.maps-to.ux.actioncomponent": {
+      "id": "testing.targetinputfield.maps-to.ux.actioncomponent",
+      "source_spec_node_id": "testing.targetinputfield",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.targetinputfield.references.testing.inputspacepartition": {
       "id": "testing.targetinputfield.references.testing.inputspacepartition",
       "source_spec_node_id": "testing.targetinputfield",
       "source_layer": "testing",
       "destination_spec_node_id": "testing.inputspacepartition",
       "destination_layer": "testing",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetinputfield.references.api.parameter": {
+      "id": "testing.targetinputfield.references.api.parameter",
+      "source_spec_node_id": "testing.targetinputfield",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.targetinputfield.references.data-model.schemaproperty": {
+      "id": "testing.targetinputfield.references.data-model.schemaproperty",
+      "source_spec_node_id": "testing.targetinputfield",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-model.schemaproperty",
+      "destination_layer": "data-model",
       "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -1669,6 +1922,17 @@
       "destination_spec_node_id": "testing.testcoveragetarget",
       "destination_layer": "testing",
       "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.accesses.data-store.collection": {
+      "id": "testing.testcasesketch.accesses.data-store.collection",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1692,6 +1956,39 @@
       "destination_layer": "testing",
       "predicate": "accesses",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.accesses.api.requestbody": {
+      "id": "testing.testcasesketch.accesses.api.requestbody",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.requestbody",
+      "destination_layer": "api",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.accesses.data-store.view": {
+      "id": "testing.testcasesketch.accesses.data-store.view",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.constrained-by.motivation.constraint": {
+      "id": "testing.testcasesketch.constrained-by.motivation.constraint",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1750,6 +2047,17 @@
       "strength": "medium",
       "required": false
     },
+    "testing.testcasesketch.references.apm.logconfiguration": {
+      "id": "testing.testcasesketch.references.apm.logconfiguration",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "apm.logconfiguration",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.testcasesketch.references.testing.partitionvalue": {
       "id": "testing.testcasesketch.references.testing.partitionvalue",
       "source_spec_node_id": "testing.testcasesketch",
@@ -1758,6 +2066,17 @@
       "destination_layer": "testing",
       "predicate": "references",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.references.apm.span": {
+      "id": "testing.testcasesketch.references.apm.span",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1772,6 +2091,17 @@
       "strength": "medium",
       "required": false
     },
+    "testing.testcasesketch.requires.technology.systemsoftware": {
+      "id": "testing.testcasesketch.requires.technology.systemsoftware",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.testcasesketch.supports-goals.motivation.goal": {
       "id": "testing.testcasesketch.supports-goals.motivation.goal",
       "source_spec_node_id": "testing.testcasesketch",
@@ -1781,6 +2111,83 @@
       "predicate": "supports-goals",
       "cardinality": "many-to-many",
       "strength": "high",
+      "required": false
+    },
+    "testing.testcasesketch.tests.ux.actioncomponent": {
+      "id": "testing.testcasesketch.tests.ux.actioncomponent",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.actioncomponent",
+      "destination_layer": "ux",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.application.applicationfunction": {
+      "id": "testing.testcasesketch.tests.application.applicationfunction",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.application.applicationinterface": {
+      "id": "testing.testcasesketch.tests.application.applicationinterface",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationinterface",
+      "destination_layer": "application",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.application.applicationservice": {
+      "id": "testing.testcasesketch.tests.application.applicationservice",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.business.businessprocess": {
+      "id": "testing.testcasesketch.tests.business.businessprocess",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.business.businessservice": {
+      "id": "testing.testcasesketch.tests.business.businessservice",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.security.countermeasure": {
+      "id": "testing.testcasesketch.tests.security.countermeasure",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
       "required": false
     },
     "testing.testcasesketch.tests.testing.coveragerequirement": {
@@ -1794,6 +2201,116 @@
       "strength": "medium",
       "required": false
     },
+    "testing.testcasesketch.tests.ux.librarycomponent": {
+      "id": "testing.testcasesketch.tests.ux.librarycomponent",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.librarycomponent",
+      "destination_layer": "ux",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.apm.metricinstrument": {
+      "id": "testing.testcasesketch.tests.apm.metricinstrument",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.navigation.navigationflow": {
+      "id": "testing.testcasesketch.tests.navigation.navigationflow",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "navigation.navigationflow",
+      "destination_layer": "navigation",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.navigation.navigationguard": {
+      "id": "testing.testcasesketch.tests.navigation.navigationguard",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "navigation.navigationguard",
+      "destination_layer": "navigation",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.api.operation": {
+      "id": "testing.testcasesketch.tests.api.operation",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.navigation.route": {
+      "id": "testing.testcasesketch.tests.navigation.route",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.data-model.schemadefinition": {
+      "id": "testing.testcasesketch.tests.data-model.schemadefinition",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.security.threat": {
+      "id": "testing.testcasesketch.tests.security.threat",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.data-store.validationrule": {
+      "id": "testing.testcasesketch.tests.data-store.validationrule",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.validationrule",
+      "destination_layer": "data-store",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.tests.ux.view": {
+      "id": "testing.testcasesketch.tests.ux.view",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.testcasesketch.validates.testing.coveragerequirement": {
       "id": "testing.testcasesketch.validates.testing.coveragerequirement",
       "source_spec_node_id": "testing.testcasesketch",
@@ -1802,6 +2319,28 @@
       "destination_layer": "testing",
       "predicate": "validates",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.validates.api.response": {
+      "id": "testing.testcasesketch.validates.api.response",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "validates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcasesketch.validates.security.securitypolicy": {
+      "id": "testing.testcasesketch.validates.security.securitypolicy",
+      "source_spec_node_id": "testing.testcasesketch",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "validates",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1926,6 +2465,116 @@
       "strength": "medium",
       "required": false
     },
+    "testing.testcoveragemodel.covers.application.applicationcomponent": {
+      "id": "testing.testcoveragemodel.covers.application.applicationcomponent",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.covers.application.applicationservice": {
+      "id": "testing.testcoveragemodel.covers.application.applicationservice",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.covers.business.businessfunction": {
+      "id": "testing.testcoveragemodel.covers.business.businessfunction",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.covers.business.businessprocess": {
+      "id": "testing.testcoveragemodel.covers.business.businessprocess",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.covers.business.businessservice": {
+      "id": "testing.testcoveragemodel.covers.business.businessservice",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.covers.data-model.objectschema": {
+      "id": "testing.testcoveragemodel.covers.data-model.objectschema",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.covers.api.openapidocument": {
+      "id": "testing.testcoveragemodel.covers.api.openapidocument",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.openapidocument",
+      "destination_layer": "api",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.covers.navigation.route": {
+      "id": "testing.testcoveragemodel.covers.navigation.route",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.covers.security.securitypolicy": {
+      "id": "testing.testcoveragemodel.covers.security.securitypolicy",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.covers.ux.uxapplication": {
+      "id": "testing.testcoveragemodel.covers.ux.uxapplication",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.uxapplication",
+      "destination_layer": "ux",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.testcoveragemodel.fulfills-requirements.motivation.requirement": {
       "id": "testing.testcoveragemodel.fulfills-requirements.motivation.requirement",
       "source_spec_node_id": "testing.testcoveragemodel",
@@ -1948,6 +2597,72 @@
       "strength": "high",
       "required": false
     },
+    "testing.testcoveragemodel.measures-outcome.motivation.outcome": {
+      "id": "testing.testcoveragemodel.measures-outcome.motivation.outcome",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "measures-outcome",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.references.data-store.database": {
+      "id": "testing.testcoveragemodel.references.data-store.database",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.references.motivation.driver": {
+      "id": "testing.testcoveragemodel.references.motivation.driver",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.driver",
+      "destination_layer": "motivation",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.references.apm.instrumentationscope": {
+      "id": "testing.testcoveragemodel.references.apm.instrumentationscope",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "apm.instrumentationscope",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.references.security.threat": {
+      "id": "testing.testcoveragemodel.references.security.threat",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.references.apm.traceconfiguration": {
+      "id": "testing.testcoveragemodel.references.apm.traceconfiguration",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "apm.traceconfiguration",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.testcoveragemodel.supports-goals.motivation.goal": {
       "id": "testing.testcoveragemodel.supports-goals.motivation.goal",
       "source_spec_node_id": "testing.testcoveragemodel",
@@ -1957,6 +2672,28 @@
       "predicate": "supports-goals",
       "cardinality": "many-to-many",
       "strength": "high",
+      "required": false
+    },
+    "testing.testcoveragemodel.tests.technology.systemsoftware": {
+      "id": "testing.testcoveragemodel.tests.technology.systemsoftware",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragemodel.tests.technology.technologyservice": {
+      "id": "testing.testcoveragemodel.tests.technology.technologyservice",
+      "source_spec_node_id": "testing.testcoveragemodel",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
       "required": false
     },
     "testing.testcoveragetarget.aggregates.contextvariation": {
@@ -2014,6 +2751,50 @@
       "strength": "medium",
       "required": false
     },
+    "testing.testcoveragetarget.covers.application.applicationservice": {
+      "id": "testing.testcoveragetarget.covers.application.applicationservice",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.covers.data-model.objectschema": {
+      "id": "testing.testcoveragetarget.covers.data-model.objectschema",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.covers.ux.subview": {
+      "id": "testing.testcoveragetarget.covers.ux.subview",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.subview",
+      "destination_layer": "ux",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.covers.ux.view": {
+      "id": "testing.testcoveragetarget.covers.ux.view",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "covers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "testing.testcoveragetarget.flows-to.testing.coveragerequirement": {
       "id": "testing.testcoveragetarget.flows-to.testing.coveragerequirement",
       "source_spec_node_id": "testing.testcoveragetarget",
@@ -2033,6 +2814,160 @@
       "destination_layer": "testing",
       "predicate": "flows-to",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.fulfills-requirements.motivation.requirement": {
+      "id": "testing.testcoveragetarget.fulfills-requirements.motivation.requirement",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "fulfills-requirements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.references.business.businessprocess": {
+      "id": "testing.testcoveragetarget.references.business.businessprocess",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.references.apm.metricinstrument": {
+      "id": "testing.testcoveragetarget.references.apm.metricinstrument",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.references.technology.node": {
+      "id": "testing.testcoveragetarget.references.technology.node",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.references.navigation.route": {
+      "id": "testing.testcoveragetarget.references.navigation.route",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "navigation.route",
+      "destination_layer": "navigation",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.references.security.secureresource": {
+      "id": "testing.testcoveragetarget.references.security.secureresource",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.references.technology.systemsoftware": {
+      "id": "testing.testcoveragetarget.references.technology.systemsoftware",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.references.technology.technologyservice": {
+      "id": "testing.testcoveragetarget.references.technology.technologyservice",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.supports-goals.motivation.goal": {
+      "id": "testing.testcoveragetarget.supports-goals.motivation.goal",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "supports-goals",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.tests.application.applicationcomponent": {
+      "id": "testing.testcoveragetarget.tests.application.applicationcomponent",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.tests.data-store.collection": {
+      "id": "testing.testcoveragetarget.tests.data-store.collection",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.tests.api.operation": {
+      "id": "testing.testcoveragetarget.tests.api.operation",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.tests.data-store.storedlogic": {
+      "id": "testing.testcoveragetarget.tests.data-store.storedlogic",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.storedlogic",
+      "destination_layer": "data-store",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "testing.testcoveragetarget.tests.data-store.view": {
+      "id": "testing.testcoveragetarget.tests.data-store.view",
+      "source_spec_node_id": "testing.testcoveragetarget",
+      "source_layer": "testing",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "tests",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     }

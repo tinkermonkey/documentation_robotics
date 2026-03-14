@@ -38,15 +38,15 @@ Layer 12: Testing Layer
 | ------------------------- | ----- |
 | Node Types                | 17    |
 | Intra-Layer Relationships | 100   |
-| Inter-Layer Relationships | 8     |
+| Inter-Layer Relationships | 93    |
 | Inbound Relationships     | 0     |
-| Outbound Relationships    | 8     |
+| Outbound Relationships    | 93    |
 
 ### Layer Dependencies
 
 **Depends On**: None
 
-**Depended On By**: [Motivation](./01-motivation-layer-report.md)
+**Depended On By**: [Motivation](./01-motivation-layer-report.md), [Business](./02-business-layer-report.md), [Security](./03-security-layer-report.md), [Application](./04-application-layer-report.md), [Technology](./05-technology-layer-report.md), [API](./06-api-layer-report.md), [Data Model](./07-data-model-layer-report.md), [Data Store](./08-data-store-layer-report.md), [UX](./09-ux-layer-report.md), [Navigation](./10-navigation-layer-report.md), [APM](./11-apm-layer-report.md)
 
 ## Intra-Layer Relationships
 
@@ -194,31 +194,172 @@ flowchart TB
   api --> application
   api --> business
   api --> data_store
+  api --> motivation
   api --> security
+  api --> technology
+  apm --> api
+  apm --> application
+  apm --> business
+  apm --> data_model
+  apm --> data_store
+  apm --> motivation
+  apm --> navigation
+  apm --> security
+  apm --> technology
+  apm --> ux
   application --> apm
   application --> business
   application --> motivation
+  application --> security
   business --> application
   business --> motivation
   business --> security
+  data_model --> api
   data_model --> application
   data_model --> business
+  data_model --> motivation
+  data_model --> security
+  data_model --> technology
+  data_store --> api
+  data_store --> application
+  data_store --> business
+  data_store --> motivation
+  data_store --> security
+  data_store --> technology
+  navigation --> api
+  navigation --> application
+  navigation --> business
+  navigation --> data_model
+  navigation --> data_store
+  navigation --> motivation
+  navigation --> security
+  navigation --> technology
+  navigation --> ux
+  security --> business
+  security --> motivation
+  technology --> application
+  technology --> business
+  technology --> motivation
+  technology --> security
+  testing --> api
+  testing --> apm
+  testing --> application
+  testing --> business
+  testing --> data_model
+  testing --> data_store
   testing --> motivation
+  testing --> navigation
+  testing --> security
+  testing --> technology
+  testing --> ux
+  ux --> api
+  ux --> application
+  ux --> business
+  ux --> data_model
+  ux --> data_store
+  ux --> motivation
+  ux --> security
+  ux --> technology
   class testing current
 ```
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                                          | Source Node                                                             | Dest Node                                                  | Dest Layer                                    | Predicate              | Cardinality  | Strength |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------- | ---------------------- | ------------ | -------- |
-| testing.coveragerequirement.constrained-by.motivation.constraint         | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
-| testing.coveragerequirement.fulfills-requirements.motivation.requirement | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcasesketch.supports-goals.motivation.goal                    | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
-| testing.testcoveragemodel.constrained-by.motivation.constraint           | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | many-to-many | medium   |
-| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | many-to-many | high     |
-| testing.testcoveragemodel.governed-by-principles.motivation.principle    | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Principle](./01-motivation-layer-report.md#principle)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | many-to-many | high     |
-| testing.testcoveragemodel.supports-goals.motivation.goal                 | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | many-to-many | high     |
+| Relationship ID                                                          | Source Node                                                             | Dest Node                                                                     | Dest Layer                                      | Predicate              | Cardinality  | Strength |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------- | ------------ | -------- |
+| testing.coveragerequirement.constrained-by.motivation.constraint         | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | constrained-by         | many-to-many | medium   |
+| testing.coveragerequirement.covers.application.applicationfunction       | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Applicationfunction](./04-application-layer-report.md#applicationfunction)   | [Application](./04-application-layer-report.md) | covers                 | many-to-one  | medium   |
+| testing.coveragerequirement.covers.data-model.schemaproperty             | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Schemaproperty](./07-data-model-layer-report.md#schemaproperty)              | [Data Model](./07-data-model-layer-report.md)   | covers                 | many-to-one  | medium   |
+| testing.coveragerequirement.covers.navigation.navigationguard            | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Navigationguard](./10-navigation-layer-report.md#navigationguard)            | [Navigation](./10-navigation-layer-report.md)   | covers                 | many-to-one  | medium   |
+| testing.coveragerequirement.covers.ux.experiencestate                    | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Experiencestate](./09-ux-layer-report.md#experiencestate)                    | [UX](./09-ux-layer-report.md)                   | covers                 | many-to-one  | medium   |
+| testing.coveragerequirement.fulfills-requirements.motivation.requirement | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | fulfills-requirements  | many-to-many | high     |
+| testing.coveragerequirement.references.api.operation                     | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.coveragerequirement.references.apm.metricinstrument              | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                 | [APM](./11-apm-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.coveragerequirement.references.business.businessfunction         | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | references             | many-to-one  | medium   |
+| testing.coveragerequirement.references.security.securitypolicy           | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | references             | many-to-one  | medium   |
+| testing.coveragerequirement.supports-goals.motivation.goal               | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement) | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | supports-goals         | many-to-one  | medium   |
+| testing.coveragesummary.fulfills-requirements.motivation.requirement     | [Coveragesummary](./12-testing-layer-report.md#coveragesummary)         | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | fulfills-requirements  | many-to-one  | medium   |
+| testing.coveragesummary.measures-outcome.motivation.outcome              | [Coveragesummary](./12-testing-layer-report.md#coveragesummary)         | [Outcome](./01-motivation-layer-report.md#outcome)                            | [Motivation](./01-motivation-layer-report.md)   | measures-outcome       | many-to-one  | medium   |
+| testing.coveragesummary.references.business.businessprocess              | [Coveragesummary](./12-testing-layer-report.md#coveragesummary)         | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | references             | many-to-one  | medium   |
+| testing.environmentfactor.references.apm.instrumentationconfig           | [Environmentfactor](./12-testing-layer-report.md#environmentfactor)     | [Instrumentationconfig](./11-apm-layer-report.md#instrumentationconfig)       | [APM](./11-apm-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.environmentfactor.references.security.securitypolicy             | [Environmentfactor](./12-testing-layer-report.md#environmentfactor)     | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | references             | many-to-one  | medium   |
+| testing.environmentfactor.references.technology.node                     | [Environmentfactor](./12-testing-layer-report.md#environmentfactor)     | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.environmentfactor.references.technology.systemsoftware           | [Environmentfactor](./12-testing-layer-report.md#environmentfactor)     | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.inputspacepartition.references.api.parameter                     | [Inputspacepartition](./12-testing-layer-report.md#inputspacepartition) | [Parameter](./06-api-layer-report.md#parameter)                               | [API](./06-api-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.inputspacepartition.references.data-model.jsonschema             | [Inputspacepartition](./12-testing-layer-report.md#inputspacepartition) | [Jsonschema](./07-data-model-layer-report.md#jsonschema)                      | [Data Model](./07-data-model-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.inputspacepartition.references.data-model.schemaproperty         | [Inputspacepartition](./12-testing-layer-report.md#inputspacepartition) | [Schemaproperty](./07-data-model-layer-report.md#schemaproperty)              | [Data Model](./07-data-model-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.inputspacepartition.references.data-store.collection             | [Inputspacepartition](./12-testing-layer-report.md#inputspacepartition) | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.targetinputfield.maps-to.ux.actioncomponent                      | [Targetinputfield](./12-testing-layer-report.md#targetinputfield)       | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                    | [UX](./09-ux-layer-report.md)                   | maps-to                | many-to-one  | medium   |
+| testing.targetinputfield.references.api.parameter                        | [Targetinputfield](./12-testing-layer-report.md#targetinputfield)       | [Parameter](./06-api-layer-report.md#parameter)                               | [API](./06-api-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.targetinputfield.references.data-model.schemaproperty            | [Targetinputfield](./12-testing-layer-report.md#targetinputfield)       | [Schemaproperty](./07-data-model-layer-report.md#schemaproperty)              | [Data Model](./07-data-model-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.testcasesketch.accesses.api.requestbody                          | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Requestbody](./06-api-layer-report.md#requestbody)                           | [API](./06-api-layer-report.md)                 | accesses               | many-to-one  | medium   |
+| testing.testcasesketch.accesses.data-store.collection                    | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses               | many-to-one  | medium   |
+| testing.testcasesketch.accesses.data-store.view                          | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [View](./08-data-store-layer-report.md#view)                                  | [Data Store](./08-data-store-layer-report.md)   | accesses               | many-to-one  | medium   |
+| testing.testcasesketch.constrained-by.motivation.constraint              | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | constrained-by         | many-to-one  | medium   |
+| testing.testcasesketch.fulfills-requirements.motivation.requirement      | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | fulfills-requirements  | many-to-many | high     |
+| testing.testcasesketch.references.apm.logconfiguration                   | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Logconfiguration](./11-apm-layer-report.md#logconfiguration)                 | [APM](./11-apm-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.testcasesketch.references.apm.span                               | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Span](./11-apm-layer-report.md#span)                                         | [APM](./11-apm-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.testcasesketch.requires.technology.systemsoftware                | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | requires               | many-to-one  | medium   |
+| testing.testcasesketch.supports-goals.motivation.goal                    | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | supports-goals         | many-to-many | high     |
+| testing.testcasesketch.tests.api.operation                               | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.apm.metricinstrument                        | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                 | [APM](./11-apm-layer-report.md)                 | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.application.applicationfunction             | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Applicationfunction](./04-application-layer-report.md#applicationfunction)   | [Application](./04-application-layer-report.md) | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.application.applicationinterface            | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Applicationinterface](./04-application-layer-report.md#applicationinterface) | [Application](./04-application-layer-report.md) | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.application.applicationservice              | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.business.businessprocess                    | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.business.businessservice                    | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.data-model.schemadefinition                 | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Schemadefinition](./07-data-model-layer-report.md#schemadefinition)          | [Data Model](./07-data-model-layer-report.md)   | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.data-store.validationrule                   | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Validationrule](./08-data-store-layer-report.md#validationrule)              | [Data Store](./08-data-store-layer-report.md)   | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.navigation.navigationflow                   | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Navigationflow](./10-navigation-layer-report.md#navigationflow)              | [Navigation](./10-navigation-layer-report.md)   | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.navigation.navigationguard                  | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Navigationguard](./10-navigation-layer-report.md#navigationguard)            | [Navigation](./10-navigation-layer-report.md)   | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.navigation.route                            | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.security.countermeasure                     | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Countermeasure](./03-security-layer-report.md#countermeasure)                | [Security](./03-security-layer-report.md)       | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.security.threat                             | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Threat](./03-security-layer-report.md#threat)                                | [Security](./03-security-layer-report.md)       | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.ux.actioncomponent                          | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                    | [UX](./09-ux-layer-report.md)                   | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.ux.librarycomponent                         | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                  | [UX](./09-ux-layer-report.md)                   | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.tests.ux.view                                     | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | tests                  | many-to-one  | medium   |
+| testing.testcasesketch.validates.api.response                            | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Response](./06-api-layer-report.md#response)                                 | [API](./06-api-layer-report.md)                 | validates              | many-to-one  | medium   |
+| testing.testcasesketch.validates.security.securitypolicy                 | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)           | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | validates              | many-to-one  | medium   |
+| testing.testcoveragemodel.constrained-by.motivation.constraint           | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | constrained-by         | many-to-many | medium   |
+| testing.testcoveragemodel.covers.api.openapidocument                     | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Openapidocument](./06-api-layer-report.md#openapidocument)                   | [API](./06-api-layer-report.md)                 | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.covers.application.applicationcomponent        | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.covers.application.applicationservice          | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.covers.business.businessfunction               | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.covers.business.businessprocess                | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.covers.business.businessservice                | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.covers.data-model.objectschema                 | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.covers.navigation.route                        | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.covers.security.securitypolicy                 | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.covers.ux.uxapplication                        | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Uxapplication](./09-ux-layer-report.md#uxapplication)                        | [UX](./09-ux-layer-report.md)                   | covers                 | many-to-one  | medium   |
+| testing.testcoveragemodel.fulfills-requirements.motivation.requirement   | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | fulfills-requirements  | many-to-many | high     |
+| testing.testcoveragemodel.governed-by-principles.motivation.principle    | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Principle](./01-motivation-layer-report.md#principle)                        | [Motivation](./01-motivation-layer-report.md)   | governed-by-principles | many-to-many | high     |
+| testing.testcoveragemodel.measures-outcome.motivation.outcome            | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Outcome](./01-motivation-layer-report.md#outcome)                            | [Motivation](./01-motivation-layer-report.md)   | measures-outcome       | many-to-one  | medium   |
+| testing.testcoveragemodel.references.apm.instrumentationscope            | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Instrumentationscope](./11-apm-layer-report.md#instrumentationscope)         | [APM](./11-apm-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.testcoveragemodel.references.apm.traceconfiguration              | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)             | [APM](./11-apm-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.testcoveragemodel.references.data-store.database                 | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Database](./08-data-store-layer-report.md#database)                          | [Data Store](./08-data-store-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.testcoveragemodel.references.motivation.driver                   | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Driver](./01-motivation-layer-report.md#driver)                              | [Motivation](./01-motivation-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.testcoveragemodel.references.security.threat                     | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Threat](./03-security-layer-report.md#threat)                                | [Security](./03-security-layer-report.md)       | references             | many-to-one  | medium   |
+| testing.testcoveragemodel.supports-goals.motivation.goal                 | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | supports-goals         | many-to-many | high     |
+| testing.testcoveragemodel.tests.technology.systemsoftware                | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | tests                  | many-to-one  | medium   |
+| testing.testcoveragemodel.tests.technology.technologyservice             | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)     | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | tests                  | many-to-one  | medium   |
+| testing.testcoveragetarget.covers.application.applicationservice         | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | covers                 | many-to-one  | medium   |
+| testing.testcoveragetarget.covers.data-model.objectschema                | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | covers                 | many-to-one  | medium   |
+| testing.testcoveragetarget.covers.ux.subview                             | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Subview](./09-ux-layer-report.md#subview)                                    | [UX](./09-ux-layer-report.md)                   | covers                 | many-to-one  | medium   |
+| testing.testcoveragetarget.covers.ux.view                                | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | covers                 | many-to-one  | medium   |
+| testing.testcoveragetarget.fulfills-requirements.motivation.requirement  | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | fulfills-requirements  | many-to-one  | medium   |
+| testing.testcoveragetarget.references.apm.metricinstrument               | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                 | [APM](./11-apm-layer-report.md)                 | references             | many-to-one  | medium   |
+| testing.testcoveragetarget.references.business.businessprocess           | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | references             | many-to-one  | medium   |
+| testing.testcoveragetarget.references.navigation.route                   | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.testcoveragetarget.references.security.secureresource            | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | references             | many-to-one  | medium   |
+| testing.testcoveragetarget.references.technology.node                    | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.testcoveragetarget.references.technology.systemsoftware          | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.testcoveragetarget.references.technology.technologyservice       | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | references             | many-to-one  | medium   |
+| testing.testcoveragetarget.supports-goals.motivation.goal                | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | supports-goals         | many-to-one  | medium   |
+| testing.testcoveragetarget.tests.api.operation                           | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | tests                  | many-to-one  | medium   |
+| testing.testcoveragetarget.tests.application.applicationcomponent        | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | tests                  | many-to-one  | medium   |
+| testing.testcoveragetarget.tests.data-store.collection                   | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | tests                  | many-to-one  | medium   |
+| testing.testcoveragetarget.tests.data-store.storedlogic                  | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [Storedlogic](./08-data-store-layer-report.md#storedlogic)                    | [Data Store](./08-data-store-layer-report.md)   | tests                  | many-to-one  | medium   |
+| testing.testcoveragetarget.tests.data-store.view                         | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)   | [View](./08-data-store-layer-report.md#view)                                  | [Data Store](./08-data-store-layer-report.md)   | tests                  | many-to-one  | medium   |
 
 ## Node Reference
 
@@ -310,7 +451,7 @@ A specification of coverage criteria that must be satisfied for a TestCoverageTa
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 18 | Outbound: 16
-- **Inter-Layer**: Inbound: 0 | Outbound: 2
+- **Inter-Layer**: Inbound: 0 | Outbound: 11
 
 #### Intra-Layer Relationships
 
@@ -351,10 +492,19 @@ A specification of coverage criteria that must be satisfied for a TestCoverageTa
 
 #### Inter-Layer Relationships
 
-| Related Node                                               | Layer                                         | Predicate             | Direction | Cardinality  |
-| ---------------------------------------------------------- | --------------------------------------------- | --------------------- | --------- | ------------ |
-| [Constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by        | outbound  | many-to-many |
-| [Requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-many |
+| Related Node                                                                | Layer                                           | Predicate             | Direction | Cardinality  |
+| --------------------------------------------------------------------------- | ----------------------------------------------- | --------------------- | --------- | ------------ |
+| [Constraint](./01-motivation-layer-report.md#constraint)                    | [Motivation](./01-motivation-layer-report.md)   | constrained-by        | outbound  | many-to-many |
+| [Applicationfunction](./04-application-layer-report.md#applicationfunction) | [Application](./04-application-layer-report.md) | covers                | outbound  | many-to-one  |
+| [Schemaproperty](./07-data-model-layer-report.md#schemaproperty)            | [Data Model](./07-data-model-layer-report.md)   | covers                | outbound  | many-to-one  |
+| [Navigationguard](./10-navigation-layer-report.md#navigationguard)          | [Navigation](./10-navigation-layer-report.md)   | covers                | outbound  | many-to-one  |
+| [Experiencestate](./09-ux-layer-report.md#experiencestate)                  | [UX](./09-ux-layer-report.md)                   | covers                | outbound  | many-to-one  |
+| [Requirement](./01-motivation-layer-report.md#requirement)                  | [Motivation](./01-motivation-layer-report.md)   | fulfills-requirements | outbound  | many-to-many |
+| [Operation](./06-api-layer-report.md#operation)                             | [API](./06-api-layer-report.md)                 | references            | outbound  | many-to-one  |
+| [Metricinstrument](./11-apm-layer-report.md#metricinstrument)               | [APM](./11-apm-layer-report.md)                 | references            | outbound  | many-to-one  |
+| [Businessfunction](./02-business-layer-report.md#businessfunction)          | [Business](./02-business-layer-report.md)       | references            | outbound  | many-to-one  |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)              | [Security](./03-security-layer-report.md)       | references            | outbound  | many-to-one  |
+| [Goal](./01-motivation-layer-report.md#goal)                                | [Motivation](./01-motivation-layer-report.md)   | supports-goals        | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -367,7 +517,7 @@ Aggregated coverage status across all targets and requirements within a test cov
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 3 | Outbound: 10
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 3
 
 #### Intra-Layer Relationships
 
@@ -387,6 +537,14 @@ Aggregated coverage status across all targets and requirements within a test cov
 | [Outcomecategory](#outcomecategory)             | flows-to   | inbound   | many-to-one |
 | [Testcoveragemodel](#testcoveragemodel)         | composes   | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                     | Layer                                         | Predicate             | Direction | Cardinality |
+| ---------------------------------------------------------------- | --------------------------------------------- | --------------------- | --------- | ----------- |
+| [Requirement](./01-motivation-layer-report.md#requirement)       | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-one |
+| [Outcome](./01-motivation-layer-report.md#outcome)               | [Motivation](./01-motivation-layer-report.md) | measures-outcome      | outbound  | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess) | [Business](./02-business-layer-report.md)     | references            | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Environmentfactor {#environmentfactor}
@@ -398,7 +556,7 @@ A specific environmental variable (OS version, network latency, locale setting, 
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 3 | Outbound: 7
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 4
 
 #### Intra-Layer Relationships
 
@@ -414,6 +572,15 @@ A specific environmental variable (OS version, network latency, locale setting, 
 | [Testcoveragemodel](#testcoveragemodel)     | serves         | outbound  | many-to-one |
 | [Outcomecategory](#outcomecategory)         | constrained-by | inbound   | many-to-one |
 | [Partitionvalue](#partitionvalue)           | depends-on     | inbound   | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                            | Layer                                         | Predicate  | Direction | Cardinality |
+| ----------------------------------------------------------------------- | --------------------------------------------- | ---------- | --------- | ----------- |
+| [Instrumentationconfig](./11-apm-layer-report.md#instrumentationconfig) | [APM](./11-apm-layer-report.md)               | references | outbound  | many-to-one |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)          | [Security](./03-security-layer-report.md)     | references | outbound  | many-to-one |
+| [Node](./05-technology-layer-report.md#node)                            | [Technology](./05-technology-layer-report.md) | references | outbound  | many-to-one |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware)        | [Technology](./05-technology-layer-report.md) | references | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -475,7 +642,7 @@ Partitioning of an input dimension into testable equivalence classes, where each
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 8 | Outbound: 3
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 4
 
 #### Intra-Layer Relationships
 
@@ -491,6 +658,15 @@ Partitioning of an input dimension into testable equivalence classes, where each
 | [Targetinputfield](#targetinputfield)       | references | inbound   | many-to-one  |
 | [Testcasesketch](#testcasesketch)           | depends-on | inbound   | many-to-many |
 | [Testcoveragemodel](#testcoveragemodel)     | aggregates | inbound   | one-to-many  |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                     | Layer                                         | Predicate  | Direction | Cardinality |
+| ---------------------------------------------------------------- | --------------------------------------------- | ---------- | --------- | ----------- |
+| [Parameter](./06-api-layer-report.md#parameter)                  | [API](./06-api-layer-report.md)               | references | outbound  | many-to-one |
+| [Jsonschema](./07-data-model-layer-report.md#jsonschema)         | [Data Model](./07-data-model-layer-report.md) | references | outbound  | many-to-one |
+| [Schemaproperty](./07-data-model-layer-report.md#schemaproperty) | [Data Model](./07-data-model-layer-report.md) | references | outbound  | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)         | [Data Store](./08-data-store-layer-report.md) | references | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -610,7 +786,7 @@ An association between a TestCoverageTarget and a specific input field of the ta
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 2 | Outbound: 6
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 3
 
 #### Intra-Layer Relationships
 
@@ -625,6 +801,14 @@ An association between a TestCoverageTarget and a specific input field of the ta
 | [Testcoveragetarget](#testcoveragetarget)           | references     | outbound  | many-to-one |
 | [Testcoveragetarget](#testcoveragetarget)           | composes       | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                     | Layer                                         | Predicate  | Direction | Cardinality |
+| ---------------------------------------------------------------- | --------------------------------------------- | ---------- | --------- | ----------- |
+| [Actioncomponent](./09-ux-layer-report.md#actioncomponent)       | [UX](./09-ux-layer-report.md)                 | maps-to    | outbound  | many-to-one |
+| [Parameter](./06-api-layer-report.md#parameter)                  | [API](./06-api-layer-report.md)               | references | outbound  | many-to-one |
+| [Schemaproperty](./07-data-model-layer-report.md#schemaproperty) | [Data Model](./07-data-model-layer-report.md) | references | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Testcasesketch {#testcasesketch}
@@ -636,7 +820,7 @@ A design-time test case specification that selects concrete input partition valu
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 6 | Outbound: 11
-- **Inter-Layer**: Inbound: 0 | Outbound: 2
+- **Inter-Layer**: Inbound: 0 | Outbound: 28
 
 #### Intra-Layer Relationships
 
@@ -662,10 +846,36 @@ A design-time test case specification that selects concrete input partition valu
 
 #### Inter-Layer Relationships
 
-| Related Node                                               | Layer                                         | Predicate             | Direction | Cardinality  |
-| ---------------------------------------------------------- | --------------------------------------------- | --------------------- | --------- | ------------ |
-| [Requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements | outbound  | many-to-many |
-| [Goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals        | outbound  | many-to-many |
+| Related Node                                                                  | Layer                                           | Predicate             | Direction | Cardinality  |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | --------------------- | --------- | ------------ |
+| [Requestbody](./06-api-layer-report.md#requestbody)                           | [API](./06-api-layer-report.md)                 | accesses              | outbound  | many-to-one  |
+| [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses              | outbound  | many-to-one  |
+| [View](./08-data-store-layer-report.md#view)                                  | [Data Store](./08-data-store-layer-report.md)   | accesses              | outbound  | many-to-one  |
+| [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | constrained-by        | outbound  | many-to-one  |
+| [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | fulfills-requirements | outbound  | many-to-many |
+| [Logconfiguration](./11-apm-layer-report.md#logconfiguration)                 | [APM](./11-apm-layer-report.md)                 | references            | outbound  | many-to-one  |
+| [Span](./11-apm-layer-report.md#span)                                         | [APM](./11-apm-layer-report.md)                 | references            | outbound  | many-to-one  |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | requires              | outbound  | many-to-one  |
+| [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | supports-goals        | outbound  | many-to-many |
+| [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | tests                 | outbound  | many-to-one  |
+| [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                 | [APM](./11-apm-layer-report.md)                 | tests                 | outbound  | many-to-one  |
+| [Applicationfunction](./04-application-layer-report.md#applicationfunction)   | [Application](./04-application-layer-report.md) | tests                 | outbound  | many-to-one  |
+| [Applicationinterface](./04-application-layer-report.md#applicationinterface) | [Application](./04-application-layer-report.md) | tests                 | outbound  | many-to-one  |
+| [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | tests                 | outbound  | many-to-one  |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | tests                 | outbound  | many-to-one  |
+| [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | tests                 | outbound  | many-to-one  |
+| [Schemadefinition](./07-data-model-layer-report.md#schemadefinition)          | [Data Model](./07-data-model-layer-report.md)   | tests                 | outbound  | many-to-one  |
+| [Validationrule](./08-data-store-layer-report.md#validationrule)              | [Data Store](./08-data-store-layer-report.md)   | tests                 | outbound  | many-to-one  |
+| [Navigationflow](./10-navigation-layer-report.md#navigationflow)              | [Navigation](./10-navigation-layer-report.md)   | tests                 | outbound  | many-to-one  |
+| [Navigationguard](./10-navigation-layer-report.md#navigationguard)            | [Navigation](./10-navigation-layer-report.md)   | tests                 | outbound  | many-to-one  |
+| [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | tests                 | outbound  | many-to-one  |
+| [Countermeasure](./03-security-layer-report.md#countermeasure)                | [Security](./03-security-layer-report.md)       | tests                 | outbound  | many-to-one  |
+| [Threat](./03-security-layer-report.md#threat)                                | [Security](./03-security-layer-report.md)       | tests                 | outbound  | many-to-one  |
+| [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                    | [UX](./09-ux-layer-report.md)                   | tests                 | outbound  | many-to-one  |
+| [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                  | [UX](./09-ux-layer-report.md)                   | tests                 | outbound  | many-to-one  |
+| [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | tests                 | outbound  | many-to-one  |
+| [Response](./06-api-layer-report.md#response)                                 | [API](./06-api-layer-report.md)                 | validates             | outbound  | many-to-one  |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | validates             | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -678,7 +888,7 @@ The root artifact of a testing layer coverage specification, aggregating all Tes
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 4 | Outbound: 9
-- **Inter-Layer**: Inbound: 0 | Outbound: 4
+- **Inter-Layer**: Inbound: 0 | Outbound: 22
 
 #### Intra-Layer Relationships
 
@@ -700,12 +910,30 @@ The root artifact of a testing layer coverage specification, aggregating all Tes
 
 #### Inter-Layer Relationships
 
-| Related Node                                               | Layer                                         | Predicate              | Direction | Cardinality  |
-| ---------------------------------------------------------- | --------------------------------------------- | ---------------------- | --------- | ------------ |
-| [Constraint](./01-motivation-layer-report.md#constraint)   | [Motivation](./01-motivation-layer-report.md) | constrained-by         | outbound  | many-to-many |
-| [Requirement](./01-motivation-layer-report.md#requirement) | [Motivation](./01-motivation-layer-report.md) | fulfills-requirements  | outbound  | many-to-many |
-| [Principle](./01-motivation-layer-report.md#principle)     | [Motivation](./01-motivation-layer-report.md) | governed-by-principles | outbound  | many-to-many |
-| [Goal](./01-motivation-layer-report.md#goal)               | [Motivation](./01-motivation-layer-report.md) | supports-goals         | outbound  | many-to-many |
+| Related Node                                                                  | Layer                                           | Predicate              | Direction | Cardinality  |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------- | --------- | ------------ |
+| [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | constrained-by         | outbound  | many-to-many |
+| [Openapidocument](./06-api-layer-report.md#openapidocument)                   | [API](./06-api-layer-report.md)                 | covers                 | outbound  | many-to-one  |
+| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | covers                 | outbound  | many-to-one  |
+| [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | covers                 | outbound  | many-to-one  |
+| [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | covers                 | outbound  | many-to-one  |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | covers                 | outbound  | many-to-one  |
+| [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | covers                 | outbound  | many-to-one  |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | covers                 | outbound  | many-to-one  |
+| [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | covers                 | outbound  | many-to-one  |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | covers                 | outbound  | many-to-one  |
+| [Uxapplication](./09-ux-layer-report.md#uxapplication)                        | [UX](./09-ux-layer-report.md)                   | covers                 | outbound  | many-to-one  |
+| [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | fulfills-requirements  | outbound  | many-to-many |
+| [Principle](./01-motivation-layer-report.md#principle)                        | [Motivation](./01-motivation-layer-report.md)   | governed-by-principles | outbound  | many-to-many |
+| [Outcome](./01-motivation-layer-report.md#outcome)                            | [Motivation](./01-motivation-layer-report.md)   | measures-outcome       | outbound  | many-to-one  |
+| [Instrumentationscope](./11-apm-layer-report.md#instrumentationscope)         | [APM](./11-apm-layer-report.md)                 | references             | outbound  | many-to-one  |
+| [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)             | [APM](./11-apm-layer-report.md)                 | references             | outbound  | many-to-one  |
+| [Database](./08-data-store-layer-report.md#database)                          | [Data Store](./08-data-store-layer-report.md)   | references             | outbound  | many-to-one  |
+| [Driver](./01-motivation-layer-report.md#driver)                              | [Motivation](./01-motivation-layer-report.md)   | references             | outbound  | many-to-one  |
+| [Threat](./03-security-layer-report.md#threat)                                | [Security](./03-security-layer-report.md)       | references             | outbound  | many-to-one  |
+| [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | supports-goals         | outbound  | many-to-many |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | tests                  | outbound  | many-to-one  |
+| [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | tests                  | outbound  | many-to-one  |
 
 [Back to Index](#report-index)
 
@@ -718,7 +946,7 @@ An artifact or functionality that requires test coverage
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 14 | Outbound: 7
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 18
 
 #### Intra-Layer Relationships
 
@@ -745,8 +973,31 @@ An artifact or functionality that requires test coverage
 | [Coveragerequirement](#coveragerequirement)         | flows-to   | outbound  | many-to-many |
 | [Testcasesketch](#testcasesketch)                   | flows-to   | outbound  | many-to-many |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                                  | Layer                                           | Predicate             | Direction | Cardinality |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | --------------------- | --------- | ----------- |
+| [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | covers                | outbound  | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | covers                | outbound  | many-to-one |
+| [Subview](./09-ux-layer-report.md#subview)                                    | [UX](./09-ux-layer-report.md)                   | covers                | outbound  | many-to-one |
+| [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | covers                | outbound  | many-to-one |
+| [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | fulfills-requirements | outbound  | many-to-one |
+| [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                 | [APM](./11-apm-layer-report.md)                 | references            | outbound  | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | references            | outbound  | many-to-one |
+| [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | references            | outbound  | many-to-one |
+| [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | references            | outbound  | many-to-one |
+| [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | references            | outbound  | many-to-one |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | references            | outbound  | many-to-one |
+| [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | references            | outbound  | many-to-one |
+| [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | supports-goals        | outbound  | many-to-one |
+| [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | tests                 | outbound  | many-to-one |
+| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | tests                 | outbound  | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | tests                 | outbound  | many-to-one |
+| [Storedlogic](./08-data-store-layer-report.md#storedlogic)                    | [Data Store](./08-data-store-layer-report.md)   | tests                 | outbound  | many-to-one |
+| [View](./08-data-store-layer-report.md#view)                                  | [Data Store](./08-data-store-layer-report.md)   | tests                 | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-03-06T06:16:41.138Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-14T21:04:51.717Z | Spec Version: 0.8.2 | Generator: generate-layer-reports.ts_

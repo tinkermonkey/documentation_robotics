@@ -1468,6 +1468,17 @@
     }
   },
   "relationshipSchemas": {
+    "ux.actioncomponent.accesses.data-store.collection": {
+      "id": "ux.actioncomponent.accesses.data-store.collection",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.actioncomponent.binds-to.ux.dataconfig": {
       "id": "ux.actioncomponent.binds-to.ux.dataconfig",
       "source_spec_node_id": "ux.actioncomponent",
@@ -1497,6 +1508,28 @@
       "destination_spec_node_id": "ux.view",
       "destination_layer": "ux",
       "predicate": "navigates-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.realizes.business.businessfunction": {
+      "id": "ux.actioncomponent.realizes.business.businessfunction",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.references.security.secureresource": {
+      "id": "ux.actioncomponent.references.security.secureresource",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1545,6 +1578,61 @@
       "strength": "medium",
       "required": false
     },
+    "ux.actioncomponent.requires.security.permission": {
+      "id": "ux.actioncomponent.requires.security.permission",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.satisfies.motivation.requirement": {
+      "id": "ux.actioncomponent.satisfies.motivation.requirement",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.triggers.application.applicationservice": {
+      "id": "ux.actioncomponent.triggers.application.applicationservice",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.triggers.business.businessevent": {
+      "id": "ux.actioncomponent.triggers.business.businessevent",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "business.businessevent",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.triggers.api.operation": {
+      "id": "ux.actioncomponent.triggers.api.operation",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.actioncomponent.triggers.ux.statetransition": {
       "id": "ux.actioncomponent.triggers.ux.statetransition",
       "source_spec_node_id": "ux.actioncomponent",
@@ -1556,12 +1644,45 @@
       "strength": "medium",
       "required": false
     },
+    "ux.actioncomponent.triggers.data-store.storedlogic": {
+      "id": "ux.actioncomponent.triggers.data-store.storedlogic",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-store.storedlogic",
+      "destination_layer": "data-store",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.uses.application.applicationfunction": {
+      "id": "ux.actioncomponent.uses.application.applicationfunction",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.actioncomponent.uses.ux.errorconfig": {
       "id": "ux.actioncomponent.uses.ux.errorconfig",
       "source_spec_node_id": "ux.actioncomponent",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.errorconfig",
       "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.actioncomponent.uses.technology.technologyservice": {
+      "id": "ux.actioncomponent.uses.technology.technologyservice",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
       "predicate": "uses",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -1622,6 +1743,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.chartseries.accesses.data-store.collection": {
+      "id": "ux.chartseries.accesses.data-store.collection",
+      "source_spec_node_id": "ux.chartseries",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.chartseries.binds-to.ux.dataconfig": {
       "id": "ux.chartseries.binds-to.ux.dataconfig",
       "source_spec_node_id": "ux.chartseries",
@@ -1629,6 +1761,17 @@
       "destination_spec_node_id": "ux.dataconfig",
       "destination_layer": "ux",
       "predicate": "binds-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.chartseries.maps-to.data-model.arrayschema": {
+      "id": "ux.chartseries.maps-to.data-model.arrayschema",
+      "source_spec_node_id": "ux.chartseries",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-model.arrayschema",
+      "destination_layer": "data-model",
+      "predicate": "maps-to",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1651,6 +1794,17 @@
       "destination_spec_node_id": "ux.experiencestate",
       "destination_layer": "ux",
       "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.accesses.application.applicationservice": {
+      "id": "ux.componentinstance.accesses.application.applicationservice",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "accesses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1706,6 +1860,17 @@
       "destination_spec_node_id": "ux.librarycomponent",
       "destination_layer": "ux",
       "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.maps-to.data-model.objectschema": {
+      "id": "ux.componentinstance.maps-to.data-model.objectschema",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "maps-to",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1853,6 +2018,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.dataconfig.accesses.data-store.collection": {
+      "id": "ux.dataconfig.accesses.data-store.collection",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.dataconfig.aggregates.ux.errorconfig": {
       "id": "ux.dataconfig.aggregates.ux.errorconfig",
       "source_spec_node_id": "ux.dataconfig",
@@ -1919,6 +2095,50 @@
       "strength": "medium",
       "required": false
     },
+    "ux.dataconfig.maps-to.data-model.objectschema": {
+      "id": "ux.dataconfig.maps-to.data-model.objectschema",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.maps-to.api.requestbody": {
+      "id": "ux.dataconfig.maps-to.api.requestbody",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "api.requestbody",
+      "destination_layer": "api",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.maps-to.api.response": {
+      "id": "ux.dataconfig.maps-to.api.response",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.maps-to.api.schema": {
+      "id": "ux.dataconfig.maps-to.api.schema",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.dataconfig.provides.ux.tablecolumn": {
       "id": "ux.dataconfig.provides.ux.tablecolumn",
       "source_spec_node_id": "ux.dataconfig",
@@ -1937,6 +2157,17 @@
       "destination_spec_node_id": "ux.statepattern",
       "destination_layer": "ux",
       "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.dataconfig.references.data-model.schemadefinition": {
+      "id": "ux.dataconfig.references.data-model.schemadefinition",
+      "source_spec_node_id": "ux.dataconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1992,6 +2223,28 @@
       "destination_spec_node_id": "ux.view",
       "destination_layer": "ux",
       "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.errorconfig.maps-to.api.response": {
+      "id": "ux.errorconfig.maps-to.api.response",
+      "source_spec_node_id": "ux.errorconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "api.response",
+      "destination_layer": "api",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.errorconfig.references.data-model.objectschema": {
+      "id": "ux.errorconfig.references.data-model.objectschema",
+      "source_spec_node_id": "ux.errorconfig",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2150,6 +2403,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.librarycomponent.depends-on.technology.systemsoftware": {
+      "id": "ux.librarycomponent.depends-on.technology.systemsoftware",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.librarycomponent.renders.ux.actioncomponent": {
       "id": "ux.librarycomponent.renders.ux.actioncomponent",
       "source_spec_node_id": "ux.librarycomponent",
@@ -2190,6 +2454,39 @@
       "destination_spec_node_id": "ux.librarycomponent",
       "destination_layer": "ux",
       "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.requires.technology.technologyservice": {
+      "id": "ux.librarycomponent.requires.technology.technologyservice",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.satisfies.motivation.principle": {
+      "id": "ux.librarycomponent.satisfies.motivation.principle",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarycomponent.satisfies.motivation.requirement": {
+      "id": "ux.librarycomponent.satisfies.motivation.requirement",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2289,6 +2586,17 @@
       "destination_spec_node_id": "ux.stateactiontemplate",
       "destination_layer": "ux",
       "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.stateaction.triggers.api.operation": {
+      "id": "ux.stateaction.triggers.api.operation",
+      "source_spec_node_id": "ux.stateaction",
+      "source_layer": "ux",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "triggers",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2447,6 +2755,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.subview.accesses.data-store.collection": {
+      "id": "ux.subview.accesses.data-store.collection",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.subview.aggregates.ux.componentinstance": {
       "id": "ux.subview.aggregates.ux.componentinstance",
       "source_spec_node_id": "ux.subview",
@@ -2469,6 +2788,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.subview.realizes.business.businessprocess": {
+      "id": "ux.subview.realizes.business.businessprocess",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.subview.realizes.ux.librarysubview": {
       "id": "ux.subview.realizes.ux.librarysubview",
       "source_spec_node_id": "ux.subview",
@@ -2480,6 +2810,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.subview.references.data-model.objectschema": {
+      "id": "ux.subview.references.data-model.objectschema",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.subview.renders.ux.componentinstance": {
       "id": "ux.subview.renders.ux.componentinstance",
       "source_spec_node_id": "ux.subview",
@@ -2487,6 +2828,28 @@
       "destination_spec_node_id": "ux.componentinstance",
       "destination_layer": "ux",
       "predicate": "renders",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.subview.requires.security.permission": {
+      "id": "ux.subview.requires.security.permission",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.subview.serves.application.applicationservice": {
+      "id": "ux.subview.serves.application.applicationservice",
+      "source_spec_node_id": "ux.subview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2535,12 +2898,45 @@
       "strength": "medium",
       "required": false
     },
+    "ux.tablecolumn.maps-to.data-store.field": {
+      "id": "ux.tablecolumn.maps-to.data-store.field",
+      "source_spec_node_id": "ux.tablecolumn",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-store.field",
+      "destination_layer": "data-store",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.tablecolumn.maps-to.data-model.schemaproperty": {
+      "id": "ux.tablecolumn.maps-to.data-model.schemaproperty",
+      "source_spec_node_id": "ux.tablecolumn",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-model.schemaproperty",
+      "destination_layer": "data-model",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.tablecolumn.references.ux.actionpattern": {
       "id": "ux.tablecolumn.references.ux.actionpattern",
       "source_spec_node_id": "ux.tablecolumn",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.actionpattern",
       "destination_layer": "ux",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.tablecolumn.references.security.fieldaccesscontrol": {
+      "id": "ux.tablecolumn.references.security.fieldaccesscontrol",
+      "source_spec_node_id": "ux.tablecolumn",
+      "source_layer": "ux",
+      "destination_spec_node_id": "security.fieldaccesscontrol",
+      "destination_layer": "security",
       "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -2733,6 +3129,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.uxspec.satisfies.motivation.requirement": {
+      "id": "ux.uxspec.satisfies.motivation.requirement",
+      "source_spec_node_id": "ux.uxspec",
+      "source_layer": "ux",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.uxspec.uses.ux.uxlibrary": {
       "id": "ux.uxspec.uses.ux.uxlibrary",
       "source_spec_node_id": "ux.uxspec",
@@ -2740,6 +3147,50 @@
       "destination_spec_node_id": "ux.uxlibrary",
       "destination_layer": "ux",
       "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.accesses.application.applicationcomponent": {
+      "id": "ux.view.accesses.application.applicationcomponent",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.accesses.data-store.collection": {
+      "id": "ux.view.accesses.data-store.collection",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.accesses.api.operation": {
+      "id": "ux.view.accesses.api.operation",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.accesses.data-store.view": {
+      "id": "ux.view.accesses.data-store.view",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-store.view",
+      "destination_layer": "data-store",
+      "predicate": "accesses",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2788,6 +3239,94 @@
       "strength": "medium",
       "required": false
     },
+    "ux.view.depends-on.technology.systemsoftware": {
+      "id": "ux.view.depends-on.technology.systemsoftware",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.maps-to.business.businessobject": {
+      "id": "ux.view.maps-to.business.businessobject",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.maps-to.motivation.outcome": {
+      "id": "ux.view.maps-to.motivation.outcome",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.realizes.application.applicationinterface": {
+      "id": "ux.view.realizes.application.applicationinterface",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationinterface",
+      "destination_layer": "application",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.realizes.business.businessprocess": {
+      "id": "ux.view.realizes.business.businessprocess",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.realizes.motivation.goal": {
+      "id": "ux.view.realizes.motivation.goal",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.references.data-model.objectschema": {
+      "id": "ux.view.references.data-model.objectschema",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.references.security.secureresource": {
+      "id": "ux.view.references.security.secureresource",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.view.renders.ux.componentinstance": {
       "id": "ux.view.renders.ux.componentinstance",
       "source_spec_node_id": "ux.view",
@@ -2810,12 +3349,133 @@
       "strength": "medium",
       "required": false
     },
+    "ux.view.requires.security.permission": {
+      "id": "ux.view.requires.security.permission",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "security.permission",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.requires.security.role": {
+      "id": "ux.view.requires.security.role",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "security.role",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.requires.technology.technologyservice": {
+      "id": "ux.view.requires.technology.technologyservice",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.satisfies.motivation.requirement": {
+      "id": "ux.view.satisfies.motivation.requirement",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.satisfies.security.securitypolicy": {
+      "id": "ux.view.satisfies.security.securitypolicy",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.serves.application.applicationservice": {
+      "id": "ux.view.serves.application.applicationservice",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.serves.business.businessrole": {
+      "id": "ux.view.serves.business.businessrole",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.serves.business.businessservice": {
+      "id": "ux.view.serves.business.businessservice",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.serves.motivation.stakeholder": {
+      "id": "ux.view.serves.motivation.stakeholder",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.uses.application.applicationevent": {
+      "id": "ux.view.uses.application.applicationevent",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "application.applicationevent",
+      "destination_layer": "application",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.view.uses.ux.layoutconfig": {
       "id": "ux.view.uses.ux.layoutconfig",
       "source_spec_node_id": "ux.view",
       "source_layer": "ux",
       "destination_spec_node_id": "ux.layoutconfig",
       "destination_layer": "ux",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.uses.api.securityscheme": {
+      "id": "ux.view.uses.api.securityscheme",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
       "predicate": "uses",
       "cardinality": "many-to-one",
       "strength": "medium",

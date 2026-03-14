@@ -443,6 +443,17 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationcomponent.accesses.security.secureresource": {
+      "id": "application.applicationcomponent.accesses.security.secureresource",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationcomponent.composes.application.applicationfunction": {
       "id": "application.applicationcomponent.composes.application.applicationfunction",
       "source_spec_node_id": "application.applicationcomponent",
@@ -450,6 +461,39 @@
       "destination_spec_node_id": "application.applicationfunction",
       "destination_layer": "application",
       "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.constrained-by.security.securitypolicy": {
+      "id": "application.applicationcomponent.constrained-by.security.securitypolicy",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.implements.security.countermeasure": {
+      "id": "application.applicationcomponent.implements.security.countermeasure",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.mitigates.security.threat": {
+      "id": "application.applicationcomponent.mitigates.security.threat",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "mitigates",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -476,6 +520,61 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationcomponent.realizes.business.businessservice": {
+      "id": "application.applicationcomponent.realizes.business.businessservice",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.realizes.motivation.goal": {
+      "id": "application.applicationcomponent.realizes.motivation.goal",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.realizes.motivation.principle": {
+      "id": "application.applicationcomponent.realizes.motivation.principle",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.satisfies.motivation.requirement": {
+      "id": "application.applicationcomponent.satisfies.motivation.requirement",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.serves.business.businessrole": {
+      "id": "application.applicationcomponent.serves.business.businessrole",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationcomponent.uses.application.applicationcomponent": {
       "id": "application.applicationcomponent.uses.application.applicationcomponent",
       "source_spec_node_id": "application.applicationcomponent",
@@ -498,12 +597,34 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationevent.triggers.business.businessprocess": {
+      "id": "application.applicationevent.triggers.business.businessprocess",
+      "source_spec_node_id": "application.applicationevent",
+      "source_layer": "application",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationfunction.accesses.application.dataobject": {
       "id": "application.applicationfunction.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationfunction",
       "source_layer": "application",
       "destination_spec_node_id": "application.dataobject",
       "destination_layer": "application",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.accesses.security.secureresource": {
+      "id": "application.applicationfunction.accesses.security.secureresource",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
       "predicate": "accesses",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -571,6 +692,28 @@
       "destination_spec_node_id": "application.applicationservice",
       "destination_layer": "application",
       "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.realizes.business.businessfunction": {
+      "id": "application.applicationfunction.realizes.business.businessfunction",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.satisfies.motivation.requirement": {
+      "id": "application.applicationfunction.satisfies.motivation.requirement",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -696,12 +839,34 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationinterface.exposes.security.secureresource": {
+      "id": "application.applicationinterface.exposes.security.secureresource",
+      "source_spec_node_id": "application.applicationinterface",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "exposes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationinterface.serves.application.applicationservice": {
       "id": "application.applicationinterface.serves.application.applicationservice",
       "source_spec_node_id": "application.applicationinterface",
       "source_layer": "application",
       "destination_spec_node_id": "application.applicationservice",
       "destination_layer": "application",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationinterface.serves.business.businessrole": {
+      "id": "application.applicationinterface.serves.business.businessrole",
+      "source_spec_node_id": "application.applicationinterface",
+      "source_layer": "application",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
       "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -795,6 +960,28 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationservice.accesses.business.businessobject": {
+      "id": "application.applicationservice.accesses.business.businessobject",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.constrained-by.security.accesscondition": {
+      "id": "application.applicationservice.constrained-by.security.accesscondition",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.accesscondition",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationservice.delivers-value.motivation.value": {
       "id": "application.applicationservice.delivers-value.motivation.value",
       "source_spec_node_id": "application.applicationservice",
@@ -817,6 +1004,39 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationservice.realizes.business.businessservice": {
+      "id": "application.applicationservice.realizes.business.businessservice",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "business.businessservice",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.realizes.motivation.goal": {
+      "id": "application.applicationservice.realizes.motivation.goal",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "motivation.goal",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.realizes.motivation.requirement": {
+      "id": "application.applicationservice.realizes.motivation.requirement",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationservice.references.apm.traceconfiguration": {
       "id": "application.applicationservice.references.apm.traceconfiguration",
       "source_spec_node_id": "application.applicationservice",
@@ -824,6 +1044,50 @@
       "destination_spec_node_id": "apm.traceconfiguration",
       "destination_layer": "apm",
       "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.requires.security.authenticationconfig": {
+      "id": "application.applicationservice.requires.security.authenticationconfig",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "security.authenticationconfig",
+      "destination_layer": "security",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.satisfies.motivation.constraint": {
+      "id": "application.applicationservice.satisfies.motivation.constraint",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.serves.business.businessprocess": {
+      "id": "application.applicationservice.serves.business.businessprocess",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "business.businessprocess",
+      "destination_layer": "business",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.serves.motivation.stakeholder": {
+      "id": "application.applicationservice.serves.motivation.stakeholder",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "motivation.stakeholder",
+      "destination_layer": "motivation",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

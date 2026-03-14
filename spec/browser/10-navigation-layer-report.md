@@ -32,15 +32,15 @@ Layer 10: Navigation Layer
 | ------------------------- | ----- |
 | Node Types                | 11    |
 | Intra-Layer Relationships | 51    |
-| Inter-Layer Relationships | 0     |
-| Inbound Relationships     | 0     |
-| Outbound Relationships    | 0     |
+| Inter-Layer Relationships | 80    |
+| Inbound Relationships     | 14    |
+| Outbound Relationships    | 66    |
 
 ### Layer Dependencies
 
-**Depends On**: None
+**Depends On**: [APM](./11-apm-layer-report.md), [Testing](./12-testing-layer-report.md)
 
-**Depended On By**: None
+**Depended On By**: [Motivation](./01-motivation-layer-report.md), [Business](./02-business-layer-report.md), [Security](./03-security-layer-report.md), [Application](./04-application-layer-report.md), [Technology](./05-technology-layer-report.md), [API](./06-api-layer-report.md), [Data Model](./07-data-model-layer-report.md), [Data Store](./08-data-store-layer-report.md), [UX](./09-ux-layer-report.md)
 
 ## Intra-Layer Relationships
 
@@ -133,22 +133,159 @@ flowchart TB
   api --> application
   api --> business
   api --> data_store
+  api --> motivation
   api --> security
+  api --> technology
+  apm --> api
+  apm --> application
+  apm --> business
+  apm --> data_model
+  apm --> data_store
+  apm --> motivation
+  apm --> navigation
+  apm --> security
+  apm --> technology
+  apm --> ux
   application --> apm
   application --> business
   application --> motivation
+  application --> security
   business --> application
   business --> motivation
   business --> security
+  data_model --> api
   data_model --> application
   data_model --> business
+  data_model --> motivation
+  data_model --> security
+  data_model --> technology
+  data_store --> api
+  data_store --> application
+  data_store --> business
+  data_store --> motivation
+  data_store --> security
+  data_store --> technology
+  navigation --> api
+  navigation --> application
+  navigation --> business
+  navigation --> data_model
+  navigation --> data_store
+  navigation --> motivation
+  navigation --> security
+  navigation --> technology
+  navigation --> ux
+  security --> business
+  security --> motivation
+  technology --> application
+  technology --> business
+  technology --> motivation
+  technology --> security
+  testing --> api
+  testing --> apm
+  testing --> application
+  testing --> business
+  testing --> data_model
+  testing --> data_store
   testing --> motivation
+  testing --> navigation
+  testing --> security
+  testing --> technology
+  testing --> ux
+  ux --> api
+  ux --> application
+  ux --> business
+  ux --> data_model
+  ux --> data_store
+  ux --> motivation
+  ux --> security
+  ux --> technology
   class navigation current
 ```
 
 ## Inter-Layer Relationships Table
 
-No inter-layer relationships defined.
+| Relationship ID                                                   | Source Node                                                                  | Dest Node                                                                     | Dest Layer                                      | Predicate  | Cardinality | Strength |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | ----------- | -------- |
+| apm.instrumentationconfig.monitors.navigation.route               | [Instrumentationconfig](./11-apm-layer-report.md#instrumentationconfig)      | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | monitors   | many-to-one | medium   |
+| apm.logrecord.references.navigation.route                         | [Logrecord](./11-apm-layer-report.md#logrecord)                              | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | references | many-to-one | medium   |
+| apm.metricinstrument.monitors.navigation.navigationtransition     | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                | [Navigationtransition](./10-navigation-layer-report.md#navigationtransition)  | [Navigation](./10-navigation-layer-report.md)   | monitors   | many-to-one | medium   |
+| apm.metricinstrument.monitors.navigation.route                    | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | monitors   | many-to-one | medium   |
+| apm.span.monitors.navigation.navigationflow                       | [Span](./11-apm-layer-report.md#span)                                        | [Navigationflow](./10-navigation-layer-report.md#navigationflow)              | [Navigation](./10-navigation-layer-report.md)   | monitors   | many-to-one | medium   |
+| apm.span.monitors.navigation.navigationguard                      | [Span](./11-apm-layer-report.md#span)                                        | [Navigationguard](./10-navigation-layer-report.md#navigationguard)            | [Navigation](./10-navigation-layer-report.md)   | monitors   | many-to-one | medium   |
+| apm.span.monitors.navigation.route                                | [Span](./11-apm-layer-report.md#span)                                        | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | monitors   | many-to-one | medium   |
+| apm.traceconfiguration.monitors.navigation.route                  | [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)            | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | monitors   | many-to-one | medium   |
+| navigation.contextvariable.maps-to.api.parameter                  | [Contextvariable](./10-navigation-layer-report.md#contextvariable)           | [Parameter](./06-api-layer-report.md#parameter)                               | [API](./06-api-layer-report.md)                 | maps-to    | many-to-one | medium   |
+| navigation.contextvariable.maps-to.data-model.schemaproperty      | [Contextvariable](./10-navigation-layer-report.md#contextvariable)           | [Schemaproperty](./07-data-model-layer-report.md#schemaproperty)              | [Data Model](./07-data-model-layer-report.md)   | maps-to    | many-to-one | medium   |
+| navigation.contextvariable.references.application.dataobject      | [Contextvariable](./10-navigation-layer-report.md#contextvariable)           | [Dataobject](./04-application-layer-report.md#dataobject)                     | [Application](./04-application-layer-report.md) | references | many-to-one | medium   |
+| navigation.contextvariable.references.data-model.jsonschema       | [Contextvariable](./10-navigation-layer-report.md#contextvariable)           | [Jsonschema](./07-data-model-layer-report.md#jsonschema)                      | [Data Model](./07-data-model-layer-report.md)   | references | many-to-one | medium   |
+| navigation.flowstep.accesses.api.operation                        | [Flowstep](./10-navigation-layer-report.md#flowstep)                         | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | accesses   | many-to-one | medium   |
+| navigation.flowstep.accesses.application.applicationservice       | [Flowstep](./10-navigation-layer-report.md#flowstep)                         | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | accesses   | many-to-one | medium   |
+| navigation.flowstep.accesses.data-model.objectschema              | [Flowstep](./10-navigation-layer-report.md#flowstep)                         | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | accesses   | many-to-one | medium   |
+| navigation.flowstep.accesses.data-store.collection                | [Flowstep](./10-navigation-layer-report.md#flowstep)                         | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| navigation.flowstep.maps-to.ux.view                               | [Flowstep](./10-navigation-layer-report.md#flowstep)                         | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | maps-to    | many-to-one | medium   |
+| navigation.flowstep.realizes.business.businessfunction            | [Flowstep](./10-navigation-layer-report.md#flowstep)                         | [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | realizes   | many-to-one | medium   |
+| navigation.flowstep.satisfies.motivation.requirement              | [Flowstep](./10-navigation-layer-report.md#flowstep)                         | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
+| navigation.guardcondition.references.data-model.objectschema      | [Guardcondition](./10-navigation-layer-report.md#guardcondition)             | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | references | many-to-one | medium   |
+| navigation.guardcondition.references.security.permission          | [Guardcondition](./10-navigation-layer-report.md#guardcondition)             | [Permission](./03-security-layer-report.md#permission)                        | [Security](./03-security-layer-report.md)       | references | many-to-one | medium   |
+| navigation.navigationflow.accesses.data-model.objectschema        | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | accesses   | many-to-one | medium   |
+| navigation.navigationflow.accesses.data-store.collection          | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| navigation.navigationflow.accesses.ux.view                        | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | accesses   | many-to-one | medium   |
+| navigation.navigationflow.realizes.application.applicationprocess | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Applicationprocess](./04-application-layer-report.md#applicationprocess)     | [Application](./04-application-layer-report.md) | realizes   | many-to-one | medium   |
+| navigation.navigationflow.realizes.business.businessprocess       | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | realizes   | many-to-one | medium   |
+| navigation.navigationflow.realizes.motivation.goal                | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | many-to-one | medium   |
+| navigation.navigationflow.satisfies.motivation.requirement        | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
+| navigation.navigationflow.satisfies.security.securityconstraints  | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Securityconstraints](./03-security-layer-report.md#securityconstraints)      | [Security](./03-security-layer-report.md)       | satisfies  | many-to-one | medium   |
+| navigation.navigationflow.serves.business.businessservice         | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
+| navigation.navigationflow.triggers.application.applicationevent   | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Applicationevent](./04-application-layer-report.md#applicationevent)         | [Application](./04-application-layer-report.md) | triggers   | many-to-one | medium   |
+| navigation.navigationflow.triggers.business.businessprocess       | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | triggers   | many-to-one | medium   |
+| navigation.navigationflow.uses.technology.systemsoftware          | [Navigationflow](./10-navigation-layer-report.md#navigationflow)             | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
+| navigation.navigationgraph.uses.technology.systemsoftware         | [Navigationgraph](./10-navigation-layer-report.md#navigationgraph)           | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
+| navigation.navigationguard.accesses.api.operation                 | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | accesses   | many-to-one | medium   |
+| navigation.navigationguard.accesses.data-store.collection         | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| navigation.navigationguard.implements.security.securitypolicy     | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | implements | many-to-one | medium   |
+| navigation.navigationguard.realizes.motivation.principle          | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Principle](./01-motivation-layer-report.md#principle)                        | [Motivation](./01-motivation-layer-report.md)   | realizes   | many-to-one | medium   |
+| navigation.navigationguard.references.business.businessrole       | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Businessrole](./02-business-layer-report.md#businessrole)                    | [Business](./02-business-layer-report.md)       | references | many-to-one | medium   |
+| navigation.navigationguard.requires.security.role                 | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Role](./03-security-layer-report.md#role)                                    | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
+| navigation.navigationguard.satisfies.motivation.constraint        | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
+| navigation.navigationguard.triggers.ux.experiencestate            | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Experiencestate](./09-ux-layer-report.md#experiencestate)                    | [UX](./09-ux-layer-report.md)                   | triggers   | many-to-one | medium   |
+| navigation.navigationguard.uses.api.securityscheme                | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Securityscheme](./06-api-layer-report.md#securityscheme)                     | [API](./06-api-layer-report.md)                 | uses       | many-to-one | medium   |
+| navigation.navigationguard.uses.application.applicationservice    | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | uses       | many-to-one | medium   |
+| navigation.navigationguard.uses.data-model.objectschema           | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | uses       | many-to-one | medium   |
+| navigation.navigationguard.uses.technology.systemsoftware         | [Navigationguard](./10-navigation-layer-report.md#navigationguard)           | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
+| navigation.navigationtransition.triggers.ux.statetransition       | [Navigationtransition](./10-navigation-layer-report.md#navigationtransition) | [Statetransition](./09-ux-layer-report.md#statetransition)                    | [UX](./09-ux-layer-report.md)                   | triggers   | many-to-one | medium   |
+| navigation.route.accesses.api.operation                           | [Route](./10-navigation-layer-report.md#route)                               | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | accesses   | many-to-one | medium   |
+| navigation.route.accesses.application.applicationinterface        | [Route](./10-navigation-layer-report.md#route)                               | [Applicationinterface](./04-application-layer-report.md#applicationinterface) | [Application](./04-application-layer-report.md) | accesses   | many-to-one | medium   |
+| navigation.route.accesses.data-model.objectschema                 | [Route](./10-navigation-layer-report.md#route)                               | [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | accesses   | many-to-one | medium   |
+| navigation.route.accesses.data-store.collection                   | [Route](./10-navigation-layer-report.md#route)                               | [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | many-to-one | medium   |
+| navigation.route.accesses.security.secureresource                 | [Route](./10-navigation-layer-report.md#route)                               | [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | accesses   | many-to-one | medium   |
+| navigation.route.depends-on.application.applicationcomponent      | [Route](./10-navigation-layer-report.md#route)                               | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | depends-on | many-to-one | medium   |
+| navigation.route.depends-on.data-store.accesspattern              | [Route](./10-navigation-layer-report.md#route)                               | [Accesspattern](./08-data-store-layer-report.md#accesspattern)                | [Data Store](./08-data-store-layer-report.md)   | depends-on | many-to-one | medium   |
+| navigation.route.depends-on.technology.technologyservice          | [Route](./10-navigation-layer-report.md#route)                               | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
+| navigation.route.maps-to.api.pathitem                             | [Route](./10-navigation-layer-report.md#route)                               | [Pathitem](./06-api-layer-report.md#pathitem)                                 | [API](./06-api-layer-report.md)                 | maps-to    | many-to-one | medium   |
+| navigation.route.maps-to.business.businessfunction                | [Route](./10-navigation-layer-report.md#route)                               | [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | maps-to    | many-to-one | medium   |
+| navigation.route.maps-to.ux.view                                  | [Route](./10-navigation-layer-report.md#route)                               | [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | maps-to    | many-to-one | medium   |
+| navigation.route.realizes.business.businessprocess                | [Route](./10-navigation-layer-report.md#route)                               | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | realizes   | many-to-one | medium   |
+| navigation.route.realizes.motivation.outcome                      | [Route](./10-navigation-layer-report.md#route)                               | [Outcome](./01-motivation-layer-report.md#outcome)                            | [Motivation](./01-motivation-layer-report.md)   | realizes   | many-to-one | medium   |
+| navigation.route.references.data-model.schemadefinition           | [Route](./10-navigation-layer-report.md#route)                               | [Schemadefinition](./07-data-model-layer-report.md#schemadefinition)          | [Data Model](./07-data-model-layer-report.md)   | references | many-to-one | medium   |
+| navigation.route.requires.api.securityscheme                      | [Route](./10-navigation-layer-report.md#route)                               | [Securityscheme](./06-api-layer-report.md#securityscheme)                     | [API](./06-api-layer-report.md)                 | requires   | many-to-one | medium   |
+| navigation.route.requires.security.permission                     | [Route](./10-navigation-layer-report.md#route)                               | [Permission](./03-security-layer-report.md#permission)                        | [Security](./03-security-layer-report.md)       | requires   | many-to-one | medium   |
+| navigation.route.satisfies.motivation.requirement                 | [Route](./10-navigation-layer-report.md#route)                               | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
+| navigation.route.serves.business.businessrole                     | [Route](./10-navigation-layer-report.md#route)                               | [Businessrole](./02-business-layer-report.md#businessrole)                    | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
+| navigation.route.uses.application.applicationservice              | [Route](./10-navigation-layer-report.md#route)                               | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | uses       | many-to-one | medium   |
+| navigation.route.uses.data-store.view                             | [Route](./10-navigation-layer-report.md#route)                               | [View](./08-data-store-layer-report.md#view)                                  | [Data Store](./08-data-store-layer-report.md)   | uses       | many-to-one | medium   |
+| navigation.route.uses.technology.systemsoftware                   | [Route](./10-navigation-layer-report.md#route)                               | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
+| navigation.route.uses.technology.technologyfunction               | [Route](./10-navigation-layer-report.md#route)                               | [Technologyfunction](./05-technology-layer-report.md#technologyfunction)      | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
+| navigation.route.uses.ux.errorconfig                              | [Route](./10-navigation-layer-report.md#route)                               | [Errorconfig](./09-ux-layer-report.md#errorconfig)                            | [UX](./09-ux-layer-report.md)                   | uses       | many-to-one | medium   |
+| navigation.route.uses.ux.layoutconfig                             | [Route](./10-navigation-layer-report.md#route)                               | [Layoutconfig](./09-ux-layer-report.md#layoutconfig)                          | [UX](./09-ux-layer-report.md)                   | uses       | many-to-one | medium   |
+| navigation.routemeta.references.api.operation                     | [Routemeta](./10-navigation-layer-report.md#routemeta)                       | [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | references | many-to-one | medium   |
+| navigation.routemeta.references.security.securitypolicy           | [Routemeta](./10-navigation-layer-report.md#routemeta)                       | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | references | many-to-one | medium   |
+| navigation.routemeta.uses.ux.layoutconfig                         | [Routemeta](./10-navigation-layer-report.md#routemeta)                       | [Layoutconfig](./09-ux-layer-report.md#layoutconfig)                          | [UX](./09-ux-layer-report.md)                   | uses       | many-to-one | medium   |
+| testing.coveragerequirement.covers.navigation.navigationguard     | [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement)      | [Navigationguard](./10-navigation-layer-report.md#navigationguard)            | [Navigation](./10-navigation-layer-report.md)   | covers     | many-to-one | medium   |
+| testing.testcasesketch.tests.navigation.navigationflow            | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                | [Navigationflow](./10-navigation-layer-report.md#navigationflow)              | [Navigation](./10-navigation-layer-report.md)   | tests      | many-to-one | medium   |
+| testing.testcasesketch.tests.navigation.navigationguard           | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                | [Navigationguard](./10-navigation-layer-report.md#navigationguard)            | [Navigation](./10-navigation-layer-report.md)   | tests      | many-to-one | medium   |
+| testing.testcasesketch.tests.navigation.route                     | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | tests      | many-to-one | medium   |
+| testing.testcoveragemodel.covers.navigation.route                 | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)          | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | covers     | many-to-one | medium   |
+| testing.testcoveragetarget.references.navigation.route            | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)        | [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | references | many-to-one | medium   |
 
 ## Node Reference
 
@@ -184,7 +321,7 @@ A typed variable shared across steps of a NavigationFlow, enabling state to pers
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 7 | Outbound: 3
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 4
 
 #### Intra-Layer Relationships
 
@@ -201,6 +338,15 @@ A typed variable shared across steps of a NavigationFlow, enabling state to pers
 | [Navigationguard](#navigationguard)           | consumes   | inbound   | many-to-one |
 | [Navigationtransition](#navigationtransition) | uses       | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                     | Layer                                           | Predicate  | Direction | Cardinality |
+| ---------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
+| [Parameter](./06-api-layer-report.md#parameter)                  | [API](./06-api-layer-report.md)                 | maps-to    | outbound  | many-to-one |
+| [Schemaproperty](./07-data-model-layer-report.md#schemaproperty) | [Data Model](./07-data-model-layer-report.md)   | maps-to    | outbound  | many-to-one |
+| [Dataobject](./04-application-layer-report.md#dataobject)        | [Application](./04-application-layer-report.md) | references | outbound  | many-to-one |
+| [Jsonschema](./07-data-model-layer-report.md#jsonschema)         | [Data Model](./07-data-model-layer-report.md)   | references | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Flowstep {#flowstep}
@@ -212,7 +358,7 @@ One step in a navigation flow
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 3 | Outbound: 5
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 7
 
 #### Intra-Layer Relationships
 
@@ -226,6 +372,18 @@ One step in a navigation flow
 | [Navigationtransition](#navigationtransition) | triggers     | outbound  | many-to-one |
 | [Navigationflow](#navigationflow)             | aggregates   | inbound   | many-to-one |
 | [Navigationflow](#navigationflow)             | composes     | inbound   | many-to-one |
+
+#### Inter-Layer Relationships
+
+| Related Node                                                              | Layer                                           | Predicate | Direction | Cardinality |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | --------- | --------- | ----------- |
+| [Operation](./06-api-layer-report.md#operation)                           | [API](./06-api-layer-report.md)                 | accesses  | outbound  | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | accesses  | outbound  | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)              | [Data Model](./07-data-model-layer-report.md)   | accesses  | outbound  | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | accesses  | outbound  | many-to-one |
+| [View](./09-ux-layer-report.md#view)                                      | [UX](./09-ux-layer-report.md)                   | maps-to   | outbound  | many-to-one |
+| [Businessfunction](./02-business-layer-report.md#businessfunction)        | [Business](./02-business-layer-report.md)       | realizes  | outbound  | many-to-one |
+| [Requirement](./01-motivation-layer-report.md#requirement)                | [Motivation](./01-motivation-layer-report.md)   | satisfies | outbound  | many-to-one |
 
 [Back to Index](#report-index)
 
@@ -262,7 +420,7 @@ Boolean predicate evaluated by a NavigationGuard to determine whether route acce
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 2 | Outbound: 5
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 2
 
 #### Intra-Layer Relationships
 
@@ -276,6 +434,13 @@ Boolean predicate evaluated by a NavigationGuard to determine whether route acce
 | [Contextvariable](#contextvariable) | uses       | outbound  | many-to-one |
 | [Navigationguard](#navigationguard) | uses       | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                 | Layer                                         | Predicate  | Direction | Cardinality |
+| ------------------------------------------------------------ | --------------------------------------------- | ---------- | --------- | ----------- |
+| [Objectschema](./07-data-model-layer-report.md#objectschema) | [Data Model](./07-data-model-layer-report.md) | references | outbound  | many-to-one |
+| [Permission](./03-security-layer-report.md#permission)       | [Security](./03-security-layer-report.md)     | references | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Navigationflow {#navigationflow}
@@ -287,7 +452,7 @@ Sequence of routes that realizes a business process
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 1 | Outbound: 5
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 2 | Outbound: 12
 
 #### Intra-Layer Relationships
 
@@ -300,6 +465,25 @@ Sequence of routes that realizes a business process
 | [Navigationguard](#navigationguard)           | requires   | outbound  | many-to-one |
 | [Navigationgraph](#navigationgraph)           | aggregates | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                              | Layer                                           | Predicate | Direction | Cardinality |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | --------- | --------- | ----------- |
+| [Span](./11-apm-layer-report.md#span)                                     | [APM](./11-apm-layer-report.md)                 | monitors  | inbound   | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)              | [Data Model](./07-data-model-layer-report.md)   | accesses  | outbound  | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | accesses  | outbound  | many-to-one |
+| [View](./09-ux-layer-report.md#view)                                      | [UX](./09-ux-layer-report.md)                   | accesses  | outbound  | many-to-one |
+| [Applicationprocess](./04-application-layer-report.md#applicationprocess) | [Application](./04-application-layer-report.md) | realizes  | outbound  | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)          | [Business](./02-business-layer-report.md)       | realizes  | outbound  | many-to-one |
+| [Goal](./01-motivation-layer-report.md#goal)                              | [Motivation](./01-motivation-layer-report.md)   | realizes  | outbound  | many-to-one |
+| [Requirement](./01-motivation-layer-report.md#requirement)                | [Motivation](./01-motivation-layer-report.md)   | satisfies | outbound  | many-to-one |
+| [Securityconstraints](./03-security-layer-report.md#securityconstraints)  | [Security](./03-security-layer-report.md)       | satisfies | outbound  | many-to-one |
+| [Businessservice](./02-business-layer-report.md#businessservice)          | [Business](./02-business-layer-report.md)       | serves    | outbound  | many-to-one |
+| [Applicationevent](./04-application-layer-report.md#applicationevent)     | [Application](./04-application-layer-report.md) | triggers  | outbound  | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)          | [Business](./02-business-layer-report.md)       | triggers  | outbound  | many-to-one |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware)          | [Technology](./05-technology-layer-report.md)   | uses      | outbound  | many-to-one |
+| [Testcasesketch](./12-testing-layer-report.md#testcasesketch)             | [Testing](./12-testing-layer-report.md)         | tests     | inbound   | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Navigationgraph {#navigationgraph}
@@ -311,7 +495,7 @@ Root container for an application's complete routing structure, composing all Ro
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 1 | Outbound: 7
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 1
 
 #### Intra-Layer Relationships
 
@@ -326,6 +510,12 @@ Root container for an application's complete routing structure, composing all Ro
 | [Navigationtransition](#navigationtransition) | composes        | outbound  | many-to-one |
 | [Route](#route)                               | composes        | outbound  | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                     | Layer                                         | Predicate | Direction | Cardinality |
+| ---------------------------------------------------------------- | --------------------------------------------- | --------- | --------- | ----------- |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware) | [Technology](./05-technology-layer-report.md) | uses      | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Navigationguard {#navigationguard}
@@ -337,7 +527,7 @@ Guard condition for route access
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 5 | Outbound: 5
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 3 | Outbound: 12
 
 #### Intra-Layer Relationships
 
@@ -354,6 +544,26 @@ Guard condition for route access
 | [Navigationtransition](#navigationtransition) | requires   | inbound   | many-to-one |
 | [Routemeta](#routemeta)                       | governs    | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                              | Layer                                           | Predicate  | Direction | Cardinality |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
+| [Span](./11-apm-layer-report.md#span)                                     | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
+| [Operation](./06-api-layer-report.md#operation)                           | [API](./06-api-layer-report.md)                 | accesses   | outbound  | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)                  | [Data Store](./08-data-store-layer-report.md)   | accesses   | outbound  | many-to-one |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)            | [Security](./03-security-layer-report.md)       | implements | outbound  | many-to-one |
+| [Principle](./01-motivation-layer-report.md#principle)                    | [Motivation](./01-motivation-layer-report.md)   | realizes   | outbound  | many-to-one |
+| [Businessrole](./02-business-layer-report.md#businessrole)                | [Business](./02-business-layer-report.md)       | references | outbound  | many-to-one |
+| [Role](./03-security-layer-report.md#role)                                | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
+| [Constraint](./01-motivation-layer-report.md#constraint)                  | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-one |
+| [Experiencestate](./09-ux-layer-report.md#experiencestate)                | [UX](./09-ux-layer-report.md)                   | triggers   | outbound  | many-to-one |
+| [Securityscheme](./06-api-layer-report.md#securityscheme)                 | [API](./06-api-layer-report.md)                 | uses       | outbound  | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice) | [Application](./04-application-layer-report.md) | uses       | outbound  | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)              | [Data Model](./07-data-model-layer-report.md)   | uses       | outbound  | many-to-one |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware)          | [Technology](./05-technology-layer-report.md)   | uses       | outbound  | many-to-one |
+| [Coveragerequirement](./12-testing-layer-report.md#coveragerequirement)   | [Testing](./12-testing-layer-report.md)         | covers     | inbound   | many-to-one |
+| [Testcasesketch](./12-testing-layer-report.md#testcasesketch)             | [Testing](./12-testing-layer-report.md)         | tests      | inbound   | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Navigationtransition {#navigationtransition}
@@ -365,7 +575,7 @@ Transition from one route to another
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 9 | Outbound: 5
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 1 | Outbound: 1
 
 #### Intra-Layer Relationships
 
@@ -386,6 +596,13 @@ Transition from one route to another
 | [Route](#route)                     | triggers     | inbound   | many-to-one |
 | [Routemeta](#routemeta)             | uses         | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                  | Layer                           | Predicate | Direction | Cardinality |
+| ------------------------------------------------------------- | ------------------------------- | --------- | --------- | ----------- |
+| [Metricinstrument](./11-apm-layer-report.md#metricinstrument) | [APM](./11-apm-layer-report.md) | monitors  | inbound   | many-to-one |
+| [Statetransition](./09-ux-layer-report.md#statetransition)    | [UX](./09-ux-layer-report.md)   | triggers  | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Route {#route}
@@ -397,7 +614,7 @@ Single route/destination in the application (channel-agnostic)
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 14 | Outbound: 6
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 8 | Outbound: 24
 
 #### Intra-Layer Relationships
 
@@ -422,6 +639,43 @@ Single route/destination in the application (channel-agnostic)
 | [Navigationtransition](#navigationtransition) | triggers        | outbound  | many-to-one |
 | [Routemeta](#routemeta)                       | serves          | inbound   | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                                  | Layer                                           | Predicate  | Direction | Cardinality |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
+| [Instrumentationconfig](./11-apm-layer-report.md#instrumentationconfig)       | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
+| [Logrecord](./11-apm-layer-report.md#logrecord)                               | [APM](./11-apm-layer-report.md)                 | references | inbound   | many-to-one |
+| [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                 | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
+| [Span](./11-apm-layer-report.md#span)                                         | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
+| [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)             | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
+| [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | accesses   | outbound  | many-to-one |
+| [Applicationinterface](./04-application-layer-report.md#applicationinterface) | [Application](./04-application-layer-report.md) | accesses   | outbound  | many-to-one |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | accesses   | outbound  | many-to-one |
+| [Collection](./08-data-store-layer-report.md#collection)                      | [Data Store](./08-data-store-layer-report.md)   | accesses   | outbound  | many-to-one |
+| [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | accesses   | outbound  | many-to-one |
+| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | depends-on | outbound  | many-to-one |
+| [Accesspattern](./08-data-store-layer-report.md#accesspattern)                | [Data Store](./08-data-store-layer-report.md)   | depends-on | outbound  | many-to-one |
+| [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | outbound  | many-to-one |
+| [Pathitem](./06-api-layer-report.md#pathitem)                                 | [API](./06-api-layer-report.md)                 | maps-to    | outbound  | many-to-one |
+| [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | maps-to    | outbound  | many-to-one |
+| [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | maps-to    | outbound  | many-to-one |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | realizes   | outbound  | many-to-one |
+| [Outcome](./01-motivation-layer-report.md#outcome)                            | [Motivation](./01-motivation-layer-report.md)   | realizes   | outbound  | many-to-one |
+| [Schemadefinition](./07-data-model-layer-report.md#schemadefinition)          | [Data Model](./07-data-model-layer-report.md)   | references | outbound  | many-to-one |
+| [Securityscheme](./06-api-layer-report.md#securityscheme)                     | [API](./06-api-layer-report.md)                 | requires   | outbound  | many-to-one |
+| [Permission](./03-security-layer-report.md#permission)                        | [Security](./03-security-layer-report.md)       | requires   | outbound  | many-to-one |
+| [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-one |
+| [Businessrole](./02-business-layer-report.md#businessrole)                    | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-one |
+| [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | uses       | outbound  | many-to-one |
+| [View](./08-data-store-layer-report.md#view)                                  | [Data Store](./08-data-store-layer-report.md)   | uses       | outbound  | many-to-one |
+| [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | outbound  | many-to-one |
+| [Technologyfunction](./05-technology-layer-report.md#technologyfunction)      | [Technology](./05-technology-layer-report.md)   | uses       | outbound  | many-to-one |
+| [Errorconfig](./09-ux-layer-report.md#errorconfig)                            | [UX](./09-ux-layer-report.md)                   | uses       | outbound  | many-to-one |
+| [Layoutconfig](./09-ux-layer-report.md#layoutconfig)                          | [UX](./09-ux-layer-report.md)                   | uses       | outbound  | many-to-one |
+| [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                 | [Testing](./12-testing-layer-report.md)         | tests      | inbound   | many-to-one |
+| [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)           | [Testing](./12-testing-layer-report.md)         | covers     | inbound   | many-to-one |
+| [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)         | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-one |
+
 [Back to Index](#report-index)
 
 ### Routemeta {#routemeta}
@@ -433,7 +687,7 @@ Per-route rendering and access configuration attached to a Route node and consum
 #### Relationship Metrics
 
 - **Intra-Layer**: Inbound: 4 | Outbound: 4
-- **Inter-Layer**: Inbound: 0 | Outbound: 0
+- **Inter-Layer**: Inbound: 0 | Outbound: 3
 
 #### Intra-Layer Relationships
 
@@ -448,8 +702,16 @@ Per-route rendering and access configuration attached to a Route node and consum
 | [Route](#route)                               | serves          | outbound  | many-to-one |
 | [Navigationtransition](#navigationtransition) | uses            | outbound  | many-to-one |
 
+#### Inter-Layer Relationships
+
+| Related Node                                                   | Layer                                     | Predicate  | Direction | Cardinality |
+| -------------------------------------------------------------- | ----------------------------------------- | ---------- | --------- | ----------- |
+| [Operation](./06-api-layer-report.md#operation)                | [API](./06-api-layer-report.md)           | references | outbound  | many-to-one |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy) | [Security](./03-security-layer-report.md) | references | outbound  | many-to-one |
+| [Layoutconfig](./09-ux-layer-report.md#layoutconfig)           | [UX](./09-ux-layer-report.md)             | uses       | outbound  | many-to-one |
+
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-03-06T06:16:41.135Z | Spec Version: 0.8.1 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-14T21:04:51.709Z | Spec Version: 0.8.2 | Generator: generate-layer-reports.ts_
