@@ -1633,9 +1633,8 @@ export class VisualizationServer {
           target: rel.target,
           type: rel.predicate,
         };
-        // Defensive: `dr relationship add` enforces intra-layer only and never
-        // sets targetLayer, so this branch is unreachable through normal CLI
-        // usage. It handles hand-edited YAML that may set targetLayer explicitly.
+        // Cross-layer relationships set targetLayer; intra-layer relationships do not.
+        // Both paths are reachable through normal CLI usage via `dr relationship add`.
         if (rel.targetLayer) {
           link.source_layer_id = layerId;
           link.target_layer_id = rel.targetLayer;

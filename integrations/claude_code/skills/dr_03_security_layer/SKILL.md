@@ -325,11 +325,9 @@ dr add security model "application-security" \
 
 # Add authentication providers
 dr add security authentication-config "oauth2-google" \
-  --properties provider=oauth2,name=google,scopes=openid:email:profile \
   --description "Google OAuth2 authentication"
 
 dr add security authentication-config "jwt-internal" \
-  --properties provider=jwt,expiration=3600 \
   --description "Internal JWT authentication"
 ```
 
@@ -338,28 +336,22 @@ dr add security authentication-config "jwt-internal" \
 ```bash
 # Add roles
 dr add security role "admin" \
-  --properties hierarchy=1 \
   --description "System administrator with full access"
 
 dr add security role "user" \
-  --properties hierarchy=2,inherits-from=guest \
   --description "Regular authenticated user"
 
 dr add security role "guest" \
-  --properties hierarchy=3 \
   --description "Unauthenticated visitor"
 
 # Add permissions
 dr add security permission "users.read" \
-  --properties scope=resource,resource=users,action=read \
   --description "Read access to user data"
 
 dr add security permission "users.write" \
-  --properties scope=resource,resource=users,action=write \
   --description "Write access to user data"
 
 dr add security permission "admin.all" \
-  --properties scope=global \
   --description "Full administrative access"
 ```
 
@@ -368,16 +360,13 @@ dr add security permission "admin.all" \
 ```bash
 # Protected API endpoint
 dr add security secure-resource "user-api" \
-  --properties type=api,path=/api/users \
   --description "User management API endpoints"
 
 # Add resource operation
 dr add security resource-operation "list-users" \
-  --properties resource=user-api,method=GET,allowed-roles=admin:manager \
   --description "List all users operation"
 
 dr add security resource-operation "create-user" \
-  --properties resource=user-api,method=POST,required-permissions=users.write \
   --description "Create new user operation"
 ```
 
@@ -386,21 +375,18 @@ dr add security resource-operation "create-user" \
 ```bash
 # Security actors
 dr add security actor "support-agent" \
-  --properties type=role \
   --description "Customer support team member"
 
 # Actor objectives (link to motivation goals)
 dr add security actor-objective "resolve-customer-issues" \
-  --properties actor=support-agent \
   --description "Provide timely customer support"
 
 # Link objective to motivation layer
-dr relationship add "security/actor-objective/resolve-customer-issues" \
-  supports "motivation/goal/customer-satisfaction"
+dr relationship add security.actor-objective.resolve-customer-issues \
+  motivation.goal.customer-satisfaction --predicate supports
 
 # Actor dependencies
 dr add security actor-dependency "support-needs-customer-data" \
-  --properties depender=support-agent,dependee=system,resource=customer-information \
   --description "Support agent requires customer data to resolve issues"
 ```
 
@@ -409,16 +395,13 @@ dr add security actor-dependency "support-needs-customer-data" \
 ```bash
 # Information entity (STS-ml)
 dr add security information-entity "customer-pii" \
-  --properties classification=confidential \
   --description "Customer personally identifiable information"
 
 # Information rights (produce, read, modify, distribute)
 dr add security information-right "support-read-pii" \
-  --properties entity=customer-pii,actor=support-agent,rights=read \
   --description "Support can read customer PII"
 
 dr add security information-right "admin-full-pii" \
-  --properties entity=customer-pii,actor=admin,rights=produce:read:modify:distribute \
   --description "Admin has full rights to customer PII"
 ```
 
@@ -427,17 +410,14 @@ dr add security information-right "admin-full-pii" \
 ```bash
 # Separation of duty
 dr add security separation-of-duty "approve-payment-sod" \
-  --properties tasks=create-payment:approve-payment \
   --description "Payment creation and approval must be done by different actors"
 
 # Binding of duty
 dr add security binding-of-duty "handle-refund-bod" \
-  --properties tasks=initiate-refund:complete-refund \
   --description "Same actor must initiate and complete refund process"
 
 # Need to know
 dr add security need-to-know "customer-data-ntk" \
-  --properties information=customer-pii,objective=resolve-customer-issues \
   --description "Access to customer PII only when resolving customer issues"
 ```
 
@@ -446,17 +426,15 @@ dr add security need-to-know "customer-data-ntk" \
 ```bash
 # Identify threats
 dr add security threat "sql-injection" \
-  --properties likelihood=high,impact=critical,category=injection \
   --description "SQL injection via user input fields"
 
 # Add countermeasures
 dr add security countermeasure "parameterized-queries" \
-  --properties threat=sql-injection,status=implemented \
   --description "Use parameterized queries for all database operations"
 
 # Link threat to motivation layer
-dr relationship add "security/threat/sql-injection" \
-  references "motivation/assessment/security-vulnerability-risk"
+dr relationship add security.threat.sql-injection \
+  motivation.assessment.security-vulnerability-risk --predicate references
 ```
 
 ### Step 8: Define Policies (ABAC)
@@ -464,17 +442,14 @@ dr relationship add "security/threat/sql-injection" \
 ```bash
 # Declarative security policy
 dr add security policy "data-access-policy" \
-  --properties priority=100,enabled=true \
   --description "Attribute-based data access control"
 
 # Policy rule
 dr add security policy-rule "owner-can-write" \
-  --properties policy=data-access-policy,effect=allow \
   --description "Resource owner can write to their own resources"
 
 # Access condition (ABAC expression)
 dr add security access-condition "is-owner" \
-  --properties field=resource.owner_id,operator=equals,value=user.id \
   --description "User is the resource owner"
 ```
 
@@ -482,23 +457,23 @@ dr add security access-condition "is-owner" \
 
 ```bash
 # Link to application layer
-dr relationship add "security/secure-resource/user-api" \
-  protects "application/service/user-management-api"
+dr relationship add security.secure-resource.user-api \
+  application.service.user-management-api --predicate protects
 
 # Link to API layer
-dr relationship add "security/resource-operation/list-users" \
-  protects "api/operation/get-users"
+dr relationship add security.resource-operation.list-users \
+  api.operation.get-users --predicate protects
 
 # Link to motivation layer
-dr relationship add "security/actor/support-agent" \
-  references "motivation/stakeholder/customer-support-team"
+dr relationship add security.actor.support-agent \
+  motivation.stakeholder.customer-support-team --predicate references
 ```
 
 ### Step 10: Validate
 
 ```bash
-dr validate --layer security
-dr validate --validate-relationships
+dr validate --layers security
+dr validate --relationships
 ```
 
 ---
@@ -637,31 +612,31 @@ The Security Layer integrates **STS-ml 2.0** (Socio-Technical Security Modeling 
 
 ```bash
 dr add security model <name>
-dr add security authentication-config <name> --properties provider=<type>
-dr add security role <name> --properties hierarchy=<number>
-dr add security permission <name> --properties scope=<scope>
-dr add security secure-resource <name> --properties type=<type>
-dr add security actor <name> --properties type=<type>
-dr add security actor-objective <name> --properties actor=<actor-id>
-dr add security information-entity <name> --properties classification=<level>
-dr add security threat <name> --properties likelihood=<value>,impact=<value>
-dr add security countermeasure <name> --properties threat=<threat-id>
-dr add security delegation <name> --properties delegator=<actor>,delegatee=<actor>
+dr add security authentication-config <name> --description <description>
+dr add security role <name> --description <description>
+dr add security permission <name> --description <description>
+dr add security secure-resource <name> --description <description>
+dr add security actor <name> --description <description>
+dr add security actor-objective <name> --description <description>
+dr add security information-entity <name> --description <description>
+dr add security threat <name> --description <description>
+dr add security countermeasure <name> --description <description>
+dr add security delegation <name> --description <description>
 ```
 
 **Relationship Commands:**
 
 ```bash
-dr relationship add <actor> has-objective <objective>
-dr relationship add <threat> mitigated-by <countermeasure>
-dr relationship add <secure-resource> protects <application-service>
-dr relationship add <actor-objective> supports <motivation-goal>
+dr relationship add <actor> <objective> --predicate has-objective
+dr relationship add <threat> <countermeasure> --predicate mitigated-by
+dr relationship add <secure-resource> <application-service> --predicate protects
+dr relationship add <actor-objective> <motivation-goal> --predicate supports
 ```
 
 **Cross-Layer Commands:**
 
 ```bash
-dr relationship add security/<actor> references motivation/<stakeholder>
-dr relationship add security/<secure-resource> protects application/<service>
-dr relationship add security/<resource-operation> protects api/<operation>
+dr relationship add <security-actor> <motivation-stakeholder> --predicate references
+dr relationship add <secure-resource> <application-service> --predicate protects
+dr relationship add <security-resource-operation> <api-operation> --predicate protects
 ```

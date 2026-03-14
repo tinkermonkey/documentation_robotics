@@ -13,15 +13,16 @@ export interface RelationshipTypeMetadata {
 }
 
 /**
- * Relationship registry - manages intra-layer relationships and their catalog
+ * Relationship registry - manages intra-layer and cross-layer relationships and their catalog
  *
  * NOTE: Future consolidation - Registry to GraphModel API
  * This registry will be consolidated into the GraphModel query API in a future refactoring.
- * The graph model provides the foundation with intra-layer relationship tracking via edges.
+ * The graph model provides the foundation for relationship tracking via edges.
  * Current approach maintains backward compatibility while the transition occurs.
  *
- * Future approach: Use GraphModel.getEdgesFrom/To with predicate filtering
- * where source_layer === destination_layer for intra-layer relationships.
+ * Future approach: Use GraphModel.getEdgesFrom/To with predicate filtering,
+ * supporting both intra-layer (source_layer === destination_layer) and
+ * cross-layer (source_layer !== destination_layer) relationships per the spec.
  *
  * See: https://github.com/tinkermonkey/documentation_robotics/discussions/317
  */

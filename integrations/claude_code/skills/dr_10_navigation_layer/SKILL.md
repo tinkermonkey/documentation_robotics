@@ -98,22 +98,22 @@ Activate when the user:
 
 ```bash
 # Add route
-dr add navigation route --name "User Profile Route" --property path=/profile/:id
+dr add navigation route "User Profile Route" --description "User profile page route"
 
 # Add navigation guard
-dr add navigation navigation-guard --name "Auth Guard"
+dr add navigation navigation-guard "Auth Guard"
 
 # Add navigation flow
-dr add navigation navigation-flow --name "Checkout Flow"
+dr add navigation navigation-flow "Checkout Flow"
 
 # List routes
-dr list navigation route
+dr list navigation --type route
 
 # Validate navigation layer
-dr validate --layer navigation
+dr validate --layers navigation
 
 # Export navigation map
-dr export --layer navigation --format mermaid
+dr export plantuml --layers navigation
 ```
 
 ---

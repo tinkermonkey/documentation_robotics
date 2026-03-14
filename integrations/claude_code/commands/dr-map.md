@@ -49,7 +49,7 @@ If no model exists:
 Also check if the model is empty (no elements yet) and no `--layers` flag was provided:
 
 ```bash
-dr list --count 2>/dev/null
+dr list motivation --json 2>/dev/null
 ```
 
 If model has 0 elements and no `--layers` flag: offer **Recipe Mode** vs. **Targeted Mode**.

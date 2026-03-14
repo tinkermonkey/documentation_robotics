@@ -492,17 +492,15 @@ components:
 ```bash
 # Create the API specification document
 dr add api document "payment-api" \
-  --properties version=3.0.3,title="Payment Processing API",api-version=2.1.0 \
   --description "API for processing customer payments"
 
 # Add API metadata
 dr add api info "payment-api-info" \
-  --properties title="Payment Processing API",version=2.1.0,contact-email=api@example.com \
   --description "API metadata and contact information"
 
 # Link to motivation layer
-dr relationship add "api/document/payment-api" \
-  governed-by "motivation/principle/api-first-design"
+dr relationship add api.document.payment-api \
+  motivation.principle.api-first-design --predicate governed-by
 ```
 
 ### Step 2: Define Servers
@@ -510,12 +508,10 @@ dr relationship add "api/document/payment-api" \
 ```bash
 # Production server
 dr add api server "production-server" \
-  --properties url=https://api.example.com/v2,description="Production server" \
   --description "Production API server"
 
 # Staging server
 dr add api server "staging-server" \
-  --properties url=https://staging-api.example.com/v2,description="Staging server" \
   --description "Staging API server"
 ```
 
@@ -524,12 +520,10 @@ dr add api server "staging-server" \
 ```bash
 # OAuth2 security
 dr add api security-scheme "oauth2-auth" \
-  --properties type=oauth2,flow=authorizationCode,authorization-url=https://auth.example.com/oauth/authorize,token-url=https://auth.example.com/oauth/token \
   --description "OAuth2 authorization code flow"
 
 # API Key security
 dr add api security-scheme "api-key-auth" \
-  --properties type=apiKey,in=header,name=X-API-Key \
   --description "API key authentication"
 ```
 
@@ -538,17 +532,15 @@ dr add api security-scheme "api-key-auth" \
 ```bash
 # Request schema
 dr add api schema "payment-request" \
-  --properties type=object,required=amount:currency:payment_method \
   --description "Payment request payload"
 
 # Response schema
 dr add api schema "payment-response" \
-  --properties type=object \
   --description "Payment processing response"
 
 # Link to data model layer
-dr relationship add "api/schema/payment-request" \
-  references "data-model/schema/payment-request"
+dr relationship add api.schema.payment-request \
+  data-model.schema.payment-request --predicate references
 ```
 
 ### Step 5: Define Operations (Core Entities)
@@ -556,19 +548,16 @@ dr relationship add "api/schema/payment-request" \
 ```bash
 # POST operation
 dr add api operation "process-payment" \
-  --properties path=/payments,method=POST,operation-id=processPayment \
   --description "Processes a payment transaction"
 
 # Add APM and security extensions
 dr add api operation "process-payment" \
-  --properties x-apm-sla-target-latency=500ms,x-apm-sla-target-availability=99.99%,x-apm-criticality=critical,x-required-permissions=payments.write
 
 # Link to business layer via relationship
 dr relationship add api.operation.process-payment business.service.payment-processing --predicate realizes
 
 # GET operation
 dr add api operation "get-payment" \
-  --properties path=/payments/{paymentId},method=GET,operation-id=getPayment \
   --description "Retrieves payment details by ID"
 ```
 
@@ -577,17 +566,15 @@ dr add api operation "get-payment" \
 ```bash
 # Path parameter
 dr add api parameter "payment-id-param" \
-  --properties name=paymentId,in=path,required=true,type=string,format=uuid \
   --description "Payment transaction ID"
 
 # Query parameter
 dr add api parameter "status-filter" \
-  --properties name=status,in=query,required=false,type=string,enum=pending:completed:failed \
   --description "Filter payments by status"
 
 # Link parameter to operation
-dr relationship add "api/operation/get-payment" \
-  has-parameter "api/parameter/payment-id-param"
+dr relationship add api.operation.get-payment \
+  api.parameter.payment-id-param --predicate has-parameter
 ```
 
 ### Step 7: Define Request/Response Bodies
@@ -595,21 +582,19 @@ dr relationship add "api/operation/get-payment" \
 ```bash
 # Request body
 dr add api request-body "payment-request-body" \
-  --properties required=true,content-type=application/json \
   --description "Payment request payload"
 
 # Link request body to schema
-dr relationship add "api/request-body/payment-request-body" \
-  uses-schema "api/schema/payment-request"
+dr relationship add api.request-body.payment-request-body \
+  api.schema.payment-request --predicate uses-schema
 
 # Response
 dr add api response "payment-success-response" \
-  --properties status-code=201,description="Payment processed successfully" \
   --description "Successful payment response"
 
 # Link response to schema
-dr relationship add "api/response/payment-success-response" \
-  uses-schema "api/schema/payment-response"
+dr relationship add api.response.payment-success-response \
+  api.schema.payment-response --predicate uses-schema
 ```
 
 ### Step 8: Define Tags for Organization
@@ -617,47 +602,45 @@ dr relationship add "api/response/payment-success-response" \
 ```bash
 # Add tags
 dr add api tag "payments" \
-  --properties name=Payments \
   --description "Payment processing operations"
 
 dr add api tag "refunds" \
-  --properties name=Refunds \
   --description "Refund operations"
 
 # Tag operations
-dr relationship add "api/operation/process-payment" \
-  tagged-with "api/tag/payments"
+dr relationship add api.operation.process-payment \
+  api.tag.payments --predicate tagged-with
 ```
 
 ### Step 9: Cross-Layer Integration
 
 ```bash
 # Link to business layer
-dr relationship add "api/operation/process-payment" \
-  realizes "business/service/payment-processing"
+dr relationship add api.operation.process-payment \
+  business.service.payment-processing --predicate realizes
 
 # Link to application layer
-dr relationship add "api/document/payment-api" \
-  realizes "application/service/payment-api"
+dr relationship add api.document.payment-api \
+  application.service.payment-api --predicate realizes
 
 # Link to security layer
-dr relationship add "api/operation/process-payment" \
-  protected-by "security/secure-resource/payment-api"
+dr relationship add api.operation.process-payment \
+  security.secure-resource.payment-api --predicate protected-by
 
 # Link to motivation layer
-dr relationship add "api/operation/process-payment" \
-  supports "motivation/goal/reduce-checkout-time"
+dr relationship add api.operation.process-payment \
+  motivation.goal.reduce-checkout-time --predicate supports
 
 # Link to APM layer
-dr relationship add "api/operation/process-payment" \
-  tracked-by "apm/metric/payment-processing-latency"
+dr relationship add api.operation.process-payment \
+  apm.metric.payment-processing-latency --predicate tracked-by
 ```
 
 ### Step 10: Validate and Export
 
 ```bash
 # Validate API layer
-dr validate --layer api
+dr validate --layers api
 
 # Export to OpenAPI YAML
 dr export openapi --output payment-api.yaml
@@ -760,44 +743,44 @@ x-apm-criticality: "low"
 **Add Commands:**
 
 ```bash
-dr add api document <name> --properties version=3.0.3,title=<title>
-dr add api operation <name> --properties path=<path>,method=<method>
-dr add api schema <name> --properties type=<type>
-dr add api parameter <name> --properties name=<name>,in=<location>
-dr add api security-scheme <name> --properties type=<type>
-dr add api tag <name> --properties name=<display-name>
+dr add api document <name>
+dr add api operation <name>
+dr add api schema <name>
+dr add api parameter <name>
+dr add api security-scheme <name>
+dr add api tag <name>
 ```
 
 **Relationship Commands:**
 
 ```bash
-dr relationship add <operation> uses-schema <schema>
-dr relationship add <operation> has-parameter <parameter>
-dr relationship add <operation> tagged-with <tag>
-dr relationship add <schema> references <schema>
+dr relationship add <operation> <schema> --predicate uses-schema
+dr relationship add <operation> <parameter> --predicate has-parameter
+dr relationship add <operation> <tag> --predicate tagged-with
+dr relationship add <schema> <schema> --predicate references
 ```
 
 **Cross-Layer Commands:**
 
 ```bash
-dr relationship add api/<operation> realizes business/<service>
-dr relationship add api/<document> realizes application/<service>
-dr relationship add api/<schema> references data-model/<schema>
-dr relationship add api/<operation> protected-by security/<resource>
-dr relationship add api/<operation> supports motivation/<goal>
+dr relationship add <api-operation> <business-service> --predicate realizes
+dr relationship add <api-document> <application-service> --predicate realizes
+dr relationship add <api-schema> <data-model-schema> --predicate references
+dr relationship add <api-operation> <security-resource> --predicate protected-by
+dr relationship add <api-operation> <motivation-goal> --predicate supports
 ```
 
 **Export Commands:**
 
 ```bash
 dr export openapi --output api-spec.yaml
-dr export openapi --layer api --format json --output api-spec.json
+dr export openapi --layers api --output api-spec.json
 ```
 
 **Validation Commands:**
 
 ```bash
-dr validate --layer api
+dr validate --layers api
 spectral lint api-spec.yaml
 swagger-cli validate api-spec.yaml
 ```

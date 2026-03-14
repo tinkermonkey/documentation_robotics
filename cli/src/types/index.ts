@@ -24,12 +24,14 @@ export interface Reference {
 }
 
 /**
- * Intra-layer relationship
+ * Intra-layer or cross-layer relationship
  */
 export interface Relationship {
   source: string;
   target: string;
   predicate: string; // e.g., "depends-on", "implements"
+  layer?: string; // Source element's layer ID
+  targetLayer?: string; // Destination element's layer ID; present only for cross-layer relationships
   properties?: Record<string, unknown>;
   category?: "structural" | "behavioral"; // Relationship classification
 }

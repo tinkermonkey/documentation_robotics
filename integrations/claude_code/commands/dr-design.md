@@ -65,9 +65,9 @@ Before proposing new elements, understand what already exists:
 
 ```bash
 # Check what's already in the model for relevant layers
-dr list --layer application
-dr list --layer api
-dr list --layer motivation
+dr list application
+dr list api
+dr list motivation
 
 # Look for related existing elements
 dr search "<key terms from the feature description>"
@@ -104,21 +104,23 @@ Reason about each layer explicitly. It's acceptable to skip layers that are genu
 
 ```bash
 dr changeset create design-<kebab-feature-name>
+dr changeset activate design-<kebab-feature-name>
 ```
 
-Example: `dr changeset create design-real-time-order-tracking`
+Example:
+```bash
+dr changeset create design-real-time-order-tracking
+dr changeset activate design-real-time-order-tracking
+```
 
 ### Step 6: Stage Elements with Reasoning Annotations
 
-Stage each element in the prescribed layer order (motivation first, then down). For each staged element, include a rationale in the description:
+With the changeset active, add each element in the prescribed layer order (motivation first, then down). All `dr add` commands auto-stage to the active changeset. Include reasoning in the description:
 
 ```bash
-dr changeset stage design-real-time-order-tracking add \
-  --element-id motivation.goal.real-time-order-visibility \
-  --layer motivation \
-  --type goal \
+dr add motivation goal "Real Time Order Visibility" \
   --description "Customers can see live order status updates without refreshing. Drives the new tracking feature." \
-  --source-provenance "design: real-time order tracking feature"
+  --source-provenance manual
 ```
 
 Show each staged element to the user as it's created with its reasoning:
@@ -162,7 +164,7 @@ Staging data-model layer...
 After staging all elements, display the full changeset with reasoning:
 
 ```bash
-dr changeset preview design-real-time-order-tracking
+dr changeset preview
 ```
 
 Show output in annotated format:
@@ -251,7 +253,7 @@ Based on user feedback, iterate:
 If user is ready to commit:
 
 ```bash
-dr changeset commit design-real-time-order-tracking
+dr changeset commit
 dr validate --strict
 ```
 

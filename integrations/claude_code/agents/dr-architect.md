@@ -100,10 +100,10 @@ Navigation, APM, and Testing: add when the codebase clearly surfaces them. Do no
 dr changeset create "extract-api-layer"
 dr changeset activate "extract-api-layer"
 # add elements in batches of ~5, validate after each batch
-dr add api operation create-order --name "Create Order" \
+dr add api operation "Create Order" \
   --source-file "src/api/orders.ts" --source-symbol "createOrder" \
   --source-provenance "extracted" \
-  --properties '{"method":"POST","path":"/api/orders"}'
+  --attributes '{"method":"POST","path":"/api/orders"}'
 dr validate --layers api
 dr changeset commit
 ```
@@ -201,7 +201,6 @@ dr validate --strict  # verify
 ```bash
 dr audit <name>           # single layer coverage
 dr audit                  # full model
-dr audit --threshold      # quality gate mode
 ```
 
 Proactively suggest `dr audit` after adding 5+ elements to a layer without mentioning relationships. Interpret: isolation ≤20%, density ≥1.5 rel/type, gaps ≤10, duplicates ≤5.

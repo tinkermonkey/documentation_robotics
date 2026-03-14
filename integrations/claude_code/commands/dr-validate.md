@@ -170,10 +170,10 @@ Apply safe fixes now? (I'll ask about the others)"
 
 # If yes, apply safe fixes
 dr update business.service.orders \
-  --property description="Manages customer orders"
+  --description "Manages customer orders"
 
 dr update business.service.shipping \
-  --property description="Handles shipping logistics"
+  --description "Handles shipping logistics"
 
 # ... continue for all safe fixes
 
@@ -549,10 +549,9 @@ Run `dr audit` after:
 dr audit
 
 # Layer-specific audit
-dr audit --layer <layer-name>
+dr audit <layer-name>
 
-# Enforce quality thresholds (exits 1 if issues found)
-dr audit --threshold
+# Generate detailed markdown report (--threshold is not a supported flag)
 
 # Generate detailed markdown report
 dr audit --format markdown --output audit-report.md
@@ -577,7 +576,7 @@ dr audit --format json --output audit.json
 dr validate --strict
 
 # Step 2: Relationship quality audit
-dr audit --layer <layer-name>
+dr audit <layer-name>
 
 # Step 3: Review and address gaps
 # [Add relationships based on audit recommendations]

@@ -279,12 +279,11 @@ dr add business role "Account Manager" \
 ```bash
 # Core business service
 dr add business service "Order Management Service" \
-  --properties sla-availability=99.9%,sla-response-time=500ms \
   --description "Manages customer order lifecycle"
 
 # Link to motivation layer
-dr relationship add "business/service/order-management" \
-  supports "motivation/goal/improve-order-efficiency"
+dr relationship add business.service.order-management-service \
+  motivation.goal.improve-order-efficiency --predicate supports
 ```
 
 ### Step 3: Model Business Processes
@@ -292,7 +291,6 @@ dr relationship add "business/service/order-management" \
 ```bash
 # Main process
 dr add business process "Order Fulfillment Process" \
-  --properties bpmn-file=processes/order-fulfillment.bpmn \
   --description "End-to-end order fulfillment from creation to delivery"
 
 # Sub-processes
@@ -303,15 +301,15 @@ dr add business process "Pack Order Process" \
   --description "Pack picked items for shipment"
 
 # Composition relationships
-dr relationship add "business/process/order-fulfillment" \
-  composes "business/process/pick-items"
+dr relationship add business.process.order-fulfillment-process \
+  business.process.pick-items-process --predicate composes
 
-dr relationship add "business/process/order-fulfillment" \
-  composes "business/process/pack-order"
+dr relationship add business.process.order-fulfillment-process \
+  business.process.pack-order-process --predicate composes
 
 # Process flows
-dr relationship add "business/process/pick-items" \
-  flows-to "business/process/pack-order"
+dr relationship add business.process.pick-items-process \
+  business.process.pack-order-process --predicate flows-to
 ```
 
 ### Step 4: Define Business Objects
@@ -328,8 +326,8 @@ dr add business object "Product" \
   --description "Item available for purchase"
 
 # Process access to objects
-dr relationship add "business/process/order-fulfillment" \
-  accesses "business/object/order"
+dr relationship add business.process.order-fulfillment-process \
+  business.object.order --predicate accesses
 ```
 
 ### Step 5: Model Business Events
@@ -337,39 +335,37 @@ dr relationship add "business/process/order-fulfillment" \
 ```bash
 # Events that trigger processes
 dr add business event "Order Received" \
-  --properties type=state-change,topic=orders.received \
   --description "New order submitted by customer"
 
 dr add business event "Payment Confirmed" \
-  --properties type=state-change,topic=payments.confirmed \
   --description "Payment successfully processed"
 
 # Event triggering
-dr relationship add "business/event/order-received" \
-  triggers "business/process/order-fulfillment"
+dr relationship add business.event.order-received \
+  business.process.order-fulfillment-process --predicate triggers
 ```
 
 ### Step 6: Establish Cross-Layer Relationships
 
 ```bash
 # Link to application layer
-dr relationship add "business/service/order-management" \
-  realized-by "application/service/order-api"
+dr relationship add business.service.order-management-service \
+  application.service.order-api --predicate realized-by
 
 # Link to motivation layer
-dr relationship add "business/service/order-management" \
-  delivers "motivation/value/customer-satisfaction"
+dr relationship add business.service.order-management-service \
+  motivation.value.customer-satisfaction --predicate delivers
 
 # Link to data layer
-dr relationship add "business/object/order" \
-  defined-by "data-model/schema/order.schema.json"
+dr relationship add business.object.order \
+  data-model.objectschema.order --predicate defined-by
 ```
 
 ### Step 7: Validate
 
 ```bash
-dr validate --layer business
-dr validate --validate-relationships
+dr validate --layers business
+dr validate --relationships
 ```
 
 ---
@@ -426,7 +422,6 @@ When business processes reference BPMN diagrams:
 
 ```bash
 dr add business process "Loan Approval Process" \
-  --properties bpmn-file=processes/loan-approval.bpmn,bpmn-version=2.0 \
   --description "End-to-end loan application review and approval"
 ```
 
@@ -466,7 +461,7 @@ These SLAs flow down to:
 ## ArchiMate Export
 
 ```bash
-dr export archimate --layer business --output business.archimate
+dr export archimate --layers business --output business.archimate
 ```
 
 **Supported ArchiMate Elements:**
@@ -510,10 +505,10 @@ dr export archimate --layer business --output business.archimate
 ```bash
 dr add business actor <name>
 dr add business role <name>
-dr add business service <name> --properties sla-availability=<value>
-dr add business process <name> --properties bpmn-file=<path>
+dr add business service <name> --description <description>
+dr add business process <name> --description <description>
 dr add business object <name>
-dr add business event <name> --properties type=<type>,topic=<topic>
+dr add business event <name> --description <description>
 dr add business function <name>
 dr add business collaboration <name>
 ```
@@ -521,19 +516,19 @@ dr add business collaboration <name>
 **Relationship Commands:**
 
 ```bash
-dr relationship add <source> realizes <target>
-dr relationship add <source> composes <target>
-dr relationship add <source> assigned-to <target>
-dr relationship add <source> triggers <target>
-dr relationship add <source> flows-to <target>
-dr relationship add <source> accesses <target>
-dr relationship add <source> serves <target>
+dr relationship add <source> <target> --predicate realizes
+dr relationship add <source> <target> --predicate composes
+dr relationship add <source> <target> --predicate assigned-to
+dr relationship add <source> <target> --predicate triggers
+dr relationship add <source> <target> --predicate flows-to
+dr relationship add <source> <target> --predicate accesses
+dr relationship add <source> <target> --predicate serves
 ```
 
 **Cross-Layer Relationship Commands:**
 
 ```bash
-dr relationship add <business-service> supports <motivation-goal>
-dr relationship add <business-service> realized-by <application-service>
-dr relationship add <business-object> defined-by <data-schema>
+dr relationship add <business-service> <motivation-goal> --predicate supports
+dr relationship add <business-service> <application-service> --predicate realized-by
+dr relationship add <business-object> <data-schema> --predicate defined-by
 ```

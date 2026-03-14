@@ -114,22 +114,22 @@ Activate when the user:
 
 ```bash
 # Add coverage model
-dr add testing test-coverage-model --name "API Coverage Model"
+dr add testing test-coverage-model "API Coverage Model"
 
 # Add coverage target
-dr add testing test-coverage-target --name "Login API Coverage"
+dr add testing test-coverage-target "Login API Coverage"
 
 # Add test case sketch
-dr add testing test-case-sketch --name "Valid Login Test"
+dr add testing test-case-sketch "Valid Login Test"
 
 # List coverage models
-dr list testing test-coverage-model
+dr list testing --type test-coverage-model
 
 # Validate testing layer
-dr validate --layer testing
+dr validate --layers testing
 
 # Export coverage report
-dr export --layer testing --format markdown
+dr export markdown --layers testing
 ```
 
 ---

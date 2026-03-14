@@ -113,22 +113,22 @@ Activate when the user:
 
 ```bash
 # Add span
-dr add apm span --name "Process Order"
+dr add apm span "Process Order"
 
 # Add metric
-dr add apm instrument-config --name "order_rate" --property type=counter
+dr add apm instrument-config "order_rate" --description "Order processing rate counter"
 
 # Add log record
-dr add apm log-record --name "Error Log"
+dr add apm log-record "Error Log"
 
 # List APM elements
-dr list apm span
+dr list apm --type span
 
 # Validate APM layer
-dr validate --layer apm
+dr validate --layers apm
 
 # Export APM configuration
-dr export --layer apm --format json
+dr export markdown --layers apm
 ```
 
 ---

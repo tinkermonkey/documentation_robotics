@@ -78,11 +78,11 @@ Examples:
 # Basic initialization
 dr init --name "My Project"
 
-# With examples
-dr init --name "My Project" --with-examples
+# With description
+dr init --name "My Project" --description "12-layer federated architecture model"
 
-# Minimal structure
-dr init --name "My Project" --template minimal
+# With author
+dr init --name "My Project" --author "Team A"
 ```
 
 ### Step 4: Verify Initialization

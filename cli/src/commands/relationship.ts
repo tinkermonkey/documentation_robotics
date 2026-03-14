@@ -1,5 +1,5 @@
 /**
- * Relationship subcommands for managing intra-layer relationships
+ * Relationship subcommands for managing intra-layer and cross-layer relationships
  */
 
 import { Command } from "commander";
@@ -119,19 +119,20 @@ export function getRelationshipConstraints(
 export function relationshipCommands(program: Command): void {
   program
     .command("add <source> <target>")
-    .description("Add a relationship between elements")
+    .description("Add a relationship between elements (intra-layer or cross-layer)")
     .requiredOption(
       "--predicate <predicate>",
-      "Relationship predicate (e.g., depends-on, implements)"
+      "Relationship predicate (e.g., depends-on, realizes, exposes)"
     )
     .option("--properties <json>", "Relationship properties (JSON)")
     .addHelpText(
       "after",
       `
 Examples:
-  $ dr relationship add business-service-a business-service-b --predicate depends-on
-  $ dr relationship add api-endpoint-1 api-endpoint-2 --predicate "service-of"
-  $ dr relationship add element-1 element-2 --predicate implements --properties '{"method":"REST"}'`
+  $ dr relationship add motivation.goal.goal-a motivation.goal.goal-b --predicate aggregates
+  $ dr relationship add api.operation.create-order application.service.order-service --predicate exposes
+  $ dr relationship add business.businessprocess.checkout application.applicationprocess.checkout --predicate aggregates
+  $ dr relationship add element-1 element-2 --predicate realizes --properties '{"strength":"high"}'`
     )
     .action(async (source, target, options) => {
       try {
@@ -168,14 +169,6 @@ Examples:
         const targetElement = targetLayer.getElement(target);
         if (!targetElement) {
           throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
-        }
-
-        // Relationships are intra-layer only
-        if (sourceLayerName !== targetLayerName) {
-          throw new CLIError(
-            "cannot add cross-layer relationship. Relationships must be within the same layer.",
-            ErrorCategory.USER
-          );
         }
 
         // Schema-driven validation
@@ -219,6 +212,7 @@ Examples:
           target,
           predicate: options.predicate,
           layer: sourceLayerName,
+          ...(targetLayerName !== sourceLayerName ? { targetLayer: targetLayerName } : {}),
           category: "structural", // Default category
           properties,
         });
@@ -366,9 +360,12 @@ Examples:
           const isOutgoing = rel.source === id;
           const direction = isOutgoing ? "→" : "←";
           const otherElement = isOutgoing ? rel.target : rel.source;
+          const crossLayer = rel.targetLayer && rel.targetLayer !== rel.layer
+            ? ansis.dim(` [${rel.layer} → ${rel.targetLayer}]`)
+            : "";
 
           console.log(
-            `  ${direction} ${ansis.magenta(rel.predicate)}: ${ansis.yellow(otherElement)}`
+            `  ${direction} ${ansis.magenta(rel.predicate)}: ${ansis.yellow(otherElement)}${crossLayer}`
           );
 
           if (rel.properties) {
@@ -430,6 +427,10 @@ Examples:
           }
 
           console.log(`Predicate: ${ansis.magenta(rel.predicate)}`);
+          console.log(`Layer:     ${ansis.cyan(rel.layer)}`);
+          if (rel.targetLayer && rel.targetLayer !== rel.layer) {
+            console.log(`Target Layer: ${ansis.cyan(rel.targetLayer)}`);
+          }
 
           if (rel.properties && Object.keys(rel.properties).length > 0) {
             console.log("Properties:");

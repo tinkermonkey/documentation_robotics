@@ -118,28 +118,28 @@ Activate when the user:
 
 ```bash
 # Add a database instance
-dr add data-store database --name "users-db"
+dr add data-store database "users-db"
 
 # Add a namespace (schema or keyspace)
-dr add data-store namespace --name "public" --property parentDatabase=data-store.database.users-db
+dr add data-store namespace "public" --description "Default database namespace"
 
 # Add a collection (table or document collection)
-dr add data-store collection --name "users" --property parentNamespace=data-store.namespace.public
+dr add data-store collection "users" --description "User records collection"
 
 # Add a field to a collection
-dr add data-store field --name "email" --property dataType=string --property nullable=false
+dr add data-store field "email" --description "User email address"
 
 # Add an index
-dr add data-store index --name "idx-users-email" --property fields='["email"]' --property unique=true
+dr add data-store index "idx-users-email" --description "Index on email field"
 
 # Add an access pattern (for NoSQL capacity planning)
-dr add data-store accesspattern --name "get-user-by-email" --property queryType=point-lookup
+dr add data-store accesspattern "get-user-by-email" --description "Point lookup by email"
 
 # List collections
-dr list data-store collection
+dr list data-store --type collection
 
 # Validate data-store layer
-dr validate --layer data-store
+dr validate --layers data-store
 
 # Introspect available types
 dr schema types data-store

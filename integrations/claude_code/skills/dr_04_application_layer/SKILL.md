@@ -312,21 +312,17 @@ class OrderEventConsumer:
 ```bash
 # Frontend component
 dr add application component "web-app" \
-  --properties type=frontend,technology=react,repository=github.com/org/web-app \
   --description "Customer-facing web application"
 
 # Backend microservices
 dr add application component "user-service" \
-  --properties type=backend,subtype=microservice,language=python \
   --description "User management microservice"
 
 dr add application component "order-service" \
-  --properties type=backend,subtype=microservice,language=typescript \
   --description "Order processing microservice"
 
 # Worker component
 dr add application component "email-worker" \
-  --properties type=worker,runtime=nodejs \
   --description "Background worker for email notifications"
 ```
 
@@ -335,17 +331,15 @@ dr add application component "email-worker" \
 ```bash
 # Synchronous service
 dr add application service "user-management-api" \
-  --properties type=synchronous,protocol=REST,openapi-spec=specs/user-api.yaml \
   --description "User management REST API"
 
 # Asynchronous service
 dr add application service "notification-service" \
-  --properties type=asynchronous,pattern=publish-subscribe \
   --description "Asynchronous notification delivery"
 
 # Link component to service
-dr relationship add "application/component/user-service" \
-  realizes "application/service/user-management-api"
+dr relationship add application.component.user-service \
+  application.service.user-management-api --predicate realizes
 ```
 
 ### Step 3: Model Application Interfaces
@@ -353,22 +347,19 @@ dr relationship add "application/component/user-service" \
 ```bash
 # REST API interface
 dr add application interface "user-api-rest" \
-  --properties protocol=REST,base-url=/api/v1/users,authentication=JWT \
   --description "REST interface for user service"
 
 # gRPC interface
 dr add application interface "order-grpc" \
-  --properties protocol=gRPC,port=50051 \
   --description "gRPC interface for order service"
 
 # Message queue interface
 dr add application interface "event-bus" \
-  --properties protocol=AMQP,broker=rabbitmq \
   --description "Event bus for async communication"
 
 # Link service to interface
-dr relationship add "application/service/user-management-api" \
-  realizes "application/interface/user-api-rest"
+dr relationship add application.service.user-management-api \
+  application.interface.user-api-rest --predicate realizes
 ```
 
 ### Step 4: Define Application Functions
@@ -376,20 +367,17 @@ dr relationship add "application/service/user-management-api" \
 ```bash
 # Core functions
 dr add application function "authentication" \
-  --properties type=security \
   --description "Validates user credentials and issues tokens"
 
 dr add application function "data-validation" \
-  --properties type=business-logic \
   --description "Validates input data against business rules"
 
 dr add application function "caching" \
-  --properties type=performance,strategy=redis \
   --description "Caches frequently accessed data"
 
 # Assign function to component
-dr relationship add "application/component/user-service" \
-  assigned-to "application/function/authentication"
+dr relationship add application.component.user-service \
+  application.function.authentication --predicate assigned-to
 ```
 
 ### Step 5: Model Application Events
@@ -397,19 +385,17 @@ dr relationship add "application/component/user-service" \
 ```bash
 # Domain events
 dr add application event "order-created" \
-  --properties type=domain-event,topic=orders.created,schema=schemas/order-created.json \
   --description "Published when new order is created"
 
 dr add application event "payment-processed" \
-  --properties type=domain-event,topic=payments.processed,schema=schemas/payment-processed.json \
   --description "Published when payment completes"
 
 # Event triggering
-dr relationship add "application/event/order-created" \
-  triggers "application/component/inventory-service"
+dr relationship add application.event.order-created \
+  application.component.inventory-service --predicate triggers
 
-dr relationship add "application/event/order-created" \
-  triggers "application/component/email-worker"
+dr relationship add application.event.order-created \
+  application.component.email-worker --predicate triggers
 ```
 
 ### Step 6: Define Data Objects
@@ -417,19 +403,17 @@ dr relationship add "application/event/order-created" \
 ```bash
 # Core data objects
 dr add application data-object "user" \
-  --properties schema-ref=schemas/user.schema.json,pii=true,retention-period=7y \
   --description "User account information"
 
 dr add application data-object "order" \
-  --properties schema-ref=schemas/order.schema.json,pii=false,retention-period=10y \
   --description "Customer order data"
 
 # Service access to data
-dr relationship add "application/service/user-management-api" \
-  accesses "application/data-object/user"
+dr relationship add application.service.user-management-api \
+  application.data-object.user --predicate accesses
 
-dr relationship add "application/service/order-api" \
-  accesses "application/data-object/order"
+dr relationship add application.service.order-api \
+  application.data-object.order --predicate accesses
 ```
 
 ### Step 7: Model Application Processes (Orchestration)
@@ -437,7 +421,6 @@ dr relationship add "application/service/order-api" \
 ```bash
 # Saga workflow
 dr add application process "order-fulfillment-saga" \
-  --properties pattern=saga,orchestration-engine=temporal,compensation=true \
   --description "End-to-end order fulfillment orchestration"
 
 # Sub-processes
@@ -451,56 +434,56 @@ dr add application process "ship-order" \
   --description "Initiate shipping workflow"
 
 # Process composition
-dr relationship add "application/process/order-fulfillment-saga" \
-  composes "application/process/reserve-inventory"
+dr relationship add application.process.order-fulfillment-saga \
+  application.process.reserve-inventory --predicate composes
 
-dr relationship add "application/process/order-fulfillment-saga" \
-  composes "application/process/process-payment"
+dr relationship add application.process.order-fulfillment-saga \
+  application.process.process-payment --predicate composes
 
-dr relationship add "application/process/order-fulfillment-saga" \
-  composes "application/process/ship-order"
+dr relationship add application.process.order-fulfillment-saga \
+  application.process.ship-order --predicate composes
 
 # Process flows
-dr relationship add "application/process/reserve-inventory" \
-  flows-to "application/process/process-payment"
+dr relationship add application.process.reserve-inventory \
+  application.process.process-payment --predicate flows-to
 
-dr relationship add "application/process/process-payment" \
-  flows-to "application/process/ship-order"
+dr relationship add application.process.process-payment \
+  application.process.ship-order --predicate flows-to
 ```
 
 ### Step 8: Cross-Layer Integration
 
 ```bash
 # Link to business layer
-dr relationship add "application/service/order-api" \
-  realizes "business/service/order-management"
+dr relationship add application.service.order-api \
+  business.service.order-management --predicate realizes
 
 # Link to motivation layer
-dr relationship add "application/service/user-management-api" \
-  supports "motivation/goal/improve-user-experience"
+dr relationship add application.service.user-management-api \
+  motivation.goal.improve-user-experience --predicate supports
 
 # Link to technology layer
-dr relationship add "application/component/user-service" \
-  deployed-on "technology/node/k8s-cluster-prod"
+dr relationship add application.component.user-service \
+  technology.node.k8s-cluster-prod --predicate deployed-on
 
 # Link to API layer
-dr relationship add "application/service/user-management-api" \
-  defined-by "api/openapi-document/user-api"
+dr relationship add application.service.user-management-api \
+  api.openapi-document.user-api --predicate defined-by
 
 # Link to data model layer
-dr relationship add "application/data-object/user" \
-  defined-by "data-model/schema/user"
+dr relationship add application.data-object.user \
+  data-model.schema.user --predicate defined-by
 
 # Link to APM layer
-dr relationship add "application/service/order-api" \
-  tracked-by "apm/metric/order-processing-latency"
+dr relationship add application.service.order-api \
+  apm.metric.order-processing-latency --predicate tracked-by
 ```
 
 ### Step 9: Validate
 
 ```bash
-dr validate --layer application
-dr validate --validate-relationships
+dr validate --layers application
+dr validate --relationships
 ```
 
 ---
@@ -639,32 +622,32 @@ public class ProductController {
 **Add Commands:**
 
 ```bash
-dr add application component <name> --properties type=<type>
-dr add application service <name> --properties type=<type>,protocol=<protocol>
-dr add application interface <name> --properties protocol=<protocol>
-dr add application function <name> --properties type=<type>
-dr add application event <name> --properties type=<type>,topic=<topic>
-dr add application data-object <name> --properties schema-ref=<path>,pii=<bool>
-dr add application process <name> --properties pattern=<pattern>
+dr add application component <name>
+dr add application service <name>
+dr add application interface <name>
+dr add application function <name>
+dr add application event <name>
+dr add application data-object <name>
+dr add application process <name>
 ```
 
 **Relationship Commands:**
 
 ```bash
-dr relationship add <component> realizes <service>
-dr relationship add <service> realizes <interface>
-dr relationship add <component> assigned-to <function>
-dr relationship add <event> triggers <component>
-dr relationship add <service> accesses <data-object>
-dr relationship add <process> composes <sub-process>
-dr relationship add <process-a> flows-to <process-b>
+dr relationship add <component> <service> --predicate realizes
+dr relationship add <service> <interface> --predicate realizes
+dr relationship add <component> <function> --predicate assigned-to
+dr relationship add <event> <component> --predicate triggers
+dr relationship add <service> <data-object> --predicate accesses
+dr relationship add <process> <sub-process> --predicate composes
+dr relationship add <process-a> <process-b> --predicate flows-to
 ```
 
 **Cross-Layer Commands:**
 
 ```bash
-dr relationship add application/<service> realizes business/<service>
-dr relationship add application/<component> deployed-on technology/<node>
-dr relationship add application/<service> defined-by api/<openapi-doc>
-dr relationship add application/<data-object> defined-by data-model/<schema>
+dr relationship add application.<service> business.<service> --predicate realizes
+dr relationship add application.<component> technology.<node> --predicate deployed-on
+dr relationship add application.<service> api.<openapi-doc> --predicate defined-by
+dr relationship add application.<data-object> data-model.<schema> --predicate defined-by
 ```

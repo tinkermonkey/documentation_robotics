@@ -126,7 +126,7 @@ RECOMMENDED NEXT STEP
 
 ```bash
 dr search "<key terms from the feature>"
-dr list --layer <most relevant layer>
+dr list <most relevant layer>
 ```
 
 **2. Find Source-Tracked Elements as Canonical Patterns**

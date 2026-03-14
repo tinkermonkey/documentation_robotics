@@ -691,7 +691,34 @@ describe("CLI Commands Integration Tests", () => {
       expect(relationships[0].predicate).toBe("aggregates");
     });
 
-    it("should fail to add cross-layer relationship", async () => {
+    it("should add valid cross-layer relationship", async () => {
+      await runDr("add", "business", "businessservice", "Core Service");
+      await runDr("add", "motivation", "value", "Customer Value");
+
+      const result = await runDr(
+        "relationship",
+        "add",
+        "business.businessservice.core-service",
+        "motivation.value.customer-value",
+        "--predicate",
+        "delivers-value"
+      );
+
+      expect(result.exitCode).toBe(0);
+
+      const model = await Model.load(tempDir.path);
+      await model.loadRelationships();
+      const relationships = model.relationships.find(
+        "business.businessservice.core-service",
+        "motivation.value.customer-value"
+      );
+      expect(relationships.length).toBe(1);
+      expect(relationships[0].predicate).toBe("delivers-value");
+      expect(relationships[0].layer).toBe("business");
+      expect(relationships[0].targetLayer).toBe("motivation");
+    });
+
+    it("should fail to add cross-layer relationship with invalid predicate", async () => {
       await runDr("add", "business", "process", "Test Process");
 
       const result = await runDr(
@@ -704,6 +731,73 @@ describe("CLI Commands Integration Tests", () => {
       );
 
       expect(result.exitCode).toBe(1);
+    });
+
+    it("should list cross-layer relationships with layer context", async () => {
+      await runDr("add", "business", "businessservice", "Core Service");
+      await runDr("add", "motivation", "value", "Customer Value");
+      await runDr(
+        "relationship", "add",
+        "business.businessservice.core-service",
+        "motivation.value.customer-value",
+        "--predicate", "delivers-value"
+      );
+
+      const result = await runDr("relationship", "list", "business.businessservice.core-service");
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("motivation.value.customer-value");
+      expect(result.stdout).toContain("business → motivation");
+    });
+
+    it("should show cross-layer relationship with source and target layer", async () => {
+      await runDr("add", "business", "businessservice", "Core Service");
+      await runDr("add", "motivation", "value", "Customer Value");
+      await runDr(
+        "relationship", "add",
+        "business.businessservice.core-service",
+        "motivation.value.customer-value",
+        "--predicate", "delivers-value"
+      );
+
+      const result = await runDr(
+        "relationship", "show",
+        "business.businessservice.core-service",
+        "motivation.value.customer-value"
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("delivers-value");
+      expect(result.stdout).toContain("business");
+      expect(result.stdout).toContain("motivation");
+    });
+
+    it("should delete cross-layer relationship", async () => {
+      await runDr("add", "business", "businessservice", "Core Service");
+      await runDr("add", "motivation", "value", "Customer Value");
+      await runDr(
+        "relationship", "add",
+        "business.businessservice.core-service",
+        "motivation.value.customer-value",
+        "--predicate", "delivers-value"
+      );
+
+      const result = await runDr(
+        "relationship", "delete",
+        "business.businessservice.core-service",
+        "motivation.value.customer-value",
+        "--force"
+      );
+
+      expect(result.exitCode).toBe(0);
+
+      const model = await Model.load(tempDir.path);
+      await model.loadRelationships();
+      const remaining = model.relationships.find(
+        "business.businessservice.core-service",
+        "motivation.value.customer-value"
+      );
+      expect(remaining.length).toBe(0);
     });
 
     it("should list relationships", async () => {

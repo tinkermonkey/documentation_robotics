@@ -179,7 +179,7 @@ Based on user response:
 **Apply all:**
 
 ```bash
-dr changeset commit sync-pr-142
+dr changeset commit
 dr validate --strict
 ```
 
@@ -189,7 +189,7 @@ Walk through each staged change and ask: keep or discard?
 **Preview:**
 
 ```bash
-dr changeset preview sync-pr-142
+dr changeset preview
 ```
 
 Then return to the review prompt.
