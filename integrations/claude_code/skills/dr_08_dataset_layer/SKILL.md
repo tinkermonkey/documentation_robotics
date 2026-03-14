@@ -15,13 +15,13 @@ triggers:
     "index",
     "field",
   ]
-version: 0.8.2
+version: 0.8.3
 ---
 
 # Data Store Layer Skill
 
 **Layer Number:** 08
-**Specification:** Metadata Model Spec v0.8.2
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Defines paradigm-neutral physical storage modeling, capturing databases, collections/tables, fields/columns, indexes, views, stored logic, validation rules, access patterns, event handlers, and retention policies across relational, document, key-value, time-series, and graph stores.
 
 ---

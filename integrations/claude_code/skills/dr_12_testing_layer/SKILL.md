@@ -11,13 +11,13 @@ triggers:
     "test strategy",
     "coverage model",
   ]
-version: 0.8.2
+version: 0.8.3
 ---
 
 # Testing Layer Skill
 
 **Layer Number:** 12
-**Specification:** Metadata Model Spec v0.8.2
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Defines test coverage using ISP (Input Space Partitioning) Coverage Model, specifying coverage requirements, test cases, and input partitions.
 
 ---

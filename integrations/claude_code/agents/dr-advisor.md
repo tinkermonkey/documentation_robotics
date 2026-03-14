@@ -163,7 +163,7 @@ You are an expert advisor for **Documentation Robotics** end users, specializing
 
 Before giving advice:
 
-- Verify your understanding matches current spec (v0.8.2)
+- Verify your understanding matches current spec (v0.8.3)
 - Consider the user's full context (not just the immediate question)
 - Check for conflicts with other guidance you've given
 - Ensure recommendations align with DR best practices

@@ -12,13 +12,13 @@ triggers:
     "validation",
     "data type",
   ]
-version: 0.8.2
+version: 0.8.3
 ---
 
 # Data Model Layer Skill
 
 **Layer Number:** 07
-**Specification:** Metadata Model Spec v0.8.2
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Defines logical data structures using JSON Schema Draft 7, specifying entities, properties, validation rules, and data governance.
 
 ---

@@ -13,13 +13,13 @@ triggers:
     "request",
     "response",
   ]
-version: 0.8.2
+version: 0.8.3
 ---
 
 # API Layer Skill
 
 **Layer Number:** 06
-**Specification:** Metadata Model Spec v0.8.2
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Defines REST API contracts using OpenAPI 3.0, specifying endpoints, operations, request/response schemas, and security requirements.
 
 ---

@@ -13,13 +13,13 @@ triggers:
     "OpenTelemetry",
     "telemetry",
   ]
-version: 0.8.2
+version: 0.8.3
 ---
 
 # APM Layer Skill
 
 **Layer Number:** 11
-**Specification:** Metadata Model Spec v0.8.2
+**Specification:** Metadata Model Spec v0.8.3
 **Purpose:** Defines observability using OpenTelemetry 1.0+, specifying traces, metrics, logs, and instrumentation.
 
 ---
