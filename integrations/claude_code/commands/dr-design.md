@@ -41,7 +41,7 @@ Check that a DR model exists:
 ls -la documentation-robotics/model/manifest.yaml 2>/dev/null
 ```
 
-If no model, prompt: "Initialize a model first with /dr-init, then extract your baseline with /dr-ingest."
+If no model, prompt: "Initialize a model first with /dr-init, then extract your baseline with /dr-map."
 
 ### Step 2: Parse Intent
 

@@ -459,7 +459,7 @@ You: Searching for unsecured services...
 ## Related Commands
 
 - `/dr-init` - Initialize a new model
-- `/dr-ingest` - Extract model from code
+- `/dr-map` - Extract model from code
 - `/dr-project` - Automated cross-layer projection
 - `/dr-validate` - Validate model and check for issues
 - `dr --help` - View all DR CLI commands

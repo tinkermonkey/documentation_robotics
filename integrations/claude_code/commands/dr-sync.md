@@ -38,7 +38,7 @@ If no model exists, stop and prompt:
 
 ```
 No DR model found. Run /dr-init first to initialize a model,
-then /dr-ingest to extract the initial model from your codebase.
+then /dr-map to extract the initial model from your codebase.
 ```
 
 ### Step 2: Parse the Delta
@@ -222,7 +222,7 @@ Applied: 5 model changes
 Validation: ✓ Passed
 Cross-layer references: ✓ All intact
 
-Tip: If you notice model drift growing over time, use /dr-ingest
+Tip: If you notice model drift growing over time, use /dr-map
 to do a full re-extraction and catch anything sync missed.
 ```
 
@@ -234,7 +234,7 @@ to do a full re-extraction and catch anything sync missed.
 None of the changed files are tracked by model elements.
 
 This could mean:
-1. The changes are in files that were never extracted (run /dr-ingest first)
+1. The changes are in files that were never extracted (run /dr-map first)
 2. The changes are purely internal/non-architectural (no model update needed)
 
 Changed files:
@@ -272,7 +272,7 @@ Which applies?
 
 ## Related Commands
 
-- `/dr-ingest` — Full codebase extraction (use for initial model or major rebuilds)
+- `/dr-map` — Full codebase extraction (use for initial model or major rebuilds)
 - `/dr-design` — Design model changes for a proposed feature (before implementation)
 - `/dr-model` — Manually add or adjust individual elements
 - `/dr-changeset` — Manage changeset lifecycle directly

@@ -1,6 +1,6 @@
 ---
 description: Analyze an existing codebase and automatically generate a Documentation Robotics architecture model
-argument-hint: "<path> [--layers <layers>] [--tech <technology>]"
+argument-hint: "<path> [--layers <layers>] [--tech <technology>] [--recipe | --targeted]"
 ---
 
 # Extract Architecture Model from Codebase
@@ -16,10 +16,16 @@ Analyze an existing codebase and automatically generate a Documentation Robotics
 5. Validates the extracted model
 6. Provides extraction report with confidence scores
 
+## Two Modes: Recipe vs. Targeted
+
+**Recipe Mode** (default for new/empty models): Extracts all 12 layers in a prescribed bottom-up order with validation checkpoints between each layer. Best for building a complete model from scratch — ensures no layers are skipped and lower layers (infrastructure, data) are populated before higher layers (business, motivation) are inferred.
+
+**Targeted Mode** (default if `--layers` is specified or model has existing elements): Extracts specific layers without step-by-step checkpoints. Best for focused extraction or incremental additions to an existing model.
+
 ## Usage
 
 ```
-/dr-ingest <path> [--layers <layers>] [--tech <technology>]
+/dr-map <path> [--layers <layers>] [--tech <technology>]
 ```
 
 ## Instructions for Claude Code
@@ -40,6 +46,106 @@ If no model exists:
 - Offer to run: `/dr-init <project-name>`
 - Wait for model creation before continuing
 
+Also check if the model is empty (no elements yet) and no `--layers` flag was provided:
+
+```bash
+dr list --count 2>/dev/null
+```
+
+If model has 0 elements and no `--layers` flag: offer **Recipe Mode** vs. **Targeted Mode**.
+
+```
+I see this is a new model with no existing elements.
+
+I can extract in two ways:
+
+1. Recipe Mode (recommended) — Walks through all 12 layers in the correct
+   architectural order, with checkpoints to review and validate each layer
+   before proceeding. Takes longer but produces a complete, well-structured model.
+
+2. Targeted Mode — Extract specific layers only.
+   Which layers would you like? (e.g., application, api, data-model)
+
+Which would you prefer?
+```
+
+If user selects Recipe Mode: follow the **Recipe Mode Workflow** section below.
+If user selects Targeted Mode or `--layers` is specified: continue to Step 2.
+
+---
+
+### Recipe Mode Workflow
+
+In recipe mode, extract all layers in the prescribed bottom-up order. The ordering ensures infrastructure and data layers are populated before business and motivation layers are inferred from them. Each layer is extracted, validated, and reviewed before proceeding to the next.
+
+**Prescribed Extraction Order:**
+
+| Order | Layer           | What to Detect                                                                                 |
+| ----- | --------------- | ---------------------------------------------------------------------------------------------- |
+| 1     | Technology (5)  | Frameworks, platforms, infra deps (package.json, requirements.txt, Dockerfiles, K8s manifests) |
+| 2     | Data Store (8)  | DB schemas, tables, migrations (.sql files, migration scripts, ORM table configs)              |
+| 3     | Data Model (7)  | Entity classes, JSON schemas, type defs (ORM models, Pydantic, TypeScript interfaces)          |
+| 4     | Application (4) | Services, components, orchestrators (@Service classes, business logic modules)                 |
+| 5     | API (6)         | REST endpoints, OpenAPI specs, route handlers (@route decorators, router files)                |
+| 6     | UX (9)          | UI components, screens, forms — skip automatically if no frontend detected                     |
+| 7     | Navigation (10) | Routing, menu structures — skip automatically if no frontend detected                          |
+| 8     | APM (11)        | Monitoring instrumentation, metrics, spans (OpenTelemetry, Datadog, custom metrics)            |
+| 9     | Testing (12)    | Test files, strategies, coverage patterns (_.test._, _.spec._, test directories)               |
+| 10    | Business (2)    | Infer from application services + domain naming patterns                                       |
+| 11    | Security (3)    | Auth patterns, RBAC, middleware (auth middleware, policy files, permission decorators)         |
+| 12    | Motivation (1)  | Infer from README, docs/, comments, OKR references                                             |
+
+**Prerequisite checks before specific layers:**
+
+- **Before API (6)**: If Application layer has no services yet, warn: "API operations typically expose application services. Proceeding without application services may result in incomplete cross-layer references."
+- **Before Business (2)**: If Application layer has fewer than 3 services, warn: "Business services are inferred from application services. Consider adding more application services first for better coverage."
+- **Before Motivation (1)**: Scan README.md and docs/ before extracting — "Checking README.md and docs/ for goals, principles, and requirements..."
+
+**Between-layer checkpoint (repeat after each layer):**
+
+After extracting each layer, pause and display:
+
+```
+Checkpoint: [Layer Name] Layer Complete
+==========================================
+Extracted N elements:
+  - [element-id-1] (from [source-file:line])
+  - [element-id-2] (from [source-file:line])
+  ...
+
+Validation: ✓ Passed
+  — or —
+⚠ N warnings, M errors: [brief description]
+
+What would you like to do?
+  [c] Continue to next layer ([Next Layer Name])
+  [a] Add a missing element (describe it and I'll create it)
+  [s] Skip to a specific layer
+  [r] Re-extract this layer with different parameters
+  [q] Finish here (model saved, resume later with /dr-map)
+```
+
+**After completing all layers:**
+
+```
+Recipe Extraction Complete!
+============================
+[layer list with element counts and status]
+
+Total: N elements across M layers
+
+Final validation:
+  dr validate --strict
+
+Next steps:
+  - Review flagged low-confidence elements
+  - Use /dr-model to fill gaps manually
+  - Use /dr-sync when code changes arrive
+  - Use /dr-design to speculate on new features
+```
+
+---
+
 ### Step 2: Gather Information
 
 **Required:**
@@ -48,15 +154,15 @@ If no model exists:
 
 **Optional:**
 
-- **Layers**: Which layers to extract (default: business, application, api, data_model)
+- **Layers**: Which layers to extract (default: business, application, api, data-model)
 - **Technology**: Tech stack hints (e.g., "Python FastAPI", "Node.js Express", "Java Spring")
 
 **Examples:**
 
 ```
-/dr-ingest ./src
-/dr-ingest ./src/api --layers application,api
-/dr-ingest ./backend --tech "Python FastAPI PostgreSQL"
+/dr-map ./src
+/dr-map ./src/api --layers application,api
+/dr-map ./backend --tech "Python FastAPI PostgreSQL"
 ```
 
 If user didn't specify layers or tech, ask:
@@ -67,7 +173,7 @@ I'll analyze the codebase at ./src
 Quick questions:
 1. Which layers should I extract?
    - All relevant (recommended)
-   - Specific layers: business, application, api, data_model, etc.
+   - Specific layers: business, application, api, data-model, etc.
 
 2. Technology stack (optional, helps with analysis):
    - Auto-detect
@@ -136,10 +242,37 @@ Task(
    - Database tables (if applicable)
    - Business capabilities (infer from code)
 
-3. Create DR model elements:
+3. Create DR model elements with **mandatory source provenance**:
    - Use `dr add` commands for each element
+   - **Always** pass `--source-file <relative-path>` pointing to the file the element was extracted from (relative to the repository root, e.g. `src/services/OrderService.ts`)
+   - Pass `--source-symbol <name>` when the element maps to a specific class, function, or exported symbol
+   - Pass `--source-provenance extracted` for all elements identified directly from code; use `inferred` for elements reasoned from patterns rather than a specific file
    - Establish cross-layer references (realizes, exposes, stores, etc.)
    - Set appropriate properties (criticality, descriptions, etc.)
+
+   Source provenance is not optional metadata — it is the traceability link that makes the model useful:
+   - `/dr-sync` uses `source_reference` to detect drift when code changes
+   - `dr validate` can verify referenced files still exist
+   - Without provenance, the model is a snapshot with no connection back to the code that produced it
+
+   Example `dr add` invocations with provenance:
+   ```bash
+   dr add application service "Order Service" \
+     --description "Handles order lifecycle" \
+     --source-file "src/services/OrderService.ts" \
+     --source-symbol "OrderService" \
+     --source-provenance extracted
+
+   dr add api operation "Create Order" \
+     --description "POST /api/v1/orders" \
+     --source-file "src/routes/orders.ts" \
+     --source-symbol "createOrder" \
+     --source-provenance extracted
+
+   dr add business capability "Order Management" \
+     --description "Inferred from OrderService and order routes" \
+     --source-provenance inferred
+   ```
 
 4. Validate the extracted model:
    - Run `dr validate` after extraction
@@ -147,8 +280,9 @@ Task(
 
 5. Provide extraction report:
    - Elements created per layer
+   - Source files referenced (list unique files)
    - Confidence scores (high/medium/low)
-   - Warnings about uncertain mappings
+   - Warnings about uncertain mappings or missing provenance
    - Recommendations for manual review
 
 **Analysis Guidelines:**
@@ -212,6 +346,7 @@ Recommendations:
 **Important:**
 - Create realistic, meaningful descriptions
 - Use proper kebab-case for IDs
+- **Every `dr add` call must include `--source-file` and `--source-provenance`** — elements without provenance are untraceable and will fail the `source_files_exist` assertion in the test suite
 - Establish cross-layer references where clear
 - Flag uncertain mappings for review
 - Run validation and fix obvious errors
@@ -250,7 +385,7 @@ Files Modified:
 - documentation-robotics/model/04_application/services.yaml (8 elements)
 - documentation-robotics/model/04_application/components.yaml (3 elements)
 - documentation-robotics/model/06_api/operations.yaml (25 elements)
-- documentation-robotics/model/07_data_model/schemas.yaml (12 elements)
+- documentation-robotics/model/07_data-model/schemas.yaml (12 elements)
 ```
 
 ### Step 6: Validation & Review
@@ -352,7 +487,7 @@ def create_order(order: OrderCreate):
 # Extracts to:
 # - api.operation.create-order (path: /api/v1/orders, method: POST)
 # - application.service.order-service (if referenced)
-# - data_model.schema.order-create (from Pydantic model)
+# - data-model.objectschema.order-create (from Pydantic model)
 ```
 
 ### Node.js Express
@@ -402,7 +537,7 @@ public class OrderController {
 // Extracts to:
 # - api.operation.create-order
 # - application.service.order-controller
-# - data_model.schema.order-request
+# - data-model.objectschema.order-request
 ```
 
 ## Handling Edge Cases
@@ -482,7 +617,7 @@ Please review and adjust if needed.
 Error: Directory ./src not found
 
 Please check the path and try again:
-/dr-ingest <correct-path>
+/dr-map <correct-path>
 ```
 
 ### Error: No code files found
@@ -519,7 +654,7 @@ Options:
 ### Example 1: Simple Extraction
 
 ```
-User: /dr-ingest ./src/api
+User: /dr-map ./src/api
 
 You:
 Scanning ./src/api...
@@ -549,7 +684,7 @@ Next: Review documentation-robotics/model/04_application/ and documentation-robo
 ### Example 2: With Technology Hints
 
 ```
-User: /dr-ingest ./backend --tech "Python FastAPI PostgreSQL"
+User: /dr-map ./backend --tech "Python FastAPI PostgreSQL"
 
 You:
 Analyzing Python FastAPI application...
@@ -575,7 +710,7 @@ Created full model with:
 ### Example 3: Incremental Extraction
 
 ```
-User: /dr-ingest ./src --layers api
+User: /dr-map ./src --layers api
 
 You:
 Extracting API layer only...
@@ -591,7 +726,7 @@ Creating elements:
 ✓ Complete! Created 45 API operations.
 
 Next steps:
-- Extract application layer: /dr-ingest ./src --layers application
+- Extract application layer: /dr-map ./src --layers application
 - Link to business: /dr-model Add business services
 ```
 
@@ -599,6 +734,7 @@ Next steps:
 
 - `/dr-init` - Initialize new model first
 - `/dr-model` - Manually add/adjust elements
-- `/dr-project` - Project elements across layers
+- `/dr-sync` - Update model when code changes arrive (PR sync, branch diff)
+- `/dr-design` - Speculate on new features before implementation
 - `/dr-validate` - Validate extracted model
 - `dr search` - Query extracted elements

@@ -1367,7 +1367,7 @@ You work seamlessly with slash commands:
 - `/dr-model` → Natural language modeling
 - `/dr-validate` → Quick validation
 - `/dr-changeset` → Changeset management
-- `/dr-ingest` → Extraction entry point
+- `/dr-map` → Extraction entry point
 - `/dr-init` → Project initialization
 
 ### Skills That Complement You
