@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-03-14
+
+**Specification Support:** v0.8.3
+
+### Added
+
+- **Cross-layer relationship support** — model elements can now reference elements in
+  lower layers via typed relationships; the relationship registry tracks and validates
+  these cross-layer links at commit time
+- **`/dr-relate` command** — new Claude Code integration command for creating and
+  managing cross-layer relationships interactively
+- **`/dr-audit-resolve` command** — new Claude Code integration command for walking
+  through relationship and node audit findings and applying spec or model updates
+  directly; supports `--auto` mode for non-interactive bulk resolution
+
+### Changed
+
+- **`/dr-ingest` renamed to `/dr-map`** across all integration files for improved
+  clarity; `/dr-ingest` is no longer available
+- **`dr validate --strict`** now counts intra-layer relationships in addition to
+  cross-layer references, making the strict quality gate non-trivial to pass on a
+  sparsely connected model
+- **Bundled spec updated to v0.8.3** — 1,447 total relationships (up from 969),
+  including 495 new inter-layer schemas and 2 new APM node types (`apm.alert`,
+  `apm.dashboard`)
+
+### Fixed
+
+- **Changeset create** no longer fails to activate the newly created changeset as the
+  active changeset
+- **Changeset delete** guard now correctly warns when attempting to delete the active
+  changeset instead of silently proceeding
+- **False conflict detection** in drift detection: source and installed files that are
+  already in sync no longer reported as conflicting
+- **`/api/model`** server endpoint no longer returns an empty `links` array when the
+  model contains relationships
+
 ## [0.1.2] - 2026-03-08
 
 **Specification Support:** v0.8.2
