@@ -5,8 +5,8 @@
  *
  * Purpose:
  *   Performs comprehensive relationship quality analysis on the spec's relationship
- *   schema definitions (252 generated type definitions). This is a spec maintainer
- *   tool — it answers "is the specification's relationship type catalog well-covered?"
+ *   schema definitions. This is a spec maintainer tool — it answers "is the 
+ *   specification's relationship type catalog well-covered?"
  *
  *   For auditing a project's actual model relationship instances, use `dr audit`.
  *

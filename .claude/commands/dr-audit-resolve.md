@@ -1,11 +1,11 @@
 ---
-description: Interactively resolve node and relationship audit findings — walks through low-alignment items and applies spec updates
-argument-hint: "[path/to/audit.json] [--auto]"
+description: Interactively resolve node, relationship, and inter-layer audit findings — walks through low-alignment items and applies spec updates
+argument-hint: "[path/to/audit.json|audit-reports/relationships/inter-layer-validation/] [--auto]"
 ---
 
 # DR Audit Resolve
 
-Walks through audit findings (node or relationship) and guides the spec maintainer through resolving each one interactively. For every flagged item it pre-evaluates the suggestion against the actual spec files, asks what to do, and executes the chosen action directly in the spec.
+Walks through audit findings (node, relationship, or inter-layer gap) and guides the spec maintainer through resolving each one interactively. For every flagged item it pre-evaluates the suggestion against the actual spec files, asks what to do, and executes the chosen action directly in the spec.
 
 ## Usage
 
@@ -14,12 +14,18 @@ Walks through audit findings (node or relationship) and guides the spec maintain
 /dr-audit-resolve audit-report/nodes-audit.json
 /dr-audit-resolve audit-report/relationships-audit.json
 
+# Inter-layer validation — pass the directory to process all pairs at once,
+# or pass a single pair file:
+/dr-audit-resolve audit-reports/relationships/inter-layer-validation/
+/dr-audit-resolve audit-reports/relationships/inter-layer-validation/ux_to_navigation.json
+
 # Auto-discover latest audit in common locations:
 /dr-audit-resolve
 
 # Non-interactive mode — automatically execute the recommended action for each item:
 /dr-audit-resolve --auto
 /dr-audit-resolve audit-reports/all-nodes.json --auto
+/dr-audit-resolve audit-reports/relationships/inter-layer-validation/ --auto
 ```
 
 **Producing audit files:**
@@ -34,6 +40,10 @@ npm run audit:nodes -- --layer data-model --enable-ai --save-json audit-reports/
 
 # Relationship audit (writes both .md and .json automatically):
 npm run audit:relationships
+
+# Inter-layer gap analysis (requires --enable-ai):
+npm run audit:pipeline -- --enable-ai
+# Results written to: audit-reports/relationships/inter-layer-validation/
 ```
 
 ## Instructions for Claude Code
@@ -44,24 +54,30 @@ When this command is invoked, execute the following steps precisely.
 
 ### STEP 1: Locate the Audit File
 
-1. If an argument was provided, treat it as the path to the audit JSON file. Resolve relative to the repository root.
+1. If an argument was provided:
+   - If it ends with `/` or is a directory path, treat it as the **inter-layer validation directory** — set `auditType = "inter-layer"` immediately and skip to Step 3.
+   - Otherwise, treat it as the path to a single audit JSON file. Resolve relative to the repository root. Read and parse it, then proceed to Step 2.
+
 2. If no argument was provided, search for the most recent audit JSON in this order:
    - `audit-reports/all-nodes.json`
    - `audit-reports/all-relationships.json`
    - Any `audit-reports/*-nodes.json` (most recently modified first)
    - Any `audit-reports/*-relationships.json` (most recently modified first)
+   - `audit-reports/relationships/inter-layer-validation/` — if this directory exists and contains `.json` files, treat it as an inter-layer validation directory (set `auditType = "inter-layer"`, skip to Step 3)
    - `audit-results/*/before/*.json` (legacy pipeline output, most recently modified)
-3. If no file is found, print:
+
+3. If no file or directory is found, print:
 
 ```
 No audit file found in audit-reports/. Run one of:
   npm run audit:nodes -- --enable-ai --save-json audit-reports/all-nodes.json
   npm run audit:relationships -- --format json
+  npm run audit:pipeline -- --enable-ai   (inter-layer gap analysis)
 
 Then re-run: /dr-audit-resolve [path]   (or omit path to auto-discover)
 ```
 
-4. Read and parse the JSON file.
+4. Read and parse the JSON file (single-file path only; directory path handled in Step 3).
 
 ---
 
@@ -80,10 +96,11 @@ Check the provided arguments for an `--auto` flag. If present, set `autoMode = t
 
 ### STEP 2: Detect Audit Type
 
-Inspect the top-level keys of the JSON:
+Inspect the top-level keys of the JSON (single-file path only — directory paths set `auditType` in Step 1 and skip here):
 
 - **Node audit** — has keys: `layerSummaries`, `definitionQuality`, `overlaps`, `completenessIssues`, `aiReviews`
 - **Relationship audit** — has keys: `coverage`, `gaps`, `duplicates`, `balance`, `connectivity`
+- **Inter-layer validation (single pair file)** — has keys: `pair` and `validation`, where `validation` has `violations` and `recommendations` arrays. Set `auditType = "inter-layer"`.
 
 If the type cannot be determined, tell the user and abort.
 
@@ -99,6 +116,77 @@ Re-run with:
 ---
 
 ### STEP 3: Build the Review Queue
+
+**For inter-layer validation (`auditType = "inter-layer"`):**
+
+Load all gap data from the source:
+
+- **Directory path:** Read every `.json` file in the directory. Each file has the shape `{ pair, timestamp, validation: { violations[], recommendations[] } }`. Merge violations across all files into a single flat list, retaining the `pair` field for display.
+- **Single file:** Use `validation.violations` and `validation.recommendations` from that file.
+
+**Important:** The `pair` field (e.g., `"api->apm"`) reflects the pipeline's enumeration order — abstract layer first — and does NOT indicate schema direction. Always use `violation.sourceLayer` and `violation.targetLayer` for actual schema direction. In `api_to_apm.json` for example, `violation.sourceLayer = "apm"` and `violation.targetLayer = "api"` because apm (layer 11) is more concrete and references api (layer 6).
+
+For each violation at index `i`, pair it with `recommendations[i]` (the `recommendations` array is parallel to `violations`). Parse the recommended file path to extract the gap components:
+
+```
+recommendation: "Add spec/schemas/relationships/{sourceLayer}/{filename}.relationship.schema.json"
+filename: "{sourceType}.{predicate}.{destType}"
+```
+
+Parsing rules for the filename (node type names are lowercase concatenated, never hyphenated; predicates may contain hyphens):
+- `sourceLayer` — use `violation.sourceLayer` (authoritative); also visible as the directory segment between `relationships/` and the filename — they must match
+- `sourceType` — everything before the first `.` in the filename
+- `destType` — everything after the last `.` in the filename (before `.relationship.schema.json`)
+- `predicate` — everything between the first and last `.` in the filename (handles hyphenated predicates like `navigates-to`)
+- `destLayer` — `violation.targetLayer`
+
+Example from a real file (`api_to_apm.json`):
+- recommendation: `"Add spec/schemas/relationships/apm/span.monitors.operation.relationship.schema.json"`
+- violation: `{ sourceLayer: "apm", targetLayer: "api", issue: "Missing schema: span.monitors.operation — ..." }`
+- → sourceLayer=`apm`, sourceType=`span`, predicate=`monitors`, destType=`operation`, destLayer=`api`
+
+If `recommendations[i]` is missing or malformed, fall back to parsing from `violation.issue`. The issue format is:
+`"Missing schema: {sourceType}.{predicate}.{destType} — {justification}"`
+Strip the `"Missing schema: "` prefix first, then split on ` — ` to isolate the schema part, then parse the filename segment using the same first/last-dot rules.
+
+Build a gap record for each violation:
+```
+{
+  sourceLayer: violation.sourceLayer,
+  sourceType:  (parsed from recommendation filename),
+  predicate:   (parsed from recommendation filename),
+  destType:    (parsed from recommendation filename),
+  destLayer:   violation.targetLayer,
+  justification: violation.issue,
+  recommendedPath: (the full spec file path from recommendation, sans the "Add " prefix),
+  pairLabel:   file's pair field for display only (e.g., "api->apm") — not used for logic
+}
+```
+
+Check whether `recommendedPath` already exists on disk. Mark it `alreadyExists: true` if so — these will be shown to the user but flagged as candidates to skip.
+
+Filter out any gap records that could not be parsed (log a warning for each).
+
+Sort the queue: group by source layer (in canonical layer order 1–12), then alphabetically by source type within each layer.
+
+**Print the queue summary:**
+
+```
+Inter-Layer Gap Analysis
+  Source: {directory or file path}
+  Pairs loaded: {N} pair file(s)
+  Total gap suggestions: {total}
+  Already exist (will be flagged): {N}
+  To review: {N}
+
+Items to review:
+  1. [inter-layer] apm.span --monitors--> api.operation                  (pair: api->apm)
+  2. [inter-layer] apm.metric --monitors--> api.operation                (pair: api->apm)
+  3. [inter-layer] apm.alert --monitors--> api.ratelimit                 (pair: api->apm)
+  ...
+```
+
+---
 
 **For node audits:**
 
@@ -160,7 +248,117 @@ Items to review (lowest alignment first):
 
 ### STEP 4: Process Each Item
 
-For each item in the queue, execute steps 4a → 4b → 4c in sequence. After processing an item, move to the next.
+**For inter-layer validation (`auditType = "inter-layer"`):** Skip 4a–4c entirely and use the inter-layer section below.
+
+For node and relationship audits, execute steps 4a → 4b → 4c in sequence. After processing an item, move to the next.
+
+---
+
+#### 4-IL: Inter-Layer Gap Items
+
+For each gap record in the queue, execute 4-IL-a → 4-IL-b → 4-IL-c in sequence.
+
+---
+
+**4-IL-a. Pre-Evaluate**
+
+Given the gap record:
+
+1. Check whether `recommendedPath` already exists on disk:
+   ```bash
+   ls {recommendedPath} 2>/dev/null && echo "EXISTS" || echo "MISSING"
+   ```
+   If it already exists, note this — the schema may have been created since the audit ran.
+
+2. Check how many relationship schemas already exist for this source layer + source type:
+   ```bash
+   ls spec/schemas/relationships/{sourceLayer}/{sourceType}.*.relationship.schema.json 2>/dev/null | wc -l
+   ```
+
+3. Verify the source node type exists in the spec:
+   ```bash
+   ls spec/schemas/nodes/{sourceLayer}/{sourceType}.node.schema.json 2>/dev/null && echo "EXISTS" || echo "MISSING"
+   ```
+
+4. Verify the destination node type exists in the spec:
+   ```bash
+   ls spec/schemas/nodes/{destLayer}/{destType}.node.schema.json 2>/dev/null && echo "EXISTS" || echo "MISSING"
+   ```
+
+If either node type schema is missing, note the discrepancy — the AI may have hallucinated a type name. This is grounds to skip the item.
+
+---
+
+**4-IL-b. Ask the User (or Auto-Proceed)**
+
+**If `autoMode` is active:**
+- If `alreadyExists` is true: log `SKIPPED {sourceLayer}.{sourceType} --{predicate}--> {destLayer}.{destType} — schema already exists` and move to next.
+- If either node type is missing from spec: log `SKIPPED — source or destination node type not found in spec` and move to next.
+- Otherwise: apply the default action `"Create this relationship"` with cardinality `many-to-one`. Log `[AUTO] CREATING {recommendedPath}`.
+
+**If `autoMode` is not active:** Use `AskUserQuestion`. Present:
+
+```
+[{N}/{total}] Inter-layer gap — {sourceLayer}.{sourceType} --{predicate}--> {destLayer}.{destType}  (pair file: {pairLabel})
+
+  Source:      {sourceLayer}.{sourceType}
+  Predicate:   {predicate}
+  Destination: {destLayer}.{destType}
+  Justification: {violation.issue with "Missing schema: X — " prefix stripped}
+
+  Schema path: {recommendedPath}
+  Already exists? {yes — can skip / no — will create}
+  Source node type in spec? {yes / NO — may be hallucinated}
+  Dest node type in spec?   {yes / NO — may be hallucinated}
+  Other schemas for {sourceLayer}.{sourceType}: {count}
+```
+
+Options:
+
+- **Create this relationship** — write the schema at `recommendedPath` (default: cardinality `many-to-one`)
+- **Create with different cardinality** — specify `one-to-one`, `one-to-many`, or `many-to-many`
+- **Skip — already covered** — if a semantically equivalent schema already exists
+- **Skip — not architecturally necessary** — if the justification isn't convincing
+- **Skip — node type not in spec** — if source or destination type is missing from the spec
+
+---
+
+**4-IL-c. Execute**
+
+**CREATE:**
+
+1. Build the relationship schema using the standard cross-layer template:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "{SourceTypePascal} {predicate} {DestTypePascal}",
+  "description": "Defines relationship: {sourceLayer}.{sourceType} {predicate} {destLayer}.{destType}",
+  "allOf": [{ "$ref": "../../base/spec-node-relationship.schema.json" }],
+  "properties": {
+    "id": {
+      "const": "{sourceLayer}.{sourceType}.{predicate}.{destLayer}.{destType}"
+    },
+    "source_spec_node_id": { "const": "{sourceLayer}.{sourceType}" },
+    "source_layer":        { "const": "{sourceLayer}" },
+    "destination_spec_node_id": { "const": "{destLayer}.{destType}" },
+    "destination_layer":   { "const": "{destLayer}" },
+    "predicate":           { "const": "{predicate}" },
+    "cardinality":         { "const": "{cardinality}" },
+    "strength":            { "const": "medium" }
+  }
+}
+```
+
+  Note: `{SourceTypePascal}` and `{DestTypePascal}` are the type names with first letter uppercased (e.g., `view` → `View`, `navigates-to` stays as-is in the title: `View navigates-to Route`).
+
+2. Write to `{recommendedPath}` (the full path parsed from the recommendation).
+
+3. Log: `CREATED {sourceLayer}.{sourceType} --{predicate}--> {destLayer}.{destType}`
+
+**SKIP:**
+
+Log: `SKIPPED {sourceLayer}.{sourceType} --{predicate}--> {destLayer}.{destType} — {reason}`. Move to next.
 
 ---
 
@@ -261,6 +459,7 @@ Read both schema files to show the user their definitions.
 | Node (OTHER action type) | "Skip" — requires manual judgment; cannot be automated              |
 | Relationship gap         | "Create this relationship" — use default cardinality `many-to-one`  |
 | Relationship duplicate   | "Skip" — duplicate resolution requires judgment; skip in auto mode  |
+| Inter-layer gap          | "Create this relationship" — use default cardinality `many-to-one`; skip if already exists or node type not in spec |
 
 Print a one-line summary of the chosen action (e.g., `[AUTO] data-model.x-database — following recommendation: MOVE to data-store layer`).
 

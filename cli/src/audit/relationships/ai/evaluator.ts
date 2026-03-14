@@ -6,6 +6,7 @@ import { PromptTemplates } from "./prompts.js";
 import { ResponseParser } from "./parser.js";
 import type { RelationshipRecommendation, LayerReview, InterLayerValidation } from "./parser.js";
 import { getErrorMessage } from "../../../utils/errors.js";
+import { CANONICAL_LAYER_NAMES } from "../../../core/layers.js";
 
 /**
  * Tracks progress of AI evaluation operations, enabling resume support
@@ -273,7 +274,14 @@ export class AIEvaluator {
       );
 
       try {
-        const prompt = this.promptTemplates.interLayerValidation(source, target);
+        const sourceLayerNumber =
+          (CANONICAL_LAYER_NAMES as readonly string[]).indexOf(source) + 1;
+        const targetLayerNumber =
+          (CANONICAL_LAYER_NAMES as readonly string[]).indexOf(target) + 1;
+        const prompt = this.promptTemplates.interLayerValidation(source, target, {
+          sourceLayerNumber,
+          targetLayerNumber,
+        });
         const response = await this.runner.invoke(prompt, pairKey);
 
         const validation = this.responseParser.parseInterLayerValidation(response);
