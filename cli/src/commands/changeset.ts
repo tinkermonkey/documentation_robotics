@@ -74,6 +74,11 @@ export async function changesetCreateCommand(
     const changeset = await manager.create(name, description || undefined);
 
     // Activate immediately so add/update/delete commands stage into this changeset
+    const previouslyActive = await manager.getActiveId();
+    if (previouslyActive) {
+      const previous = await manager.load(previouslyActive);
+      console.log(ansis.yellow(`  Deactivating changeset: ${ansis.bold(previous?.name ?? previouslyActive)}`));
+    }
     await manager.setActive(changeset.id);
 
     if (isTelemetryEnabled && span) {
@@ -494,9 +499,9 @@ export async function changesetDeleteCommand(
       process.exit(1);
     }
 
-    // Check if changeset is currently active
+    // Check if changeset is currently active (compare by ID, not user-provided name)
     const active = await manager.getActiveId();
-    if (active === name) {
+    if (active === changeset.id) {
       console.error(ansis.red(`Error: Cannot delete active changeset '${name}'`));
       console.log(ansis.dim("  Run `dr changeset deactivate` first"));
       if (isTelemetryEnabled && span) {
