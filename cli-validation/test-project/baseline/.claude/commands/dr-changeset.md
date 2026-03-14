@@ -416,7 +416,7 @@ When users are working with changesets, all modeling commands automatically work
 # These automatically work in active changeset:
 dr add business service --name "New Service"
 dr update business.service.existing --property status=updated
-dr delete business.service.old
+dr delete business.service.old --force
 
 # No special syntax needed - changeset is transparent
 ```

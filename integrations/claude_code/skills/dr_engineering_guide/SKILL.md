@@ -253,7 +253,7 @@ MODEL DRIFT
      → No model element for this class. Add it with /dr-model or /dr-sync
   ✓ Tracked: OrderService matches application.service.order-service
   ⚠️ Ghost: application.service.legacy-billing still in model (billing.ts was deleted)
-     → Remove with: dr delete application.service.legacy-billing
+     → Remove with: dr delete application.service.legacy-billing --force
 
 PATTERN COMPLIANCE
   ✓ OrderService: follows service pattern (single responsibility, repository injection)
