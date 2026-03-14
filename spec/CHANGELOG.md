@@ -7,6 +7,35 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-03-14
+
+### Added
+
+- **495 inter-layer relationship schemas** added across all 12 layers via AI-assisted
+  audit pipeline (`/dr-audit-resolve`), expanding cross-layer traceability coverage:
+  - 478 schemas generated from AI gap analysis across all 65 layer-pair combinations
+  - 10 schemas added using best-fit substitutions where audit-recommended node names
+    differed from spec names (e.g. `apm.metric` → `metricinstrument`, `security.control`
+    → `countermeasure`, `security.identitysubject` → `actor`,
+    `security.accesscontrol` → `securitypolicy`)
+  - 7 additional schemas covering relationships to `security.countermeasure`,
+    `security.securitypolicy`, `security.actor`, and `apm.metricinstrument`
+- **`apm.alert` node type** — alerting rule with `severity`, `condition`,
+  `evaluationInterval`, and `notificationChannels` attributes; represents alert
+  definitions in monitoring backends (Prometheus alertmanager, Grafana alerting,
+  Datadog monitors)
+- **`apm.dashboard` node type** — monitoring dashboard with `tool`
+  (grafana/datadog/newrelic/cloudwatch/dynatrace/custom), `description`, and
+  `panels[]` attributes; represents dashboard definitions grouping APM signal
+  visualizations
+
+### Changed
+
+- **APM layer** now contains 15 node types (up from 13), with `apm.alert` and
+  `apm.dashboard` added to `spec/layers/11-apm.layer.json`
+- **Total relationship count** increased from 969 to **1,447** across 186 node types
+  (12 layers), reflecting comprehensive inter-layer coverage from the audit
+
 ## [0.8.2] - 2026-03-08
 
 ### Changed

@@ -1450,4 +1450,4 @@ Specifies data validation constraints for FieldAccessControl, defining allowed p
 
 ---
 
-_Generated: 2026-03-14T21:04:51.686Z | Spec Version: 0.8.2 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-14T21:19:00.160Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_
