@@ -345,18 +345,18 @@ describe.serial("Visualization Server API Endpoints", () => {
       const html = await response.text();
       expect(html).toContain("<!DOCTYPE html>");
       expect(html).toContain("Documentation Robotics Viewer");
-      expect(html).toContain('id="model-tree"');
-      expect(html).toContain('id="element-details"');
+      expect(html).toContain('id="root"');
+      expect(html).toContain('type="module"');
     });
 
-    it("should include WebSocket connection code", async () => {
+    it("should serve bundled viewer assets", async () => {
       serverProcess = await startServer(testDir, testPort);
 
       const response = await fetch(`http://localhost:${testPort}/`);
       const html = await response.text();
 
-      expect(html).toContain("new WebSocket");
-      expect(html).toContain("/ws");
+      expect(html).toContain("/assets/");
+      expect(html).toContain('type="module"');
     });
   });
 

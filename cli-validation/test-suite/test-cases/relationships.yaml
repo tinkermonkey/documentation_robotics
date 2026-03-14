@@ -131,7 +131,7 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 1
         expect_stderr_contains:
-          - "cannot add cross-layer relationship"
+          - "Invalid relationship:"
 
       - command: "delete motivation.goal.cross-layer-goal --force"
         files_to_compare:
