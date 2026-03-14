@@ -167,6 +167,35 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
 
     const result = await validator.validateModel(model);
 
+    // Run strict-mode additional checks: flag elements missing description or source traceability.
+    // These are quality gates that don't fail a standard validate but should be visible in strict mode.
+    if (options.strict) {
+      for (const [layerName, layer] of model.layers) {
+        for (const element of layer.listElements()) {
+          const elementId = element.path || element.id;
+
+          if (!element.description || element.description.trim() === "") {
+            result.addWarning({
+              message: `Element '${elementId}' has no description`,
+              layer: layerName,
+              elementId,
+              fixSuggestion: "Add a description to document what this element represents",
+            });
+          }
+
+          if (!element.source_reference) {
+            result.addWarning({
+              message: `Element '${elementId}' has no source reference`,
+              layer: layerName,
+              elementId,
+              fixSuggestion:
+                "Add a source_reference with provenance to link this element to its implementation",
+            });
+          }
+        }
+      }
+    }
+
     // Format and display output
     if (options.output) {
       // Export to file

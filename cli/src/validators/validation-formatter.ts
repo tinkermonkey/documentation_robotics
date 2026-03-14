@@ -94,7 +94,7 @@ export class ValidationFormatter {
     lines.push(ansis.bold("Cross-Layer Validation:"));
     const stats = this.calculateStats(model);
     lines.push(
-      `${ansis.green("✓")} ${stats.totalRelationships} cross-layer relationships validated`
+      `${ansis.green("✓")} ${stats.totalRelationships} relationships validated`
     );
 
     if (stats.orphanedElements.length > 0) {
@@ -230,9 +230,9 @@ export class ValidationFormatter {
     };
 
     const elementIds = new Set<string>();
-    const elementRelationships = new Map<string, number>();
+    const crossLayerRefCounts = new Map<string, number>();
 
-    // Count elements and relationships
+    // Count elements and cross-layer references (element.references[])
     for (const [layerName, layer] of model.layers) {
       let layerCount = 0;
       for (const element of layer.listElements()) {
@@ -240,12 +240,10 @@ export class ValidationFormatter {
         layerCount++;
         stats.totalElements++;
 
-        // Count relationships
         const refCount = (element.references || []).length;
-        elementRelationships.set(element.path || element.id, refCount);
+        crossLayerRefCounts.set(element.path || element.id, refCount);
         stats.totalRelationships += refCount;
 
-        // Track relationship predicates
         for (const ref of element.references || []) {
           const predicate = ref.type || "references";
           stats.relationshipsByPredicate[predicate] =
@@ -258,23 +256,36 @@ export class ValidationFormatter {
       }
     }
 
-    // Find orphaned elements (no relationships in or out)
-    for (const elementId of elementIds) {
-      const outgoing = elementRelationships.get(elementId) || 0;
+    // Also count intra-layer relationships from relationships.yaml
+    const intraLayerRels = model.relationships.getAll();
+    stats.totalRelationships += intraLayerRels.length;
+    const connectedViaIntraLayer = new Set<string>();
+    for (const rel of intraLayerRels) {
+      stats.relationshipsByPredicate[rel.predicate] =
+        (stats.relationshipsByPredicate[rel.predicate] || 0) + 1;
+      connectedViaIntraLayer.add(rel.source);
+      connectedViaIntraLayer.add(rel.target);
+    }
 
-      // Count incoming relationships
-      let incoming = 0;
+    // Find orphaned elements: no cross-layer refs and not touched by any intra-layer relationship
+    for (const elementId of elementIds) {
+      if (connectedViaIntraLayer.has(elementId)) {
+        continue;
+      }
+
+      const outgoingCrossLayer = crossLayerRefCounts.get(elementId) || 0;
+      let incomingCrossLayer = 0;
       for (const [, layer] of model.layers) {
         for (const element of layer.listElements()) {
           for (const ref of element.references || []) {
             if (ref.target === elementId) {
-              incoming++;
+              incomingCrossLayer++;
             }
           }
         }
       }
 
-      if (outgoing === 0 && incoming === 0) {
+      if (outgoingCrossLayer === 0 && incomingCrossLayer === 0) {
         stats.orphanedElements.push(elementId);
       }
     }
