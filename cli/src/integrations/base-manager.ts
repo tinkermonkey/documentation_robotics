@@ -373,6 +373,8 @@ export abstract class BaseIntegrationManager {
             sourceHash,
             installedHash,
           });
+        } else if (sourceHash === installedHash) {
+          // Source and installed are already in sync; stale recorded hash, no action needed
         } else if (installedHash !== recordedHash) {
           // User also modified the file - real conflict
           changes.push({
