@@ -3,8 +3,10 @@ import { Manifest } from "./manifest.js";
 import { Element } from "./element.js";
 import { GraphModel, type GraphEdge } from "./graph-model.js";
 import { VirtualProjectionEngine } from "./virtual-projection.js";
+import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { Relationships } from "./relationships.js";
 import { CANONICAL_LAYER_NAMES } from "./layers.js";
+import type { StagedChange } from "./changeset.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
@@ -74,6 +76,10 @@ export class Model {
   lazyLoad: boolean;
   private loadedLayers: Set<string>;
   private virtualProjectionEngine?: VirtualProjectionEngine;
+  /** ID of the currently active changeset, or null if none is active. Set during load(). */
+  private _activeChangesetId: string | null = null;
+  /** Layer names that exist only in staged changes (not yet committed to base model). */
+  private _stagedLayerNames: Set<string> = new Set();
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath;
@@ -86,12 +92,40 @@ export class Model {
   }
 
   /**
-   * Get a layer, loading it if lazy loading is enabled
+   * Get the committed base layer (no staging projection).
+   * Used internally by VirtualProjectionEngine and commit() to access the raw base model
+   * without triggering infinite recursion or double-projection.
+   */
+  async getBaseLayer(name: string): Promise<Layer | undefined> {
+    if (this.lazyLoad && !this.loadedLayers.has(name)) {
+      await this.loadLayer(name);
+    }
+    return this.layers.get(name);
+  }
+
+  /**
+   * Get a layer, transparently merging staged changes when an active changeset exists.
+   * Falls back to the committed base layer if no changeset is active or projection fails.
    */
   async getLayer(name: string): Promise<Layer | undefined> {
     if (this.lazyLoad && !this.loadedLayers.has(name)) {
       await this.loadLayer(name);
     }
+
+    // If an active changeset is present, return a projected (base + staged) layer
+    if (this._activeChangesetId) {
+      try {
+        return await this.getVirtualProjectionEngine().projectLayer(
+          this,
+          this._activeChangesetId,
+          name
+        );
+      } catch {
+        // Fall back to base layer on projection failure (e.g. corrupt changeset)
+        return this.layers.get(name);
+      }
+    }
+
     return this.layers.get(name);
   }
 
@@ -300,10 +334,18 @@ export class Model {
   }
 
   /**
-   * Get all loaded layer names
+   * Get all layer names, including layers that exist only in staged changes.
+   * When an active changeset introduces elements for a layer with no committed data,
+   * that layer name is included so findElementLayer() and other callers can discover it.
    */
   getLayerNames(): string[] {
-    return Array.from(this.layers.keys());
+    const base = Array.from(this.layers.keys());
+    if (this._stagedLayerNames.size === 0) {
+      return base;
+    }
+    // Include staged-only layers (layers that have staged elements but no committed elements)
+    const staged = Array.from(this._stagedLayerNames).filter((l) => !this.layers.has(l));
+    return [...base, ...staged];
   }
 
   /**
@@ -764,6 +806,74 @@ export class Model {
 
       // Load relationships from relationships.yaml
       await model.loadRelationships();
+
+      // Check for active changeset and pre-load staged metadata for transparent projection.
+      // This enables getLayer() to return projected views and getLayerNames() to include
+      // layers that exist only in staged changes.
+      const activePath = path.join(
+        projectRoot,
+        "documentation-robotics",
+        "changesets",
+        ".active"
+      );
+      try {
+        const activeContent = await fs.readFile(activePath, "utf-8");
+        const activeId = activeContent.trim();
+        if (activeId) {
+          model._activeChangesetId = activeId;
+          const storage = new StagedChangesetStorage(projectRoot);
+          const changeset = await storage.load(activeId);
+          if (changeset) {
+            for (const change of changeset.changes as StagedChange[]) {
+              // Track layer names for getLayerNames()
+              if (
+                change.type === "add" ||
+                change.type === "update" ||
+                change.type === "delete"
+              ) {
+                model._stagedLayerNames.add(change.layerName);
+              }
+
+              // Inject staged relationship-adds into model.relationships so that
+              // read commands (list, show, export) transparently see staged relationships.
+              if (change.type === "relationship-add" && change.after) {
+                const rel = change.after as {
+                  source: string;
+                  target: string;
+                  predicate: string;
+                  layer: string;
+                  targetLayer?: string;
+                  category?: "structural" | "behavioral";
+                  properties?: Record<string, unknown>;
+                };
+                model.relationships.add({
+                  source: rel.source,
+                  target: rel.target,
+                  predicate: rel.predicate,
+                  layer: rel.layer,
+                  ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+                  category: rel.category ?? "structural",
+                  ...(rel.properties ? { properties: rel.properties } : {}),
+                });
+              }
+
+              // Remove staged relationship-deletes from model.relationships so that
+              // read commands see the relationship as already deleted.
+              if (change.type === "relationship-delete" && change.before) {
+                const rel = change.before as {
+                  source: string;
+                  target: string;
+                  predicate?: string;
+                };
+                model.relationships.delete(rel.source, rel.target, rel.predicate);
+              }
+            }
+          }
+        }
+      } catch {
+        // No active changeset or unreadable — proceed with base model only
+        model._activeChangesetId = null;
+      }
 
       // Count total entities across all layers
       let entityCount = 0;

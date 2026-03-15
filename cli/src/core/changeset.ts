@@ -14,11 +14,11 @@
  * Records element mutations with before/after snapshots for audit purposes.
  */
 export interface Change {
-  type: "add" | "update" | "delete";
-  elementId: string;
-  layerName: string;
-  before?: Record<string, unknown>; // Element state before change (for update/delete)
-  after?: Record<string, unknown>; // Element state after change (for add/update)
+  type: "add" | "update" | "delete" | "relationship-add" | "relationship-delete";
+  elementId: string; // For relationships: composite key "source::predicate::target"
+  layerName: string; // For relationships: source element's layer
+  before?: Record<string, unknown>; // Element/relationship state before change
+  after?: Record<string, unknown>;  // Element/relationship state after change
   timestamp?: string; // ISO timestamp; optional in interface but always set before storage
 }
 

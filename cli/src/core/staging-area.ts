@@ -549,13 +549,58 @@ export class StagingAreaManager {
         try {
           for (const change of sortedChanges) {
             try {
-              let layer = await model.getLayer(change.layerName);
+              // Use getBaseLayer() so commit operates on the actual mutable base layer,
+              // not a projected clone. getLayer() would return a projected (read-only clone)
+              // which cannot be persisted via saveLayer().
+              let layer = await model.getBaseLayer(change.layerName);
               if (!layer) {
                 // Layer directory doesn't exist yet — this changeset introduces
                 // the first elements for this layer. Create an empty layer and
                 // register it so saveLayer() will create the directory on disk.
                 layer = new Layer(change.layerName);
                 model.addLayer(layer);
+              }
+
+              if (change.type === "relationship-add" && change.after) {
+                // Relationship-add: the relationship was already injected into model.relationships
+                // during Model.load() for transparent read-path visibility. Here we just need
+                // saveRelationships() to persist it. Skip adding if it already exists.
+                const rel = change.after as {
+                  source: string;
+                  target: string;
+                  predicate: string;
+                  layer: string;
+                  targetLayer?: string;
+                  category?: "structural" | "behavioral";
+                  properties?: Record<string, unknown>;
+                };
+                const existing = model.relationships.find(rel.source, rel.target, rel.predicate);
+                if (existing.length === 0) {
+                  model.relationships.add({
+                    source: rel.source,
+                    target: rel.target,
+                    predicate: rel.predicate,
+                    layer: rel.layer,
+                    ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+                    category: rel.category ?? "structural",
+                    ...(rel.properties ? { properties: rel.properties } : {}),
+                  });
+                }
+                result.committed++;
+                continue;
+              }
+
+              if (change.type === "relationship-delete" && change.before) {
+                // Relationship-delete: the relationship was already removed from model.relationships
+                // during Model.load(). Just ensure it's gone and count it.
+                const rel = change.before as {
+                  source: string;
+                  target: string;
+                  predicate?: string;
+                };
+                model.relationships.delete(rel.source, rel.target, rel.predicate);
+                result.committed++;
+                continue;
               }
 
               if (change.type === "add" && change.after) {
@@ -617,10 +662,15 @@ export class StagingAreaManager {
           endSpan(applySpan);
         }
 
-        // Step 6: Save all modified layers atomically
+        // Step 6: Save all modified layers and relationships atomically
         const modifiedLayers = new Set<string>();
+        let hasRelationshipChanges = false;
         for (const change of sortedChanges) {
-          modifiedLayers.add(change.layerName);
+          if (change.type === "relationship-add" || change.type === "relationship-delete") {
+            hasRelationshipChanges = true;
+          } else {
+            modifiedLayers.add(change.layerName);
+          }
         }
 
         for (const layerName of modifiedLayers) {
@@ -629,6 +679,17 @@ export class StagingAreaManager {
           } catch (error) {
             throw new Error(
               `Failed to save layer '${layerName}': ${getErrorMessage(error)}`
+            );
+          }
+        }
+
+        // Persist staged relationship changes to relationships.yaml
+        if (hasRelationshipChanges) {
+          try {
+            await model.saveRelationships();
+          } catch (error) {
+            throw new Error(
+              `Failed to save relationships after commit: ${getErrorMessage(error)}`
             );
           }
         }

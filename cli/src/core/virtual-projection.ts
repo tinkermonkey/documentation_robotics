@@ -253,10 +253,9 @@ export class VirtualProjectionEngine {
     // Record cache miss
     this.recordCacheMiss(changesetId);
 
-    // Load base layer — may be absent if the changeset introduces the first elements
-    // for this layer (i.e. the layer directory was never written to disk). In that
-    // case start projection from an empty layer rather than throwing.
-    const baseLayer = await baseModel.getLayer(layerName);
+    // Load the committed base layer — must use getBaseLayer() (not getLayer()) to avoid
+    // infinite recursion: getLayer() calls projectLayer(), which would call getLayer() again.
+    const baseLayer = await baseModel.getBaseLayer(layerName);
     const projectedLayer = baseLayer
       ? this.cloneLayer(baseLayer)
       : new LayerClass(layerName);

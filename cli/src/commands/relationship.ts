@@ -5,6 +5,7 @@
 import { Command } from "commander";
 import ansis from "ansis";
 import { Model } from "../core/model.js";
+import { StagingAreaManager } from "../core/staging-area.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, ErrorCategory, handleError } from "../utils/errors.js";
 import {
@@ -206,20 +207,35 @@ Examples:
           }
         }
 
-        // Add relationship to centralized relationships.yaml
-        model.relationships.add({
+        // Check for active changeset — stage relationship instead of writing directly
+        const stagingManager = new StagingAreaManager(model.rootPath, model);
+        const activeChangesetId = await stagingManager.getActiveId();
+
+        const relData = {
           source,
           target,
           predicate: options.predicate,
           layer: sourceLayerName,
           ...(targetLayerName !== sourceLayerName ? { targetLayer: targetLayerName } : {}),
-          category: "structural", // Default category
-          properties,
-        });
+          category: "structural" as const,
+          ...(properties ? { properties } : {}),
+        };
 
-        // Save relationships
-        await model.saveRelationships();
-        await model.saveManifest();
+        if (activeChangesetId) {
+          // Stage the relationship change in the active changeset
+          const compositeKey = `${source}::${options.predicate}::${target}`;
+          await stagingManager.stage(activeChangesetId, {
+            type: "relationship-add",
+            elementId: compositeKey,
+            layerName: sourceLayerName,
+            after: relData,
+          });
+        } else {
+          // No active changeset — write directly to relationships.yaml
+          model.relationships.add(relData);
+          await model.saveRelationships();
+          await model.saveManifest();
+        }
 
         // Show cardinality and strength in output
         let message = `✓ Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
@@ -227,6 +243,9 @@ Examples:
           message += ansis.dim(
             ` (${constraints.cardinality}, ${constraints.strength} strength)`
           );
+        }
+        if (activeChangesetId) {
+          message += ansis.dim(` [staged]`);
         }
 
         console.log(ansis.green(message));
@@ -286,16 +305,39 @@ Examples:
           }
         }
 
-        // Delete relationships
-        model.relationships.delete(source, target, options.predicate);
+        // Check for active changeset — stage deletion instead of writing directly
+        const stagingManager = new StagingAreaManager(model.rootPath, model);
+        const activeChangesetId = await stagingManager.getActiveId();
 
-        // Save
-        await model.saveRelationships();
-        await model.saveManifest();
+        if (activeChangesetId) {
+          // Stage each relationship deletion in the active changeset
+          for (const rel of toDelete) {
+            const compositeKey = `${rel.source}::${rel.predicate}::${rel.target}`;
+            await stagingManager.stage(activeChangesetId, {
+              type: "relationship-delete",
+              elementId: compositeKey,
+              layerName: rel.layer,
+              before: {
+                source: rel.source,
+                target: rel.target,
+                predicate: rel.predicate,
+                layer: rel.layer,
+                ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+                ...(rel.properties ? { properties: rel.properties } : {}),
+              },
+            });
+          }
+        } else {
+          // No active changeset — write directly
+          model.relationships.delete(source, target, options.predicate);
+          await model.saveRelationships();
+          await model.saveManifest();
+        }
 
+        const stagedSuffix = activeChangesetId ? " [staged]" : "";
         console.log(
           ansis.green(
-            `✓ Deleted ${toDelete.length} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}`
+            `✓ Deleted ${toDelete.length} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`
           )
         );
       } catch (error) {
