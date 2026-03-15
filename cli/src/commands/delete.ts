@@ -163,6 +163,16 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
 
     // Confirm deletion unless --force
     if (!options.force) {
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (!isInteractive) {
+        throw new CLIError(
+          "Interactive confirmation is not available in non-TTY environments",
+          ErrorCategory.USER,
+          ["Use --force to skip confirmation and proceed with deletion"],
+          { operation: "delete", context: `Element ${id}` }
+        );
+      }
+
       const message =
         options.cascade && dependents.length > 0
           ? `Delete ${ansis.bold(id)} and ${ansis.bold(String(dependents.length))} dependent element(s)? This cannot be undone.`

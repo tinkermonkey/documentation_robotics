@@ -103,7 +103,7 @@ dr changeset activate "extract-api-layer"
 dr add api operation "Create Order" \
   --source-file "src/api/orders.ts" --source-symbol "createOrder" \
   --source-provenance "extracted" \
-  --attributes '{"method":"POST","path":"/api/orders"}'
+  --attributes '{"operationId":"createOrder","summary":"Create a new order","tags":["orders"]}'
 dr validate --layers api
 dr changeset commit
 ```

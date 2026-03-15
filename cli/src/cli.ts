@@ -181,7 +181,7 @@ program
     `
 Examples:
   $ dr add business service "Customer Management"
-  $ dr add api operation "Create Customer" --attributes '{"method":"POST","path":"/customers"}'
+  $ dr add api operation "Create Customer" --attributes '{"operationId":"createCustomer","summary":"Create a customer","tags":["customers"]}'
   $ dr add application component "Customer API" --description "REST API for customer operations"
   $ dr add security policy "Auth Validator" --source-file "src/auth/validator.ts" --source-symbol "validateToken" --source-provenance "extracted"
 

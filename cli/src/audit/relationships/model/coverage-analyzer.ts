@@ -23,8 +23,12 @@ export function analyzeLayerCoverage(
   );
   const nodeTypeCount = specNodeIds.size;
 
-  // Index elements by ID for O(1) lookups when processing relationships
-  const elementById = new Map<string, Element>(elements.map((e) => [e.id, e]));
+  // Index elements by both UUID id and path/slug — relationships store slug paths.
+  const elementById = new Map<string, Element>();
+  for (const e of elements) {
+    elementById.set(e.id, e);
+    if (e.path && e.path !== e.id) elementById.set(e.path, e);
+  }
 
   // Count intra-layer relationship instances per spec_node_id (by source element's spec_node_id)
   const relCountBySpecNodeId = new Map<string, number>();

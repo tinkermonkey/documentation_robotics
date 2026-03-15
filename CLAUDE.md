@@ -55,7 +55,6 @@ documentation_robotics/
 ```bash
 cd cli && npm install && npm run build
 npm run test              # Run all tests
-node dist/cli.js --help   # CLI usage
 
 # Pre-commit checks
 pre-commit run --all-files
@@ -104,11 +103,10 @@ See `cli/README.md` for complete setup and usage documentation.
 - **Format**: `{layer}.{elementType}.{kebab-case-name}`
 - **Example**: `api.endpoint.create-customer`
 - **Element ID Type Segment**: Lowercase format (e.g., `endpoint`, `service`, `goal`) - this is what appears in the element ID
-- **CLI Type Parameter**: Use lowercase form when running `dr add <layer> <type> <name>` (e.g., `dr add api endpoint create-customer`)
 - **Conceptual Type Name**: Documentation uses PascalCase (e.g., `Endpoint`, `BusinessService`, `Goal`) for formal reference
 - Must be unique across entire model
 - Use element utilities for consistency
-- **See Also**: [Element Type Reference](docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive type documentation with correct CLI usage
+- **See Also**: [Element Type Reference](docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive type documentation
 - See Section 4.1 for canonical layer name requirements in element IDs
 
 ### 4.1 Canonical Layer Naming Format
@@ -132,7 +130,7 @@ See `cli/README.md` for complete setup and usage documentation.
 
 **Key Rules**:
 
-- Always use the canonical name in CLI commands and code (e.g., `--layer data-store` not `--layer datastore`)
+- Always use the canonical name in code (e.g., `--layer data-store` not `--layer datastore`)
 - Accept only canonical names in validators (no underscore variants)
 
 ### 5. Cross-Layer References
@@ -226,7 +224,6 @@ Do NOT manually edit files in `spec/dist/` or `cli/src/schemas/bundled/` — the
 
 - **Must** follow `{layer}.{elementType}.{kebab-case}` convention
 - Element type segment uses **lowercase**: `goal`, `service`, `endpoint`, `component`, etc. (not PascalCase in the ID itself)
-- In CLI commands, use **lowercase** for the type parameter: `dr add motivation goal customer-satisfaction`
 - Element names are **kebab-case**: `customer-satisfaction`, `order-management`
 - Must be unique across entire model
 - Use element utilities, don't manually construct IDs
@@ -282,19 +279,11 @@ Do NOT manually edit files in `spec/dist/` or `cli/src/schemas/bundled/` — the
 - `cli/scripts/generate-spec-instances.ts` - Generates spec layer/node/predicate instances
 - `scripts/generate-layer-docs.ts` - Generates markdown docs from spec instances
 
-### Schema and Validation Commands
-
-Introspect and validate architecture specifications:
-
-```bash
-dr schema layers                                  # List all layers with node type counts
-dr schema types <layer>                          # List valid node types for a layer
-dr schema node <spec_node_id>                    # Show node schema details
-dr schema relationship <source_type> [predicate] # Show valid relationships
-dr conformance [--layers layer1,layer2]          # Validate model against layer specs
-```
+### Schema and Validation
 
 Key files: `cli/src/commands/schema.ts`, `cli/src/commands/conformance.ts`
+
+For command reference, see `integrations/claude_code/`.
 
 ### Relationship Audit
 
@@ -363,30 +352,6 @@ The audit command outputs directly to console (text format) or to the specified 
 - `1` - Quality issues detected (with `--threshold` flag)
 - `2` - Script execution error
 
-**Pipeline Mode:**
-
-For automated before/after AI evaluation workflow, use the `--pipeline` flag:
-
-```bash
-# Run before/after pipeline without AI
-dr audit --pipeline
-
-# Run full AI-assisted pipeline
-dr audit --pipeline --enable-ai --claude-api-key $ANTHROPIC_API_KEY
-
-# Layer-specific pipeline with AI
-dr audit security --pipeline --enable-ai --claude-api-key $ANTHROPIC_API_KEY
-
-# Custom output directory
-dr audit --pipeline --output-dir my-audit-results
-```
-
-Pipeline generates structured output in `audit-results/{timestamp}/`:
-
-- `before/` - Initial audit report
-- `after/` - Post-AI evaluation audit report
-- `summary/` - Differential summary with side-by-side metrics
-
 **Files:**
 
 - Entry Point: `cli/scripts/relationship-audit.ts`
@@ -396,19 +361,11 @@ Pipeline generates structured output in `audit-results/{timestamp}/`:
 - Graph: `cli/src/audit/graph/`
 - AI: `cli/src/audit/ai/`
 
-### Staging Workflow
-
-Changesets provide a safe way to prepare model changes before committing:
-
-```bash
-dr changeset create my-feature                              # Create
-dr changeset stage my-feature add --element-id ... --layer ...  # Stage changes
-dr changeset preview my-feature                             # Preview merged view
-dr changeset commit my-feature                              # Commit (with drift detection)
-```
+### Changeset Implementation
 
 Key files: `cli/src/commands/changeset.ts`, `cli/src/core/staged-changeset-storage.ts`, `cli/src/core/staging-area.ts`
-See `docs/STAGING_GUIDE.md` for full documentation.
+
+See `docs/STAGING_GUIDE.md` for architecture details. For command reference, see `integrations/claude_code/commands/dr-changeset.md`.
 
 ### Testing
 
@@ -463,12 +420,8 @@ const workdir = await createTestWorkdir(); // Cloned from golden copy
 2. **CI Pipeline Validation** (`.github/workflows/cli-tests.yml` - `spec-validation` job)
    - **Schema Syntax Validation**: All 354 node schemas + 252 relationship schemas validated for valid JSON
    - **Markdown Validation**: Layer specifications markdown linting
-   - **Cross-validation**: CLI schema bundling checked against spec schema source via `dr validate --schemas`
+   - **Cross-validation**: CLI schema bundling checked against spec schema source
    - **Purpose**: Ensure specs remain valid throughout development, prevent broken commits from reaching main
-
-3. **CLI Validation Commands** (Runtime)
-   - `dr validate --schemas`: Cross-validates spec schemas with CLI bundled schemas
-   - Provides immediate feedback when working with models
 
 **Key Points**:
 

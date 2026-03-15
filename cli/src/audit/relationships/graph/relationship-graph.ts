@@ -236,10 +236,12 @@ export class RelationshipGraph {
   buildFromModel(relationships: Relationship[], elements: Element[]): void {
     this.graph.clear();
 
-    // Index elements by ID for quick lookup
-    const elementById = new Map<string, Element>(
-      elements.map((e) => [e.id, e])
-    );
+    // Index elements by both UUID id and path/slug — relationships store slug paths.
+    const elementById = new Map<string, Element>();
+    for (const e of elements) {
+      elementById.set(e.id, e);
+      if (e.path && e.path !== e.id) elementById.set(e.path, e);
+    }
 
     // Add one graph node per distinct spec_node_id (using spec_node_id as the node id)
     const specNodeIds = new Set<string>(

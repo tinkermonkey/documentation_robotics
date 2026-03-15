@@ -86,10 +86,13 @@ export class ModelAuditOrchestrator {
       }
     }
 
-    // Build element lookup by ID (for resolving relationship endpoints)
-    const elementById = new Map<string, Element>(
-      allElements.map((e) => [e.id, e])
-    );
+    // Build element lookup by both UUID id and path/slug (for resolving relationship
+    // endpoints, which are stored as slug paths in relationships.yaml).
+    const elementById = new Map<string, Element>();
+    for (const e of allElements) {
+      elementById.set(e.id, e);
+      if (e.path && e.path !== e.id) elementById.set(e.path, e);
+    }
 
     // All relationship instances from relationships.yaml
     const allRelationships: Relationship[] = model.relationships.getAll();

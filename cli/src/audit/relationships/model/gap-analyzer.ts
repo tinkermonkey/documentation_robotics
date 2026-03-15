@@ -26,11 +26,13 @@ export function analyzeLayerGaps(
     elements.map((e) => e.spec_node_id).filter(Boolean)
   );
 
-  // Build set of (source_spec_node_id, predicate, dest_spec_node_id) tuples already in use
-  // We derive source spec_node_id from the source element and dest from the target element
-  const elementById = new Map<string, Element>(
-    elements.map((e) => [e.id, e])
-  );
+  // Build set of (source_spec_node_id, predicate, dest_spec_node_id) tuples already in use.
+  // Index by both UUID id and path/slug — relationships store slug paths.
+  const elementById = new Map<string, Element>();
+  for (const e of elements) {
+    elementById.set(e.id, e);
+    if (e.path && e.path !== e.id) elementById.set(e.path, e);
+  }
 
   const usedCombinations = new Set<string>();
   for (const rel of intraLayerRels) {

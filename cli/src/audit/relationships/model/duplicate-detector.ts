@@ -21,9 +21,12 @@ export function detectModelDuplicates(
   catalog: RelationshipCatalog
 ): DuplicateCandidate[] {
   const candidates: DuplicateCandidate[] = [];
-  const elementById = new Map<string, Element>(
-    elements.map((e) => [e.id, e])
-  );
+  // Index by both UUID id and path/slug — relationships store slug paths.
+  const elementById = new Map<string, Element>();
+  for (const e of elements) {
+    elementById.set(e.id, e);
+    if (e.path && e.path !== e.id) elementById.set(e.path, e);
+  }
 
   // --- Exact duplicates: same (source, predicate, target) ---
   const exactGroups = new Map<string, Relationship[]>();

@@ -29,10 +29,13 @@ export function assessLayerBalance(
 ): BalanceAssessment[] {
   const assessments: BalanceAssessment[] = [];
 
-  // Build count of outgoing intra-layer rels per spec_node_id
-  const elementById = new Map<string, Element>(
-    elements.map((e) => [e.id, e])
-  );
+  // Build count of outgoing intra-layer rels per spec_node_id.
+  // Index by both UUID id and path/slug — relationships store slug paths.
+  const elementById = new Map<string, Element>();
+  for (const e of elements) {
+    elementById.set(e.id, e);
+    if (e.path && e.path !== e.id) elementById.set(e.path, e);
+  }
 
   const relCountBySpecNodeId = new Map<string, number>();
   for (const rel of intraLayerRels) {

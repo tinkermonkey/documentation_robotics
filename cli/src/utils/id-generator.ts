@@ -23,6 +23,9 @@ export function toKebabCase(text: string): string {
   // Convert to lowercase
   result = result.toLowerCase();
 
+  // Remove dots (e.g. "Node.js" → "nodejs") to prevent extra ID segments
+  result = result.replace(/\./g, "");
+
   // Remove multiple consecutive hyphens
   result = result.replace(/-+/g, "-");
 

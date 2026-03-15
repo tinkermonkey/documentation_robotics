@@ -282,8 +282,8 @@ export class RelationshipValidator {
    *
    * Cardinality constraint semantics:
    * - "one-to-one": Each source can have at most 1 such relationship, and each target can be involved in at most 1
-   * - "one-to-many": Source can have at most 1 such relationship, but target can have many
-   * - "many-to-one": Source can have many such relationships, but each target can have at most 1
+   * - "one-to-many": Each target can receive at most 1 such relationship (target is the "one"); source is unconstrained
+   * - "many-to-one": Each source can be involved in at most 1 such relationship (maps to one target); multiple sources may share the same target
    * - "many-to-many": No cardinality constraints
    */
   private validateCardinality(
@@ -337,25 +337,29 @@ export class RelationshipValidator {
         break;
 
       case "one-to-many":
-        // Source can have at most 1 such relationship
-        if (sourceRelCount > 0) {
-          errors.push({
-            layer: relationship.layer,
-            elementId: relationship.source,
-            message: `Cardinality violation: '${relationship.predicate}' has cardinality 'one-to-many', but source '${relationship.source}' already has this relationship`,
-          });
-        }
-        // Target can be involved in many such relationships (no limit)
-        break;
-
-      case "many-to-one":
-        // Source can have many such relationships (no limit)
-        // Target can have at most 1 such relationship
+        // Standard ER one-to-many: the "one" is at the target end.
+        // Each target can receive at most 1 incoming relationship of this type.
+        // The source is unconstrained — it may have many outgoing of this type
+        // to different targets.
         if (targetRelCount > 0) {
           errors.push({
             layer: relationship.layer,
             elementId: relationship.target,
-            message: `Cardinality violation: '${relationship.predicate}' has cardinality 'many-to-one', but target '${relationship.target}' is already involved in this relationship`,
+            message: `Cardinality violation: '${relationship.predicate}' has cardinality 'one-to-many', but target '${relationship.target}' already has this relationship`,
+          });
+        }
+        break;
+
+      case "many-to-one":
+        // Standard ER many-to-one: the "one" is at the source end.
+        // Each source can be involved in at most 1 relationship of this type
+        // (it maps to exactly one target). Multiple sources CAN share the same
+        // target — fan-in is allowed and expected for shared services.
+        if (sourceRelCount > 0) {
+          errors.push({
+            layer: relationship.layer,
+            elementId: relationship.source,
+            message: `Cardinality violation: '${relationship.predicate}' has cardinality 'many-to-one', but source '${relationship.source}' already has this relationship`,
           });
         }
         break;

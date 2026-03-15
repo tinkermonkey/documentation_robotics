@@ -56,6 +56,7 @@ export class SchemaValidator {
         allErrors: true,
         strict: false,
         validateFormats: true,
+        verbose: true,
       });
       addFormats(SchemaValidator.sharedAjv);
     }
@@ -351,7 +352,7 @@ export class SchemaValidator {
 
     switch (keyword) {
       case "type":
-        return `At ${dataPath}: expected ${error.params?.type}, got ${typeof error.data}`;
+        return `At ${dataPath}: expected ${error.params?.type}, got ${error.data === null ? "null" : typeof error.data}`;
       case "required":
         return `At ${dataPath}: missing required property '${error.params?.missingProperty}'`;
       case "enum":
