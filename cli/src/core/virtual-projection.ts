@@ -253,14 +253,13 @@ export class VirtualProjectionEngine {
     // Record cache miss
     this.recordCacheMiss(changesetId);
 
-    // Load base layer
+    // Load base layer — may be absent if the changeset introduces the first elements
+    // for this layer (i.e. the layer directory was never written to disk). In that
+    // case start projection from an empty layer rather than throwing.
     const baseLayer = await baseModel.getLayer(layerName);
-    if (!baseLayer) {
-      throw new Error(`Layer '${layerName}' not found in base model`);
-    }
-
-    // Clone base layer to avoid mutations
-    const projectedLayer = this.cloneLayer(baseLayer);
+    const projectedLayer = baseLayer
+      ? this.cloneLayer(baseLayer)
+      : new LayerClass(layerName);
 
     // Load staged changes for this layer
     const changeset = await this.stagingAreaManager.load(changesetId);

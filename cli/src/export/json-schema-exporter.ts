@@ -30,43 +30,43 @@ export class JsonSchemaExporter implements Exporter {
         definitions: {},
       };
 
-      // Process each entity node in the data model layer
+      // Process all data-model nodes as JSON Schema definitions.
+      // The spec uses types: jsonschema, schemadefinition, objectschema, arrayschema,
+      // primitiveschema, unionschema, intersectionschema, conditionalschema, entity.
       for (const node of nodes) {
-        if (node.type === "entity") {
-          const entityName = node.name;
-          const properties = node.properties?.attributes as Record<string, unknown>;
-          const required = node.properties?.required as string[];
-          const description = node.description;
+        const entityName = node.name;
+        const properties = node.properties?.attributes as Record<string, unknown>;
+        const required = node.properties?.required as string[];
+        const description = node.description;
 
-          const entitySchema: Record<string, unknown> = {
-            title: entityName,
-            ...(description && { description }),
-            type: "object",
-            ...(properties && { properties }),
-            ...(required && { required }),
-          };
+        const entitySchema: Record<string, unknown> = {
+          title: entityName,
+          ...(description && { description }),
+          type: "object",
+          ...(properties && { properties }),
+          ...(required && { required }),
+        };
 
-          // Add additional metadata
-          const additionalProperties = node.properties?.additionalProperties as boolean;
-          if (additionalProperties !== undefined) {
-            entitySchema.additionalProperties = additionalProperties;
-          }
-
-          // Add constraints if present
-          const constraints = node.properties?.constraints as Record<string, unknown>;
-          if (constraints) {
-            Object.assign(entitySchema, constraints);
-          }
-
-          // Add source reference if present (check both naming conventions)
-          const sourceRef =
-            node.properties?.["x-source-reference"] || node.properties?.["source-reference"];
-          if (sourceRef) {
-            entitySchema["x-source-reference"] = sourceRef;
-          }
-
-          (rootSchema.definitions as Record<string, unknown>)[node.id] = entitySchema;
+        // Add additional metadata
+        const additionalProperties = node.properties?.additionalProperties as boolean;
+        if (additionalProperties !== undefined) {
+          entitySchema.additionalProperties = additionalProperties;
         }
+
+        // Add constraints if present
+        const constraints = node.properties?.constraints as Record<string, unknown>;
+        if (constraints) {
+          Object.assign(entitySchema, constraints);
+        }
+
+        // Add source reference if present (check both naming conventions)
+        const sourceRef =
+          node.properties?.["x-source-reference"] || node.properties?.["source-reference"];
+        if (sourceRef) {
+          entitySchema["x-source-reference"] = sourceRef;
+        }
+
+        (rootSchema.definitions as Record<string, unknown>)[node.id] = entitySchema;
       }
 
       // Add relationships as references between entities - query graph edges
@@ -92,7 +92,7 @@ export class JsonSchemaExporter implements Exporter {
       }
 
       // Add metadata section
-      const entityCount = nodes.filter((n) => n.type === "entity").length;
+      const entityCount = nodes.length;
       const metadata: Record<string, unknown> = {
         version: model.manifest.version || "1.0.0",
         ...(model.manifest.author && { author: model.manifest.author }),

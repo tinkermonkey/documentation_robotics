@@ -153,7 +153,7 @@ export class ValidationFormatter {
     lines.push(`${ansis.green("✓")} ${stats.totalRelationships} relationships validated`);
     lines.push(`${ansis.green("✓")} ${Object.keys(layerStats).length} layers validated`);
     lines.push(
-      `${result.errors.length === 0 ? ansis.green("✓") : ansis.red("✗")} ${result.errors.length} error(s), ${result.warnings.length} warning(s)`
+      `${result.errors.length === 0 ? ansis.green("✓") : ansis.red("✗")} ${result.errors.length} error(s), ${result.warnings.length} warning(s), ${stats.orphanedElements.length} orphaned element(s)`
     );
     lines.push("");
 
