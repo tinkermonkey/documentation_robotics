@@ -141,7 +141,7 @@ export class OpenAPIExporter implements Exporter {
 
           // Derive URL path from element slug (last segment of path)
           // e.g., api.operation.get-user-profile → /get-user-profile
-          const slugSegment = (element as any).path?.split(".").pop() as string | undefined;
+          const slugSegment = (element as { path?: string }).path?.split(".").pop();
           const pathKey = slugSegment ? `/${slugSegment}` : `/${operationId}`;
 
           // Infer HTTP method from operationId prefix keywords

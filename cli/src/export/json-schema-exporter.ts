@@ -70,20 +70,21 @@ export class JsonSchemaExporter implements Exporter {
         };
 
         // Add additional metadata
-        const additionalProperties = node.properties?.additionalProperties as boolean;
+        const additionalProperties = attrs?.additionalProperties as boolean;
         if (additionalProperties !== undefined) {
           entitySchema.additionalProperties = additionalProperties;
         }
 
         // Add constraints if present
-        const constraints = node.properties?.constraints as Record<string, unknown>;
+        const constraints = attrs?.constraints as Record<string, unknown>;
         if (constraints) {
           Object.assign(entitySchema, constraints);
         }
 
         // Add source reference if present (check both naming conventions)
         const sourceRef =
-          node.properties?.["x-source-reference"] || node.properties?.["source-reference"];
+          attrs?.["x-source-reference"] || attrs?.["source-reference"]
+          || node.source_reference;
         if (sourceRef) {
           entitySchema["x-source-reference"] = sourceRef;
         }

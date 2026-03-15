@@ -9,6 +9,8 @@ import { StagingAreaManager } from "../core/staging-area.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, handleError } from "../utils/errors.js";
+import { Layer } from "../core/layer.js";
+import { SchemaValidator } from "../validators/schema-validator.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 
@@ -197,6 +199,22 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       if (parsedAttributes) {
         elem.attributes = parsedAttributes;
         after.attributes = parsedAttributes;
+
+        // Validate new attributes against spec schema before persisting
+        const schemaValidator = new SchemaValidator();
+        const tempLayer = new Layer(layerName);
+        tempLayer.addElement(elem);
+        const attrValidation = await schemaValidator.validateLayer(tempLayer);
+        if (!attrValidation.isValid()) {
+          const errorMessages = attrValidation.errors
+            .map((e) => `  ${e.message}`)
+            .join("\n");
+          throw new CLIError(
+            `Updated attributes fail schema validation:\n${errorMessages}`,
+            1,
+            [`Run "dr schema ${layerName} ${elem.type}" to see the required attributes`]
+          );
+        }
       }
 
       if (options.clearSourceReference) {
