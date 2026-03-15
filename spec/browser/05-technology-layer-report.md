@@ -827,4 +827,4 @@ Externally visible unit of technology functionality
 
 ---
 
-_Generated: 2026-03-14T21:19:00.168Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-15T17:29:42.765Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_

@@ -969,7 +969,7 @@ An atomic grant authorizing a specific action (e.g., read, write, execute) on a 
 | [Policyaction](#policyaction)             | governs    | inbound   | many-to-one  |
 | [Policyrule](#policyrule)                 | authorizes | inbound   | many-to-one  |
 | [Role](#role)                             | aggregates | inbound   | many-to-one  |
-| [Role](#role)                             | authorizes | inbound   | many-to-one  |
+| [Role](#role)                             | authorizes | inbound   | one-to-many  |
 | [Role](#role)                             | provides   | inbound   | many-to-one  |
 | [Securitymodel](#securitymodel)           | aggregates | inbound   | many-to-many |
 | [Securitypolicy](#securitypolicy)         | constrains | inbound   | many-to-one  |
@@ -1129,7 +1129,7 @@ A named collection of Permissions implementing RBAC per NIST SP 800-53 AC-2 and 
 | [Needtoknow](#needtoknow)                   | associated-with | inbound   | many-to-one  |
 | [Secureresource](#secureresource)           | accesses        | outbound  | many-to-one  |
 | [Permission](#permission)                   | aggregates      | outbound  | many-to-one  |
-| [Permission](#permission)                   | authorizes      | outbound  | many-to-one  |
+| [Permission](#permission)                   | authorizes      | outbound  | one-to-many  |
 | [Separationofduty](#separationofduty)       | constrained-by  | outbound  | many-to-one  |
 | [Permission](#permission)                   | provides        | outbound  | many-to-one  |
 | [Role](#role)                               | specializes     | outbound  | many-to-one  |
@@ -1450,4 +1450,4 @@ Specifies data validation constraints for FieldAccessControl, defining allowed p
 
 ---
 
-_Generated: 2026-03-14T21:19:00.160Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_
+_Generated: 2026-03-15T17:29:42.758Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_
