@@ -111,10 +111,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
             if (options.attributes) {
               try {
                 const parsed = JSON.parse(options.attributes);
-                after.attributes = {
-                  ...(after.attributes as Record<string, unknown>),
-                  ...parsed,
-                };
+                after.attributes = parsed;
               } catch {
                 throw new CLIError("Invalid JSON in --attributes", 1, [
                   "Ensure your JSON is valid and properly formatted",
@@ -198,11 +195,8 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       }
 
       if (parsedAttributes) {
-        elem.attributes = { ...elem.attributes, ...parsedAttributes };
-        after.attributes = {
-          ...(after.attributes as Record<string, unknown>),
-          ...parsedAttributes,
-        };
+        elem.attributes = parsedAttributes;
+        after.attributes = parsedAttributes;
       }
 
       if (options.clearSourceReference) {

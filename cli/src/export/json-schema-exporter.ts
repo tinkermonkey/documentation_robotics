@@ -45,9 +45,13 @@ export class JsonSchemaExporter implements Exporter {
       // numericschema, stringschema, schemacomposition, schemaproperty, reference, entity.
       for (const node of nodes) {
         const entityName = node.name;
-        const attrs = node.properties?.attributes as Record<string, unknown> | undefined;
-        const properties = attrs;
-        const required = node.properties?.required as string[];
+        // GraphNode stores element attributes as a direct field (node.attributes),
+        // not nested under node.properties.
+        const attrs = node.attributes as Record<string, unknown> | undefined;
+        // 'properties' in JSON Schema context means the sub-schemas for object properties,
+        // stored in the element's attributes.properties field.
+        const properties = attrs?.properties as Record<string, unknown> | undefined;
+        const required = (attrs?.required as string[] | undefined) ?? (node.properties?.required as string[] | undefined);
         const description = node.description;
 
         // Derive JSON Schema type: prefer the value stored in the element's attributes

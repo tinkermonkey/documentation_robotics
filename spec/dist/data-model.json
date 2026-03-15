@@ -416,7 +416,7 @@
               "description": "URI reference to a reusable schema definition (e.g., #/definitions/MyType)"
             }
           },
-          "required": ["type", "title", "format", "default", "enum", "const", "examples"],
+          "required": ["type"],
           "additionalProperties": false
         }
       },

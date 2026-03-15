@@ -138,10 +138,25 @@ export class OpenAPIExporter implements Exporter {
         if (element.type === "operation") {
           const operationId =
             (element.attributes?.operationId as string) || element.name;
-          const pathKey = `/${operationId}`;
-          const method = (
-            (element.attributes?.method as string) || "get"
-          ).toLowerCase();
+
+          // Derive URL path from element slug (last segment of path)
+          // e.g., api.operation.get-user-profile → /get-user-profile
+          const slugSegment = (element as any).path?.split(".").pop() as string | undefined;
+          const pathKey = slugSegment ? `/${slugSegment}` : `/${operationId}`;
+
+          // Infer HTTP method from operationId prefix keywords
+          const opIdLower = operationId.toLowerCase();
+          let inferredMethod = "get";
+          if (/^(create|post|add|insert|register|submit|send)/.test(opIdLower)) {
+            inferredMethod = "post";
+          } else if (/^(update|put|edit|modify|replace|set|save)/.test(opIdLower)) {
+            inferredMethod = "put";
+          } else if (/^(patch|partial)/.test(opIdLower)) {
+            inferredMethod = "patch";
+          } else if (/^(delete|remove|destroy|purge|clear|unregister)/.test(opIdLower)) {
+            inferredMethod = "delete";
+          }
+          const method = ((element.attributes?.method as string) || inferredMethod).toLowerCase();
 
           if (!pathGroups.has(pathKey)) {
             pathGroups.set(pathKey, []);
@@ -166,7 +181,7 @@ export class OpenAPIExporter implements Exporter {
         for (const { method, element } of endpoints) {
           const operation: Record<string, unknown> = {
             summary: element.name,
-            operationId: element.id,
+            operationId: (element.getProperty("operationId") as string) || element.id,
             responses: element.getProperty("responses") || {
               "200": {
                 description: "Successful response",
@@ -180,7 +195,7 @@ export class OpenAPIExporter implements Exporter {
 
           const tags = element.getProperty("tags");
           if (tags) {
-            operation.tags = tags;
+            operation.tags = Array.isArray(tags) ? tags : [tags];
           }
 
           const parameters = element.getProperty("parameters");

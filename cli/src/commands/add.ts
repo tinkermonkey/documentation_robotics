@@ -8,6 +8,7 @@ import { Layer } from "../core/layer.js";
 import { Element } from "../core/element.js";
 import { MutationHandler } from "../core/mutation-handler.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
+import { SchemaValidator } from "../validators/schema-validator.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { generateElementId, generateUUID } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
@@ -155,6 +156,24 @@ export async function addCommand(
     const sourceRef = buildSourceReference(options);
     if (sourceRef) {
       element.setSourceReference(sourceRef);
+    }
+
+    // Validate element attributes against spec schema before persisting
+    {
+      const schemaValidator = new SchemaValidator();
+      const tempLayer = new Layer(layer);
+      tempLayer.addElement(element);
+      const attrValidation = await schemaValidator.validateLayer(tempLayer);
+      if (!attrValidation.isValid()) {
+        const errorMessages = attrValidation.errors
+          .map((e) => `  ${e.message}`)
+          .join("\n");
+        throw new CLIError(
+          `Element ${elementPath} has invalid attributes:\n${errorMessages}`,
+          ErrorCategory.USER,
+          [`Run "dr schema ${layer} ${type}" to see the required attributes`]
+        );
+      }
     }
 
     // Check if element already exists (look up by path)

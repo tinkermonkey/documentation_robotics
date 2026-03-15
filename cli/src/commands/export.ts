@@ -14,6 +14,7 @@ import {
   MarkdownExporter,
   MermaidMarkdownExporter,
 } from "../export/index.js";
+import { Validator } from "../validators/validator.js";
 import { writeFile } from "../utils/file-io.js";
 import * as path from "path";
 import { startSpan, endSpan } from "../telemetry/index.js";
@@ -89,6 +90,22 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
 
     // Validate format
     const format = options.format.toLowerCase();
+
+    // For semantic exporters, warn if the model has validation errors
+    const semanticFormats = ["openapi", "archimate", "jsonschema", "json-schema"];
+    if (semanticFormats.includes(format)) {
+      const validator = new Validator();
+      const validationResult = await validator.validateModel(model);
+      if (!validationResult.isValid()) {
+        console.warn(
+          ansis.yellow(
+            `⚠ Warning: model has ${validationResult.errors.length} validation error(s). Export output may be incomplete or incorrect.`
+          )
+        );
+        console.warn(ansis.dim('  Run "dr validate" for details.'));
+      }
+    }
+
     if (!manager.hasFormat(format)) {
       console.error(ansis.red(`Error: Unknown export format: ${format}`));
       console.error("");
