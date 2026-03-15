@@ -37,6 +37,7 @@ interface UpgradeAction {
   toVersion: string;
   details?: string[];
   integrationName?: "claude" | "copilot";
+  versionBumpOnly?: boolean;
 }
 
 /**
@@ -205,20 +206,34 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       const summary = registry.getMigrationSummary(modelSpecVersion, targetSpecVersion);
 
       if (summary.migrationsNeeded === 0) {
-        console.log(
-          ansis.yellow(
-            `⚠ No migration path found from model v${modelSpecVersion} to v${targetSpecVersion}`
-          )
-        );
-        console.log(ansis.dim("\nAvailable migrations:"));
-        const allMigrations = registry.getMigrationSummary("0.5.0").migrations;
-        for (const migration of allMigrations) {
+        if (options.force) {
+          // No migration path exists, but --force allows bumping the model version directly.
+          // This is safe for additive spec changes (new node types / relationships) that
+          // require no structural data changes.
+          actions.push({
+            type: "model",
+            description: "Force-update model spec version (no migration required)",
+            fromVersion: modelSpecVersion,
+            toVersion: targetSpecVersion,
+            details: ["Update manifest.yaml specVersion (no data changes needed)"],
+            versionBumpOnly: true,
+          });
+        } else {
           console.log(
-            ansis.dim(`  • ${migration.from} → ${migration.to}: ${migration.description}`)
+            ansis.yellow(
+              `⚠ No migration path found from model v${modelSpecVersion} to v${targetSpecVersion}`
+            )
           );
+          console.log(ansis.dim("\nAvailable migrations:"));
+          const allMigrations = registry.getMigrationSummary("0.5.0").migrations;
+          for (const migration of allMigrations) {
+            console.log(
+              ansis.dim(`  • ${migration.from} → ${migration.to}: ${migration.description}`)
+            );
+          }
+          console.log();
+          process.exit(1);
         }
-        console.log();
-        process.exit(1);
       }
 
       const migrationDetails = summary.migrations.map(
@@ -378,6 +393,17 @@ async function executeModelMigration(
   options: UpgradeOptions
 ): Promise<void> {
   try {
+    if (action.versionBumpOnly) {
+      console.log(
+        ansis.dim(`Bumping model spec version from v${action.fromVersion} to v${action.toVersion}...`)
+      );
+      const model = await Model.load(process.cwd(), { lazyLoad: true });
+      model.manifest.specVersion = action.toVersion;
+      await model.saveManifest();
+      console.log(ansis.green(`✓ Model spec version updated to v${action.toVersion}`));
+      return;
+    }
+
     console.log(
       ansis.dim(`Migrating model from v${action.fromVersion} to v${action.toVersion}...`)
     );
