@@ -97,13 +97,9 @@ export class ValidationFormatter {
       `${ansis.green("✓")} ${stats.totalRelationships} relationships validated`
     );
 
-    if (stats.orphanedElements.length > 0) {
-      lines.push(
-        `${ansis.yellow("⚠")} ${stats.orphanedElements.length} potentially orphaned element(s)`
-      );
-    } else {
-      lines.push(`${ansis.green("✓")} No orphaned elements detected`);
-    }
+    // Orphaned element warnings are injected into result.warnings in validate.ts
+    // so they appear in the warnings section and are counted in the summary.
+    // Do not display a separate orphan count here to avoid double-reporting.
 
     lines.push("");
 
