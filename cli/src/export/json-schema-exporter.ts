@@ -30,19 +30,37 @@ export class JsonSchemaExporter implements Exporter {
         definitions: {},
       };
 
+      // Map from spec node type to JSON Schema type for cases where the type
+      // is determined by the node kind rather than a stored attribute.
+      const nodeTypeToSchemaType: Record<string, string> = {
+        arrayschema: "array",
+        stringschema: "string",
+        numericschema: "number",
+        objectschema: "object",
+        entity: "object",
+      };
+
       // Process all data-model nodes as JSON Schema definitions.
       // The spec uses types: jsonschema, schemadefinition, objectschema, arrayschema,
-      // primitiveschema, unionschema, intersectionschema, conditionalschema, entity.
+      // numericschema, stringschema, schemacomposition, schemaproperty, reference, entity.
       for (const node of nodes) {
         const entityName = node.name;
-        const properties = node.properties?.attributes as Record<string, unknown>;
+        const attrs = node.properties?.attributes as Record<string, unknown> | undefined;
+        const properties = attrs;
         const required = node.properties?.required as string[];
         const description = node.description;
+
+        // Derive JSON Schema type: prefer the value stored in the element's attributes
+        // (user-specified), then fall back to the node-type map, then "object".
+        const schemaType =
+          typeof attrs?.type === "string"
+            ? attrs.type
+            : (nodeTypeToSchemaType[node.type] ?? "object");
 
         const entitySchema: Record<string, unknown> = {
           title: entityName,
           ...(description && { description }),
-          type: "object",
+          type: schemaType,
           ...(properties && { properties }),
           ...(required && { required }),
         };

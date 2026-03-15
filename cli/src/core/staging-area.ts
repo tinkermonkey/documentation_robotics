@@ -20,6 +20,7 @@ import type { VirtualProjectionEngine } from "./virtual-projection.js";
 import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest } from "../types/index.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { Layer } from "./layer.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -548,9 +549,13 @@ export class StagingAreaManager {
         try {
           for (const change of sortedChanges) {
             try {
-              const layer = await model.getLayer(change.layerName);
+              let layer = await model.getLayer(change.layerName);
               if (!layer) {
-                throw new Error(`Layer '${change.layerName}' not found`);
+                // Layer directory doesn't exist yet — this changeset introduces
+                // the first elements for this layer. Create an empty layer and
+                // register it so saveLayer() will create the directory on disk.
+                layer = new Layer(change.layerName);
+                model.addLayer(layer);
               }
 
               if (change.type === "add" && change.after) {

@@ -307,6 +307,7 @@ export class ValidationFormatter {
         totalRelationships: stats.totalRelationships,
         errorCount: result.errors.length,
         warningCount: result.warnings.length,
+        orphanedCount: stats.orphanedElements.length,
         layersValidated: Object.keys(layerStats).length,
       },
       layerStats,
@@ -340,6 +341,7 @@ export class ValidationFormatter {
     lines.push(`| Layers Validated | ${Object.keys(layerStats).length} |`);
     lines.push(`| Errors | ${result.errors.length} |`);
     lines.push(`| Warnings | ${result.warnings.length} |`);
+    lines.push(`| Orphaned Elements | ${stats.orphanedElements.length} |`);
     lines.push("");
 
     lines.push("## Layer Statistics");
