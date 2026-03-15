@@ -48,7 +48,7 @@ export async function traceCommand(
       (span as any).setAttribute("trace.layer", layerName);
     }
 
-    // Build reference registry
+    // Build reference registry from element cross-layer references
     const registry = new ReferenceRegistry();
     for (const layer of model.layers.values()) {
       for (const element of layer.listElements()) {
@@ -56,8 +56,19 @@ export async function traceCommand(
       }
     }
 
-    // Create dependency tracker with registry
-    const tracker = new DependencyTracker(registry);
+    // Extend the dependency graph with intra-layer relationships from
+    // relationships.yaml, which the registry doesn't load on its own.
+    const graph = registry.getDependencyGraph();
+    for (const rel of model.relationships.getAll()) {
+      if (!graph.hasNode(rel.source)) graph.addNode(rel.source);
+      if (!graph.hasNode(rel.target)) graph.addNode(rel.target);
+      if (!graph.hasEdge(rel.source, rel.target)) {
+        graph.addEdge(rel.source, rel.target, { type: rel.predicate });
+      }
+    }
+
+    // Create dependency tracker with the fully-populated graph
+    const tracker = new DependencyTracker(graph, model);
 
     // Display header
     console.log("");

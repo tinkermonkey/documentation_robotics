@@ -167,6 +167,18 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
 
     const result = await validator.validateModel(model);
 
+    // Detect orphaned elements and add them as warnings so they appear in
+    // the warning count and are surfaced consistently across all output formats.
+    const stats = ValidationFormatter.calculateStats(model);
+    for (const orphanId of stats.orphanedElements) {
+      result.addWarning({
+        message: `Element '${orphanId}' is orphaned (no cross-layer references or intra-layer relationships)`,
+        layer: orphanId.split(".")[0] ?? "",
+        elementId: orphanId,
+        fixSuggestion: "Add cross-layer references or relationships to connect this element to the rest of the model",
+      });
+    }
+
     // Run strict-mode additional checks: flag elements missing description or source traceability.
     // These are quality gates that don't fail a standard validate but should be visible in strict mode.
     if (options.strict) {

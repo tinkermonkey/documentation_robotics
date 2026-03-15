@@ -492,7 +492,8 @@ Examples:
   $ dr audit --save-snapshot           # Save snapshot for later comparison
   $ dr audit api --output api-audit.json  # API layer audit as JSON`
   )
-  .action((layer, options) => auditCommand({ ...options, layer }));
+  .action((layer, options) =>
+    auditCommand({ ...options, layer, verbose: options.verbose ?? program.opts().verbose }));
 
 // Audit diff command - Compare snapshots
 program

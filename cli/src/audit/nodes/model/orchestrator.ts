@@ -53,8 +53,8 @@ export class ModelNodeAuditOrchestrator {
       ? allElements.filter((el) => getElementLayer(el) === options.layer)
       : allElements;
 
-    // Group elements by layer → type → count
-    const typesByLayer = new Map<string, Map<string, number>>();
+    // Group elements by layer → type → element list (for quality scoring)
+    const elementsByLayerAndType = new Map<string, Map<string, Element[]>>();
     const completenessIssues: SchemaCompletenessIssue[] = [];
 
     for (const el of filteredElements) {
@@ -74,9 +74,10 @@ export class ModelNodeAuditOrchestrator {
         });
         continue;
       }
-      if (!typesByLayer.has(layerId)) typesByLayer.set(layerId, new Map());
-      const typeCounts = typesByLayer.get(layerId)!;
-      typeCounts.set(typeKey, (typeCounts.get(typeKey) ?? 0) + 1);
+      if (!elementsByLayerAndType.has(layerId)) elementsByLayerAndType.set(layerId, new Map());
+      const typeMap = elementsByLayerAndType.get(layerId)!;
+      if (!typeMap.has(typeKey)) typeMap.set(typeKey, []);
+      typeMap.get(typeKey)!.push(el);
     }
 
     // Determine target layers
@@ -84,26 +85,50 @@ export class ModelNodeAuditOrchestrator {
       ? [options.layer]
       : getAllLayers().map((l) => l.id);
 
-    // Build layer summaries
+    // Build layer summaries with actual description quality scores
     const layerSummaries: NodeLayerSummary[] = targetLayerIds.map((layerId) => {
-      const typeCounts = typesByLayer.get(layerId) ?? new Map();
+      const typeMap = elementsByLayerAndType.get(layerId) ?? new Map();
+      let emptyDescriptionCount = 0;
+      let genericDescriptionCount = 0;
+      let goodDescriptionCount = 0;
+      let totalScore = 0;
+
+      for (const [, elements] of typeMap) {
+        const descs = elements.map((e: Element) => (e.description || "").trim()).filter((d: string) => d.length > 0);
+        let quality: "empty" | "generic" | "good";
+        if (descs.length === 0) {
+          quality = "empty";
+        } else {
+          const avgLen = descs.reduce((s: number, d: string) => s + d.length, 0) / descs.length;
+          quality = avgLen < 20 ? "generic" : "good";
+        }
+        if (quality === "empty") { emptyDescriptionCount++; totalScore += 0; }
+        else if (quality === "generic") { genericDescriptionCount++; totalScore += 30; }
+        else { goodDescriptionCount++; totalScore += 85; }
+      }
+
+      const totalNodeTypes = typeMap.size;
+      const avgQualityScore = totalNodeTypes > 0
+        ? Math.round((totalScore / totalNodeTypes) * 10) / 10
+        : 0;
+
       return {
         layerId,
-        totalNodeTypes: typeCounts.size,
-        avgQualityScore: 0,
-        emptyDescriptionCount: 0,
-        genericDescriptionCount: 0,
-        goodDescriptionCount: typeCounts.size,
-        totalIssues: 0,
+        totalNodeTypes,
+        avgQualityScore,
+        emptyDescriptionCount,
+        genericDescriptionCount,
+        goodDescriptionCount,
+        totalIssues: emptyDescriptionCount + genericDescriptionCount,
         errorCount: 0,
-        warningCount: 0,
+        warningCount: emptyDescriptionCount + genericDescriptionCount,
       };
     });
 
     // Detect orphaned types: spec_node_ids in model that don't follow the
     // expected "{layer}.{type}" naming convention
-    for (const [layerId, typeCounts] of typesByLayer) {
-      for (const specNodeId of typeCounts.keys()) {
+    for (const [layerId, typeMap] of elementsByLayerAndType) {
+      for (const specNodeId of typeMap.keys()) {
         // spec_node_id should start with "{layerId}."
         if (!specNodeId.startsWith(`${layerId}.`)) {
           completenessIssues.push({
@@ -116,14 +141,14 @@ export class ModelNodeAuditOrchestrator {
       }
     }
 
-    const totalNodeTypes = [...typesByLayer.values()].reduce(
+    const totalNodeTypes = [...elementsByLayerAndType.values()].reduce(
       (sum, m) => sum + m.size,
       0
     );
 
     if (options.verbose) {
       process.stderr.write(
-        `Model node audit: ${filteredElements.length} elements, ${totalNodeTypes} unique types across ${typesByLayer.size} layers\n`
+        `Model node audit: ${filteredElements.length} elements, ${totalNodeTypes} unique types across ${elementsByLayerAndType.size} layers\n`
       );
     }
 
@@ -132,7 +157,7 @@ export class ModelNodeAuditOrchestrator {
       spec: {
         version: model.manifest.version ?? "1.0.0",
         totalNodeTypes,
-        totalLayers: typesByLayer.size,
+        totalLayers: elementsByLayerAndType.size,
       },
       layerSummaries,
       definitionQuality: [],

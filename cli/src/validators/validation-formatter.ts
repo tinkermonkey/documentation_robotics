@@ -153,7 +153,7 @@ export class ValidationFormatter {
     lines.push(`${ansis.green("✓")} ${stats.totalRelationships} relationships validated`);
     lines.push(`${ansis.green("✓")} ${Object.keys(layerStats).length} layers validated`);
     lines.push(
-      `${result.errors.length === 0 ? ansis.green("✓") : ansis.red("✗")} ${result.errors.length} error(s), ${result.warnings.length} warning(s), ${stats.orphanedElements.length} orphaned element(s)`
+      `${result.errors.length === 0 ? ansis.green("✓") : ansis.red("✗")} ${result.errors.length} error(s), ${result.warnings.length} warning(s)`
     );
     lines.push("");
 
@@ -220,7 +220,7 @@ export class ValidationFormatter {
   /**
    * Calculate validation statistics
    */
-  private static calculateStats(model: Model): ValidationStats {
+  static calculateStats(model: Model): ValidationStats {
     const stats: ValidationStats = {
       totalElements: 0,
       totalRelationships: 0,
