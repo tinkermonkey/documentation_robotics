@@ -599,23 +599,19 @@ export async function changesetStatusCommand(): Promise<void> {
 
     if (changeset) {
       console.log(ansis.dim(`  Changes tracked: ${changeset.changes.length}`));
-      const changesByType = {
-        add: changeset.changes.filter((c) => c.type === "add").length,
-        update: changeset.changes.filter((c) => c.type === "update").length,
-        delete: changeset.changes.filter((c) => c.type === "delete").length,
-      };
+      const changesByType = changeset.stats;
 
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
-        (span as any).setAttribute("changeset.adds", changesByType.add);
-        (span as any).setAttribute("changeset.updates", changesByType.update);
-        (span as any).setAttribute("changeset.deletes", changesByType.delete);
+        (span as any).setAttribute("changeset.adds", changesByType.additions);
+        (span as any).setAttribute("changeset.updates", changesByType.modifications);
+        (span as any).setAttribute("changeset.deletes", changesByType.deletions);
       }
 
       const parts = [];
-      if (changesByType.add > 0) parts.push(`+${changesByType.add}`);
-      if (changesByType.update > 0) parts.push(`~${changesByType.update}`);
-      if (changesByType.delete > 0) parts.push(`-${changesByType.delete}`);
+      if (changesByType.additions > 0) parts.push(`+${changesByType.additions}`);
+      if (changesByType.modifications > 0) parts.push(`~${changesByType.modifications}`);
+      if (changesByType.deletions > 0) parts.push(`-${changesByType.deletions}`);
       if (parts.length > 0) {
         console.log(ansis.dim(`  ${parts.join(" ")}`));
       }

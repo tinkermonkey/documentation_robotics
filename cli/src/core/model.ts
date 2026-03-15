@@ -154,6 +154,14 @@ export class Model {
   }
 
   /**
+   * Returns the active changeset ID, or null if no changeset is active.
+   * Used by commands that need to project the full model (e.g. validate).
+   */
+  getActiveChangesetId(): string | null {
+    return this._activeChangesetId;
+  }
+
+  /**
    * Load a layer from disk (model/XX_layername/*.yaml files)
    */
   async loadLayer(name: string): Promise<void> {
@@ -846,15 +854,24 @@ export class Model {
                   category?: "structural" | "behavioral";
                   properties?: Record<string, unknown>;
                 };
-                model.relationships.add({
-                  source: rel.source,
-                  target: rel.target,
-                  predicate: rel.predicate,
-                  layer: rel.layer,
-                  ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
-                  category: rel.category ?? "structural",
-                  ...(rel.properties ? { properties: rel.properties } : {}),
-                });
+                // Only inject if not already in relationships.yaml (prevents duplicates
+                // if .active file is stale after a partial commit or manual edit).
+                const alreadyPresent = model.relationships.find(
+                  rel.source,
+                  rel.target,
+                  rel.predicate
+                );
+                if (alreadyPresent.length === 0) {
+                  model.relationships.add({
+                    source: rel.source,
+                    target: rel.target,
+                    predicate: rel.predicate,
+                    layer: rel.layer,
+                    ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+                    category: rel.category ?? "structural",
+                    ...(rel.properties ? { properties: rel.properties } : {}),
+                  });
+                }
               }
 
               // Remove staged relationship-deletes from model.relationships so that

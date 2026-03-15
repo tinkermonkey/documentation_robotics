@@ -345,6 +345,12 @@ export class VirtualProjectionEngine {
             projectedLayer.deleteElement(existingForDelete.path || existingForDelete.id);
           }
           break;
+
+        case "relationship-add":
+        case "relationship-delete":
+          // Relationship changes are handled at the model level (model.relationships),
+          // not the layer level. Skip here; no layer mutation needed.
+          break;
       }
     }
 

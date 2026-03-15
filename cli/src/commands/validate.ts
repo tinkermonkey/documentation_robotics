@@ -162,16 +162,20 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     // Load model
     const model = await Model.load(options.model);
 
-
-
     // Validate
     const validator = new Validator();
 
-    const result = await validator.validateModel(model);
+    // If an active changeset exists, project staged elements into the model so validators see them
+    const activeChangesetId = model.getActiveChangesetId();
+    const modelToValidate = activeChangesetId
+      ? (await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)) as unknown as typeof model
+      : model;
+
+    const result = await validator.validateModel(modelToValidate);
 
     // Detect orphaned elements and add them as warnings so they appear in
     // the warning count and are surfaced consistently across all output formats.
-    const stats = ValidationFormatter.calculateStats(model);
+    const stats = ValidationFormatter.calculateStats(modelToValidate);
     for (const orphanId of stats.orphanedElements) {
       result.addWarning({
         message: `Element '${orphanId}' is orphaned (no cross-layer references or intra-layer relationships)`,
@@ -184,7 +188,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     // Run strict-mode additional checks: flag elements missing description or source traceability.
     // These are quality gates that don't fail a standard validate but should be visible in strict mode.
     if (options.strict) {
-      for (const [layerName, layer] of model.layers) {
+      for (const [layerName, layer] of modelToValidate.layers) {
         for (const element of layer.listElements()) {
           const elementId = element.path || element.id;
 
@@ -216,12 +220,12 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       let content: string;
 
       if (options.output.endsWith(".md") || options.output.endsWith(".markdown")) {
-        content = ValidationFormatter.toMarkdown(result, model);
+        content = ValidationFormatter.toMarkdown(result, modelToValidate);
       } else if (options.output.endsWith(".json")) {
-        content = JSON.stringify(ValidationFormatter.toJSON(result, model), null, 2);
+        content = JSON.stringify(ValidationFormatter.toJSON(result, modelToValidate), null, 2);
       } else {
         // Default to JSON
-        content = JSON.stringify(ValidationFormatter.toJSON(result, model), null, 2);
+        content = JSON.stringify(ValidationFormatter.toJSON(result, modelToValidate), null, 2);
       }
 
       await fs.writeFile(options.output, content, "utf-8");
@@ -234,7 +238,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     }
 
     // Display formatted output
-    const formatted = ValidationFormatter.format(result, model, {
+    const formatted = ValidationFormatter.format(result, modelToValidate, {
       verbose: options.verbose,
       quiet: options.quiet,
     });

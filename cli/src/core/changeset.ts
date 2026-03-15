@@ -89,9 +89,9 @@ export class Changeset {
     deletions: number;
   } {
     // Compute stats from changes array on-demand (never stale)
-    const additions = this.changes.filter((c) => c.type === "add").length;
+    const additions = this.changes.filter((c) => c.type === "add" || c.type === "relationship-add").length;
     const modifications = this.changes.filter((c) => c.type === "update").length;
-    const deletions = this.changes.filter((c) => c.type === "delete").length;
+    const deletions = this.changes.filter((c) => c.type === "delete" || c.type === "relationship-delete").length;
 
     return { additions, modifications, deletions };
   }
