@@ -522,6 +522,22 @@ Validation: ✓ Passed
 
 ---
 
+## Common Mistake
+
+> **`dr relate` is not a valid CLI command.**
+>
+> The slash command `/dr-relate` instructs Claude to wire relationships using
+> `dr relationship add`. Do **not** run `dr relate <source> <predicate> <target>`
+> directly in the terminal — that command does not exist.
+>
+> The correct CLI command for adding a single relationship is:
+>
+> ```bash
+> dr relationship add <source-element-id> <target-element-id> --predicate <predicate>
+> ```
+
+---
+
 ## Related Commands
 
 - `/dr-map` — Extract and create model elements (nodes); run before `/dr-relate`

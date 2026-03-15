@@ -2591,7 +2591,7 @@
       "destination_spec_node_id": "security.permission",
       "destination_layer": "security",
       "predicate": "authorizes",
-      "cardinality": "many-to-one",
+      "cardinality": "one-to-many",
       "strength": "medium",
       "required": false
     },

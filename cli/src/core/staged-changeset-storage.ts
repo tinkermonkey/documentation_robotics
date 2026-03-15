@@ -387,6 +387,57 @@ export class StagedChangesetStorage {
   }
 
   /**
+   * Update an existing change in-place within the changeset's changes.yaml
+   *
+   * Atomically replaces the change for the given elementId under a single file lock,
+   * preventing data loss if the process is interrupted between a remove and add.
+   * The original sequence number is preserved so commit-ordering is unaffected.
+   *
+   * @throws {Error} If changeset not found, elementId not found in changes, or I/O error
+   */
+  async updateChange(
+    id: string,
+    elementId: string,
+    updated: Omit<StagedChange, "sequenceNumber">
+  ): Promise<void> {
+    const changesetPath = this.getChangesetPath(id);
+    const lock = new FileLock(changesetPath);
+
+    try {
+      await lock.withLock(async () => {
+        const changeset = await this.load(id);
+        if (!changeset) {
+          throw new Error(`Changeset '${id}' not found`);
+        }
+
+        const index = changeset.changes.findIndex((c) => c.elementId === elementId);
+        if (index === -1) {
+          throw new Error(`No change for element '${elementId}' in changeset '${id}'`);
+        }
+
+        // Spread existing entry first so runtime fields like sequenceNumber and timestamp
+        // are preserved. Then apply the updated fields. Since `updated` is
+        // Omit<StagedChange, "sequenceNumber">, it will not overwrite sequenceNumber.
+        const existing = changeset.changes[index] as any;
+        changeset.changes[index] = {
+          ...existing,
+          ...updated,
+          sequenceNumber: existing.sequenceNumber ?? index,
+        } as any;
+
+        changeset.updateModified();
+        await this.save(changeset);
+      });
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      throw new Error(
+        `Failed to update change in changeset '${id}': ${errorMessage}\n` +
+          `Changeset path: ${changesetPath}`
+      );
+    }
+  }
+
+  /**
    * Get the storage path for a changeset
    */
   getChangesetPath(id: string): string {

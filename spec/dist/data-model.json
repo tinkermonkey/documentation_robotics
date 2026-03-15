@@ -182,7 +182,7 @@
               "type": "string"
             },
             "properties": {
-              "type": "string",
+              "type": "object",
               "description": "Named property definitions for the object schema (primary mechanism for defining object structure)"
             },
             "patternProperties": {

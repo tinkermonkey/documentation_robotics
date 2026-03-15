@@ -27,7 +27,7 @@
       "const": "authorizes"
     },
     "cardinality": {
-      "const": "many-to-one"
+      "const": "one-to-many"
     },
     "strength": {
       "const": "medium"

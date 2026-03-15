@@ -5,7 +5,7 @@
 
 export const TABLE_COLUMN_WIDTHS = {
   // Single element display (list command)
-  LIST_ID_WIDTH: 30,
+  LIST_ID_WIDTH: 50,
   LIST_TYPE_WIDTH: 15,
   LIST_NAME_WIDTH: 35,
 

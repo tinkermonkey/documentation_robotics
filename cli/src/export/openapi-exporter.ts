@@ -96,9 +96,13 @@ export class OpenAPIExporter implements Exporter {
     const span = isTelemetryEnabled ? startSpan("export.format.openapi") : null;
 
     try {
-      // Query graph model for API layer nodes
-      const nodes = model.graph.getNodesByLayer("api");
-      if (nodes.length === 0) {
+      // Load API layer elements
+      const apiLayer = await model.getLayer("api");
+      if (!apiLayer) {
+        throw new Error("No API layer found in model");
+      }
+      const elements = apiLayer.listElements();
+      if (elements.length === 0) {
         throw new Error("No API layer found in model");
       }
 
@@ -126,29 +130,32 @@ export class OpenAPIExporter implements Exporter {
         spec.info.description = model.manifest.description;
       }
 
-      // Group endpoints by path
+      // Group operations by operationId-derived path
       const pathGroups = new Map<string, EndpointMapping[]>();
 
-      // Query graph for endpoint nodes
-      for (const node of nodes) {
-        if (node.type === "endpoint") {
-          const path = (node.properties?.path as string) || "/";
-          const method = ((node.properties?.method as string) || "get").toLowerCase();
+      // Iterate layer elements for operation nodes
+      for (const element of elements) {
+        if (element.type === "operation") {
+          const operationId =
+            (element.attributes?.operationId as string) || element.name;
+          const pathKey = `/${operationId}`;
+          const method = (
+            (element.attributes?.method as string) || "get"
+          ).toLowerCase();
 
-          if (!pathGroups.has(path)) {
-            pathGroups.set(path, []);
+          if (!pathGroups.has(pathKey)) {
+            pathGroups.set(pathKey, []);
           }
 
-          // Create a minimal element-like object for compatibility
-          const endpointData = {
-            name: node.name,
-            id: node.id,
-            description: node.description,
-            getProperty: (key: string) => node.properties?.[key],
-            getSourceReference: () => node.properties?.["x-source-reference"],
+          const endpointData: EndpointData = {
+            name: (element.attributes?.summary as string) || element.name,
+            id: element.id,
+            description: element.description,
+            getProperty: (key: string) => element.attributes?.[key],
+            getSourceReference: () => element.getSourceReference(),
           };
 
-          pathGroups.get(path)!.push({ method, element: endpointData as any });
+          pathGroups.get(pathKey)!.push({ method, element: endpointData });
         }
       }
 
@@ -217,11 +224,11 @@ export class OpenAPIExporter implements Exporter {
         (spec.paths as Record<string, unknown>)[path] = pathItem;
       }
 
-      // Collect all schema definitions from nodes
-      for (const node of nodes) {
-        if (node.type === "schema") {
-          const schemaName = (node.properties?.schemaName as string) || node.id;
-          const schema = node.properties?.schema;
+      // Collect all schema definitions from elements
+      for (const element of elements) {
+        if (element.type === "schema") {
+          const schemaName = (element.attributes?.schemaName as string) || element.id;
+          const schema = element.attributes?.schema;
           if (schema) {
             spec.components.schemas![schemaName] = schema;
           }
@@ -229,37 +236,37 @@ export class OpenAPIExporter implements Exporter {
       }
 
       // Collect security schemes if defined
-      for (const node of nodes) {
-        if (node.type === "security-scheme") {
-          const schemeName = node.name;
-          const schemeType = node.properties?.type as string;
+      for (const element of elements) {
+        if (element.type === "security-scheme") {
+          const schemeName = element.name;
+          const schemeType = element.attributes?.type as string;
           if (schemeType) {
             const scheme: Record<string, unknown> = {
               type: schemeType,
             };
 
-            const schemeProp = node.properties?.scheme;
+            const schemeProp = element.attributes?.scheme;
             if (schemeProp) {
               scheme.scheme = schemeProp;
             }
 
-            const bearerFormat = node.properties?.bearerFormat;
+            const bearerFormat = element.attributes?.bearerFormat;
             if (bearerFormat) {
               scheme.bearerFormat = bearerFormat;
             }
 
-            const flows = node.properties?.flows;
+            const flows = element.attributes?.flows;
             if (flows) {
               scheme.flows = flows;
             }
 
-            const openIdConnectUrl = node.properties?.openIdConnectUrl;
+            const openIdConnectUrl = element.attributes?.openIdConnectUrl;
             if (openIdConnectUrl) {
               scheme.openIdConnectUrl = openIdConnectUrl;
             }
 
-            if (node.description) {
-              scheme.description = node.description;
+            if (element.description) {
+              scheme.description = element.description;
             }
 
             spec.components.securitySchemes![schemeName] = scheme;

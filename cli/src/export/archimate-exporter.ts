@@ -38,41 +38,43 @@ export class ArchiMateExporter implements Exporter {
         lines.push(`  <documentation>${escapeXml(model.manifest.description)}</documentation>`);
       }
 
-      // Export elements - query graph model directly
+      // Export elements - load from each layer directly
       lines.push("  <elements>");
 
       const layersToExport = options.layers || this.supportedLayers;
-      const nodesByLayer: Array<{ layer: string; node: any }> = [];
+      const elementsByLayer: Array<{ layer: string; element: any }> = [];
 
-      // Query graph model for nodes in supported layers
+      // Load elements from each supported layer
       for (const layerName of layersToExport) {
         if (!this.supportedLayers.includes(layerName)) continue;
 
-        const nodes = model.graph.getNodesByLayer(layerName);
-        for (const node of nodes) {
-          nodesByLayer.push({ layer: layerName, node });
+        const layer = await model.getLayer(layerName);
+        if (!layer) continue;
+        const layerElements = layer.listElements();
+        for (const element of layerElements) {
+          elementsByLayer.push({ layer: layerName, element });
         }
       }
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute("export.elementCount", nodesByLayer.length);
+        (span as any).setAttribute("export.elementCount", elementsByLayer.length);
       }
 
-      for (const { layer, node } of nodesByLayer) {
-        const archiType = this.mapToArchiMateType(node.type, layer);
-        lines.push(`    <element identifier="${node.id}" xsi:type="${archiType}">`);
-        lines.push(`      <name>${escapeXml(node.name)}</name>`);
+      for (const { layer, element } of elementsByLayer) {
+        const archiType = this.mapToArchiMateType(element.type, layer);
+        lines.push(`    <element identifier="${element.path}" xsi:type="${archiType}">`);
+        lines.push(`      <name>${escapeXml(element.name)}</name>`);
 
-        if (node.description) {
-          lines.push(`      <documentation>${escapeXml(node.description)}</documentation>`);
+        if (element.description) {
+          lines.push(`      <documentation>${escapeXml(element.description)}</documentation>`);
         }
 
         // Add properties section
         lines.push("      <properties>");
 
-        // Handle source_reference from node (if present)
-        if (node.source_reference) {
-          const flattenedProps = this.flattenSourceReference(node.source_reference);
+        // Handle source_reference from element (if present)
+        if (element.source_reference) {
+          const flattenedProps = this.flattenSourceReference(element.source_reference);
           for (const [flatKey, flatValue] of Object.entries(flattenedProps)) {
             lines.push(
               `        <property key="${escapeXml(flatKey)}" value="${escapeXml(String(flatValue))}" />`
@@ -80,26 +82,15 @@ export class ArchiMateExporter implements Exporter {
           }
         }
 
-        // Add node properties
-        const propKeys = Object.keys(node.properties || {});
-        if (propKeys.length > 0) {
-          for (const key of propKeys) {
-            const val = node.properties?.[key];
-
-            // Special handling for source reference structure in properties
-            if (key === "source" && val && typeof val === "object" && "reference" in val) {
-              const flattenedProps = this.flattenSourceReference(val.reference);
-              for (const [flatKey, flatValue] of Object.entries(flattenedProps)) {
-                lines.push(
-                  `        <property key="${escapeXml(flatKey)}" value="${escapeXml(String(flatValue))}" />`
-                );
-              }
-            } else {
-              const strValue = this.valueToString(val);
-              lines.push(
-                `        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`
-              );
-            }
+        // Add element attributes as properties
+        const attrKeys = Object.keys(element.attributes || {});
+        if (attrKeys.length > 0) {
+          for (const key of attrKeys) {
+            const val = element.attributes?.[key];
+            const strValue = this.valueToString(val);
+            lines.push(
+              `        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`
+            );
           }
         }
 
@@ -109,23 +100,23 @@ export class ArchiMateExporter implements Exporter {
 
       lines.push("  </elements>");
 
-      // Export relationships - query graph model edges
+      // Export relationships
       lines.push("  <relationships>");
 
       let relationshipCount = 0;
-      const nodeIds = new Set(nodesByLayer.map((n) => n.node.id));
-      const edges = model.graph.getAllEdges();
+      const elementIds = new Set(elementsByLayer.map((e) => e.element.path));
 
-      // Filter edges to include only those between exported nodes
-      for (const edge of edges) {
-        if (!nodeIds.has(edge.source) || !nodeIds.has(edge.destination)) {
+      // Filter relationships to those between exported elements
+      for (const rel of model.relationships.getAll()) {
+        if (!elementIds.has(rel.source) || !elementIds.has(rel.target)) {
           continue;
         }
 
-        lines.push(`    <relationship identifier="${this.escapeId(edge.id)}" `);
-        lines.push(`                  source="${edge.source}" target="${edge.destination}" `);
+        const relId = this.escapeId(`${rel.source}-${rel.predicate}-${rel.target}`);
+        lines.push(`    <relationship identifier="${relId}" `);
+        lines.push(`                  source="${rel.source}" target="${rel.target}" `);
         lines.push(`                  xsi:type="Association">`);
-        lines.push(`      <name>${edge.predicate}</name>`);
+        lines.push(`      <name>${rel.predicate}</name>`);
         lines.push(`    </relationship>`);
         relationshipCount++;
       }

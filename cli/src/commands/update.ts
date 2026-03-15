@@ -5,6 +5,8 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { MutationHandler } from "../core/mutation-handler.js";
+import { StagingAreaManager } from "../core/staging-area.js";
+import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, handleError } from "../utils/errors.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
@@ -76,6 +78,70 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     // Find element
     const layerName = await findElementLayer(model, id);
     if (!layerName) {
+      // Not in committed model — check active changeset for a staged ADD
+      const stagingManager = new StagingAreaManager(model.rootPath, model);
+      const storage = new StagedChangesetStorage(model.rootPath);
+      const activeId = await stagingManager.getActiveId();
+
+      if (activeId) {
+        const changeset = await storage.load(activeId);
+        if (changeset) {
+          const addChange = changeset.changes.find(
+            (c) => c.type === "add" && c.elementId === id
+          );
+          if (addChange && addChange.after) {
+            const hasUpdates =
+              options.name ||
+              options.description !== undefined ||
+              options.attributes ||
+              options.sourceFile ||
+              options.clearSourceReference;
+
+            if (!hasUpdates) {
+              console.log(ansis.yellow("No fields specified for update"));
+              return;
+            }
+
+            const after: Record<string, unknown> = { ...addChange.after };
+
+            if (options.name) after.name = options.name;
+            if (options.description !== undefined) {
+              after.description = options.description || undefined;
+            }
+            if (options.attributes) {
+              try {
+                const parsed = JSON.parse(options.attributes);
+                after.attributes = {
+                  ...(after.attributes as Record<string, unknown>),
+                  ...parsed,
+                };
+              } catch {
+                throw new CLIError("Invalid JSON in --attributes", 1, [
+                  "Ensure your JSON is valid and properly formatted",
+                ]);
+              }
+            }
+            if (options.clearSourceReference) {
+              delete after.source_reference;
+            } else if (options.sourceFile) {
+              const newRef = buildSourceReference(options);
+              if (newRef) after.source_reference = newRef;
+            }
+
+            await storage.updateChange(activeId, id, {
+              type: addChange.type,
+              elementId: addChange.elementId,
+              layerName: addChange.layerName,
+              before: addChange.before,
+              after,
+            });
+
+            console.log(ansis.green(`✓ Updated staged element ${ansis.bold(id)}`));
+            return;
+          }
+        }
+      }
+
       throw new CLIError(`Element ${id} not found`, 1);
     }
 

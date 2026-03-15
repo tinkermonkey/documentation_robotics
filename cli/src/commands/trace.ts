@@ -85,10 +85,14 @@ export async function traceCommand(
         (span as any).setAttribute("trace.transitiveDependents", transitiveDependents.length);
       }
 
+      const transitiveOnlyDependents = transitiveDependents.filter(
+        (d: string) => !directDependents.includes(d)
+      );
+
       console.log("");
       console.log(
         ansis.cyan(
-          `Dependents (${directDependents.length} direct, ${transitiveDependents.length} transitive):`
+          `Dependents (${directDependents.length} direct, ${transitiveOnlyDependents.length} transitive):`
         )
       );
 
@@ -105,16 +109,13 @@ export async function traceCommand(
         }
       }
 
-      if (transitiveDependents.length > 0 && directDependents.length > 0) {
+      if (transitiveOnlyDependents.length > 0) {
         console.log(ansis.gray("  Transitive:"));
-        const transitiveOnly = transitiveDependents.filter(
-          (d: string) => !directDependents.includes(d)
-        );
-        for (const dep of transitiveOnly.slice(0, 10)) {
+        for (const dep of transitiveOnlyDependents.slice(0, 10)) {
           console.log(`    ${ansis.yellow("↖")} ${ansis.dim(dep)}`);
         }
-        if (transitiveOnly.length > 10) {
-          console.log(ansis.dim(`    ... and ${transitiveOnly.length - 10} more`));
+        if (transitiveOnlyDependents.length > 10) {
+          console.log(ansis.dim(`    ... and ${transitiveOnlyDependents.length - 10} more`));
         }
       }
     }
@@ -129,10 +130,14 @@ export async function traceCommand(
         (span as any).setAttribute("trace.transitiveDependencies", transitiveDependencies.length);
       }
 
+      const transitiveOnlyDependencies = transitiveDependencies.filter(
+        (d: string) => !directDependencies.includes(d)
+      );
+
       console.log("");
       console.log(
         ansis.cyan(
-          `Dependencies (${directDependencies.length} direct, ${transitiveDependencies.length} transitive):`
+          `Dependencies (${directDependencies.length} direct, ${transitiveOnlyDependencies.length} transitive):`
         )
       );
 
@@ -149,16 +154,13 @@ export async function traceCommand(
         }
       }
 
-      if (transitiveDependencies.length > 0 && directDependencies.length > 0) {
+      if (transitiveOnlyDependencies.length > 0) {
         console.log(ansis.gray("  Transitive:"));
-        const transitiveOnly = transitiveDependencies.filter(
-          (d: string) => !directDependencies.includes(d)
-        );
-        for (const dep of transitiveOnly.slice(0, 10)) {
+        for (const dep of transitiveOnlyDependencies.slice(0, 10)) {
           console.log(`    ${ansis.yellow("↘")} ${ansis.dim(dep)}`);
         }
-        if (transitiveOnly.length > 10) {
-          console.log(ansis.dim(`    ... and ${transitiveOnly.length - 10} more`));
+        if (transitiveOnlyDependencies.length > 10) {
+          console.log(ansis.dim(`    ... and ${transitiveOnlyDependencies.length - 10} more`));
         }
       }
     }

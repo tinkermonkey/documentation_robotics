@@ -1236,6 +1236,9 @@ export async function changesetCommitCommand(options?: {
         force: options?.force === true,
       });
 
+      // Deactivate the changeset after successful commit
+      await stagingManager.clearActive();
+
       // Show results
       console.log(ansis.green(`✓ Committed ${result.committed} change(s)`));
 

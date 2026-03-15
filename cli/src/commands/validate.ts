@@ -7,6 +7,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Model } from "../core/model.js";
+import { StagingAreaManager } from "../core/staging-area.js";
 import { Validator } from "../validators/validator.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
@@ -161,6 +162,25 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
 
     // Load model
     const model = await Model.load(options.model);
+
+    // Warn if there is an active changeset with staged changes that will NOT be validated
+    const stagingManager = new StagingAreaManager(model.rootPath, model);
+    const activeId = await stagingManager.getActiveId();
+    if (activeId) {
+      const changeset = await stagingManager.load(activeId);
+      if (changeset && changeset.changes.length > 0) {
+        console.warn(
+          ansis.yellow(
+            `\n⚠  Active changeset '${activeId}' has ${changeset.changes.length} staged element(s) that were NOT validated.`
+          )
+        );
+        console.warn(
+          ansis.dim(
+            `   Commit the changeset first to include staged elements in validation.\n`
+          )
+        );
+      }
+    }
 
     // Validate
     const validator = new Validator();
