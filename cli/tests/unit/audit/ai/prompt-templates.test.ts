@@ -101,10 +101,11 @@ describe("PromptTemplates", () => {
     it("should generate inter-layer validation prompt", () => {
       const prompt = templates.interLayerValidation("application", "technology");
 
-      expect(prompt).toContain("Validate cross-layer relationships");
-      expect(prompt).toContain("from application to technology");
-      expect(prompt).toContain("Higher layers → lower layers only");
-      expect(prompt).toContain("No circular dependencies");
+      // Prompt rewritten to be gap-analysis focused: finds MISSING schemas rather than validating existing ones.
+      // Technology (layer 5) is more concrete than application (layer 4), so direction is technology→application.
+      expect(prompt).toContain("Identify cross-layer relationship schemas that are MISSING");
+      expect(prompt).toContain("from technology node types to application node types");
+      expect(prompt).toContain("Reference Direction Rule");
       expect(prompt).toContain("sourceLayer");
       expect(prompt).toContain("targetLayer");
       expect(prompt).toContain("issue");

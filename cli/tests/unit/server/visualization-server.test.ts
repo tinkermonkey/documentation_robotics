@@ -70,15 +70,17 @@ layers:
     motivationYaml
   );
 
-  // Create application layer YAML file with a component that references a technology service
+  // Create application layer YAML file with a component that references a technology service.
+  // References use dot-separated path format (layer.type.name) so they resolve in the
+  // elementLayerMap after YAML migration (which converts old hyphenated IDs to UUID+path).
   const applicationYaml = `test-component:
   id: application-component-test-component
   name: Test Component
   type: component
   description: A test component that references a technology service
   references:
-    - source: application-component-test-component
-      target: technology-service-test-service
+    - source: application.component.test-component
+      target: technology.service.test-service
       type: uses
 `;
 
@@ -225,12 +227,13 @@ describe("VisualizationServer", () => {
     it("should include source_layer_id and target_layer_id on cross-layer reference links", async () => {
       const serialized = await server["serializeModel"]();
 
-      // Find the cross-layer reference link from application component to technology service
+      // Find the cross-layer reference link from application component to technology service.
+      // After YAML migration, references use dot-separated path format.
       const refLink = serialized.links.find(
         (l: any) =>
           l.id.startsWith("ref:") &&
-          l.source === "application-component-test-component" &&
-          l.target === "technology-service-test-service"
+          l.source === "application.component.test-component" &&
+          l.target === "technology.service.test-service"
       );
 
       expect(refLink).toBeDefined();
@@ -272,8 +275,11 @@ describe("VisualizationServer", () => {
     it("should infer missing layer from source element when available", async () => {
       // Add a relationship with missing layer that can be inferred from source
       const sourceId = "motivation-goal-test-goal";
+      // Use the dot-separated path format so the source resolves in elementLayerMap.
+      // The YAML migration converts "motivation-goal-test-goal" → path "motivation.goal.test-goal".
+      const inferredSource = "motivation.goal.test-goal";
       server["model"].relationships.add({
-        source: sourceId,
+        source: inferredSource,
         target: "motivation-goal-inferred-goal",
         predicate: "contributes-to",
         // Omit layer field
@@ -284,7 +290,7 @@ describe("VisualizationServer", () => {
       // Find the link that should have been inferred from the source element
       const link = serialized.links.find(
         (l: any) =>
-          l.source === sourceId &&
+          l.source === inferredSource &&
           l.target === "motivation-goal-inferred-goal"
       );
 
@@ -330,7 +336,8 @@ describe("VisualizationServer", () => {
       // Get the application layer and test component
       const appLayer = server["model"].layers.get("application");
       expect(appLayer).toBeDefined();
-      const testComponent = appLayer!.listElements().find((e) => e.id === "application-component-test-component");
+      // After YAML migration, e.id is a UUID; look up by name instead.
+      const testComponent = appLayer!.listElements().find((e) => e.name === "Test Component");
       expect(testComponent).toBeDefined();
 
       // Add a reference to a non-existent element

@@ -1562,6 +1562,10 @@ export class VisualizationServer {
       for (const e of layer.listElements()) {
         const layerId = e.layer_id || layerName;
         if (e.id) elementLayerMap.set(e.id, layerId);
+        // Also index by path so references that use dot-separated slugs resolve correctly.
+        // For new-format elements: e.id is a UUID, e.path is the dot-separated slug.
+        // For old-format elements: e.id === e.path (both the slug), so no duplicate work.
+        if (e.path && e.path !== e.id) elementLayerMap.set(e.path, layerId);
       }
     }
 
@@ -1626,7 +1630,8 @@ export class VisualizationServer {
     for (const rel of this.model.relationships.getAll()) {
       const linkId = `rel:${rel.source}:${rel.target}:${rel.predicate}`;
       if (!linksMap.has(linkId)) {
-        const layerId = rel.layer || elementLayerMap.get(rel.source) || 'unknown';
+        const layerId = rel.layer || elementLayerMap.get(rel.source);
+        if (!layerId) continue; // Skip — source element not found and no layer field set
         const link: any = {
           id: linkId,
           source: rel.source,

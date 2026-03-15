@@ -167,9 +167,9 @@ describe("PromptTemplates", () => {
     it("should include all required sections for inter-layer validation", () => {
       const prompt = templates.interLayerValidation("application", "technology");
 
-      expect(prompt).toContain("Validate cross-layer relationships");
-      expect(prompt).toContain("from application to technology");
-      expect(prompt).toContain("Higher layers → lower layers only");
+      expect(prompt).toContain("Identify cross-layer relationship schemas that are MISSING");
+      expect(prompt).toContain("from technology node types to application node types");
+      expect(prompt).toContain("Reference Direction Rule");
     });
   });
 });
