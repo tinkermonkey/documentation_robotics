@@ -127,7 +127,7 @@ describe("Model.loadRelationships — Graph Sync Logging", () => {
     testDir = `${tmpdir()}/dr-unit-test-${randomUUID()}`;
   });
 
-  it("should warn when graph.addEdge fails during relationship sync", async () => {
+  it("should silently skip graph.addEdge failures during relationship sync", async () => {
     const { mkdir, writeFile } = await import("fs/promises");
     const path = await import("path");
 
@@ -151,7 +151,7 @@ describe("Model.loadRelationships — Graph Sync Logging", () => {
 `;
     await writeFile(path.join(modelDir, "relationships.yaml"), relationshipsYaml);
 
-    // Mock graph.addEdge to throw an error
+    // Mock graph.addEdge to throw (simulates cross-layer ref to an unloaded node)
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const originalAddEdge = model.graph.addEdge.bind(model.graph);
 
@@ -163,19 +163,15 @@ describe("Model.loadRelationships — Graph Sync Logging", () => {
       // Call the actual loadRelationships method
       await model.loadRelationships();
 
-      // Verify warning was logged from the production code (not just in DEBUG mode)
-      expect(warnSpy).toHaveBeenCalledWith(
+      // Verify no warning is emitted — failed edges are silently skipped.
+      // The primary relationship data lives in model.relationships, not the graph.
+      expect(warnSpy).not.toHaveBeenCalledWith(
         expect.stringContaining("Failed to sync relationship to graph")
       );
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("source: motivation.goal.test-goal")
-      );
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("target: business.service.test-service")
-      );
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Node not found in graph")
-      );
+
+      // Verify the relationship is still available via the primary store
+      expect(model.relationships.getAll()).toHaveLength(1);
+      expect(model.relationships.getAll()[0].source).toBe("motivation.goal.test-goal");
     } finally {
       model.graph.addEdge = originalAddEdge;
       warnSpy.mockRestore();

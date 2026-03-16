@@ -640,12 +640,11 @@ export class Model {
       };
       try {
         this.graph.addEdge(edge);
-      } catch (err) {
-        // Graph validation errors (e.g., node doesn't exist) are logged but not fatal
-        // This can happen during partial model construction
-        console.warn(
-          `Warning: Failed to sync relationship to graph (source: ${rel.source}, target: ${rel.target}): ${err instanceof Error ? err.message : String(err)}`
-        );
+      } catch {
+        // Silently skip edges whose nodes haven't been loaded yet.
+        // The primary relationship data lives in this.relationships; the graph
+        // is a secondary index. Cross-layer relationships referencing nodes from
+        // unloaded layers are expected during partial model construction.
       }
     }
   }

@@ -26,6 +26,9 @@ export function toKebabCase(text: string): string {
   // Remove dots (e.g. "Node.js" → "nodejs") to prevent extra ID segments
   result = result.replace(/\./g, "");
 
+  // Remove any characters not valid in a slug (keeps only a-z, 0-9, hyphens)
+  result = result.replace(/[^a-z0-9-]/g, "");
+
   // Remove multiple consecutive hyphens
   result = result.replace(/-+/g, "-");
 

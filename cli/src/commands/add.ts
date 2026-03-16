@@ -92,6 +92,19 @@ export async function addCommand(
     const elementPath = generateElementId(layer, type, name);  // slug
     const elementUUID = generateUUID();                         // UUIDv4
 
+    // Validate the generated slug is non-empty (name may collapse to empty after stripping special chars)
+    const slugPart = elementPath.split(".")[2];
+    if (!slugPart) {
+      throw new CLIError(
+        `Cannot generate a valid element ID from name "${name}"`,
+        ErrorCategory.USER,
+        [
+          "Element names must contain at least one letter or digit",
+          `Generated ID would be: ${elementPath}`,
+        ]
+      );
+    }
+
     span = isTelemetryEnabled
       ? startSpan("element.add", {
           "layer.name": layer,
