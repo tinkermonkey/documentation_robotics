@@ -114,8 +114,10 @@ export class ModelAuditOrchestrator {
 
     // Intra-layer rels: both source and target element are in the same layer
     const intraRelsByLayer = new Map<string, Relationship[]>();
-    // Inter-layer rels: source is in a layer, target is in a different layer (keyed by source layer)
+    // Inter-layer rels keyed by source layer (outgoing)
     const interRelsByLayer = new Map<string, Relationship[]>();
+    // Inter-layer rels keyed by destination layer (incoming)
+    const incomingInterRelsByLayer = new Map<string, Relationship[]>();
     for (const rel of allRelationships) {
       const srcEl = elementById.get(rel.source);
       const dstEl = elementById.get(rel.target);
@@ -128,9 +130,14 @@ export class ModelAuditOrchestrator {
         list.push(rel);
         intraRelsByLayer.set(srcLayer, list);
       } else {
-        const list = interRelsByLayer.get(srcLayer) ?? [];
-        list.push(rel);
-        interRelsByLayer.set(srcLayer, list);
+        const outList = interRelsByLayer.get(srcLayer) ?? [];
+        outList.push(rel);
+        interRelsByLayer.set(srcLayer, outList);
+        if (dstLayer) {
+          const inList = incomingInterRelsByLayer.get(dstLayer) ?? [];
+          inList.push(rel);
+          incomingInterRelsByLayer.set(dstLayer, inList);
+        }
       }
     }
 
@@ -146,7 +153,11 @@ export class ModelAuditOrchestrator {
       const layerId = layerMeta.id;
       const layerElements = elementsByLayer.get(layerId) ?? [];
       const layerRels = intraRelsByLayer.get(layerId) ?? [];
-      const layerInterRels = interRelsByLayer.get(layerId) ?? [];
+      // Include both outgoing (source=this layer) and incoming (target=this layer) inter-layer rels
+      const layerInterRels = [
+        ...(interRelsByLayer.get(layerId) ?? []),
+        ...(incomingInterRelsByLayer.get(layerId) ?? []),
+      ];
 
       coverage.push(
         analyzeLayerCoverage(layerId, layerElements, layerRels, layerInterRels, this.catalog)
@@ -170,20 +181,27 @@ export class ModelAuditOrchestrator {
     );
 
     // --- Connectivity ---
-    // For per-layer audits, include outgoing inter-layer rels so that source-layer
-    // node types are not incorrectly classified as isolated when they only have
-    // cross-layer connections. Also include the target elements so buildFromModel
-    // can resolve the relationship endpoints.
-    const layerInterRels = options.layer ? (interRelsByLayer.get(options.layer) ?? []) : [];
+    // For per-layer audits, include both outgoing and incoming inter-layer rels so that
+    // node types are not incorrectly classified as isolated when they only have cross-layer
+    // connections (in either direction). Also include adjacent elements from both sides so
+    // buildFromModel can resolve all relationship endpoints.
+    const layerOutgoingInterRels = options.layer ? (interRelsByLayer.get(options.layer) ?? []) : [];
+    const layerIncomingInterRels = options.layer ? (incomingInterRelsByLayer.get(options.layer) ?? []) : [];
+    const layerInterRels = [...layerOutgoingInterRels, ...layerIncomingInterRels];
     const relsForGraph = options.layer
       ? [...(intraRelsByLayer.get(options.layer) ?? []), ...layerInterRels]
       : allRelationships;
-    const crossLayerTargetIds = new Set<string>(layerInterRels.map((r) => r.target));
-    const crossLayerTargetElements = crossLayerTargetIds.size > 0
-      ? allElements.filter((e) => crossLayerTargetIds.has(e.id) || (e.path != null && crossLayerTargetIds.has(e.path)))
-      : [];
+    const crossLayerTargetIds = new Set<string>(layerOutgoingInterRels.map((r) => r.target));
+    const crossLayerSourceIds = new Set<string>(layerIncomingInterRels.map((r) => r.source));
+    const crossLayerAdjacentElements = allElements.filter(
+      (e) =>
+        crossLayerTargetIds.has(e.id) ||
+        (e.path != null && crossLayerTargetIds.has(e.path)) ||
+        crossLayerSourceIds.has(e.id) ||
+        (e.path != null && crossLayerSourceIds.has(e.path))
+    );
     const elementsForGraph = options.layer
-      ? [...(elementsByLayer.get(options.layer) ?? []), ...crossLayerTargetElements]
+      ? [...(elementsByLayer.get(options.layer) ?? []), ...crossLayerAdjacentElements]
       : allElements;
 
     this.graph.buildFromModel(relsForGraph, elementsForGraph);
