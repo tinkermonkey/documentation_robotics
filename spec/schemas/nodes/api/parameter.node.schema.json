@@ -74,7 +74,7 @@
           "description": "Alternative to 'schema' for complex serialization. Mutually exclusive with 'schema'; must contain exactly one map entry keyed by media type string."
         }
       },
-      "required": ["name", "in"],
+      "required": ["in"],
       "additionalProperties": false
     }
   }

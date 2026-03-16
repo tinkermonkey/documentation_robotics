@@ -170,11 +170,20 @@ export class ModelAuditOrchestrator {
     );
 
     // --- Connectivity ---
+    // For per-layer audits, include outgoing inter-layer rels so that source-layer
+    // node types are not incorrectly classified as isolated when they only have
+    // cross-layer connections. Also include the target elements so buildFromModel
+    // can resolve the relationship endpoints.
+    const layerInterRels = options.layer ? (interRelsByLayer.get(options.layer) ?? []) : [];
     const relsForGraph = options.layer
-      ? (intraRelsByLayer.get(options.layer) ?? [])
+      ? [...(intraRelsByLayer.get(options.layer) ?? []), ...layerInterRels]
       : allRelationships;
+    const crossLayerTargetIds = new Set<string>(layerInterRels.map((r) => r.target));
+    const crossLayerTargetElements = crossLayerTargetIds.size > 0
+      ? allElements.filter((e) => crossLayerTargetIds.has(e.id) || (e.path != null && crossLayerTargetIds.has(e.path)))
+      : [];
     const elementsForGraph = options.layer
-      ? (elementsByLayer.get(options.layer) ?? [])
+      ? [...(elementsByLayer.get(options.layer) ?? []), ...crossLayerTargetElements]
       : allElements;
 
     this.graph.buildFromModel(relsForGraph, elementsForGraph);
