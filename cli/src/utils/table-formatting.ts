@@ -6,12 +6,12 @@
 export const TABLE_COLUMN_WIDTHS = {
   // Single element display (list command)
   LIST_ID_WIDTH: 50,
-  LIST_TYPE_WIDTH: 15,
+  LIST_TYPE_WIDTH: 25,
   LIST_NAME_WIDTH: 35,
 
   // Search results display
   SEARCH_LAYER_WIDTH: 12,
-  SEARCH_ID_WIDTH: 28,
+  SEARCH_ID_WIDTH: 50,
   SEARCH_TYPE_WIDTH: 12,
   SEARCH_NAME_WIDTH: 28,
 
