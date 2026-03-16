@@ -15,6 +15,7 @@ export function analyzeLayerCoverage(
   layerId: string,
   elements: Element[],
   intraLayerRels: Relationship[],
+  interLayerRels: Relationship[],
   catalog: RelationshipCatalog
 ): CoverageMetrics {
   // Distinct spec_node_ids present in this layer
@@ -46,6 +47,7 @@ export function analyzeLayerCoverage(
   }
 
   const relationshipCount = intraLayerRels.length;
+  const interLayerRelationshipCount = interLayerRels.length;
 
   // Isolated: spec_node_ids present in layer with zero intra-layer relationship instances
   const isolatedNodeTypes = Array.from(specNodeIds).filter(
@@ -79,6 +81,7 @@ export function analyzeLayerCoverage(
     layer: layerId,
     nodeTypeCount,
     relationshipCount,
+    interLayerRelationshipCount,
     isolatedNodeTypes,
     isolationPercentage,
     availablePredicates,

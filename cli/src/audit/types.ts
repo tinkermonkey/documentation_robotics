@@ -25,7 +25,10 @@ export function createPercentage(value: number): Percentage {
 export interface CoverageMetrics {
   readonly layer: string;
   readonly nodeTypeCount: number;
+  /** Intra-layer relationship instances (both endpoints in this layer) */
   readonly relationshipCount: number;
+  /** Outgoing cross-layer relationship instances (source in this layer, target in another) */
+  readonly interLayerRelationshipCount: number;
 
   // Node isolation
   readonly isolatedNodeTypes: readonly string[]; // Zero relationships

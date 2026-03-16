@@ -144,6 +144,7 @@ export class CoverageAnalyzer {
       layer: layer.id,
       nodeTypeCount,
       relationshipCount,
+      interLayerRelationshipCount: 0,
       isolatedNodeTypes,
       isolationPercentage,
       availablePredicates,

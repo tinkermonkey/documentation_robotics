@@ -114,16 +114,24 @@ export class ModelAuditOrchestrator {
 
     // Intra-layer rels: both source and target element are in the same layer
     const intraRelsByLayer = new Map<string, Relationship[]>();
+    // Inter-layer rels: source is in a layer, target is in a different layer (keyed by source layer)
+    const interRelsByLayer = new Map<string, Relationship[]>();
     for (const rel of allRelationships) {
       const srcEl = elementById.get(rel.source);
       const dstEl = elementById.get(rel.target);
       if (!srcEl || !dstEl) continue;
       const srcLayer = getElementLayer(srcEl);
       const dstLayer = getElementLayer(dstEl);
-      if (srcLayer !== dstLayer || !srcLayer) continue;
-      const list = intraRelsByLayer.get(srcLayer) ?? [];
-      list.push(rel);
-      intraRelsByLayer.set(srcLayer, list);
+      if (!srcLayer) continue;
+      if (srcLayer === dstLayer) {
+        const list = intraRelsByLayer.get(srcLayer) ?? [];
+        list.push(rel);
+        intraRelsByLayer.set(srcLayer, list);
+      } else {
+        const list = interRelsByLayer.get(srcLayer) ?? [];
+        list.push(rel);
+        interRelsByLayer.set(srcLayer, list);
+      }
     }
 
     // Determine which layers to analyze
@@ -138,9 +146,10 @@ export class ModelAuditOrchestrator {
       const layerId = layerMeta.id;
       const layerElements = elementsByLayer.get(layerId) ?? [];
       const layerRels = intraRelsByLayer.get(layerId) ?? [];
+      const layerInterRels = interRelsByLayer.get(layerId) ?? [];
 
       coverage.push(
-        analyzeLayerCoverage(layerId, layerElements, layerRels, this.catalog)
+        analyzeLayerCoverage(layerId, layerElements, layerRels, layerInterRels, this.catalog)
       );
       gaps.push(...analyzeLayerGaps(layerElements, layerRels));
       balance.push(...assessLayerBalance(layerId, layerElements, layerRels));

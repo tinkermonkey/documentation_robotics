@@ -152,7 +152,9 @@ function formatExecutiveSummaryMarkdown(lines: string[], report: AuditReport): v
   lines.push("");
 
   const totalNodeTypes = report.coverage.reduce((sum, c) => sum + c.nodeTypeCount, 0);
-  const totalRelationships = report.coverage.reduce((sum, c) => sum + c.relationshipCount, 0);
+  const totalIntra = report.coverage.reduce((sum, c) => sum + c.relationshipCount, 0);
+  const totalInter = report.coverage.reduce((sum, c) => sum + c.interLayerRelationshipCount, 0);
+  const totalRelationships = totalIntra + totalInter;
   const totalIsolated = report.coverage.reduce((sum, c) => sum + c.isolatedNodeTypes.length, 0);
   const avgUtilization = report.coverage.length > 0
     ? report.coverage.reduce((sum, c) => sum + c.utilizationPercentage, 0) / report.coverage.length
@@ -161,7 +163,7 @@ function formatExecutiveSummaryMarkdown(lines: string[], report: AuditReport): v
   lines.push("| Metric | Value |");
   lines.push("|--------|-------|");
   lines.push(`| Total Node Types | ${totalNodeTypes} |`);
-  lines.push(`| Total Relationships | ${totalRelationships} |`);
+  lines.push(`| Total Relationships | ${totalRelationships} (${totalIntra} intra-layer, ${totalInter} inter-layer) |`);
   lines.push(`| Isolated Node Types | ${totalIsolated} (${totalNodeTypes > 0 ? ((totalIsolated / totalNodeTypes) * 100).toFixed(1) : "0.0"}%) |`);
   lines.push(`| Average Predicate Utilization | ${avgUtilization.toFixed(1)}% |`);
   lines.push(`| Duplicate Candidates | ${report.duplicates.length} |`);
@@ -180,7 +182,9 @@ function formatExecutiveSummaryText(lines: string[], report: AuditReport): void 
   lines.push("");
 
   const totalNodeTypes = report.coverage.reduce((sum, c) => sum + c.nodeTypeCount, 0);
-  const totalRelationships = report.coverage.reduce((sum, c) => sum + c.relationshipCount, 0);
+  const totalIntra = report.coverage.reduce((sum, c) => sum + c.relationshipCount, 0);
+  const totalInter = report.coverage.reduce((sum, c) => sum + c.interLayerRelationshipCount, 0);
+  const totalRelationships = totalIntra + totalInter;
   const totalIsolated = report.coverage.reduce((sum, c) => sum + c.isolatedNodeTypes.length, 0);
   const avgUtilization = report.coverage.length > 0
     ? report.coverage.reduce((sum, c) => sum + c.utilizationPercentage, 0) / report.coverage.length
@@ -188,7 +192,7 @@ function formatExecutiveSummaryText(lines: string[], report: AuditReport): void 
 
   lines.push(ansis.bold("Key Metrics:"));
   lines.push(`  Total Node Types:          ${totalNodeTypes}`);
-  lines.push(`  Total Relationships:       ${totalRelationships}`);
+  lines.push(`  Total Relationships:       ${totalRelationships} (${totalIntra} intra-layer, ${totalInter} inter-layer)`);
   lines.push(`  Isolated Node Types:       ${totalIsolated} (${totalNodeTypes > 0 ? ((totalIsolated / totalNodeTypes) * 100).toFixed(1) : "0.0"}%)`);
   lines.push(`  Avg Predicate Utilization: ${avgUtilization.toFixed(1)}%`);
   lines.push(`  Duplicate Candidates:      ${report.duplicates.length}`);
@@ -204,19 +208,21 @@ function formatCoverageTextSummary(lines: string[], coverage: CoverageMetrics[])
   lines.push(ansis.bold("Coverage Analysis Summary:"));
 
   const totalNodeTypes = coverage.reduce((sum, c) => sum + c.nodeTypeCount, 0);
-  const totalRelationships = coverage.reduce((sum, c) => sum + c.relationshipCount, 0);
+  const totalIntra = coverage.reduce((sum, c) => sum + c.relationshipCount, 0);
+  const totalInter = coverage.reduce((sum, c) => sum + c.interLayerRelationshipCount, 0);
+  const totalRelationships = totalIntra + totalInter;
   const totalIsolated = coverage.reduce((sum, c) => sum + c.isolatedNodeTypes.length, 0);
   const avgUtilization = coverage.length > 0
     ? coverage.reduce((sum, c) => sum + c.utilizationPercentage, 0) / coverage.length
     : 0;
 
   lines.push(`  Total Node Types:          ${totalNodeTypes}`);
-  lines.push(`  Total Relationships:       ${totalRelationships}`);
+  lines.push(`  Total Relationships:       ${totalRelationships} (${totalIntra} intra-layer, ${totalInter} inter-layer)`);
   lines.push(`  Isolated Node Types:       ${totalIsolated} (${totalNodeTypes > 0 ? ((totalIsolated / totalNodeTypes) * 100).toFixed(1) : "0.0"}%)`);
   lines.push(`  Avg Predicate Utilization: ${avgUtilization.toFixed(1)}%`);
 
-  // Highlight layers with zero relationships
-  const zeroLayers = coverage.filter(c => c.relationshipCount === 0);
+  // Highlight layers with zero relationships (both intra and inter must be zero)
+  const zeroLayers = coverage.filter(c => c.relationshipCount === 0 && c.interLayerRelationshipCount === 0);
   if (zeroLayers.length > 0) {
     lines.push("");
     lines.push(ansis.yellow(`  ⚠️  Layers with zero relationships: ${zeroLayers.map(l => l.layer).join(", ")}`));
@@ -231,9 +237,10 @@ function formatCoverageTextDetailed(lines: string[], coverage: CoverageMetrics[]
   lines.push("");
 
   for (const layer of coverage) {
+    const layerTotal = layer.relationshipCount + layer.interLayerRelationshipCount;
     lines.push(ansis.bold(`  ${layer.layer}:`));
     lines.push(`    Node Types:          ${layer.nodeTypeCount}`);
-    lines.push(`    Relationships:       ${layer.relationshipCount}`);
+    lines.push(`    Relationships:       ${layerTotal} total (${layer.relationshipCount} intra-layer, ${layer.interLayerRelationshipCount} inter-layer)`);
     lines.push(`    Isolated Types:      ${layer.isolatedNodeTypes.length} (${layer.isolationPercentage.toFixed(1)}%)`);
     lines.push(`    Predicate Usage:     ${layer.usedPredicates.length}/${layer.availablePredicates.length} (${layer.utilizationPercentage.toFixed(1)}%)`);
     lines.push(`    Density:             ${layer.relationshipsPerNodeType.toFixed(2)} rel/type`);
@@ -259,15 +266,16 @@ function formatCoverageMarkdown(lines: string[], coverage: CoverageMetrics[]): v
   lines.push("");
   lines.push("### By Layer");
   lines.push("");
-  lines.push("| Layer | Node Types | Relationships | Isolated | Predicate Usage | Density |");
-  lines.push("|-------|------------|---------------|----------|-----------------|---------|");
+  lines.push("| Layer | Node Types | Intra-Layer | Inter-Layer | Total | Isolated | Predicate Usage | Density |");
+  lines.push("|-------|------------|-------------|-------------|-------|----------|-----------------|---------|");
 
   for (const layer of coverage) {
+    const layerTotal = layer.relationshipCount + layer.interLayerRelationshipCount;
     const isolated = `${layer.isolatedNodeTypes.length} (${layer.isolationPercentage.toFixed(0)}%)`;
     const predicates = `${layer.usedPredicates.length}/${layer.availablePredicates.length} (${layer.utilizationPercentage.toFixed(0)}%)`;
     const density = layer.relationshipsPerNodeType.toFixed(2);
 
-    lines.push(`| ${escapeMarkdown(layer.layer)} | ${layer.nodeTypeCount} | ${layer.relationshipCount} | ${isolated} | ${predicates} | ${density} |`);
+    lines.push(`| ${escapeMarkdown(layer.layer)} | ${layer.nodeTypeCount} | ${layer.relationshipCount} | ${layer.interLayerRelationshipCount} | ${layerTotal} | ${isolated} | ${predicates} | ${density} |`);
   }
   lines.push("");
 
