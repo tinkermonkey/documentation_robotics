@@ -239,8 +239,8 @@ describe("CLI Commands Integration Tests", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      // Note: toKebabCase preserves special chars but removes spaces
-      const element = findElementBySemanticId(layer!,"motivation.goal.test-goal-(priority:-critical)");
+      // Note: toKebabCase strips non-[a-z0-9-] characters, so parens and colons are removed
+      const element = findElementBySemanticId(layer!, "motivation.goal.test-goal-priority-critical");
       expect(element!.name).toContain("Priority");
       expect(element!.description).toContain("special");
     });

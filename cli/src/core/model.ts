@@ -625,9 +625,9 @@ export class Model {
     }
 
     this.relationships = Relationships.fromArray(data);
-    // Sync relationships to graph
-    // Note: addEdge may throw if graph nodes don't exist, but we log a warning
-    // and continue since it can occur during partial model construction
+    // Sync relationships to graph as a secondary in-memory index.
+    // addEdge() may throw if nodes from other layers haven't been loaded yet;
+    // failures are silently skipped — this.relationships holds the primary data.
     for (let i = 0; i < data.length; i++) {
       const rel = data[i];
       const edge: GraphEdge = {

@@ -163,11 +163,9 @@ describe("Model.loadRelationships — Graph Sync Logging", () => {
       // Call the actual loadRelationships method
       await model.loadRelationships();
 
-      // Verify no warning is emitted — failed edges are silently skipped.
+      // Verify no warning is emitted at all — failed edges are silently skipped.
       // The primary relationship data lives in model.relationships, not the graph.
-      expect(warnSpy).not.toHaveBeenCalledWith(
-        expect.stringContaining("Failed to sync relationship to graph")
-      );
+      expect(warnSpy).not.toHaveBeenCalled();
 
       // Verify the relationship is still available via the primary store
       expect(model.relationships.getAll()).toHaveLength(1);

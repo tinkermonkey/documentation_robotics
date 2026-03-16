@@ -161,6 +161,8 @@ export class ArchiMateExporter implements Exporter {
         principle: "Principle",
         requirement: "Requirement",
         constraint: "Constraint",
+        meaning: "Meaning",
+        value: "Value",
       },
       business: {
         businessactor: "BusinessActor",

@@ -119,7 +119,7 @@ describe("ArchiMateExporter", () => {
     const businessLayer = new Layer("business");
     const actor = new Element({
       id: "business-actor-test",
-      type: "business-actor",
+      type: "businessactor",
       name: "Test Actor",
     });
     businessLayer.addElement(actor);
@@ -179,7 +179,7 @@ describe("ArchiMateExporter", () => {
     const appLayer = new Layer("application");
     const component = new Element({
       id: "application-component-test",
-      type: "application-component",
+      type: "applicationcomponent",
       name: "Test Component",
     });
     appLayer.addElement(component);
@@ -194,18 +194,34 @@ describe("ArchiMateExporter", () => {
   });
 
   it("should map all supported element types correctly", async () => {
-    // Test all supported types for motivation layer
-    const typeMapping = {
-      stakeholder: "Stakeholder",
-      driver: "Driver",
-      goal: "Goal",
-      requirement: "Requirement",
-    };
+    const layerTypeMappings: Array<{ layer: string; type: string; archiType: string }> = [
+      // Motivation (all 10 types)
+      { layer: "motivation", type: "stakeholder", archiType: "Stakeholder" },
+      { layer: "motivation", type: "driver", archiType: "Driver" },
+      { layer: "motivation", type: "assessment", archiType: "Assessment" },
+      { layer: "motivation", type: "goal", archiType: "Goal" },
+      { layer: "motivation", type: "outcome", archiType: "Outcome" },
+      { layer: "motivation", type: "principle", archiType: "Principle" },
+      { layer: "motivation", type: "requirement", archiType: "Requirement" },
+      { layer: "motivation", type: "constraint", archiType: "Constraint" },
+      { layer: "motivation", type: "meaning", archiType: "Meaning" },
+      { layer: "motivation", type: "value", archiType: "Value" },
+      // Business (representative sample)
+      { layer: "business", type: "businessactor", archiType: "BusinessActor" },
+      { layer: "business", type: "businessprocess", archiType: "BusinessProcess" },
+      { layer: "business", type: "businessservice", archiType: "BusinessService" },
+      // Application (representative sample)
+      { layer: "application", type: "applicationcomponent", archiType: "ApplicationComponent" },
+      { layer: "application", type: "applicationservice", archiType: "ApplicationService" },
+      // Technology (representative sample)
+      { layer: "technology", type: "systemsoftware", archiType: "SystemSoftware" },
+      { layer: "technology", type: "device", archiType: "Device" },
+    ];
 
-    for (const [type, archiType] of Object.entries(typeMapping)) {
-      const testLayer = new Layer("motivation");
+    for (const { layer, type, archiType } of layerTypeMappings) {
+      const testLayer = new Layer(layer);
       const element = new Element({
-        id: `motivation-${type}-test`,
+        id: `${layer}-${type}-test`,
         type,
         name: `Test ${archiType}`,
       });
@@ -223,7 +239,7 @@ describe("ArchiMateExporter", () => {
     const appLayer = new Layer("application");
     const component = new Element({
       id: "application-component-test",
-      type: "application-component",
+      type: "applicationcomponent",
       name: "Test Component",
       source_reference: {
         provenance: "extracted",
@@ -266,7 +282,7 @@ describe("ArchiMateExporter", () => {
     const appLayer = new Layer("application");
     const component = new Element({
       id: "application-component-test",
-      type: "application-component",
+      type: "applicationcomponent",
       name: "Test Component",
       source_reference: {
         provenance: "manual",
@@ -294,7 +310,7 @@ describe("ArchiMateExporter", () => {
     const appLayer = new Layer("application");
     const component = new Element({
       id: "application-component-multi",
-      type: "application-component",
+      type: "applicationcomponent",
       name: "Multi-file Component",
       source_reference: {
         provenance: "extracted",
@@ -328,7 +344,7 @@ describe("ArchiMateExporter", () => {
     const appLayer = new Layer("application");
     const component = new Element({
       id: "application-component-test",
-      type: "application-component",
+      type: "applicationcomponent",
       name: "Test Component",
       source_reference: {
         provenance: "manual",
