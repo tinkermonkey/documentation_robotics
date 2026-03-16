@@ -12,7 +12,7 @@ import { SchemaValidator } from "../validators/schema-validator.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { generateElementId, generateUUID } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
-import { isValidNodeType, getNodeTypesForLayer } from "../generated/node-types.js";
+import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
 import {
   CLIError,
   ErrorCategory,
@@ -85,11 +85,12 @@ export async function addCommand(
       );
     }
 
-    // Generate slug path: {layer}.{type}.{kebab-name}
-    // Use the user-provided type (abbreviated form like "service") for backwards compatibility
-    // Type normalization for schema validation is handled by isValidNodeType() above
-    // This matches Python CLI format for compatibility
-    const elementPath = generateElementId(layer, type, name);  // slug
+    // Resolve abbreviated type names to their canonical spec names
+    // e.g., "service" → "applicationservice" for the application layer
+    const resolvedType = normalizeNodeType(layer, type);
+
+    // Generate slug path: {layer}.{resolvedType}.{kebab-name}
+    const elementPath = generateElementId(layer, resolvedType, name);  // slug
     const elementUUID = generateUUID();                         // UUIDv4
 
     // Validate the generated slug is non-empty (name may collapse to empty after stripping special chars)
@@ -108,7 +109,7 @@ export async function addCommand(
     span = isTelemetryEnabled
       ? startSpan("element.add", {
           "layer.name": layer,
-          "element.type": type,
+          "element.type": resolvedType,
           "element.id": elementPath,
         })
       : null;
@@ -149,10 +150,10 @@ export async function addCommand(
     // id = UUIDv4 for schema compliance; path = slug for human-readable identifier
     const element = new Element({
       id: elementUUID,          // UUIDv4
-      path: elementPath,        // slug: {layer}.{type}.{kebab-name}
-      spec_node_id: `${layer}.${type}`,
+      path: elementPath,        // slug: {layer}.{resolvedType}.{kebab-name}
+      spec_node_id: `${layer}.${resolvedType}`,
       layer_id: layer,
-      type: type,
+      type: resolvedType,
       name: options.name || name,
       description: options.description,
       attributes: attributes,
@@ -224,14 +225,14 @@ export async function addCommand(
           {
             status: "staged",
             changeset: activeChangeset.name,
-            type,
+            type: resolvedType,
             name: options.name || name,
           }
         );
       } else {
         // Base model path
         handleSuccess(`Added element ${ansis.bold(elementPath)} to ${ansis.bold(layer)} layer`, {
-          type,
+          type: resolvedType,
           name: options.name || name,
           description: options.description || "(none)",
         });
