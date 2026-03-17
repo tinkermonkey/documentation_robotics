@@ -82,9 +82,40 @@ jobs:
           draft: false
           prerelease: false
 
+  test-cli:
+    name: Test CLI (Release Gate)
+    if: startsWith(github.ref, 'refs/tags/cli-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./cli
+        run: npm install
+
+      - name: Build CLI
+        working-directory: ./cli
+        run: npm run build:ci
+
+      - name: Run tests
+        working-directory: ./cli
+        run: npm test
+
   release-cli:
     name: Release CLI
-    if: startsWith(github.ref, 'refs/tags/cli-v')
+    needs: [test-cli]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -121,10 +152,6 @@ jobs:
       - name: Generate OpenAPI specification
         working-directory: ./cli
         run: npm run generate:openapi
-
-      - name: Run tests
-        working-directory: ./cli
-        run: npm test
 
       - name: Publish to npm via Trusted Publisher
         working-directory: ./cli
