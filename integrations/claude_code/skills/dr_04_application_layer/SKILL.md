@@ -43,7 +43,7 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 
 | Entity Type                  | Description                                            | Key Attributes                                                                   |
 | ---------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| **ApplicationComponent**     | Modular, deployable, replaceable part of a system      | Types: frontend, backend, mobile, desktop, service, library, batch, worker       |
+| **ApplicationComponent**     | Modular, deployable, replaceable part of a system      | Types: generic, external, internal, service-component                            |
 | **ApplicationCollaboration** | Aggregate of application components working together   | Example: Microservices ecosystem, service mesh                                   |
 | **ApplicationInterface**     | Point of access where application service is available | Protocols: REST, GraphQL, SOAP, gRPC, WebSocket, Message Queue, Event Bus        |
 | **ApplicationFunction**      | Automated behavior performed by application component  | Examples: Authentication, Data Validation, Caching, Logging                      |
@@ -52,6 +52,66 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 | **ApplicationEvent**         | Application state change notification                  | Types: domain-event, integration-event, system-event, audit-event                |
 | **ApplicationService**       | Service that exposes application functionality         | Types: synchronous, asynchronous, batch, streaming, webhook                      |
 | **DataObject**               | Data structured for automated processing               | Includes schema reference, PII marking, retention policies                       |
+
+---
+
+## Type Decision Tree
+
+Use this decision tree **before assigning a type** to any code pattern. Follow the first matching branch.
+
+```
+IS this a deployed, executable unit (container, microservice, SPA app shell, module)?
+  → ApplicationComponent (type: generic/internal/external)
+
+IS this a React component, UI widget, or view?
+  → ApplicationComponent (type: generic) — link to ux.component.* for UI detail
+
+IS this a Zustand store, Redux slice, or other state container?
+  → ApplicationComponent (type: generic, subtype: state-container)
+  NOT ApplicationService — stores are not services in the ArchiMate sense
+
+IS this a class/function that provides a capability to other parts of the system
+  (business logic, data transformation, orchestration)?
+  → ApplicationService (serviceType: synchronous/asynchronous/event-driven/batch)
+
+IS this a URL, port, protocol interface, or access point
+  (REST endpoint group, WebSocket endpoint, message queue, postMessage bridge)?
+  → ApplicationInterface (protocol: REST/WebSocket/AMQP/HTTP)
+
+IS this a stateless, single-purpose algorithm or behavior
+  (parse, validate, transform, export, calculate, layout)?
+  → ApplicationFunction (NOT ApplicationService)
+
+IS this a multi-step workflow, pipeline, or saga
+  (load → parse → validate → render)?
+  → ApplicationProcess
+
+IS this a state change notification or domain event
+  (model.updated, annotation.added)?
+  → ApplicationEvent (eventType: domain/integration/system)
+
+IS this a data structure, DTO, or typed payload
+  (ModelData, Annotation, Changeset)?
+  → DataObject
+
+IS this a collection of components that together form a subsystem
+  (all layout engines, all Zustand stores)?
+  → ApplicationCollaboration
+```
+
+---
+
+## Common Misclassifications
+
+Explicit DO NOT rules with rationale:
+
+| Misclassification | Correct Classification | Why |
+|---|---|---|
+| Zustand store as `ApplicationService` | `ApplicationComponent` (type: generic, subtype: state-container) | Stores are not services — they don't expose a business capability |
+| WebSocket client as `ApplicationService` | `ApplicationInterface` (protocol: WebSocket) | A WebSocket connection is an interface/access point, not a service |
+| Layout algorithm as `ApplicationService` | `ApplicationFunction` | Stateless algorithm = function, not a service with a contract |
+| Export function as `ApplicationService` | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service |
+| React UI component as `ApplicationService` | `ApplicationComponent` (type: generic) with UX cross-reference | UI components are components; link to UX layer for rendering details |
 
 ---
 
@@ -338,8 +398,8 @@ dr add application service "notification-service" \
   --description "Asynchronous notification delivery"
 
 # Link component to service
-dr relationship add application.component.user-service \
-  application.service.user-management-api --predicate realizes
+dr relationship add application.applicationcomponent.user-service \
+  application.applicationservice.user-management-api --predicate realizes
 ```
 
 ### Step 3: Model Application Interfaces
@@ -358,8 +418,8 @@ dr add application interface "event-bus" \
   --description "Event bus for async communication"
 
 # Link service to interface
-dr relationship add application.service.user-management-api \
-  application.interface.user-api-rest --predicate realizes
+dr relationship add application.applicationservice.user-management-api \
+  application.applicationinterface.user-api-rest --predicate realizes
 ```
 
 ### Step 4: Define Application Functions
@@ -376,8 +436,8 @@ dr add application function "caching" \
   --description "Caches frequently accessed data"
 
 # Assign function to component
-dr relationship add application.component.user-service \
-  application.function.authentication --predicate assigned-to
+dr relationship add application.applicationcomponent.user-service \
+  application.applicationfunction.authentication --predicate assigned-to
 ```
 
 ### Step 5: Model Application Events
@@ -391,11 +451,11 @@ dr add application event "payment-processed" \
   --description "Published when payment completes"
 
 # Event triggering
-dr relationship add application.event.order-created \
-  application.component.inventory-service --predicate triggers
+dr relationship add application.applicationevent.order-created \
+  application.applicationcomponent.inventory-service --predicate triggers
 
-dr relationship add application.event.order-created \
-  application.component.email-worker --predicate triggers
+dr relationship add application.applicationevent.order-created \
+  application.applicationcomponent.email-worker --predicate triggers
 ```
 
 ### Step 6: Define Data Objects
@@ -409,11 +469,11 @@ dr add application data-object "order" \
   --description "Customer order data"
 
 # Service access to data
-dr relationship add application.service.user-management-api \
-  application.data-object.user --predicate accesses
+dr relationship add application.applicationservice.user-management-api \
+  application.dataobject.user --predicate accesses
 
-dr relationship add application.service.order-api \
-  application.data-object.order --predicate accesses
+dr relationship add application.applicationservice.order-api \
+  application.dataobject.order --predicate accesses
 ```
 
 ### Step 7: Model Application Processes (Orchestration)
@@ -434,48 +494,48 @@ dr add application process "ship-order" \
   --description "Initiate shipping workflow"
 
 # Process composition
-dr relationship add application.process.order-fulfillment-saga \
-  application.process.reserve-inventory --predicate composes
+dr relationship add application.applicationprocess.order-fulfillment-saga \
+  application.applicationprocess.reserve-inventory --predicate composes
 
-dr relationship add application.process.order-fulfillment-saga \
-  application.process.process-payment --predicate composes
+dr relationship add application.applicationprocess.order-fulfillment-saga \
+  application.applicationprocess.process-payment --predicate composes
 
-dr relationship add application.process.order-fulfillment-saga \
-  application.process.ship-order --predicate composes
+dr relationship add application.applicationprocess.order-fulfillment-saga \
+  application.applicationprocess.ship-order --predicate composes
 
 # Process flows
-dr relationship add application.process.reserve-inventory \
-  application.process.process-payment --predicate flows-to
+dr relationship add application.applicationprocess.reserve-inventory \
+  application.applicationprocess.process-payment --predicate flows-to
 
-dr relationship add application.process.process-payment \
-  application.process.ship-order --predicate flows-to
+dr relationship add application.applicationprocess.process-payment \
+  application.applicationprocess.ship-order --predicate flows-to
 ```
 
 ### Step 8: Cross-Layer Integration
 
 ```bash
 # Link to business layer
-dr relationship add application.service.order-api \
+dr relationship add application.applicationservice.order-api \
   business.service.order-management --predicate realizes
 
 # Link to motivation layer
-dr relationship add application.service.user-management-api \
+dr relationship add application.applicationservice.user-management-api \
   motivation.goal.improve-user-experience --predicate supports
 
 # Link to technology layer
-dr relationship add application.component.user-service \
+dr relationship add application.applicationcomponent.user-service \
   technology.node.k8s-cluster-prod --predicate deployed-on
 
 # Link to API layer
-dr relationship add application.service.user-management-api \
+dr relationship add application.applicationservice.user-management-api \
   api.openapi-document.user-api --predicate defined-by
 
 # Link to data model layer
-dr relationship add application.data-object.user \
+dr relationship add application.dataobject.user \
   data-model.schema.user --predicate defined-by
 
 # Link to APM layer
-dr relationship add application.service.order-api \
+dr relationship add application.applicationservice.order-api \
   apm.metric.order-processing-latency --predicate tracked-by
 ```
 
@@ -556,6 +616,115 @@ ApplicationInterface: "API Gateway"
 8. **Use Orchestration for Sagas** - Model complex workflows as ApplicationProcess
 9. **Distinguish Interface from Service** - Interface is access point; Service is capability
 10. **Track Dependencies** - Model service-to-service dependencies clearly
+
+---
+
+## React / SPA Codebase Detection Patterns
+
+These patterns cover the actual structure of React/TypeScript single-page applications. Apply the Type Decision Tree to each pattern.
+
+### Pattern: React Component
+
+```tsx
+// src/core/components/GraphViewer.tsx
+export function GraphViewer({ nodes, edges }: GraphViewerProps) {
+  return <ReactFlow nodes={nodes} edges={edges} />;
+}
+```
+
+→ `ApplicationComponent` (type: generic)
+→ Cross-reference: `x-uses: [technology.systemsoftware.react, technology.artifact.react-flow]`
+→ Also add `ux.component.graph-viewer` in the UX layer for rendering detail
+
+### Pattern: Zustand Store
+
+```typescript
+// src/core/stores/modelStore.ts
+export const useModelStore = create<ModelStoreState>((set) => ({
+  layers: {}, elements: {},
+  loadModel: (data) => set({ ... })
+}));
+```
+
+→ `ApplicationComponent` (type: generic, subtype: state-container)
+→ NOT `ApplicationService` — stores don't expose a business capability
+
+### Pattern: Stateless Service / Utility (parser, transformer)
+
+```typescript
+// src/core/services/yamlParser.ts
+export function parseYAMLModel(yaml: string): ModelData { ... }
+```
+
+→ `ApplicationService` (serviceType: synchronous) if it orchestrates other services
+→ OR `ApplicationFunction` if it is a purely stateless computation with no external contract
+
+### Pattern: WebSocket Client
+
+```typescript
+// src/apps/embedded/services/websocketClient.ts
+const ws = new WebSocket('ws://localhost:3000/ws');
+ws.on('model.updated', handler);
+```
+
+→ `ApplicationInterface` (protocol: WebSocket) — the ws connection is the interface
+→ `ApplicationEvent` for each event type: `model.updated`, `annotation.added`, `changeset.created`
+
+### Pattern: Layout Engine (algorithm)
+
+```typescript
+// src/core/services/layerLayoutConfig.ts
+function dagreLayout(nodes: Node[], edges: Edge[]): PositionedGraph { ... }
+```
+
+→ `ApplicationFunction` — pure algorithm, no external contract
+→ NOT `ApplicationService`
+
+### Pattern: Multi-step Loading Pipeline
+
+```typescript
+// src/core/services/dataLoader.ts
+async function loadModel(source: DataSource): Promise<void> {
+  const raw = await fetch(source.url);
+  const parsed = parseYAMLModel(raw);
+  const validated = validateSchema(parsed);
+  const transformed = transformToReactFlow(validated);
+  modelStore.setModel(transformed);
+}
+```
+
+→ `ApplicationProcess` (orchestration pipeline: fetch → parse → validate → transform → store)
+
+### Pattern: Data Transfer Object / Interface
+
+```typescript
+// src/core/types/model.ts
+export interface ModelData { layers: Layer[]; elements: Element[]; }
+export interface Annotation { id: string; elementId: string; content: string; }
+```
+
+→ `DataObject` for each significant data structure (`ModelData`, `Annotation`, `Changeset`, etc.)
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring application layer extraction complete, verify ALL 9 entity types have been considered:
+
+```
+□ ApplicationComponent — deployable units, UI components, state containers (Zustand stores)
+□ ApplicationService — capabilities with a business contract (data loader, parser service)
+□ ApplicationInterface — access points: WebSocket endpoint, REST interface, postMessage bridge
+□ ApplicationFunction — stateless algorithms: parse, validate, transform, export, layout
+□ ApplicationProcess — multi-step pipelines: loading pipeline, export pipeline
+□ ApplicationEvent — state change notifications: model.updated, annotation.added, user events
+□ DataObject — key data structures: ModelData, Annotation, Changeset, GraphNode, LayoutPreset
+□ ApplicationCollaboration — component groupings: layout engine suite, state management layer
+□ ApplicationInteraction — collective behaviors across multiple components (if applicable)
+
+If any type has ZERO elements, explicitly decide:
+  "This type doesn't apply to this codebase" with reasoning.
+```
 
 ---
 

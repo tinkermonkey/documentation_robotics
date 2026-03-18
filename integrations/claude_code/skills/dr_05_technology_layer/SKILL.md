@@ -26,6 +26,39 @@ version: 0.8.3
 
 ---
 
+## CRITICAL: Valid Element Types
+
+> ⚠️ Only 13 spec-defined types may be used in the technology layer.
+
+**VALID types** (use exactly these strings in `type:` fields and element IDs):
+
+```
+artifact | communicationnetwork | device | node | path | systemsoftware |
+technologycollaboration | technologyevent | technologyfunction |
+technologyinteraction | technologyinterface | technologyprocess | technologyservice
+```
+
+**INVALID types** — these do NOT exist in the spec:
+
+```
+stack | framework | library | tool | runtime | cicd | deployment | protocol | worker
+```
+
+Element IDs MUST follow: `technology.{valid-spec-type}.{kebab-name}`
+
+```
+✅ technology.systemsoftware.react
+✅ technology.artifact.react-flow
+✅ technology.technologyprocess.github-actions
+✅ technology.technologyservice.github-pages
+❌ technology.framework.react          (invalid — 'framework' is not a spec type)
+❌ technology.library.react-flow       (invalid — 'library' is not a spec type)
+❌ technology.cicd.github-actions      (invalid)
+❌ technology.stack.react              (invalid — 'stack' does not exist)
+```
+
+---
+
 ## Layer Overview
 
 The Technology Layer captures **infrastructure and platform**:
@@ -60,6 +93,145 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 | **TechnologyEvent**         | Technology state change                                 | Types: startup, shutdown, failure, scaling, maintenance, alert                               |
 | **TechnologyService**       | Externally visible unit of technology functionality     | Types: infrastructure, platform, storage, compute, network, database, messaging              |
 | **Artifact**                | Physical piece of data used or produced                 | Types: database, file, configuration, binary, log, backup, docker-image, helm-chart          |
+
+---
+
+## Technology Classification Guide
+
+Given what you see in the codebase, which spec type does it become?
+
+| What You See in the Codebase | Spec Type | Required Attribute | Example ID |
+|---|---|---|---|
+| npm library (`react-flow`, `zustand`, `dagre`) | `artifact` | `artifactType: library` | `technology.artifact.react-flow` |
+| JavaScript/CSS framework (`react`, `tailwindcss`) | `systemsoftware` | `softwareType: middleware` | `technology.systemsoftware.react` |
+| Language runtime (`node.js`, `python`, `bun`) | `systemsoftware` | `softwareType: middleware` | `technology.systemsoftware.nodejs` |
+| Container runtime (`docker`) | `systemsoftware` | `softwareType: container-runtime` | `technology.systemsoftware.docker` |
+| Build tool / compiler (`vite`, `tsc`, `eslint`) | `technologyprocess` | — | `technology.technologyprocess.vite` |
+| CI/CD pipeline or workflow | `technologyprocess` | — | `technology.technologyprocess.github-actions` |
+| Hosted platform service (GitHub Pages, npm registry) | `technologyservice` | `serviceType: compute` or `storage` | `technology.technologyservice.github-pages` |
+| Browser JavaScript runtime environment | `node` | `nodeType: container` | `technology.node.browser-runtime` |
+| Development server | `node` | `nodeType: virtual-machine` | `technology.node.dev-server` |
+| Backend server | `node` | `nodeType: virtual-machine` | `technology.node.dr-cli-server` |
+| Build output / distributable / npm package | `artifact` | `artifactType: archive` or `library` | `technology.artifact.dist-embedded` |
+| Network protocol / communication channel | `communicationnetwork` | `networkType: internet` or `lan` | `technology.communicationnetwork.websocket-channel` |
+| HTTP/WebSocket port or endpoint (access point) | `technologyinterface` | `protocol: http/https/websocket` | `technology.technologyinterface.vite-dev-http` |
+| Infrastructure function (HMR, caching, bundling) | `technologyfunction` | — | `technology.technologyfunction.hot-module-reload` |
+| Off-thread Web Worker | `technologyfunction` | — | `technology.technologyfunction.off-thread-layout` |
+| Group of nodes/services working together | `technologycollaboration` | — | `technology.technologycollaboration.ci-cd-suite` |
+
+---
+
+## Frontend / SPA Codebase Detection Patterns
+
+These patterns cover the actual structure of browser-based React/TypeScript SPAs. Always map to valid spec types using the Classification Guide above.
+
+### Pattern: package.json dependencies
+
+```json
+{
+  "dependencies": {
+    "@xyflow/react": "12.9.3",
+    "zustand": "5.0.8",
+    "react": "19.2.0"
+  },
+  "devDependencies": {
+    "vite": "7.2.4",
+    "typescript": "5.9.3",
+    "eslint": "9.x"
+  }
+}
+```
+
+→ Each runtime library dependency → `technology.artifact.{name}` (artifactType: library)
+→ `react` → `technology.systemsoftware.react` (softwareType: middleware)
+→ `vite` → `technology.technologyprocess.vite` (build tool)
+→ `typescript` → `technology.systemsoftware.typescript` (softwareType: middleware — compiler)
+→ `eslint` → `technology.technologyprocess.eslint` (linting process)
+
+### Pattern: GitHub Actions CI/CD workflow
+
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  build: ...
+  test: ...
+  deploy: ...
+```
+
+→ `technology.technologyprocess.github-actions` (top-level workflow)
+→ Each job: `technology.technologyprocess.build-pipeline`, `technology.technologyprocess.deploy-pipeline`
+→ NOT `technology.cicd.github-actions` — use `technologyprocess`
+
+### Pattern: Static site hosting (GitHub Pages, Netlify, Vercel)
+
+```yaml
+# .github/workflows/deploy.yml
+- name: Deploy to GitHub Pages
+  uses: actions/deploy-pages@v2
+```
+
+→ `technology.technologyservice.github-pages` (serviceType: compute)
+→ NOT `technology.stack.github-pages` or `technology.deployment.github-pages`
+
+### Pattern: Vite dev server
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  server: { port: 3001 },
+  build: { outDir: 'dist' }
+})
+```
+
+→ `technology.node.dev-server` (nodeType: virtual-machine, port: 3001)
+→ `technology.technologyinterface.vite-dev-http` (protocol: http, port: 3001)
+→ `technology.artifact.dist-standalone` (artifactType: archive) — build output
+
+### Pattern: Web Worker
+
+```javascript
+// public/workers/layoutWorker.js
+self.onmessage = function(e) {
+  const result = runDagreLayout(e.data);
+  self.postMessage(result);
+};
+```
+
+→ `technology.technologyfunction.off-thread-layout`
+→ NOT a separate `worker` type — use `technologyfunction`
+
+### Pattern: Browser runtime
+
+The browser that runs a React SPA is the primary Node (host):
+
+→ `technology.node.browser-runtime` (nodeType: container)
+→ It "hosts" `application.component.viewer-app`
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring technology layer extraction complete, verify each type was considered:
+
+```
+□ systemsoftware — runtimes (Node.js), frameworks (React), compilers (TypeScript), Docker
+□ artifact — ALL npm library dependencies, build outputs (dist/), docker images, npm package
+□ node — browser runtime, dev server, backend server, CI runner
+□ technologyprocess — every CI/CD pipeline, build step, automation tool (Vite, ESLint, GitHub Actions)
+□ technologyservice — hosted services: GitHub Pages, npm registry, Docker Hub, CDN
+□ technologyinterface — dev server port, WebSocket endpoint, REST API endpoint
+□ technologyfunction — Web Workers, HMR, caching, bundling algorithms
+□ communicationnetwork — internet connection, WebSocket channel, browser network context
+□ technologycollaboration — groups: CI/CD suite, deployment pipeline (multiple nodes working together)
+□ artifact (configs) — configuration files as artifacts (vite.config.ts, tsconfig.json)
+
+Types less likely to apply to a frontend SPA (still worth considering):
+  - device: physical hardware (almost never for pure frontend)
+  - path: explicit network paths (rare)
+  - technologyevent: deployment events, build failures, alerts
+  - technologyinteraction: collective behavior across nodes (e.g., CDN + origin server)
+```
 
 ---
 
@@ -394,8 +566,8 @@ dr add technology service "s3-object-storage" \
   --description "S3 object storage for files and backups"
 
 # Link software to service
-dr relationship add technology.system-software.postgresql-14 \
-  technology.service.postgres-database --predicate realizes
+dr relationship add technology.systemsoftware.postgresql-14 \
+  technology.technologyservice.postgres-database --predicate realizes
 ```
 
 ### Step 4: Define Communication Networks
@@ -471,7 +643,7 @@ dr add technology function "database-backup" \
 
 # Assign function to node
 dr relationship add technology.node.k8s-cluster-prod \
-  technology.function.auto-scaling --predicate assigned-to
+  technology.technologyfunction.auto-scaling --predicate assigned-to
 ```
 
 ### Step 8: Cross-Layer Integration
@@ -482,14 +654,14 @@ dr relationship add technology.node.k8s-cluster-prod \
   application.component.user-service --predicate hosts
 
 # Link to motivation layer
-dr relationship add technology.service.kubernetes-orchestration \
+dr relationship add technology.technologyservice.kubernetes-orchestration \
   motivation.goal.improve-deployment-frequency --predicate supports
 
 dr relationship add technology.node.k8s-cluster-prod \
   motivation.principle.cloud-native-architecture --predicate governed-by
 
 # Link to APM layer
-dr relationship add technology.service.postgres-database \
+dr relationship add technology.technologyservice.postgres-database \
   apm.metric.database-query-latency --predicate monitored-by
 ```
 

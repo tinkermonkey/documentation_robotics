@@ -77,21 +77,29 @@ dr info
 
 Extract in order of **factual certainty** — start with what the code proves, end with what the evidence suggests. This gives the most reliable basis for inferring the abstract layers.
 
-| Phase | Layer           | Extract from                                    | Certainty                 |
-| ----- | --------------- | ----------------------------------------------- | ------------------------- |
-| 1     | **API**         | Route files, controllers, OpenAPI specs         | High — directly in code   |
-| 2     | **Data Model**  | Type files, DTOs, ORM models, schema files      | High — directly in code   |
-| 3     | **Data Store**  | Migration files, ORM table definitions          | High — directly in code   |
-| 4     | **Application** | Service classes, stores, core logic directories | High — directly in code   |
-| 5     | **Technology**  | `package.json`, Dockerfiles, infra configs      | High — directly in config |
-| 6     | **Business**    | Infer from API groupings + application services | Medium — inferred         |
-| 7     | **Security**    | Auth middleware, permission guards (if present) | Medium — inferred         |
-| 8     | **UX**          | Component directories, page files (if present)  | Medium — inferred         |
-| 9     | **Motivation**  | Infer from patterns across all layers above     | Low — speculative         |
+| Phase | Layer           | Extract from                                    | Consult skill file              | Certainty                 |
+| ----- | --------------- | ----------------------------------------------- | ------------------------------- | ------------------------- |
+| 1     | **API**         | Route files, controllers, OpenAPI specs         | —                               | High — directly in code   |
+| 2     | **Data Model**  | Type files, DTOs, ORM models, schema files      | —                               | High — directly in code   |
+| 3     | **Data Store**  | Migration files, ORM table definitions          | —                               | High — directly in code   |
+| 4     | **Application** | Service classes, stores, core logic directories | `dr_04_application_layer` SKILL.md — use ALL 9 entity types; use decision tree before assigning type | High — directly in code   |
+| 5     | **Technology**  | `package.json`, Dockerfiles, infra configs      | `dr_05_technology_layer` SKILL.md — **only 13 valid spec types**; no `stack`, `framework`, `library`, etc. | High — directly in config |
+| 6     | **Business**    | Infer from API groupings + application services | —                               | Medium — inferred         |
+| 7     | **Security**    | Auth middleware, permission guards (if present) | —                               | Medium — inferred         |
+| 8     | **UX**          | Component directories, page files (if present)  | —                               | Medium — inferred         |
+| 9     | **Motivation**  | Infer from patterns across all layers above     | —                               | Low — speculative         |
 
 Navigation, APM, and Testing: add when the codebase clearly surfaces them. Do not force them.
 
 **Rationale**: By the time you reach Business and Motivation, you have factual evidence from 5–8 layers to ground your inferences. Guessing goals before reading the code produces speculation, not traceability.
+
+### Step 2a: Type Compliance Check (before each layer changeset)
+
+Before starting the changeset for each layer:
+
+1. Run `dr schema types <layer>` — verify what types the CLI accepts for this layer
+2. **Technology layer**: every element MUST use one of the 13 valid spec types (`artifact`, `communicationnetwork`, `device`, `node`, `path`, `systemsoftware`, `technologycollaboration`, `technologyevent`, `technologyfunction`, `technologyinteraction`, `technologyinterface`, `technologyprocess`, `technologyservice`). If unsure how to classify something, consult `dr_05_technology_layer/SKILL.md`'s Classification Guide.
+3. **Application layer**: ensure all 9 entity types are represented. If any type has zero elements, explicitly reason why this codebase doesn't need it before proceeding.
 
 ### Step 3: One changeset per phase
 
@@ -119,6 +127,8 @@ Report confidence as you extract:
 ✅ data-model.entity.order (HIGH) — explicit ORM model
 ⚠️  business.service.order-management (MEDIUM) — inferred from API grouping, please verify
 ⚠️  motivation.goal.reduce-checkout-friction (LOW) — speculative, confirm with team
+🚫 type-invalid: technology.framework.react — 'framework' is not a valid spec type
+   → Reclassify as: technology.systemsoftware.react
 ```
 
 ## Changeset Lifecycle
