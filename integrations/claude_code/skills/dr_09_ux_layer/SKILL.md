@@ -28,11 +28,10 @@ version: 0.8.3
 
 The UX Layer captures **user experience design**:
 
-- **VIEWS** - Routable screens/pages with layouts
+- **VIEWS** - Screens/pages, modals, dialogs, drawers, and panels
 - **COMPONENTS** - UI components (forms, tables, charts, cards)
 - **STATE MACHINES** - Experience states and transitions
 - **ACTIONS** - Interactive elements (buttons, links, voice commands)
-- **VALIDATION** - Client-side validation rules
 - **LAYOUTS** - Layout configurations (grid, flex, etc.)
 
 This layer uses **Three-Tier Architecture** (v0.5.0+):
@@ -41,40 +40,7 @@ This layer uses **Three-Tier Architecture** (v0.5.0+):
 2. **Application Tier** - Application-wide configuration
 3. **Experience Tier** - Experience-specific views and flows
 
-**Central Entity:** The **View** (routable screen) is the core modeling unit.
-
----
-
-## Entity Types
-
-> **CLI Introspection:** Run `dr schema types ux` for the authoritative, always-current list of node types.
-> Run `dr schema node <type-id>` for full attribute details on any type.
-
-### Three-Tier Architecture (26 entities)
-
-**Library Tier:**
-
-- **UXLibrary** - Container for library components
-- **LibraryComponent** - Reusable component (form-field, table, chart, card)
-- **LibrarySubView** - Reusable component groupings
-- **StatePattern** - Reusable state machine patterns
-- **ActionPattern** - Reusable action definitions
-
-**Application Tier:**
-
-- **UXApplication** - Application-wide UX configuration
-
-**Experience Tier:**
-
-- **UXSpec** - Container for experience specification
-- **View** - Routable screen/page
-- **SubView** - Component grouping within view
-- **ComponentInstance** - Instance of library component
-- **ActionComponent** - Interactive element
-- **ExperienceState** - State in state machine
-- **StateAction** - Action during state lifecycle
-- **StateTransition** - Transition between states
-- **ValidationRule** - Client-side validation
+**Central Entity:** The **View** (page, modal, dialog, drawer, or panel) is the core modeling unit.
 
 ---
 
@@ -90,6 +56,89 @@ Activate when the user:
 
 ---
 
+## Entity Types
+
+> **CLI Introspection:** Run `dr schema types ux` for the authoritative, always-current list of node types.
+> Run `dr schema node <type-id>` for full attribute details on any type.
+
+### Three-Tier Architecture (22 entities)
+
+**Library Tier:**
+
+- **UXLibrary** - Container for library components
+- **LibraryComponent** - Reusable component (form-field, table, chart, card)
+- **LibrarySubView** - Reusable component groupings
+- **StatePattern** - Reusable state machine patterns
+- **ActionPattern** - Reusable action definitions
+- **StateActionTemplate** - Reusable template for state lifecycle actions (required: `action`)
+- **TransitionTemplate** - Reusable template for state transitions (required: `to`, `trigger`)
+- **TableColumn** - Column definition for table components (required: `header`, `field`)
+- **ChartSeries** - Data series configuration for chart components (required: `label`, `dataField`)
+
+**Application Tier:**
+
+- **UXApplication** - Application-wide UX configuration
+
+**Experience Tier:**
+
+- **UXSpec** - Container for experience specification
+- **View** - Screen/page/modal/dialog/drawer/panel (required: `type`)
+- **SubView** - Component grouping within view
+- **ComponentInstance** - Instance of library component
+- **ComponentReference** - Reference to a library component by ID (required: `ref`)
+- **ActionComponent** - Interactive element (button, link, voice command)
+- **ExperienceState** - State in state machine
+- **StateAction** - Action during state lifecycle
+- **StateTransition** - Transition between states
+- **LayoutConfig** - Layout configuration for views and components (required: `type`)
+- **DataConfig** - Data binding configuration (required: `source`, `target`)
+- **ErrorConfig** - Error handling configuration for components
+
+---
+
+## Type Decision Tree
+
+Use this decision tree **before assigning a type** to any UX element.
+
+```
+LIBRARY TIER — reusable, cross-experience artifacts
+├── Component library container?                               → ux.uxlibrary
+├── Reusable UI component type (form, table, chart, card)?    → ux.librarycomponent
+├── Reusable grouping of components?                          → ux.librarysubview
+├── Reusable state machine pattern?                           → ux.statepattern
+├── Reusable action definition?                               → ux.actionpattern
+├── Reusable parameterized state action template?             → ux.stateactiontemplate
+│     (no lifecycle binding; has parameters array)
+├── Reusable transition template with animation?              → ux.transitiontemplate
+│     (has animationType/duration/easing; both `to` and `trigger` required)
+├── Column definition for a table component?                  → ux.tablecolumn
+└── Data series definition for a chart component?             → ux.chartseries
+
+APPLICATION TIER — app-wide UX configuration
+└── Application-wide UX configuration (channel required)?     → ux.uxapplication
+
+EXPERIENCE TIER — specific to a view or experience
+├── Top-level experience specification container?             → ux.uxspec
+├── Screen, page, modal, dialog, drawer, or panel?           → ux.view
+│     (required: type enum — page|modal|dialog|drawer|panel|overlay|embedded|full-screen)
+├── Section or grouping within a view?                        → ux.subview
+├── Placed instance of a component on a view?                 → ux.componentinstance
+│     (has `order` for positioning and `props` for overrides)
+├── Typed reference to a component by slot or variant?        → ux.componentreference
+│     (ref required; use when targeting a specific variant or slot, not placement)
+├── Interactive element (button, link, voice command)?        → ux.actioncomponent
+├── State in an experience state machine?                     → ux.experiencestate
+├── Concrete action bound to a state lifecycle?               → ux.stateaction
+│     (has lifecycle: on-enter|on-exit|on-transition and timing; no parameters)
+├── Concrete transition with trigger and optional guard?      → ux.statetransition
+│     (trigger required; has guard conditions and inline actions; no animation)
+├── Layout configuration (grid, flex, block, etc.)?           → ux.layoutconfig
+├── Data binding configuration (source → target)?             → ux.dataconfig
+└── Error handling configuration?                             → ux.errorconfig
+```
+
+---
+
 ## Cross-Layer Relationships
 
 **Outgoing (UX → Other Layers):**
@@ -97,7 +146,7 @@ Activate when the user:
 - `motivation.*` → Motivation Layer (UX supports goals)
 - `business.*` → Business Layer (UX realizes business processes)
 - `api.*` → API Layer (API calls from components)
-- `data.*` → Data Model Layer (form validation rules)
+- `data-model.*` → Data Model Layer (schema references for data-bound components)
 - `navigation.*` → Navigation Layer (routing to views)
 
 **Incoming (Other Layers → UX):**
@@ -111,11 +160,10 @@ Activate when the user:
 
 1. **Reusability** - Use library components for consistency
 2. **State machines** - Model complex flows with states/transitions
-3. **Validation** - Add client-side validation rules
+3. **Error handling** - Define error states, ErrorConfig, and recovery transitions
 4. **Accessibility** - Consider accessibility requirements
 5. **Responsive** - Design for multiple screen sizes
 6. **Performance** - Set performance targets (load time, interaction latency)
-7. **Error handling** - Define error states and messages
 
 ---
 
@@ -140,82 +188,37 @@ dr export markdown --layers ux
 
 ---
 
-## Example: Login View
+## Example: Login Screen
 
-```yaml
-id: ux.view.login
-name: "Login View"
-type: view
-properties:
-  route: /login
-  layout:
-    type: centered
-    maxWidth: 400px
-  components:
-    - id: login-form
-      componentRef: library.component.form-field
-      dataBinding:
-        source: api.operation.login
-        submitAction: POST /api/auth/login
-      fields:
-        - name: email
-          type: email
-          required: true
-          validation:
-            - type: email-format
-            - type: required
-        - name: password
-          type: password
-          required: true
-          validation:
-            - type: min-length
-              value: 8
-  actions:
-    - id: submit-button
-      type: button
-      label: "Login"
-      action: submit-form
-      target: login-form
-    - id: forgot-password
-      type: link
-      label: "Forgot password?"
-      navigation: /forgot-password
-  states:
-    - id: idle
-      initial: true
-      onEnter: []
-    - id: submitting
-      onEnter:
-        - action: disable-form
-        - action: show-spinner
-    - id: success
-      onEnter:
-        - action: navigate
-          target: /dashboard
-    - id: error
-      onEnter:
-        - action: show-error
-        - action: enable-form
-  transitions:
-    - from: idle
-      to: submitting
-      trigger: submit
-    - from: submitting
-      to: success
-      trigger: success
-    - from: submitting
-      to: error
-      trigger: failure
-    - from: error
-      to: idle
-      trigger: retry
-  motivation:
-    supports-goals:
-      - motivation.goal.user-authentication
-  api:
-    operationId: login
-  navigation:
-    route-ref: navigation.route.login
+A login page with a form component, state machine, and data binding:
+
+```bash
+# Add the view (page type, routable)
+dr add ux view "Login" --description "Login page" --attributes '{"type":"page","routable":true}'
+# → id: ux.view.login
+
+# Add a form component from the library
+dr add ux librarycomponent "Login Form" --description "Email/password form" --attributes '{"type":"form"}'
+# → id: ux.librarycomponent.login-form
+
+# Place the form as an instance on the login view
+dr add ux componentinstance "Login Form Instance"
+# → id: ux.componentinstance.login-form-instance
+
+# Add states for the login flow
+dr add ux experiencestate "Idle"
+dr add ux experiencestate "Submitting"
+dr add ux experiencestate "Error"
+
+# Add a transition: click submit → submitting
+dr add ux statetransition "Submit Clicked" --attributes '{"trigger":"click","to":"ux.experiencestate.submitting"}'
+# → id: ux.statetransition.submit-clicked
+
+# Add data config binding the form to the API
+dr add ux dataconfig "Login Data" --attributes '{"source":"api","target":"ux.componentinstance.login-form-instance"}'
+
+# Add error config for failed login
+dr add ux errorconfig "Login Error" --description "Show inline error on auth failure"
 ```
 
 ---
@@ -223,8 +226,39 @@ properties:
 ## Pitfalls to Avoid
 
 - ❌ Not using library components (inconsistent UX)
-- ❌ Missing validation rules (poor user experience)
 - ❌ Complex state machines without documentation
 - ❌ Not linking to API operations or navigation routes
 - ❌ Missing error states and handling
 - ❌ No performance targets defined
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring UX layer extraction complete, verify each type was considered:
+
+- [ ] **ux.uxlibrary** — Component library container
+- [ ] **ux.librarycomponent** — Reusable UI component (form-field, table, chart, card)
+- [ ] **ux.librarysubview** — Reusable grouping of components
+- [ ] **ux.statepattern** — Reusable state machine pattern
+- [ ] **ux.actionpattern** — Reusable action definition
+- [ ] **ux.stateactiontemplate** — Reusable state action template
+- [ ] **ux.transitiontemplate** — Reusable transition template
+- [ ] **ux.tablecolumn** — Column definition for table components
+- [ ] **ux.chartseries** — Data series configuration for chart components
+- [ ] **ux.uxapplication** — Application-wide UX configuration
+- [ ] **ux.uxspec** — Experience specification container
+- [ ] **ux.view** — Screen, page, modal, dialog, drawer, or panel (required: `type`)
+- [ ] **ux.subview** — Section or panel within a view
+- [ ] **ux.componentinstance** — Instance of a library component on a view
+- [ ] **ux.componentreference** — Reference to a library component by ID
+- [ ] **ux.actioncomponent** — Interactive element (button, link, voice command)
+- [ ] **ux.experiencestate** — State in experience state machine
+- [ ] **ux.stateaction** — Action executed during a state lifecycle
+- [ ] **ux.statetransition** — Transition between states
+- [ ] **ux.layoutconfig** — Layout configuration (grid, flex, block, etc.)
+- [ ] **ux.dataconfig** — Data binding configuration (source → target)
+- [ ] **ux.errorconfig** — Error handling configuration
+
+If any type has ZERO elements, explicitly decide:
+  "This type doesn't apply to this codebase" with reasoning.
