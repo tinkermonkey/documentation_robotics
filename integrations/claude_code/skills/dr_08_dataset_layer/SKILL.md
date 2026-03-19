@@ -71,6 +71,53 @@ This layer supports **multiple storage paradigms**: relational (PostgreSQL, MySQ
 
 ---
 
+## Type Decision Tree
+
+Use this decision tree **before assigning a type** to any storage element.
+
+Evaluate questions top-to-bottom. Stop at the first YES match.
+If none match, reconsider whether the concept belongs in a different layer.
+
+> **storedlogic vs. eventhandler:** If the element describes *what fires and when* (the reactive trigger mechanism), use `eventhandler`. If it describes *the computation or logic that runs* (a function, procedure, or script), use `storedlogic`.
+
+```
+Is this a database server/instance/cluster?
+  YES → data-store.database  (e.g., PostgreSQL instance, MongoDB Atlas cluster)
+
+Is this a logical grouping of collections (schema, keyspace, database prefix)?
+  YES → data-store.namespace  (e.g., PostgreSQL schema, Cassandra keyspace, MongoDB database)
+
+Is this a primary storage unit (table, document collection, stream, bucket, topic)?
+  YES → data-store.collection  (e.g., users table, orders collection, events stream)
+
+Is this a field or column definition inside a collection?
+  YES → data-store.field  (e.g., email VARCHAR, user_id UUID, created_at TIMESTAMP)
+
+Is this a query optimization index (B-tree, hash, compound, text, vector)?
+  YES → data-store.index  (e.g., idx_users_email, full-text search index)
+
+Is this a derived or materialized view over one or more collections?
+  YES → data-store.view  (e.g., active_users_view, monthly_revenue_mv)
+
+Is this a stored procedure, function, or user-defined aggregate in the database?
+  YES → data-store.storedlogic  (e.g., calculate_discount(), get_user_stats(), normalize_email())
+
+Is this a database-level validation constraint or schema enforcement rule?
+  YES → data-store.validationrule  (e.g., check constraint, JSON schema validator,
+        foreign key [database-enforced referential integrity — not a cross-layer relationship])
+
+Is this a named query access pattern describing how the application reads or writes data?
+  YES → data-store.accesspattern  (e.g., get-user-by-email, list-orders-by-date, time-range-query)
+
+Is this a CDC handler, database trigger, or event-driven data workflow?
+  YES → data-store.eventhandler  (e.g., on-insert audit log, DynamoDB Streams handler)
+
+Is this a TTL, archival, or data lifecycle rule?
+  YES → data-store.retentionpolicy  (e.g., 90-day audit log TTL, GDPR deletion policy)
+```
+
+---
+
 ## When to Use This Skill
 
 Activate when the user:
@@ -87,17 +134,30 @@ Activate when the user:
 
 ## Cross-Layer Relationships
 
+Cross-layer links are created via `dr relate`, not inline YAML attributes. Key relationships from the spec:
+
 **Outgoing (Data Store → Other Layers):**
 
-- `x-json-schema` → Data Model Layer (what logical schema does this implement?)
-- `x-governed-by-*` → Security Layer (data access policies)
-- `x-apm-performance-metrics` → APM Layer (query performance monitoring)
+| Relationship | Example |
+|---|---|
+| `collection.realizes.api.schema` | Users collection → API response schema |
+| `collection.maps-to.api.requestbody` | Orders collection → POST /orders body |
+| `collection.serves.api.operation` | Products collection → GET /products operation |
+| `collection.implements.security.secureresource` | PII collection → SecureResource policy |
+| `collection.satisfies.security.dataclassification` | Payments collection → PCI data class |
+| `field.satisfies.security.dataclassification` | email field → PII data classification |
+| `field.requires.security.fieldaccesscontrol` | SSN field → FieldAccessControl rule |
+| `field.maps-to.api.parameter` | user_id field → API path parameter |
+| `database.satisfies.security.securitypolicy` | DB → encryption-at-rest policy |
+| `database.depends-on.technology.systemsoftware` | PostgreSQL DB → pg systemsoftware |
+| `retentionpolicy.satisfies.security.retentionpolicy` | Retention rule → security retention policy |
 
 **Incoming (Other Layers → Data Store):**
 
-- Data Model Layer → Data Store (physical storage mapping)
-- Application Layer → Data Store (database connections)
-- Technology Layer → Data Store (hosting infrastructure)
+| Relationship | Example |
+|---|---|
+| `application.applicationcomponent.serves → collection` | UserService → users collection |
+| `technology.systemsoftware.depends-on → database` | PostgreSQL technology → database |
 
 ---
 
@@ -106,7 +166,7 @@ Activate when the user:
 1. **Paradigm-neutral modeling** — Use `collection`/`field` regardless of whether the underlying store is relational or document
 2. **Access patterns first** — For NoSQL (DynamoDB, Cassandra), define `AccessPattern` entities before collections
 3. **Indexes** — Add indexes for frequent query paths; use `AccessPattern` to document which index serves which pattern
-4. **PII marking** — Use `x-pii` on `field` entities to mark sensitive data
+4. **PII marking** — Link sensitive `field` entities to a security `dataclassification` node via `field.satisfies.security.dataclassification`; note PII status in the field `description`
 5. **Retention policies** — Always add a `RetentionPolicy` for collections with regulatory or storage requirements
 6. **Stored logic** — Capture stored procedures, triggers, and UDFs as `StoredLogic` entities
 7. **Event handlers** — Document CDC (change-data-capture) and event-driven triggers as `EventHandler` entities
@@ -150,58 +210,71 @@ dr schema types data-store
 ## Example: Users Collection (Paradigm-Neutral)
 
 ```yaml
+# Collection — use collectionType to specify the paradigm-specific storage unit
 id: data-store.collection.users
 name: "Users Collection"
 type: collection
+description: "User account records — relational table (PostgreSQL)"
 properties:
-  parentNamespace: data-store.namespace.public
-  paradigm: relational # or: document, key-value, time-series, graph
-  fields:
-    - id:
-        dataType: uuid
-        nullable: false
-        primaryKey: true
-    - email:
-        dataType: string
-        nullable: false
-        x-pii: true
-        x-encrypted: true
-    - username:
-        dataType: string
-        nullable: false
-    - created_at:
-        dataType: timestamp
-        nullable: false
-  x-json-schema: data-model.object-schema.user
-  x-apm-performance-metrics:
-    - apm.metric.users-query-latency
+  collectionType: TABLE
+  partitionKey: "id"
+  validationSchema: data-model.object-schema.user
 ```
 
-### Access Pattern (for DynamoDB/NoSQL)
+```yaml
+# Fields are separate data-store.field elements — not nested inside the collection
+id: data-store.field.users-id
+name: "Users ID"
+type: field
+description: "Primary key"
+properties:
+  dataType: uuid
+  nullable: false
+  fieldRole: PARTITION_KEY
+
+id: data-store.field.users-email
+name: "Users Email"
+type: field
+description: "User email address — PII"
+properties:
+  dataType: string
+  nullable: false
+
+id: data-store.field.users-created-at
+name: "Users Created At"
+type: field
+properties:
+  dataType: timestamp
+  nullable: false
+```
+
+### Access Pattern
 
 ```yaml
 id: data-store.accesspattern.get-user-by-email
 name: "Get User by Email"
 type: accesspattern
+description: "Point lookup by email — used for login and profile fetch"
 properties:
-  collection: data-store.collection.users
-  queryType: point-lookup
-  keyAttributes: ["email"]
-  consistencyLevel: strong
-  estimatedRps: 500
+  patternType: POINT_READ
+  targetCollection: data-store.collection.users
+  keyCondition: "email"
+  consistencyRequirement: STRONG
+  expectedFrequency: HIGH_THROUGHPUT
 ```
 
 ### Retention Policy
 
 ```yaml
-id: data-store.retentionpolicy.users-audit-log
-name: "Users Audit Log Retention"
+id: data-store.retentionpolicy.audit-log-retention
+name: "Audit Log Retention"
 type: retentionpolicy
+description: "365-day retention for regulatory compliance (SOC2, GDPR Article 30)"
 properties:
-  collection: data-store.collection.users-audit-log
-  ttlDays: 365
-  archiveAfterDays: 90
-  regulatoryBasis: "SOC2, GDPR Article 30"
+  targetCollection: data-store.collection.users-audit-log
+  retentionDuration: "P365D"
+  action: ARCHIVE
+  enabled: true
 ```
 
 ---
@@ -210,7 +283,32 @@ properties:
 
 - ❌ Using SQL-only concepts (Table, Column, Constraint) — use paradigm-neutral `collection`, `field`, `validationrule`
 - ❌ Skipping `AccessPattern` for NoSQL stores (DynamoDB, Cassandra) — define access patterns first
-- ❌ Not marking PII fields with `x-pii`
-- ❌ Missing cross-layer links to data model layer (`x-json-schema`)
+- ❌ Nesting fields inline inside a collection element — `field` entities are always separate elements linked via `collection.composes.field`
+- ❌ Using invented `x-pii`, `x-json-schema`, or `x-apm-performance-metrics` attributes — these are not in the spec; use relationships (`field.satisfies.security.dataclassification`, `collection.realizes.api.schema`) instead
+- ❌ Using `ttlDays` / `archiveAfterDays` in retentionpolicy — use `retentionDuration` (ISO 8601, e.g. `"P365D"`) and `action` (enum: DELETE | ARCHIVE | ...)
 - ❌ Forgetting `RetentionPolicy` for regulated data
 - ❌ Not documenting `EventHandler` for CDC or change-triggered workflows
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring data-store layer extraction complete, verify each type was considered:
+
+- [ ] **database** — Database instance (any paradigm: relational, document, key-value, time-series, graph)
+- [ ] **namespace** — Logical grouping of collections (PostgreSQL schema, Cassandra keyspace, MongoDB database)
+- [ ] **collection** — Primary storage unit (table, document collection, stream, bucket)
+- [ ] **field** — Field or column definition with data type and constraints
+- [ ] **index** — Query optimization index (B-tree, hash, compound, text, geospatial, vector)
+- [ ] **view** — Derived or materialized view over one or more collections
+- [ ] **storedlogic** — Stored procedures, functions, and user-defined aggregates
+- [ ] **validationrule** — Database-level validation constraint or schema enforcement rule
+- [ ] **accesspattern** — Named query access pattern (especially required for NoSQL: DynamoDB, Cassandra, MongoDB)
+- [ ] **eventhandler** — Event-driven trigger or change-data-capture handler
+- [ ] **retentionpolicy** — Data lifecycle, TTL, and retention rule definition
+
+If any type has ZERO elements, explicitly decide:
+  "This type doesn't apply to this codebase" with reasoning.
+
+> **Note:** `accesspattern` is strongly recommended for any NoSQL store (DynamoDB, Cassandra, Firestore) — NoSQL schema design is driven by access patterns.
+> `retentionpolicy` is strongly recommended for any collection subject to regulatory requirements (GDPR, SOC2, HIPAA).
