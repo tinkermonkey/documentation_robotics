@@ -52,10 +52,71 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 | **BusinessInteraction**   | Unit of collective behavior by collaboration         | Examples: Sales Meeting, Contract Negotiation, Customer Onboarding    |
 | **BusinessEvent**         | Something that happens and influences behavior       | Types: time-driven, state-change, external                            |
 | **BusinessService**       | Service that fulfills a business need                | Includes SLA properties, motivation links, APM monitoring             |
-| **BusinessObject**        | Concept used within business domain                  | Examples: Order, Invoice, Customer, Product, Contract                 |
+| **BusinessObject**        | Concept used within business domain                  | Examples: Order, Invoice, Customer, Opportunity, Support Ticket       |
 | **Contract**              | Formal specification of agreement                    | Examples: SLA, Terms of Service, Purchase Agreement                   |
-| **Representation**        | Perceptible form of business object                  | Formats: document, report, form, message, dashboard                   |
+| **Representation**        | Perceptible form of business object                  | Required `format`: pdf, html, xml, json, plain-text, binary           |
 | **Product**               | Coherent collection of services with a value         | Aggregates services and contracts, delivers value to customers        |
+
+---
+
+## Type Decision Tree
+
+Use this decision tree **before assigning a type** to any observed business concept.
+
+```
+IS this an individual person, organization, or system that acts in the business domain?
+  → BusinessActor (e.g., Customer, Supplier, Partner)
+
+IS this a named responsibility or hat worn by an actor?
+  → BusinessRole (e.g., Sales Representative, Account Manager)
+
+IS this a group of roles working together toward a shared goal?
+  → BusinessCollaboration (e.g., Sales Team, Project Team)
+
+IS this a channel or contact point where a business service is accessed?
+  → BusinessInterface (e.g., Customer Portal, Phone Support Line)
+
+IS this a structured sequence of steps that produces a business outcome?
+  → BusinessProcess (e.g., Order Fulfillment, Loan Approval)
+
+IS this a grouping of related business behaviors (department-level capability)?
+  → BusinessFunction (e.g., Marketing, Finance, Customer Support)
+
+IS this a joint behavior performed by two or more roles together?
+  → BusinessInteraction (e.g., Contract Negotiation, Sales Meeting)
+
+IS this something that happens and triggers a response in the business?
+  → BusinessEvent (e.g., Order Received, Payment Confirmed)
+
+IS this an externally visible capability the business offers to stakeholders?
+  → BusinessService (e.g., Order Management Service, Payment Service)
+
+IS this a key domain concept or data entity used in business language?
+  → BusinessObject (e.g., Order, Invoice, Customer)
+
+IS this a formal agreement with binding terms between parties?
+  → Contract (e.g., SLA, Purchase Agreement, Terms of Service)
+
+IS this a concrete form in which a business object is communicated?
+  → Representation (e.g., Invoice PDF, Order Confirmation Email)
+
+IS this a coherent bundle of services with a value proposition for customers?
+  → Product (e.g., E-commerce Platform, Premium Support Package)
+```
+
+---
+
+## Common Misclassifications
+
+| Misclassification | Correct Classification | Why |
+|---|---|---|
+| A department or team as `BusinessService` | `BusinessFunction` (department) or `BusinessCollaboration` (team) | Services are externally visible capabilities; departments are behavioral groupings |
+| A REST endpoint or UI as `BusinessInterface` | `BusinessInterface` is correct — but link it to the `ApplicationInterface` in the application layer | Business interfaces are the business-facing access point, not the technical one |
+| A business rule or policy as `BusinessProcess` | `BusinessProcess` only for sequences of steps; rules belong in Motivation layer as `Principle` or `Constraint` | Processes produce outcomes through behavior; rules govern behavior |
+| A domain entity (Order, Invoice) as `BusinessProcess` | `BusinessObject` | Objects are concepts; processes are sequences of behavior |
+| A job title (Sales Rep) as `BusinessActor` | `BusinessRole` | Roles are responsibilities; actors are the people/orgs that fill them |
+| An SLA document as `BusinessService` | `Contract` | An SLA is a formal agreement, not the service itself |
+| A product feature as `BusinessFunction` | `Product` if it bundles services with customer value; `BusinessService` if it's a single capability | Products aggregate services; functions are internal behavioral groupings |
 
 ---
 
@@ -254,6 +315,31 @@ services:
 
 ---
 
+## Coverage Completeness Checklist
+
+Before declaring business layer extraction complete, verify ALL 13 entity types have been considered:
+
+```
+□ BusinessActor      — people, orgs, or systems that act (Customer, Supplier, Partner)
+□ BusinessRole       — named responsibilities assigned to actors (Sales Rep, Admin)
+□ BusinessCollaboration — groups of roles working together (Sales Team, Support Dept)
+□ BusinessInterface  — access points where services are available (Portal, API, Phone)
+□ BusinessProcess    — step sequences producing a business outcome (Order Fulfillment)
+□ BusinessFunction   — department-level behavioral capability (Marketing, Finance)
+□ BusinessInteraction — collective behavior by a collaboration (Contract Negotiation)
+□ BusinessEvent      — triggers: time-driven, state-change, external (Order Received)
+□ BusinessService    — externally visible capability (Order Management, Payment)
+□ BusinessObject     — key domain concepts (Order, Invoice, Customer, Opportunity)
+□ Contract           — formal agreements: SLA, Terms of Service, Purchase Agreement
+□ Representation     — concrete forms of objects (format: pdf, html, xml, json, plain-text, binary)
+□ Product            — bundles of services with customer value proposition
+
+If any type has ZERO elements, explicitly decide:
+  "This type doesn't apply to this codebase" with reasoning.
+```
+
+---
+
 ## Modeling Workflow
 
 ### Step 1: Identify Business Actors and Roles
@@ -263,7 +349,7 @@ services:
 dr add business actor "Customer" \
   --description "End user purchasing products"
 
-dr add business actor "Sales Team" \
+dr add business collaboration "Sales Team" \
   --description "Internal sales organization"
 
 # Add business roles
@@ -282,7 +368,7 @@ dr add business service "Order Management Service" \
   --description "Manages customer order lifecycle"
 
 # Link to motivation layer
-dr relationship add business.service.order-management-service \
+dr relationship add business.businessservice.order-management-service \
   motivation.goal.improve-order-efficiency --predicate supports
 ```
 
@@ -301,15 +387,15 @@ dr add business process "Pack Order Process" \
   --description "Pack picked items for shipment"
 
 # Composition relationships
-dr relationship add business.process.order-fulfillment-process \
-  business.process.pick-items-process --predicate composes
+dr relationship add business.businessprocess.order-fulfillment-process \
+  business.businessprocess.pick-items-process --predicate composes
 
-dr relationship add business.process.order-fulfillment-process \
-  business.process.pack-order-process --predicate composes
+dr relationship add business.businessprocess.order-fulfillment-process \
+  business.businessprocess.pack-order-process --predicate composes
 
 # Process flows
-dr relationship add business.process.pick-items-process \
-  business.process.pack-order-process --predicate flows-to
+dr relationship add business.businessprocess.pick-items-process \
+  business.businessprocess.pack-order-process --predicate flows-to
 ```
 
 ### Step 4: Define Business Objects
@@ -326,8 +412,8 @@ dr add business object "Product" \
   --description "Item available for purchase"
 
 # Process access to objects
-dr relationship add business.process.order-fulfillment-process \
-  business.object.order --predicate accesses
+dr relationship add business.businessprocess.order-fulfillment-process \
+  business.businessobject.order --predicate accesses
 ```
 
 ### Step 5: Model Business Events
@@ -341,23 +427,23 @@ dr add business event "Payment Confirmed" \
   --description "Payment successfully processed"
 
 # Event triggering
-dr relationship add business.event.order-received \
-  business.process.order-fulfillment-process --predicate triggers
+dr relationship add business.businessevent.order-received \
+  business.businessprocess.order-fulfillment-process --predicate triggers
 ```
 
 ### Step 6: Establish Cross-Layer Relationships
 
 ```bash
 # Link to application layer
-dr relationship add business.service.order-management-service \
-  application.service.order-api --predicate realized-by
+dr relationship add business.businessservice.order-management-service \
+  application.applicationservice.order-api --predicate realized-by
 
 # Link to motivation layer
-dr relationship add business.service.order-management-service \
+dr relationship add business.businessservice.order-management-service \
   motivation.value.customer-satisfaction --predicate delivers
 
 # Link to data layer
-dr relationship add business.object.order \
+dr relationship add business.businessobject.order \
   data-model.objectschema.order --predicate defined-by
 ```
 

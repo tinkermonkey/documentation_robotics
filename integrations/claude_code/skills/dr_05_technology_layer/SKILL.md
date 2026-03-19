@@ -206,7 +206,7 @@ self.onmessage = function(e) {
 The browser that runs a React SPA is the primary Node (host):
 
 → `technology.node.browser-runtime` (nodeType: container)
-→ It "hosts" `application.component.viewer-app`
+→ It "hosts" `application.applicationcomponent.viewer-app`
 
 ---
 
@@ -651,7 +651,7 @@ dr relationship add technology.node.k8s-cluster-prod \
 ```bash
 # Link to application layer
 dr relationship add technology.node.k8s-cluster-prod \
-  application.component.user-service --predicate hosts
+  application.applicationcomponent.user-service --predicate hosts
 
 # Link to motivation layer
 dr relationship add technology.technologyservice.kubernetes-orchestration \

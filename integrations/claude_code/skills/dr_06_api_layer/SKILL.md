@@ -84,9 +84,61 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 | Entity Type         | Description                              |
 | ------------------- | ---------------------------------------- |
 | **OAuthFlows**      | Configuration for OAuth 2.0 flows        |
-| **Condition**       | Logical expression for policy evaluation |
-| **RetentionPolicy** | Data retention policies                  |
-| **ValidationRule**  | Data validation constraints              |
+| **OAuthFlow**       | Single OAuth 2.0 flow definition (authorizationCode, implicit, password, clientCredentials) |
+| **RateLimit**       | Rate limiting policy for an operation (requests per window, key strategy, action on breach) |
+
+---
+
+## Type Decision Tree
+
+For each construct encountered, ask "what is this?" and assign the first matching type.
+
+```
+Root OpenAPI specification file/object?                            → api.openapidocument
+API-level metadata (title, description, version)?                  → api.info
+Contact information for the API owner?                             → api.contact
+Legal license declaration?                                         → api.license
+Server/host where the API is available (URL)?                      → api.server
+Variable placeholder in a server URL template (e.g., {version})?  → api.servervariable
+Container of all URL paths (the `paths:` block)?                   → api.paths
+A specific URL path with its available HTTP methods?               → api.pathitem
+A single HTTP method on a path (GET, POST, PUT, DELETE, PATCH)?    → api.operation
+A parameter — query, path, header, or cookie?                      → api.parameter
+  ↳ NOTE: request bodies are NOT parameters → use api.requestbody
+Request payload/body for an operation?                             → api.requestbody
+Container of all possible responses for an operation?              → api.responses
+  ↳ NOTE: not a single response — use api.response for each status code
+A single response for a specific HTTP status code?                 → api.response
+Media type + schema pair (e.g., application/json with schema)?     → api.mediatype
+Data structure / schema definition (JSON Schema subset)?           → api.schema
+HTTP header for a request or response?                             → api.header
+Grouping label used to organize operations?                        → api.tag
+Reference to external documentation (URL)?                         → api.externaldocumentation
+Container for reusable definitions (schemas, responses, params)?   → api.components
+Security mechanism definition (apiKey, http, oauth2)?              → api.securityscheme
+Container of all OAuth 2.0 flow types for a security scheme?       → api.oauthflows
+  ↳ NOTE: the individual flows inside are NOT api.oauthflows
+A single OAuth 2.0 flow (authorizationCode, implicit, etc.)?       → api.oauthflow
+HATEOAS link from a response to a subsequent operation?            → api.link
+Webhook / callback URL pattern triggered by an operation?          → api.callback
+Sample value for documentation or testing?                         → api.example
+Serialization details for multipart form content?                  → api.encoding
+Rate limiting policy (requests per window, key strategy)?          → api.ratelimit
+```
+
+---
+
+## Common Misclassifications
+
+| Misclassification | Correct Classification | Why |
+|---|---|---|
+| Using `api.response.*` for the set of all responses | `api.responses.*` is the container; `api.response.*` is a single status code response | `responses` is the plural container; `response` is one entry within it |
+| Using `api.oauthflows.*` for a single flow | `api.oauthflow.*` — each flow variant (authorizationCode, implicit, etc.) is its own node | `oauthflows` is the multi-flow container; `oauthflow` is one flow definition |
+| Modeling schemas inline as `api.mediatype.*` | Schemas are `api.schema.*`; `mediatype` just pairs a content type with a schema reference | MediaType is the content-type envelope; Schema is the data structure inside it |
+| Using `api.parameter.*` for the request body | Request bodies are `api.requestbody.*`; parameters are query/path/header/cookie values only | The OpenAPI spec distinguishes body from parameters explicitly |
+| Using `api.schema.*` for an entire API endpoint | Endpoints are `api.pathitem.*` + `api.operation.*`; schemas are data type definitions only | Schema ≠ endpoint |
+| Putting rate limit config as a property on `api.operation.*` | `api.ratelimit.*` is a dedicated node type for rate limiting policies | Model rate limits as first-class nodes so they can be referenced and reasoned about independently |
+| Using `api.components.*` to represent every reusable object | `api.components.*` is the container; individual reusables (schemas, parameters, etc.) are their own typed nodes composed under it | Components is a structural container, not a substitute for specific types |
 
 ---
 
@@ -125,6 +177,7 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 | Info            | composes  | Contact        | API owner contact                |
 | Info            | composes  | License        | API license                      |
 | SecurityScheme  | composes  | OAuthFlows     | OAuth2 configuration             |
+| OAuthFlows      | composes  | OAuthFlow      | Individual OAuth2 flow definition |
 
 ### Aggregation Relationships (Part can exist independently)
 
@@ -491,7 +544,7 @@ components:
 
 ```bash
 # Create the API specification document
-dr add api document "payment-api" \
+dr add api openapidocument "payment-api" \
   --description "API for processing customer payments"
 
 # Add API metadata
@@ -499,7 +552,7 @@ dr add api info "payment-api-info" \
   --description "API metadata and contact information"
 
 # Link to motivation layer
-dr relationship add api.document.payment-api \
+dr relationship add api.openapidocument.payment-api \
   motivation.principle.api-first-design --predicate governed-by
 ```
 
@@ -519,11 +572,11 @@ dr add api server "staging-server" \
 
 ```bash
 # OAuth2 security
-dr add api security-scheme "oauth2-auth" \
+dr add api securityscheme "oauth2-auth" \
   --description "OAuth2 authorization code flow"
 
 # API Key security
-dr add api security-scheme "api-key-auth" \
+dr add api securityscheme "api-key-auth" \
   --description "API key authentication"
 ```
 
@@ -581,11 +634,11 @@ dr relationship add api.operation.get-payment \
 
 ```bash
 # Request body
-dr add api request-body "payment-request-body" \
+dr add api requestbody "payment-request-body" \
   --description "Payment request payload"
 
 # Link request body to schema
-dr relationship add api.request-body.payment-request-body \
+dr relationship add api.requestbody.payment-request-body \
   api.schema.payment-request --predicate uses-schema
 
 # Response
@@ -620,7 +673,7 @@ dr relationship add api.operation.process-payment \
   business.service.payment-processing --predicate realizes
 
 # Link to application layer
-dr relationship add api.document.payment-api \
+dr relationship add api.openapidocument.payment-api \
   application.service.payment-api --predicate realizes
 
 # Link to security layer
@@ -743,11 +796,11 @@ x-apm-criticality: "low"
 **Add Commands:**
 
 ```bash
-dr add api document <name>
+dr add api openapidocument <name>
 dr add api operation <name>
 dr add api schema <name>
 dr add api parameter <name>
-dr add api security-scheme <name>
+dr add api securityscheme <name>
 dr add api tag <name>
 ```
 
@@ -764,7 +817,7 @@ dr relationship add <schema> <schema> --predicate references
 
 ```bash
 dr relationship add <api-operation> <business-service> --predicate realizes
-dr relationship add <api-document> <application-service> --predicate realizes
+dr relationship add <api-openapidocument> <application-service> --predicate realizes
 dr relationship add <api-schema> <data-model-schema> --predicate references
 dr relationship add <api-operation> <security-resource> --predicate protected-by
 dr relationship add <api-operation> <motivation-goal> --predicate supports
@@ -818,6 +871,43 @@ x-apm-criticality: "high" # critical, high, medium, low
 ```
 
 These extensions enable full traceability from API operations to business goals, requirements, security controls, and monitoring metrics.
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring API layer extraction complete, verify each type was considered:
+
+- [ ] **api.openapidocument** — Root OpenAPI specification document
+- [ ] **api.info** — API metadata (title, version, description)
+- [ ] **api.contact** — Contact information for the API owner
+- [ ] **api.license** — Legal license for the API
+- [ ] **api.server** — Server URLs where the API is available
+- [ ] **api.servervariable** — Variable placeholders in server URL templates
+- [ ] **api.paths** — Container of all API endpoint paths
+- [ ] **api.pathitem** — Operations available on a specific URL path
+- [ ] **api.operation** — Individual HTTP operations (GET, POST, PUT, DELETE, PATCH) — CENTRAL ENTITY
+- [ ] **api.parameter** — Query, path, header, or cookie parameters
+- [ ] **api.requestbody** — Request payload for an operation
+- [ ] **api.responses** — Container of all possible responses for an operation
+- [ ] **api.response** — Single response definition for a specific HTTP status code
+- [ ] **api.mediatype** — Media type + schema pair for request/response bodies
+- [ ] **api.schema** — Data type definitions (JSON Schema subset)
+- [ ] **api.header** — HTTP header parameters
+- [ ] **api.tag** — Grouping labels for organizing operations
+- [ ] **api.externaldocumentation** — References to external documentation
+- [ ] **api.components** — Container for reusable API component definitions
+- [ ] **api.securityscheme** — Security mechanism definitions (apiKey, http, oauth2, openIdConnect)
+- [ ] **api.oauthflows** — OAuth 2.0 flows configuration container
+- [ ] **api.oauthflow** — Single OAuth 2.0 flow (authorizationCode, implicit, password, clientCredentials)
+- [ ] **api.link** — HATEOAS links from responses to subsequent operations
+- [ ] **api.callback** — Webhook / callback URL patterns
+- [ ] **api.example** — Sample values for documentation and testing
+- [ ] **api.encoding** — Serialization details for multipart content
+- [ ] **api.ratelimit** — Rate limiting policies (requests per window, key strategy)
+
+If any type has ZERO elements, explicitly decide:
+  "This type doesn't apply to this codebase" with reasoning.
 
 ---
 

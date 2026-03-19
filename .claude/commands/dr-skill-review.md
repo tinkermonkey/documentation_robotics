@@ -1,6 +1,6 @@
 ---
 description: Audit a layer's SKILL.md against the spec — finds missing types, invalid type names, wrong element IDs, and missing guidance sections
-argument-hint: "<layer>"
+argument-hint: "<layer> [--auto]"
 ---
 
 # DR Skill Review
@@ -21,6 +21,10 @@ Intended for schema maintainers keeping skill files synchronized with spec evolu
 /dr-skill-review technology
 /dr-skill-review data-model
 /dr-skill-review ux
+
+# Non-interactive mode — automatically applies the recommended fix for each finding:
+/dr-skill-review application --auto
+/dr-skill-review technology --auto
 ```
 
 Layer names follow the canonical DR layer naming: `motivation`, `business`, `security`, `application`, `technology`, `api`, `data-model`, `data-store`, `ux`, `navigation`, `apm`, `testing`.
@@ -33,9 +37,19 @@ When this command is invoked, execute the following steps precisely.
 
 ---
 
-### STEP 1: Resolve the Layer
+### STEP 1: Resolve the Layer and Parse Flags
 
-Parse the argument to determine the canonical layer name and skill file path.
+Parse all arguments. The layer name is the first non-flag token. Check for `--auto` anywhere in the argument list — if present, set `autoMode = true`.
+
+**`--auto` behavior:**
+
+- Skips all `AskUserQuestion` calls entirely.
+- For each finding, automatically executes the action marked "(Recommended)" and prints a one-line `[AUTO]` summary so the changes are visible.
+- For SECTION findings: auto-applies high-severity sections (Type Decision Tree, Coverage Checklist); auto-skips medium-severity sections (Common Misclassifications, Detection Patterns) because these require codebase-specific knowledge.
+- For INVALID findings: auto-applies the suggested reclassification. If no suggestion can be determined, logs a warning and skips.
+- Still prints the full report header and the final summary regardless of mode.
+
+Determine the canonical layer name and skill file path.
 
 **Layer name → skill directory map:**
 
@@ -63,7 +77,7 @@ Valid layer names:
   motivation | business | security | application | technology | api
   data-model | data-store | ux | navigation | apm | testing
 
-Usage: /dr-skill-review <layer>
+Usage: /dr-skill-review <layer> [--auto]
 ```
 
 Then stop.
@@ -205,11 +219,11 @@ If there are zero findings, stop here.
 
 ---
 
-### STEP 6: Walk Through Each Finding Interactively
+### STEP 6: Walk Through Each Finding
 
 Process findings in this order: MISSING → INVALID → ID FORMAT → SECTION.
 
-For each finding, present it and ask what to do.
+If `autoMode` is active, execute the recommended action immediately without pausing. Print a `[AUTO]` prefix on each action line so the maintainer can see what was applied. If `autoMode` is not active, present the finding and use `AskUserQuestion` to ask what to do.
 
 ---
 
@@ -229,14 +243,14 @@ Options:
   3. Something else
 ```
 
-**If option 1 chosen:**
+**If option 1 chosen (or `autoMode` is active):**
 - Read the schema: `dr schema node {layer}.{type}`
 - Draft a table row following the format of existing rows in the skill:
   ```
   | **{TypeName}** | {description} | {key attributes} |
   ```
-- Show the draft. Ask: "Insert this row? (yes / revise / skip)"
-- On yes: edit the SKILL.md to insert the row in the Entity Types table, in alphabetical order by type name
+- If `autoMode`: insert immediately, log `[AUTO] ADDED row for {layer}.{type} to Entity Types table`
+- Otherwise: show the draft, ask: "Insert this row? (yes / revise / skip)", insert on yes
 - Log: `ADDED row for {layer}.{type} to Entity Types table`
 
 **If option 2 chosen:**
@@ -269,11 +283,12 @@ Options:
   3. Skip — leave for manual review
 ```
 
-**If option 1 chosen:**
-- Prompt: "Replace with which spec type? (default: {suggested})"
-- Show all the proposed replacements
-- On confirm: edit the SKILL.md, replacing each invalid type segment with the correct one in all example IDs
-- Log: `REPLACED '{type_segment}' → '{correct_type}' in {N} example IDs`
+**If option 1 chosen (or `autoMode` is active):**
+- If `autoMode`: use the suggested reclassification directly. If no suggestion can be determined (no entry in the common reclassification table), log `[AUTO] SKIPPED '{type_segment}' — no unambiguous reclassification; review manually` and move on.
+- Otherwise: prompt "Replace with which spec type? (default: {suggested})", then show all proposed replacements and confirm before writing.
+- Edit the SKILL.md, replacing each invalid type segment with the correct one in all example IDs.
+- If `autoMode`: log `[AUTO] REPLACED '{type_segment}' → '{correct_type}' in {N} example IDs`
+- Otherwise: log `REPLACED '{type_segment}' → '{correct_type}' in {N} example IDs`
 
 **If option 2 chosen:**
 - Show affected code blocks. Ask: "Remove these {N} example blocks? (yes / skip)"
@@ -349,9 +364,11 @@ If any type has ZERO elements, explicitly decide:
 > Each pattern should show a code snippet and the entity type(s) it maps to.
 ```
 
-Show the draft, ask: "Insert this section? (yes / revise / skip)"
-On yes: insert after the existing section it logically follows (Entity Types → Decision Tree → Misclassifications → Patterns → Checklist)
-Log: `ADDED section: {section name}`
+- If `autoMode` and severity is **high** (Type Decision Tree, Coverage Checklist): insert immediately without asking. Log `[AUTO] ADDED section: {section name}`.
+- If `autoMode` and severity is **medium** (Common Misclassifications, Detection Patterns): skip without asking — these sections require codebase-specific knowledge. Log `[AUTO] SKIPPED section: {section name} — medium severity, requires manual authoring`.
+- Otherwise: show the draft, ask: "Insert this section? (yes / revise / skip)", insert on yes.
+- Insert after the existing section it logically follows (Entity Types → Decision Tree → Misclassifications → Patterns → Checklist).
+- Log: `ADDED section: {section name}`
 
 ---
 
@@ -360,7 +377,7 @@ Log: `ADDED section: {section name}`
 After all findings have been processed:
 
 ```
-Review Complete
+Review Complete {[AUTO MODE] if autoMode}
 ===============
 Layer:    {layer}
 Skill:    integrations/claude_code/skills/{skill_directory}/SKILL.md
@@ -368,8 +385,9 @@ Skill:    integrations/claude_code/skills/{skill_directory}/SKILL.md
 Findings processed: {total}
 
 Disposition:
-  ✓ Fixed:   {count}  (types added, invalid IDs corrected, sections added)
-  → Skipped: {count}  (intentional, or deferred to manual review)
+  ✓ Fixed:          {count}  (types added, invalid IDs corrected, sections added)
+  → Skipped:        {count}  (intentional, deferred, or medium-severity in auto mode)
+  ⚠ Needs review:  {count}  (auto mode could not determine reclassification)
 
 Files changed:
   {path if changed, or "none"}
