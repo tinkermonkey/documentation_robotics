@@ -33,7 +33,7 @@ The APM Layer captures **application performance monitoring**:
 - **LOGS** - Structured logging
 - **INSTRUMENTATION** - Code instrumentation configuration
 - **RESOURCES** - Telemetry resource attributes
-- **SLOs/SLAs** - Service level objectives and agreements
+- **ALERTING** - Alert rules and monitoring dashboards
 
 This layer uses **OpenTelemetry 1.0+** (industry standard for observability).
 
@@ -46,24 +46,47 @@ This layer uses **OpenTelemetry 1.0+** (industry standard for observability).
 > **CLI Introspection:** Run `dr schema types apm` for the authoritative, always-current list of node types.
 > Run `dr schema node <type-id>` for full attribute details on any type.
 
-### Core APM Entities (14 entities)
+### Core APM Entities (15 entities)
 
-| Entity Type              | Description                                   |
-| ------------------------ | --------------------------------------------- |
-| **APMConfiguration**     | Root configuration for observability          |
-| **TraceConfiguration**   | Distributed tracing configuration             |
-| **Span**                 | Unit of work in distributed trace             |
-| **SpanEvent**            | Timestamped event within span                 |
-| **MetricConfiguration**  | Metrics collection configuration              |
-| **MeterConfig**          | Meter for metric instruments                  |
-| **InstrumentConfig**     | Metric instrument (counter, gauge, histogram) |
-| **LogConfiguration**     | Structured logging configuration              |
-| **LogRecord**            | Individual log record                         |
-| **Resource**             | Telemetry resource attributes                 |
-| **Attribute**            | Key-value telemetry attribute                 |
-| **InstrumentationScope** | Scope of instrumentation                      |
-| **DataQualityMetric**    | Data quality metrics                          |
-| **DataQualityMetrics**   | Collection of data quality metrics            |
+| Entity Type                | Description                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| **TraceConfiguration**     | Distributed tracing configuration                                    |
+| **Span**                   | Unit of work in distributed trace                                    |
+| **SpanEvent**              | Timestamped event within span                                        |
+| **SpanLink**               | Link between spans from different traces                             |
+| **MetricConfiguration**    | Metrics collection configuration                                     |
+| **MetricInstrument**       | Specific metric instrument (Counter, Gauge, Histogram, etc.)         |
+| **LogConfiguration**       | Structured logging configuration                                     |
+| **LogRecord**              | Individual log record                                                |
+| **LogProcessor**           | Log processing pipeline step (simple, batch, custom)                 |
+| **Resource**               | Telemetry resource attributes                                        |
+| **InstrumentationScope**   | Scope of instrumentation                                             |
+| **InstrumentationConfig**  | Code instrumentation configuration (library, auto/manual type)       |
+| **ExporterConfig**         | Telemetry exporter configuration (OTLP, Jaeger, Prometheus, etc.)   |
+| **Alert**                  | Alert rule with severity, condition, and notification channels       |
+| **Dashboard**              | Monitoring dashboard definition (Grafana, Datadog, etc.)             |
+
+---
+
+## Type Decision Tree
+
+Use this decision tree **before assigning a type** to any APM element.
+
+- Is this an alert rule with severity and condition? → `apm.alert`
+- Is this a monitoring dashboard definition (Grafana, Datadog, etc.)? → `apm.dashboard`
+- Is this an exporter configuration (OTLP, Jaeger, Prometheus endpoint)? → `apm.exporterconfig`
+- Is this a code instrumentation configuration (library name, auto/manual)? → `apm.instrumentationconfig`
+- Is this the instrumentation scope (library version, schema URL)? → `apm.instrumentationscope`
+- Is this logging pipeline configuration (service name, minimum severity)? → `apm.logconfiguration`
+- Is this a log processor step (batch, simple, custom)? → `apm.logprocessor`
+- Is this an individual structured log record with body and severity? → `apm.logrecord`
+- Is this a metrics collection configuration (export interval, cardinality limit)? → `apm.metricconfiguration`
+- Is this a specific metric instrument (counter, gauge, histogram, observable)? → `apm.metricinstrument`
+- Is this a telemetry resource (service name, deployment environment attributes)? → `apm.resource`
+- Is this a unit of work/operation in a distributed trace? → `apm.span`
+- Is this an event that occurred within a span? → `apm.spanevent`
+- Is this a link between spans from different traces? → `apm.spanlink`
+- Is this distributed tracing configuration (sampler type, propagators)? → `apm.traceconfiguration`
 
 ---
 
@@ -91,7 +114,7 @@ Activate when the user:
 - Application Layer → APM (services reference metrics)
 - API Layer → APM (operations set SLA targets)
 - Business Layer → APM (processes reference business metrics)
-- Data Model Layer → APM (data quality metrics)
+- Data Model Layer → APM (metric instruments tracking data quality KPIs)
 - Data Store Layer → APM (query performance metrics)
 
 ---
@@ -115,11 +138,11 @@ Activate when the user:
 # Add span
 dr add apm span "Process Order"
 
-# Add metric
-dr add apm instrument-config "order_rate" --description "Order processing rate counter"
+# Add metric instrument
+dr add apm metricinstrument "order_rate" --description "Order processing rate counter"
 
 # Add log record
-dr add apm log-record "Error Log"
+dr add apm logrecord "Error Log"
 
 # List APM elements
 dr list apm --type span
@@ -140,28 +163,21 @@ id: apm.span.process-order
 name: "Process Order Span"
 type: span
 properties:
+  traceId: "4bf92f3577b34da6a3ce929d0e0e4736"
+  spanId: "00f067aa0ba902b7"
+  traceState: ""
+  parentSpanId: "b9c7c989f97918e1"
   spanKind: INTERNAL
-  operationName: process_order
+  startTimeUnixNano: "1544712660000000000"
+  endTimeUnixNano: "1544712661000000000"
+  droppedAttributesCount: 0
+  droppedEventsCount: 0
+  droppedLinksCount: 0
+  statusCode: OK
   attributes:
-    - key: order.id
-      type: string
-    - key: order.total
-      type: double
-    - key: customer.id
-      type: string
-  events:
-    - name: order_validated
-      timestamp: relative
-    - name: payment_processed
-      timestamp: relative
-    - name: inventory_reserved
-      timestamp: relative
-  instrumented-service: application.service.order-processing
-  business-metrics:
-    - apm.metric.orders-processed
-    - apm.metric.order-processing-time
-  sla-target-latency: 500ms
-  sla-target-availability: 99.9%
+    order.id: "ord-12345"
+    order.total: 99.99
+    customer.id: "cust-67890"
 ```
 
 ---
@@ -169,58 +185,40 @@ properties:
 ## Example: Business Metrics
 
 ```yaml
-id: apm.metric.order-rate
+id: apm.metricinstrument.order-rate
 name: "Order Rate Metric"
-type: instrument-config
+type: metricinstrument
 properties:
-  instrumentType: counter
+  type: Counter
   unit: orders
-  description: "Number of orders processed"
-  attributes:
-    - key: order.type
-      type: string
-      values: [standard, express, subscription]
-    - key: payment.method
-      type: string
-      values: [credit_card, paypal, bank_transfer]
-  business-context:
-    kpi: true
-    dashboard: revenue-dashboard
-    alerts:
-      - threshold: 100
-        condition: less-than
-        severity: warning
-        message: "Order rate below threshold"
+  description: "Number of orders processed per minute"
+  enabled: true
 ```
 
 ---
 
-## Example: Data Quality Metrics
+## Coverage Completeness Checklist
 
-```yaml
-id: apm.data-quality-metrics.user-data
-name: "User Data Quality Metrics"
-type: data-quality-metrics
-properties:
-  entity: data_model.object-schema.user
-  metrics:
-    - name: completeness
-      type: gauge
-      description: "Percentage of non-null required fields"
-      target: 95%
-    - name: validity
-      type: gauge
-      description: "Percentage of records passing validation"
-      target: 99%
-    - name: uniqueness
-      type: gauge
-      description: "Percentage of unique email addresses"
-      target: 100%
-    - name: freshness
-      type: histogram
-      description: "Time since last update"
-      target: 24h
-```
+Before declaring APM layer extraction complete, verify each type was considered:
+
+- [ ] `apm.alert` — Alert rule with severity and notification channels
+- [ ] `apm.dashboard` — Monitoring dashboard (Grafana, Datadog, etc.)
+- [ ] `apm.exporterconfig` — Telemetry exporter configuration (OTLP, Prometheus, etc.)
+- [ ] `apm.instrumentationconfig` — Code instrumentation configuration
+- [ ] `apm.instrumentationscope` — Instrumentation scope (library version and schema URL)
+- [ ] `apm.logconfiguration` — Logging configuration per service
+- [ ] `apm.logprocessor` — Log processing pipeline step
+- [ ] `apm.logrecord` — Individual structured log record
+- [ ] `apm.metricconfiguration` — Metrics collection configuration per service
+- [ ] `apm.metricinstrument` — Specific metric instrument (Counter, Gauge, Histogram, etc.)
+- [ ] `apm.resource` — Telemetry resource attributes (service name, environment)
+- [ ] `apm.span` — Unit of work in a distributed trace
+- [ ] `apm.spanevent` — Timestamped event within a span
+- [ ] `apm.spanlink` — Link between spans from different traces
+- [ ] `apm.traceconfiguration` — Distributed tracing configuration
+
+If any type has ZERO elements, explicitly decide:
+  "This type doesn't apply to this codebase" with reasoning.
 
 ---
 
