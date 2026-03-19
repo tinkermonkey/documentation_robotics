@@ -58,6 +58,55 @@ This layer uses **ArchiMate 3.2 Motivation Layer** standard without custom exten
 
 ---
 
+## Type Decision Tree
+
+Use this decision tree **before assigning a type** to any motivation concept.
+
+```
+IS this an individual, team, or organization with an interest in the system or its outcomes?
+  → motivation.stakeholder
+
+IS this an external or internal condition (market, regulatory, technology, competitive, operational,
+strategic) that motivates the organization to change or act?
+  → motivation.driver
+
+IS this the result of analyzing the current state — a strength, weakness, opportunity, threat, risk,
+or gap identified through assessment (e.g., SWOT)?
+  → motivation.assessment
+
+IS this a high-level statement of intent, direction, or desired end state the organization wants to achieve?
+  → motivation.goal
+
+IS this a specific, verifiable statement of need that must be realized (functional, non-functional,
+compliance, business, technical, or user need)?
+  → motivation.requirement
+
+IS this a normative rule or guideline that all systems in this context must follow
+(business, data, application, technology, security, integration)?
+  → motivation.principle
+
+IS this a hard restriction on HOW the system can be realized — a limit the system cannot exceed
+(budget, time, technology, regulatory, organizational, resource)?
+  → motivation.constraint
+
+IS this an end result that has been or is being achieved — tracked against a goal?
+  → motivation.outcome
+
+IS this the relative worth, utility, or importance that the system or feature delivers?
+  → motivation.value
+
+IS this a semantic definition, interpretation, or piece of knowledge attached to another element?
+  → motivation.meaning
+```
+
+**Key distinctions:**
+- **Goal vs Requirement**: A Goal is aspirational ("improve performance"); a Requirement is a verifiable must ("API must respond in <200ms")
+- **Requirement vs Constraint**: A Requirement says WHAT must be done; a Constraint says HOW it is bounded ("must use OAuth 2.0" limits the solution space)
+- **Driver vs Assessment**: A Driver is an ongoing force motivating action; an Assessment is a point-in-time finding about the current state
+- **Outcome vs Goal**: A Goal is what you intend to achieve; an Outcome is what has been (or is being) achieved
+
+---
+
 ## Intra-Layer Relationships
 
 ### Structural Relationships
@@ -200,6 +249,26 @@ TARGET_UPTIME_SLA = 0.9999
 ```
 
 **Maps to:** Direct creation of Goal, Principle, and Constraint entities
+
+---
+
+## Coverage Completeness Checklist
+
+Before declaring motivation layer extraction complete, verify each type was considered:
+
+- [ ] **stakeholder** — All individuals, teams, and organizations with interests in the system are documented
+- [ ] **driver** — External and internal forces motivating architectural decisions are captured
+- [ ] **assessment** — SWOT-style findings (strengths, weaknesses, opportunities, threats, risks, gaps) are recorded
+- [ ] **goal** — High-level intentions and desired end states are defined with priority
+- [ ] **requirement** — Specific needs that must be realized are documented (functional, non-functional, compliance, etc.)
+- [ ] **principle** — Normative guidelines governing all system implementations are listed
+- [ ] **constraint** — Hard limits and restrictions on system realization are documented
+- [ ] **outcome** — Achieved or tracked results linked to goals are recorded
+- [ ] **value** — The worth and utility delivered by the system or feature is articulated
+- [ ] **meaning** — Semantic definitions or knowledge interpretations are captured where elements need clarification
+
+If any type has ZERO elements, explicitly decide:
+  "This type doesn't apply to this codebase" with reasoning.
 
 ---
 
