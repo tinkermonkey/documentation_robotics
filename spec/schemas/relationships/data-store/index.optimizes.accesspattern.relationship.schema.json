@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Index optimizes Accesspattern",
+  "description": "Defines relationship: data-store.index optimizes data-store.accesspattern",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-store.index.optimizes.data-store.accesspattern"
+    },
+    "source_spec_node_id": {
+      "const": "data-store.index"
+    },
+    "source_layer": {
+      "const": "data-store"
+    },
+    "destination_spec_node_id": {
+      "const": "data-store.accesspattern"
+    },
+    "destination_layer": {
+      "const": "data-store"
+    },
+    "predicate": {
+      "const": "optimizes"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

@@ -1198,6 +1198,17 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.database.federates.data-store.database": {
+      "id": "data-store.database.federates.data-store.database",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
+      "predicate": "federates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.database.realizes.business.businessservice": {
       "id": "data-store.database.realizes.business.businessservice",
       "source_spec_node_id": "data-store.database",
@@ -1205,6 +1216,17 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.database.replicates.data-store.database": {
+      "id": "data-store.database.replicates.data-store.database",
+      "source_spec_node_id": "data-store.database",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.database",
+      "destination_layer": "data-store",
+      "predicate": "replicates",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1282,6 +1304,17 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.eventhandler.monitors.data-store.collection": {
+      "id": "data-store.eventhandler.monitors.data-store.collection",
+      "source_spec_node_id": "data-store.eventhandler",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "monitors",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1407,6 +1440,17 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.index.optimizes.data-store.accesspattern": {
+      "id": "data-store.index.optimizes.data-store.accesspattern",
+      "source_spec_node_id": "data-store.index",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.accesspattern",
+      "destination_layer": "data-store",
+      "predicate": "optimizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.namespace.composes.data-store.collection": {
       "id": "data-store.namespace.composes.data-store.collection",
       "source_spec_node_id": "data-store.namespace",
@@ -1502,6 +1546,17 @@
       "destination_spec_node_id": "data-store.namespace",
       "destination_layer": "data-store",
       "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.retentionpolicy.archives-to.data-store.collection": {
+      "id": "data-store.retentionpolicy.archives-to.data-store.collection",
+      "source_spec_node_id": "data-store.retentionpolicy",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "archives-to",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1693,6 +1748,17 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.storedlogic.migrates.data-store.collection": {
+      "id": "data-store.storedlogic.migrates.data-store.collection",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "migrates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.storedlogic.realizes.business.businessfunction": {
       "id": "data-store.storedlogic.realizes.business.businessfunction",
       "source_spec_node_id": "data-store.storedlogic",
@@ -1770,6 +1836,17 @@
       "strength": "medium",
       "required": false
     },
+    "data-store.storedlogic.validates.data-store.collection": {
+      "id": "data-store.storedlogic.validates.data-store.collection",
+      "source_spec_node_id": "data-store.storedlogic",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "validates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-store.validationrule.aggregates.data-store.field": {
       "id": "data-store.validationrule.aggregates.data-store.field",
       "source_spec_node_id": "data-store.validationrule",
@@ -1778,6 +1855,17 @@
       "destination_layer": "data-store",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "data-store.validationrule.cascades-to.data-store.collection": {
+      "id": "data-store.validationrule.cascades-to.data-store.collection",
+      "source_spec_node_id": "data-store.validationrule",
+      "source_layer": "data-store",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "cascades-to",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },

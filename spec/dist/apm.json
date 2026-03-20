@@ -598,7 +598,7 @@
     "span": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Span",
-      "description": "Unit of work in distributed tracing",
+      "description": "A named, timed unit of work in a distributed trace, as defined by the OpenTelemetry Trace Data Model. Each span is identified by a traceId+spanId pair, carries optional parent linkage (parentSpanId) for hierarchical trace composition, and is classified by SpanKind (SERVER, CLIENT, INTERNAL, PRODUCER, CONSUMER) indicating its role in the calling topology. The startTimeUnixNano and endTimeUnixNano bound the operation's timing window; statusCode (UNSET, OK, ERROR) is the canonical success/failure signal per OTel semantic conventions. Spans are produced via the OTel Tracer API, processed by SpanProcessors, and exported via SpanExporters.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -828,6 +828,28 @@
     }
   },
   "relationshipSchemas": {
+    "apm.alert.monitors.apm.logrecord": {
+      "id": "apm.alert.monitors.apm.logrecord",
+      "source_spec_node_id": "apm.alert",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.logrecord",
+      "destination_layer": "apm",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.alert.monitors.apm.metricinstrument": {
+      "id": "apm.alert.monitors.apm.metricinstrument",
+      "source_spec_node_id": "apm.alert",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.alert.monitors.api.operation": {
       "id": "apm.alert.monitors.api.operation",
       "source_spec_node_id": "apm.alert",
@@ -850,12 +872,67 @@
       "strength": "medium",
       "required": false
     },
+    "apm.alert.monitors.apm.span": {
+      "id": "apm.alert.monitors.apm.span",
+      "source_spec_node_id": "apm.alert",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.dashboard.monitors.apm.alert": {
+      "id": "apm.dashboard.monitors.apm.alert",
+      "source_spec_node_id": "apm.dashboard",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.alert",
+      "destination_layer": "apm",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.dashboard.monitors.apm.logrecord": {
+      "id": "apm.dashboard.monitors.apm.logrecord",
+      "source_spec_node_id": "apm.dashboard",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.logrecord",
+      "destination_layer": "apm",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.dashboard.monitors.apm.metricinstrument": {
+      "id": "apm.dashboard.monitors.apm.metricinstrument",
+      "source_spec_node_id": "apm.dashboard",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.metricinstrument",
+      "destination_layer": "apm",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "apm.dashboard.monitors.api.operation": {
       "id": "apm.dashboard.monitors.api.operation",
       "source_spec_node_id": "apm.dashboard",
       "source_layer": "apm",
       "destination_spec_node_id": "api.operation",
       "destination_layer": "api",
+      "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.dashboard.monitors.apm.span": {
+      "id": "apm.dashboard.monitors.apm.span",
+      "source_spec_node_id": "apm.dashboard",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.span",
+      "destination_layer": "apm",
       "predicate": "monitors",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -945,6 +1022,17 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "monitors",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "apm.instrumentationconfig.references.apm.exporterconfig": {
+      "id": "apm.instrumentationconfig.references.apm.exporterconfig",
+      "source_spec_node_id": "apm.instrumentationconfig",
+      "source_layer": "apm",
+      "destination_spec_node_id": "apm.exporterconfig",
+      "destination_layer": "apm",
+      "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

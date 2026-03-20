@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Validationrule cascades-to Collection",
+  "description": "Defines relationship: data-store.validationrule cascades-to data-store.collection",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-store.validationrule.cascades-to.data-store.collection"
+    },
+    "source_spec_node_id": {
+      "const": "data-store.validationrule"
+    },
+    "source_layer": {
+      "const": "data-store"
+    },
+    "destination_spec_node_id": {
+      "const": "data-store.collection"
+    },
+    "destination_layer": {
+      "const": "data-store"
+    },
+    "predicate": {
+      "const": "cascades-to"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

@@ -122,7 +122,7 @@
     "flowstep": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FlowStep",
-      "description": "One step in a navigation flow",
+      "description": "A single ordered node in a NavigationFlow, binding a sequence position to a specific route that the user must visit as part of a multi-step process. Each step carries a sequence index (determines order), a route reference, an optional required flag (whether the step may be skipped), and a waitBehavior governing whether the flow advances immediately or blocks until the step completes. FlowSteps compose into NavigationFlows that realize multi-page business processes such as checkout, onboarding, or wizards.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -255,7 +255,7 @@
     "navigationflow": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NavigationFlow",
-      "description": "Sequence of routes that realizes a business process",
+      "description": "An ordered sequence of FlowSteps that together realize a multi-step user process — such as a checkout wizard, onboarding tour, or multi-page form — by linking discrete routes into a directed path with defined entry and exit points. A NavigationFlow is the top-level container for a user journey: it groups FlowSteps, imposes traversal order, and provides the orchestration context that connects navigation structure to a business process outcome.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -329,7 +329,7 @@
     "navigationguard": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NavigationGuard",
-      "description": "Guard condition for route access",
+      "description": "A conditional interceptor that evaluates whether a user is permitted to activate a route, applied at route resolution time before the target component renders. Guards encapsulate cross-cutting access policies — authentication state, role membership, feature-flag enablement, or custom predicates — and execute in priority order (lowest order value first) when multiple guards protect the same route. A guard may allow activation, redirect the user, or block navigation entirely based on its evaluation result.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -373,7 +373,7 @@
     "navigationtransition": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "NavigationTransition",
-      "description": "Transition from one route to another",
+      "description": "A directed edge in the navigation graph representing an authorized route change from a source route to a destination route, triggered by a specific mechanism (user click, programmatic dispatch, timeout, browser-back, or redirect). Models the actual paths users traverse between states in the application — distinct from the routes themselves — enabling analysis of navigation flows, dead-end detection, and trigger-based transition policies.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -416,7 +416,7 @@
     "route": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Route",
-      "description": "Single route/destination in the application (channel-agnostic)",
+      "description": "A named, addressable destination in the application's navigation graph, representing a URL path pattern and the view or component it resolves to. Routes are the atomic unit of the navigation layer — each route maps a URL pattern to a specific UX artifact and carries an access classification (public, protected, redirect, alias, or lazy-loaded) that governs how the router handles incoming requests. Routes may be composed into NavigationFlows to model multi-step user journeys.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -545,6 +545,17 @@
       "destination_spec_node_id": "navigation.route",
       "destination_layer": "navigation",
       "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.breadcrumbconfig.tracks.navigation.navigationflow": {
+      "id": "navigation.breadcrumbconfig.tracks.navigation.navigationflow",
+      "source_spec_node_id": "navigation.breadcrumbconfig",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationflow",
+      "destination_layer": "navigation",
+      "predicate": "tracks",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1187,6 +1198,17 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.navigationguard.evaluates.navigation.guardcondition": {
+      "id": "navigation.navigationguard.evaluates.navigation.guardcondition",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.guardcondition",
+      "destination_layer": "navigation",
+      "predicate": "evaluates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.navigationguard.implements.security.securitypolicy": {
       "id": "navigation.navigationguard.implements.security.securitypolicy",
       "source_spec_node_id": "navigation.navigationguard",
@@ -1194,6 +1216,17 @@
       "destination_spec_node_id": "security.securitypolicy",
       "destination_layer": "security",
       "predicate": "implements",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.navigationguard.intercepts.navigation.navigationflow": {
+      "id": "navigation.navigationguard.intercepts.navigation.navigationflow",
+      "source_spec_node_id": "navigation.navigationguard",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "navigation.navigationflow",
+      "destination_layer": "navigation",
+      "predicate": "intercepts",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1528,6 +1561,17 @@
       "strength": "medium",
       "required": false
     },
+    "navigation.route.lazy-loads.application.applicationcomponent": {
+      "id": "navigation.route.lazy-loads.application.applicationcomponent",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.applicationcomponent",
+      "destination_layer": "application",
+      "predicate": "lazy-loads",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "navigation.route.maps-to.business.businessfunction": {
       "id": "navigation.route.maps-to.business.businessfunction",
       "source_spec_node_id": "navigation.route",
@@ -1623,6 +1667,17 @@
       "destination_spec_node_id": "api.securityscheme",
       "destination_layer": "api",
       "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "navigation.route.resolves-with.application.applicationservice": {
+      "id": "navigation.route.resolves-with.application.applicationservice",
+      "source_spec_node_id": "navigation.route",
+      "source_layer": "navigation",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "resolves-with",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

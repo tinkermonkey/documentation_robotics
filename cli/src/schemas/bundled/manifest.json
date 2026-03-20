@@ -6,88 +6,88 @@
       "number": 1,
       "name": "Motivation Layer",
       "nodeTypeCount": 10,
-      "relationshipCount": 70
+      "relationshipCount": 80
     },
     {
       "id": "business",
       "number": 2,
       "name": "Business Layer",
       "nodeTypeCount": 13,
-      "relationshipCount": 64
+      "relationshipCount": 73
     },
     {
       "id": "security",
       "number": 3,
       "name": "Security Layer",
       "nodeTypeCount": 29,
-      "relationshipCount": 170
+      "relationshipCount": 183
     },
     {
       "id": "application",
       "number": 4,
       "name": "Application Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 66
+      "relationshipCount": 77
     },
     {
       "id": "technology",
       "number": 5,
       "name": "Technology Layer",
       "nodeTypeCount": 13,
-      "relationshipCount": 116
+      "relationshipCount": 128
     },
     {
       "id": "api",
       "number": 6,
       "name": "API Layer",
       "nodeTypeCount": 27,
-      "relationshipCount": 183
+      "relationshipCount": 196
     },
     {
       "id": "data-model",
       "number": 7,
       "name": "Data Model Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 58
+      "relationshipCount": 68
     },
     {
       "id": "data-store",
       "number": 8,
       "name": "Data Store Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 97
+      "relationshipCount": 105
     },
     {
       "id": "ux",
       "number": 9,
       "name": "UX Layer",
       "nodeTypeCount": 22,
-      "relationshipCount": 183
+      "relationshipCount": 188
     },
     {
       "id": "navigation",
       "number": 10,
       "name": "Navigation Layer",
       "nodeTypeCount": 11,
-      "relationshipCount": 117
+      "relationshipCount": 122
     },
     {
       "id": "apm",
       "number": 11,
       "name": "APM Observability Layer",
       "nodeTypeCount": 15,
-      "relationshipCount": 130
+      "relationshipCount": 138
     },
     {
       "id": "testing",
       "number": 12,
       "name": "Testing Layer",
       "nodeTypeCount": 17,
-      "relationshipCount": 193
+      "relationshipCount": 202
     }
   ],
   "totals": {
     "nodeTypes": 186,
-    "relationships": 1447
+    "relationships": 1560
   }
 }

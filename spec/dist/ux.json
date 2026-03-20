@@ -1633,6 +1633,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.actioncomponent.triggers.ux.stateaction": {
+      "id": "ux.actioncomponent.triggers.ux.stateaction",
+      "source_spec_node_id": "ux.actioncomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.stateaction",
+      "destination_layer": "ux",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.actioncomponent.triggers.ux.statetransition": {
       "id": "ux.actioncomponent.triggers.ux.statetransition",
       "source_spec_node_id": "ux.actioncomponent",
@@ -1871,6 +1882,17 @@
       "destination_spec_node_id": "data-model.objectschema",
       "destination_layer": "data-model",
       "predicate": "maps-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.componentinstance.provides.ux.componentinstance": {
+      "id": "ux.componentinstance.provides.ux.componentinstance",
+      "source_spec_node_id": "ux.componentinstance",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "provides",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2249,6 +2271,17 @@
       "strength": "medium",
       "required": false
     },
+    "ux.experiencestate.associated-with.ux.view": {
+      "id": "ux.experiencestate.associated-with.ux.view",
+      "source_spec_node_id": "ux.experiencestate",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.view",
+      "destination_layer": "ux",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "ux.experiencestate.flows-to.ux.statetransition": {
       "id": "ux.experiencestate.flows-to.ux.statetransition",
       "source_spec_node_id": "ux.experiencestate",
@@ -2520,6 +2553,17 @@
       "destination_spec_node_id": "ux.statepattern",
       "destination_layer": "ux",
       "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.librarysubview.aggregates.ux.componentinstance": {
+      "id": "ux.librarysubview.aggregates.ux.componentinstance",
+      "source_spec_node_id": "ux.librarysubview",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.componentinstance",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -3213,6 +3257,17 @@
       "destination_spec_node_id": "ux.subview",
       "destination_layer": "ux",
       "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "ux.view.applies.ux.layoutconfig": {
+      "id": "ux.view.applies.ux.layoutconfig",
+      "source_spec_node_id": "ux.view",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.layoutconfig",
+      "destination_layer": "ux",
+      "predicate": "applies",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

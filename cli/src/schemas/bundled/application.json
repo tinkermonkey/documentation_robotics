@@ -432,6 +432,28 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationcollaboration.depends-on.application.dataobject": {
+      "id": "application.applicationcollaboration.depends-on.application.dataobject",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcollaboration.provides.application.applicationinterface": {
+      "id": "application.applicationcollaboration.provides.application.applicationinterface",
+      "source_spec_node_id": "application.applicationcollaboration",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationinterface",
+      "destination_layer": "application",
+      "predicate": "provides",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationcomponent.accesses.application.dataobject": {
       "id": "application.applicationcomponent.accesses.application.dataobject",
       "source_spec_node_id": "application.applicationcomponent",
@@ -450,6 +472,28 @@
       "destination_spec_node_id": "security.secureresource",
       "destination_layer": "security",
       "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.assigned-to.application.applicationfunction": {
+      "id": "application.applicationcomponent.assigned-to.application.applicationfunction",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationcomponent.assigned-to.application.applicationinterface": {
+      "id": "application.applicationcomponent.assigned-to.application.applicationinterface",
+      "source_spec_node_id": "application.applicationcomponent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationinterface",
+      "destination_layer": "application",
+      "predicate": "assigned-to",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -586,6 +630,28 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationevent.depends-on.application.dataobject": {
+      "id": "application.applicationevent.depends-on.application.dataobject",
+      "source_spec_node_id": "application.applicationevent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationevent.triggers.application.applicationcollaboration": {
+      "id": "application.applicationevent.triggers.application.applicationcollaboration",
+      "source_spec_node_id": "application.applicationevent",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationcollaboration",
+      "destination_layer": "application",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationevent.triggers.application.applicationprocess": {
       "id": "application.applicationevent.triggers.application.applicationprocess",
       "source_spec_node_id": "application.applicationevent",
@@ -681,6 +747,17 @@
       "destination_spec_node_id": "application.dataobject",
       "destination_layer": "application",
       "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationfunction.flows-to.application.applicationfunction": {
+      "id": "application.applicationfunction.flows-to.application.applicationfunction",
+      "source_spec_node_id": "application.applicationfunction",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationfunction",
+      "destination_layer": "application",
+      "predicate": "flows-to",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -938,6 +1015,17 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationprocess.flows-to.application.applicationprocess": {
+      "id": "application.applicationprocess.flows-to.application.applicationprocess",
+      "source_spec_node_id": "application.applicationprocess",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationprocess",
+      "destination_layer": "application",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationprocess.realizes.business.businessprocess": {
       "id": "application.applicationprocess.realizes.business.businessprocess",
       "source_spec_node_id": "application.applicationprocess",
@@ -1088,6 +1176,39 @@
       "destination_spec_node_id": "motivation.stakeholder",
       "destination_layer": "motivation",
       "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.dataobject.aggregates.application.dataobject": {
+      "id": "application.dataobject.aggregates.application.dataobject",
+      "source_spec_node_id": "application.dataobject",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.dataobject.composes.application.dataobject": {
+      "id": "application.dataobject.composes.application.dataobject",
+      "source_spec_node_id": "application.dataobject",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "application.dataobject.realizes.application.dataobject": {
+      "id": "application.dataobject.realizes.application.dataobject",
+      "source_spec_node_id": "application.dataobject",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.dataobject",
+      "destination_layer": "application",
+      "predicate": "realizes",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

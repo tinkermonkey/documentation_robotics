@@ -433,6 +433,28 @@
     }
   },
   "relationshipSchemas": {
+    "motivation.assessment.associated-with.motivation.constraint": {
+      "id": "motivation.assessment.associated-with.motivation.constraint",
+      "source_spec_node_id": "motivation.assessment",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.assessment.associated-with.motivation.outcome": {
+      "id": "motivation.assessment.associated-with.motivation.outcome",
+      "source_spec_node_id": "motivation.assessment",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.outcome",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "motivation.assessment.influence.motivation.assessment": {
       "id": "motivation.assessment.influence.motivation.assessment",
       "source_spec_node_id": "motivation.assessment",
@@ -554,6 +576,39 @@
       "strength": "medium",
       "required": false
     },
+    "motivation.constraint.specializes.motivation.constraint": {
+      "id": "motivation.constraint.specializes.motivation.constraint",
+      "source_spec_node_id": "motivation.constraint",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "specializes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.driver.associated-with.motivation.constraint": {
+      "id": "motivation.driver.associated-with.motivation.constraint",
+      "source_spec_node_id": "motivation.driver",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.driver.associated-with.motivation.value": {
+      "id": "motivation.driver.associated-with.motivation.value",
+      "source_spec_node_id": "motivation.driver",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "motivation.driver.influence.motivation.assessment": {
       "id": "motivation.driver.influence.motivation.assessment",
       "source_spec_node_id": "motivation.driver",
@@ -639,6 +694,17 @@
       "destination_layer": "motivation",
       "predicate": "aggregates",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.goal.associated-with.motivation.constraint": {
+      "id": "motivation.goal.associated-with.motivation.constraint",
+      "source_spec_node_id": "motivation.goal",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.constraint",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -884,6 +950,17 @@
       "strength": "medium",
       "required": false
     },
+    "motivation.principle.associated-with.motivation.value": {
+      "id": "motivation.principle.associated-with.motivation.value",
+      "source_spec_node_id": "motivation.principle",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.value",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "motivation.principle.influence.motivation.assessment": {
       "id": "motivation.principle.influence.motivation.assessment",
       "source_spec_node_id": "motivation.principle",
@@ -1093,6 +1170,28 @@
       "strength": "medium",
       "required": false
     },
+    "motivation.stakeholder.associated-with.motivation.principle": {
+      "id": "motivation.stakeholder.associated-with.motivation.principle",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.principle",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.associated-with.motivation.requirement": {
+      "id": "motivation.stakeholder.associated-with.motivation.requirement",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "motivation.stakeholder.associated-with.motivation.stakeholder": {
       "id": "motivation.stakeholder.associated-with.motivation.stakeholder",
       "source_spec_node_id": "motivation.stakeholder",
@@ -1112,6 +1211,17 @@
       "destination_layer": "motivation",
       "predicate": "associated-with",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "motivation.stakeholder.influence.motivation.assessment": {
+      "id": "motivation.stakeholder.influence.motivation.assessment",
+      "source_spec_node_id": "motivation.stakeholder",
+      "source_layer": "motivation",
+      "destination_spec_node_id": "motivation.assessment",
+      "destination_layer": "motivation",
+      "predicate": "influence",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },

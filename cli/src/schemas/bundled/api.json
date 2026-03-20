@@ -1243,6 +1243,17 @@
       "strength": "medium",
       "required": false
     },
+    "api.callback.uses.api.server": {
+      "id": "api.callback.uses.api.server",
+      "source_spec_node_id": "api.callback",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.components.aggregates.callback": {
       "id": "api.components.aggregates.callback",
       "source_spec_node_id": "api.components",
@@ -1463,6 +1474,50 @@
       "strength": "medium",
       "required": false
     },
+    "api.externaldocumentation.associated-with.api.info": {
+      "id": "api.externaldocumentation.associated-with.api.info",
+      "source_spec_node_id": "api.externaldocumentation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.info",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.externaldocumentation.serves.api.openapidocument": {
+      "id": "api.externaldocumentation.serves.api.openapidocument",
+      "source_spec_node_id": "api.externaldocumentation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.openapidocument",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.externaldocumentation.serves.api.operation": {
+      "id": "api.externaldocumentation.serves.api.operation",
+      "source_spec_node_id": "api.externaldocumentation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.externaldocumentation.serves.api.schema": {
+      "id": "api.externaldocumentation.serves.api.schema",
+      "source_spec_node_id": "api.externaldocumentation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.schema",
+      "destination_layer": "api",
+      "predicate": "serves",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.header.associated-with.api.securityscheme": {
       "id": "api.header.associated-with.api.securityscheme",
       "source_spec_node_id": "api.header",
@@ -1581,6 +1636,17 @@
       "destination_layer": "api",
       "predicate": "references",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "api.link.uses.api.server": {
+      "id": "api.link.uses.api.server",
+      "source_spec_node_id": "api.link",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1914,6 +1980,28 @@
       "strength": "medium",
       "required": false
     },
+    "api.openapidocument.references.api.externaldocumentation": {
+      "id": "api.openapidocument.references.api.externaldocumentation",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.externaldocumentation",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.openapidocument.requires.api.securityscheme": {
+      "id": "api.openapidocument.requires.api.securityscheme",
+      "source_spec_node_id": "api.openapidocument",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.securityscheme",
+      "destination_layer": "api",
+      "predicate": "requires",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "api.openapidocument.serves.application.applicationcomponent": {
       "id": "api.openapidocument.serves.application.applicationcomponent",
       "source_spec_node_id": "api.openapidocument",
@@ -2096,6 +2184,17 @@
       "source_layer": "api",
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.operation.references.api.externaldocumentation": {
+      "id": "api.operation.references.api.externaldocumentation",
+      "source_spec_node_id": "api.operation",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.externaldocumentation",
+      "destination_layer": "api",
       "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",
@@ -3186,6 +3285,50 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.servervariable.associated-with.api.parameter": {
+      "id": "api.servervariable.associated-with.api.parameter",
+      "source_spec_node_id": "api.servervariable",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.parameter",
+      "destination_layer": "api",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.servervariable.governs.api.server": {
+      "id": "api.servervariable.governs.api.server",
+      "source_spec_node_id": "api.servervariable",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.server",
+      "destination_layer": "api",
+      "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.servervariable.references.api.example": {
+      "id": "api.servervariable.references.api.example",
+      "source_spec_node_id": "api.servervariable",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.example",
+      "destination_layer": "api",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "api.servervariable.serves.api.operation": {
+      "id": "api.servervariable.serves.api.operation",
+      "source_spec_node_id": "api.servervariable",
+      "source_layer": "api",
+      "destination_spec_node_id": "api.operation",
+      "destination_layer": "api",
+      "predicate": "serves",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false

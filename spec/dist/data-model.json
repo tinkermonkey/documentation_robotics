@@ -489,6 +489,17 @@
     }
   },
   "relationshipSchemas": {
+    "data-model.arrayschema.aggregates.data-model.numericschema": {
+      "id": "data-model.arrayschema.aggregates.data-model.numericschema",
+      "source_spec_node_id": "data-model.arrayschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.numericschema",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-model.arrayschema.aggregates.data-model.objectschema": {
       "id": "data-model.arrayschema.aggregates.data-model.objectschema",
       "source_spec_node_id": "data-model.arrayschema",
@@ -511,6 +522,28 @@
       "strength": "medium",
       "required": false
     },
+    "data-model.arrayschema.aggregates.data-model.schemadefinition": {
+      "id": "data-model.arrayschema.aggregates.data-model.schemadefinition",
+      "source_spec_node_id": "data-model.arrayschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.arrayschema.aggregates.data-model.stringschema": {
+      "id": "data-model.arrayschema.aggregates.data-model.stringschema",
+      "source_spec_node_id": "data-model.arrayschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.stringschema",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-model.arrayschema.maps-to.api.response": {
       "id": "data-model.arrayschema.maps-to.api.response",
       "source_spec_node_id": "data-model.arrayschema",
@@ -522,11 +555,33 @@
       "strength": "medium",
       "required": false
     },
+    "data-model.jsonschema.aggregates.data-model.arrayschema": {
+      "id": "data-model.jsonschema.aggregates.data-model.arrayschema",
+      "source_spec_node_id": "data-model.jsonschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.arrayschema",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-model.jsonschema.aggregates.data-model.objectschema": {
       "id": "data-model.jsonschema.aggregates.data-model.objectschema",
       "source_spec_node_id": "data-model.jsonschema",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.jsonschema.aggregates.data-model.schemacomposition": {
+      "id": "data-model.jsonschema.aggregates.data-model.schemacomposition",
+      "source_spec_node_id": "data-model.jsonschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemacomposition",
       "destination_layer": "data-model",
       "predicate": "aggregates",
       "cardinality": "many-to-one",
@@ -687,6 +742,17 @@
       "strength": "medium",
       "required": false
     },
+    "data-model.objectschema.extends.data-model.objectschema": {
+      "id": "data-model.objectschema.extends.data-model.objectschema",
+      "source_spec_node_id": "data-model.objectschema",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "extends",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-model.objectschema.maps-to.api.requestbody": {
       "id": "data-model.objectschema.maps-to.api.requestbody",
       "source_spec_node_id": "data-model.objectschema",
@@ -830,6 +896,28 @@
       "strength": "medium",
       "required": false
     },
+    "data-model.schemacomposition.composes.data-model.arrayschema": {
+      "id": "data-model.schemacomposition.composes.data-model.arrayschema",
+      "source_spec_node_id": "data-model.schemacomposition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.arrayschema",
+      "destination_layer": "data-model",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemacomposition.composes.data-model.numericschema": {
+      "id": "data-model.schemacomposition.composes.data-model.numericschema",
+      "source_spec_node_id": "data-model.schemacomposition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.numericschema",
+      "destination_layer": "data-model",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "data-model.schemacomposition.composes.data-model.objectschema": {
       "id": "data-model.schemacomposition.composes.data-model.objectschema",
       "source_spec_node_id": "data-model.schemacomposition",
@@ -846,6 +934,17 @@
       "source_spec_node_id": "data-model.schemacomposition",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemacomposition.composes.data-model.stringschema": {
+      "id": "data-model.schemacomposition.composes.data-model.stringschema",
+      "source_spec_node_id": "data-model.schemacomposition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.stringschema",
       "destination_layer": "data-model",
       "predicate": "composes",
       "cardinality": "many-to-one",
@@ -1066,6 +1165,17 @@
       "source_spec_node_id": "data-model.schemaproperty",
       "source_layer": "data-model",
       "destination_spec_node_id": "data-model.objectschema",
+      "destination_layer": "data-model",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemaproperty.references.data-model.schemadefinition": {
+      "id": "data-model.schemaproperty.references.data-model.schemadefinition",
+      "source_spec_node_id": "data-model.schemaproperty",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemadefinition",
       "destination_layer": "data-model",
       "predicate": "references",
       "cardinality": "many-to-one",

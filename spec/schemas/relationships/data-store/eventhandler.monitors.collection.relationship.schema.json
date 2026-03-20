@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Eventhandler monitors Collection",
+  "description": "Defines relationship: data-store.eventhandler monitors data-store.collection",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-store.eventhandler.monitors.data-store.collection"
+    },
+    "source_spec_node_id": {
+      "const": "data-store.eventhandler"
+    },
+    "source_layer": {
+      "const": "data-store"
+    },
+    "destination_spec_node_id": {
+      "const": "data-store.collection"
+    },
+    "destination_layer": {
+      "const": "data-store"
+    },
+    "predicate": {
+      "const": "monitors"
+    },
+    "cardinality": {
+      "const": "many-to-one"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  }
+}

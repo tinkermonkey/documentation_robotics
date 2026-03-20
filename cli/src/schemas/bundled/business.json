@@ -472,6 +472,17 @@
     }
   },
   "relationshipSchemas": {
+    "business.businessactor.accesses.business.businessobject": {
+      "id": "business.businessactor.accesses.business.businessobject",
+      "source_spec_node_id": "business.businessactor",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "business.businessactor.accesses.business.contract": {
       "id": "business.businessactor.accesses.business.contract",
       "source_spec_node_id": "business.businessactor",
@@ -505,6 +516,17 @@
       "strength": "medium",
       "required": false
     },
+    "business.businesscollaboration.accesses.business.businessobject": {
+      "id": "business.businesscollaboration.accesses.business.businessobject",
+      "source_spec_node_id": "business.businesscollaboration",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "accesses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "business.businesscollaboration.composes.business.businessrole": {
       "id": "business.businesscollaboration.composes.business.businessrole",
       "source_spec_node_id": "business.businesscollaboration",
@@ -523,6 +545,28 @@
       "destination_spec_node_id": "business.businessinteraction",
       "destination_layer": "business",
       "predicate": "performs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessevent.triggers.business.businessfunction": {
+      "id": "business.businessevent.triggers.business.businessfunction",
+      "source_spec_node_id": "business.businessevent",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessevent.triggers.business.businessinteraction": {
+      "id": "business.businessevent.triggers.business.businessinteraction",
+      "source_spec_node_id": "business.businessevent",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessinteraction",
+      "destination_layer": "business",
+      "predicate": "triggers",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -758,6 +802,17 @@
       "strength": "medium",
       "required": false
     },
+    "business.businessobject.composes.business.businessobject": {
+      "id": "business.businessobject.composes.business.businessobject",
+      "source_spec_node_id": "business.businessobject",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "business.businessobject.references.application.dataobject": {
       "id": "business.businessobject.references.application.dataobject",
       "source_spec_node_id": "business.businessobject",
@@ -901,6 +956,17 @@
       "strength": "medium",
       "required": false
     },
+    "business.businessprocess.triggers.business.businessfunction": {
+      "id": "business.businessprocess.triggers.business.businessfunction",
+      "source_spec_node_id": "business.businessprocess",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessfunction",
+      "destination_layer": "business",
+      "predicate": "triggers",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "business.businessprocess.triggers.business.businessprocess": {
       "id": "business.businessprocess.triggers.business.businessprocess",
       "source_spec_node_id": "business.businessprocess",
@@ -974,6 +1040,17 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "assigned-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessrole.composes.business.businessrole": {
+      "id": "business.businessrole.composes.business.businessrole",
+      "source_spec_node_id": "business.businessrole",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessrole",
+      "destination_layer": "business",
+      "predicate": "composes",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1052,6 +1129,17 @@
       "destination_layer": "motivation",
       "predicate": "delivers-value",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "business.businessservice.delivers.business.businessobject": {
+      "id": "business.businessservice.delivers.business.businessobject",
+      "source_spec_node_id": "business.businessservice",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "delivers",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },
@@ -1170,6 +1258,17 @@
       "source_spec_node_id": "business.representation",
       "source_layer": "business",
       "destination_spec_node_id": "business.businessobject",
+      "destination_layer": "business",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "business.representation.realizes.business.contract": {
+      "id": "business.representation.realizes.business.contract",
+      "source_spec_node_id": "business.representation",
+      "source_layer": "business",
+      "destination_spec_node_id": "business.contract",
       "destination_layer": "business",
       "predicate": "realizes",
       "cardinality": "many-to-one",

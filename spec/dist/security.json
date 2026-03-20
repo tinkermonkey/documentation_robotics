@@ -1539,6 +1539,28 @@
       "strength": "medium",
       "required": false
     },
+    "security.actor.constrained-by.security.securityconstraints": {
+      "id": "security.actor.constrained-by.security.securityconstraints",
+      "source_spec_node_id": "security.actor",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securityconstraints",
+      "destination_layer": "security",
+      "predicate": "constrained-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.actor.governed-by.security.authenticationconfig": {
+      "id": "security.actor.governed-by.security.authenticationconfig",
+      "source_spec_node_id": "security.actor",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.authenticationconfig",
+      "destination_layer": "security",
+      "predicate": "governed-by",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.actor.references.security.delegation": {
       "id": "security.actor.references.security.delegation",
       "source_spec_node_id": "security.actor",
@@ -1832,6 +1854,17 @@
       "destination_spec_node_id": "security.threat",
       "destination_layer": "security",
       "predicate": "mitigates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.countermeasure.monitors.security.secureresource": {
+      "id": "security.countermeasure.monitors.security.secureresource",
+      "source_spec_node_id": "security.countermeasure",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
+      "predicate": "monitors",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2276,6 +2309,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.passwordpolicy.mandates.security.countermeasure": {
+      "id": "security.passwordpolicy.mandates.security.countermeasure",
+      "source_spec_node_id": "security.passwordpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "mandates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.passwordpolicy.mitigates.security.threat": {
       "id": "security.passwordpolicy.mitigates.security.threat",
       "source_spec_node_id": "security.passwordpolicy",
@@ -2353,6 +2397,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.policyaction.mandates.security.countermeasure": {
+      "id": "security.policyaction.mandates.security.countermeasure",
+      "source_spec_node_id": "security.policyaction",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "mandates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.policyaction.mitigates.security.threat": {
       "id": "security.policyaction.mitigates.security.threat",
       "source_spec_node_id": "security.policyaction",
@@ -2408,6 +2463,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.policyrule.generates.security.evidence": {
+      "id": "security.policyrule.generates.security.evidence",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.evidence",
+      "destination_layer": "security",
+      "predicate": "generates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.policyrule.governs.security.informationright": {
       "id": "security.policyrule.governs.security.informationright",
       "source_spec_node_id": "security.policyrule",
@@ -2415,6 +2481,17 @@
       "destination_spec_node_id": "security.informationright",
       "destination_layer": "security",
       "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.policyrule.mandates.security.countermeasure": {
+      "id": "security.policyrule.mandates.security.countermeasure",
+      "source_spec_node_id": "security.policyrule",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "mandates",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2547,6 +2624,17 @@
       "destination_spec_node_id": "security.evidence",
       "destination_layer": "security",
       "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.retentionpolicy.mandates.security.countermeasure": {
+      "id": "security.retentionpolicy.mandates.security.countermeasure",
+      "source_spec_node_id": "security.retentionpolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "mandates",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2712,6 +2800,17 @@
       "destination_spec_node_id": "security.role",
       "destination_layer": "security",
       "predicate": "constrains",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securityconstraints.enforces.security.securitypolicy": {
+      "id": "security.securityconstraints.enforces.security.securitypolicy",
+      "source_spec_node_id": "security.securityconstraints",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.securitypolicy",
+      "destination_layer": "security",
+      "predicate": "enforces",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -2892,6 +2991,17 @@
       "strength": "medium",
       "required": false
     },
+    "security.securitymodel.manages.security.threat": {
+      "id": "security.securitymodel.manages.security.threat",
+      "source_spec_node_id": "security.securitymodel",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.threat",
+      "destination_layer": "security",
+      "predicate": "manages",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "security.securitypolicy.aggregates.security.policyrule": {
       "id": "security.securitypolicy.aggregates.security.policyrule",
       "source_spec_node_id": "security.securitypolicy",
@@ -2976,6 +3086,17 @@
       "destination_spec_node_id": "security.secureresource",
       "destination_layer": "security",
       "predicate": "governs",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.securitypolicy.mandates.security.countermeasure": {
+      "id": "security.securitypolicy.mandates.security.countermeasure",
+      "source_spec_node_id": "security.securitypolicy",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "mandates",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -3173,6 +3294,28 @@
       "source_layer": "security",
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
+      "predicate": "targets",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.targets.security.informationentity": {
+      "id": "security.threat.targets.security.informationentity",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.informationentity",
+      "destination_layer": "security",
+      "predicate": "targets",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "security.threat.targets.security.secureresource": {
+      "id": "security.threat.targets.security.secureresource",
+      "source_spec_node_id": "security.threat",
+      "source_layer": "security",
+      "destination_spec_node_id": "security.secureresource",
+      "destination_layer": "security",
       "predicate": "targets",
       "cardinality": "many-to-one",
       "strength": "medium",

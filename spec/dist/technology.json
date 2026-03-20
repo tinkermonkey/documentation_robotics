@@ -476,7 +476,7 @@
     "technologyinterface": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TechnologyInterface",
-      "description": "Point of access where technology services are available",
+      "description": "Point of access where technology services are made available to consuming components, per ArchiMate 3.2 TechnologyInterface. Represents the contractual boundary of a technology service — specifying the communication protocol and interaction semantics through which infrastructure capabilities are consumed. A TechnologyInterface anchors the technical coupling point between service provider and consumer within the technology layer.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -560,7 +560,7 @@
     "technologyservice": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TechnologyService",
-      "description": "Externally visible unit of technology functionality",
+      "description": "An externally visible unit of technology functionality exposed to other technology elements, per ArchiMate 3.2 TechnologyService. Encapsulates a discrete infrastructure capability — such as compute, storage, messaging, caching, identity, or monitoring — that is made available through a defined interface. Unlike application services, a TechnologyService operates at the infrastructure tier: it is consumed by application components or other technology services, not directly by end users or business processes.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -612,6 +612,72 @@
     }
   },
   "relationshipSchemas": {
+    "technology.artifact.aggregates.technology.artifact": {
+      "id": "technology.artifact.aggregates.technology.artifact",
+      "source_spec_node_id": "technology.artifact",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.artifact.associated-with.technology.systemsoftware": {
+      "id": "technology.artifact.associated-with.technology.systemsoftware",
+      "source_spec_node_id": "technology.artifact",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.systemsoftware",
+      "destination_layer": "technology",
+      "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.artifact.composes.technology.artifact": {
+      "id": "technology.artifact.composes.technology.artifact",
+      "source_spec_node_id": "technology.artifact",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.artifact.depends-on.technology.artifact": {
+      "id": "technology.artifact.depends-on.technology.artifact",
+      "source_spec_node_id": "technology.artifact",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.artifact",
+      "destination_layer": "technology",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.artifact.flows-to.technology.technologyprocess": {
+      "id": "technology.artifact.flows-to.technology.technologyprocess",
+      "source_spec_node_id": "technology.artifact",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
+      "destination_layer": "technology",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.artifact.realizes.technology.technologyservice": {
+      "id": "technology.artifact.realizes.technology.technologyservice",
+      "source_spec_node_id": "technology.artifact",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "realizes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "technology.communicationnetwork.aggregates.technology.communicationnetwork": {
       "id": "technology.communicationnetwork.aggregates.technology.communicationnetwork",
       "source_spec_node_id": "technology.communicationnetwork",
@@ -652,6 +718,17 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "associated-with",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.communicationnetwork.connects.technology.node": {
+      "id": "technology.communicationnetwork.connects.technology.node",
+      "source_spec_node_id": "technology.communicationnetwork",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "connects",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -705,6 +782,17 @@
       "source_spec_node_id": "technology.device",
       "source_layer": "technology",
       "destination_spec_node_id": "technology.node",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.device.composes.technology.systemsoftware": {
+      "id": "technology.device.composes.technology.systemsoftware",
+      "source_spec_node_id": "technology.device",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "composes",
       "cardinality": "many-to-one",
@@ -784,6 +872,17 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.node.realizes.technology.technologyservice": {
+      "id": "technology.node.realizes.technology.technologyservice",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyservice",
+      "destination_layer": "technology",
+      "predicate": "realizes",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1613,6 +1712,17 @@
       "strength": "medium",
       "required": false
     },
+    "technology.technologyprocess.composes.technology.technologyprocess": {
+      "id": "technology.technologyprocess.composes.technology.technologyprocess",
+      "source_spec_node_id": "technology.technologyprocess",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "technology.technologyprocess.realizes.technology.technologyservice": {
       "id": "technology.technologyprocess.realizes.technology.technologyservice",
       "source_spec_node_id": "technology.technologyprocess",
@@ -1646,6 +1756,17 @@
       "strength": "medium",
       "required": false
     },
+    "technology.technologyprocess.uses.technology.technologyinterface": {
+      "id": "technology.technologyprocess.uses.technology.technologyinterface",
+      "source_spec_node_id": "technology.technologyprocess",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyinterface",
+      "destination_layer": "technology",
+      "predicate": "uses",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "technology.technologyservice.accesses.security.secureresource": {
       "id": "technology.technologyservice.accesses.security.secureresource",
       "source_spec_node_id": "technology.technologyservice",
@@ -1662,6 +1783,17 @@
       "source_spec_node_id": "technology.technologyservice",
       "source_layer": "technology",
       "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "aggregates",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "technology.technologyservice.aggregates.technology.technologyprocess": {
+      "id": "technology.technologyservice.aggregates.technology.technologyprocess",
+      "source_spec_node_id": "technology.technologyservice",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "aggregates",
       "cardinality": "many-to-one",
