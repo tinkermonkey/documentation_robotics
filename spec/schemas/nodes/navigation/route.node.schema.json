@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Route",
-  "description": "Single route/destination in the application (channel-agnostic)",
+  "description": "A named, addressable destination in the application's navigation graph, representing a URL path pattern and the view or component it resolves to. Routes are the atomic unit of the navigation layer — each route maps a URL pattern to a specific UX artifact and carries an access classification (public, protected, redirect, alias, or lazy-loaded) that governs how the router handles incoming requests. Routes may be composed into NavigationFlows to model multi-step user journeys.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyService",
-  "description": "Externally visible unit of technology functionality",
+  "description": "An externally visible unit of technology functionality exposed to other technology elements, per ArchiMate 3.2 TechnologyService. Encapsulates a discrete infrastructure capability — such as compute, storage, messaging, caching, identity, or monitoring — that is made available through a defined interface. Unlike application services, a TechnologyService operates at the infrastructure tier: it is consumed by application components or other technology services, not directly by end users or business processes.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

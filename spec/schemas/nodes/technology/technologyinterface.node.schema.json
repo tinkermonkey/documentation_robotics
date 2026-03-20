@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TechnologyInterface",
-  "description": "Point of access where technology services are available",
+  "description": "Point of access where technology services are made available to consuming components, per ArchiMate 3.2 TechnologyInterface. Represents the contractual boundary of a technology service — specifying the communication protocol and interaction semantics through which infrastructure capabilities are consumed. A TechnologyInterface anchors the technical coupling point between service provider and consumer within the technology layer.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

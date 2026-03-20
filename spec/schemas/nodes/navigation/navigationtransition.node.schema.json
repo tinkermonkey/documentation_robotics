@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NavigationTransition",
-  "description": "Transition from one route to another",
+  "description": "A directed edge in the navigation graph representing an authorized route change from a source route to a destination route, triggered by a specific mechanism (user click, programmatic dispatch, timeout, browser-back, or redirect). Models the actual paths users traverse between states in the application — distinct from the routes themselves — enabling analysis of navigation flows, dead-end detection, and trigger-based transition policies.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

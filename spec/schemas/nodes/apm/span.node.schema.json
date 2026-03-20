@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Span",
-  "description": "Unit of work in distributed tracing",
+  "description": "A named, timed unit of work in a distributed trace, as defined by the OpenTelemetry Trace Data Model. Each span is identified by a traceId+spanId pair, carries optional parent linkage (parentSpanId) for hierarchical trace composition, and is classified by SpanKind (SERVER, CLIENT, INTERNAL, PRODUCER, CONSUMER) indicating its role in the calling topology. The startTimeUnixNano and endTimeUnixNano bound the operation's timing window; statusCode (UNSET, OK, ERROR) is the canonical success/failure signal per OTel semantic conventions. Spans are produced via the OTel Tracer API, processed by SpanProcessors, and exported via SpanExporters.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

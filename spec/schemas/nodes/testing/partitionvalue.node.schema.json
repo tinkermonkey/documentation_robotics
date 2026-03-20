@@ -27,10 +27,12 @@
           "type": "string"
         },
         "constraint": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable description of the condition this partition boundary represents (e.g., 'must be between 0 and 100', 'must not be null or empty')."
         },
         "constraintExpression": {
-          "type": "string"
+          "type": "string",
+          "description": "Machine-evaluable expression encoding the partition boundary condition (e.g., a regex pattern, JSONPath predicate, or comparison expression such as 'value >= 0 && value <= 100')."
         },
         "category": {
           "type": "string",

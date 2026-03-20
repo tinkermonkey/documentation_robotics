@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NavigationFlow",
-  "description": "Sequence of routes that realizes a business process",
+  "description": "An ordered sequence of FlowSteps that together realize a multi-step user process — such as a checkout wizard, onboarding tour, or multi-page form — by linking discrete routes into a directed path with defined entry and exit points. A NavigationFlow is the top-level container for a user journey: it groups FlowSteps, imposes traversal order, and provides the orchestration context that connects navigation structure to a business process outcome.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

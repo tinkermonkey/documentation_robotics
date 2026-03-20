@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NavigationGuard",
-  "description": "Guard condition for route access",
+  "description": "A conditional interceptor that evaluates whether a user is permitted to activate a route, applied at route resolution time before the target component renders. Guards encapsulate cross-cutting access policies — authentication state, role membership, feature-flag enablement, or custom predicates — and execute in priority order (lowest order value first) when multiple guards protect the same route. A guard may allow activation, redirect the user, or block navigation entirely based on its evaluation result.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"

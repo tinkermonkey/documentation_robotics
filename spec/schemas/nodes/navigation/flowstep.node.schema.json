@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "FlowStep",
-  "description": "One step in a navigation flow",
+  "description": "A single ordered node in a NavigationFlow, binding a sequence position to a specific route that the user must visit as part of a multi-step process. Each step carries a sequence index (determines order), a route reference, an optional required flag (whether the step may be skipped), and a waitBehavior governing whether the flow advances immediately or blocks until the step completes. FlowSteps compose into NavigationFlows that realize multi-page business processes such as checkout, onboarding, or wizards.",
   "allOf": [
     {
       "$ref": "../../base/spec-node.schema.json"
