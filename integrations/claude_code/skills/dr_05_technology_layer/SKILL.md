@@ -102,7 +102,8 @@ Given what you see in the codebase, which spec type does it become?
 
 | What You See in the Codebase | Spec Type | Required Attribute | Example ID |
 |---|---|---|---|
-| npm library (`react-flow`, `zustand`, `dagre`) | `artifact` | `artifactType: library` | `technology.artifact.react-flow` |
+| Framework-grade npm library (see heuristic below) | `systemsoftware` | `softwareType: middleware` | `technology.systemsoftware.zustand` |
+| Utility npm library (see heuristic below) | `artifact` | `artifactType: library` | `technology.artifact.jszip` |
 | JavaScript/CSS framework (`react`, `tailwindcss`) | `systemsoftware` | `softwareType: middleware` | `technology.systemsoftware.react` |
 | Language runtime (`node.js`, `python`, `bun`) | `systemsoftware` | `softwareType: middleware` | `technology.systemsoftware.nodejs` |
 | Container runtime (`docker`) | `systemsoftware` | `softwareType: container-runtime` | `technology.systemsoftware.docker` |
@@ -119,6 +120,18 @@ Given what you see in the codebase, which spec type does it become?
 | Off-thread Web Worker | `technologyfunction` | — | `technology.technologyfunction.off-thread-layout` |
 | Group of nodes/services working together | `technologycollaboration` | — | `technology.technologycollaboration.ci-cd-suite` |
 
+### Framework-Grade Library vs. Utility Library
+
+When a package is an npm library, ask: does it fundamentally define the application's runtime capabilities (rendering engine, state management, routing, layout)?
+
+**YES — use `systemsoftware` (softwareType: middleware):**
+`react`, `vue`, `angular`, `@xyflow/react`, `zustand`, `@tanstack/react-router`, `@tanstack/react-query`, `tailwindcss`, `elkjs`, `dagre`, `d3-force`, `@hpcc-js/wasm`, `libavoid-js`
+
+**NO — use `artifact` (artifactType: library):**
+Utility helpers (`lodash`, `date-fns`), export utilities (`jszip`, `html-to-image`), markdown renderers (`react-markdown`), polyfills, adapters
+
+The distinction: `systemsoftware` = runtime platform the app is built **on**; `artifact` = code the app uses for a specific utility capability.
+
 ---
 
 ## Frontend / SPA Codebase Detection Patterns
@@ -132,7 +145,14 @@ These patterns cover the actual structure of browser-based React/TypeScript SPAs
   "dependencies": {
     "@xyflow/react": "12.9.3",
     "zustand": "5.0.8",
-    "react": "19.2.0"
+    "react": "19.2.0",
+    "@tanstack/react-query": "5.51.0",
+    "libavoid-js": "0.5.0-beta.5",
+    "@hpcc-js/wasm": "2.30.0",
+    "jszip": "3.10.1",
+    "html-to-image": "1.11.13",
+    "react-markdown": "9.0.1",
+    "msw": "2.6.8"
   },
   "devDependencies": {
     "vite": "7.2.4",
@@ -142,8 +162,16 @@ These patterns cover the actual structure of browser-based React/TypeScript SPAs
 }
 ```
 
-→ Each runtime library dependency → `technology.artifact.{name}` (artifactType: library)
 → `react` → `technology.systemsoftware.react` (softwareType: middleware)
+→ `@xyflow/react` → `technology.systemsoftware.react-flow` (softwareType: middleware — graph rendering engine)
+→ `zustand` → `technology.systemsoftware.zustand` (softwareType: middleware — state management)
+→ `@tanstack/react-query` → `technology.systemsoftware.react-query` (softwareType: middleware — server state management)
+→ `libavoid-js` → `technology.systemsoftware.libavoid-js` (softwareType: middleware — WASM edge routing)
+→ `@hpcc-js/wasm` → `technology.systemsoftware.graphviz-wasm` (softwareType: middleware — graph layout WASM)
+→ `jszip` → `technology.artifact.jszip` (artifactType: library — ZIP export utility)
+→ `html-to-image` → `technology.artifact.html-to-image` (artifactType: library — PNG/SVG export utility)
+→ `react-markdown` → `technology.artifact.react-markdown` (artifactType: library — markdown rendering utility)
+→ `msw` → `technology.technologyprocess.msw` (Mock Service Worker — test tooling process)
 → `vite` → `technology.technologyprocess.vite` (build tool)
 → `typescript` → `technology.systemsoftware.typescript` (softwareType: middleware — compiler)
 → `eslint` → `technology.technologyprocess.eslint` (linting process)

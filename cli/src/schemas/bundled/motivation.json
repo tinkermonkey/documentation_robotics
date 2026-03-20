@@ -88,7 +88,14 @@
             },
             "constraintType": {
               "type": "string",
-              "enum": ["regulatory", "technical", "organizational", "time-based", "financial"],
+              "enum": [
+                "regulatory",
+                "technical",
+                "organizational",
+                "time-based",
+                "financial",
+                "external"
+              ],
               "description": "Category of constraint restricting the solution space"
             },
             "properties": {
@@ -135,7 +142,9 @@
                 "operational",
                 "strategic",
                 "competitive",
-                "technological"
+                "technological",
+                "business",
+                "technical"
               ],
               "description": "Category of the motivating condition or force"
             }
@@ -292,7 +301,8 @@
                 "security",
                 "operational",
                 "financial",
-                "integration"
+                "integration",
+                "development"
               ],
               "description": "Domain area to which this architectural principle applies"
             },
@@ -380,7 +390,15 @@
             },
             "type": {
               "type": "string",
-              "enum": ["internal", "external", "regulatory", "customer", "sponsor", "end-user"],
+              "enum": [
+                "internal",
+                "external",
+                "regulatory",
+                "customer",
+                "sponsor",
+                "end-user",
+                "system"
+              ],
               "description": "Classification of the stakeholder's relationship to the organization"
             }
           },

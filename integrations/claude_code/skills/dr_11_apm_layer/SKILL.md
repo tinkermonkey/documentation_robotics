@@ -41,6 +41,44 @@ This layer uses **OpenTelemetry 1.0+** (industry standard for observability).
 
 ---
 
+## Pre-Extraction Verification
+
+Before extracting APM elements, verify what level of observability the codebase ACTUALLY implements. Do not model aspirational instrumentation.
+
+### Step 1: Check for OTel SDK
+
+```bash
+grep "@opentelemetry" package.json
+```
+
+**If NO OTel SDK found:**
+- Do NOT add `MetricInstrument`, `Span`, `TraceConfiguration`, or `ExporterConfig` elements as if they are implemented
+- ONLY model what exists: browser console logging (`LogConfiguration`), UI-displayed metrics (describe in element description that export is absent)
+- Mark all elements `provenance: inferred` and add a note in the description: "Metric concept identified; no OTel export implemented."
+
+**If OTel SDK IS found:**
+- Proceed with full extraction of all APM types
+
+### Step 2: Identify what observability actually exists
+
+Even without OTel, codebases may have:
+- Browser console error logging → `apm.logconfiguration`
+- UI-visible token/usage counters → `apm.metricinstrument` (with note: display-only, not exported)
+- Error tracking utilities → `apm.instrumentationconfig` (type: manual)
+- In-memory state tracking → `apm.metricinstrument` (inferred, note: in-memory only)
+
+### In-UI Observability vs. OTel Instrumentation
+
+| Pattern | Model as | provenance |
+|---|---|---|
+| `console.error()` logging | `logconfiguration` | extracted |
+| UI badge showing token count | `metricinstrument` (note: display-only) | inferred |
+| Store tracks reconnection count | `metricinstrument` (note: in-memory only) | inferred |
+| `opentelemetry.createCounter()` | `metricinstrument` | extracted |
+| Prometheus export endpoint | `exporterconfig` | extracted |
+
+---
+
 ## Entity Types
 
 > **CLI Introspection:** Run `dr schema types apm` for the authoritative, always-current list of node types.

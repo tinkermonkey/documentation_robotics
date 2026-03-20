@@ -548,8 +548,13 @@ dr add api openapidocument "payment-api" \
   --description "API for processing customer payments"
 
 # Add API metadata
+# NOTE: api.info requires a companion api.openapidocument to avoid orphan warnings.
+# Always create api.openapidocument first, then link api.info to it via composes.
 dr add api info "payment-api-info" \
   --description "API metadata and contact information"
+
+dr relationship add api.openapidocument.payment-api \
+  api.info.payment-api-info --predicate composes
 
 # Link to motivation layer
 dr relationship add api.openapidocument.payment-api \

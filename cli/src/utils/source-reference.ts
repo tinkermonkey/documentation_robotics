@@ -26,7 +26,12 @@ export function validateSourceReferenceOptions(options: SourceReferenceOptions):
     options.sourceRepoCommit;
 
   if (!hasSourceOptions) {
-    return; // No source options provided
+    if (process.stderr.isTTY) {
+      console.warn(
+        "Warning: no source provenance specified. Add --source-file and --source-provenance to maintain traceability for drift detection and /dr-sync workflows."
+      );
+    }
+    return;
   }
 
   // If any source option provided, require file and provenance

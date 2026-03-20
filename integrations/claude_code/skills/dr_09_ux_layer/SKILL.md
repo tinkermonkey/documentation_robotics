@@ -167,6 +167,61 @@ EXPERIENCE TIER — specific to a view or experience
 
 ---
 
+## React Flow / Graph Visualization Patterns
+
+When the codebase uses a graph visualization library (React Flow, D3, Cytoscape), apply these patterns in addition to the standard UX decision tree.
+
+### Configuration-Driven Node Renderer
+
+```tsx
+// src/core/nodes/components/UnifiedNode.tsx
+export function UnifiedNode({ data }: NodeProps<UnifiedNodeData>) {
+  const config = nodeConfigLoader.get(data.elementType);
+  return <div style={config.styles}>{data.name}</div>;
+}
+// src/core/nodes/nodeConfig.json  ← drives all 20 node type styles
+```
+
+→ `UnifiedNode.tsx` → `ux.librarycomponent.unified-node` (type: graph-node)
+→ `nodeConfig.json` → `data-model.objectschema.node-config`
+→ Do NOT create 20 separate elements for each node type in the config — the configuration-driven system as a whole is one `librarycomponent`
+
+### Custom Edge Type
+
+```tsx
+// src/core/edges/ElbowEdge.tsx
+export function ElbowEdge(props: EdgeProps) { ... }
+```
+
+→ `ux.librarycomponent.elbow-edge` (type: graph-edge)
+→ Each distinct custom edge type → one `librarycomponent`
+
+### Layer Container / Swimlane Node
+
+```tsx
+// src/core/nodes/LayerContainerNode.tsx
+export function LayerContainerNode({ data }: NodeProps) { ... }
+```
+
+→ `ux.librarycomponent.layer-container-node` (type: graph-container)
+
+### Graph Canvas Component
+
+```tsx
+// src/core/components/GraphViewer.tsx
+export function GraphViewer({ nodes, edges }) {
+  return <ReactFlow nodeTypes={nodeTypes} edgeTypes={edgeTypes} />;
+}
+```
+
+→ Already captured in the application layer as `ApplicationComponent`. Do NOT add it again as a UX element — the `ux.view.*` that represents the graph page already serves this purpose in the UX layer.
+
+### Sub-components (field lists, tooltips, badges)
+
+`FieldList.tsx`, `FieldTooltip.tsx`, `RelationshipBadge.tsx`, `BadgeRenderer.tsx` are internal implementation details of `UnifiedNode`. Do NOT add them as separate `librarycomponent` entries.
+
+---
+
 ## Common Commands
 
 ```bash

@@ -122,15 +122,41 @@ export class ValidationFormatter {
       });
     }
 
-    // Warning details
-    if (result.warnings.length > 0) {
+    // Warning details — split schema/semantic warnings from connectivity (orphan) warnings
+    const schemaWarnings = result.warnings.filter((w) => w.category !== "orphan");
+    const orphanWarnings = result.warnings.filter((w) => w.category === "orphan");
+
+    if (schemaWarnings.length > 0) {
       lines.push(ansis.bold("Warnings:"));
       lines.push("");
-      result.warnings.forEach((warning, index) => {
+      schemaWarnings.forEach((warning, index) => {
         lines.push(`${index + 1}. ${warning.message}`);
         if (warning.location) {
           lines.push(`   ${ansis.dim(`File: ${warning.location}`)}`);
         }
+        if (warning.elementId) {
+          lines.push(`   ${ansis.dim(`Element: ${warning.elementId}`)}`);
+        }
+        if (warning.fixSuggestion) {
+          lines.push(`   ${ansis.dim(`→ Suggestion: ${warning.fixSuggestion}`)}`);
+        }
+        lines.push("");
+      });
+    }
+
+    if (orphanWarnings.length > 0) {
+      lines.push(ansis.bold("Connectivity Warnings:"));
+      lines.push(
+        ansis.dim(
+          `  ${orphanWarnings.length} element(s) have no cross-layer references or intra-layer relationships.`
+        )
+      );
+      lines.push(
+        ansis.dim("  These are connectivity gaps, not structural errors — the model schema is valid.")
+      );
+      lines.push("");
+      orphanWarnings.forEach((warning, index) => {
+        lines.push(`${index + 1}. ${warning.message}`);
         if (warning.elementId) {
           lines.push(`   ${ansis.dim(`Element: ${warning.elementId}`)}`);
         }

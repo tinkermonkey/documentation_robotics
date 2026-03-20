@@ -26,7 +26,7 @@
         "scope": {
           "type": "string",
           "enum": ["read-only", "write", "admin", "delegated", "conditional"],
-          "description": "Breadth of access granted by this permission, from narrow read-only to full administrative control."
+          "description": "Access level granted by this permission, ranging from read-only to full administrative control."
         },
         "resource": {
           "type": "string"

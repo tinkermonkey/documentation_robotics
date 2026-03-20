@@ -31,7 +31,9 @@
             "operational",
             "strategic",
             "competitive",
-            "technological"
+            "technological",
+            "business",
+            "technical"
           ],
           "description": "Category of the motivating condition or force"
         }

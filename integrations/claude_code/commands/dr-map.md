@@ -196,6 +196,15 @@ find <path> -type f -name "*api*" -o -name "*route*" -o -name "*controller*" | h
 
 # Check for database files
 find <path> -type f -name "*model*" -o -name "*schema*" -o -name "*.sql" | head -10
+
+# Detect graph visualization libraries (React Flow, Cytoscape, D3, etc.)
+grep -l "@xyflow\|react-flow\|d3\|cytoscape\|vis-network" <path>/package.json 2>/dev/null
+
+# If React Flow detected, expand scan to include graph subsystem directories:
+find <path>/src/core/nodes -type f -name "*.tsx" 2>/dev/null | head -20
+find <path>/src/core/edges -type f -name "*.tsx" 2>/dev/null | head -10
+find <path>/src/core/layout -type f 2>/dev/null | head -10
+ls <path>/src/core/nodes/nodeConfig.json 2>/dev/null
 ```
 
 Show user what you found:
@@ -209,6 +218,13 @@ Detected:
 ✓ API: 8 route files detected
 ✓ Database: SQLAlchemy models found (12 files)
 ✓ Tests: npm test structure detected
+
+[If React Flow detected, also show:]
+✓ Graph Visualization: React Flow detected (@xyflow/react)
+  → Will scan src/core/nodes/ for custom node types
+  → Will scan src/core/edges/ for custom edge types
+  → Will scan src/core/layout/ for layout engines
+  → Will check for nodeConfig.json configuration registry
 
 Estimated extraction:
 - Business services: ~5
@@ -306,6 +322,14 @@ For Data Model Layer:
 - Parse ORM models (SQLAlchemy, TypeORM, JPA, etc.)
 - Extract JSON schemas if present
 - Document relationships
+
+For React Flow Applications (when `@xyflow/react` detected in package.json):
+- Scan `src/core/nodes/` or similar for custom node components → `ux.librarycomponent` (type: graph-node)
+- Look for a unified/shared node component that is configuration-driven → single `ux.librarycomponent` entry (do NOT create one per node type)
+- Scan `src/core/edges/` for custom edge types → `ux.librarycomponent` (type: graph-edge)
+- Scan `src/core/layout/engines/` for LayoutEngine class implementations → `application.applicationcomponent` (type: internal)
+- Look for standalone layout utility files (e.g., `verticalLayerLayout.ts`) → `application.applicationfunction`
+- Check for `nodeConfig.json` or similar configuration registry → `data-model.objectschema`
 
 **Output Format:**
 

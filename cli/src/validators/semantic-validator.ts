@@ -84,8 +84,54 @@ export class SemanticValidator {
     await this.ensurePredicatesLoaded();
 
     this.validateRelationshipPredicates(model, result);
+    this.validateApmInferredWithoutSdk(model, result);
 
     return result;
+  }
+
+  /**
+   * Rule: apm_inferred_without_sdk
+   *
+   * When the APM layer contains MetricInstrument, Span, TraceConfiguration, or
+   * ExporterConfig elements and ALL of them have source_reference.provenance = "inferred",
+   * emit a WARNING suggesting OTel SDK verification.
+   *
+   * Rationale: The APM skill's checklist can cause Claude to add instrumentation
+   * elements without verifying that an OTel SDK is present. This validator surfaces
+   * the accuracy concern on every subsequent `dr validate` run.
+   */
+  private validateApmInferredWithoutSdk(model: Model, result: ValidationResult): void {
+    const apmLayer = model.layers.get("apm");
+    if (!apmLayer) {
+      return;
+    }
+
+    const instrumentationTypes = new Set(["metricinstrument", "span", "traceconfiguration", "exporterconfig"]);
+    const instrumentationElements = apmLayer.listElements().filter((e) =>
+      instrumentationTypes.has(e.type)
+    );
+
+    if (instrumentationElements.length === 0) {
+      return;
+    }
+
+    const allInferred = instrumentationElements.every(
+      (e) => e.source_reference?.provenance === "inferred"
+    );
+
+    if (allInferred) {
+      result.addWarning({
+        layer: "apm",
+        elementId: "apm.*",
+        message:
+          `All ${instrumentationElements.length} APM instrumentation element(s) have provenance: inferred. ` +
+          "If no @opentelemetry SDK exists in package.json, these elements are aspirational rather than " +
+          "implemented. Consider marking them as such in their descriptions.",
+        fixSuggestion:
+          "Run: grep '@opentelemetry' package.json — if absent, update element descriptions to note " +
+          "that instrumentation is aspirational and no OTel export is implemented.",
+      });
+    }
   }
 
   /**

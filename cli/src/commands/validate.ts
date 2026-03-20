@@ -181,6 +181,7 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
         message: `Element '${orphanId}' is orphaned (no cross-layer references or intra-layer relationships)`,
         layer: orphanId.split(".")[0] ?? "",
         elementId: orphanId,
+        category: "orphan",
         fixSuggestion: "Add cross-layer references or relationships to connect this element to the rest of the model",
       });
     }

@@ -67,8 +67,9 @@ IS this a React component, UI widget, or view?
   → ApplicationComponent (type: generic) — link to ux.component.* for UI detail
 
 IS this a Zustand store, Redux slice, or other state container?
-  → ApplicationComponent (type: generic, subtype: state-container)
-  NOT ApplicationService — stores are not services in the ArchiMate sense
+  → ApplicationFunction (performs automated state management behavior)
+  NOT ApplicationComponent — stores are behavior, not deployable modules
+  Cross-reference: assign the function to the parent ApplicationComponent that owns it
 
 IS this a class/function that provides a capability to other parts of the system
   (business logic, data transformation, orchestration)?
@@ -85,6 +86,11 @@ IS this a stateless, single-purpose algorithm or behavior
 IS this a multi-step workflow, pipeline, or saga
   (load → parse → validate → render)?
   → ApplicationProcess
+  NOTE: Use ApplicationProcess for orchestration logic triggered by navigation
+  (data loading pipelines, guards that orchestrate multiple async operations).
+  Use navigation.route for route definitions that map URL patterns to views.
+  If a route component is purely declarative (no significant orchestration logic),
+  it belongs only in navigation.route — not ApplicationProcess.
 
 IS this a state change notification or domain event
   (model.updated, annotation.added)?
@@ -95,7 +101,7 @@ IS this a data structure, DTO, or typed payload
   → DataObject
 
 IS this a collection of components that together form a subsystem
-  (all layout engines, all Zustand stores)?
+  (all layout engines, all application services)?
   → ApplicationCollaboration
 ```
 
@@ -107,11 +113,14 @@ Explicit DO NOT rules with rationale:
 
 | Misclassification | Correct Classification | Why |
 |---|---|---|
-| Zustand store as `ApplicationService` | `ApplicationComponent` (type: generic, subtype: state-container) | Stores are not services — they don't expose a business capability |
+| Zustand store as `ApplicationService` | `ApplicationFunction` (performs automated state management behavior) | Stores are behavior, not deployable modules — assign to parent ApplicationComponent |
+| Zustand store as `ApplicationComponent` | `ApplicationFunction` (performs automated state management behavior) | ArchiMate `ApplicationFunction` = "automated behavior performed by a component" — maps exactly to Zustand stores |
 | WebSocket client as `ApplicationService` | `ApplicationInterface` (protocol: WebSocket) | A WebSocket connection is an interface/access point, not a service |
 | Layout algorithm as `ApplicationService` | `ApplicationFunction` | Stateless algorithm = function, not a service with a contract |
+| Layout engine CLASS as `ApplicationFunction` | `ApplicationComponent` (type: internal) | A class implementing an interface IS a deployable, replaceable module — not a stateless function |
 | Export function as `ApplicationService` | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service |
 | React UI component as `ApplicationService` | `ApplicationComponent` (type: generic) with UX cross-reference | UI components are components; link to UX layer for rendering details |
+| Fetch interceptor / auth header injector | `ApplicationFunction` | Stateless function that wraps fetch — NOT a service; cross-reference `security.securitypolicy.*` |
 
 ---
 
@@ -646,8 +655,9 @@ export const useModelStore = create<ModelStoreState>((set) => ({
 }));
 ```
 
-→ `ApplicationComponent` (type: generic, subtype: state-container)
-→ NOT `ApplicationService` — stores don't expose a business capability
+→ `ApplicationFunction` (performs automated state management behavior)
+→ NOT `ApplicationComponent` — stores are behavior, not deployable modules
+→ Cross-reference: assign to the parent `ApplicationComponent` that owns the store
 
 ### Pattern: Stateless Service / Utility (parser, transformer)
 
@@ -670,15 +680,27 @@ ws.on('model.updated', handler);
 → `ApplicationInterface` (protocol: WebSocket) — the ws connection is the interface
 → `ApplicationEvent` for each event type: `model.updated`, `annotation.added`, `changeset.created`
 
-### Pattern: Layout Engine (algorithm)
+### Pattern: Layout Engine Class (implements interface)
 
 ```typescript
-// src/core/services/layerLayoutConfig.ts
-function dagreLayout(nodes: Node[], edges: Edge[]): PositionedGraph { ... }
+// src/core/layout/engines/DagreLayoutEngine.ts
+export class DagreLayoutEngine implements LayoutEngine {
+  async layout(nodes: Node[], edges: Edge[]): Promise<PositionedGraph> { ... }
+}
 ```
 
-→ `ApplicationFunction` — pure algorithm, no external contract
-→ NOT `ApplicationService`
+→ `ApplicationComponent` (type: internal) — it IS a deployable, replaceable module
+→ NOT `ApplicationFunction` — it has class structure, implements an interface, has state
+
+### Pattern: Layout Utility (pure function)
+
+```typescript
+// src/core/layout/verticalLayerLayout.ts
+export function computeVerticalLayout(layers: Layer[]): LayoutResult { ... }
+```
+
+→ `ApplicationFunction` — stateless algorithm, no interface
+→ Capture even if standalone (not in an engines/ directory)
 
 ### Pattern: Multi-step Loading Pipeline
 
@@ -694,6 +716,23 @@ async function loadModel(source: DataSource): Promise<void> {
 ```
 
 → `ApplicationProcess` (orchestration pipeline: fetch → parse → validate → transform → store)
+
+### Pattern: Fetch Interceptor
+
+```typescript
+// src/apps/embedded/utils/fetchInterceptor.ts
+export function interceptFetch(token: string) {
+  window.fetch = async (url, options = {}) => {
+    return originalFetch(url, { ...options,
+      headers: { ...options.headers, Authorization: `Bearer ${token}` }
+    });
+  };
+}
+```
+
+→ `ApplicationFunction`
+→ source-provenance: extracted
+→ Relationship: `security.securitypolicy.bearer-token-policy` (governed-by)
 
 ### Pattern: Data Transfer Object / Interface
 
@@ -712,14 +751,14 @@ export interface Annotation { id: string; elementId: string; content: string; }
 Before declaring application layer extraction complete, verify ALL 9 entity types have been considered:
 
 ```
-□ ApplicationComponent — deployable units, UI components, state containers (Zustand stores)
+□ ApplicationComponent — deployable units, UI components, layout engine classes (NOT Zustand stores — those are ApplicationFunction)
 □ ApplicationService — capabilities with a business contract (data loader, parser service)
 □ ApplicationInterface — access points: WebSocket endpoint, REST interface, postMessage bridge
-□ ApplicationFunction — stateless algorithms: parse, validate, transform, export, layout
+□ ApplicationFunction — stateless algorithms: parse, validate, transform, export, layout; Zustand/Redux stores (state management behavior); fetch interceptors
 □ ApplicationProcess — multi-step pipelines: loading pipeline, export pipeline
 □ ApplicationEvent — state change notifications: model.updated, annotation.added, user events
 □ DataObject — key data structures: ModelData, Annotation, Changeset, GraphNode, LayoutPreset
-□ ApplicationCollaboration — component groupings: layout engine suite, state management layer
+□ ApplicationCollaboration — component groupings: layout engine suite (groups of deployable ApplicationComponents)
 □ ApplicationInteraction — collective behaviors across multiple components (if applicable)
 
 If any type has ZERO elements, explicitly decide:

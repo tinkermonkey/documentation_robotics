@@ -173,10 +173,26 @@ export async function schemaRelationshipCommand(
 ): Promise<void> {
   try {
     if (!isValidSpecNodeId(sourceType)) {
+      const hints = ["Expected format: {layer}.{type} (e.g., motivation.goal, api.endpoint)"];
+
+      const matches: string[] = [];
+      for (const layerId of getAllLayerIds()) {
+        for (const nodeType of getNodeTypesForLayer(layerId)) {
+          if (nodeType.type === sourceType.toLowerCase()) {
+            matches.push(nodeType.specNodeId);
+          }
+        }
+      }
+      if (matches.length === 1) {
+        hints.push(`Did you mean: ${matches[0]}?`);
+      } else if (matches.length > 1) {
+        hints.push(`Did you mean one of: ${matches.join(", ")}?`);
+      }
+
       throw new CLIError(
         `Invalid spec node ID format: ${sourceType}`,
         ErrorCategory.USER,
-        ["Expected format: {layer}.{type} (e.g., motivation.goal, api.endpoint)"]
+        hints
       );
     }
 

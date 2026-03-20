@@ -569,7 +569,7 @@
               "type": "string"
             },
             "droppedAttributesCount": {
-              "type": "string"
+              "type": "integer"
             },
             "serviceName": {
               "type": "string",

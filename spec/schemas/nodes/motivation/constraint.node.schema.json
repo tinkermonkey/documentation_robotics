@@ -25,7 +25,7 @@
         },
         "constraintType": {
           "type": "string",
-          "enum": ["regulatory", "technical", "organizational", "time-based", "financial"],
+          "enum": ["regulatory", "technical", "organizational", "time-based", "financial", "external"],
           "description": "Category of constraint restricting the solution space"
         },
         "properties": {
