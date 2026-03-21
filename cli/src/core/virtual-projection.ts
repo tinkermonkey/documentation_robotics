@@ -11,6 +11,7 @@
 import type { Model } from "./model.js";
 import type { Layer } from "./layer.js";
 import type { Element } from "./element.js";
+import type { SourceReference, ElementMetadata } from "../types/index.js";
 import type { Manifest } from "./manifest.js";
 import type { Relationships } from "./relationships.js";
 import { Layer as LayerClass } from "./layer.js";
@@ -190,7 +191,8 @@ export class VirtualProjectionEngine {
     } else if (lastChange.type === "add") {
       // New element being added
       return new ElementClass({
-        id: elementId,
+        id: (lastChange.after?.id as string) || elementId,
+        path: (lastChange.after?.path as string) || elementId,
         spec_node_id: (lastChange.after?.spec_node_id as string) || "",
         type: (projectedData.type as string) || "unknown",
         layer_id: lastChange.layerName,
@@ -203,6 +205,8 @@ export class VirtualProjectionEngine {
         relationships: Array.isArray(projectedData.relationships)
           ? projectedData.relationships
           : [],
+        source_reference: projectedData.source_reference as SourceReference | undefined,
+        metadata: projectedData.metadata as ElementMetadata | undefined,
         layer: lastChange.layerName,
       });
     }
@@ -274,7 +278,8 @@ export class VirtualProjectionEngine {
         case "add":
           if (change.after) {
             const newElement = new ElementClass({
-              id: change.elementId,
+              id: (change.after.id as string) || change.elementId,
+              path: (change.after.path as string) || change.elementId,
               spec_node_id: (change.after.spec_node_id as string) || "",
               type: (change.after.type as string) || "unknown",
               layer_id: layerName,
@@ -287,6 +292,8 @@ export class VirtualProjectionEngine {
               relationships: Array.isArray(change.after.relationships)
                 ? change.after.relationships
                 : [],
+              source_reference: change.after.source_reference as SourceReference | undefined,
+              metadata: change.after.metadata as ElementMetadata | undefined,
               layer: layerName,
             });
             projectedLayer.addElement(newElement);
