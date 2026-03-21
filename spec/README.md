@@ -391,7 +391,7 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{documentation-robotics-spec,
   title = {Documentation Robotics Specification},
-  version = {0.8.0},
+  version = {0.8.3},
   year = {2026},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }

@@ -175,20 +175,20 @@ documentation_robotics/
 
 The specification defines 12 interconnected layers:
 
-| #   | Layer                                                          | Focus        | Standard      | Notes                                                   |
-| --- | -------------------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------- |
-| 01  | [Motivation](spec/layers/01-motivation-layer.md)               | WHY          | ArchiMate 3.2 |                                                         |
-| 02  | [Business](spec/layers/02-business-layer.md)                   | WHAT         | ArchiMate 3.2 |                                                         |
-| 03  | [Security](spec/layers/03-security-layer.md)                   | WHO CAN      | _Custom_      |                                                         |
-| 04  | [Application](spec/layers/04-application-layer.md)             | HOW          | ArchiMate 3.2 |                                                         |
-| 05  | [Technology](spec/layers/05-technology-layer.md)               | WITH WHAT    | ArchiMate 3.2 |                                                         |
-| 06  | [API](spec/layers/06-api-layer.md)                             | INTERFACE    | OpenAPI 3.0   |                                                         |
-| 07  | [Data Model](spec/layers/07-data-model-layer.md)               | STRUCTURE    | JSON Schema   |                                                         |
-| 08  | [Data Store](spec/layers/08-data-store-layer.md)               | STORAGE      | SQL DDL       |                                                         |
-| 09  | [UX](spec/layers/09-ux-layer.md)                               | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
-| 10  | [Navigation](spec/layers/10-navigation-layer.md)               | FLOW         | _Custom_      |                                                         |
-| 11  | [APM/Observability](spec/layers/11-apm-observability-layer.md) | OBSERVE      | OpenTelemetry |                                                         |
-| 12  | [Testing](spec/layers/12-testing-layer.md)                     | VERIFY       | _Custom_      |                                                         |
+| #   | Layer                                                              | Focus        | Standard      | Notes                                                   |
+| --- | ------------------------------------------------------------------ | ------------ | ------------- | ------------------------------------------------------- |
+| 01  | [Motivation](spec/layers/01-motivation.layer.json)                 | WHY          | ArchiMate 3.2 |                                                         |
+| 02  | [Business](spec/layers/02-business.layer.json)                     | WHAT         | ArchiMate 3.2 |                                                         |
+| 03  | [Security](spec/layers/03-security.layer.json)                     | WHO CAN      | _Custom_      |                                                         |
+| 04  | [Application](spec/layers/04-application.layer.json)               | HOW          | ArchiMate 3.2 |                                                         |
+| 05  | [Technology](spec/layers/05-technology.layer.json)                 | WITH WHAT    | ArchiMate 3.2 |                                                         |
+| 06  | [API](spec/layers/06-api.layer.json)                               | INTERFACE    | OpenAPI 3.0   |                                                         |
+| 07  | [Data Model](spec/layers/07-data-model.layer.json)                 | STRUCTURE    | JSON Schema   |                                                         |
+| 08  | [Data Store](spec/layers/08-data-store.layer.json)                 | STORAGE      | SQL DDL       |                                                         |
+| 09  | [UX](spec/layers/09-ux.layer.json)                                 | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
+| 10  | [Navigation](spec/layers/10-navigation.layer.json)                 | FLOW         | _Custom_      |                                                         |
+| 11  | [APM/Observability](spec/layers/11-apm.layer.json)                 | OBSERVE      | OpenTelemetry |                                                         |
+| 12  | [Testing](spec/layers/12-testing.layer.json)                       | VERIFY       | _Custom_      |                                                         |
 
 ## Standards Leveraged
 
@@ -217,21 +217,21 @@ Want to use this for modeling your project?
 
    ```bash
    dr init --name "My Project"
-   dr add motivation goal motivation-goal-first --name "My First Goal"
+   dr add motivation goal "My First Goal"
    dr validate
    ```
 
 3. **Learn More**
-   - Browse [spec/examples/](spec/examples/)
-   - Read [spec/guides/getting-started.md](spec/guides/getting-started.md)
-   - Review [cli/docs/user-guide/](cli/docs/user-guide/)
+   - Browse layer definitions in [spec/layers/](spec/layers/)
+   - Review [cli/docs/](cli/docs/) for implementation guides
+   - Read [cli/README.md](cli/README.md) for CLI documentation
 
 ### For Evaluators
 
 Evaluating this approach?
 
-1. Read [spec/core/](spec/core/) for design decisions
-2. Review [spec/reference/standards-mapping.md](spec/reference/standards-mapping.md)
+1. Read [spec/README.md](spec/README.md) for specification overview
+2. Review the layer definitions in [spec/layers/](spec/layers/)
 3. Check [spec/GOVERNANCE.md](spec/GOVERNANCE.md) for governance model
 
 ## Contributing
