@@ -65,11 +65,9 @@ The Documentation Robotics specification defines a standards-based approach to m
 
 **Key Features:**
 
-- **Standards-First** - Uses ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
-- **Federated Approach** - ArchiMate spine + specialized standards
-- **12 Layers** - Motivation through APM/Observability
-- **Relationships & Traceability** - Explicit relationships across layers for traceability
-- **Tool Ecosystem Access** - Compatible with hundreds of existing tools through standards-based exports
+- **Standards** - Inspired by ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
+- **12 Layers** - Motivation through APM/Observability, modeling most aspects of a software system with source file references for traceability
+- **Relationships Modeling** - Explicit relationships between model elements for functional modeling, interdependency analysis and impact assessment
 
 **Quick Start:**
 
