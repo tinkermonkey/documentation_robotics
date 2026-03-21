@@ -8,44 +8,44 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { randomUUID } from "crypto";
 import { Model } from "@/core/model";
 import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
 import { Manifest } from "@/core/manifest";
-import { ensureDir } from "@/utils/file-io";
 import { validateCommand } from "@/commands/validate";
 import { auditCommand } from "@/commands/audit";
-import * as path from "path";
+import { createTestWorkdir } from "../helpers/golden-copy.js";
+import path from "path";
 
 describe("Flag Effectiveness Tests", () => {
   describe("--strict flag for validate command", () => {
-    let testDir: string;
+    let workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
 
     beforeEach(async () => {
-      // Create temporary test directory
-      testDir = `/tmp/test-flag-strict-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      await ensureDir(testDir);
-      await ensureDir(`${testDir}/.dr/layers`);
+      workdir = await createTestWorkdir();
 
       // Create a test model with intentional quality gaps
       // (elements missing descriptions, which strict mode should flag)
-      const manifest = new Manifest({
-        name: "Flag Test Model - Strict",
-        version: "1.0.0",
-        description: "Test model for --strict flag effectiveness",
-        author: "Test Suite",
-      });
-
-      const model = new Model(testDir, manifest);
+      const model = await Model.init(
+        workdir.path,
+        {
+          name: "Flag Test Model - Strict",
+          version: "1.0.0",
+          description: "Test model for --strict flag effectiveness",
+          specVersion: "0.8.3",
+          created: new Date().toISOString(),
+        },
+        { lazyLoad: false }
+      );
 
       // Add motivation layer with elements - some with descriptions, some without
       const motivationLayer = new Layer("motivation");
-      const goalId = randomUUID();
 
       // Goal WITH description (passes both standard and strict)
       const goalWithDesc = new Element({
-        id: goalId,
+        id: "motivation.goal.increase-revenue",
+        spec_node_id: "motivation.goal",
+        layer_id: "motivation",
         type: "goal",
         name: "Increase Revenue",
         description: "Generate more revenue through sales",
@@ -54,7 +54,9 @@ describe("Flag Effectiveness Tests", () => {
 
       // Goal WITHOUT description (passes standard, fails strict)
       const goalWithoutDesc = new Element({
-        id: randomUUID(),
+        id: "motivation.goal.reduce-costs",
+        spec_node_id: "motivation.goal",
+        layer_id: "motivation",
         type: "goal",
         name: "Reduce Costs",
         description: "", // Empty description - strict mode should catch this
@@ -63,7 +65,9 @@ describe("Flag Effectiveness Tests", () => {
 
       // Requirement WITHOUT description (passes standard, fails strict)
       const requirementWithoutDesc = new Element({
-        id: randomUUID(),
+        id: "motivation.requirement.system-performance",
+        spec_node_id: "motivation.requirement",
+        layer_id: "motivation",
         type: "requirement",
         name: "System Performance",
         // No description field at all
@@ -80,13 +84,7 @@ describe("Flag Effectiveness Tests", () => {
     });
 
     afterEach(async () => {
-      // Cleanup test directory
-      try {
-        const fs = await import("fs/promises");
-        await fs.rm(testDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
+      await workdir.cleanup();
     });
 
     it("should produce different output between standard validate and validate --strict", async () => {
@@ -103,7 +101,7 @@ describe("Flag Effectiveness Tests", () => {
       };
 
       try {
-        await validateCommand({ model: testDir });
+        await validateCommand({ model: workdir.path });
       } catch {
         // Standard validate may not throw, continue
       }
@@ -119,28 +117,22 @@ describe("Flag Effectiveness Tests", () => {
         strictLogs.push(args.join(" "));
       };
 
-      let strictThrew = false;
       try {
-        await validateCommand({ model: testDir, strict: true });
+        await validateCommand({ model: workdir.path, strict: true });
       } catch {
-        // Strict mode should throw due to missing descriptions
-        strictThrew = true;
+        // Strict mode may throw due to missing descriptions, continue
       }
 
       const strictOutput = strictLogs.join("\n");
       console.log = originalLog;
       console.error = originalError;
 
-      // Assertions: strict output should differ from standard output
-      // Either:
-      // 1. Strict mode throws an error (strictThrew = true), OR
-      // 2. Strict mode produces warnings that standard mode doesn't (output differs)
-      expect(strictThrew || standardOutput !== strictOutput).toBe(true);
+      // Assertions: strict mode should produce warnings about missing descriptions
+      // The strict output should contain the actual warning message
+      expect(strictOutput).toContain("no description");
 
-      // If strict mode produces output, it should contain quality warnings
-      if (strictOutput.length > 0) {
-        expect(strictOutput.length).toBeGreaterThan(0);
-      }
+      // Strict output should be longer/different than standard output
+      expect(strictOutput.length).toBeGreaterThan(standardOutput.length);
     });
 
     it("should exit with error code when --strict finds quality issues", async () => {
@@ -157,7 +149,7 @@ describe("Flag Effectiveness Tests", () => {
       };
 
       try {
-        await validateCommand({ model: testDir, strict: true });
+        await validateCommand({ model: workdir.path, strict: true });
       } catch (err) {
         errorThrown = true;
       }
@@ -171,45 +163,47 @@ describe("Flag Effectiveness Tests", () => {
   });
 
   describe("--verbose flag for audit command", () => {
-    let testDir: string;
+    let workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
 
     beforeEach(async () => {
-      // Use a simple test directory for audit test
-      testDir = `/tmp/test-flag-verbose-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      await ensureDir(testDir);
-      await ensureDir(`${testDir}/.dr/layers`);
+      workdir = await createTestWorkdir();
 
       // Create a test model with some elements and relationships
-      const manifest = new Manifest({
-        name: "Flag Test Model - Verbose",
-        version: "1.0.0",
-        description: "Test model for --verbose flag effectiveness",
-        author: "Test Suite",
-      });
+      const model = await Model.init(
+        workdir.path,
+        {
+          name: "Flag Test Model - Verbose",
+          version: "1.0.0",
+          description: "Test model for --verbose flag effectiveness",
+          specVersion: "0.8.3",
+          created: new Date().toISOString(),
+        },
+        { lazyLoad: false }
+      );
 
-      const model = new Model(testDir, manifest);
-
-      // Add motivation layer
+      // Add motivation layer with elements and relationships
       const motivationLayer = new Layer("motivation");
-      const goal1Id = randomUUID();
-      const goal2Id = randomUUID();
 
       const goal1 = new Element({
-        id: goal1Id,
+        id: "motivation.goal.goal-1",
+        spec_node_id: "motivation.goal",
+        layer_id: "motivation",
         type: "goal",
         name: "Goal 1",
         description: "First goal",
       });
 
       const goal2 = new Element({
-        id: goal2Id,
+        id: "motivation.goal.goal-2",
+        spec_node_id: "motivation.goal",
+        layer_id: "motivation",
         type: "goal",
         name: "Goal 2",
         description: "Second goal",
         relationships: [
           {
-            source: goal2Id,
-            target: goal1Id,
+            source: "motivation.goal.goal-2",
+            target: "motivation.goal.goal-1",
             type: "supports",
           },
         ],
@@ -225,28 +219,30 @@ describe("Flag Effectiveness Tests", () => {
     });
 
     afterEach(async () => {
-      // Cleanup test directory
-      try {
-        const fs = await import("fs/promises");
-        await fs.rm(testDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
+      await workdir.cleanup();
     });
 
     it("should produce more output with --verbose than without", async () => {
       // Capture output from audit without --verbose
       const standardLogs: string[] = [];
       const originalLog = console.log;
+      const originalError = console.error;
 
       console.log = (...args: any[]) => {
         standardLogs.push(args.join(" "));
       };
+      console.error = (...args: any[]) => {
+        standardLogs.push(args.join(" "));
+      };
 
+      const originalCwd = process.cwd();
       try {
-        await auditCommand({ model: testDir });
+        process.chdir(workdir.path);
+        await auditCommand({});
       } catch {
         // Audit may not throw, continue
+      } finally {
+        process.chdir(originalCwd);
       }
 
       const standardOutput = standardLogs.join("\n");
@@ -257,16 +253,23 @@ describe("Flag Effectiveness Tests", () => {
       console.log = (...args: any[]) => {
         verboseLogs.push(args.join(" "));
       };
+      console.error = (...args: any[]) => {
+        verboseLogs.push(args.join(" "));
+      };
 
       try {
-        await auditCommand({ model: testDir, verbose: true });
+        process.chdir(workdir.path);
+        await auditCommand({ verbose: true });
       } catch {
         // Verbose audit may not throw, continue
+      } finally {
+        process.chdir(originalCwd);
       }
 
       const verboseOutput = verboseLogs.join("\n");
       const verboseLineCount = verboseOutput.split("\n").length;
       console.log = originalLog;
+      console.error = originalError;
 
       // Assert: verbose output should have MORE lines than standard output
       expect(verboseLineCount).toBeGreaterThan(standardLineCount);
@@ -278,19 +281,28 @@ describe("Flag Effectiveness Tests", () => {
     it("should include additional detail in --verbose output", async () => {
       const verboseLogs: string[] = [];
       const originalLog = console.log;
+      const originalError = console.error;
 
       console.log = (...args: any[]) => {
         verboseLogs.push(args.join(" "));
       };
+      console.error = (...args: any[]) => {
+        verboseLogs.push(args.join(" "));
+      };
 
+      const originalCwd = process.cwd();
       try {
-        await auditCommand({ model: testDir, verbose: true });
+        process.chdir(workdir.path);
+        await auditCommand({ verbose: true });
       } catch {
         // Verbose audit may throw, continue
+      } finally {
+        process.chdir(originalCwd);
       }
 
       const verboseOutput = verboseLogs.join("\n");
       console.log = originalLog;
+      console.error = originalError;
 
       // Verbose output should contain meaningful content
       expect(verboseOutput.length).toBeGreaterThan(0);
