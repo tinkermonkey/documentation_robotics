@@ -11,7 +11,6 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Model } from "@/core/model";
 import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
-import { Manifest } from "@/core/manifest";
 import { validateCommand } from "@/commands/validate";
 import { auditCommand } from "@/commands/audit";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
