@@ -4,53 +4,14 @@
  * Verifies that `dr schema node` introspection output matches what `dr add` actually accepts.
  * This catches bugs where schema introspection and the attribute validator diverge.
  *
- * Issue: https://github.com/your-org/your-repo/issues/522
+ * Issue: #522
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
-import { spawn } from "child_process";
-import * as path from "path";
+import { runDr } from "../helpers/cli-runner.js";
 import { Model } from "../../src/core/model.js";
 import { findElementBySemanticId } from "../helpers/element-finder.js";
-
-interface TestWorkdir {
-  path: string;
-  cleanup: () => Promise<void>;
-}
-
-/**
- * Helper to run CLI command and capture output
- */
-async function runCLICommand(
-  workdir: string,
-  args: string[]
-): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve) => {
-    const cliPath = path.join(process.cwd(), "dist", "cli.js");
-    const proc = spawn("node", [cliPath, ...args], { cwd: workdir });
-
-    let stdout = "";
-    let stderr = "";
-
-    proc.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-
-    proc.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    proc.on("close", (exitCode) => {
-      resolve({ stdout, stderr, exitCode: exitCode ?? 1 });
-    });
-
-    proc.on("error", (err) => {
-      stderr += err.toString();
-      resolve({ stdout, stderr, exitCode: 1 });
-    });
-  });
-}
 
 /**
  * Parse schema node output to extract required attributes
@@ -93,7 +54,7 @@ function extractRequiredAttributesFromSchemaOutput(schemaOutput: string): string
  * 7. Run `dr validate` and verify 0 schema errors
  */
 describe("Schema Validator Consistency", () => {
-  let workdir: TestWorkdir;
+  let workdir: { path: string; cleanup: () => Promise<void> };
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
@@ -112,13 +73,12 @@ describe("Schema Validator Consistency", () => {
 
     it("should accept required attributes from schema introspection", async () => {
       // Step 1: Get schema metadata
-      const schemaResult = await runCLICommand(workdir.path, [
-        "schema",
-        "node",
-        specNodeId,
-      ]);
+      const schemaResult = await runDr(
+        ["schema", "node", specNodeId],
+        { cwd: workdir.path }
+      );
 
-      expect(schemaResult.exitCode).toBe(0);
+      expect(schemaResult.exitCode, "schema command failed").toBe(0);
       const requiredAttributes = extractRequiredAttributesFromSchemaOutput(
         schemaResult.stdout
       );
@@ -129,20 +89,23 @@ describe("Schema Validator Consistency", () => {
 
       // Step 2 & 3: Construct dr add with required attributes
       // For api.parameter with "in" required, use "query" as valid value
-      const addResult = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "test-param",
-        "--attributes",
-        JSON.stringify({ in: "query" }),
-      ]);
+      const addResult = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "test-param",
+          "--attributes",
+          JSON.stringify({ in: "query" }),
+        ],
+        { cwd: workdir.path }
+      );
 
       // Step 4: Verify exit code 0
-      expect(addResult.exitCode).toBe(
-        0,
+      expect(
+        addResult.exitCode,
         `Failed to add ${specNodeId}: ${addResult.stderr || addResult.stdout}`
-      );
+      ).toBe(0);
 
       // Step 5: Verify no validation errors in output
       const output = addResult.stdout + addResult.stderr;
@@ -160,30 +123,33 @@ describe("Schema Validator Consistency", () => {
       expect(element!.attributes.in).toBe("query");
 
       // Step 7: Run validate and verify 0 schema errors
-      const validateResult = await runCLICommand(workdir.path, [
-        "validate",
-        "--schemas",
-      ]);
-      expect(validateResult.exitCode).toBe(0);
+      const validateResult = await runDr(
+        ["validate", "--schemas"],
+        { cwd: workdir.path }
+      );
+      expect(validateResult.exitCode, "validate command failed").toBe(0);
     });
 
     it("should accept all valid enum values for 'in' attribute", async () => {
       const validInValues = ["query", "header", "path", "cookie"];
 
       for (const inValue of validInValues) {
-        const addResult = await runCLICommand(workdir.path, [
-          "add",
-          layer,
-          type,
-          `param-${inValue}`,
-          "--attributes",
-          JSON.stringify({ in: inValue }),
-        ]);
-
-        expect(addResult.exitCode).toBe(
-          0,
-          `Failed for in="${inValue}": ${addResult.stderr || addResult.stdout}`
+        const addResult = await runDr(
+          [
+            "add",
+            layer,
+            type,
+            `param-${inValue}`,
+            "--attributes",
+            JSON.stringify({ in: inValue }),
+          ],
+          { cwd: workdir.path }
         );
+
+        expect(
+          addResult.exitCode,
+          `Failed for in="${inValue}": ${addResult.stderr || addResult.stdout}`
+        ).toBe(0);
       }
 
       // Verify all were persisted
@@ -209,13 +175,12 @@ describe("Schema Validator Consistency", () => {
 
     it("should accept required attributes from schema introspection", async () => {
       // Step 1: Get schema metadata
-      const schemaResult = await runCLICommand(workdir.path, [
-        "schema",
-        "node",
-        specNodeId,
-      ]);
+      const schemaResult = await runDr(
+        ["schema", "node", specNodeId],
+        { cwd: workdir.path }
+      );
 
-      expect(schemaResult.exitCode).toBe(0);
+      expect(schemaResult.exitCode, "schema command failed").toBe(0);
       const requiredAttributes = extractRequiredAttributesFromSchemaOutput(
         schemaResult.stdout
       );
@@ -226,24 +191,27 @@ describe("Schema Validator Consistency", () => {
       expect(requiredAttributes).toContain("tags");
 
       // Step 2 & 3: Construct dr add with all required attributes
-      const addResult = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "get-users",
-        "--attributes",
-        JSON.stringify({
-          operationId: "getUsers",
-          summary: "Retrieve list of users",
-          tags: "users",
-        }),
-      ]);
+      const addResult = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "get-users",
+          "--attributes",
+          JSON.stringify({
+            operationId: "getUsers",
+            summary: "Retrieve list of users",
+            tags: "users",
+          }),
+        ],
+        { cwd: workdir.path }
+      );
 
       // Step 4: Verify exit code 0
-      expect(addResult.exitCode).toBe(
-        0,
+      expect(
+        addResult.exitCode,
         `Failed to add ${specNodeId}: ${addResult.stderr || addResult.stdout}`
-      );
+      ).toBe(0);
 
       // Step 5: Verify no validation errors in output
       const output = addResult.stdout + addResult.stderr;
@@ -265,29 +233,32 @@ describe("Schema Validator Consistency", () => {
       expect(element!.attributes.tags).toBe("users");
 
       // Step 7: Run validate and verify 0 schema errors
-      const validateResult = await runCLICommand(workdir.path, [
-        "validate",
-        "--schemas",
-      ]);
-      expect(validateResult.exitCode).toBe(0);
+      const validateResult = await runDr(
+        ["validate", "--schemas"],
+        { cwd: workdir.path }
+      );
+      expect(validateResult.exitCode, "validate command failed").toBe(0);
     });
 
     it("should accept optional attributes without error", async () => {
       // Test with all required + some optional
-      const addResult = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "create-user",
-        "--attributes",
-        JSON.stringify({
-          operationId: "createUser",
-          summary: "Create new user",
-          tags: "users",
-          description: "Creates a new user account",
-          deprecated: false,
-        }),
-      ]);
+      const addResult = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "create-user",
+          "--attributes",
+          JSON.stringify({
+            operationId: "createUser",
+            summary: "Create new user",
+            tags: "users",
+            description: "Creates a new user account",
+            deprecated: false,
+          }),
+        ],
+        { cwd: workdir.path }
+      );
 
       expect(addResult.exitCode).toBe(0);
 
@@ -311,13 +282,12 @@ describe("Schema Validator Consistency", () => {
 
     it("should accept required attributes from schema introspection", async () => {
       // Step 1: Get schema metadata
-      const schemaResult = await runCLICommand(workdir.path, [
-        "schema",
-        "node",
-        specNodeId,
-      ]);
+      const schemaResult = await runDr(
+        ["schema", "node", specNodeId],
+        { cwd: workdir.path }
+      );
 
-      expect(schemaResult.exitCode).toBe(0);
+      expect(schemaResult.exitCode, "schema command failed").toBe(0);
       const requiredAttributes = extractRequiredAttributesFromSchemaOutput(
         schemaResult.stdout
       );
@@ -326,20 +296,23 @@ describe("Schema Validator Consistency", () => {
       expect(requiredAttributes).toContain("type");
 
       // Step 2 & 3: Construct dr add with required attributes
-      const addResult = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "user-object",
-        "--attributes",
-        JSON.stringify({ type: "object" }),
-      ]);
+      const addResult = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "user-object",
+          "--attributes",
+          JSON.stringify({ type: "object" }),
+        ],
+        { cwd: workdir.path }
+      );
 
       // Step 4: Verify exit code 0
-      expect(addResult.exitCode).toBe(
-        0,
+      expect(
+        addResult.exitCode,
         `Failed to add ${specNodeId}: ${addResult.stderr || addResult.stdout}`
-      );
+      ).toBe(0);
 
       // Step 5: Verify no validation errors in output
       const output = addResult.stdout + addResult.stderr;
@@ -359,29 +332,32 @@ describe("Schema Validator Consistency", () => {
       expect(element!.attributes.type).toBe("object");
 
       // Step 7: Run validate and verify 0 schema errors
-      const validateResult = await runCLICommand(workdir.path, [
-        "validate",
-        "--schemas",
-      ]);
-      expect(validateResult.exitCode).toBe(0);
+      const validateResult = await runDr(
+        ["validate", "--schemas"],
+        { cwd: workdir.path }
+      );
+      expect(validateResult.exitCode, "validate command failed").toBe(0);
     });
 
     it("should accept optional properties without error", async () => {
       // Test with required + optional attributes
-      const addResult = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "product-object",
-        "--attributes",
-        JSON.stringify({
-          type: "object",
-          properties: { name: "string", price: "number" },
-          required: "name",
-          minProperties: 1,
-          maxProperties: 100,
-        }),
-      ]);
+      const addResult = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "product-object",
+          "--attributes",
+          JSON.stringify({
+            type: "object",
+            properties: { name: "string", price: "number" },
+            required: "name",
+            minProperties: 1,
+            maxProperties: 100,
+          }),
+        ],
+        { cwd: workdir.path }
+      );
 
       expect(addResult.exitCode).toBe(0);
 
@@ -405,13 +381,12 @@ describe("Schema Validator Consistency", () => {
 
     it("should accept required attributes from schema introspection", async () => {
       // Step 1: Get schema metadata
-      const schemaResult = await runCLICommand(workdir.path, [
-        "schema",
-        "node",
-        specNodeId,
-      ]);
+      const schemaResult = await runDr(
+        ["schema", "node", specNodeId],
+        { cwd: workdir.path }
+      );
 
-      expect(schemaResult.exitCode).toBe(0);
+      expect(schemaResult.exitCode, "schema command failed").toBe(0);
       const requiredAttributes = extractRequiredAttributesFromSchemaOutput(
         schemaResult.stdout
       );
@@ -420,20 +395,23 @@ describe("Schema Validator Consistency", () => {
       expect(requiredAttributes).toContain("type");
 
       // Step 2 & 3: Construct dr add with required attributes
-      const addResult = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "name-property",
-        "--attributes",
-        JSON.stringify({ type: "string" }),
-      ]);
+      const addResult = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "name-property",
+          "--attributes",
+          JSON.stringify({ type: "string" }),
+        ],
+        { cwd: workdir.path }
+      );
 
       // Step 4: Verify exit code 0
-      expect(addResult.exitCode).toBe(
-        0,
+      expect(
+        addResult.exitCode,
         `Failed to add ${specNodeId}: ${addResult.stderr || addResult.stdout}`
-      );
+      ).toBe(0);
 
       // Step 5: Verify no validation errors in output
       const output = addResult.stdout + addResult.stderr;
@@ -453,11 +431,11 @@ describe("Schema Validator Consistency", () => {
       expect(element!.attributes.type).toBe("string");
 
       // Step 7: Run validate and verify 0 schema errors
-      const validateResult = await runCLICommand(workdir.path, [
-        "validate",
-        "--schemas",
-      ]);
-      expect(validateResult.exitCode).toBe(0);
+      const validateResult = await runDr(
+        ["validate", "--schemas"],
+        { cwd: workdir.path }
+      );
+      expect(validateResult.exitCode, "validate command failed").toBe(0);
     });
 
     it("should accept optional attributes (title, format, default, etc) without error", async () => {
@@ -465,20 +443,23 @@ describe("Schema Validator Consistency", () => {
       // as required — blocks practical use" (BUG-6163-006, fixed 2026-03-15)
       //
       // These should be optional and not cause "missing required property" errors
-      const addResult = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "email-property",
-        "--attributes",
-        JSON.stringify({
-          type: "string",
-          title: "Email Address",
-          format: "email",
-          description: "User's email",
-          default: "user@example.com",
-        }),
-      ]);
+      const addResult = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "email-property",
+          "--attributes",
+          JSON.stringify({
+            type: "string",
+            title: "Email Address",
+            format: "email",
+            description: "User's email",
+            default: "user@example.com",
+          }),
+        ],
+        { cwd: workdir.path }
+      );
 
       expect(addResult.exitCode).toBe(0);
       const output = addResult.stdout + addResult.stderr;
@@ -499,47 +480,56 @@ describe("Schema Validator Consistency", () => {
 
     it("should accept enum, const, and examples as optional attributes", async () => {
       // Test with enum value
-      const addResult1 = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "status-property",
-        "--attributes",
-        JSON.stringify({
-          type: "string",
-          enum: "active",
-        }),
-      ]);
+      const addResult1 = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "status-property",
+          "--attributes",
+          JSON.stringify({
+            type: "string",
+            enum: "active",
+          }),
+        ],
+        { cwd: workdir.path }
+      );
 
       expect(addResult1.exitCode).toBe(0);
 
       // Test with const value
-      const addResult2 = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "version-property",
-        "--attributes",
-        JSON.stringify({
-          type: "string",
-          const: "v1",
-        }),
-      ]);
+      const addResult2 = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "version-property",
+          "--attributes",
+          JSON.stringify({
+            type: "string",
+            const: "v1",
+          }),
+        ],
+        { cwd: workdir.path }
+      );
 
       expect(addResult2.exitCode).toBe(0);
 
       // Test with examples
-      const addResult3 = await runCLICommand(workdir.path, [
-        "add",
-        layer,
-        type,
-        "timestamp-property",
-        "--attributes",
-        JSON.stringify({
-          type: "string",
-          examples: "2026-03-21T10:30:00Z",
-        }),
-      ]);
+      const addResult3 = await runDr(
+        [
+          "add",
+          layer,
+          type,
+          "timestamp-property",
+          "--attributes",
+          JSON.stringify({
+            type: "string",
+            examples: "2026-03-21T10:30:00Z",
+          }),
+        ],
+        { cwd: workdir.path }
+      );
 
       expect(addResult3.exitCode).toBe(0);
 
@@ -578,16 +568,15 @@ describe("Schema Validator Consistency", () => {
 
       for (const { layer, type, specNodeId } of testTypes) {
         // Verify schema command succeeds for each type
-        const schemaResult = await runCLICommand(workdir.path, [
-          "schema",
-          "node",
-          specNodeId,
-        ]);
-
-        expect(schemaResult.exitCode).toBe(
-          0,
-          `Schema command failed for ${specNodeId}`
+        const schemaResult = await runDr(
+          ["schema", "node", specNodeId],
+          { cwd: workdir.path }
         );
+
+        expect(
+          schemaResult.exitCode,
+          `Schema command failed for ${specNodeId}`
+        ).toBe(0);
         expect(schemaResult.stdout).toContain("Required Attributes");
       }
     });
