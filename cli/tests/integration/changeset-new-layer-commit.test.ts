@@ -55,7 +55,7 @@ describe("Changeset New Layer Commit", () => {
     await manager.setActive(changeset.id!);
 
     // Stage an element in the APM layer (which currently has no directory on disk)
-    const elementId = "apm-alert-new-layer-test";
+    const elementId = "apm.alert.new-layer-test";
     await manager.stage(changeset.id!, {
       type: "add",
       elementId: elementId,
@@ -114,9 +114,9 @@ describe("Changeset New Layer Commit", () => {
 
     // Stage multiple elements in the APM layer
     const elementIds = [
-      "apm-alert-multi-test-1",
-      "apm-dashboard-multi-test-1",
-      "apm-span-multi-test-1",
+      "apm.alert.multi-test-1",
+      "apm.dashboard.multi-test-1",
+      "apm.span.multi-test-1",
     ];
 
     const elementTypes = ["alert", "dashboard", "span"];
@@ -164,7 +164,7 @@ describe("Changeset New Layer Commit", () => {
     await manager.setActive(changeset.id!);
 
     // Stage an element in the APM layer
-    const elementId = "apm-alert-status-test";
+    const elementId = "apm.alert.status-test";
     await manager.stage(changeset.id!, {
       type: "add",
       elementId: elementId,
