@@ -68,14 +68,14 @@ The Documentation Robotics specification defines a standards-based approach to m
 - **Standards-First** - Uses ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
 - **Federated Approach** - ArchiMate spine + specialized standards
 - **12 Layers** - Motivation through APM/Observability
-- **Glue Layers** - 4 custom layer definitions (security, UX, navigation, testing)
+- **Relationships & Traceability** - Explicit relationships across layers for traceability
 - **Tool Ecosystem Access** - Compatible with hundreds of existing tools through standards-based exports
 
 **Quick Start:**
 
 1. Read [spec/README.md](spec/README.md)
-2. Explore [spec/core/00-overview.md](spec/core/00-overview.md)
-3. Browse [spec/examples/](spec/examples/)
+2. Browse layer definitions in [spec/layers/](spec/layers/)
+3. Review schemas in [spec/schemas/](spec/schemas/)
 
 [→ Full Specification Documentation](spec/)
 
@@ -88,14 +88,12 @@ A TypeScript-based command-line tool for managing project models conforming to t
 
 **Key Features:**
 
-- ✅ **Model Management** - Initialize, add, update, validate
-- ✅ **Agentic Assistants** - Claude Code and Github Copilot agents for model generation, maintenance, and exploration
-- ✅ **Link Registry** - 60+ cross-layer reference patterns with automated validation
-- ✅ **Link Management** - Discover, validate, trace, and document inter-layer links
-- ✅ **Managed Upgrades** - Automated migration between specification versions
-- ✅ **Export Formats** - ArchiMate, OpenAPI, PlantUML, Markdown, GraphML
-- ✅ **Visualization Server** - Serves interactive model visualizations for easier exploration and validation
-- ✅ **Fast Performance** - ~150ms startup time, 8x faster than legacy implementations
+- **Model Management** - Initialize, add, update, validate the model
+- **Relationship Management** - Discover, validate, trace, and document relationships between elements within and across layers
+- **Agentic Assistants** - Claude Code and Github Copilot agents for model generation, maintenance, and exploration
+- **Managed Upgrades** - Automated migration between specification versions
+- **Export Formats** - ArchiMate, OpenAPI, JSON Schema, PlantUML, GraphML, Markdown, Mermaid
+- **Visualization Server** - Serves interactive model visualizations for easier exploration and validation
 
 **Installation:**
 
@@ -135,7 +133,7 @@ dr export archimate --output model.xml
 - Node.js 18 or higher
 - npm (Node package manager)
 
-[→ CLI Documentation](cli/) | [→ CLI User Guide](cli/docs/user-guide/)
+[→ CLI Documentation](cli/) | [→ CLI Docs](cli/docs/)
 
 ## Repository Structure
 
@@ -145,22 +143,27 @@ documentation_robotics/
 ├── spec/                        # SPECIFICATION
 │   ├── VERSION                  # Spec version (see badges above)
 │   ├── CHANGELOG.md             # Specification changelog
-│   ├── layers/                  # 12 layer specifications
+│   ├── GOVERNANCE.md            # Governance model
+│   ├── layers/                  # 12 layer instance files (.layer.json)
 │   ├── schemas/                 # JSON Schema definitions
-│   ├── core/                    # Core specification docs
-│   ├── guides/                  # Implementation guides
-│   └── examples/                # Example models
+│   │   ├── base/                #   Core base schemas + predicates
+│   │   ├── nodes/               #   Per-type node schemas (by layer)
+│   │   └── relationships/       #   Per-type relationship schemas (by layer)
+│   └── dist/                    # Compiled spec (auto-generated, committed)
 │
 ├── cli/                         # TYPESCRIPT CLI
 │   ├── src/                     # TypeScript source code
 │   │   ├── commands/            # Command implementations
 │   │   ├── core/                # Domain models
 │   │   ├── validators/          # Validation pipeline
-│   │   ├── export/              # Export handlers
-│   │   └── server/              # Visualization server
+│   │   └── export/              # Export handlers
 │   ├── tests/                   # Test suite
+│   ├── docs/                    # CLI documentation
 │   └── README.md                # CLI documentation
 │
+├── integrations/                # AI assistant integrations
+│   ├── claude_code/             #   Claude Code integration
+│   └── github_copilot/          #   GitHub Copilot integration
 ├── .github/workflows/           # CI/CD workflows
 ├── README.md                    # This file
 ├── CLAUDE.md                    # AI assistant instructions

@@ -3,7 +3,7 @@
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
 [![Specification](https://img.shields.io/badge/Specification-v0.8.3-blue)](.)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](../cli/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.1.3-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
 **Version:** 0.8.3
@@ -31,65 +31,42 @@ spec/
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── README.md                   # This file
 │
-├── layers/                     # Layer specifications (normative)
-│   ├── 01-motivation.layer.json    # Source of truth (JSON spec instance)
-│   ├── 01-motivation-layer.md      # Generated markdown (human-readable)
+├── layers/                     # Layer instance files (normative source of truth)
+│   ├── 01-motivation.layer.json    # Layer metadata, entity types, relationship declarations
 │   ├── 02-business.layer.json
-│   ├── 02-business-layer.md
-│   ├── ...                         # One .layer.json + .md pair per layer
-│   ├── 12-testing.layer.json
-│   └── 12-testing-layer.md
-│
-├── nodes/                      # Node type schemas (v0.8.0+)
-│   ├── motivation/                 # Per-layer subdirectories
-│   │   ├── goal.node.schema.json   # Per-type JSON Schema extending spec-node base
-│   │   ├── requirement.node.schema.json
-│   │   └── ...
-│   ├── business/
-│   ├── security/
-│   ├── application/
-│   ├── technology/
-│   ├── api/
-│   ├── data-model/
-│   ├── data-store/
-│   ├── ux/
-│   ├── navigation/
-│   ├── apm/
-│   └── testing/
-│
-├── relationships/              # Relationship type schemas (v0.8.0+)
-│   ├── motivation/                 # Per-layer subdirectories
-│   ├── business/
-│   ├── ...                         # Relationship schemas per layer
-│   └── testing/
+│   ├── ...                         # One .layer.json per layer (12 total)
+│   └── 12-testing.layer.json
 │
 ├── schemas/                    # JSON Schemas (normative)
-│   ├── base/                        # Spec-level base schemas (v0.8.0+)
+│   ├── base/                        # Spec-level base schemas
 │   │   ├── spec-layer.schema.json           # Validates .layer.json files
 │   │   ├── spec-node.schema.json            # Base schema for model node instances
 │   │   ├── spec-node-relationship.schema.json  # Spec relationship schemas
 │   │   ├── model-node-relationship.schema.json # Model-level relationship validation
 │   │   ├── predicate-catalog.schema.json    # Predicate catalog schema
-│   │   ├── predicates.json                  # Semantic predicate definitions
+│   │   ├── predicates.json                  # Semantic predicate definitions (47 predicates)
 │   │   ├── attribute-spec.schema.json       # AttributeSpec for relationship attributes
 │   │   └── source-references.schema.json    # Source code location tracking
-│   ├── nodes/                       # Per-layer node schemas (links to ../nodes/)
-│   ├── relationships/               # Per-layer relationship schemas (links to ../relationships/)
-│   ├── 01-motivation-layer.schema.json
-│   ├── 02-business-layer.schema.json
-│   └── ...                          # One schema per layer
+│   ├── nodes/                       # Per-type node schemas (.node.schema.json)
+│   │   ├── motivation/                  # Per-layer subdirectories
+│   │   ├── business/
+│   │   ├── ...                          # 12 layers total
+│   │   └── testing/
+│   └── relationships/               # Per-type relationship schemas (.relationship.schema.json)
+│       ├── motivation/                  # Per-layer subdirectories
+│       ├── business/
+│       ├── ...                          # 12 layers total
+│       └── testing/
 │
-├── extensions/                 # Extension guidelines (informative)
-│   ├── README.md
-│   ├── extension-guidelines.md
-│   └── registry.md
+├── browser/                    # Generated layer reports (human-readable markdown)
+│   ├── 01-motivation-layer-report.md
+│   ├── ...                         # One report per layer
+│   └── README.md
 │
-└── reference/                  # Reference materials (informative)
-    ├── glossary.md
-    ├── entity-index.md
-    ├── relationship-index.md
-    ├── standards-mapping.md
-    └── bibliography.md
+└── dist/                       # Compiled spec (auto-generated, committed)
+    ├── manifest.json               # Index of all layers
+    ├── base.json                   # All base schemas + predicates consolidated
+    └── {layer}.json                # One per layer: nodeSchemas + relationshipSchemas
 ```
 
 ## Schema-Driven Documentation Model
@@ -107,16 +84,15 @@ As of v0.8.0, the specification uses a **schema-driven documentation model** whe
 
 - **`.layer.json` files** (`spec/layers/`) - Define each layer's metadata, purpose, entity types, and relationships
 - **`.node.schema.json` files** (`spec/schemas/nodes/`) - Per-type JSON Schemas defining type-specific attribute constraints for model node instances
-- **Generated `.md` files** (`spec/layers/`) - Human-readable markdown generated from JSON specs
+- **`.relationship.schema.json` files** (`spec/schemas/relationships/`) - Per-type relationship schemas with source/destination constraints
+- **Generated reports** (`spec/browser/`) - Human-readable markdown generated from JSON specs
 
 ### Workflow
 
-1. Edit the JSON source files (`.layer.json` or `.node.schema.json`)
-2. Run `dr docs generate` to regenerate markdown
-3. Run `dr docs validate` to verify JSON/markdown sync
-4. Commit both JSON schemas and generated markdown
-
-See [docs/SCHEMA_DRIVEN_DOCS.md](../docs/SCHEMA_DRIVEN_DOCS.md) for full details on the schema-driven documentation model.
+1. Edit the JSON source files (`.layer.json`, `.node.schema.json`, or `.relationship.schema.json`)
+2. Run `dr docs generate` to regenerate reports in `spec/browser/`
+3. Run `dr docs validate` to verify sync
+4. Commit both JSON source files and generated reports
 
 ## The Vision
 
@@ -135,7 +111,7 @@ The specification aims to be a comprehensive, standards-based approach to descri
 - **As simple as possible** - While being reasonably complete
 - **Tool ecosystem access** - Compatible with hundreds of existing tools
 
-For the broader motivation, see [The Need](../README.md#the-need) in the main README.
+For the broader motivation, see [Why a Multi-Layer Model?](../README.md#why-a-multi-layer-model) in the main README.
 
 ## How to Read This Specification
 
@@ -143,7 +119,7 @@ For the broader motivation, see [The Need](../README.md#the-need) in the main RE
 2. Browse [layer specifications](layers/) relevant to your work
 3. Use the [CLI tool](../cli/) to validate and work with models
 
-> **Note:** The `.md` files in `spec/layers/` are generated from JSON spec instances (`.layer.json` and `.node.schema.json`). To modify layer specifications, edit the JSON source files and run `dr docs generate` to regenerate markdown.
+> **Note:** Layer reports in `spec/browser/` are generated from JSON spec instances (`.layer.json` and `.node.schema.json`). To modify layer specifications, edit the JSON source files and run `dr docs generate` to regenerate reports.
 
 ## Specification Highlights
 
@@ -217,7 +193,7 @@ Layers are ordered to match **real-world design workflow**:
 3. **Detailed Design** (Layers 06-10) - Specifications within tech constraints
 4. **Operations** (Layer 11) - Runtime observability
 
-See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationale.
+See [CHANGELOG.md](CHANGELOG.md) for layer design rationale.
 
 ## Key Features
 
@@ -240,7 +216,7 @@ The v0.8.0 release introduces a schema-driven documentation model where JSON spe
 - **Per-Type Node Schemas** (`spec/schemas/nodes/**/*.node.schema.json`) - JSON Schemas extending the base schema with type-specific attribute constraints
 - **Layer Metadata Files** (`spec/layers/*.layer.json`) - Layer-level metadata, purpose, entity types, and relationship declarations
 - **Documentation Generation** - `dr docs generate` produces markdown from JSON specs; `dr docs validate` ensures sync
-- **Link Registry Removal** - The deprecated `link-registry.json` (deprecated in v0.7.0) has been removed; use `relationship-catalog.json` instead
+- **Link Registry Removal** - The deprecated `link-registry.json` (deprecated in v0.7.0) has been removed; the relationship catalog is now computed dynamically at runtime
 
 See [CHANGELOG.md](CHANGELOG.md#080---2026-02-07) for complete details.
 
@@ -308,12 +284,7 @@ The UX Layer has been redesigned with a three-tier component library architectur
 - **DRY Principle** - Single source of truth for component behavior
 - **Backward Compatible** - Existing flat UXSpecs continue to work
 
-**Complete Specification:**
-
-- **Layer 09 Specification**: [layers/09-ux-layer.md](layers/09-ux-layer.md)
-- **JSON Schema**: [schemas/09-ux-layer.schema.json](schemas/09-ux-layer.schema.json)
-- **Migration Guide**: Included in layer specification
-- **New Entities**: UXLibrary, LibraryComponent, LibrarySubView, StatePattern, ActionPattern, UXApplication
+**New Entities**: UXLibrary, LibraryComponent, LibrarySubView, StatePattern, ActionPattern, UXApplication
 
 ### Testing Coverage Layer (v0.3.0)
 
@@ -327,11 +298,7 @@ The specification now includes a comprehensive Testing Layer for modeling test c
 - **🔗 Full Traceability** - Link from requirements through coverage to test implementations
 - **📋 Implementation References** - Optional links to Gherkin, Postman, Playwright, etc.
 
-**Complete Specification:**
-
-- **Layer 12 Specification**: [layers/12-testing-layer.md](layers/12-testing-layer.md)
-- **JSON Schema**: [schemas/12-testing-layer.schema.json](schemas/12-testing-layer.schema.json)
-- **Integration Points**: Links to Motivation, Business, UX, API, Data Model, Security, and Navigation layers
+**Integration Points**: Links to Motivation, Business, UX, API, Data Model, Security, and Navigation layers
 
 ### Previous Enhancements (v0.2.0)
 
@@ -352,8 +319,11 @@ See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 git clone https://github.com/tinkermonkey/documentation_robotics.git
 cd documentation_robotics/spec
 
-# Browse layer specifications
-ls layers/*.md
+# Browse layer instance files
+ls layers/*.layer.json
+
+# Browse generated layer reports
+ls browser/*-layer-report.md
 ```
 
 ### Use the CLI Tool
@@ -365,16 +335,14 @@ npm install -g @documentation-robotics/cli
 # Create and validate a model
 dr init my-project
 cd my-project
-dr add motivation goal customer-satisfaction --name "Improve customer satisfaction"
-dr validate --all
+dr add motivation goal "Improve customer satisfaction"
+dr validate
 ```
 
 ## Version Information
 
-**Current Version:** 0.8.0
-**Release Date:** 2026-02-07
-**Status:** Draft
-**Next Review:** 2026-08-07
+**Current Version:** 0.8.3
+**Status:** Stable
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
