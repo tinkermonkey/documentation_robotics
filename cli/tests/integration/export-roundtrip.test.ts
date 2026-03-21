@@ -1,11 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { randomUUID } from "crypto";
 import { Model } from "@/core/model";
 import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
 import { Manifest } from "@/core/manifest";
 import { ensureDir } from "@/utils/file-io";
-import * as path from "path";
 
 /**
  * Export Roundtrip Test Suite
@@ -60,6 +58,9 @@ describe("Export Roundtrip Tests", () => {
   });
 
   describe("OpenAPI Exporter - Attribute Accuracy", () => {
+    let loadedModel: Model;
+    let exporter: any;
+
     beforeEach(async () => {
       // Create API layer with operations
       const apiLayer = new Layer("api");
@@ -113,12 +114,14 @@ describe("Export Roundtrip Tests", () => {
       // Save model
       await model.saveManifest();
       await model.saveLayer("api");
+
+      // Load model and initialize exporter once per describe block
+      loadedModel = await Model.load(testDir);
+      const { OpenAPIExporter } = await import("@/export/openapi-exporter");
+      exporter = new OpenAPIExporter();
     });
 
     it("should export non-empty OpenAPI paths", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { OpenAPIExporter } = await import("@/export/openapi-exporter");
-      const exporter = new OpenAPIExporter();
       const result = await exporter.export(loadedModel, { layers: ["api"] });
 
       expect(result).toBeDefined();
@@ -130,9 +133,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export operationId matching stored attribute value, not UUID", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { OpenAPIExporter } = await import("@/export/openapi-exporter");
-      const exporter = new OpenAPIExporter();
       const result = await exporter.export(loadedModel, { layers: ["api"] });
 
       const spec = JSON.parse(result);
@@ -150,9 +150,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export tags as array, not string", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { OpenAPIExporter } = await import("@/export/openapi-exporter");
-      const exporter = new OpenAPIExporter();
       const result = await exporter.export(loadedModel, { layers: ["api"] });
 
       const spec = JSON.parse(result);
@@ -169,9 +166,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export correct HTTP method for each operation", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { OpenAPIExporter } = await import("@/export/openapi-exporter");
-      const exporter = new OpenAPIExporter();
       const result = await exporter.export(loadedModel, { layers: ["api"] });
 
       const spec = JSON.parse(result);
@@ -186,9 +180,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export operation paths matching stored path attribute", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { OpenAPIExporter } = await import("@/export/openapi-exporter");
-      const exporter = new OpenAPIExporter();
       const result = await exporter.export(loadedModel, { layers: ["api"] });
 
       const spec = JSON.parse(result);
@@ -205,6 +196,9 @@ describe("Export Roundtrip Tests", () => {
   });
 
   describe("JSON Schema Exporter - Attribute Accuracy", () => {
+    let loadedModel: Model;
+    let exporter: any;
+
     beforeEach(async () => {
       // Create data-model layer with entities and properties
       const dataModelLayer = new Layer("data-model");
@@ -264,12 +258,14 @@ describe("Export Roundtrip Tests", () => {
       // Save model
       await model.saveManifest();
       await model.saveLayer("data-model");
+
+      // Load model and initialize exporter once per describe block
+      loadedModel = await Model.load(testDir);
+      const { JsonSchemaExporter } = await import("@/export/json-schema-exporter");
+      exporter = new JsonSchemaExporter();
     });
 
     it("should export non-empty JSON Schema definitions", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { JsonSchemaExporter } = await import("@/export/json-schema-exporter");
-      const exporter = new JsonSchemaExporter();
       const result = await exporter.export(loadedModel, { layers: ["data-model"] });
 
       expect(result).toBeDefined();
@@ -281,9 +277,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export objectschema with properties object present", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { JsonSchemaExporter } = await import("@/export/json-schema-exporter");
-      const exporter = new JsonSchemaExporter();
       const result = await exporter.export(loadedModel, { layers: ["data-model"] });
 
       const schema = JSON.parse(result);
@@ -304,9 +297,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export schemaproperty with stored type value, not fallback", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { JsonSchemaExporter } = await import("@/export/json-schema-exporter");
-      const exporter = new JsonSchemaExporter();
       const result = await exporter.export(loadedModel, { layers: ["data-model"] });
 
       const schema = JSON.parse(result);
@@ -321,9 +311,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export entity properties matching stored attributes", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { JsonSchemaExporter } = await import("@/export/json-schema-exporter");
-      const exporter = new JsonSchemaExporter();
       const result = await exporter.export(loadedModel, { layers: ["data-model"] });
 
       const schema = JSON.parse(result);
@@ -341,9 +328,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export valid JSON Schema draft 7", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { JsonSchemaExporter } = await import("@/export/json-schema-exporter");
-      const exporter = new JsonSchemaExporter();
       const result = await exporter.export(loadedModel, { layers: ["data-model"] });
 
       const schema = JSON.parse(result);
@@ -352,6 +336,9 @@ describe("Export Roundtrip Tests", () => {
   });
 
   describe("ArchiMate Exporter - Attribute Accuracy", () => {
+    let loadedModel: Model;
+    let exporter: any;
+
     beforeEach(async () => {
       // Create business layer first (for references)
       const businessLayer = new Layer("business");
@@ -420,12 +407,14 @@ describe("Export Roundtrip Tests", () => {
       await model.saveLayer("motivation");
       await model.saveLayer("business");
       await model.saveLayer("application");
+
+      // Load model and initialize exporter once per describe block
+      loadedModel = await Model.load(testDir);
+      const { ArchiMateExporter } = await import("@/export/archimate-exporter");
+      exporter = new ArchiMateExporter();
     });
 
     it("should export non-empty ArchiMate XML", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { ArchiMateExporter } = await import("@/export/archimate-exporter");
-      const exporter = new ArchiMateExporter();
       const result = await exporter.export(loadedModel, {});
 
       expect(result).toBeDefined();
@@ -434,9 +423,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export elements with specific ArchiMate xsi:type, not generic Element", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { ArchiMateExporter } = await import("@/export/archimate-exporter");
-      const exporter = new ArchiMateExporter();
       const result = await exporter.export(loadedModel, {});
 
       // Verify specific ArchiMate types are used, not generic "Element"
@@ -451,9 +437,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export element names matching stored values", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { ArchiMateExporter } = await import("@/export/archimate-exporter");
-      const exporter = new ArchiMateExporter();
       const result = await exporter.export(loadedModel, {});
 
       // Verify element names are present
@@ -466,9 +449,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export ArchiMate with proper XML structure", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { ArchiMateExporter } = await import("@/export/archimate-exporter");
-      const exporter = new ArchiMateExporter();
       const result = await exporter.export(loadedModel, {});
 
       // Verify XML declaration
@@ -484,6 +464,9 @@ describe("Export Roundtrip Tests", () => {
   });
 
   describe("GraphML Exporter - Non-Empty Output", () => {
+    let loadedModel: Model;
+    let exporter: any;
+
     beforeEach(async () => {
       // Create multiple layers with elements
       const motivationLayer = new Layer("motivation");
@@ -508,12 +491,14 @@ describe("Export Roundtrip Tests", () => {
       await model.saveManifest();
       await model.saveLayer("motivation");
       await model.saveLayer("business");
+
+      // Load model and initialize exporter once per describe block
+      loadedModel = await Model.load(testDir);
+      const { GraphMLExporter } = await import("@/export/graphml-exporter");
+      exporter = new GraphMLExporter();
     });
 
     it("should export non-empty GraphML with proper structure", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { GraphMLExporter } = await import("@/export/graphml-exporter");
-      const exporter = new GraphMLExporter();
       const result = await exporter.export(loadedModel, {});
 
       expect(result).toBeDefined();
@@ -530,9 +515,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export element names in GraphML", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { GraphMLExporter } = await import("@/export/graphml-exporter");
-      const exporter = new GraphMLExporter();
       const result = await exporter.export(loadedModel, {});
 
       // Verify element names appear in output
@@ -542,6 +524,9 @@ describe("Export Roundtrip Tests", () => {
   });
 
   describe("Markdown Exporter - Non-Empty Output", () => {
+    let loadedModel: Model;
+    let exporter: any;
+
     beforeEach(async () => {
       // Create layers with diverse elements
       const motivationLayer = new Layer("motivation");
@@ -568,12 +553,14 @@ describe("Export Roundtrip Tests", () => {
       await model.saveManifest();
       await model.saveLayer("motivation");
       await model.saveLayer("business");
+
+      // Load model and initialize exporter once per describe block
+      loadedModel = await Model.load(testDir);
+      const { MarkdownExporter } = await import("@/export/markdown-exporter");
+      exporter = new MarkdownExporter();
     });
 
     it("should export non-empty markdown with proper structure", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { MarkdownExporter } = await import("@/export/markdown-exporter");
-      const exporter = new MarkdownExporter();
       const result = await exporter.export(loadedModel, {});
 
       expect(result).toBeDefined();
@@ -585,9 +572,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should export element details in markdown", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { MarkdownExporter } = await import("@/export/markdown-exporter");
-      const exporter = new MarkdownExporter();
       const result = await exporter.export(loadedModel, {});
 
       // Verify element names and descriptions appear
@@ -597,10 +581,6 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should respect layer filters in markdown export", async () => {
-      const loadedModel = await Model.load(testDir);
-      const { MarkdownExporter } = await import("@/export/markdown-exporter");
-      const exporter = new MarkdownExporter();
-
       // Export only motivation layer
       const result = await exporter.export(loadedModel, { layers: ["motivation"] });
 
@@ -610,6 +590,14 @@ describe("Export Roundtrip Tests", () => {
   });
 
   describe("Cross-Format Consistency", () => {
+    let loadedModel: Model;
+    let exporters: {
+      OpenAPIExporter: any;
+      JsonSchemaExporter: any;
+      MarkdownExporter: any;
+      GraphMLExporter: any;
+    };
+
     beforeEach(async () => {
       // Create comprehensive model used by multiple exporters
       const apiLayer = new Layer("api");
@@ -651,26 +639,21 @@ describe("Export Roundtrip Tests", () => {
       await model.saveManifest();
       await model.saveLayer("api");
       await model.saveLayer("data-model");
+
+      // Load model and initialize exporters once per describe block
+      loadedModel = await Model.load(testDir);
+      exporters = await import("@/export/index");
     });
 
     it("should produce non-empty output for all major exporters", async () => {
-      const loadedModel = await Model.load(testDir);
-
-      const {
-        OpenAPIExporter,
-        JsonSchemaExporter,
-        MarkdownExporter,
-        GraphMLExporter,
-      } = await import("@/export/index");
-
-      const exporters = [
-        { name: "OpenAPI", exporter: new OpenAPIExporter(), layers: ["api"] },
-        { name: "JSON Schema", exporter: new JsonSchemaExporter(), layers: ["data-model"] },
-        { name: "Markdown", exporter: new MarkdownExporter(), layers: [] },
-        { name: "GraphML", exporter: new GraphMLExporter(), layers: [] },
+      const exporter_list = [
+        { name: "OpenAPI", exporter: new exporters.OpenAPIExporter(), layers: ["api"] },
+        { name: "JSON Schema", exporter: new exporters.JsonSchemaExporter(), layers: ["data-model"] },
+        { name: "Markdown", exporter: new exporters.MarkdownExporter(), layers: [] },
+        { name: "GraphML", exporter: new exporters.GraphMLExporter(), layers: [] },
       ];
 
-      for (const { name, exporter, layers } of exporters) {
+      for (const { name, exporter, layers } of exporter_list) {
         const result = await exporter.export(loadedModel, { layers: layers.length > 0 ? layers : undefined });
         expect(result).toBeDefined();
         expect(result.length).toBeGreaterThan(0);
@@ -678,26 +661,18 @@ describe("Export Roundtrip Tests", () => {
     });
 
     it("should preserve element names across all exporters", async () => {
-      const loadedModel = await Model.load(testDir);
-
-      const {
-        OpenAPIExporter,
-        JsonSchemaExporter,
-        MarkdownExporter,
-      } = await import("@/export/index");
-
       // OpenAPI should have "List Items"
-      const openAPI = new OpenAPIExporter();
+      const openAPI = new exporters.OpenAPIExporter();
       const apiResult = await openAPI.export(loadedModel, { layers: ["api"] });
       expect(apiResult.includes("List Items")).toBe(true);
 
       // JSON Schema should have "Item"
-      const jsonSchema = new JsonSchemaExporter();
+      const jsonSchema = new exporters.JsonSchemaExporter();
       const schemaResult = await jsonSchema.export(loadedModel, { layers: ["data-model"] });
       expect(schemaResult.includes("Item")).toBe(true);
 
       // Markdown should have both
-      const markdown = new MarkdownExporter();
+      const markdown = new exporters.MarkdownExporter();
       const mdResult = await markdown.export(loadedModel, {});
       expect(mdResult.includes("List Items")).toBe(true);
       expect(mdResult.includes("Item")).toBe(true);
