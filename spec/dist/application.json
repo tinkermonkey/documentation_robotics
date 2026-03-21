@@ -202,7 +202,12 @@
             },
             "pattern": {
               "type": "string",
-              "enum": ["request-reply", "publish-subscribe", "event-driven", "fire-and-forget"],
+              "enum": [
+                "request-reply",
+                "publish-subscribe",
+                "event-driven",
+                "fire-and-forget"
+              ],
               "description": "Interaction pattern used by this application collaboration."
             }
           },
@@ -239,7 +244,16 @@
             },
             "protocol": {
               "type": "string",
-              "enum": ["HTTP", "HTTPS", "gRPC", "AMQP", "WebSocket", "REST", "GraphQL", "SOAP"],
+              "enum": [
+                "HTTP",
+                "HTTPS",
+                "gRPC",
+                "AMQP",
+                "WebSocket",
+                "REST",
+                "GraphQL",
+                "SOAP"
+              ],
               "description": "Application-level communication protocol used to expose the service. Use application-level protocols only; network/transport-level protocols (TCP, TLS) belong in the Technology Layer."
             },
             "properties": {
