@@ -15,8 +15,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { runDr as runDrHelper } from "../helpers/cli-runner.js";
-import { createTempWorkdir } from "../helpers/cli-runner.js";
+import { runDr as runDrHelper, createTempWorkdir } from "../helpers/cli-runner.js";
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
@@ -94,6 +93,39 @@ function parseTraceOutput(output: string, section: "Dependencies" | "Dependents"
   return { directCount, transitiveCount, directItems, transitiveItems };
 }
 
+/**
+ * Helper: Create a three-element A→B→C dependency chain in the data-store layer.
+ * Returns when both relationships are created successfully.
+ */
+async function setupThreeElementChain(): Promise<void> {
+  // Create three elements in data-store layer: A, B, C
+  await runDr("add", "data-store", "collection", "Element A");
+  await runDr("add", "data-store", "collection", "Element B");
+  await runDr("add", "data-store", "collection", "Element C");
+
+  // Create relationship A → B
+  const relAB = await runDr(
+    "relationship",
+    "add",
+    "data-store.collection.element-a",
+    "data-store.collection.element-b",
+    "--predicate",
+    "composes"
+  );
+  expect(relAB.exitCode).toBe(0);
+
+  // Create relationship B → C
+  const relBC = await runDr(
+    "relationship",
+    "add",
+    "data-store.collection.element-b",
+    "data-store.collection.element-c",
+    "--predicate",
+    "composes"
+  );
+  expect(relBC.exitCode).toBe(0);
+}
+
 describe("Trace Command with Populated Models", () => {
   beforeEach(async () => {
     tempDir = await createTempWorkdir();
@@ -107,21 +139,8 @@ describe("Trace Command with Populated Models", () => {
 
   describe("trace with three-element dependency chain", () => {
     it("should show direct dependency count when A→B relationship exists", async () => {
-      // Create three elements in data-store layer: A, B, C
-      await runDr("add", "data-store", "collection", "Element A");
-      await runDr("add", "data-store", "collection", "Element B");
-      await runDr("add", "data-store", "collection", "Element C");
-
-      // Create relationship A → B
-      const relAB = await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-a",
-        "data-store.collection.element-b",
-        "--predicate",
-        "composes"
-      );
-      expect(relAB.exitCode).toBe(0);
+      // Setup chain: A → B → C
+      await setupThreeElementChain();
 
       // Trace A and check for direct dependencies
       const traceResult = await runDr("trace", "data-store.collection.element-a");
@@ -138,31 +157,8 @@ describe("Trace Command with Populated Models", () => {
     });
 
     it("should show transitive dependency count when A→B→C chain exists", async () => {
-      // Create three elements in data-store layer
-      await runDr("add", "data-store", "collection", "Element A");
-      await runDr("add", "data-store", "collection", "Element B");
-      await runDr("add", "data-store", "collection", "Element C");
-
-      // Create chain: A → B → C
-      const relAB = await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-a",
-        "data-store.collection.element-b",
-        "--predicate",
-        "composes"
-      );
-      expect(relAB.exitCode).toBe(0);
-
-      const relBC = await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-b",
-        "data-store.collection.element-c",
-        "--predicate",
-        "composes"
-      );
-      expect(relBC.exitCode).toBe(0);
+      // Setup chain: A → B → C
+      await setupThreeElementChain();
 
       // Trace A and check for transitive dependencies
       const traceResult = await runDr("trace", "data-store.collection.element-a");
@@ -183,28 +179,8 @@ describe("Trace Command with Populated Models", () => {
     });
 
     it("should have exactly matching counts between header and listed items", async () => {
-      // Create three elements
-      await runDr("add", "data-store", "collection", "Element A");
-      await runDr("add", "data-store", "collection", "Element B");
-      await runDr("add", "data-store", "collection", "Element C");
-
-      // Create chain: A → B → C
-      await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-a",
-        "data-store.collection.element-b",
-        "--predicate",
-        "composes"
-      );
-      await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-b",
-        "data-store.collection.element-c",
-        "--predicate",
-        "composes"
-      );
+      // Setup chain: A → B → C
+      await setupThreeElementChain();
 
       // Trace A
       const traceResult = await runDr("trace", "data-store.collection.element-a");
@@ -212,6 +188,10 @@ describe("Trace Command with Populated Models", () => {
 
       // Parse both sections
       const depsParsed = parseTraceOutput(traceResult.stdout, "Dependencies");
+
+      // Guard assertion: ensure the parser actually found the Dependencies section
+      // (prevents vacuous passing if parser fails and both sides default to 0)
+      expect(depsParsed.directCount).toBeGreaterThan(0);
 
       // Verify that the header counts match the actual listed items
       // For dependencies section:
@@ -222,28 +202,8 @@ describe("Trace Command with Populated Models", () => {
     });
 
     it("should show correct dependents when using --direction up on the tail of chain", async () => {
-      // Create three elements
-      await runDr("add", "data-store", "collection", "Element A");
-      await runDr("add", "data-store", "collection", "Element B");
-      await runDr("add", "data-store", "collection", "Element C");
-
-      // Create chain: A → B → C
-      await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-a",
-        "data-store.collection.element-b",
-        "--predicate",
-        "composes"
-      );
-      await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-b",
-        "data-store.collection.element-c",
-        "--predicate",
-        "composes"
-      );
+      // Setup chain: A → B → C
+      await setupThreeElementChain();
 
       // Trace C with --direction up (show what depends on C)
       const traceResult = await runDr("trace", "data-store.collection.element-c", "--direction", "up");
@@ -265,28 +225,8 @@ describe("Trace Command with Populated Models", () => {
     });
 
     it("should not report negative or zero counts when relationships exist", async () => {
-      // Create three elements
-      await runDr("add", "data-store", "collection", "Element A");
-      await runDr("add", "data-store", "collection", "Element B");
-      await runDr("add", "data-store", "collection", "Element C");
-
-      // Create chain: A → B → C
-      await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-a",
-        "data-store.collection.element-b",
-        "--predicate",
-        "composes"
-      );
-      await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-b",
-        "data-store.collection.element-c",
-        "--predicate",
-        "composes"
-      );
+      // Setup chain: A → B → C
+      await setupThreeElementChain();
 
       // Trace each element and verify counts are positive
       const traceA = await runDr("trace", "data-store.collection.element-a");
@@ -314,28 +254,8 @@ describe("Trace Command with Populated Models", () => {
     });
 
     it("should show no dependents when element is the head of chain with --direction up", async () => {
-      // Create three elements
-      await runDr("add", "data-store", "collection", "Element A");
-      await runDr("add", "data-store", "collection", "Element B");
-      await runDr("add", "data-store", "collection", "Element C");
-
-      // Create chain: A → B → C
-      await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-a",
-        "data-store.collection.element-b",
-        "--predicate",
-        "composes"
-      );
-      await runDr(
-        "relationship",
-        "add",
-        "data-store.collection.element-b",
-        "data-store.collection.element-c",
-        "--predicate",
-        "composes"
-      );
+      // Setup chain: A → B → C
+      await setupThreeElementChain();
 
       // Trace A with --direction up (show what depends on A)
       const traceResult = await runDr("trace", "data-store.collection.element-a", "--direction", "up");
