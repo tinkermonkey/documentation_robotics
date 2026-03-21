@@ -382,24 +382,33 @@ describe("Changeset Staged Visibility", () => {
       expect(statusResult.exitCode).toBe(0);
       expect(statusResult.stdout).toContain(changeset.id);
 
-      // Try to commit the changeset via CLI
-      // Note: The golden copy may have validation errors, so we accept either:
-      // 1. Success (exit 0) - commit worked and deactivated changeset
-      // 2. Validation error (exit 1) - commit failed but still deactivated changeset (if regression exists)
+      // Commit the changeset via CLI
       const commitResult = await runDr(["changeset", "commit"], { cwd: TEST_DIR });
 
-      // Regardless of commit success/failure, verify changeset can be cleared programmatically
-      // This tests the core requirement: changesets should be clearable
-      await manager.clearActive();
+      // Verify deactivation based on commit result
+      if (commitResult.exitCode === 0) {
+        // Commit succeeded - verify that `dr changeset commit` itself deactivated the changeset
+        // by checking status without calling manager.clearActive()
+        statusResult = await runDr(["changeset", "status"], { cwd: TEST_DIR });
+        expect(statusResult.exitCode).toBe(0);
+        const noActiveMessage = statusResult.stdout.toLowerCase().includes("no active") ||
+                                statusResult.stdout.toLowerCase().includes("no changeset") ||
+                                !statusResult.stdout.includes(changeset.id);
+        expect(noActiveMessage).toBe(true);
+      } else {
+        // Commit failed (e.g., due to golden-copy validation errors)
+        // In this case, we can't assert on CLI-level deactivation, but we verify
+        // the changeset can be cleared programmatically for cleanup
+        await manager.clearActive();
 
-      // Verify changeset is no longer active via CLI
-      statusResult = await runDr(["changeset", "status"], { cwd: TEST_DIR });
-      expect(statusResult.exitCode).toBe(0);
-      // Status should not contain the changeset ID or should indicate no active changeset
-      const noActiveMessage = statusResult.stdout.toLowerCase().includes("no active") ||
-                              statusResult.stdout.toLowerCase().includes("no changeset") ||
-                              !statusResult.stdout.includes(changeset.id);
-      expect(noActiveMessage).toBe(true);
+        // Verify it's deactivated after manual clearance
+        statusResult = await runDr(["changeset", "status"], { cwd: TEST_DIR });
+        expect(statusResult.exitCode).toBe(0);
+        const noActiveMessage = statusResult.stdout.toLowerCase().includes("no active") ||
+                                statusResult.stdout.toLowerCase().includes("no changeset") ||
+                                !statusResult.stdout.includes(changeset.id);
+        expect(noActiveMessage).toBe(true);
+      }
     });
   });
 
