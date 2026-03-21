@@ -9,7 +9,7 @@ triggers:
     "input partition",
     "ISP",
     "test strategy",
-    "coverage model",
+    "coverage model"
   ]
 version: 0.8.1
 ---

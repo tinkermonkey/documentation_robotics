@@ -25,7 +25,17 @@
         },
         "type": {
           "type": "string",
-          "enum": ["line", "bar", "column", "pie", "donut", "area", "scatter", "bubble", "heatmap"],
+          "enum": [
+            "line",
+            "bar",
+            "column",
+            "pie",
+            "donut",
+            "area",
+            "scatter",
+            "bubble",
+            "heatmap"
+          ],
           "description": "Visualization type for this data series."
         },
         "dataField": {

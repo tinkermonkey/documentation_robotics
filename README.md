@@ -24,13 +24,13 @@ Documentation Robotics provides:
 
 With generative AI and agentic tools, teams can now produce code faster than they can design, communicate, or validate what they're building. The bottleneck has shifted from implementation to comprehension — knowing what the system is, what it should become, and whether the changes made actually reflect the intent.
 
-A shared, multi-layered model of a software system addresses this directly. It captures the *why* (business goals, requirements), the *what* (services, APIs, data), and the *how* (components, infrastructure, observability) in a single coherent structure. This gives teams — human and AI — a common frame of reference for reasoning about the system at any level of abstraction.
+A shared, multi-layered model of a software system addresses this directly. It captures the _why_ (business goals, requirements), the _what_ (services, APIs, data), and the _how_ (components, infrastructure, observability) in a single coherent structure. This gives teams — human and AI — a common frame of reference for reasoning about the system at any level of abstraction.
 
 ## A Federated Architecture Model
 
 The Documentation Robotics specification defines a 12-layer federated model spanning motivation through observability. Each layer captures a distinct aspect of the system — from business intent and security policy down to API contracts, data schemas, and test strategies — using established standards (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) wherever possible.
 
-The model has two complementary views: the **current model** represents the actual state of the system today, and **changesets** represent a proposed future state — a set of model changes across layers that together define a coherent set of requirements. A changeset can specify not just that a new feature is needed, but *how every layer of the system changes to support it*: what new business capability it enables, what API contract it exposes, what data it stores, what it should test.
+The model has two complementary views: the **current model** represents the actual state of the system today, and **changesets** represent a proposed future state — a set of model changes across layers that together define a coherent set of requirements. A changeset can specify not just that a new feature is needed, but _how every layer of the system changes to support it_: what new business capability it enables, what API contract it exposes, what data it stores, what it should test.
 
 ## Spec-Driven Development
 
@@ -173,20 +173,20 @@ documentation_robotics/
 
 The specification defines 12 interconnected layers:
 
-| #   | Layer                                                              | Focus        | Standard      | Notes                                                   |
-| --- | ------------------------------------------------------------------ | ------------ | ------------- | ------------------------------------------------------- |
-| 01  | [Motivation](spec/layers/01-motivation.layer.json)                 | WHY          | ArchiMate 3.2 |                                                         |
-| 02  | [Business](spec/layers/02-business.layer.json)                     | WHAT         | ArchiMate 3.2 |                                                         |
-| 03  | [Security](spec/layers/03-security.layer.json)                     | WHO CAN      | _Custom_      |                                                         |
-| 04  | [Application](spec/layers/04-application.layer.json)               | HOW          | ArchiMate 3.2 |                                                         |
-| 05  | [Technology](spec/layers/05-technology.layer.json)                 | WITH WHAT    | ArchiMate 3.2 |                                                         |
-| 06  | [API](spec/layers/06-api.layer.json)                               | INTERFACE    | OpenAPI 3.0   |                                                         |
-| 07  | [Data Model](spec/layers/07-data-model.layer.json)                 | STRUCTURE    | JSON Schema   |                                                         |
-| 08  | [Data Store](spec/layers/08-data-store.layer.json)                 | STORAGE      | SQL DDL       |                                                         |
-| 09  | [UX](spec/layers/09-ux.layer.json)                                 | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
-| 10  | [Navigation](spec/layers/10-navigation.layer.json)                 | FLOW         | _Custom_      |                                                         |
-| 11  | [APM/Observability](spec/layers/11-apm.layer.json)                 | OBSERVE      | OpenTelemetry |                                                         |
-| 12  | [Testing](spec/layers/12-testing.layer.json)                       | VERIFY       | _Custom_      |                                                         |
+| #   | Layer                                                | Focus        | Standard      | Notes                                                   |
+| --- | ---------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------- |
+| 01  | [Motivation](spec/layers/01-motivation.layer.json)   | WHY          | ArchiMate 3.2 |                                                         |
+| 02  | [Business](spec/layers/02-business.layer.json)       | WHAT         | ArchiMate 3.2 |                                                         |
+| 03  | [Security](spec/layers/03-security.layer.json)       | WHO CAN      | _Custom_      |                                                         |
+| 04  | [Application](spec/layers/04-application.layer.json) | HOW          | ArchiMate 3.2 |                                                         |
+| 05  | [Technology](spec/layers/05-technology.layer.json)   | WITH WHAT    | ArchiMate 3.2 |                                                         |
+| 06  | [API](spec/layers/06-api.layer.json)                 | INTERFACE    | OpenAPI 3.0   |                                                         |
+| 07  | [Data Model](spec/layers/07-data-model.layer.json)   | STRUCTURE    | JSON Schema   |                                                         |
+| 08  | [Data Store](spec/layers/08-data-store.layer.json)   | STORAGE      | SQL DDL       |                                                         |
+| 09  | [UX](spec/layers/09-ux.layer.json)                   | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
+| 10  | [Navigation](spec/layers/10-navigation.layer.json)   | FLOW         | _Custom_      |                                                         |
+| 11  | [APM/Observability](spec/layers/11-apm.layer.json)   | OBSERVE      | OpenTelemetry |                                                         |
+| 12  | [Testing](spec/layers/12-testing.layer.json)         | VERIFY       | _Custom_      |                                                         |
 
 ## Standards Leveraged
 

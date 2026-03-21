@@ -93,7 +93,7 @@ Organize findings into these categories:
 | ------------------------- | -------------------------------------------------------------------------------- | ------------------------- |
 | **New elements**          | Files/classes with no model element yet, detected as architecturally significant | Stage `dr add`            |
 | **Updated elements**      | Existing tracked elements with changed properties (renamed method, new field)    | Stage `dr update`         |
-| **Deleted elements**      | Tracked elements whose source file/class was removed                             | Stage `dr delete --force`         |
+| **Deleted elements**      | Tracked elements whose source file/class was removed                             | Stage `dr delete --force` |
 | **Renamed/moved**         | Source file changed but logical element is the same                              | Stage source-file update  |
 | **New relationships**     | New dependencies between services/components detected in imports or calls        | Stage relationship add    |
 | **Removed relationships** | Existing relationships broken by code removal                                    | Stage relationship remove |

@@ -12,7 +12,7 @@ triggers:
     "requirement",
     "constraint",
     "motivation",
-    "archimate motivation",
+    "archimate motivation"
   ]
 version: 0.8.3
 ---
@@ -100,6 +100,7 @@ IS this a semantic definition, interpretation, or piece of knowledge attached to
 ```
 
 **Key distinctions:**
+
 - **Goal vs Requirement**: A Goal is aspirational ("improve performance"); a Requirement is a verifiable must ("API must respond in <200ms")
 - **Requirement vs Constraint**: A Requirement says WHAT must be done; a Constraint says HOW it is bounded ("must use OAuth 2.0" limits the solution space)
 - **Driver vs Assessment**: A Driver is an ongoing force motivating action; an Assessment is a point-in-time finding about the current state
@@ -268,7 +269,7 @@ Before declaring motivation layer extraction complete, verify each type was cons
 - [ ] **meaning** — Semantic definitions or knowledge interpretations are captured where elements need clarification
 
 If any type has ZERO elements, explicitly decide:
-  "This type doesn't apply to this codebase" with reasoning.
+"This type doesn't apply to this codebase" with reasoning.
 
 ---
 

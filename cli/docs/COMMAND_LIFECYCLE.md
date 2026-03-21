@@ -35,7 +35,10 @@ Commands that execute deterministic workflows and terminate immediately.
 **Lifecycle Pattern:**
 
 ```typescript
-export async function commandFunction(args: ArgumentType, options: OptionsType): Promise<void> {
+export async function commandFunction(
+  args: ArgumentType,
+  options: OptionsType
+): Promise<void> {
   try {
     // 1. Load model if needed
     const model = await Model.load();
@@ -81,7 +84,10 @@ Commands that spawn subprocesses and monitor their lifecycle.
 **Lifecycle Pattern:**
 
 ```typescript
-export async function longRunningCommand(args: ArgumentType, options: OptionsType): Promise<void> {
+export async function longRunningCommand(
+  args: ArgumentType,
+  options: OptionsType
+): Promise<void> {
   let serverProcess: ChildProcess | null = null;
 
   try {

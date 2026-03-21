@@ -11,7 +11,7 @@ triggers:
     "API specification",
     "HTTP method",
     "request",
-    "response",
+    "response"
   ]
 version: 0.6.0
 ---
@@ -295,9 +295,13 @@ const router = express.Router();
  *     x-apm-sla-target-latency: 100ms
  *     x-apm-criticality: high
  */
-router.get("/api/orders/:orderId", param("orderId").isUUID(), async (req, res) => {
-  // Implementation
-});
+router.get(
+  "/api/orders/:orderId",
+  param("orderId").isUUID(),
+  async (req, res) => {
+    // Implementation
+  }
+);
 ```
 
 **Maps to:**

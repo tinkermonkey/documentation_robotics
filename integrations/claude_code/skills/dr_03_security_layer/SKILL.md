@@ -13,7 +13,7 @@ triggers:
     "policy",
     "threat",
     "actor objective",
-    "STS-ml",
+    "STS-ml"
   ]
 version: 0.8.3
 ---

@@ -84,7 +84,7 @@ const element = new Element({
   type: "Goal",
   name: "Test Goal",
   description: "A test goal",
-  properties: { priority: "high" },
+  properties: { priority: "high" }
 });
 
 element.setProperty("owner", "team-a");
@@ -126,7 +126,7 @@ const manifest = new Manifest({
   name: "Test Model",
   version: "1.0.0",
   description: "A test model",
-  specVersion: "0.6.0",
+  specVersion: "0.6.0"
 });
 
 const json = JSON.stringify(manifest.toJSON());
@@ -147,7 +147,7 @@ Central orchestrator for the complete architecture model. Supports:
 // Initialize a new model
 const model = await Model.init(".", {
   name: "My Model",
-  version: "1.0.0",
+  version: "1.0.0"
 });
 
 // Load an existing model
@@ -175,10 +175,12 @@ const refRegistry = new ReferenceRegistry();
 refRegistry.addReference({
   source: "01-motivation-goal-create-customer",
   target: "02-business-process-create-order",
-  type: "realizes",
+  type: "realizes"
 });
 
-const refsFrom = refRegistry.getReferencesFrom("01-motivation-goal-create-customer");
+const refsFrom = refRegistry.getReferencesFrom(
+  "01-motivation-goal-create-customer"
+);
 const refsTo = refRegistry.getReferencesTo("02-business-process-create-order");
 ```
 
@@ -199,13 +201,13 @@ const relRegistry = new RelationshipRegistry();
 relRegistry.registerType({
   id: "depends-on",
   predicate: "depends-on",
-  category: "dependency",
+  category: "dependency"
 });
 
 relRegistry.addRelationship({
   source: "02-process-create-order",
   target: "02-process-validate-order",
-  predicate: "depends-on",
+  predicate: "depends-on"
 });
 ```
 
@@ -216,7 +218,14 @@ relRegistry.addRelationship({
 Atomic file operations for safe persistence:
 
 ```typescript
-import { ensureDir, writeFile, readFile, writeJSON, readJSON, atomicWrite } from "@/utils/file-io";
+import {
+  ensureDir,
+  writeFile,
+  readFile,
+  writeJSON,
+  readJSON,
+  atomicWrite
+} from "@/utils/file-io";
 
 // Ensure directory exists
 await ensureDir(".dr/layers");
@@ -348,7 +357,7 @@ import { describe, test, beforeAll, afterAll } from "bun:test";
 import {
   startTestFileSpan,
   endTestFileSpan,
-  instrumentTest,
+  instrumentTest
 } from "../../src/telemetry/test-instrumentation.js";
 
 beforeAll(() => {

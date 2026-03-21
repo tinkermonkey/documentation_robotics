@@ -22,7 +22,14 @@
       "properties": {
         "action": {
           "type": "string",
-          "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
+          "enum": [
+            "navigate",
+            "submit",
+            "open",
+            "close",
+            "dispatch",
+            "validate"
+          ],
           "description": "Operation executed during the state lifecycle."
         },
         "description": {

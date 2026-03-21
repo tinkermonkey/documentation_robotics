@@ -13,7 +13,7 @@ triggers:
     "network",
     "cloud",
     "terraform",
-    "archimate technology",
+    "archimate technology"
   ]
 version: 0.8.3
 ---
@@ -100,25 +100,25 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 
 Given what you see in the codebase, which spec type does it become?
 
-| What You See in the Codebase | Spec Type | Required Attribute | Example ID |
-|---|---|---|---|
-| Framework-grade npm library (see heuristic below) | `systemsoftware` | `softwareType: middleware` | `technology.systemsoftware.zustand` |
-| Utility npm library (see heuristic below) | `artifact` | `artifactType: library` | `technology.artifact.jszip` |
-| JavaScript/CSS framework (`react`, `tailwindcss`) | `systemsoftware` | `softwareType: middleware` | `technology.systemsoftware.react` |
-| Language runtime (`node.js`, `python`, `bun`) | `systemsoftware` | `softwareType: middleware` | `technology.systemsoftware.nodejs` |
-| Container runtime (`docker`) | `systemsoftware` | `softwareType: container-runtime` | `technology.systemsoftware.docker` |
-| Build tool / compiler (`vite`, `tsc`, `eslint`) | `technologyprocess` | — | `technology.technologyprocess.vite` |
-| CI/CD pipeline or workflow | `technologyprocess` | — | `technology.technologyprocess.github-actions` |
-| Hosted platform service (GitHub Pages, npm registry) | `technologyservice` | `serviceType: compute` or `storage` | `technology.technologyservice.github-pages` |
-| Browser JavaScript runtime environment | `node` | `nodeType: container` | `technology.node.browser-runtime` |
-| Development server | `node` | `nodeType: virtual-machine` | `technology.node.dev-server` |
-| Backend server | `node` | `nodeType: virtual-machine` | `technology.node.dr-cli-server` |
-| Build output / distributable / npm package | `artifact` | `artifactType: archive` or `library` | `technology.artifact.dist-embedded` |
-| Network protocol / communication channel | `communicationnetwork` | `networkType: internet` or `lan` | `technology.communicationnetwork.websocket-channel` |
-| HTTP/WebSocket port or endpoint (access point) | `technologyinterface` | `protocol: http/https/websocket` | `technology.technologyinterface.vite-dev-http` |
-| Infrastructure function (HMR, caching, bundling) | `technologyfunction` | — | `technology.technologyfunction.hot-module-reload` |
-| Off-thread Web Worker | `technologyfunction` | — | `technology.technologyfunction.off-thread-layout` |
-| Group of nodes/services working together | `technologycollaboration` | — | `technology.technologycollaboration.ci-cd-suite` |
+| What You See in the Codebase                         | Spec Type                 | Required Attribute                   | Example ID                                          |
+| ---------------------------------------------------- | ------------------------- | ------------------------------------ | --------------------------------------------------- |
+| Framework-grade npm library (see heuristic below)    | `systemsoftware`          | `softwareType: middleware`           | `technology.systemsoftware.zustand`                 |
+| Utility npm library (see heuristic below)            | `artifact`                | `artifactType: library`              | `technology.artifact.jszip`                         |
+| JavaScript/CSS framework (`react`, `tailwindcss`)    | `systemsoftware`          | `softwareType: middleware`           | `technology.systemsoftware.react`                   |
+| Language runtime (`node.js`, `python`, `bun`)        | `systemsoftware`          | `softwareType: middleware`           | `technology.systemsoftware.nodejs`                  |
+| Container runtime (`docker`)                         | `systemsoftware`          | `softwareType: container-runtime`    | `technology.systemsoftware.docker`                  |
+| Build tool / compiler (`vite`, `tsc`, `eslint`)      | `technologyprocess`       | —                                    | `technology.technologyprocess.vite`                 |
+| CI/CD pipeline or workflow                           | `technologyprocess`       | —                                    | `technology.technologyprocess.github-actions`       |
+| Hosted platform service (GitHub Pages, npm registry) | `technologyservice`       | `serviceType: compute` or `storage`  | `technology.technologyservice.github-pages`         |
+| Browser JavaScript runtime environment               | `node`                    | `nodeType: container`                | `technology.node.browser-runtime`                   |
+| Development server                                   | `node`                    | `nodeType: virtual-machine`          | `technology.node.dev-server`                        |
+| Backend server                                       | `node`                    | `nodeType: virtual-machine`          | `technology.node.dr-cli-server`                     |
+| Build output / distributable / npm package           | `artifact`                | `artifactType: archive` or `library` | `technology.artifact.dist-embedded`                 |
+| Network protocol / communication channel             | `communicationnetwork`    | `networkType: internet` or `lan`     | `technology.communicationnetwork.websocket-channel` |
+| HTTP/WebSocket port or endpoint (access point)       | `technologyinterface`     | `protocol: http/https/websocket`     | `technology.technologyinterface.vite-dev-http`      |
+| Infrastructure function (HMR, caching, bundling)     | `technologyfunction`      | —                                    | `technology.technologyfunction.hot-module-reload`   |
+| Off-thread Web Worker                                | `technologyfunction`      | —                                    | `technology.technologyfunction.off-thread-layout`   |
+| Group of nodes/services working together             | `technologycollaboration` | —                                    | `technology.technologycollaboration.ci-cd-suite`    |
 
 ### Framework-Grade Library vs. Utility Library
 
@@ -208,8 +208,8 @@ jobs:
 // vite.config.ts
 export default defineConfig({
   server: { port: 3001 },
-  build: { outDir: 'dist' }
-})
+  build: { outDir: "dist" }
+});
 ```
 
 → `technology.node.dev-server` (nodeType: virtual-machine, port: 3001)
@@ -220,7 +220,7 @@ export default defineConfig({
 
 ```javascript
 // public/workers/layoutWorker.js
-self.onmessage = function(e) {
+self.onmessage = function (e) {
   const result = runDagreLayout(e.data);
   self.postMessage(result);
 };

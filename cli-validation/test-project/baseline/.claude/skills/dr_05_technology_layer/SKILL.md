@@ -13,7 +13,7 @@ triggers:
     "network",
     "cloud",
     "terraform",
-    "archimate technology",
+    "archimate technology"
   ]
 version: 0.6.0
 ---

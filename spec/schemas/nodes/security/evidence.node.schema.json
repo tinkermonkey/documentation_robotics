@@ -22,7 +22,14 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["log", "signature", "timestamp", "hash", "certificate", "audit-trail"],
+          "enum": [
+            "log",
+            "signature",
+            "timestamp",
+            "hash",
+            "certificate",
+            "audit-trail"
+          ],
           "description": "Category of evidence artifact, per NIST AU-10 (Non-repudiation)."
         },
         "strength": {

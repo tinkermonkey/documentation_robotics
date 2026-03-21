@@ -107,7 +107,7 @@ const agentProcess = agent.spawn({
   cwd: "/path/to/project",
   message: "What layers are in this model?",
   agentName: "dr-architect", // Optional
-  additionalArgs: ["--verbose"], // Optional
+  additionalArgs: ["--verbose"] // Optional
 });
 
 console.log("Conversation ID:", agentProcess.conversationId);
@@ -151,7 +151,12 @@ To add support for a new coding agent CLI:
 ### 1. Create Agent Class
 
 ```typescript
-import { CodingAgent, AgentProcess, ChatEvent, SpawnAgentOptions } from "./types";
+import {
+  CodingAgent,
+  AgentProcess,
+  ChatEvent,
+  SpawnAgentOptions
+} from "./types";
 
 export class MyCustomAgent implements CodingAgent {
   readonly name = "My Custom Agent";
@@ -163,7 +168,7 @@ export class MyCustomAgent implements CodingAgent {
     try {
       const result = spawnSync("which", [this.command], {
         stdio: "pipe",
-        encoding: "utf-8",
+        encoding: "utf-8"
       });
       return result.status === 0;
     } catch {
@@ -180,7 +185,7 @@ export class MyCustomAgent implements CodingAgent {
     // Spawn subprocess
     const proc = spawn(this.command, args, {
       cwd: options.cwd,
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe"]
     });
 
     // Send initial message
@@ -191,7 +196,7 @@ export class MyCustomAgent implements CodingAgent {
     return {
       process: proc,
       conversationId: `myagent-${Date.now()}`,
-      completion: this.monitorProcess(proc),
+      completion: this.monitorProcess(proc)
     };
   }
 
@@ -206,7 +211,7 @@ export class MyCustomAgent implements CodingAgent {
       if (line.trim()) {
         events.push({
           type: "text",
-          content: line,
+          content: line
         });
       }
     }

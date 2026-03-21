@@ -53,20 +53,20 @@ Determine the canonical layer name and skill file path.
 
 **Layer name → skill directory map:**
 
-| Canonical Name | Skill Directory |
-|---|---|
-| `motivation` | `dr_01_motivation_layer` |
-| `business` | `dr_02_business_layer` |
-| `security` | `dr_03_security_layer` |
-| `application` | `dr_04_application_layer` |
-| `technology` | `dr_05_technology_layer` |
-| `api` | `dr_06_api_layer` |
-| `data-model` | `dr_07_data_model_layer` |
-| `data-store` | `dr_08_dataset_layer` |
-| `ux` | `dr_09_ux_layer` |
-| `navigation` | `dr_10_navigation_layer` |
-| `apm` | `dr_11_apm_layer` |
-| `testing` | `dr_12_testing_layer` |
+| Canonical Name | Skill Directory           |
+| -------------- | ------------------------- |
+| `motivation`   | `dr_01_motivation_layer`  |
+| `business`     | `dr_02_business_layer`    |
+| `security`     | `dr_03_security_layer`    |
+| `application`  | `dr_04_application_layer` |
+| `technology`   | `dr_05_technology_layer`  |
+| `api`          | `dr_06_api_layer`         |
+| `data-model`   | `dr_07_data_model_layer`  |
+| `data-store`   | `dr_08_dataset_layer`     |
+| `ux`           | `dr_09_ux_layer`          |
+| `navigation`   | `dr_10_navigation_layer`  |
+| `apm`          | `dr_11_apm_layer`         |
+| `testing`      | `dr_12_testing_layer`     |
 
 If the argument is not a recognized canonical layer name, print:
 
@@ -110,6 +110,7 @@ dr schema types <layer>
 ```
 
 Parse the output to extract:
+
 - The list of valid type names (e.g., `systemsoftware`, `artifact`, `node`, `technologyprocess`, ...)
 
 If the command fails, try reading the spec directly:
@@ -149,12 +150,12 @@ Extract the middle segment (the type segment) from each. Store all unique type s
 
 Check which of these structural sections exist (look for `##` headings):
 
-| Section | Heading keywords to look for |
-|---|---|
-| Type Decision Tree | `type decision tree`, `decision tree`, `classification` |
-| Common Misclassifications | `misclassification`, `common mistakes`, `do not`, `avoid` |
-| Detection Patterns | `detection pattern`, `codebase pattern`, `framework-specific` |
-| Coverage Checklist | `coverage`, `checklist`, `completeness` |
+| Section                   | Heading keywords to look for                                  |
+| ------------------------- | ------------------------------------------------------------- |
+| Type Decision Tree        | `type decision tree`, `decision tree`, `classification`       |
+| Common Misclassifications | `misclassification`, `common mistakes`, `do not`, `avoid`     |
+| Detection Patterns        | `detection pattern`, `codebase pattern`, `framework-specific` |
+| Coverage Checklist        | `coverage`, `checklist`, `completeness`                       |
 
 ---
 
@@ -165,11 +166,13 @@ Compare `SPEC_TYPES`, `SKILL_TYPES`, and `SKILL_ID_TYPES` to identify issues. Cl
 **MISSING — Spec type not documented in Entity Types table**
 
 For each type in `SPEC_TYPES` that is NOT in `SKILL_TYPES`:
+
 - Finding: `MISSING type: {layer}.{type}` — the skill's Entity Types table has no row for this type
 
 **INVALID — Type name used in the skill that does not exist in the spec**
 
 For each type segment in `SKILL_ID_TYPES` that is NOT in `SPEC_TYPES`:
+
 - Skip the layer name itself (e.g., `technology`, `application`) — those are not type errors
 - Finding: `INVALID type in example ID: {layer}.{type_segment}.* — '{type_segment}' is not a spec type`
 
@@ -178,9 +181,11 @@ Also scan for any type names mentioned in prose or attributes (`type: stack`, `t
 **SECTION — Structural section missing**
 
 For each of the four structural sections that is absent:
+
 - Finding: `SECTION missing: {section name}`
 
 Weight sections by severity:
+
 - Type Decision Tree / Classification Guide — **high** (most important for correct extraction)
 - Coverage Checklist — **high**
 - Common Misclassifications — **medium**
@@ -189,6 +194,7 @@ Weight sections by severity:
 **ID FORMAT — Example IDs with wrong type segment**
 
 For every example ID where the type segment is not a valid spec type (overlap with INVALID, but call these out specifically):
+
 - Finding: `ID FORMAT: {full example ID} — use {layer}.{correct_spec_type}.{name} instead`
 
 ---
@@ -244,16 +250,20 @@ Options:
 ```
 
 **If option 1 chosen (or `autoMode` is active):**
+
 - Read the schema: `dr schema node {layer}.{type}`
 - Draft a table row following the format of existing rows in the skill:
+
   ```
   | **{TypeName}** | {description} | {key attributes} |
   ```
+
 - If `autoMode`: insert immediately, log `[AUTO] ADDED row for {layer}.{type} to Entity Types table`
 - Otherwise: show the draft, ask: "Insert this row? (yes / revise / skip)", insert on yes
 - Log: `ADDED row for {layer}.{type} to Entity Types table`
 
 **If option 2 chosen:**
+
 - Ask: "What's the reason?" — record in the session log
 - Log: `SKIPPED {layer}.{type} — {reason}`
 
@@ -284,6 +294,7 @@ Options:
 ```
 
 **If option 1 chosen (or `autoMode` is active):**
+
 - If `autoMode`: use the suggested reclassification directly. If no suggestion can be determined (no entry in the common reclassification table), log `[AUTO] SKIPPED '{type_segment}' — no unambiguous reclassification; review manually` and move on.
 - Otherwise: prompt "Replace with which spec type? (default: {suggested})", then show all proposed replacements and confirm before writing.
 - Edit the SKILL.md, replacing each invalid type segment with the correct one in all example IDs.
@@ -291,6 +302,7 @@ Options:
 - Otherwise: log `REPLACED '{type_segment}' → '{correct_type}' in {N} example IDs`
 
 **If option 2 chosen:**
+
 - Show affected code blocks. Ask: "Remove these {N} example blocks? (yes / skip)"
 - On yes: remove or trim the invalid examples
 - Log: `REMOVED {N} invalid example IDs using '{type_segment}'`
@@ -327,6 +339,7 @@ Options:
 Generate a starter section template appropriate for the layer and section type:
 
 **For Type Decision Tree** — generate a decision tree scaffold based on `SPEC_TYPES`:
+
 ```markdown
 ## Type Decision Tree
 
@@ -336,6 +349,7 @@ Use this decision tree **before assigning a type** to any code pattern.
 ```
 
 **For Coverage Checklist** — generate a checkbox list of all `SPEC_TYPES`:
+
 ```markdown
 ## Coverage Completeness Checklist
 
@@ -344,19 +358,21 @@ Before declaring {layer} layer extraction complete, verify each type was conside
 {checkbox for each type in SPEC_TYPES with one-line description from schema}
 
 If any type has ZERO elements, explicitly decide:
-  "This type doesn't apply to this codebase" with reasoning.
+"This type doesn't apply to this codebase" with reasoning.
 ```
 
 **For Common Misclassifications** — generate a scaffold table:
+
 ```markdown
 ## Common Misclassifications
 
-| Misclassification | Correct Classification | Why |
-|---|---|---|
-| [fill in] | [fill in] | [fill in] |
+| Misclassification | Correct Classification | Why       |
+| ----------------- | ---------------------- | --------- |
+| [fill in]         | [fill in]              | [fill in] |
 ```
 
 **For Detection Patterns** — generate a placeholder:
+
 ```markdown
 ## Codebase Detection Patterns
 

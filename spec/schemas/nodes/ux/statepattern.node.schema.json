@@ -25,7 +25,13 @@
         },
         "category": {
           "type": "string",
-          "enum": ["navigation", "form", "data-loading", "authentication", "multi-step"],
+          "enum": [
+            "navigation",
+            "form",
+            "data-loading",
+            "authentication",
+            "multi-step"
+          ],
           "description": "Functional taxonomy of the reusable state machine pattern."
         },
         "states": {

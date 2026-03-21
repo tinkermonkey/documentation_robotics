@@ -22,7 +22,14 @@
       "properties": {
         "tool": {
           "type": "string",
-          "enum": ["grafana", "datadog", "newrelic", "cloudwatch", "dynatrace", "custom"],
+          "enum": [
+            "grafana",
+            "datadog",
+            "newrelic",
+            "cloudwatch",
+            "dynatrace",
+            "custom"
+          ],
           "description": "Monitoring platform that hosts this dashboard."
         },
         "description": {
@@ -46,7 +53,16 @@
               },
               "visualizationType": {
                 "type": "string",
-                "enum": ["timeseries", "gauge", "bar", "table", "heatmap", "logs", "traces", "stat"],
+                "enum": [
+                  "timeseries",
+                  "gauge",
+                  "bar",
+                  "table",
+                  "heatmap",
+                  "logs",
+                  "traces",
+                  "stat"
+                ],
                 "description": "Visualization form used to render the panel data."
               }
             },
