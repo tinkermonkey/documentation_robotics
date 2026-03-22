@@ -100,7 +100,7 @@ describe("regression: naming-edge-cases", () => {
       expect(element!.name).toBe("Auth & Session");
 
       // Verify the generated ID is valid 3-segment kebab-case
-      expect(element!.path).toMatch(/^application\.[a-z]+\.[\w-]+$/);
+      expect(element!.path).toMatch(/^application\.[a-z]+\.[a-z0-9]+(?:-[a-z0-9]+)*$/);
     });
 
     it("dr validate should report 0 errors for element with special characters", async () => {
@@ -179,21 +179,52 @@ describe("regression: naming-edge-cases", () => {
       expect(output).not.toContain("schema error");
     });
 
-    it("should reject name that is all punctuation with user-friendly error", async () => {
-      // Test with various punctuation-only names
-      const testNames = ["!!!!", "****", "####", "&&&&"];
+    it("should reject name that is all exclamation marks (!!!!) with user-friendly error", async () => {
+      const result = await runDr(["add", "motivation", "goal", "!!!!"], {
+        cwd: workdir.path,
+      });
 
-      for (const name of testNames) {
-        const result = await runDr(["add", "motivation", "goal", name], {
-          cwd: workdir.path,
-        });
+      expect(result.exitCode).not.toBe(0);
 
-        expect(result.exitCode).not.toBe(0);
+      const output = result.stdout + result.stderr;
+      expect(output).toContain("Cannot generate a valid element ID");
+      expect(output).toContain("Element names must contain at least one letter or digit");
+    });
 
-        const output = result.stdout + result.stderr;
-        expect(output).toContain("Cannot generate a valid element ID");
-        expect(output).toContain("Element names must contain at least one letter or digit");
-      }
+    it("should reject name that is all asterisks (****) with user-friendly error", async () => {
+      const result = await runDr(["add", "motivation", "goal", "****"], {
+        cwd: workdir.path,
+      });
+
+      expect(result.exitCode).not.toBe(0);
+
+      const output = result.stdout + result.stderr;
+      expect(output).toContain("Cannot generate a valid element ID");
+      expect(output).toContain("Element names must contain at least one letter or digit");
+    });
+
+    it("should reject name that is all hashes (####) with user-friendly error", async () => {
+      const result = await runDr(["add", "motivation", "goal", "####"], {
+        cwd: workdir.path,
+      });
+
+      expect(result.exitCode).not.toBe(0);
+
+      const output = result.stdout + result.stderr;
+      expect(output).toContain("Cannot generate a valid element ID");
+      expect(output).toContain("Element names must contain at least one letter or digit");
+    });
+
+    it("should reject name that is all ampersands (&&&&) with user-friendly error", async () => {
+      const result = await runDr(["add", "motivation", "goal", "&&&&"], {
+        cwd: workdir.path,
+      });
+
+      expect(result.exitCode).not.toBe(0);
+
+      const output = result.stdout + result.stderr;
+      expect(output).toContain("Cannot generate a valid element ID");
+      expect(output).toContain("Element names must contain at least one letter or digit");
     });
   });
 
@@ -235,41 +266,6 @@ describe("regression: naming-edge-cases", () => {
         "technology.technologyservice.nodejs"
       );
       expect(element).toBeDefined();
-    });
-  });
-
-  describe("regression: bugs this test would have caught", () => {
-    it("would have caught BUG-6072-001 (dot produces invalid ID)", async () => {
-      // Before the fix, "Node.js" might have generated an invalid 4-segment ID
-      // like "technology.service.node.js" instead of 3-segment "technology.service.nodejs"
-      const result = await runDr(["add", "technology", "service", "Node.js"], {
-        cwd: workdir.path,
-      });
-
-      expect(result.exitCode).toBe(0);
-
-      // Verify validation passes (proves ID is valid 3-segment format)
-      const validateResult = await runDr(["validate"], { cwd: workdir.path });
-      const output = validateResult.stdout + validateResult.stderr;
-      expect(output).toContain("0 error(s)");
-      expect(output).not.toContain("schema error");
-    });
-
-    it("would have caught BUG-ADVENTURE-003 (opaque error for special chars)", async () => {
-      // Before the fix, this would have produced an opaque "path-pattern" schema error
-      // instead of a user-friendly "Cannot generate valid ID" error
-      const result = await runDr(["add", "motivation", "goal", "@@@"], {
-        cwd: workdir.path,
-      });
-
-      expect(result.exitCode).not.toBe(0);
-
-      const output = result.stdout + result.stderr;
-      // Should have user-friendly error message (added by add.ts validation)
-      expect(output).toContain("Cannot generate a valid element ID");
-      // Should NOT have opaque schema error
-      expect(output).not.toContain("path-pattern");
-      expect(output).not.toContain("schema error");
     });
   });
 });
