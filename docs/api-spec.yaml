@@ -22,7 +22,8 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: "API token (shown at server startup, pass as Authorization: Bearer
+      description:
+        "API token (shown at server startup, pass as Authorization: Bearer
         <token>)"
   schemas: {}
   parameters: {}
@@ -239,7 +240,8 @@ paths:
                       type: object
                       properties: {}
                       additionalProperties: {}
-                    description: Layer elements (each element is an object with id, name, type, and
+                    description:
+                      Layer elements (each element is an object with id, name, type, and
                       properties)
                   elementCount:
                     type: number
@@ -669,7 +671,8 @@ paths:
       tags:
         - Annotations
       summary: Update annotation (partial)
-      description: "Update an existing annotation with partial fields (NOTE: partial
+      description:
+        "Update an existing annotation with partial fields (NOTE: partial
         updates, use PATCH for recommended behavior)"
       security:
         - bearerAuth: []
