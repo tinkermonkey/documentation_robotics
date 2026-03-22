@@ -25,7 +25,14 @@
         },
         "deviceType": {
           "type": "string",
-          "enum": ["server", "workstation", "network-device", "storage", "mobile", "embedded"],
+          "enum": [
+            "server",
+            "workstation",
+            "network-device",
+            "storage",
+            "mobile",
+            "embedded"
+          ],
           "description": "Physical hardware category of the device, per ArchiMate 3.2 Technology Layer device classification."
         },
         "properties": {

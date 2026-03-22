@@ -79,25 +79,25 @@ pipelines:
       - command: "changeset apply multi-element-changeset --no-validate --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/process.yaml
+          - 02_business/business_process.yaml
         expect_exit_code: 0
 
-      - command: "relationship add business.process.changeset-process-001 business.process.changeset-process-002 --predicate flows-to"
+      - command: "relationship add business.businessprocess.changeset-process-001 business.businessprocess.changeset-process-002 --predicate flows-to"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete business.process.changeset-process-001 --force"
+      - command: "delete business.businessprocess.changeset-process-001 --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/process.yaml
+          - 02_business/business_process.yaml
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete business.process.changeset-process-002 --force"
+      - command: "delete business.businessprocess.changeset-process-002 --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/process.yaml
+          - 02_business/business_process.yaml
         expect_exit_code: 0
 
   - name: "Changeset with element deletion"

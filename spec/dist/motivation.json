@@ -51,7 +51,14 @@
             },
             "assessmentType": {
               "type": "string",
-              "enum": ["SWOT", "risk", "gap", "feasibility", "readiness", "impact"],
+              "enum": [
+                "SWOT",
+                "risk",
+                "gap",
+                "feasibility",
+                "readiness",
+                "impact"
+              ],
               "description": "Classification of the assessment method or framework used"
             }
           },
@@ -254,7 +261,13 @@
             },
             "status": {
               "type": "string",
-              "enum": ["planned", "in-progress", "achieved", "abandoned", "at-risk"],
+              "enum": [
+                "planned",
+                "in-progress",
+                "achieved",
+                "abandoned",
+                "at-risk"
+              ],
               "description": "Lifecycle state of the outcome"
             },
             "properties": {
@@ -344,7 +357,13 @@
             },
             "requirementType": {
               "type": "string",
-              "enum": ["functional", "non-functional", "regulatory", "business", "quality"],
+              "enum": [
+                "functional",
+                "non-functional",
+                "regulatory",
+                "business",
+                "quality"
+              ],
               "description": "Classification of what aspect of the system this requirement addresses"
             },
             "priority": {
@@ -435,7 +454,13 @@
             },
             "valueType": {
               "type": "string",
-              "enum": ["financial", "strategic", "operational", "reputational", "social"],
+              "enum": [
+                "financial",
+                "strategic",
+                "operational",
+                "reputational",
+                "social"
+              ],
               "description": "Category of worth or utility this value represents"
             },
             "properties": {

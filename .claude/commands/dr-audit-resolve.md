@@ -134,6 +134,7 @@ filename: "{sourceType}.{predicate}.{destType}"
 ```
 
 Parsing rules for the filename (node type names are lowercase concatenated, never hyphenated; predicates may contain hyphens):
+
 - `sourceLayer` — use `violation.sourceLayer` (authoritative); also visible as the directory segment between `relationships/` and the filename — they must match
 - `sourceType` — everything before the first `.` in the filename
 - `destType` — everything after the last `.` in the filename (before `.relationship.schema.json`)
@@ -141,15 +142,17 @@ Parsing rules for the filename (node type names are lowercase concatenated, neve
 - `destLayer` — `violation.targetLayer`
 
 Example from a real file (`api_to_apm.json`):
+
 - recommendation: `"Add spec/schemas/relationships/apm/span.monitors.operation.relationship.schema.json"`
 - violation: `{ sourceLayer: "apm", targetLayer: "api", issue: "Missing schema: span.monitors.operation — ..." }`
 - → sourceLayer=`apm`, sourceType=`span`, predicate=`monitors`, destType=`operation`, destLayer=`api`
 
 If `recommendations[i]` is missing or malformed, fall back to parsing from `violation.issue`. The issue format is:
 `"Missing schema: {sourceType}.{predicate}.{destType} — {justification}"`
-Strip the `"Missing schema: "` prefix first, then split on ` — ` to isolate the schema part, then parse the filename segment using the same first/last-dot rules.
+Strip the `"Missing schema: "` prefix first, then split on `—` to isolate the schema part, then parse the filename segment using the same first/last-dot rules.
 
 Build a gap record for each violation:
+
 ```
 {
   sourceLayer: violation.sourceLayer,
@@ -265,22 +268,27 @@ For each gap record in the queue, execute 4-IL-a → 4-IL-b → 4-IL-c in sequen
 Given the gap record:
 
 1. Check whether `recommendedPath` already exists on disk:
+
    ```bash
    ls {recommendedPath} 2>/dev/null && echo "EXISTS" || echo "MISSING"
    ```
+
    If it already exists, note this — the schema may have been created since the audit ran.
 
 2. Check how many relationship schemas already exist for this source layer + source type:
+
    ```bash
    ls spec/schemas/relationships/{sourceLayer}/{sourceType}.*.relationship.schema.json 2>/dev/null | wc -l
    ```
 
 3. Verify the source node type exists in the spec:
+
    ```bash
    ls spec/schemas/nodes/{sourceLayer}/{sourceType}.node.schema.json 2>/dev/null && echo "EXISTS" || echo "MISSING"
    ```
 
 4. Verify the destination node type exists in the spec:
+
    ```bash
    ls spec/schemas/nodes/{destLayer}/{destType}.node.schema.json 2>/dev/null && echo "EXISTS" || echo "MISSING"
    ```
@@ -292,6 +300,7 @@ If either node type schema is missing, note the discrepancy — the AI may have 
 **4-IL-b. Ask the User (or Auto-Proceed)**
 
 **If `autoMode` is active:**
+
 - If `alreadyExists` is true: log `SKIPPED {sourceLayer}.{sourceType} --{predicate}--> {destLayer}.{destType} — schema already exists` and move to next.
 - If either node type is missing from spec: log `SKIPPED — source or destination node type not found in spec` and move to next.
 - Otherwise: apply the default action `"Create this relationship"` with cardinality `many-to-one`. Log `[AUTO] CREATING {recommendedPath}`.
@@ -340,17 +349,17 @@ Options:
       "const": "{sourceLayer}.{sourceType}.{predicate}.{destLayer}.{destType}"
     },
     "source_spec_node_id": { "const": "{sourceLayer}.{sourceType}" },
-    "source_layer":        { "const": "{sourceLayer}" },
+    "source_layer": { "const": "{sourceLayer}" },
     "destination_spec_node_id": { "const": "{destLayer}.{destType}" },
-    "destination_layer":   { "const": "{destLayer}" },
-    "predicate":           { "const": "{predicate}" },
-    "cardinality":         { "const": "{cardinality}" },
-    "strength":            { "const": "medium" }
+    "destination_layer": { "const": "{destLayer}" },
+    "predicate": { "const": "{predicate}" },
+    "cardinality": { "const": "{cardinality}" },
+    "strength": { "const": "medium" }
   }
 }
 ```
 
-  Note: `{SourceTypePascal}` and `{DestTypePascal}` are the type names with first letter uppercased (e.g., `view` → `View`, `navigates-to` stays as-is in the title: `View navigates-to Route`).
+Note: `{SourceTypePascal}` and `{DestTypePascal}` are the type names with first letter uppercased (e.g., `view` → `View`, `navigates-to` stays as-is in the title: `View navigates-to Route`).
 
 2. Write to `{recommendedPath}` (the full path parsed from the recommendation).
 
@@ -451,14 +460,14 @@ Read both schema files to show the user their definitions.
 
 **If `autoMode` is active:** Do not call `AskUserQuestion`. Instead, apply the default recommended action for this item type:
 
-| Item type                | Auto action                                                         |
-| ------------------------ | ------------------------------------------------------------------- |
-| Node (MOVE)              | "Follow recommendation" — move schema to target layer               |
-| Node (ENUM_COLLAPSE)     | "Follow recommendation" — collapse into enum on parent schema       |
-| Node (REMOVE)            | "Follow recommendation" — delete schema and dependent relationships |
-| Node (OTHER action type) | "Skip" — requires manual judgment; cannot be automated              |
-| Relationship gap         | "Create this relationship" — use default cardinality `many-to-one`  |
-| Relationship duplicate   | "Skip" — duplicate resolution requires judgment; skip in auto mode  |
+| Item type                | Auto action                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Node (MOVE)              | "Follow recommendation" — move schema to target layer                                                               |
+| Node (ENUM_COLLAPSE)     | "Follow recommendation" — collapse into enum on parent schema                                                       |
+| Node (REMOVE)            | "Follow recommendation" — delete schema and dependent relationships                                                 |
+| Node (OTHER action type) | "Skip" — requires manual judgment; cannot be automated                                                              |
+| Relationship gap         | "Create this relationship" — use default cardinality `many-to-one`                                                  |
+| Relationship duplicate   | "Skip" — duplicate resolution requires judgment; skip in auto mode                                                  |
 | Inter-layer gap          | "Create this relationship" — use default cardinality `many-to-one`; skip if already exists or node type not in spec |
 
 Print a one-line summary of the chosen action (e.g., `[AUTO] data-model.x-database — following recommendation: MOVE to data-store layer`).
@@ -800,7 +809,9 @@ Every relationship schema at `spec/schemas/relationships/{sourceLayer}/{sourceTy
   "description": "Defines relationship: {sourceLayerId}.{sourceType} {predicate} {destLayerId}.{destType}",
   "allOf": [{ "$ref": "../../base/spec-node-relationship.schema.json" }],
   "properties": {
-    "id": { "const": "{sourceLayerId}.{sourceType}.{predicate}.{destLayerId}.{destType}" },
+    "id": {
+      "const": "{sourceLayerId}.{sourceType}.{predicate}.{destLayerId}.{destType}"
+    },
     "source_spec_node_id": { "const": "{sourceLayerId}.{sourceType}" },
     "source_layer": { "const": "{sourceLayerId}" },
     "destination_spec_node_id": { "const": "{destLayerId}.{destType}" },

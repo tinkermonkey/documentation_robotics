@@ -10,7 +10,7 @@ triggers:
     "business object",
     "BPMN",
     "business layer",
-    "archimate business",
+    "archimate business"
   ]
 version: 0.7.0
 ---
@@ -184,7 +184,7 @@ class Customer:
 export enum BusinessEvents {
   ORDER_CREATED = "order.created",
   ORDER_FULFILLED = "order.fulfilled",
-  PAYMENT_RECEIVED = "payment.received",
+  PAYMENT_RECEIVED = "payment.received"
 }
 ```
 

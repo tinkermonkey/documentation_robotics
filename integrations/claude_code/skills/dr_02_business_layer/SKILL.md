@@ -10,7 +10,7 @@ triggers:
     "business object",
     "BPMN",
     "business layer",
-    "archimate business",
+    "archimate business"
   ]
 version: 0.8.3
 ---
@@ -108,15 +108,15 @@ IS this a coherent bundle of services with a value proposition for customers?
 
 ## Common Misclassifications
 
-| Misclassification | Correct Classification | Why |
-|---|---|---|
-| A department or team as `BusinessService` | `BusinessFunction` (department) or `BusinessCollaboration` (team) | Services are externally visible capabilities; departments are behavioral groupings |
-| A REST endpoint or UI as `BusinessInterface` | `BusinessInterface` is correct — but link it to the `ApplicationInterface` in the application layer | Business interfaces are the business-facing access point, not the technical one |
-| A business rule or policy as `BusinessProcess` | `BusinessProcess` only for sequences of steps; rules belong in Motivation layer as `Principle` or `Constraint` | Processes produce outcomes through behavior; rules govern behavior |
-| A domain entity (Order, Invoice) as `BusinessProcess` | `BusinessObject` | Objects are concepts; processes are sequences of behavior |
-| A job title (Sales Rep) as `BusinessActor` | `BusinessRole` | Roles are responsibilities; actors are the people/orgs that fill them |
-| An SLA document as `BusinessService` | `Contract` | An SLA is a formal agreement, not the service itself |
-| A product feature as `BusinessFunction` | `Product` if it bundles services with customer value; `BusinessService` if it's a single capability | Products aggregate services; functions are internal behavioral groupings |
+| Misclassification                                     | Correct Classification                                                                                         | Why                                                                                |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| A department or team as `BusinessService`             | `BusinessFunction` (department) or `BusinessCollaboration` (team)                                              | Services are externally visible capabilities; departments are behavioral groupings |
+| A REST endpoint or UI as `BusinessInterface`          | `BusinessInterface` is correct — but link it to the `ApplicationInterface` in the application layer            | Business interfaces are the business-facing access point, not the technical one    |
+| A business rule or policy as `BusinessProcess`        | `BusinessProcess` only for sequences of steps; rules belong in Motivation layer as `Principle` or `Constraint` | Processes produce outcomes through behavior; rules govern behavior                 |
+| A domain entity (Order, Invoice) as `BusinessProcess` | `BusinessObject`                                                                                               | Objects are concepts; processes are sequences of behavior                          |
+| A job title (Sales Rep) as `BusinessActor`            | `BusinessRole`                                                                                                 | Roles are responsibilities; actors are the people/orgs that fill them              |
+| An SLA document as `BusinessService`                  | `Contract`                                                                                                     | An SLA is a formal agreement, not the service itself                               |
+| A product feature as `BusinessFunction`               | `Product` if it bundles services with customer value; `BusinessService` if it's a single capability            | Products aggregate services; functions are internal behavioral groupings           |
 
 ---
 
@@ -248,7 +248,7 @@ class Customer:
 export enum BusinessEvents {
   ORDER_CREATED = "order.created",
   ORDER_FULFILLED = "order.fulfilled",
-  PAYMENT_RECEIVED = "payment.received",
+  PAYMENT_RECEIVED = "payment.received"
 }
 ```
 

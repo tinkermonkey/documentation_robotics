@@ -1,0 +1,143 @@
+name: "Relationship Validation"
+description: "Test validation suite that exercises relationship counting, strict mode, and orphan warning accuracy. These tests specifically verify that dr validate properly counts relationships and reports them."
+priority: high
+
+pipelines:
+  - name: "Validate counts relationships with intra-layer relationships"
+    description: "Verifies that dr validate reports relationship count and mentions relationships validated when intra-layer relationships exist"
+    steps:
+      - command: "add data-store collection rel-count-table --name 'Relationship Count Table' --description 'Table for relationship counting'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/collection.yaml
+        expect_exit_code: 0
+
+      - command: "add data-store field rel-count-field --name 'test_field' --description 'Field for relationship counting'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/field.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add data-store.collection.rel-count-table data-store.field.rel-count-field --predicate composes"
+        files_to_compare:
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "validate"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stdout_contains:
+          - "relationships validated"
+
+      - command: "delete data-store.collection.rel-count-table --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/collection.yaml
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "delete data-store.field.rel-count-field --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/field.yaml
+        expect_exit_code: 0
+
+  - name: "Validate strict mode flags missing descriptions"
+    description: "Verifies that dr validate --strict reports missing descriptions as warnings"
+    steps:
+      - command: "add motivation goal strict-test-goal --name 'Strict Mode Test Goal' --description ''"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+
+      - command: "validate --strict"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stdout_contains:
+          - "no description"
+
+      - command: "delete motivation.goal.strict-test-goal --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+
+  - name: "Orphan warning count shown in connectivity warnings"
+    description: "Verifies that orphaned elements are reported with connectivity warnings"
+    steps:
+      - command: "add motivation goal orphan-test-goal --name 'Orphan Test Goal' --description 'Isolated goal with no connections'"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+
+      - command: "validate --verbose"
+        files_to_compare: []
+        expect_exit_code: 1
+        # Should show connectivity warnings for orphaned elements
+        expect_stdout_contains:
+          - "orphaned"
+          - "Connectivity Warnings"
+
+      - command: "delete motivation.goal.orphan-test-goal --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goal.yaml
+        expect_exit_code: 0
+
+  - name: "Validate counts multiple intra-layer relationships"
+    description: "Verifies that validate reports correct count when multiple relationships exist"
+    steps:
+      - command: "add data-store collection multi-rel-count-table --name 'test_collection' --description 'Collection for multi-relationship counting'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/collection.yaml
+        expect_exit_code: 0
+
+      - command: "add data-store field multi-rel-count-field-1 --name 'field_1' --description 'First field for counting'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/field.yaml
+        expect_exit_code: 0
+
+      - command: "add data-store field multi-rel-count-field-2 --name 'field_2' --description 'Second field for counting'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/field.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add data-store.collection.multi-rel-count-table data-store.field.multi-rel-count-field-1 --predicate composes"
+        files_to_compare:
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add data-store.collection.multi-rel-count-table data-store.field.multi-rel-count-field-2 --predicate composes"
+        files_to_compare:
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "validate"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stdout_contains:
+          - "relationships validated"
+
+      - command: "delete data-store.collection.multi-rel-count-table --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/collection.yaml
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "delete data-store.field.multi-rel-count-field-1 --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/field.yaml
+        expect_exit_code: 0
+
+      - command: "delete data-store.field.multi-rel-count-field-2 --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_data-store/field.yaml
+        expect_exit_code: 0

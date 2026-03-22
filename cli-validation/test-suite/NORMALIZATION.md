@@ -46,7 +46,8 @@ This ordering is critical:
 Strips ISO-8601 timestamps using a comprehensive regex pattern:
 
 ```typescript
-const ISO8601_PATTERN = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?/g;
+const ISO8601_PATTERN =
+  /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?/g;
 ```
 
 **Supported Formats**:
@@ -256,7 +257,7 @@ import {
   canonicalizePaths,
   normalizeYAML,
   normalizeJSON,
-  trimWhitespace,
+  trimWhitespace
 } from "./normalizers/index";
 
 // Apply specific normalizers in custom order
@@ -384,7 +385,7 @@ Current implementation applies full normalization to all text files. Future phas
 ```typescript
 const NORMALIZATION_EXCEPTIONS = new Map<string, Normalizer[]>([
   ["*.xml", [stripTimestamps]], // XML exports: only strip timestamps
-  ["*.png", []], // Binary files: skip entirely
+  ["*.png", []] // Binary files: skip entirely
 ]);
 ```
 

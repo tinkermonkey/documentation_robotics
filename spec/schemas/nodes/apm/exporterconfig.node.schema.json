@@ -22,7 +22,14 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["otlp", "jaeger", "zipkin", "prometheus", "stdout", "logging"],
+          "enum": [
+            "otlp",
+            "jaeger",
+            "zipkin",
+            "prometheus",
+            "stdout",
+            "logging"
+          ],
           "description": "The type of exporter"
         },
         "enabled": {

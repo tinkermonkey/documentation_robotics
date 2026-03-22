@@ -188,7 +188,6 @@ For each populated layer (in the order they appear in the model):
 
 2. For each valid intra-layer relationship type `source_type →[predicate]→ dest_type`
    in that layer's relationship map:
-
    - Find all source elements of `source_type`
    - Find all destination elements of `dest_type`
    - For each (source, dest) pair, evaluate whether the relationship is semantically
@@ -231,20 +230,20 @@ For each populated layer (in the order they appear in the model):
 
 **Intra-layer relationship priorities by layer:**
 
-| Layer       | High-value predicates to look for                              |
-| ----------- | -------------------------------------------------------------- |
-| ux          | renders, contains, handles, extends, triggers, navigates-to   |
-| navigation  | routes-to, contains, links-to, guards                         |
-| api         | service-of, extends, depends-on, produces, consumes            |
-| data-model  | extends, references, contains                                  |
-| data-store  | stores, partitions, indexes                                    |
-| application | depends-on, orchestrates, delegates-to                         |
-| technology  | depends-on, runs-on, extends                                   |
-| security    | protects, requires, grants, scopes                             |
-| apm         | monitors, aggregates, triggers                                 |
-| testing     | tests, covers, depends-on                                      |
-| business    | realizes, depends-on, triggers, supports                       |
-| motivation  | supports, influences, realizes, fulfills                       |
+| Layer       | High-value predicates to look for                           |
+| ----------- | ----------------------------------------------------------- |
+| ux          | renders, contains, handles, extends, triggers, navigates-to |
+| navigation  | routes-to, contains, links-to, guards                       |
+| api         | service-of, extends, depends-on, produces, consumes         |
+| data-model  | extends, references, contains                               |
+| data-store  | stores, partitions, indexes                                 |
+| application | depends-on, orchestrates, delegates-to                      |
+| technology  | depends-on, runs-on, extends                                |
+| security    | protects, requires, grants, scopes                          |
+| apm         | monitors, aggregates, triggers                              |
+| testing     | tests, covers, depends-on                                   |
+| business    | realizes, depends-on, triggers, supports                    |
+| motivation  | supports, influences, realizes, fulfills                    |
 
 ---
 
@@ -273,21 +272,21 @@ For each pair of populated layers where cross-layer relationship schemas exist:
 
 **Inter-layer relationship schemas (complete spec inventory):**
 
-| Source Layer | Target Layer | Predicates                                                    |
-| ------------ | ------------ | ------------------------------------------------------------- |
-| api          | application  | references                                                    |
-| api          | apm          | references                                                    |
-| api          | business     | references                                                    |
-| api          | data-store   | maps-to                                                       |
-| api          | security     | references, requires                                          |
-| application  | apm          | references                                                    |
-| application  | business     | realizes                                                      |
-| application  | motivation   | delivers-value                                                |
-| business     | application  | aggregates, references                                        |
-| business     | motivation   | delivers-value                                                |
-| business     | security     | constrained-by                                                |
-| data-model   | application  | references                                                    |
-| data-model   | business     | references                                                    |
+| Source Layer | Target Layer | Predicates                                                                    |
+| ------------ | ------------ | ----------------------------------------------------------------------------- |
+| api          | application  | references                                                                    |
+| api          | apm          | references                                                                    |
+| api          | business     | references                                                                    |
+| api          | data-store   | maps-to                                                                       |
+| api          | security     | references, requires                                                          |
+| application  | apm          | references                                                                    |
+| application  | business     | realizes                                                                      |
+| application  | motivation   | delivers-value                                                                |
+| business     | application  | aggregates, references                                                        |
+| business     | motivation   | delivers-value                                                                |
+| business     | security     | constrained-by                                                                |
+| data-model   | application  | references                                                                    |
+| data-model   | business     | references                                                                    |
 | testing      | motivation   | constrained-by, fulfills-requirements, governed-by-principles, supports-goals |
 
 This table is generated from the spec relationship schemas and is authoritative. Run
@@ -383,12 +382,12 @@ dr relationship add <source> <target> \
 
 **When to record provenance basis:**
 
-| Basis | When to use |
-|-------|-------------|
+| Basis                | When to use                                                               |
+| -------------------- | ------------------------------------------------------------------------- |
 | `shared source file` | Source and target elements share the same `source_file` in their metadata |
-| `import dependency` | Source element's file imports the target's file |
-| `naming convention` | Names follow a known pattern (e.g., `OrderView` → `OrderService`) |
-| `domain pattern` | Relationship inferred from layer-level architectural patterns |
+| `import dependency`  | Source element's file imports the target's file                           |
+| `naming convention`  | Names follow a known pattern (e.g., `OrderView` → `OrderService`)         |
+| `domain pattern`     | Relationship inferred from layer-level architectural patterns             |
 
 Use `dr show <element-id>` to read source_file metadata from existing elements before
 deciding provenance basis.

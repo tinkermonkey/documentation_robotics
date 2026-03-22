@@ -40,7 +40,14 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["tracecontext", "baggage", "b3", "b3multi", "xray", "jaeger"]
+            "enum": [
+              "tracecontext",
+              "baggage",
+              "b3",
+              "b3multi",
+              "xray",
+              "jaeger"
+            ]
           },
           "description": "OTel context propagation formats enabled for this trace configuration"
         },

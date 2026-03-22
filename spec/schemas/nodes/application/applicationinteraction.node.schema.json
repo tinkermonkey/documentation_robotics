@@ -25,7 +25,12 @@
         },
         "pattern": {
           "type": "string",
-          "enum": ["request-reply", "publish-subscribe", "event-driven", "fire-and-forget"],
+          "enum": [
+            "request-reply",
+            "publish-subscribe",
+            "event-driven",
+            "fire-and-forget"
+          ],
           "description": "Interaction pattern used by this application collaboration."
         }
       },

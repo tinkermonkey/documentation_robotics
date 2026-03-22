@@ -30,7 +30,13 @@
         },
         "deletionMethod": {
           "type": "string",
-          "enum": ["secure-erase", "crypto-shred", "overwrite", "logical-delete", "archive"],
+          "enum": [
+            "secure-erase",
+            "crypto-shred",
+            "overwrite",
+            "logical-delete",
+            "archive"
+          ],
           "description": "Secure disposal technique applied when data reaches end of retention period, per NIST SP 800-88 Guidelines for Media Sanitization."
         },
         "description": {

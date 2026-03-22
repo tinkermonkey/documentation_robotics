@@ -25,7 +25,13 @@
         },
         "requirementType": {
           "type": "string",
-          "enum": ["functional", "non-functional", "regulatory", "business", "quality"],
+          "enum": [
+            "functional",
+            "non-functional",
+            "regulatory",
+            "business",
+            "quality"
+          ],
           "description": "Classification of what aspect of the system this requirement addresses"
         },
         "priority": {

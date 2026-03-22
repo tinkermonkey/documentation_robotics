@@ -2,7 +2,15 @@
 name: LAYER_10_NAVIGATION
 description: Expert knowledge for Navigation Layer modeling in Documentation Robotics
 triggers:
-  ["navigation", "routing", "route", "flow", "navigation guard", "redirect", "navigation flow"]
+  [
+    "navigation",
+    "routing",
+    "route",
+    "flow",
+    "navigation guard",
+    "redirect",
+    "navigation flow"
+  ]
 version: 0.8.3
 ---
 
@@ -295,7 +303,7 @@ Before declaring navigation layer extraction complete, verify each type was cons
 - [ ] `navigation.contextvariable.*` — Navigation-scoped context data
 
 If any type has ZERO elements, explicitly decide:
-  "This type doesn't apply to this codebase" with reasoning.
+"This type doesn't apply to this codebase" with reasoning.
 
 ---
 

@@ -30,7 +30,16 @@
         },
         "protocol": {
           "type": "string",
-          "enum": ["http", "https", "grpc", "amqp", "mqtt", "tcp", "udp", "websocket"],
+          "enum": [
+            "http",
+            "https",
+            "grpc",
+            "amqp",
+            "mqtt",
+            "tcp",
+            "udp",
+            "websocket"
+          ],
           "description": "Communication protocol carried by this path."
         },
         "properties": {

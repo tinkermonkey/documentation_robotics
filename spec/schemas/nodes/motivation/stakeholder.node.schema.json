@@ -25,7 +25,15 @@
         },
         "type": {
           "type": "string",
-          "enum": ["internal", "external", "regulatory", "customer", "sponsor", "end-user", "system"],
+          "enum": [
+            "internal",
+            "external",
+            "regulatory",
+            "customer",
+            "sponsor",
+            "end-user",
+            "system"
+          ],
           "description": "Classification of the stakeholder's relationship to the organization"
         }
       },

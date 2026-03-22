@@ -36,7 +36,13 @@
           "type": "boolean"
         }
       },
-      "required": ["action", "resource", "nonRepudiation", "purposeDeclaration", "challengeable"],
+      "required": [
+        "action",
+        "resource",
+        "nonRepudiation",
+        "purposeDeclaration",
+        "challengeable"
+      ],
       "additionalProperties": false
     }
   }

@@ -12,7 +12,7 @@ triggers:
     "PostgreSQL",
     "MySQL",
     "index",
-    "constraint",
+    "constraint"
   ]
 version: 0.7.0
 ---

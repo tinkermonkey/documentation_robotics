@@ -35,7 +35,14 @@
         },
         "feedback": {
           "type": "string",
-          "enum": ["toast", "animation", "route-change", "modal", "inline-message", "none"],
+          "enum": [
+            "toast",
+            "animation",
+            "route-change",
+            "modal",
+            "inline-message",
+            "none"
+          ],
           "description": "User-facing feedback mechanism invoked after the action completes."
         },
         "targetRef": {

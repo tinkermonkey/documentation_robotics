@@ -25,7 +25,14 @@
         },
         "contextType": {
           "type": "string",
-          "enum": ["functional", "load", "security", "regression", "smoke", "exploratory"],
+          "enum": [
+            "functional",
+            "load",
+            "security",
+            "regression",
+            "smoke",
+            "exploratory"
+          ],
           "description": "The category of test context this variation represents"
         },
         "environmentFactors": {
