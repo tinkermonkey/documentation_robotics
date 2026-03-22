@@ -158,7 +158,7 @@ cp -r integrations/claude_code/. documentation-robotics/.claude/
 
 **Available Commands:**
 
-- **`/dr-init [project-name]`** - Initialize a new DR model with claude code integration
+- **`/dr-init [project-name]`** - Initialize a new DR model with Claude Code integration
 - **`/dr-model`** - Explore and understand your model structure
 - **`/dr-validate`** - Validate your model and get detailed feedback
 - **`/dr-changeset`** - Create and manage changesets for model updates
@@ -170,7 +170,7 @@ cp -r integrations/claude_code/. documentation-robotics/.claude/
 **Quick Example:**
 
 ```bash
-# Initialize a new project with claude code integration
+# Initialize a new project with Claude Code integration
 /dr-init "My Project"
 
 # Use the architect agent to validate your model
