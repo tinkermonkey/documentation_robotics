@@ -133,19 +133,19 @@ dr export archimate --output model.xml
 
 [→ CLI Documentation](cli/) | [→ CLI User Guide](cli/docs/user-guide/)
 
-### Claude Code Integration
+### 3. Claude Code Integration
 
 The CLI is integrated with Claude Code, enabling natural language interaction with your models through specialized agents and commands.
 
 **Installation:**
 
-The claude code integration is automatically installed when you initialize a new DR model with `/dr-init`:
+The Claude Code integration is automatically installed when you initialize a new DR model with `/dr-init`:
 
 ```bash
 /dr-init my-project
 ```
 
-Or manually install the integration files in your project:
+For contributors working in the repository, you can manually install the integration files:
 
 ```bash
 cp -r integrations/claude_code/. documentation-robotics/.claude/
