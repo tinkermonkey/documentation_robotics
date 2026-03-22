@@ -96,7 +96,12 @@
         "semantics": {
           "type": "object",
           "description": "Semantic properties describing the nature of this relationship",
-          "required": ["directionality", "transitivity", "symmetry", "reflexivity"],
+          "required": [
+            "directionality",
+            "transitivity",
+            "symmetry",
+            "reflexivity"
+          ],
           "additionalProperties": false,
           "properties": {
             "directionality": {

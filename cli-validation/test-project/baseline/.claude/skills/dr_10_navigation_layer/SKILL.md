@@ -2,7 +2,15 @@
 name: LAYER_10_NAVIGATION
 description: Expert knowledge for Navigation Layer modeling in Documentation Robotics
 triggers:
-  ["navigation", "routing", "route", "flow", "navigation guard", "redirect", "navigation flow"]
+  [
+    "navigation",
+    "routing",
+    "route",
+    "flow",
+    "navigation guard",
+    "redirect",
+    "navigation flow",
+  ]
 version: 0.7.0
 ---
 

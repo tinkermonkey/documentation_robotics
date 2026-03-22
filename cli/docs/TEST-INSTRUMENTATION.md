@@ -105,8 +105,8 @@ describe("ValidationTests", () => {
         const isValid = (n: number) => n > 0;
         expect(isValid(42)).toBe(true);
       },
-      "ValidationTests"
-    )
+      "ValidationTests",
+    ),
   );
 });
 ```
@@ -116,7 +116,10 @@ describe("ValidationTests", () => {
 For complex tests, manage spans manually:
 
 ```typescript
-import { createTestCaseSpan, recordTestResult } from "../../src/telemetry/test-instrumentation.js";
+import {
+  createTestCaseSpan,
+  recordTestResult,
+} from "../../src/telemetry/test-instrumentation.js";
 
 test("complex test", async () => {
   const span = createTestCaseSpan("complex test", "ComplexTests");
@@ -185,8 +188,8 @@ describe("ValidationTests", () => {
         expect(validateEmail("user@example.com")).toBe(true);
         expect(() => validateEmail("invalid")).toThrow("Invalid email");
       },
-      "ValidationTests"
-    )
+      "ValidationTests",
+    ),
   );
 
   test(
@@ -198,8 +201,8 @@ describe("ValidationTests", () => {
         expect(isEmpty("")).toBe(true);
         expect(isEmpty("a")).toBe(false);
       },
-      "ValidationTests"
-    )
+      "ValidationTests",
+    ),
   );
 });
 ```

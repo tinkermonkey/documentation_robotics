@@ -66,13 +66,14 @@ import { createTestModelWithGoldenCopy } from "../helpers";
 
 describe("Performance-Critical Tests", () => {
   it("should run fast", async () => {
-    const { model, cleanup, fromGoldenCopy } = await createTestModelWithGoldenCopy({
-      useGoldenCopy: true,
-      goldenCopyConfig: {
-        warmup: true,
-        eagerLoad: false,
-      },
-    });
+    const { model, cleanup, fromGoldenCopy } =
+      await createTestModelWithGoldenCopy({
+        useGoldenCopy: true,
+        goldenCopyConfig: {
+          warmup: true,
+          eagerLoad: false,
+        },
+      });
 
     console.log(`Using golden copy: ${fromGoldenCopy}`);
     // Your test code here
@@ -132,7 +133,9 @@ Convenient functions for test authors:
 
 ```typescript
 // Create test model with optional golden copy
-async function createTestModelWithGoldenCopy(options: CreateTestModelFromGoldenOptions): Promise<{
+async function createTestModelWithGoldenCopy(
+  options: CreateTestModelFromGoldenOptions,
+): Promise<{
   model: Model;
   rootPath: string;
   cleanup: () => Promise<void>;
@@ -140,7 +143,9 @@ async function createTestModelWithGoldenCopy(options: CreateTestModelFromGoldenO
 }>;
 
 // Explicit initialization
-async function initializeGoldenCopy(config?: GoldenCopyCacheConfig): Promise<void>;
+async function initializeGoldenCopy(
+  config?: GoldenCopyCacheConfig,
+): Promise<void>;
 
 // Cleanup after testing
 async function cleanupGoldenCopy(): Promise<void>;
@@ -250,10 +255,16 @@ describe("Feature Tests", () => {
     const { model, cleanup } = await createTestModel();
 
     // Add custom elements as needed
-    const element = await addTestElement(model, "api", "endpoint", "api.endpoint.custom", {
-      name: "Custom Endpoint",
-      properties: { method: "GET", path: "/custom" },
-    });
+    const element = await addTestElement(
+      model,
+      "api",
+      "endpoint",
+      "api.endpoint.custom",
+      {
+        name: "Custom Endpoint",
+        properties: { method: "GET", path: "/custom" },
+      },
+    );
 
     // Your test code
     expect(model.getElementById("api.endpoint.custom")).toBeDefined();

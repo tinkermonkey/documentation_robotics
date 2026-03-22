@@ -28,7 +28,13 @@
         },
         "trigger": {
           "type": "string",
-          "enum": ["user-click", "programmatic", "timeout", "browser-back", "redirect"],
+          "enum": [
+            "user-click",
+            "programmatic",
+            "timeout",
+            "browser-back",
+            "redirect"
+          ],
           "description": "Mechanism that initiates the route transition: user-click (explicit user interaction), programmatic (code-driven), timeout (time-based), browser-back (browser history navigation), redirect (automatic server/guard redirect)."
         },
         "description": {

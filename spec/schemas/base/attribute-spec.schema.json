@@ -14,7 +14,15 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["string", "integer", "number", "boolean", "array", "object", "enum"],
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "array",
+            "object",
+            "enum"
+          ],
           "description": "The JSON type of this attribute"
         },
         "description": {

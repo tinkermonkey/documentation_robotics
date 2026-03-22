@@ -63,7 +63,13 @@
             },
             "type": {
               "type": "string",
-              "enum": ["button", "link", "menu", "voice-command", "icon-button"],
+              "enum": [
+                "button",
+                "link",
+                "menu",
+                "voice-command",
+                "icon-button"
+              ],
               "description": "Interactive element kind, per HTML 5.3 button, anchor, and menu element semantics."
             },
             "icon": {
@@ -82,7 +88,14 @@
             },
             "style": {
               "type": "string",
-              "enum": ["primary", "secondary", "danger", "ghost", "link", "icon"],
+              "enum": [
+                "primary",
+                "secondary",
+                "danger",
+                "ghost",
+                "link",
+                "icon"
+              ],
               "description": "Visual style variant of the action component, per design system button style conventions."
             },
             "validations": {
@@ -162,7 +175,14 @@
             },
             "feedback": {
               "type": "string",
-              "enum": ["toast", "animation", "route-change", "modal", "inline-message", "none"],
+              "enum": [
+                "toast",
+                "animation",
+                "route-change",
+                "modal",
+                "inline-message",
+                "none"
+              ],
               "description": "User-facing feedback mechanism invoked after the action completes."
             },
             "targetRef": {
@@ -558,7 +578,13 @@
             },
             "alignItems": {
               "type": "string",
-              "enum": ["flex-start", "flex-end", "center", "baseline", "stretch"],
+              "enum": [
+                "flex-start",
+                "flex-end",
+                "center",
+                "baseline",
+                "stretch"
+              ],
               "description": "CSS align-items property value, per CSS Flexbox/Grid specification."
             },
             "justifyContent": {
@@ -575,7 +601,13 @@
             },
             "justifyItems": {
               "type": "string",
-              "enum": ["flex-start", "flex-end", "center", "stretch", "baseline"],
+              "enum": [
+                "flex-start",
+                "flex-end",
+                "center",
+                "stretch",
+                "baseline"
+              ],
               "description": "CSS justify-items property value, per CSS Grid specification."
             },
             "stickyPosition": {
@@ -805,7 +837,14 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
+              "enum": [
+                "navigate",
+                "submit",
+                "open",
+                "close",
+                "dispatch",
+                "validate"
+              ],
               "description": "Operation executed during the state lifecycle."
             },
             "description": {
@@ -852,7 +891,14 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
+              "enum": [
+                "navigate",
+                "submit",
+                "open",
+                "close",
+                "dispatch",
+                "validate"
+              ],
               "description": "Operation this template encapsulates. Must match a value from the StateAction action enum."
             },
             "description": {
@@ -916,7 +962,13 @@
             },
             "category": {
               "type": "string",
-              "enum": ["navigation", "form", "data-loading", "authentication", "multi-step"],
+              "enum": [
+                "navigation",
+                "form",
+                "data-loading",
+                "authentication",
+                "multi-step"
+              ],
               "description": "Functional taxonomy of the reusable state machine pattern."
             },
             "states": {

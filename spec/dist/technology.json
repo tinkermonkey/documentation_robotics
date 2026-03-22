@@ -54,7 +54,14 @@
             },
             "artifactType": {
               "type": "string",
-              "enum": ["file", "container-image", "archive", "library", "script", "configuration"],
+              "enum": [
+                "file",
+                "container-image",
+                "archive",
+                "library",
+                "script",
+                "configuration"
+              ],
               "description": "Data artifact category, per ArchiMate 3.2 Artifact element."
             },
             "properties": {
@@ -144,7 +151,14 @@
             },
             "deviceType": {
               "type": "string",
-              "enum": ["server", "workstation", "network-device", "storage", "mobile", "embedded"],
+              "enum": [
+                "server",
+                "workstation",
+                "network-device",
+                "storage",
+                "mobile",
+                "embedded"
+              ],
               "description": "Physical hardware category of the device, per ArchiMate 3.2 Technology Layer device classification."
             },
             "properties": {
@@ -240,12 +254,26 @@
             },
             "pathType": {
               "type": "string",
-              "enum": ["point-to-point", "multicast", "broadcast", "bidirectional"],
+              "enum": [
+                "point-to-point",
+                "multicast",
+                "broadcast",
+                "bidirectional"
+              ],
               "description": "Transmission topology of the path, per ArchiMate 3.2 Path element."
             },
             "protocol": {
               "type": "string",
-              "enum": ["http", "https", "grpc", "amqp", "mqtt", "tcp", "udp", "websocket"],
+              "enum": [
+                "http",
+                "https",
+                "grpc",
+                "amqp",
+                "mqtt",
+                "tcp",
+                "udp",
+                "websocket"
+              ],
               "description": "Communication protocol carried by this path."
             },
             "properties": {
@@ -377,7 +405,13 @@
             },
             "eventType": {
               "type": "string",
-              "enum": ["failure", "alert", "scheduled", "threshold-breach", "deployment"],
+              "enum": [
+                "failure",
+                "alert",
+                "scheduled",
+                "threshold-breach",
+                "deployment"
+              ],
               "description": "Technology state change category, per ArchiMate 3.2 Technology Event element; aligned with OpenTelemetry event semantics."
             },
             "properties": {
@@ -500,7 +534,16 @@
             },
             "protocol": {
               "type": "string",
-              "enum": ["http", "https", "grpc", "amqp", "mqtt", "tcp", "udp", "websocket"],
+              "enum": [
+                "http",
+                "https",
+                "grpc",
+                "amqp",
+                "mqtt",
+                "tcp",
+                "udp",
+                "websocket"
+              ],
               "description": "Communication protocol exposed at this interface, per ArchiMate 3.2 TechnologyInterface element."
             },
             "properties": {

@@ -25,7 +25,15 @@
         },
         "type": {
           "type": "string",
-          "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
+          "enum": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "array",
+            "object",
+            "null"
+          ],
           "description": "JSON Schema Draft 7 primitive type"
         },
         "description": {

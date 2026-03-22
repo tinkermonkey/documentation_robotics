@@ -57,7 +57,13 @@
         },
         "expectedFrequency": {
           "type": "string",
-          "enum": ["RARE", "OCCASIONAL", "FREQUENT", "HIGH_THROUGHPUT", "REAL_TIME"],
+          "enum": [
+            "RARE",
+            "OCCASIONAL",
+            "FREQUENT",
+            "HIGH_THROUGHPUT",
+            "REAL_TIME"
+          ],
           "description": "Expected frequency of this access pattern. Informs capacity planning and index decisions."
         },
         "consistencyRequirement": {

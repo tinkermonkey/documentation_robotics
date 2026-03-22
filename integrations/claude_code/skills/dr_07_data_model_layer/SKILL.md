@@ -46,17 +46,17 @@ This layer uses **JSON Schema Draft 7** (industry standard) with custom extensio
 
 ### Core JSON Schema Entities (9 types)
 
-| Entity Type           | Description                                        |
-| --------------------- | -------------------------------------------------- |
-| **JSONSchema**        | Root schema document                               |
-| **ObjectSchema**      | Defines object structure with properties           |
-| **ArraySchema**       | Defines array with items and constraints           |
-| **StringSchema**      | String validation (length, pattern, format)        |
-| **NumericSchema**     | Number/integer validation (min, max, multipleOf)   |
-| **SchemaComposition** | Combines schemas (allOf, anyOf, oneOf, not)        |
-| **SchemaDefinition**  | Named reusable type for shared use in `definitions` blocks      |
-| **SchemaProperty**    | Individual property definition                     |
-| **Reference**         | $ref to other schemas                              |
+| Entity Type           | Description                                                |
+| --------------------- | ---------------------------------------------------------- |
+| **JSONSchema**        | Root schema document                                       |
+| **ObjectSchema**      | Defines object structure with properties                   |
+| **ArraySchema**       | Defines array with items and constraints                   |
+| **StringSchema**      | String validation (length, pattern, format)                |
+| **NumericSchema**     | Number/integer validation (min, max, multipleOf)           |
+| **SchemaComposition** | Combines schemas (allOf, anyOf, oneOf, not)                |
+| **SchemaDefinition**  | Named reusable type for shared use in `definitions` blocks |
+| **SchemaProperty**    | Individual property definition                             |
+| **Reference**         | $ref to other schemas                                      |
 
 > **Note:** Data governance (`x-data-governance`) and database mapping (`x-database`) are
 > cross-layer extension **attributes**, not node types. Set them directly on the schema element
@@ -83,14 +83,14 @@ Use this decision tree **before assigning a type** to any code pattern.
 
 ## Common Misclassifications
 
-| Misclassification | Correct Classification | Why |
-| --- | --- | --- |
-| Modeling `x-data-governance` or `x-database` as their own elements | Set as extension attributes on the relevant schema element (`objectschema` or `schemaproperty`) | These are cross-layer extension attributes, not spec node types |
-| Using `objectschema` for a reusable definition in a `definitions` block | `schemadefinition` | `definitions` entries are named, reusable definitions; `objectschema` is for structural instances |
-| Using `schemadefinition` for a top-level schema document | `jsonschema` | A root document with `$schema` and `$id` is `jsonschema`, not a definition |
-| Using `schemaproperty` for a standalone string/numeric/array type | `stringschema` / `numericschema` / `arrayschema` | Use the specific schema type when the constraint set is rich enough to stand alone; use `schemaproperty` only for inline field declarations within an `objectschema` |
-| Using `objectschema` for a schema that uses `allOf` to extend another | `schemacomposition` | When the primary purpose is combining or extending schemas, classify as `schemacomposition` — even if the schema also declares `properties` |
-| Using `schemaproperty` for a bare `$ref` with no other constraints | `reference` | A standalone `$ref` with nothing else is a `reference`; use `schemaproperty` only when the field also carries its own constraints (`title`, `description`, `readOnly`, `default`, etc.) |
+| Misclassification                                                       | Correct Classification                                                                          | Why                                                                                                                                                                                     |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Modeling `x-data-governance` or `x-database` as their own elements      | Set as extension attributes on the relevant schema element (`objectschema` or `schemaproperty`) | These are cross-layer extension attributes, not spec node types                                                                                                                         |
+| Using `objectschema` for a reusable definition in a `definitions` block | `schemadefinition`                                                                              | `definitions` entries are named, reusable definitions; `objectschema` is for structural instances                                                                                       |
+| Using `schemadefinition` for a top-level schema document                | `jsonschema`                                                                                    | A root document with `$schema` and `$id` is `jsonschema`, not a definition                                                                                                              |
+| Using `schemaproperty` for a standalone string/numeric/array type       | `stringschema` / `numericschema` / `arrayschema`                                                | Use the specific schema type when the constraint set is rich enough to stand alone; use `schemaproperty` only for inline field declarations within an `objectschema`                    |
+| Using `objectschema` for a schema that uses `allOf` to extend another   | `schemacomposition`                                                                             | When the primary purpose is combining or extending schemas, classify as `schemacomposition` — even if the schema also declares `properties`                                             |
+| Using `schemaproperty` for a bare `$ref` with no other constraints      | `reference`                                                                                     | A standalone `$ref` with nothing else is a `reference`; use `schemaproperty` only when the field also carries its own constraints (`title`, `description`, `readOnly`, `default`, etc.) |
 
 ---
 

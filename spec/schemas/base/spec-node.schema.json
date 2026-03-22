@@ -36,7 +36,11 @@
     "name": {
       "type": "string",
       "description": "Human-readable instance name",
-      "examples": ["Improve Customer Satisfaction", "User Login API", "Customer Table"]
+      "examples": [
+        "Improve Customer Satisfaction",
+        "User Login API",
+        "Customer Table"
+      ]
     },
     "description": {
       "type": "string",

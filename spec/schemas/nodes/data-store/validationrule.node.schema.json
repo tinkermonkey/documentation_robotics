@@ -59,12 +59,24 @@
         },
         "onDelete": {
           "type": "string",
-          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"],
+          "enum": [
+            "CASCADE",
+            "SET_NULL",
+            "SET_DEFAULT",
+            "RESTRICT",
+            "NO_ACTION"
+          ],
           "description": "Referential action on delete. CASCADE: delete dependent entries. SET_NULL: nullify the reference. SET_DEFAULT: reset to default value. RESTRICT: reject if referenced entries exist. NO_ACTION: deferred reject. Applicable to FOREIGN_KEY rules."
         },
         "onUpdate": {
           "type": "string",
-          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"],
+          "enum": [
+            "CASCADE",
+            "SET_NULL",
+            "SET_DEFAULT",
+            "RESTRICT",
+            "NO_ACTION"
+          ],
           "description": "Referential action on update. Same values as onDelete, applied when the referenced field value is modified. Applicable to FOREIGN_KEY rules."
         },
         "enforcement": {

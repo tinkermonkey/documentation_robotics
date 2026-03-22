@@ -25,7 +25,14 @@
         },
         "artifactType": {
           "type": "string",
-          "enum": ["file", "container-image", "archive", "library", "script", "configuration"],
+          "enum": [
+            "file",
+            "container-image",
+            "archive",
+            "library",
+            "script",
+            "configuration"
+          ],
           "description": "Data artifact category, per ArchiMate 3.2 Artifact element."
         },
         "properties": {

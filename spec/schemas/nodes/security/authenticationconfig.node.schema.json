@@ -22,7 +22,14 @@
       "properties": {
         "provider": {
           "type": "string",
-          "enum": ["oauth2", "saml", "ldap", "openid-connect", "local", "fido2"],
+          "enum": [
+            "oauth2",
+            "saml",
+            "ldap",
+            "openid-connect",
+            "local",
+            "fido2"
+          ],
           "description": "Authentication protocol or provider type."
         },
         "verificationLevel": {

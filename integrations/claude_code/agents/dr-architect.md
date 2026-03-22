@@ -77,17 +77,17 @@ dr info
 
 Extract in order of **factual certainty** — start with what the code proves, end with what the evidence suggests. This gives the most reliable basis for inferring the abstract layers.
 
-| Phase | Layer           | Extract from                                    | Consult skill file              | Certainty                 |
-| ----- | --------------- | ----------------------------------------------- | ------------------------------- | ------------------------- |
-| 1     | **API**         | Route files, controllers, OpenAPI specs         | —                               | High — directly in code   |
-| 2     | **Data Model**  | Type files, DTOs, ORM models, schema files      | —                               | High — directly in code   |
-| 3     | **Data Store**  | Migration files, ORM table definitions          | —                               | High — directly in code   |
-| 4     | **Application** | Service classes, stores, core logic directories | `dr_04_application_layer` SKILL.md — use ALL 9 entity types; use decision tree before assigning type | High — directly in code   |
+| Phase | Layer           | Extract from                                    | Consult skill file                                                                                         | Certainty                 |
+| ----- | --------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------- |
+| 1     | **API**         | Route files, controllers, OpenAPI specs         | —                                                                                                          | High — directly in code   |
+| 2     | **Data Model**  | Type files, DTOs, ORM models, schema files      | —                                                                                                          | High — directly in code   |
+| 3     | **Data Store**  | Migration files, ORM table definitions          | —                                                                                                          | High — directly in code   |
+| 4     | **Application** | Service classes, stores, core logic directories | `dr_04_application_layer` SKILL.md — use ALL 9 entity types; use decision tree before assigning type       | High — directly in code   |
 | 5     | **Technology**  | `package.json`, Dockerfiles, infra configs      | `dr_05_technology_layer` SKILL.md — **only 13 valid spec types**; no `stack`, `framework`, `library`, etc. | High — directly in config |
-| 6     | **Business**    | Infer from API groupings + application services | —                               | Medium — inferred         |
-| 7     | **Security**    | Auth middleware, permission guards (if present) | —                               | Medium — inferred         |
-| 8     | **UX**          | Component directories, page files (if present)  | —                               | Medium — inferred         |
-| 9     | **Motivation**  | Infer from patterns across all layers above     | —                               | Low — speculative         |
+| 6     | **Business**    | Infer from API groupings + application services | —                                                                                                          | Medium — inferred         |
+| 7     | **Security**    | Auth middleware, permission guards (if present) | —                                                                                                          | Medium — inferred         |
+| 8     | **UX**          | Component directories, page files (if present)  | —                                                                                                          | Medium — inferred         |
+| 9     | **Motivation**  | Infer from patterns across all layers above     | —                                                                                                          | Low — speculative         |
 
 Navigation, APM, and Testing: add when the codebase clearly surfaces them. Do not force them.
 

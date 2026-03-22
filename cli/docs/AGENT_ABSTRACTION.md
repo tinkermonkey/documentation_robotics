@@ -151,7 +151,12 @@ To add support for a new coding agent CLI:
 ### 1. Create Agent Class
 
 ```typescript
-import { CodingAgent, AgentProcess, ChatEvent, SpawnAgentOptions } from "./types";
+import {
+  CodingAgent,
+  AgentProcess,
+  ChatEvent,
+  SpawnAgentOptions,
+} from "./types";
 
 export class MyCustomAgent implements CodingAgent {
   readonly name = "My Custom Agent";

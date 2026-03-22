@@ -84,12 +84,24 @@
             },
             "expectedFrequency": {
               "type": "string",
-              "enum": ["RARE", "OCCASIONAL", "FREQUENT", "HIGH_THROUGHPUT", "REAL_TIME"],
+              "enum": [
+                "RARE",
+                "OCCASIONAL",
+                "FREQUENT",
+                "HIGH_THROUGHPUT",
+                "REAL_TIME"
+              ],
               "description": "Expected frequency of this access pattern. Informs capacity planning and index decisions."
             },
             "consistencyRequirement": {
               "type": "string",
-              "enum": ["STRONG", "EVENTUAL", "SESSION", "CAUSAL", "LINEARIZABLE"],
+              "enum": [
+                "STRONG",
+                "EVENTUAL",
+                "SESSION",
+                "CAUSAL",
+                "LINEARIZABLE"
+              ],
               "description": "Required consistency level for this access pattern."
             },
             "x-source-reference": {
@@ -281,7 +293,13 @@
             },
             "timing": {
               "type": "string",
-              "enum": ["BEFORE", "AFTER", "INSTEAD_OF", "ON_CHANGE", "CONTINUOUS"],
+              "enum": [
+                "BEFORE",
+                "AFTER",
+                "INSTEAD_OF",
+                "ON_CHANGE",
+                "CONTINUOUS"
+              ],
               "description": "When the handler fires relative to the event. BEFORE: fires before the operation (SQL BEFORE trigger). AFTER: fires after the operation (SQL AFTER trigger). INSTEAD_OF: replaces the operation (SQL INSTEAD OF trigger for views). ON_CHANGE: fires when a change is detected (change streams, CDC). CONTINUOUS: always-on stream processing."
             },
             "events": {
@@ -570,7 +588,13 @@
             },
             "action": {
               "type": "string",
-              "enum": ["DELETE", "ARCHIVE", "DOWNSAMPLE", "MOVE_TIER", "COMPRESS"],
+              "enum": [
+                "DELETE",
+                "ARCHIVE",
+                "DOWNSAMPLE",
+                "MOVE_TIER",
+                "COMPRESS"
+              ],
               "description": "Action taken when data exceeds the retention period. DELETE: permanently remove. ARCHIVE: move to cold storage. DOWNSAMPLE: aggregate and reduce resolution (time-series). MOVE_TIER: transition to a different storage tier. COMPRESS: apply compression to reduce storage footprint."
             },
             "downsampleInterval": {
@@ -745,12 +769,24 @@
             },
             "onDelete": {
               "type": "string",
-              "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"],
+              "enum": [
+                "CASCADE",
+                "SET_NULL",
+                "SET_DEFAULT",
+                "RESTRICT",
+                "NO_ACTION"
+              ],
               "description": "Referential action on delete. CASCADE: delete dependent entries. SET_NULL: nullify the reference. SET_DEFAULT: reset to default value. RESTRICT: reject if referenced entries exist. NO_ACTION: deferred reject. Applicable to FOREIGN_KEY rules."
             },
             "onUpdate": {
               "type": "string",
-              "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"],
+              "enum": [
+                "CASCADE",
+                "SET_NULL",
+                "SET_DEFAULT",
+                "RESTRICT",
+                "NO_ACTION"
+              ],
               "description": "Referential action on update. Same values as onDelete, applied when the referenced field value is modified. Applicable to FOREIGN_KEY rules."
             },
             "enforcement": {
@@ -797,7 +833,13 @@
             },
             "viewType": {
               "type": "string",
-              "enum": ["VIRTUAL", "MATERIALIZED", "ALIAS", "CONTINUOUS_AGGREGATE", "FILTERED"],
+              "enum": [
+                "VIRTUAL",
+                "MATERIALIZED",
+                "ALIAS",
+                "CONTINUOUS_AGGREGATE",
+                "FILTERED"
+              ],
               "description": "Type of view. VIRTUAL: computed on every read (SQL view, CouchDB view). MATERIALIZED: precomputed and stored (SQL materialized view, Cassandra materialized view). ALIAS: pointer or routing abstraction over one or more collections (Elasticsearch alias). CONTINUOUS_AGGREGATE: incrementally maintained materialization (TimescaleDB continuous aggregate, InfluxDB continuous query). FILTERED: read-only subset of another collection."
             },
             "refreshPolicy": {

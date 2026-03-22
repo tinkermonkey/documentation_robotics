@@ -30,7 +30,13 @@
         },
         "viewType": {
           "type": "string",
-          "enum": ["VIRTUAL", "MATERIALIZED", "ALIAS", "CONTINUOUS_AGGREGATE", "FILTERED"],
+          "enum": [
+            "VIRTUAL",
+            "MATERIALIZED",
+            "ALIAS",
+            "CONTINUOUS_AGGREGATE",
+            "FILTERED"
+          ],
           "description": "Type of view. VIRTUAL: computed on every read (SQL view, CouchDB view). MATERIALIZED: precomputed and stored (SQL materialized view, Cassandra materialized view). ALIAS: pointer or routing abstraction over one or more collections (Elasticsearch alias). CONTINUOUS_AGGREGATE: incrementally maintained materialization (TimescaleDB continuous aggregate, InfluxDB continuous query). FILTERED: read-only subset of another collection."
         },
         "refreshPolicy": {

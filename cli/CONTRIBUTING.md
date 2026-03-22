@@ -178,7 +178,9 @@ refRegistry.addReference({
   type: "realizes",
 });
 
-const refsFrom = refRegistry.getReferencesFrom("01-motivation-goal-create-customer");
+const refsFrom = refRegistry.getReferencesFrom(
+  "01-motivation-goal-create-customer",
+);
 const refsTo = refRegistry.getReferencesTo("02-business-process-create-order");
 ```
 
@@ -216,7 +218,14 @@ relRegistry.addRelationship({
 Atomic file operations for safe persistence:
 
 ```typescript
-import { ensureDir, writeFile, readFile, writeJSON, readJSON, atomicWrite } from "@/utils/file-io";
+import {
+  ensureDir,
+  writeFile,
+  readFile,
+  writeJSON,
+  readJSON,
+  atomicWrite,
+} from "@/utils/file-io";
 
 // Ensure directory exists
 await ensureDir(".dr/layers");
@@ -368,8 +377,8 @@ describe("MyFeature", () => {
         // Test logic here
         expect(result).toBe(expected);
       },
-      "MyFeature"
-    )
+      "MyFeature",
+    ),
   );
 });
 ```

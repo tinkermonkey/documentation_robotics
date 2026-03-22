@@ -46,25 +46,25 @@ This layer uses **ISP Coverage Model** (systematic input space partitioning).
 
 ### Core Testing Entities (17 types)
 
-| Entity Type                 | Description                              |
-| --------------------------- | ---------------------------------------- |
-| **TestCoverageModel**       | Root coverage model for system/component |
-| **TestCoverageTarget**      | What needs testing (API, feature, data)  |
-| **InputSpacePartition**     | Partition of input space                 |
-| **PartitionValue**          | Value/range within partition             |
-| **InputPartitionSelection** | Selected partition values for coverage   |
+| Entity Type                 | Description                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| **TestCoverageModel**       | Root coverage model for system/component                                       |
+| **TestCoverageTarget**      | What needs testing (API, feature, data)                                        |
+| **InputSpacePartition**     | Partition of input space                                                       |
+| **PartitionValue**          | Value/range within partition                                                   |
+| **InputPartitionSelection** | Selected partition values for coverage                                         |
 | **InputSelection**          | Concrete resolved input value chosen from a partition for a specific test case |
-| **CoverageRequirement**     | Specific coverage requirement            |
-| **TestCaseSketch**          | High-level test case description         |
-| **OutcomeCategory**         | Expected outcome categories              |
-| **ContextVariation**        | Environmental/contextual variation       |
-| **EnvironmentFactor**       | Environment-specific factor              |
-| **PartitionDependency**     | Dependencies between partitions          |
-| **CoverageGap**             | Identified gap in coverage               |
-| **CoverageExclusion**       | Explicitly excluded coverage             |
-| **CoverageSummary**         | Summary of coverage status               |
-| **TargetCoverageSummary**   | Coverage summary for target              |
-| **TargetInputField**        | Input field for target                   |
+| **CoverageRequirement**     | Specific coverage requirement                                                  |
+| **TestCaseSketch**          | High-level test case description                                               |
+| **OutcomeCategory**         | Expected outcome categories                                                    |
+| **ContextVariation**        | Environmental/contextual variation                                             |
+| **EnvironmentFactor**       | Environment-specific factor                                                    |
+| **PartitionDependency**     | Dependencies between partitions                                                |
+| **CoverageGap**             | Identified gap in coverage                                                     |
+| **CoverageExclusion**       | Explicitly excluded coverage                                                   |
+| **CoverageSummary**         | Summary of coverage status                                                     |
+| **TargetCoverageSummary**   | Coverage summary for target                                                    |
+| **TargetInputField**        | Input field for target                                                         |
 
 ---
 
@@ -259,7 +259,7 @@ Before declaring testing layer extraction complete, verify each type was conside
 - [ ] **targetcoveragesummary** — Per-target coverage rollups exist for targets with tracked implementation
 
 If any type has ZERO elements, explicitly decide:
-  "This type doesn't apply to this codebase" with reasoning.
+"This type doesn't apply to this codebase" with reasoning.
 
 ---
 

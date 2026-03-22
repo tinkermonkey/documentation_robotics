@@ -4,7 +4,9 @@
   "description": "Defines relationship: technology.technologyfunction implements security.countermeasure",
   "allOf": [{ "$ref": "../../base/spec-node-relationship.schema.json" }],
   "properties": {
-    "id": { "const": "technology.technologyfunction.implements.security.countermeasure" },
+    "id": {
+      "const": "technology.technologyfunction.implements.security.countermeasure"
+    },
     "source_spec_node_id": { "const": "technology.technologyfunction" },
     "source_layer": { "const": "technology" },
     "destination_spec_node_id": { "const": "security.countermeasure" },

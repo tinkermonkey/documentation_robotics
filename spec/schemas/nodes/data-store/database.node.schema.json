@@ -50,7 +50,14 @@
         },
         "deploymentModel": {
           "type": "string",
-          "enum": ["STANDALONE", "REPLICATED", "SHARDED", "DISTRIBUTED", "SERVERLESS", "EMBEDDED"],
+          "enum": [
+            "STANDALONE",
+            "REPLICATED",
+            "SHARDED",
+            "DISTRIBUTED",
+            "SERVERLESS",
+            "EMBEDDED"
+          ],
           "description": "How the database is deployed. STANDALONE: single instance. REPLICATED: primary with read replicas. SHARDED: data partitioned across nodes. DISTRIBUTED: fully distributed with no single primary. SERVERLESS: cloud-managed auto-scaling. EMBEDDED: in-process database (SQLite, RocksDB)."
         }
       },

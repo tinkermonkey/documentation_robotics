@@ -81,11 +81,11 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 
 ### Supporting Entities (3 entities)
 
-| Entity Type         | Description                              |
-| ------------------- | ---------------------------------------- |
-| **OAuthFlows**      | Configuration for OAuth 2.0 flows        |
-| **OAuthFlow**       | Single OAuth 2.0 flow definition (authorizationCode, implicit, password, clientCredentials) |
-| **RateLimit**       | Rate limiting policy for an operation (requests per window, key strategy, action on breach) |
+| Entity Type    | Description                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------- |
+| **OAuthFlows** | Configuration for OAuth 2.0 flows                                                           |
+| **OAuthFlow**  | Single OAuth 2.0 flow definition (authorizationCode, implicit, password, clientCredentials) |
+| **RateLimit**  | Rate limiting policy for an operation (requests per window, key strategy, action on breach) |
 
 ---
 
@@ -130,15 +130,15 @@ Rate limiting policy (requests per window, key strategy)?          → api.ratel
 
 ## Common Misclassifications
 
-| Misclassification | Correct Classification | Why |
-|---|---|---|
-| Using `api.response.*` for the set of all responses | `api.responses.*` is the container; `api.response.*` is a single status code response | `responses` is the plural container; `response` is one entry within it |
-| Using `api.oauthflows.*` for a single flow | `api.oauthflow.*` — each flow variant (authorizationCode, implicit, etc.) is its own node | `oauthflows` is the multi-flow container; `oauthflow` is one flow definition |
-| Modeling schemas inline as `api.mediatype.*` | Schemas are `api.schema.*`; `mediatype` just pairs a content type with a schema reference | MediaType is the content-type envelope; Schema is the data structure inside it |
-| Using `api.parameter.*` for the request body | Request bodies are `api.requestbody.*`; parameters are query/path/header/cookie values only | The OpenAPI spec distinguishes body from parameters explicitly |
-| Using `api.schema.*` for an entire API endpoint | Endpoints are `api.pathitem.*` + `api.operation.*`; schemas are data type definitions only | Schema ≠ endpoint |
-| Putting rate limit config as a property on `api.operation.*` | `api.ratelimit.*` is a dedicated node type for rate limiting policies | Model rate limits as first-class nodes so they can be referenced and reasoned about independently |
-| Using `api.components.*` to represent every reusable object | `api.components.*` is the container; individual reusables (schemas, parameters, etc.) are their own typed nodes composed under it | Components is a structural container, not a substitute for specific types |
+| Misclassification                                            | Correct Classification                                                                                                            | Why                                                                                               |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Using `api.response.*` for the set of all responses          | `api.responses.*` is the container; `api.response.*` is a single status code response                                             | `responses` is the plural container; `response` is one entry within it                            |
+| Using `api.oauthflows.*` for a single flow                   | `api.oauthflow.*` — each flow variant (authorizationCode, implicit, etc.) is its own node                                         | `oauthflows` is the multi-flow container; `oauthflow` is one flow definition                      |
+| Modeling schemas inline as `api.mediatype.*`                 | Schemas are `api.schema.*`; `mediatype` just pairs a content type with a schema reference                                         | MediaType is the content-type envelope; Schema is the data structure inside it                    |
+| Using `api.parameter.*` for the request body                 | Request bodies are `api.requestbody.*`; parameters are query/path/header/cookie values only                                       | The OpenAPI spec distinguishes body from parameters explicitly                                    |
+| Using `api.schema.*` for an entire API endpoint              | Endpoints are `api.pathitem.*` + `api.operation.*`; schemas are data type definitions only                                        | Schema ≠ endpoint                                                                                 |
+| Putting rate limit config as a property on `api.operation.*` | `api.ratelimit.*` is a dedicated node type for rate limiting policies                                                             | Model rate limits as first-class nodes so they can be referenced and reasoned about independently |
+| Using `api.components.*` to represent every reusable object  | `api.components.*` is the container; individual reusables (schemas, parameters, etc.) are their own typed nodes composed under it | Components is a structural container, not a substitute for specific types                         |
 
 ---
 
@@ -146,37 +146,37 @@ Rate limiting policy (requests per window, key strategy)?          → api.ratel
 
 ### Composition Relationships (Part cannot exist without whole)
 
-| Source          | Predicate | Target         | Example                          |
-| --------------- | --------- | -------------- | -------------------------------- |
-| OpenAPIDocument | composes  | Info           | Document has metadata            |
-| OpenAPIDocument | composes  | Paths          | Document defines endpoints       |
-| OpenAPIDocument | composes  | Components     | Document has reusable components |
-| Paths           | composes  | PathItem       | Paths contain path items         |
-| PathItem        | composes  | Operation      | Path has HTTP methods            |
-| PathItem        | composes  | Parameter      | Path-level parameters            |
-| Operation       | composes  | Parameter      | Operation-specific parameters    |
-| Operation       | composes  | RequestBody    | Request payload definition       |
-| Operation       | composes  | Responses      | Response definitions             |
-| Responses       | composes  | Response       | Individual status responses      |
-| RequestBody     | composes  | MediaType      | Request content types            |
-| Response        | composes  | MediaType      | Response content types           |
-| Response        | composes  | Header         | Response headers                 |
-| Response        | composes  | Link           | HATEOAS links                    |
-| MediaType       | composes  | Schema         | Data structure                   |
-| MediaType       | composes  | Example        | Sample data                      |
-| MediaType       | composes  | Encoding       | Serialization details            |
-| Components      | composes  | Schema         | Reusable schemas                 |
-| Components      | composes  | Response       | Reusable responses               |
-| Components      | composes  | Parameter      | Reusable parameters              |
-| Components      | composes  | Example        | Reusable examples                |
-| Components      | composes  | RequestBody    | Reusable request bodies          |
-| Components      | composes  | Header         | Reusable headers                 |
-| Components      | composes  | SecurityScheme | Security definitions             |
-| Components      | composes  | Link           | Reusable links                   |
-| Components      | composes  | Callback       | Reusable callbacks               |
-| Info            | composes  | Contact        | API owner contact                |
-| Info            | composes  | License        | API license                      |
-| SecurityScheme  | composes  | OAuthFlows     | OAuth2 configuration             |
+| Source          | Predicate | Target         | Example                           |
+| --------------- | --------- | -------------- | --------------------------------- |
+| OpenAPIDocument | composes  | Info           | Document has metadata             |
+| OpenAPIDocument | composes  | Paths          | Document defines endpoints        |
+| OpenAPIDocument | composes  | Components     | Document has reusable components  |
+| Paths           | composes  | PathItem       | Paths contain path items          |
+| PathItem        | composes  | Operation      | Path has HTTP methods             |
+| PathItem        | composes  | Parameter      | Path-level parameters             |
+| Operation       | composes  | Parameter      | Operation-specific parameters     |
+| Operation       | composes  | RequestBody    | Request payload definition        |
+| Operation       | composes  | Responses      | Response definitions              |
+| Responses       | composes  | Response       | Individual status responses       |
+| RequestBody     | composes  | MediaType      | Request content types             |
+| Response        | composes  | MediaType      | Response content types            |
+| Response        | composes  | Header         | Response headers                  |
+| Response        | composes  | Link           | HATEOAS links                     |
+| MediaType       | composes  | Schema         | Data structure                    |
+| MediaType       | composes  | Example        | Sample data                       |
+| MediaType       | composes  | Encoding       | Serialization details             |
+| Components      | composes  | Schema         | Reusable schemas                  |
+| Components      | composes  | Response       | Reusable responses                |
+| Components      | composes  | Parameter      | Reusable parameters               |
+| Components      | composes  | Example        | Reusable examples                 |
+| Components      | composes  | RequestBody    | Reusable request bodies           |
+| Components      | composes  | Header         | Reusable headers                  |
+| Components      | composes  | SecurityScheme | Security definitions              |
+| Components      | composes  | Link           | Reusable links                    |
+| Components      | composes  | Callback       | Reusable callbacks                |
+| Info            | composes  | Contact        | API owner contact                 |
+| Info            | composes  | License        | API license                       |
+| SecurityScheme  | composes  | OAuthFlows     | OAuth2 configuration              |
 | OAuthFlows      | composes  | OAuthFlow      | Individual OAuth2 flow definition |
 
 ### Aggregation Relationships (Part can exist independently)
@@ -351,9 +351,13 @@ const router = express.Router();
  *     x-apm-sla-target-latency: 100ms
  *     x-apm-criticality: high
  */
-router.get("/api/orders/:orderId", param("orderId").isUUID(), async (req, res) => {
-  // Implementation
-});
+router.get(
+  "/api/orders/:orderId",
+  param("orderId").isUUID(),
+  async (req, res) => {
+    // Implementation
+  },
+);
 ```
 
 **Maps to:**
@@ -912,7 +916,7 @@ Before declaring API layer extraction complete, verify each type was considered:
 - [ ] **api.ratelimit** — Rate limiting policies (requests per window, key strategy)
 
 If any type has ZERO elements, explicitly decide:
-  "This type doesn't apply to this codebase" with reasoning.
+"This type doesn't apply to this codebase" with reasoning.
 
 ---
 

@@ -316,4 +316,4 @@ Before declaring UX layer extraction complete, verify each type was considered:
 - [ ] **ux.errorconfig** — Error handling configuration
 
 If any type has ZERO elements, explicitly decide:
-  "This type doesn't apply to this codebase" with reasoning.
+"This type doesn't apply to this codebase" with reasoning.

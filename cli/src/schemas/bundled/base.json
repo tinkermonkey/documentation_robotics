@@ -39,7 +39,11 @@
         "name": {
           "type": "string",
           "description": "Human-readable instance name",
-          "examples": ["Improve Customer Satisfaction", "User Login API", "Customer Table"]
+          "examples": [
+            "Improve Customer Satisfaction",
+            "User Login API",
+            "Customer Table"
+          ]
         },
         "description": {
           "type": "string",
@@ -87,7 +91,12 @@
       "title": "SpecNodeRelationship",
       "description": "Base type for relationship type definitions in the specification. Defines valid relationships between node types, including cardinality, strength, and semantic properties.",
       "type": "object",
-      "required": ["id", "source_spec_node_id", "destination_spec_node_id", "predicate"],
+      "required": [
+        "id",
+        "source_spec_node_id",
+        "destination_spec_node_id",
+        "predicate"
+      ],
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -123,7 +132,14 @@
         "predicate": {
           "type": "string",
           "description": "Semantic predicate from PredicateCatalog describing the relationship type. Must be a valid predicate name.",
-          "examples": ["supports", "realizes", "fulfills", "implements", "uses", "consumes"]
+          "examples": [
+            "supports",
+            "realizes",
+            "fulfills",
+            "implements",
+            "uses",
+            "consumes"
+          ]
         },
         "cardinality": {
           "type": "string",
@@ -247,7 +263,15 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": ["string", "integer", "number", "boolean", "array", "object", "enum"],
+              "enum": [
+                "string",
+                "integer",
+                "number",
+                "boolean",
+                "array",
+                "object",
+                "enum"
+              ],
               "description": "The JSON type of this attribute"
             },
             "description": {
@@ -480,7 +504,12 @@
             "semantics": {
               "type": "object",
               "description": "Semantic properties describing the nature of this relationship",
-              "required": ["directionality", "transitivity", "symmetry", "reflexivity"],
+              "required": [
+                "directionality",
+                "transitivity",
+                "symmetry",
+                "reflexivity"
+              ],
               "additionalProperties": false,
               "properties": {
                 "directionality": {
@@ -524,7 +553,13 @@
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$",
           "description": "Unique layer identifier using lowercase letters, numbers, and hyphens (e.g., 'motivation', 'data-model', 'data-store')",
-          "examples": ["motivation", "business", "data-model", "data-store", "apm"]
+          "examples": [
+            "motivation",
+            "business",
+            "data-model",
+            "data-store",
+            "apm"
+          ]
         },
         "number": {
           "type": "integer",
@@ -541,7 +576,9 @@
         "description": {
           "type": "string",
           "description": "Purpose and scope of this layer within the architecture model",
-          "examples": ["Captures stakeholder concerns, goals, requirements, and constraints"]
+          "examples": [
+            "Captures stakeholder concerns, goals, requirements, and constraints"
+          ]
         },
         "inspired_by": {
           "type": "object",
@@ -551,7 +588,11 @@
             "standard": {
               "type": "string",
               "description": "Name of the standard (e.g., 'ArchiMate', 'OpenAPI')",
-              "examples": ["ArchiMate 3.2", "OpenAPI 3.0", "JSON Schema Draft 7"]
+              "examples": [
+                "ArchiMate 3.2",
+                "OpenAPI 3.0",
+                "JSON Schema Draft 7"
+              ]
             },
             "version": {
               "type": "string",
@@ -562,7 +603,9 @@
               "type": "string",
               "format": "uri",
               "description": "URL to the standard specification",
-              "examples": ["https://pubs.opengroup.org/architecture/archimate32-doc/"]
+              "examples": [
+                "https://pubs.opengroup.org/architecture/archimate32-doc/"
+              ]
             }
           }
         },
@@ -574,7 +617,13 @@
             "description": "Reference to a SpecNode ID"
           },
           "description": "List of SpecNode IDs that are valid in this layer. Used to define which node types can belong to this layer.",
-          "examples": [["motivation.goal", "motivation.requirement", "motivation.constraint"]]
+          "examples": [
+            [
+              "motivation.goal",
+              "motivation.requirement",
+              "motivation.constraint"
+            ]
+          ]
         }
       }
     }

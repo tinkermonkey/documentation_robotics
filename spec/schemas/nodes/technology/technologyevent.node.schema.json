@@ -25,7 +25,13 @@
         },
         "eventType": {
           "type": "string",
-          "enum": ["failure", "alert", "scheduled", "threshold-breach", "deployment"],
+          "enum": [
+            "failure",
+            "alert",
+            "scheduled",
+            "threshold-breach",
+            "deployment"
+          ],
           "description": "Technology state change category, per ArchiMate 3.2 Technology Event element; aligned with OpenTelemetry event semantics."
         },
         "properties": {
