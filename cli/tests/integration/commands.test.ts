@@ -280,6 +280,60 @@ describe("CLI Commands Integration Tests", () => {
 
       expect(result.exitCode).toBe(1);
     });
+
+    it("should replace attributes entirely, not merge", async () => {
+      // BUG-6163-004: dr update --attributes must replace, not merge
+      // This test verifies that omitted attributes are removed, not preserved
+
+      // Step 1: Add element with initial attributes
+      // For goals: priority (required), documentation (optional), properties (optional)
+      const addResult = await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Test Goal",
+        "--attributes",
+        JSON.stringify({
+          priority: "high",
+          documentation: "Original documentation"
+        })
+      );
+
+      expect(addResult.exitCode).toBe(0);
+
+      // Step 2: Verify initial attributes are present
+      const showResult = await runDr("show", "motivation.goal.test-goal");
+      expect(showResult.exitCode).toBe(0);
+      expect(showResult.stdout).toContain("high");
+      expect(showResult.stdout).toContain("Original documentation");
+
+      // Step 3: Update with only 'priority' attribute (omitting 'documentation')
+      // This replaces the entire attributes object, not merges
+      const updateResult = await runDr(
+        "update",
+        "motivation.goal.test-goal",
+        "--attributes",
+        JSON.stringify({ priority: "critical" })
+      );
+
+      expect(updateResult.exitCode).toBe(0);
+
+      // Step 4: Verify 'documentation' is removed and 'priority' is updated
+      const model = await Model.load(tempDir.path);
+      const layer = await model.getLayer("motivation");
+      const element = findElementBySemanticId(layer!, "motivation.goal.test-goal");
+
+      expect(element).toBeDefined();
+      expect(element!.attributes.priority).toBe("critical");
+      expect(element!.attributes.documentation).toBeUndefined();
+
+      // Step 5: Verify element can still be shown and is schema-valid
+      // (The important test is above: documentation was removed, not preserved)
+      const finalShowResult = await runDr("show", "motivation.goal.test-goal");
+      expect(finalShowResult.exitCode).toBe(0);
+      expect(finalShowResult.stdout).toContain("critical");
+      expect(finalShowResult.stdout).not.toContain("Original documentation");
+    });
   });
 
   describe("delete command", () => {
