@@ -67,7 +67,7 @@ interface ValidationResult {
  * Commander exits 0 for --help; capture output whether it succeeds or not.
  */
 function runHelp(cmdPath = ""): string {
-  const parts = ["dr", ...(cmdPath ? cmdPath.split(" ") : []), "--help"];
+  const parts = ["npx", "dr", ...(cmdPath ? cmdPath.split(" ") : []), "--help"];
   try {
     return execSync(parts.join(" "), {
       encoding: "utf-8",

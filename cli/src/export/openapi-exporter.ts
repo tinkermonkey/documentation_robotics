@@ -133,30 +133,39 @@ export class OpenAPIExporter implements Exporter {
       // Group operations by operationId-derived path
       const pathGroups = new Map<string, EndpointMapping[]>();
 
-      // Iterate layer elements for operation nodes
+      // Iterate layer elements for operation/endpoint nodes
       for (const element of elements) {
-        if (element.type === "operation") {
+        if (element.type === "operation" || element.type === "endpoint") {
           const operationId =
             (element.attributes?.operationId as string) || element.name;
 
-          // Derive URL path from element slug (last segment of path)
-          // e.g., api.operation.get-user-profile → /get-user-profile
-          const slugSegment = (element as { path?: string }).path?.split(".").pop();
-          const pathKey = slugSegment ? `/${slugSegment}` : `/${operationId}`;
-
-          // Infer HTTP method from operationId prefix keywords
-          const opIdLower = operationId.toLowerCase();
-          let inferredMethod = "get";
-          if (/^(create|post|add|insert|register|submit|send)/.test(opIdLower)) {
-            inferredMethod = "post";
-          } else if (/^(update|put|edit|modify|replace|set|save)/.test(opIdLower)) {
-            inferredMethod = "put";
-          } else if (/^(patch|partial)/.test(opIdLower)) {
-            inferredMethod = "patch";
-          } else if (/^(delete|remove|destroy|purge|clear|unregister)/.test(opIdLower)) {
-            inferredMethod = "delete";
+          // Derive URL path from element attributes (for endpoints) or slug (for operations)
+          let pathKey: string;
+          const attrPath = element.attributes?.path as string;
+          if (attrPath) {
+            // Use path from attributes (e.g., "/api/orders")
+            pathKey = attrPath;
+          } else {
+            // Derive URL path from element slug (last segment of path)
+            // e.g., api.operation.get-user-profile → /get-user-profile
+            const slugSegment = (element as { path?: string }).path?.split(".").pop();
+            pathKey = slugSegment ? `/${slugSegment}` : `/${operationId}`;
           }
-          const method = ((element.attributes?.method as string) || inferredMethod).toLowerCase();
+
+          // Infer HTTP method from operationId prefix keywords or use method attribute
+          const method = ((element.attributes?.method as string) || (() => {
+            const opIdLower = operationId.toLowerCase();
+            if (/^(create|post|add|insert|register|submit|send)/.test(opIdLower)) {
+              return "post";
+            } else if (/^(update|put|edit|modify|replace|set|save)/.test(opIdLower)) {
+              return "put";
+            } else if (/^(patch|partial)/.test(opIdLower)) {
+              return "patch";
+            } else if (/^(delete|remove|destroy|purge|clear|unregister)/.test(opIdLower)) {
+              return "delete";
+            }
+            return "get";
+          })()).toLowerCase();
 
           if (!pathGroups.has(pathKey)) {
             pathGroups.set(pathKey, []);

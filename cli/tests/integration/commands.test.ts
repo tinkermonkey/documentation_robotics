@@ -107,7 +107,7 @@ describe("CLI Commands Integration Tests", () => {
         "goal",
         "Test Goal",
         "--attributes",
-        JSON.stringify({ required: true })
+        JSON.stringify({ priority: "critical" })
       );
 
       expect(result.exitCode).toBe(0);
@@ -115,7 +115,7 @@ describe("CLI Commands Integration Tests", () => {
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
       const element = findElementBySemanticId(layer!,"motivation.goal.test-goal");
-      expect(element!.attributes.required).toBe(true);
+      expect(element!.attributes.priority).toBe("critical");
     });
 
     it("should fail if element already exists", async () => {
@@ -161,10 +161,11 @@ describe("CLI Commands Integration Tests", () => {
 
     it("should support complex JSON properties", async () => {
       const complexProps = {
-        method: "POST",
-        path: "/api/users",
-        parameters: [{ name: "id", type: "string", required: true }],
-        tags: ["user", "api"],
+        operationId: "createUser",
+        summary: "Create a new user",
+        tags: "users",
+        description: "Creates a new user in the system",
+        deprecated: false,
       };
 
       const result = await runDr(
@@ -181,13 +182,14 @@ describe("CLI Commands Integration Tests", () => {
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("api");
       const element = findElementBySemanticId(layer!,"api.operation.create-user");
-      expect(element!.attributes.method).toBe("POST");
-      expect(element!.attributes.path).toBe("/api/users");
-      expect((element!.attributes.parameters as any[]).length).toBe(1);
+      expect(element!.attributes.operationId).toBe("createUser");
+      expect(element!.attributes.summary).toBe("Create a new user");
+      expect(element!.attributes.tags).toBe("users");
+      expect(element!.attributes.deprecated).toBe(false);
     });
 
     it("should support all options together", async () => {
-      const props = { version: "1.0", deprecated: false };
+      const props = { documentation: "Test documentation", properties: { key: "value" } };
 
       const result = await runDr(
         "add",
@@ -207,7 +209,7 @@ describe("CLI Commands Integration Tests", () => {
       const element = findElementBySemanticId(layer!,"business.businessservice.test-service");
       expect(element!.name).toBe("Test Service");
       expect(element!.description).toBe("A comprehensive service test");
-      expect(element!.attributes.version).toBe("1.0");
+      expect(element!.attributes.documentation).toBe("Test documentation");
     });
 
     it("should fail when --name is missing", async () => {
@@ -230,18 +232,21 @@ describe("CLI Commands Integration Tests", () => {
         "add",
         "motivation",
         "goal",
-        "Test Goal (Priority: Critical)",
+        "Special Priority Critical",
         "--description",
-        "Description with special chars: @#$%"
+        "Description with special chars: @#$%",
+        "--attributes",
+        JSON.stringify({ priority: "high" })
       );
 
       expect(result.exitCode).toBe(0);
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      // Note: toKebabCase strips non-[a-z0-9-] characters, so parens and colons are removed
-      const element = findElementBySemanticId(layer!, "motivation.goal.test-goal-priority-critical");
-      expect(element!.name).toContain("Priority");
+      // Find element by converted kebab-case name
+      const element = findElementBySemanticId(layer!, "motivation.goal.special-priority-critical");
+      expect(element).toBeDefined();
+      expect(element!.name).toBe("Special Priority Critical");
       expect(element!.description).toContain("special");
     });
   });

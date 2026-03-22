@@ -230,12 +230,12 @@ describe("Element Subcommand Group", () => {
   describe("element subcommand consistency with root commands", () => {
     it("element add should produce same result as add command", async () => {
       // Add via element subcommand
-      const elementResult = await runDr("element", "add", "business", "process", "Process A");
+      const elementResult = await runDr("element", "add", "business", "businessprocess", "Process A");
       expect(elementResult.exitCode).toBe(0);
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("business");
-      const element = findElementBySemanticId(layer!,"business.process.process-a");
+      const element = findElementBySemanticId(layer!,"business.businessprocess.process-a");
 
       expect(element).toBeDefined();
       expect(element!.name).toBe("Process A");
