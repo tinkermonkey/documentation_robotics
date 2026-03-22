@@ -39,8 +39,15 @@ import { dirname, join, relative } from "path";
 import { createWriteStream, mkdirSync } from "fs";
 import { readFile, readdir } from "node:fs/promises";
 import { parseArgs } from "util";
-import { AuditReport, CoverageMetrics, GapCandidate } from "../cli/src/audit/types.js";
-import { formatAuditReport, AuditReportFormat } from "../cli/src/export/audit-formatters.js";
+import {
+  AuditReport,
+  CoverageMetrics,
+  GapCandidate,
+} from "../cli/src/audit/types.js";
+import {
+  formatAuditReport,
+  AuditReportFormat,
+} from "../cli/src/export/audit-formatters.js";
 import { writeFile, ensureDir } from "../cli/src/utils/file-io.js";
 import { AuditOrchestrator } from "../cli/src/audit/relationships/spec/orchestrator.js";
 import { AIEvaluator } from "../cli/src/audit/relationships/ai/evaluator.js";
@@ -56,7 +63,10 @@ const auditReportsDir = join(projectRoot, "audit-reports");
  * Build the default output path for a relationship audit report.
  * Pattern: audit-reports/{layer|all}-relationships.{ext}
  */
-function getDefaultOutputPath(layer: string | undefined, format: AuditReportFormat): string {
+function getDefaultOutputPath(
+  layer: string | undefined,
+  format: AuditReportFormat,
+): string {
   const layerName = layer ?? "all";
   const ext = format === "json" ? "json" : format === "markdown" ? "md" : "txt";
   return join(auditReportsDir, `${layerName}-relationships.${ext}`);
@@ -81,10 +91,10 @@ interface ScriptOptions {
  * Quality thresholds for CI/CD gates
  */
 const QUALITY_THRESHOLDS = {
-  maxIsolationPercentage: 20.0,  // Max 20% isolated node types
-  minDensity: 1.5,                // Min 1.5 relationships per node type
-  maxHighPriorityGaps: 10,        // Max 10 high-priority gaps
-  maxDuplicates: 5,               // Max 5 duplicate candidates
+  maxIsolationPercentage: 20.0, // Max 20% isolated node types
+  minDensity: 1.5, // Min 1.5 relationships per node type
+  maxHighPriorityGaps: 10, // Max 10 high-priority gaps
+  maxDuplicates: 5, // Max 5 duplicate candidates
 };
 
 /**
@@ -108,7 +118,9 @@ function parseArguments(): ScriptOptions {
 
   const rawAiStep = values["ai-step"] as string | undefined;
   if (rawAiStep !== undefined && !(AI_STEPS as string[]).includes(rawAiStep)) {
-    console.error(`❌ Invalid --ai-step value: "${rawAiStep}". Must be one of: ${AI_STEPS.join(", ")}`);
+    console.error(
+      `❌ Invalid --ai-step value: "${rawAiStep}". Must be one of: ${AI_STEPS.join(", ")}`,
+    );
     process.exit(2);
   }
 
@@ -187,37 +199,44 @@ Exit Codes:
 /**
  * Check if audit report exceeds quality thresholds
  */
-function checkThresholds(report: AuditReport): { passed: boolean; issues: string[] } {
+function checkThresholds(report: AuditReport): {
+  passed: boolean;
+  issues: string[];
+} {
   const issues: string[] = [];
 
   // Check isolation percentage
   for (const coverage of report.coverage) {
-    if (coverage.isolationPercentage > QUALITY_THRESHOLDS.maxIsolationPercentage) {
+    if (
+      coverage.isolationPercentage > QUALITY_THRESHOLDS.maxIsolationPercentage
+    ) {
       issues.push(
-        `Layer ${coverage.layer}: Isolation ${coverage.isolationPercentage.toFixed(1)}% exceeds threshold ${QUALITY_THRESHOLDS.maxIsolationPercentage}%`
+        `Layer ${coverage.layer}: Isolation ${coverage.isolationPercentage.toFixed(1)}% exceeds threshold ${QUALITY_THRESHOLDS.maxIsolationPercentage}%`,
       );
     }
 
     // Check density
     if (coverage.relationshipsPerNodeType < QUALITY_THRESHOLDS.minDensity) {
       issues.push(
-        `Layer ${coverage.layer}: Density ${coverage.relationshipsPerNodeType.toFixed(2)} below threshold ${QUALITY_THRESHOLDS.minDensity}`
+        `Layer ${coverage.layer}: Density ${coverage.relationshipsPerNodeType.toFixed(2)} below threshold ${QUALITY_THRESHOLDS.minDensity}`,
       );
     }
   }
 
   // Check high-priority gaps
-  const highPriorityGaps = report.gaps.filter((g) => g.priority === "high").length;
+  const highPriorityGaps = report.gaps.filter(
+    (g) => g.priority === "high",
+  ).length;
   if (highPriorityGaps > QUALITY_THRESHOLDS.maxHighPriorityGaps) {
     issues.push(
-      `High-priority gaps: ${highPriorityGaps} exceeds threshold ${QUALITY_THRESHOLDS.maxHighPriorityGaps}`
+      `High-priority gaps: ${highPriorityGaps} exceeds threshold ${QUALITY_THRESHOLDS.maxHighPriorityGaps}`,
     );
   }
 
   // Check duplicates
   if (report.duplicates.length > QUALITY_THRESHOLDS.maxDuplicates) {
     issues.push(
-      `Duplicate candidates: ${report.duplicates.length} exceeds threshold ${QUALITY_THRESHOLDS.maxDuplicates}`
+      `Duplicate candidates: ${report.duplicates.length} exceeds threshold ${QUALITY_THRESHOLDS.maxDuplicates}`,
     );
   }
 
@@ -242,12 +261,13 @@ function checkThresholds(report: AuditReport): { passed: boolean; issues: string
  */
 async function loadAIRecommendationsAsGaps(
   aiOutputDir: string,
-  layerFilter?: string
+  layerFilter?: string,
 ): Promise<GapCandidate[]> {
   const gaps: GapCandidate[] = [];
 
   const toGap = (rec: Record<string, unknown>): GapCandidate | null => {
-    if (!rec.sourceNodeType || !rec.predicate || !rec.destinationNodeType) return null;
+    if (!rec.sourceNodeType || !rec.predicate || !rec.destinationNodeType)
+      return null;
     return {
       sourceNodeType: rec.sourceNodeType as string,
       destinationNodeType: rec.destinationNodeType as string,
@@ -303,9 +323,15 @@ async function loadAIRecommendationsAsGaps(
  * Return a new AuditReport with newGaps merged into report.gaps.
  * Deduplicates on (sourceNodeType, suggestedPredicate, destinationNodeType).
  */
-function mergeGapsIntoReport(report: AuditReport, newGaps: GapCandidate[]): AuditReport {
+function mergeGapsIntoReport(
+  report: AuditReport,
+  newGaps: GapCandidate[],
+): AuditReport {
   const seen = new Set(
-    report.gaps.map((g) => `${g.sourceNodeType}|${g.suggestedPredicate}|${g.destinationNodeType}`)
+    report.gaps.map(
+      (g) =>
+        `${g.sourceNodeType}|${g.suggestedPredicate}|${g.destinationNodeType}`,
+    ),
   );
   const merged: GapCandidate[] = [...report.gaps];
   for (const gap of newGaps) {
@@ -353,10 +379,15 @@ async function runAudit(options: ScriptOptions): Promise<void> {
           ? join(originalCwd, options.output)
           : getDefaultOutputPath(options.layer, fmt);
       if (fmt === "json") jsonOutputPath = outputPath;
-      const output = formatAuditReport(report, { format: fmt, verbose: options.verbose });
+      const output = formatAuditReport(report, {
+        format: fmt,
+        verbose: options.verbose,
+      });
       await ensureDir(dirname(outputPath));
       await writeFile(outputPath, output);
-      console.error(`✓ Audit report written to ${relative(originalCwd, outputPath)}`);
+      console.error(
+        `✓ Audit report written to ${relative(originalCwd, outputPath)}`,
+      );
     }
 
     // Run AI-assisted evaluation if requested
@@ -364,10 +395,14 @@ async function runAudit(options: ScriptOptions): Promise<void> {
       const stepFilter = options.aiStep;
       const runAll = stepFilter === undefined;
       const stepLabel = stepFilter ? `step: ${stepFilter}` : "all steps";
-      console.error(`\n⏳ Running AI-assisted evaluation (${stepLabel}, requires Claude CLI)...`);
+      console.error(
+        `\n⏳ Running AI-assisted evaluation (${stepLabel}, requires Claude CLI)...`,
+      );
       console.error("   Output: audit-reports/relationships/\n");
 
-      const aiEvaluator = new AIEvaluator({ outputDir: join(projectRoot, "audit-reports", "relationships") });
+      const aiEvaluator = new AIEvaluator({
+        outputDir: join(projectRoot, "audit-reports", "relationships"),
+      });
       const getPredicatesForLayer = async (layer: string): Promise<string[]> =>
         orchestrator.getPredicatesForLayer(layer);
 
@@ -377,13 +412,21 @@ async function runAudit(options: ScriptOptions): Promise<void> {
       if (!aiAborted && (runAll || stepFilter === "elements")) {
         console.error("   ▶ elements: Evaluating low-coverage elements...");
         try {
-          await aiEvaluator.evaluateLowCoverageElements(report.coverage as CoverageMetrics[], getPredicatesForLayer);
+          await aiEvaluator.evaluateLowCoverageElements(
+            report.coverage as CoverageMetrics[],
+            getPredicatesForLayer,
+          );
         } catch (error) {
           if (error instanceof AIEvaluationAbortError) {
-            console.error("   ❌ AI aborted — Claude CLI unavailable. Skipping remaining AI steps.");
+            console.error(
+              "   ❌ AI aborted — Claude CLI unavailable. Skipping remaining AI steps.",
+            );
             aiAborted = true;
           } else {
-            console.error("   ⚠️  Error evaluating low-coverage elements:", error instanceof Error ? error.message : String(error));
+            console.error(
+              "   ⚠️  Error evaluating low-coverage elements:",
+              error instanceof Error ? error.message : String(error),
+            );
           }
         }
       }
@@ -392,14 +435,24 @@ async function runAudit(options: ScriptOptions): Promise<void> {
       if (!aiAborted && (runAll || stepFilter === "layers")) {
         console.error("   ▶ layers: Reviewing layer coherence...");
         try {
-          const layerNames = (report.coverage as CoverageMetrics[]).map((c) => c.layer);
-          await aiEvaluator.reviewLayerCoherence(layerNames, report.coverage as CoverageMetrics[]);
+          const layerNames = (report.coverage as CoverageMetrics[]).map(
+            (c) => c.layer,
+          );
+          await aiEvaluator.reviewLayerCoherence(
+            layerNames,
+            report.coverage as CoverageMetrics[],
+          );
         } catch (error) {
           if (error instanceof AIEvaluationAbortError) {
-            console.error("   ❌ AI aborted — Claude CLI unavailable. Skipping remaining AI steps.");
+            console.error(
+              "   ❌ AI aborted — Claude CLI unavailable. Skipping remaining AI steps.",
+            );
             aiAborted = true;
           } else {
-            console.error("   ⚠️  Error reviewing layer coherence:", error instanceof Error ? error.message : String(error));
+            console.error(
+              "   ⚠️  Error reviewing layer coherence:",
+              error instanceof Error ? error.message : String(error),
+            );
           }
         }
       }
@@ -411,7 +464,10 @@ async function runAudit(options: ScriptOptions): Promise<void> {
           const layerPairs: Array<{ source: string; target: string }> = [];
           for (let i = 0; i < CANONICAL_LAYER_NAMES.length; i++) {
             for (let j = i + 1; j < CANONICAL_LAYER_NAMES.length; j++) {
-              layerPairs.push({ source: CANONICAL_LAYER_NAMES[i], target: CANONICAL_LAYER_NAMES[j] });
+              layerPairs.push({
+                source: CANONICAL_LAYER_NAMES[i],
+                target: CANONICAL_LAYER_NAMES[j],
+              });
             }
           }
           await aiEvaluator.validateInterLayerReferences(layerPairs);
@@ -419,13 +475,18 @@ async function runAudit(options: ScriptOptions): Promise<void> {
           if (error instanceof AIEvaluationAbortError) {
             console.error("   ❌ AI aborted — Claude CLI unavailable.");
           } else {
-            console.error("   ⚠️  Error validating inter-layer references:", error instanceof Error ? error.message : String(error));
+            console.error(
+              "   ⚠️  Error validating inter-layer references:",
+              error instanceof Error ? error.message : String(error),
+            );
           }
         }
       }
 
       if (!aiAborted) {
-        console.error("\n✓ AI evaluation complete. Results in audit-reports/relationships/");
+        console.error(
+          "\n✓ AI evaluation complete. Results in audit-reports/relationships/",
+        );
       }
     }
 
@@ -433,10 +494,14 @@ async function runAudit(options: ScriptOptions): Promise<void> {
     // This runs after --enable-ai steps complete, and also for standalone --merge-ai
     // which reads previously saved AI files without making new AI calls.
     // Triggers whenever JSON is being written (explicit --format json, or default both).
-    const writingJson = options.format === "json" || options.format === undefined;
+    const writingJson =
+      options.format === "json" || options.format === undefined;
     if (writingJson && (options.enableAi || options.mergeAi)) {
       const aiOutputDir = join(projectRoot, "audit-reports", "relationships");
-      const aiGaps = await loadAIRecommendationsAsGaps(aiOutputDir, options.layer);
+      const aiGaps = await loadAIRecommendationsAsGaps(
+        aiOutputDir,
+        options.layer,
+      );
       if (aiGaps.length > 0) {
         report = mergeGapsIntoReport(report, aiGaps);
         const enrichedOutput = formatAuditReport(report, {
@@ -446,11 +511,11 @@ async function runAudit(options: ScriptOptions): Promise<void> {
         await writeFile(jsonOutputPath, enrichedOutput);
         const newTotal = report.gaps.length;
         console.error(
-          `✓ Merged ${aiGaps.length} AI-generated gap recommendations into report (${newTotal} total gaps)`
+          `✓ Merged ${aiGaps.length} AI-generated gap recommendations into report (${newTotal} total gaps)`,
         );
       } else if (options.mergeAi) {
         console.error(
-          "⚠️  No AI recommendation files found in audit-reports/relationships/. Run --enable-ai first."
+          "⚠️  No AI recommendation files found in audit-reports/relationships/. Run --enable-ai first.",
         );
       }
     }
@@ -500,19 +565,31 @@ function setupLogging(logDir: string): string {
 
   mkdirSync(logDir, { recursive: true });
   const logStream = createWriteStream(logPath, { flags: "w" });
-  logStream.write(`=== Relationship Audit Run: ${new Date().toISOString()} ===\n\n`);
+  logStream.write(
+    `=== Relationship Audit Run: ${new Date().toISOString()} ===\n\n`,
+  );
 
-  const origStdout = process.stdout.write.bind(process.stdout) as typeof process.stdout.write;
-  const origStderr = process.stderr.write.bind(process.stderr) as typeof process.stderr.write;
+  const origStdout = process.stdout.write.bind(
+    process.stdout,
+  ) as typeof process.stdout.write;
+  const origStderr = process.stderr.write.bind(
+    process.stderr,
+  ) as typeof process.stderr.write;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (process.stdout as any).write = (chunk: string | Uint8Array, ...rest: unknown[]): boolean => {
+  (process.stdout as any).write = (
+    chunk: string | Uint8Array,
+    ...rest: unknown[]
+  ): boolean => {
     logStream.write(chunk);
     return (origStdout as (...args: unknown[]) => boolean)(chunk, ...rest);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (process.stderr as any).write = (chunk: string | Uint8Array, ...rest: unknown[]): boolean => {
+  (process.stderr as any).write = (
+    chunk: string | Uint8Array,
+    ...rest: unknown[]
+  ): boolean => {
     logStream.write(chunk);
     return (origStderr as (...args: unknown[]) => boolean)(chunk, ...rest);
   };
@@ -533,7 +610,9 @@ async function main(): Promise<void> {
 
   const logDir = join(projectRoot, "audit-reports", "relationships");
   const logPath = setupLogging(logDir);
-  console.error(`📝 Logging stdout/stderr to ${relative(projectRoot, logPath)}`);
+  console.error(
+    `📝 Logging stdout/stderr to ${relative(projectRoot, logPath)}`,
+  );
 
   await runAudit(options);
 }
