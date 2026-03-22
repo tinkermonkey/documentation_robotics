@@ -881,7 +881,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | Find element     | `dr show <element-id>`                             | `dr show business.service.orders`                               |
 | List elements    | `dr list <layer> [type]`                           | `dr list application service`                                   |
 | Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                           |
-| Remove element   | `dr delete <element-id> --force`                   | `dr delete business.service.orders --force`                             |
+| Remove element   | `dr delete <element-id> --force`                   | `dr delete business.service.orders --force`                     |
 
 ### Validation Operations
 

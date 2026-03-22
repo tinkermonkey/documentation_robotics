@@ -4,7 +4,13 @@
   "title": "ModelNodeRelationship",
   "description": "Concrete relationship instance connecting two ModelNodes. Represents a specific relationship edge in the model graph that conforms to a SpecNodeRelationship type.",
   "type": "object",
-  "required": ["id", "spec_relationship_id", "source_node_id", "destination_node_id", "predicate"],
+  "required": [
+    "id",
+    "spec_relationship_id",
+    "source_node_id",
+    "destination_node_id",
+    "predicate"
+  ],
   "additionalProperties": false,
   "properties": {
     "id": {

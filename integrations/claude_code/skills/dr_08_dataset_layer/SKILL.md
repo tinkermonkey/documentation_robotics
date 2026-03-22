@@ -13,7 +13,7 @@ triggers:
     "document store",
     "access pattern",
     "index",
-    "field",
+    "field"
   ]
 version: 0.8.3
 ---
@@ -78,7 +78,7 @@ Use this decision tree **before assigning a type** to any storage element.
 Evaluate questions top-to-bottom. Stop at the first YES match.
 If none match, reconsider whether the concept belongs in a different layer.
 
-> **storedlogic vs. eventhandler:** If the element describes *what fires and when* (the reactive trigger mechanism), use `eventhandler`. If it describes *the computation or logic that runs* (a function, procedure, or script), use `storedlogic`.
+> **storedlogic vs. eventhandler:** If the element describes _what fires and when_ (the reactive trigger mechanism), use `eventhandler`. If it describes _the computation or logic that runs_ (a function, procedure, or script), use `storedlogic`.
 
 ```
 Is this a database server/instance/cluster?
@@ -138,26 +138,26 @@ Cross-layer links are created via `dr relate`, not inline YAML attributes. Key r
 
 **Outgoing (Data Store → Other Layers):**
 
-| Relationship | Example |
-|---|---|
-| `collection.realizes.api.schema` | Users collection → API response schema |
-| `collection.maps-to.api.requestbody` | Orders collection → POST /orders body |
-| `collection.serves.api.operation` | Products collection → GET /products operation |
-| `collection.implements.security.secureresource` | PII collection → SecureResource policy |
-| `collection.satisfies.security.dataclassification` | Payments collection → PCI data class |
-| `field.satisfies.security.dataclassification` | email field → PII data classification |
-| `field.requires.security.fieldaccesscontrol` | SSN field → FieldAccessControl rule |
-| `field.maps-to.api.parameter` | user_id field → API path parameter |
-| `database.satisfies.security.securitypolicy` | DB → encryption-at-rest policy |
-| `database.depends-on.technology.systemsoftware` | PostgreSQL DB → pg systemsoftware |
-| `retentionpolicy.satisfies.security.retentionpolicy` | Retention rule → security retention policy |
+| Relationship                                         | Example                                       |
+| ---------------------------------------------------- | --------------------------------------------- |
+| `collection.realizes.api.schema`                     | Users collection → API response schema        |
+| `collection.maps-to.api.requestbody`                 | Orders collection → POST /orders body         |
+| `collection.serves.api.operation`                    | Products collection → GET /products operation |
+| `collection.implements.security.secureresource`      | PII collection → SecureResource policy        |
+| `collection.satisfies.security.dataclassification`   | Payments collection → PCI data class          |
+| `field.satisfies.security.dataclassification`        | email field → PII data classification         |
+| `field.requires.security.fieldaccesscontrol`         | SSN field → FieldAccessControl rule           |
+| `field.maps-to.api.parameter`                        | user_id field → API path parameter            |
+| `database.satisfies.security.securitypolicy`         | DB → encryption-at-rest policy                |
+| `database.depends-on.technology.systemsoftware`      | PostgreSQL DB → pg systemsoftware             |
+| `retentionpolicy.satisfies.security.retentionpolicy` | Retention rule → security retention policy    |
 
 **Incoming (Other Layers → Data Store):**
 
-| Relationship | Example |
-|---|---|
-| `application.applicationcomponent.serves → collection` | UserService → users collection |
-| `technology.systemsoftware.depends-on → database` | PostgreSQL technology → database |
+| Relationship                                           | Example                          |
+| ------------------------------------------------------ | -------------------------------- |
+| `application.applicationcomponent.serves → collection` | UserService → users collection   |
+| `technology.systemsoftware.depends-on → database`      | PostgreSQL technology → database |
 
 ---
 
@@ -308,7 +308,7 @@ Before declaring data-store layer extraction complete, verify each type was cons
 - [ ] **retentionpolicy** — Data lifecycle, TTL, and retention rule definition
 
 If any type has ZERO elements, explicitly decide:
-  "This type doesn't apply to this codebase" with reasoning.
+"This type doesn't apply to this codebase" with reasoning.
 
 > **Note:** `accesspattern` is strongly recommended for any NoSQL store (DynamoDB, Cassandra, Firestore) — NoSQL schema design is driven by access patterns.
 > `retentionpolicy` is strongly recommended for any collection subject to regulatory requirements (GDPR, SOC2, HIPAA).

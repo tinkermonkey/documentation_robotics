@@ -10,7 +10,7 @@ triggers:
     "data structure",
     "properties",
     "validation",
-    "data type",
+    "data type"
   ]
 version: 0.7.0
 ---

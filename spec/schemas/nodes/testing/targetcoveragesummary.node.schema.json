@@ -41,7 +41,12 @@
           "description": "Percentage of coverage requirements with at least one implemented test case sketch (0\u2013100)"
         }
       },
-      "required": ["targetRef", "sketchCount", "implementedCount", "automatedCount"],
+      "required": [
+        "targetRef",
+        "sketchCount",
+        "implementedCount",
+        "automatedCount"
+      ],
       "additionalProperties": false
     }
   }

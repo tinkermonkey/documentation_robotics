@@ -106,7 +106,14 @@
           "properties": {
             "tool": {
               "type": "string",
-              "enum": ["grafana", "datadog", "newrelic", "cloudwatch", "dynatrace", "custom"],
+              "enum": [
+                "grafana",
+                "datadog",
+                "newrelic",
+                "cloudwatch",
+                "dynatrace",
+                "custom"
+              ],
               "description": "Monitoring platform that hosts this dashboard."
             },
             "description": {
@@ -178,7 +185,14 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": ["otlp", "jaeger", "zipkin", "prometheus", "stdout", "logging"],
+              "enum": [
+                "otlp",
+                "jaeger",
+                "zipkin",
+                "prometheus",
+                "stdout",
+                "logging"
+              ],
               "description": "The type of exporter"
             },
             "enabled": {
@@ -809,7 +823,14 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["tracecontext", "baggage", "b3", "b3multi", "xray", "jaeger"]
+                "enum": [
+                  "tracecontext",
+                  "baggage",
+                  "b3",
+                  "b3multi",
+                  "xray",
+                  "jaeger"
+                ]
               },
               "description": "OTel context propagation formats enabled for this trace configuration"
             },

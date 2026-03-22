@@ -11,7 +11,7 @@ triggers:
     "traces",
     "logs",
     "OpenTelemetry",
-    "telemetry",
+    "telemetry"
   ]
 version: 0.8.3
 ---
@@ -52,16 +52,19 @@ grep "@opentelemetry" package.json
 ```
 
 **If NO OTel SDK found:**
+
 - Do NOT add `MetricInstrument`, `Span`, `TraceConfiguration`, or `ExporterConfig` elements as if they are implemented
 - ONLY model what exists: browser console logging (`LogConfiguration`), UI-displayed metrics (describe in element description that export is absent)
 - Mark all elements `provenance: inferred` and add a note in the description: "Metric concept identified; no OTel export implemented."
 
 **If OTel SDK IS found:**
+
 - Proceed with full extraction of all APM types
 
 ### Step 2: Identify what observability actually exists
 
 Even without OTel, codebases may have:
+
 - Browser console error logging → `apm.logconfiguration`
 - UI-visible token/usage counters → `apm.metricinstrument` (with note: display-only, not exported)
 - Error tracking utilities → `apm.instrumentationconfig` (type: manual)
@@ -69,13 +72,13 @@ Even without OTel, codebases may have:
 
 ### In-UI Observability vs. OTel Instrumentation
 
-| Pattern | Model as | provenance |
-|---|---|---|
-| `console.error()` logging | `logconfiguration` | extracted |
-| UI badge showing token count | `metricinstrument` (note: display-only) | inferred |
-| Store tracks reconnection count | `metricinstrument` (note: in-memory only) | inferred |
-| `opentelemetry.createCounter()` | `metricinstrument` | extracted |
-| Prometheus export endpoint | `exporterconfig` | extracted |
+| Pattern                         | Model as                                  | provenance |
+| ------------------------------- | ----------------------------------------- | ---------- |
+| `console.error()` logging       | `logconfiguration`                        | extracted  |
+| UI badge showing token count    | `metricinstrument` (note: display-only)   | inferred   |
+| Store tracks reconnection count | `metricinstrument` (note: in-memory only) | inferred   |
+| `opentelemetry.createCounter()` | `metricinstrument`                        | extracted  |
+| Prometheus export endpoint      | `exporterconfig`                          | extracted  |
 
 ---
 
@@ -86,23 +89,23 @@ Even without OTel, codebases may have:
 
 ### Core APM Entities (15 entities)
 
-| Entity Type                | Description                                                          |
-| -------------------------- | -------------------------------------------------------------------- |
-| **TraceConfiguration**     | Distributed tracing configuration                                    |
-| **Span**                   | Unit of work in distributed trace                                    |
-| **SpanEvent**              | Timestamped event within span                                        |
-| **SpanLink**               | Link between spans from different traces                             |
-| **MetricConfiguration**    | Metrics collection configuration                                     |
-| **MetricInstrument**       | Specific metric instrument (Counter, Gauge, Histogram, etc.)         |
-| **LogConfiguration**       | Structured logging configuration                                     |
-| **LogRecord**              | Individual log record                                                |
-| **LogProcessor**           | Log processing pipeline step (simple, batch, custom)                 |
-| **Resource**               | Telemetry resource attributes                                        |
-| **InstrumentationScope**   | Scope of instrumentation                                             |
-| **InstrumentationConfig**  | Code instrumentation configuration (library, auto/manual type)       |
-| **ExporterConfig**         | Telemetry exporter configuration (OTLP, Jaeger, Prometheus, etc.)   |
-| **Alert**                  | Alert rule with severity, condition, and notification channels       |
-| **Dashboard**              | Monitoring dashboard definition (Grafana, Datadog, etc.)             |
+| Entity Type               | Description                                                       |
+| ------------------------- | ----------------------------------------------------------------- |
+| **TraceConfiguration**    | Distributed tracing configuration                                 |
+| **Span**                  | Unit of work in distributed trace                                 |
+| **SpanEvent**             | Timestamped event within span                                     |
+| **SpanLink**              | Link between spans from different traces                          |
+| **MetricConfiguration**   | Metrics collection configuration                                  |
+| **MetricInstrument**      | Specific metric instrument (Counter, Gauge, Histogram, etc.)      |
+| **LogConfiguration**      | Structured logging configuration                                  |
+| **LogRecord**             | Individual log record                                             |
+| **LogProcessor**          | Log processing pipeline step (simple, batch, custom)              |
+| **Resource**              | Telemetry resource attributes                                     |
+| **InstrumentationScope**  | Scope of instrumentation                                          |
+| **InstrumentationConfig** | Code instrumentation configuration (library, auto/manual type)    |
+| **ExporterConfig**        | Telemetry exporter configuration (OTLP, Jaeger, Prometheus, etc.) |
+| **Alert**                 | Alert rule with severity, condition, and notification channels    |
+| **Dashboard**             | Monitoring dashboard definition (Grafana, Datadog, etc.)          |
 
 ---
 
@@ -256,7 +259,7 @@ Before declaring APM layer extraction complete, verify each type was considered:
 - [ ] `apm.traceconfiguration` — Distributed tracing configuration
 
 If any type has ZERO elements, explicitly decide:
-  "This type doesn't apply to this codebase" with reasoning.
+"This type doesn't apply to this codebase" with reasoning.
 
 ---
 

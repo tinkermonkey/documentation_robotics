@@ -240,7 +240,7 @@ Proceed with extraction?
 
 Use the Task tool to launch the specialized extraction agent:
 
-```python
+````python
 Task(
     subagent_type="dr-extractor",
     prompt=f"""Extract Documentation Robotics model from codebase.
@@ -288,7 +288,7 @@ Task(
    dr add business capability "Order Management" \
      --description "Inferred from OrderService and order routes" \
      --source-provenance inferred
-   ```
+````
 
 4. Validate the extracted model:
    - Run `dr validate` after extraction
@@ -304,26 +304,31 @@ Task(
 **Analysis Guidelines:**
 
 For Business Layer:
+
 - Infer business services from high-level modules/packages
 - Look for domain concepts in naming
 - Group related functionality
 
 For Application Layer:
+
 - Map classes/modules to components
 - Services exposed via APIs become application services
 - Set criticality based on usage patterns
 
 For API Layer:
+
 - Extract REST/GraphQL endpoints
 - Map HTTP methods to operations
 - Extract request/response schemas
 
 For Data Model Layer:
+
 - Parse ORM models (SQLAlchemy, TypeORM, JPA, etc.)
 - Extract JSON schemas if present
 - Document relationships
 
 For React Flow Applications (when `@xyflow/react` detected in package.json):
+
 - Scan `src/core/nodes/` or similar for custom node components → `ux.librarycomponent` (type: graph-node)
 - Look for a unified/shared node component that is configuration-driven → single `ux.librarycomponent` entry (do NOT create one per node type)
 - Scan `src/core/edges/` for custom edge types → `ux.librarycomponent` (type: graph-edge)
@@ -368,14 +373,16 @@ Recommendations:
 ```
 
 **Important:**
+
 - Create realistic, meaningful descriptions
 - Use proper kebab-case for IDs
 - **Every `dr add` call must include `--source-file` and `--source-provenance`** — elements without provenance are untraceable and will fail the `source_files_exist` assertion in the test suite
 - Establish cross-layer references where clear
 - Flag uncertain mappings for review
 - Run validation and fix obvious errors
-"""
-)
+  """
+  )
+
 ```
 
 ### Step 5: Process Agent Results
@@ -383,8 +390,8 @@ Recommendations:
 When the agent completes, parse and display the report:
 
 ```
-Extraction Complete!
-===================
+
+# Extraction Complete
 
 Created Elements:
 ├─ Business Layer: 5 services
@@ -405,12 +412,14 @@ Confidence:
 ❌ Low: 3% (manual review needed)
 
 Files Modified:
+
 - documentation-robotics/model/02_business/services.yaml (3 elements)
 - documentation-robotics/model/04_application/services.yaml (8 elements)
 - documentation-robotics/model/04_application/components.yaml (3 elements)
 - documentation-robotics/model/06_api/operations.yaml (25 elements)
 - documentation-robotics/model/07_data-model/schemas.yaml (12 elements)
-```
+
+````
 
 ### Step 6: Validation & Review
 
@@ -418,7 +427,7 @@ After extraction, run validation:
 
 ```bash
 dr validate --strict
-```
+````
 
 Present results and ask user to review:
 

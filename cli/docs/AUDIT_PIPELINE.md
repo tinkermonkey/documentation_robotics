@@ -326,7 +326,7 @@ By default, snapshots are retained indefinitely. To enable automatic cleanup wit
 import { SnapshotStorage } from "./audit/snapshot-storage.js";
 
 const storage = new SnapshotStorage({
-  maxSnapshots: 10, // Keep only 10 most recent snapshots
+  maxSnapshots: 10 // Keep only 10 most recent snapshots
 });
 ```
 

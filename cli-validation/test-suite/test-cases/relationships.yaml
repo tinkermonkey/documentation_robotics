@@ -124,10 +124,10 @@ pipelines:
       - command: "add business service cross-layer-service --name 'Cross Layer Service' --description 'Service for cross-layer test'"
         files_to_compare:
           - manifest.yaml
-          - 02_business/service.yaml
+          - 02_business/business_service.yaml
         expect_exit_code: 0
 
-      - command: "relationship add motivation.goal.cross-layer-goal business.service.cross-layer-service --predicate realizes"
+      - command: "relationship add motivation.goal.cross-layer-goal business.businessservice.cross-layer-service --predicate realizes"
         files_to_compare: []
         expect_exit_code: 1
         expect_stderr_contains:
@@ -139,8 +139,8 @@ pipelines:
           - 01_motivation/goal.yaml
         expect_exit_code: 0
 
-      - command: "delete business.service.cross-layer-service --force"
+      - command: "delete business.businessservice.cross-layer-service --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/service.yaml
+          - 02_business/business_service.yaml
         expect_exit_code: 0

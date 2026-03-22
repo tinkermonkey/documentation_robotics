@@ -41,7 +41,12 @@
           "type": "string"
         }
       },
-      "required": ["dependsOnPartition", "dependsOnValue", "effect", "affectedValues"],
+      "required": [
+        "dependsOnPartition",
+        "dependsOnValue",
+        "effect",
+        "affectedValues"
+      ],
       "additionalProperties": false
     }
   }

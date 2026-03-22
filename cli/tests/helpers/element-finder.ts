@@ -28,13 +28,14 @@ export function findElementBySemanticId(
 
   // Search all nodes in the layer
   for (const candidate of layer.elements.values()) {
-    // Build semantic IDs from element name
-    const kebabName = candidate.name
-      .replace(/[\s_]+/g, "-")
-      .replace(/([a-z])([A-Z])/g, "$1-$2")
-      .toLowerCase()
-      .replace(/-+/g, "-")
-      .replace(/^-+|-+$/g, "");
+    // Build semantic IDs from element name - must match toKebabCase in id-generator.ts
+    let kebabName = candidate.name.replace(/[\s_]+/g, "-");
+    kebabName = kebabName.replace(/([a-z])([A-Z])/g, "$1-$2");
+    kebabName = kebabName.toLowerCase();
+    kebabName = kebabName.replace(/\./g, "");
+    kebabName = kebabName.replace(/[^a-z0-9-]/g, ""); // Remove non-alphanumeric except hyphens
+    kebabName = kebabName.replace(/-+/g, "-");
+    kebabName = kebabName.replace(/^-+|-+$/g, "");
 
     const semanticIds = [
       `${candidate.layer_id || layer.name}.${candidate.type}.${kebabName}`,

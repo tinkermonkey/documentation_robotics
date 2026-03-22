@@ -51,7 +51,14 @@
         },
         "alignContent": {
           "type": "string",
-          "enum": ["flex-start", "flex-end", "center", "space-between", "space-around", "stretch"],
+          "enum": [
+            "flex-start",
+            "flex-end",
+            "center",
+            "space-between",
+            "space-around",
+            "stretch"
+          ],
           "description": "CSS align-content property value, per CSS Flexbox/Grid specification."
         },
         "alignItems": {

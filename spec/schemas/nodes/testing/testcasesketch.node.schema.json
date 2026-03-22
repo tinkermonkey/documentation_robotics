@@ -25,7 +25,14 @@
         },
         "status": {
           "type": "string",
-          "enum": ["draft", "under-review", "approved", "implemented", "automated", "deprecated"],
+          "enum": [
+            "draft",
+            "under-review",
+            "approved",
+            "implemented",
+            "automated",
+            "deprecated"
+          ],
           "description": "Lifecycle status of the test case sketch"
         },
         "inputSelections": {

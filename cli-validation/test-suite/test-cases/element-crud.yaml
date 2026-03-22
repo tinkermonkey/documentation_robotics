@@ -35,23 +35,23 @@ pipelines:
       - command: "add business service test-service --name 'Test Business Service' --description 'Temporary test service'"
         files_to_compare:
           - manifest.yaml
-          - 02_business/service.yaml
+          - 02_business/business_service.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
           - "test-service"
 
-      - command: "update business.service.test-service --name 'Updated Business Service'"
+      - command: "update business.businessservice.test-service --name 'Updated Business Service'"
         files_to_compare:
-          - 02_business/service.yaml
+          - 02_business/business_service.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
 
-      - command: "delete business.service.test-service --force"
+      - command: "delete business.businessservice.test-service --force"
         files_to_compare:
           - manifest.yaml
-          - 02_business/service.yaml
+          - 02_business/business_service.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
@@ -61,28 +61,28 @@ pipelines:
       - command: "add application component test-component --name 'Test Component' --description 'Test application component'"
         files_to_compare:
           - manifest.yaml
-          - 04_application/component.yaml
+          - 04_application/application_component.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
           - "test-component"
 
-      - command: "show application.component.test-component"
+      - command: "show application.applicationcomponent.test-component"
         files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
           - "test-component"
           - "Test Component"
 
-      - command: "update application.component.test-component --name 'Updated Component'"
+      - command: "update application.applicationcomponent.test-component --name 'Updated Component'"
         files_to_compare:
-          - 04_application/component.yaml
+          - 04_application/application_component.yaml
         expect_exit_code: 0
 
-      - command: "delete application.component.test-component --force"
+      - command: "delete application.applicationcomponent.test-component --force"
         files_to_compare:
           - manifest.yaml
-          - 04_application/component.yaml
+          - 04_application/application_component.yaml
         expect_exit_code: 0
 
   - name: "Add technology node with update"
@@ -136,7 +136,7 @@ pipelines:
 
   - name: "Add API operation with update"
     steps:
-      - command: 'add api operation test-operation --name ''Test Operation'' --description ''GET /api/test'' --attributes ''{"method":"GET","path":"/api/test"}'''
+      - command: 'add api operation test-operation --name ''Test Operation'' --description ''Test API operation'' --attributes ''{"operationId":"test-operation","summary":"Test Operation","tags":"test"}'''
         files_to_compare:
           - manifest.yaml
           - 06_api/operation.yaml
@@ -240,7 +240,7 @@ pipelines:
 
   - name: "Add navigation route with update"
     steps:
-      - command: 'add navigation route test-route --name ''Test Route'' --description ''Test navigation route'' --attributes ''{"path":"/test"}'''
+      - command: 'add navigation route test-route --name ''Test Route'' --description ''Test navigation route'' --attributes ''{"type":"public"}'''
         files_to_compare:
           - manifest.yaml
           - 10_navigation/route.yaml

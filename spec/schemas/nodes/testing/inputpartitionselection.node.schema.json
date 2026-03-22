@@ -37,7 +37,12 @@
           "description": "Comma-separated labels or IDs of partition values to exclude from coverage. Applied when coverAllCategories is true to carve out specific values."
         }
       },
-      "required": ["partitionRef", "coverValues", "coverAllCategories", "excludeValues"],
+      "required": [
+        "partitionRef",
+        "coverValues",
+        "coverAllCategories",
+        "excludeValues"
+      ],
       "additionalProperties": false
     }
   }

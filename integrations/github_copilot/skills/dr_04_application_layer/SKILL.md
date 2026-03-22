@@ -9,7 +9,7 @@ triggers:
     "application function",
     "application process",
     "microservice",
-    "archimate application",
+    "archimate application"
   ]
 version: 0.8.1
 ---

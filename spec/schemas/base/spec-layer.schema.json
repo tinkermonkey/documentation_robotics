@@ -28,7 +28,9 @@
     "description": {
       "type": "string",
       "description": "Purpose and scope of this layer within the architecture model",
-      "examples": ["Captures stakeholder concerns, goals, requirements, and constraints"]
+      "examples": [
+        "Captures stakeholder concerns, goals, requirements, and constraints"
+      ]
     },
     "inspired_by": {
       "type": "object",
@@ -49,7 +51,9 @@
           "type": "string",
           "format": "uri",
           "description": "URL to the standard specification",
-          "examples": ["https://pubs.opengroup.org/architecture/archimate32-doc/"]
+          "examples": [
+            "https://pubs.opengroup.org/architecture/archimate32-doc/"
+          ]
         }
       }
     },
@@ -61,7 +65,9 @@
         "description": "Reference to a SpecNode ID"
       },
       "description": "List of SpecNode IDs that are valid in this layer. Used to define which node types can belong to this layer.",
-      "examples": [["motivation.goal", "motivation.requirement", "motivation.constraint"]]
+      "examples": [
+        ["motivation.goal", "motivation.requirement", "motivation.constraint"]
+      ]
     }
   }
 }

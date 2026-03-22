@@ -4,7 +4,12 @@
   "title": "SpecNodeRelationship",
   "description": "Base type for relationship type definitions in the specification. Defines valid relationships between node types, including cardinality, strength, and semantic properties.",
   "type": "object",
-  "required": ["id", "source_spec_node_id", "destination_spec_node_id", "predicate"],
+  "required": [
+    "id",
+    "source_spec_node_id",
+    "destination_spec_node_id",
+    "predicate"
+  ],
   "additionalProperties": false,
   "properties": {
     "id": {
@@ -40,7 +45,14 @@
     "predicate": {
       "type": "string",
       "description": "Semantic predicate from PredicateCatalog describing the relationship type. Must be a valid predicate name.",
-      "examples": ["supports", "realizes", "fulfills", "implements", "uses", "consumes"]
+      "examples": [
+        "supports",
+        "realizes",
+        "fulfills",
+        "implements",
+        "uses",
+        "consumes"
+      ]
     },
     "cardinality": {
       "type": "string",

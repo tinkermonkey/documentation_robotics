@@ -58,7 +58,14 @@
             },
             "contextType": {
               "type": "string",
-              "enum": ["functional", "load", "security", "regression", "smoke", "exploratory"],
+              "enum": [
+                "functional",
+                "load",
+                "security",
+                "regression",
+                "smoke",
+                "exploratory"
+              ],
               "description": "The category of test context this variation represents"
             },
             "environmentFactors": {
@@ -290,7 +297,13 @@
           "properties": {
             "factorType": {
               "type": "string",
-              "enum": ["os", "network", "locale", "hardware", "dependency-version"],
+              "enum": [
+                "os",
+                "network",
+                "locale",
+                "hardware",
+                "dependency-version"
+              ],
               "description": "Category of environmental variable being documented."
             },
             "value": {
@@ -354,7 +367,12 @@
               "description": "Comma-separated labels or IDs of partition values to exclude from coverage. Applied when coverAllCategories is true to carve out specific values."
             }
           },
-          "required": ["partitionRef", "coverValues", "coverAllCategories", "excludeValues"],
+          "required": [
+            "partitionRef",
+            "coverValues",
+            "coverAllCategories",
+            "excludeValues"
+          ],
           "additionalProperties": false
         }
       },
@@ -397,7 +415,12 @@
               "description": "How the concrete value was obtained: manually authored, algorithmically generated, drawn from a data set, or loaded from a test fixture"
             }
           },
-          "required": ["partitionRef", "selectedValue", "concreteValue", "valueSource"],
+          "required": [
+            "partitionRef",
+            "selectedValue",
+            "concreteValue",
+            "valueSource"
+          ],
           "additionalProperties": false
         }
       },
@@ -433,7 +456,13 @@
             },
             "presenceRule": {
               "type": "string",
-              "enum": ["required", "optional", "conditional", "forbidden", "mutually-exclusive"],
+              "enum": [
+                "required",
+                "optional",
+                "conditional",
+                "forbidden",
+                "mutually-exclusive"
+              ],
               "description": "Whether this input field must be present in test inputs for this partition"
             }
           },
@@ -520,7 +549,12 @@
             },
             "effect": {
               "type": "string",
-              "enum": ["excludes", "requires", "restricts-to", "modifies-range"],
+              "enum": [
+                "excludes",
+                "requires",
+                "restricts-to",
+                "modifies-range"
+              ],
               "description": "How the dependency affects the related partition values"
             },
             "affectedValues": {
@@ -531,7 +565,12 @@
               "type": "string"
             }
           },
-          "required": ["dependsOnPartition", "dependsOnValue", "effect", "affectedValues"],
+          "required": [
+            "dependsOnPartition",
+            "dependsOnValue",
+            "effect",
+            "affectedValues"
+          ],
           "additionalProperties": false
         }
       },
@@ -644,7 +683,12 @@
               "description": "Percentage of coverage requirements with at least one implemented test case sketch (0–100)"
             }
           },
-          "required": ["targetRef", "sketchCount", "implementedCount", "automatedCount"],
+          "required": [
+            "targetRef",
+            "sketchCount",
+            "implementedCount",
+            "automatedCount"
+          ],
           "additionalProperties": false
         }
       },

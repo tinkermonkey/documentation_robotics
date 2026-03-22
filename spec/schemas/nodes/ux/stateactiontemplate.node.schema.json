@@ -22,7 +22,14 @@
       "properties": {
         "action": {
           "type": "string",
-          "enum": ["navigate", "submit", "open", "close", "dispatch", "validate"],
+          "enum": [
+            "navigate",
+            "submit",
+            "open",
+            "close",
+            "dispatch",
+            "validate"
+          ],
           "description": "Operation this template encapsulates. Must match a value from the StateAction action enum."
         },
         "description": {

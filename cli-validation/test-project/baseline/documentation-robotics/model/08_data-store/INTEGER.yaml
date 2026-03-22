@@ -1,0 +1,16 @@
+data-store.INTEGER.id-column:
+  id: e0ad6f73-41ad-48cd-a2ab-ab4518fa1070
+  path: data-store.INTEGER.id-column
+  spec_node_id: ""
+  type: INTEGER
+  layer_id: data-store
+  name: ID Column
+  description: Primary key auto-increment ID
+data-store.INTEGER.done-column:
+  id: bf3a28f9-03ff-4e9d-9c86-253d537a8c4b
+  path: data-store.INTEGER.done-column
+  spec_node_id: ""
+  type: INTEGER
+  layer_id: data-store
+  name: Done Column
+  description: Todo completion status integer (0/1)
