@@ -618,24 +618,25 @@ components:
   });
 
   describe("updateVersionFile - Hash Comparison Logic", () => {
-    it("should compute hashes from SOURCE directory, not TARGET", async () => {
+    it("should compute hashes from TARGET directory, not SOURCE", async () => {
       // Install with initial version
       await manager.testInstallComponent("commands");
       await manager.testUpdateVersionFile("0.1.0");
 
       // Modify target file (simulate user edit)
       const targetCmd1Path = join(targetDir, "commands", "cmd1.md");
-      const sourceCmd1Path = join(sourceDir, "commands", "cmd1.md");
       await writeFile(targetCmd1Path, "User modified content", "utf-8");
 
-      // Update version file again (should use SOURCE hash, not TARGET)
+      // Update version file again (should use TARGET hash, not SOURCE)
       await manager.testUpdateVersionFile("0.1.0");
       const versionData = await manager.testLoadVersionFile();
 
-      // The hash should match the SOURCE file, not the TARGET file
-      const sourceHash = await computeFileHash(sourceCmd1Path);
+      // The hash should match the TARGET file (what is on disk), not the SOURCE file.
+      // Recording the target hash prevents false conflict reports on the next upgrade
+      // for files that were skipped (conflict/user-modified) during a prior install.
+      const targetHash = await computeFileHash(targetCmd1Path);
       const storedHash = versionData?.components["commands"]["cmd1.md"].hash;
-      expect(storedHash).toBe(sourceHash);
+      expect(storedHash).toBe(targetHash);
     });
 
     it("should set modified=false when target matches source", async () => {
@@ -702,6 +703,45 @@ components:
 
       // Non-tracked components should NOT be included
       expect(versionData?.components["templates"]).toBeUndefined();
+    });
+  });
+
+  describe("False-conflict prevention (target-hash baseline)", () => {
+    it("should not report conflict after upgrade skips a file due to prior conflict", async () => {
+      // 1. Initial install and baseline
+      await manager.testInstallComponent("commands");
+      await manager.testUpdateVersionFile("0.1.0");
+
+      // 2. User modifies the installed file
+      const cmd1Target = join(targetDir, "commands", "cmd1.md");
+      await writeFile(cmd1Target, "User custom content", "utf-8");
+
+      // 3. Source is updated (creates a real conflict)
+      await writeFile(join(sourceDir, "commands", "cmd1.md"), "Source update v1", "utf-8");
+
+      // 4. Upgrade without --force: conflict file should be SKIPPED
+      let versionData = await manager.testLoadVersionFile();
+      const changes = await manager.testCheckUpdates("commands", versionData!);
+      const conflictEntry = changes.find((c) => c.path === "cmd1.md");
+      expect(conflictEntry?.changeType).toBe("conflict");
+
+      await manager.testInstallComponent("commands", false); // skip conflict
+      // File should still have user content
+      expect(await readFile(cmd1Target, "utf-8")).toBe("User custom content");
+
+      // 5. Update version file — must record TARGET hash (user's version), not source hash
+      await manager.testUpdateVersionFile("0.1.0");
+      versionData = await manager.testLoadVersionFile();
+      const userHash = await computeFileHash(cmd1Target);
+      expect(versionData?.components["commands"]["cmd1.md"].hash).toBe(userHash);
+
+      // 6. Run checkUpdates again — should NOT report a conflict for the skipped file.
+      //    The baseline now matches what's on disk so no spurious conflict appears.
+      const changesAfter = await manager.testCheckUpdates("commands", versionData!);
+      const cmd1Entry = changesAfter.find((c) => c.path === "cmd1.md");
+      // The file was skipped (user's version differs from new source), so it's user-modified
+      // but should NOT be a "conflict" (which would mean the baseline also disagrees)
+      expect(cmd1Entry?.changeType).not.toBe("conflict");
     });
   });
 

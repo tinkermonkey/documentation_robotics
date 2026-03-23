@@ -139,7 +139,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
    *
    * @param options Upgrade options
    * @param options.dryRun Preview changes without applying
-   * @param options.force Skip confirmation prompts
+   * @param options.force Skip confirmation prompts and overwrite conflict/user-modified files
    */
   async upgrade(
     options: {
@@ -175,7 +175,11 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
       for (const change of componentChanges) {
         const status = this.changeTypeToStatus(change.changeType);
-        const action = this.changeTypeToAction(change.changeType);
+        // When force=true, conflicts and user-modified files are overwritten rather than skipped
+        const action =
+          force && (change.changeType === "conflict" || change.changeType === "user-modified")
+            ? "Overwrite"
+            : this.changeTypeToAction(change.changeType);
         changes.push({
           file: change.component + "/" + change.path,
           status,
@@ -246,7 +250,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
     try {
       for (const componentName of Object.keys(this.components)) {
-        await this.installComponent(componentName, true);
+        await this.installComponent(componentName, force);
       }
 
       // Remove obsolete files
@@ -447,7 +451,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       case "user-modified":
         return "Skip";
       case "conflict":
-        return "Conflict";
+        return "Skip";
       default:
         return "Update";
     }
