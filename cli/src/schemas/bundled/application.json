@@ -574,7 +574,7 @@
       "destination_spec_node_id": "application.applicationservice",
       "destination_layer": "application",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
