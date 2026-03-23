@@ -986,6 +986,17 @@
       "strength": "medium",
       "required": false
     },
+    "data-model.schemadefinition.composes.data-model.schemadefinition": {
+      "id": "data-model.schemadefinition.composes.data-model.schemadefinition",
+      "source_spec_node_id": "data-model.schemadefinition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
+      "predicate": "composes",
+      "cardinality": "many-to-one",
+      "strength": "high",
+      "required": false
+    },
     "data-model.schemadefinition.depends-on.technology.systemsoftware": {
       "id": "data-model.schemadefinition.depends-on.technology.systemsoftware",
       "source_spec_node_id": "data-model.schemadefinition",
@@ -993,6 +1004,17 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemadefinition.maps-to.data-store.collection": {
+      "id": "data-model.schemadefinition.maps-to.data-store.collection",
+      "source_spec_node_id": "data-model.schemadefinition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-store.collection",
+      "destination_layer": "data-store",
+      "predicate": "maps-to",
       "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
@@ -1036,6 +1058,17 @@
       "source_layer": "data-model",
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
+      "predicate": "references",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
+    "data-model.schemadefinition.references.data-model.schemadefinition": {
+      "id": "data-model.schemadefinition.references.data-model.schemadefinition",
+      "source_spec_node_id": "data-model.schemadefinition",
+      "source_layer": "data-model",
+      "destination_spec_node_id": "data-model.schemadefinition",
+      "destination_layer": "data-model",
       "predicate": "references",
       "cardinality": "many-to-one",
       "strength": "medium",

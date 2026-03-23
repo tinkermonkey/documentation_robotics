@@ -341,7 +341,48 @@ service UserService {
 - ApplicationService: "User Service"
 - ApplicationComponent: "UserService"
 
-### Pattern 7: Message Queue Consumer
+### Pattern 7: AI / RAG Processing Pipeline
+
+```python
+# Retrieval-Augmented Generation pipeline
+class RAGPipeline:
+    """
+    Multi-stage AI document processing pipeline.
+    ApplicationProcess: RAGPipeline (pattern: pipeline)
+    """
+
+    def run(self, query: str) -> str:
+        chunks = self.chunker.chunk(documents)      # ApplicationFunction: DocumentChunker
+        embeddings = self.embedder.embed(chunks)    # ApplicationFunction: EmbeddingGenerator
+        results = self.retriever.retrieve(          # ApplicationFunction: VectorRetriever
+            query_embedding, embeddings
+        )
+        return self.reranker.rerank(results, query) # ApplicationFunction: ResultReranker
+```
+
+**Maps to:**
+
+- ApplicationProcess: "RAGPipeline" (pattern: pipeline) — the orchestrating process
+- ApplicationFunction: "DocumentChunker" — assigned-to the RAG component; `flows-to` EmbeddingGenerator
+- ApplicationFunction: "EmbeddingGenerator" — `flows-to` VectorRetriever
+- ApplicationFunction: "VectorRetriever" — `flows-to` ResultReranker
+- ApplicationFunction: "ResultReranker" — terminal stage; delivers output to the calling service
+- ApplicationComponent: "RAGService" — owns all four functions via `assigned-to`
+
+**Key relationships:**
+```
+ApplicationFunction: chunker → flows-to → ApplicationFunction: embedder
+ApplicationFunction: embedder → flows-to → ApplicationFunction: retriever
+ApplicationFunction: retriever → flows-to → ApplicationFunction: reranker
+ApplicationComponent: rag-service → assigned-to → ApplicationFunction: chunker (×4)
+ApplicationProcess: rag-pipeline → realizes → ApplicationService: rag-service
+```
+
+> **Rule:** Each discrete pipeline stage is an `ApplicationFunction`, not a separate service — stages share the same component boundary and have no independent business contract. Use `ApplicationProcess` to model the orchestration. If a stage is independently deployable (e.g., a separate embedding microservice), elevate it to `ApplicationComponent` + `ApplicationService`.
+
+---
+
+### Pattern 8: Message Queue Consumer
 
 ```python
 # RabbitMQ consumer

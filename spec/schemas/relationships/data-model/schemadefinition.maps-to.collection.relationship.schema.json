@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Securitypolicy governs Secureresource",
-  "description": "Defines relationship: security.securitypolicy governs security.secureresource",
+  "title": "Schemadefinition maps-to Collection",
+  "description": "Defines relationship: data-model.schemadefinition maps-to data-store.collection",
   "allOf": [
     {
       "$ref": "../../base/spec-node-relationship.schema.json"
@@ -9,25 +9,25 @@
   ],
   "properties": {
     "id": {
-      "const": "security.securitypolicy.governs.security.secureresource"
+      "const": "data-model.schemadefinition.maps-to.data-store.collection"
     },
     "source_spec_node_id": {
-      "const": "security.securitypolicy"
+      "const": "data-model.schemadefinition"
     },
     "source_layer": {
-      "const": "security"
+      "const": "data-model"
     },
     "destination_spec_node_id": {
-      "const": "security.secureresource"
+      "const": "data-store.collection"
     },
     "destination_layer": {
-      "const": "security"
+      "const": "data-store"
     },
     "predicate": {
-      "const": "governs"
+      "const": "maps-to"
     },
     "cardinality": {
-      "const": "many-to-many"
+      "const": "many-to-one"
     },
     "strength": {
       "const": "medium"

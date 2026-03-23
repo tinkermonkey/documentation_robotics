@@ -3340,7 +3340,7 @@
       "destination_spec_node_id": "api.operation",
       "destination_layer": "api",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },

@@ -1095,6 +1095,17 @@
       "strength": "medium",
       "required": false
     },
+    "application.applicationservice.depends-on.application.applicationservice": {
+      "id": "application.applicationservice.depends-on.application.applicationservice",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "depends-on",
+      "cardinality": "many-to-one",
+      "strength": "medium",
+      "required": false
+    },
     "application.applicationservice.depends-on.application.dataobject": {
       "id": "application.applicationservice.depends-on.application.dataobject",
       "source_spec_node_id": "application.applicationservice",
@@ -1103,6 +1114,17 @@
       "destination_layer": "application",
       "predicate": "depends-on",
       "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false
+    },
+    "application.applicationservice.flows-to.application.applicationservice": {
+      "id": "application.applicationservice.flows-to.application.applicationservice",
+      "source_spec_node_id": "application.applicationservice",
+      "source_layer": "application",
+      "destination_spec_node_id": "application.applicationservice",
+      "destination_layer": "application",
+      "predicate": "flows-to",
+      "cardinality": "many-to-one",
       "strength": "medium",
       "required": false
     },

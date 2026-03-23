@@ -3150,7 +3150,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "governs",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -3161,7 +3161,7 @@
       "destination_spec_node_id": "security.passwordpolicy",
       "destination_layer": "security",
       "predicate": "governs",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -3172,7 +3172,7 @@
       "destination_spec_node_id": "security.secureresource",
       "destination_layer": "security",
       "predicate": "governs",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
