@@ -218,7 +218,7 @@ throw new CLIError(
   1, // exit code
   ErrorCategory.USER,
   ["Check element ID", "Run dr list to see available elements"],
-  { elementId: "missing-element" }
+  { elementId: "missing-element" },
 );
 ```
 

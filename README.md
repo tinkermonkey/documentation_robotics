@@ -133,6 +133,58 @@ dr export archimate --output model.xml
 
 [→ CLI Documentation](cli/) | [→ CLI Docs](cli/docs/)
 
+### 3. Claude Code Integration
+
+The CLI is integrated with Claude Code, enabling natural language interaction with your models through specialized agents and commands.
+
+**Installation:**
+
+The Claude Code integration is automatically installed when you initialize a new DR model with `/dr-init`:
+
+```bash
+/dr-init my-project
+```
+
+For contributors working in the repository, you can manually install the integration files:
+
+```bash
+cp -r integrations/claude_code/. documentation-robotics/.claude/
+```
+
+**Available Agents:**
+
+- **`/dr-architect`** - Comprehensive agent for all DR tasks (validation, extraction, documentation, security review, migration, ideation)
+- **`/dr-advisor`** - Expert guidance on modeling decisions, layer selection, best practices, and validation troubleshooting
+
+**Available Commands:**
+
+- **`/dr-init [project-name]`** - Initialize a new DR model with Claude Code integration
+- **`/dr-model`** - Explore and understand your model structure
+- **`/dr-validate`** - Validate your model and get detailed feedback
+- **`/dr-changeset`** - Create and manage changesets for model updates
+- **`/dr-design`** - Design new architectural elements with AI assistance
+- **`/dr-map`** - Map and explore cross-layer relationships
+- **`/dr-sync`** - Synchronize model changes
+- **`/dr-relate`** - Discover and create relationships between elements
+
+**Quick Example:**
+
+```bash
+# Initialize a new project with Claude Code integration
+/dr-init "My Project"
+
+# Use the architect agent to validate your model
+/dr-validate
+
+# Use the advisor to understand layer structure
+/dr-advisor "I'm not sure where to put my REST API endpoints"
+
+# Design new elements with AI assistance
+/dr-design "Create a customer authentication service"
+```
+
+[→ Claude Code Integration Documentation](integrations/claude_code/)
+
 ## Repository Structure
 
 ```

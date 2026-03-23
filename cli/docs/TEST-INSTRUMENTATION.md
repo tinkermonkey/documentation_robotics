@@ -105,8 +105,8 @@ describe("ValidationTests", () => {
         const isValid = (n: number) => n > 0;
         expect(isValid(42)).toBe(true);
       },
-      "ValidationTests"
-    )
+      "ValidationTests",
+    ),
   );
 });
 ```
@@ -188,8 +188,8 @@ describe("ValidationTests", () => {
         expect(validateEmail("user@example.com")).toBe(true);
         expect(() => validateEmail("invalid")).toThrow("Invalid email");
       },
-      "ValidationTests"
-    )
+      "ValidationTests",
+    ),
   );
 
   test(
@@ -201,8 +201,8 @@ describe("ValidationTests", () => {
         expect(isEmpty("")).toBe(true);
         expect(isEmpty("a")).toBe(false);
       },
-      "ValidationTests"
-    )
+      "ValidationTests",
+    ),
   );
 });
 ```

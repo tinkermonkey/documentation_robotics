@@ -377,8 +377,8 @@ describe("MyFeature", () => {
         // Test logic here
         expect(result).toBe(expected);
       },
-      "MyFeature"
-    )
+      "MyFeature",
+    ),
   );
 });
 ```

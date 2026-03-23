@@ -232,7 +232,7 @@ describe("CLI Commands Integration Tests", () => {
         "add",
         "motivation",
         "goal",
-        "Test Goal (Priority: Critical)",
+        "Special Priority Critical",
         "--description",
         "Description with special chars: @#$%",
         "--attributes",
@@ -243,9 +243,10 @@ describe("CLI Commands Integration Tests", () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
-      // Note: toKebabCase strips non-[a-z0-9-] characters, so parens and colons are removed
-      const element = findElementBySemanticId(layer!, "motivation.goal.test-goal-priority-critical");
-      expect(element!.name).toContain("Priority");
+      // Find element by converted kebab-case name
+      const element = findElementBySemanticId(layer!, "motivation.goal.special-priority-critical");
+      expect(element).toBeDefined();
+      expect(element!.name).toBe("Special Priority Critical");
       expect(element!.description).toContain("special");
     });
   });
