@@ -186,9 +186,11 @@ export abstract class BaseIntegrationManager {
   /**
    * Update version file with current CLI version and component hashes
    *
-   * Computes hashes for all currently installed DR-owned files and writes a new
-   * version file tracking the CLI version, installation timestamp, and
-   * file hashes for change detection.
+   * Records the hash of each installed (target) file as the baseline for future
+   * change detection. Using the installed hash — rather than the source hash —
+   * keeps the baseline in sync with what is actually on disk, so files that were
+   * skipped during a previous install (conflict/user-modified) do not generate
+   * false conflict reports on the next upgrade.
    *
    * Only DR-owned components (tracked: true) are included in the version file.
    * User-customizable components (tracked: false) are not tracked to avoid
@@ -203,7 +205,7 @@ export abstract class BaseIntegrationManager {
     const absoluteTargetDir = await this.getAbsoluteTargetDir();
 
     try {
-      // Compute hashes for all DR-owned component files from SOURCE directory
+      // Compute hashes for all DR-owned component files
       for (const [componentName] of Object.entries(this.components)) {
         // Skip non-tracked components (user-customizable)
         if (!this.isTrackedComponent(componentName)) {
@@ -225,12 +227,15 @@ export abstract class BaseIntegrationManager {
         for (const [filePath, sourceHash] of sourceHashes) {
           const targetFilePath = join(targetPath, filePath);
           let targetHash: string | undefined;
+          let hashComputeFailed = false;
 
           if (existsSync(targetFilePath)) {
             try {
               targetHash = await computeFileHash(targetFilePath);
             } catch (error) {
-              // If we can't compute hash, assume modified to prevent data loss
+              // If we can't compute hash, record as modified to err on the side of
+              // caution — prevents silent data loss on next upgrade.
+              hashComputeFailed = true;
               console.warn(
                 `⚠ Warning: Could not compute hash for ${targetFilePath}: ${getErrorMessage(error)}`
               );
@@ -243,7 +248,7 @@ export abstract class BaseIntegrationManager {
           // generate false conflict reports on the next upgrade.
           components[componentName][filePath] = {
             hash: targetHash ?? sourceHash,
-            modified: targetHash !== undefined && targetHash !== sourceHash,
+            modified: hashComputeFailed || (targetHash !== undefined && targetHash !== sourceHash),
           };
         }
       }
@@ -261,7 +266,7 @@ export abstract class BaseIntegrationManager {
       const yamlContent = yaml.stringify(versionData);
       await fsWriteFile(versionFilePath, yamlContent, "utf-8");
     } catch (error) {
-      throw new Error(`Failed to update version file: ${error}`);
+      throw new Error(`Failed to update version file: ${getErrorMessage(error)}`);
     }
   }
 

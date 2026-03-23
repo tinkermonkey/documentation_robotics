@@ -172,7 +172,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
    *
    * @param options Upgrade options
    * @param options.dryRun Preview changes without applying
-   * @param options.force Skip confirmation prompts
+   * @param options.force Skip confirmation prompts and overwrite conflict/user-modified files
    */
   async upgrade(
     options: {

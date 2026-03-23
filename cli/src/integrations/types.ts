@@ -51,7 +51,7 @@ export interface VersionData {
         /** SHA256 hash truncated to 8 characters */
         hash: string;
 
-        /** True if file was modified (source hash differs from installed hash) */
+        /** True if installed file differs from the source (user-modified or hash unreadable) */
         modified: boolean;
       };
     };
