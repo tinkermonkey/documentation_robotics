@@ -220,29 +220,30 @@ export abstract class BaseIntegrationManager {
           ? await computeDirectoryHashes(sourceDir, config.prefix)
           : new Map<string, string>();
 
-        // Record hashes from source directory
+        // Record hashes for installed files
         components[componentName] = {};
         for (const [filePath, sourceHash] of sourceHashes) {
           const targetFilePath = join(targetPath, filePath);
-          // Check if file has been modified in target
-          let modified = false;
+          let targetHash: string | undefined;
+
           if (existsSync(targetFilePath)) {
-            // File exists in target - check if it's been modified
             try {
-              const targetHash = await computeFileHash(targetFilePath);
-              modified = sourceHash !== targetHash;
+              targetHash = await computeFileHash(targetFilePath);
             } catch (error) {
               // If we can't compute hash, assume modified to prevent data loss
               console.warn(
                 `⚠ Warning: Could not compute hash for ${targetFilePath}: ${getErrorMessage(error)}`
               );
-              modified = true;
             }
           }
 
+          // Record the installed (target) hash as the baseline for change detection.
+          // This keeps the recorded hash in sync with what is actually on disk, so that
+          // files skipped during a previous install (conflict/user-modified) don't
+          // generate false conflict reports on the next upgrade.
           components[componentName][filePath] = {
-            hash: sourceHash,
-            modified,
+            hash: targetHash ?? sourceHash,
+            modified: targetHash !== undefined && targetHash !== sourceHash,
           };
         }
       }
