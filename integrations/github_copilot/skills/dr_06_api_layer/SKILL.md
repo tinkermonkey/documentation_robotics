@@ -11,7 +11,7 @@ triggers:
     "API specification",
     "HTTP method",
     "request",
-    "response",
+    "response"
   ]
 version: 0.8.1
 ---
@@ -303,7 +303,7 @@ router.get(
   param("orderId").isUUID(),
   async (req, res) => {
     // Implementation
-  },
+  }
 );
 ```
 

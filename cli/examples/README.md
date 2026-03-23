@@ -70,7 +70,7 @@ if (await agent.isAvailable()) {
   // Spawn and interact with agent
   const proc = agent.spawn({
     cwd: process.cwd(),
-    message: "Your message here",
+    message: "Your message here"
   });
 
   // Process events...

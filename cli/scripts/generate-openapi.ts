@@ -11,6 +11,7 @@ import { Model } from "../src/core/model.js";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import * as YAML from "yaml";
+import prettier from "prettier";
 
 const __filename = fileURLToPath(import.meta.url);
 const projectRoot = dirname(dirname(__filename));
@@ -65,7 +66,7 @@ async function generateOpenAPISpec() {
 
     // Convert to valid YAML using the yaml package
     // Generate file header documenting how this spec is maintained
-    const specYaml = `# AUTO-GENERATED: This OpenAPI specification is programmatically generated.
+    let specYaml = `# AUTO-GENERATED: This OpenAPI specification is programmatically generated.
 # DO NOT EDIT MANUALLY - all changes will be overwritten on next generation.
 # To update this spec, modify the route schemas in server.ts (using Zod schemas),
 # then regenerate with: npm run generate:openapi
@@ -73,6 +74,14 @@ async function generateOpenAPISpec() {
 
 ${YAML.stringify(spec, { indent: 2 }).trimEnd()}
 `;
+
+    // Format the YAML output with prettier to ensure consistency with pre-commit hooks
+    specYaml = await prettier.format(specYaml, {
+      parser: "yaml",
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+    });
 
     // Write spec to file (to repo root docs/, not cli/docs/)
     const outputPath = join(projectRoot, "..", "docs", "api-spec.yaml");

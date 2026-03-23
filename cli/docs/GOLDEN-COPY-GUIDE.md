@@ -47,7 +47,7 @@ beforeAll(async () => {
   // Initialize golden copy with sample data
   await initializeGoldenCopy({
     warmup: true, // Populate with canonical test elements
-    eagerLoad: false, // Load layers on demand
+    eagerLoad: false // Load layers on demand
   });
 });
 
@@ -71,8 +71,8 @@ describe("Performance-Critical Tests", () => {
         useGoldenCopy: true,
         goldenCopyConfig: {
           warmup: true,
-          eagerLoad: false,
-        },
+          eagerLoad: false
+        }
       });
 
     console.log(`Using golden copy: ${fromGoldenCopy}`);
@@ -83,7 +83,7 @@ describe("Performance-Critical Tests", () => {
   it("should use fresh model", async () => {
     // Force creation of fresh model (not cloned from golden copy)
     const { model, cleanup } = await createTestModelWithGoldenCopy({
-      useGoldenCopy: false,
+      useGoldenCopy: false
     });
     // Your test code here
     await cleanup();
@@ -134,7 +134,7 @@ Convenient functions for test authors:
 ```typescript
 // Create test model with optional golden copy
 async function createTestModelWithGoldenCopy(
-  options: CreateTestModelFromGoldenOptions,
+  options: CreateTestModelFromGoldenOptions
 ): Promise<{
   model: Model;
   rootPath: string;
@@ -144,7 +144,7 @@ async function createTestModelWithGoldenCopy(
 
 // Explicit initialization
 async function initializeGoldenCopy(
-  config?: GoldenCopyCacheConfig,
+  config?: GoldenCopyCacheConfig
 ): Promise<void>;
 
 // Cleanup after testing
@@ -205,9 +205,9 @@ await initializeGoldenCopy({
   modelOptions: {
     // Custom model options
     name: "Custom Model",
-    specVersion: "0.7.1",
+    specVersion: "0.7.1"
     // ...
-  },
+  }
 });
 ```
 
@@ -262,8 +262,8 @@ describe("Feature Tests", () => {
       "api.endpoint.custom",
       {
         name: "Custom Endpoint",
-        properties: { method: "GET", path: "/custom" },
-      },
+        properties: { method: "GET", path: "/custom" }
+      }
     );
 
     // Your test code
@@ -353,7 +353,7 @@ describe("Mixed Test Suite", () => {
 
   it("should use fresh model for isolation tests", async () => {
     const { model, fromGoldenCopy } = await createTestModelWithGoldenCopy({
-      useGoldenCopy: false, // Force fresh model
+      useGoldenCopy: false // Force fresh model
     });
     expect(fromGoldenCopy).toBe(false);
     await cleanup();
@@ -440,7 +440,7 @@ Output includes:
 
    ```typescript
    await initializeGoldenCopy({
-     cacheDir: "/fast/ssd/path",
+     cacheDir: "/fast/ssd/path"
    });
    ```
 
@@ -497,8 +497,8 @@ async function setupCustomGoldenCopy() {
       type: "endpoint",
       id: "api.endpoint.custom-golden",
       name: "Custom Golden Endpoint",
-      properties: { method: "POST", path: "/custom" },
-    },
+      properties: { method: "POST", path: "/custom" }
+    }
   ]);
 
   await goldenModel.save();
@@ -550,7 +550,7 @@ const { model, cleanup } = await createTestModelWithGoldenCopy();
 
 // With explicit control
 const { model, cleanup, fromGoldenCopy } = await createTestModelWithGoldenCopy({
-  useGoldenCopy: true, // Optional, defaults to true
+  useGoldenCopy: true // Optional, defaults to true
 });
 ```
 
@@ -618,7 +618,7 @@ A: Use `useGoldenCopy: false`:
 
 ```typescript
 const { model, cleanup } = await createTestModelWithGoldenCopy({
-  useGoldenCopy: false,
+  useGoldenCopy: false
 });
 ```
 

@@ -11,7 +11,7 @@ triggers:
     "traces",
     "logs",
     "OpenTelemetry",
-    "telemetry",
+    "telemetry"
   ]
 version: 0.8.3
 ---

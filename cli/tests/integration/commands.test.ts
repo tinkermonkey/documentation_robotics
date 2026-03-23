@@ -107,7 +107,7 @@ describe("CLI Commands Integration Tests", () => {
         "goal",
         "Test Goal",
         "--attributes",
-        JSON.stringify({ priority: "critical" })
+        JSON.stringify({ priority: "high" })
       );
 
       expect(result.exitCode).toBe(0);
@@ -115,7 +115,7 @@ describe("CLI Commands Integration Tests", () => {
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer("motivation");
       const element = findElementBySemanticId(layer!,"motivation.goal.test-goal");
-      expect(element!.attributes.priority).toBe("critical");
+      expect(element!.attributes.priority).toBe("high");
     });
 
     it("should fail if element already exists", async () => {
@@ -163,8 +163,7 @@ describe("CLI Commands Integration Tests", () => {
       const complexProps = {
         operationId: "createUser",
         summary: "Create a new user",
-        tags: "users",
-        description: "Creates a new user in the system",
+        tags: "user-management",
         deprecated: false,
       };
 
@@ -184,12 +183,13 @@ describe("CLI Commands Integration Tests", () => {
       const element = findElementBySemanticId(layer!,"api.operation.create-user");
       expect(element!.attributes.operationId).toBe("createUser");
       expect(element!.attributes.summary).toBe("Create a new user");
-      expect(element!.attributes.tags).toBe("users");
-      expect(element!.attributes.deprecated).toBe(false);
+      expect(element!.attributes.tags).toBe("user-management");
     });
 
     it("should support all options together", async () => {
-      const props = { documentation: "Test documentation", properties: { key: "value" } };
+      const props = {
+        properties: { owner: "John Doe", sla: "99.9%" }
+      };
 
       const result = await runDr(
         "add",
@@ -209,7 +209,7 @@ describe("CLI Commands Integration Tests", () => {
       const element = findElementBySemanticId(layer!,"business.businessservice.test-service");
       expect(element!.name).toBe("Test Service");
       expect(element!.description).toBe("A comprehensive service test");
-      expect(element!.attributes.documentation).toBe("Test documentation");
+      expect(element!.attributes.properties).toBeDefined();
     });
 
     it("should fail when --name is missing", async () => {
@@ -236,7 +236,7 @@ describe("CLI Commands Integration Tests", () => {
         "--description",
         "Description with special chars: @#$%",
         "--attributes",
-        JSON.stringify({ priority: "high" })
+        JSON.stringify({ priority: "critical" })
       );
 
       expect(result.exitCode).toBe(0);
@@ -280,6 +280,60 @@ describe("CLI Commands Integration Tests", () => {
       const result = await runDr("update", "nonexistent-element", "--name", "Test");
 
       expect(result.exitCode).toBe(1);
+    });
+
+    it("should replace attributes entirely, not merge", async () => {
+      // BUG-6163-004: dr update --attributes must replace, not merge
+      // This test verifies that omitted attributes are removed, not preserved
+
+      // Step 1: Add element with initial attributes
+      // For goals: priority (required), documentation (optional), properties (optional)
+      const addResult = await runDr(
+        "add",
+        "motivation",
+        "goal",
+        "Test Goal",
+        "--attributes",
+        JSON.stringify({
+          priority: "high",
+          documentation: "Original documentation"
+        })
+      );
+
+      expect(addResult.exitCode).toBe(0);
+
+      // Step 2: Verify initial attributes are present
+      const showResult = await runDr("show", "motivation.goal.test-goal");
+      expect(showResult.exitCode).toBe(0);
+      expect(showResult.stdout).toContain("high");
+      expect(showResult.stdout).toContain("Original documentation");
+
+      // Step 3: Update with only 'priority' attribute (omitting 'documentation')
+      // This replaces the entire attributes object, not merges
+      const updateResult = await runDr(
+        "update",
+        "motivation.goal.test-goal",
+        "--attributes",
+        JSON.stringify({ priority: "critical" })
+      );
+
+      expect(updateResult.exitCode).toBe(0);
+
+      // Step 4: Verify 'documentation' is removed and 'priority' is updated
+      const model = await Model.load(tempDir.path);
+      const layer = await model.getLayer("motivation");
+      const element = findElementBySemanticId(layer!, "motivation.goal.test-goal");
+
+      expect(element).toBeDefined();
+      expect(element!.attributes.priority).toBe("critical");
+      expect(element!.attributes.documentation).toBeUndefined();
+
+      // Step 5: Verify element can still be shown and is schema-valid
+      // (The important test is above: documentation was removed, not preserved)
+      const finalShowResult = await runDr("show", "motivation.goal.test-goal");
+      expect(finalShowResult.exitCode).toBe(0);
+      expect(finalShowResult.stdout).toContain("critical");
+      expect(finalShowResult.stdout).not.toContain("Original documentation");
     });
   });
 

@@ -37,7 +37,7 @@ Commands that execute deterministic workflows and terminate immediately.
 ```typescript
 export async function commandFunction(
   args: ArgumentType,
-  options: OptionsType,
+  options: OptionsType
 ): Promise<void> {
   try {
     // 1. Load model if needed
@@ -86,7 +86,7 @@ Commands that spawn subprocesses and monitor their lifecycle.
 ```typescript
 export async function longRunningCommand(
   args: ArgumentType,
-  options: OptionsType,
+  options: OptionsType
 ): Promise<void> {
   let serverProcess: ChildProcess | null = null;
 

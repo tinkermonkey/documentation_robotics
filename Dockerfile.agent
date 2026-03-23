@@ -13,7 +13,9 @@ FROM switchyard-orchestrator:latest
 
 USER root
 
-# Install agent-specific entrypoint that fixes corrupted .gitconfig mounts
+# Install agent-specific entrypoint that builds the CLI after source mount
+# The entrypoint runs `npm run build` in cli/ when dist/cli.js is missing,
+# ensuring integration tests have the compiled CLI binary available.
 COPY docker-entrypoint-agent.sh /usr/local/bin/docker-entrypoint-agent.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint-agent.sh
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint-agent.sh"]
@@ -64,13 +66,14 @@ WORKDIR /workspace/documentation_robotics
 # The source code (including pyproject.toml) comes from the runtime mount.
 
 # Pre-install Node.js dependencies for the TypeScript CLI
-# Copy ONLY dependency manifests (not source code) for npm install
+# NOTE: These node_modules are overridden by the runtime bind mount, but
+# pre-installing populates the npm cache (/root/.npm) which speeds up
+# the entrypoint's `npm install` when the container starts.
 COPY package.json package-lock.json ./
 COPY cli/package.json cli/package-lock.json ./cli/
-RUN cd /workspace/documentation_robotics && npm install --ignore-scripts && \
-    cd /workspace/documentation_robotics/cli && npm install --ignore-scripts && \
-    chown -R orchestrator:orchestrator /workspace/documentation_robotics/node_modules \
-    /workspace/documentation_robotics/cli/node_modules
+RUN --mount=type=cache,target=/root/.npm \
+    cd /workspace/documentation_robotics && npm install --ignore-scripts && \
+    cd /workspace/documentation_robotics/cli && npm install --ignore-scripts
 
 # Pre-install Python dependencies
 # These match the dependencies from cli/pyproject.toml
@@ -144,9 +147,8 @@ RUN node --version && \
     npm --version && \
     bun --version
 
-# Verify critical Node.js dependencies are installed
-RUN cd /workspace/documentation_robotics/cli && \
-    node -e "require.resolve('ansis'); require.resolve('commander'); require.resolve('yaml'); console.log('CLI dependencies verified')"
+# Note: Node.js dependencies are verified at runtime after bind mount.
+# The entrypoint handles npm install + npm run build when dist/cli.js is missing.
 
 # Verify project-specific tools - core Python dependencies
 RUN python3 --version && \

@@ -12,7 +12,7 @@ triggers:
     "requirement",
     "constraint",
     "motivation",
-    "archimate motivation",
+    "archimate motivation"
   ]
 version: 0.8.1
 ---

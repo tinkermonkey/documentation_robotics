@@ -13,7 +13,7 @@ triggers:
     "document store",
     "access pattern",
     "index",
-    "field",
+    "field"
   ]
 version: 0.8.1
 ---

@@ -9,7 +9,7 @@ triggers:
     "application function",
     "application process",
     "microservice",
-    "archimate application",
+    "archimate application"
   ]
 version: 0.8.3
 ---
@@ -725,7 +725,7 @@ export function interceptFetch(token: string) {
   window.fetch = async (url, options = {}) => {
     return originalFetch(url, {
       ...options,
-      headers: { ...options.headers, Authorization: `Bearer ${token}` },
+      headers: { ...options.headers, Authorization: `Bearer ${token}` }
     });
   };
 }

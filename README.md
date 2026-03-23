@@ -20,27 +20,31 @@ Documentation Robotics provides:
 
 ---
 
-## The Challenge
+## Why a Multi-Layer Model?
 
-Modern software systems are complex, distributed, and constantly evolving. Working with large cross-functional teams to design, build, and maintain these systems is a significant challenge. Communicating business intent and the art of the possible across business, architecture, and engineering teams is difficult. Creating a robust feedback loop between these groups throughout the product development lifecycle / software development lifecycle is even more difficult. Good communication is required to move quickly and effectively and to manage risk, but often it's out of the reach of many organizations.
+With generative AI and agentic tools, teams can now produce code faster than they can design, communicate, or validate what they're building. The bottleneck has shifted from implementation to comprehension — knowing what the system is, what it should become, and whether the changes made actually reflect the intent.
 
-As the rate of software development accelerates with the adoption of generative AI and agentic development tools, this challenge is both increasing in scale and complexity for these large teams, but also, it is bringing these cognitive bottlenecks down to level of solo developer building with agentic tools. We can now code faster than we can effectively design, document, and communicate about what we're building. Coordinating across the various layers of a software system, from business requirements to architecture to implementation details, and creating a feedback loop which allows a developer to be confident that the output aligns with the intent is now the bottleneck for productivity.
+A shared, multi-layered model of a software system addresses this directly. It captures the _why_ (business goals, requirements), the _what_ (services, APIs, data), and the _how_ (components, infrastructure, observability) in a single coherent structure. This gives teams — human and AI — a common frame of reference for reasoning about the system at any level of abstraction.
 
-There are many strategies and tools which help with this, but at some point to scale out the human in the loop has to transcend the implementation details and be able to reason about the system at a higher level consistently and be able to provide precise direction based on that higher level thought, and it needs to work with whatever tools are being used for implementation.
+## A Federated Architecture Model
 
-**Documentation Robotics** aims to address this challenge by providing a standards-based, federated approach to modeling complex software systems that is easy to use, maintain, and integrate into existing development workflows.
+The Documentation Robotics specification defines a 12-layer federated model spanning motivation through observability. Each layer captures a distinct aspect of the system — from business intent and security policy down to API contracts, data schemas, and test strategies — using established standards (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) wherever possible.
 
-## The Specification
+The model has two complementary views: the **current model** represents the actual state of the system today, and **changesets** represent a proposed future state — a set of model changes across layers that together define a coherent set of requirements. A changeset can specify not just that a new feature is needed, but _how every layer of the system changes to support it_: what new business capability it enables, what API contract it exposes, what data it stores, what it should test.
 
-The vision for the spec is to be able to descibe what a software system is, how it works, and why it works that way, in a form that is both human readable and machine readable. To accomplish this the spec needs to be comprehensive. To make it broadly useful it should be (as much as possible) a standards-based approach. There are many excellent specifications and "standards" covering much of this, and they have been used to their fullest extent: minimizing invention, but also adding some glue between them and a few "missing" layers to take a stab at a unified and holistic modeling framework that is not overly complex.
+## Spec-Driven Development
 
-## The Tooling
+Documentation Robotics is designed to fit into an agentic development workflow:
 
-The goal for the tooling is to provide a tool that makes it easy and efficient to create, manage, validate, and export models that conform to the specification. With the adoption of infrastructure-as-code, APM, specs like OpenAPI, JSON Schema, and OpenTelemetry, much of this data is available some form to technologists. AI-assisted development make it much easiers to generate, extract, and maintain this metadata as part of the software development lifecycle to fill in the gaps. With a unified data model and tooling, it can be easier for humans and AI agents to better understand, communicate, and evolve complex software systems.
+**Define.** Use the CLI or AI assistant integrations to model a change before writing code — specifying what shifts across business, API, data, and implementation layers. The resulting changeset becomes the specification for an agentic build.
 
-The vision is to be able to explore adding functionality to a system at any level that we happen to be envisioning it, whether that's the business layer, application layer, API layer, data model layer, etc, and from that vision point, to project those changes into the other layers to explore impact and opportunity. Having a defined model that spans all these layers makes it easier to ensure consistency and traceability across the entire system design.
+**Build.** Hand the changeset to an agent as a precise, cross-layer spec. Rather than working from vague requirements, the agent builds against a structured model that captures intent at every layer of the system.
 
-The CLI is a quick way for both humans and automated systems (CI/CD, AI agents, etc.) to manage these models in a collaborative manner. On top of the CLI, tools like sub-agents, custom commands, and other automation scripts can be built to further streamline the process of managing system models in a way that is not tied to a specific agentic ecosystem or vendor. We've started with a Claude Code integration to enable natural language interaction with the models, but the vision is to enable a wide variety of integrations and automation around this unified data model.
+**Validate.** After the build, use the model to verify that the right changes were made — checking that the implementation matches the changeset and that the model still reflects the system accurately.
+
+**Maintain.** As the system evolves, AI assistant integrations (Claude Code, GitHub Copilot) can keep the model up to date — extracting structure from source code and surfacing drift between the model and the actual system.
+
+This keeps humans at the conceptual level — focused on goals, architecture, and business logic — while delegating implementation details to agentic systems without losing fidelity about what the system is and where it's headed.
 
 ## Quick Links
 
@@ -61,17 +65,15 @@ The Documentation Robotics specification defines a standards-based approach to m
 
 **Key Features:**
 
-- **Standards-First** - Uses ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
-- **Federated Approach** - ArchiMate spine + specialized standards
-- **12 Layers** - Motivation through APM/Observability
-- **Glue Layers** - 4 custom layer definitions (security, UX, navigation, testing)
-- **Tool Ecosystem Access** - Compatible with hundreds of existing tools through standards-based exports
+- **Standards** - Inspired by ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
+- **12 Layers** - Motivation through APM/Observability, modeling most aspects of a software system with source file references for traceability
+- **Relationships Modeling** - Explicit relationships between model elements for functional modeling, interdependency analysis and impact assessment
 
 **Quick Start:**
 
 1. Read [spec/README.md](spec/README.md)
-2. Explore [spec/core/00-overview.md](spec/core/00-overview.md)
-3. Browse [spec/examples/](spec/examples/)
+2. Browse layer definitions in [spec/layers/](spec/layers/)
+3. Review schemas in [spec/schemas/](spec/schemas/)
 
 [→ Full Specification Documentation](spec/)
 
@@ -84,14 +86,12 @@ A TypeScript-based command-line tool for managing project models conforming to t
 
 **Key Features:**
 
-- ✅ **Model Management** - Initialize, add, update, validate
-- ✅ **Agentic Assistants** - Claude Code and Github Copilot agents for model generation, maintenance, and exploration
-- ✅ **Link Registry** - 60+ cross-layer reference patterns with automated validation
-- ✅ **Link Management** - Discover, validate, trace, and document inter-layer links
-- ✅ **Managed Upgrades** - Automated migration between specification versions
-- ✅ **Export Formats** - ArchiMate, OpenAPI, PlantUML, Markdown, GraphML
-- ✅ **Visualization Server** - Serves interactive model visualizations for easier exploration and validation
-- ✅ **Fast Performance** - ~150ms startup time, 8x faster than legacy implementations
+- **Model Management** - Initialize, add, update, validate the model
+- **Relationship Management** - Discover, validate, trace, and document relationships between elements within and across layers
+- **Agentic Assistants** - Claude Code and Github Copilot agents for model generation, maintenance, and exploration
+- **Managed Upgrades** - Automated migration between specification versions
+- **Export Formats** - ArchiMate, OpenAPI, JSON Schema, PlantUML, GraphML, Markdown, Mermaid
+- **Visualization Server** - Serves interactive model visualizations for easier exploration and validation
 
 **Installation:**
 
@@ -131,7 +131,7 @@ dr export archimate --output model.xml
 - Node.js 18 or higher
 - npm (Node package manager)
 
-[→ CLI Documentation](cli/) | [→ CLI User Guide](cli/docs/user-guide/)
+[→ CLI Documentation](cli/) | [→ CLI Docs](cli/docs/)
 
 ### 3. Claude Code Integration
 
@@ -193,22 +193,27 @@ documentation_robotics/
 ├── spec/                        # SPECIFICATION
 │   ├── VERSION                  # Spec version (see badges above)
 │   ├── CHANGELOG.md             # Specification changelog
-│   ├── layers/                  # 12 layer specifications
+│   ├── GOVERNANCE.md            # Governance model
+│   ├── layers/                  # 12 layer instance files (.layer.json)
 │   ├── schemas/                 # JSON Schema definitions
-│   ├── core/                    # Core specification docs
-│   ├── guides/                  # Implementation guides
-│   └── examples/                # Example models
+│   │   ├── base/                #   Core base schemas + predicates
+│   │   ├── nodes/               #   Per-type node schemas (by layer)
+│   │   └── relationships/       #   Per-type relationship schemas (by layer)
+│   └── dist/                    # Compiled spec (auto-generated, committed)
 │
 ├── cli/                         # TYPESCRIPT CLI
 │   ├── src/                     # TypeScript source code
 │   │   ├── commands/            # Command implementations
 │   │   ├── core/                # Domain models
 │   │   ├── validators/          # Validation pipeline
-│   │   ├── export/              # Export handlers
-│   │   └── server/              # Visualization server
+│   │   └── export/              # Export handlers
 │   ├── tests/                   # Test suite
+│   ├── docs/                    # CLI documentation
 │   └── README.md                # CLI documentation
 │
+├── integrations/                # AI assistant integrations
+│   ├── claude_code/             #   Claude Code integration
+│   └── github_copilot/          #   GitHub Copilot integration
 ├── .github/workflows/           # CI/CD workflows
 ├── README.md                    # This file
 ├── CLAUDE.md                    # AI assistant instructions
@@ -220,20 +225,20 @@ documentation_robotics/
 
 The specification defines 12 interconnected layers:
 
-| #   | Layer                                                          | Focus        | Standard      | Notes                                                   |
-| --- | -------------------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------- |
-| 01  | [Motivation](spec/layers/01-motivation-layer.md)               | WHY          | ArchiMate 3.2 |                                                         |
-| 02  | [Business](spec/layers/02-business-layer.md)                   | WHAT         | ArchiMate 3.2 |                                                         |
-| 03  | [Security](spec/layers/03-security-layer.md)                   | WHO CAN      | _Custom_      |                                                         |
-| 04  | [Application](spec/layers/04-application-layer.md)             | HOW          | ArchiMate 3.2 |                                                         |
-| 05  | [Technology](spec/layers/05-technology-layer.md)               | WITH WHAT    | ArchiMate 3.2 |                                                         |
-| 06  | [API](spec/layers/06-api-layer.md)                             | INTERFACE    | OpenAPI 3.0   |                                                         |
-| 07  | [Data Model](spec/layers/07-data-model-layer.md)               | STRUCTURE    | JSON Schema   |                                                         |
-| 08  | [Data Store](spec/layers/08-data-store-layer.md)               | STORAGE      | SQL DDL       |                                                         |
-| 09  | [UX](spec/layers/09-ux-layer.md)                               | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
-| 10  | [Navigation](spec/layers/10-navigation-layer.md)               | FLOW         | _Custom_      |                                                         |
-| 11  | [APM/Observability](spec/layers/11-apm-observability-layer.md) | OBSERVE      | OpenTelemetry |                                                         |
-| 12  | [Testing](spec/layers/12-testing-layer.md)                     | VERIFY       | _Custom_      |                                                         |
+| #   | Layer                                                | Focus        | Standard      | Notes                                                   |
+| --- | ---------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------- |
+| 01  | [Motivation](spec/layers/01-motivation.layer.json)   | WHY          | ArchiMate 3.2 |                                                         |
+| 02  | [Business](spec/layers/02-business.layer.json)       | WHAT         | ArchiMate 3.2 |                                                         |
+| 03  | [Security](spec/layers/03-security.layer.json)       | WHO CAN      | _Custom_      |                                                         |
+| 04  | [Application](spec/layers/04-application.layer.json) | HOW          | ArchiMate 3.2 |                                                         |
+| 05  | [Technology](spec/layers/05-technology.layer.json)   | WITH WHAT    | ArchiMate 3.2 |                                                         |
+| 06  | [API](spec/layers/06-api.layer.json)                 | INTERFACE    | OpenAPI 3.0   |                                                         |
+| 07  | [Data Model](spec/layers/07-data-model.layer.json)   | STRUCTURE    | JSON Schema   |                                                         |
+| 08  | [Data Store](spec/layers/08-data-store.layer.json)   | STORAGE      | SQL DDL       |                                                         |
+| 09  | [UX](spec/layers/09-ux.layer.json)                   | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
+| 10  | [Navigation](spec/layers/10-navigation.layer.json)   | FLOW         | _Custom_      |                                                         |
+| 11  | [APM/Observability](spec/layers/11-apm.layer.json)   | OBSERVE      | OpenTelemetry |                                                         |
+| 12  | [Testing](spec/layers/12-testing.layer.json)         | VERIFY       | _Custom_      |                                                         |
 
 ## Standards Leveraged
 
@@ -262,21 +267,21 @@ Want to use this for modeling your project?
 
    ```bash
    dr init --name "My Project"
-   dr add motivation goal motivation-goal-first --name "My First Goal"
+   dr add motivation goal "My First Goal"
    dr validate
    ```
 
 3. **Learn More**
-   - Browse [spec/examples/](spec/examples/)
-   - Read [spec/guides/getting-started.md](spec/guides/getting-started.md)
-   - Review [cli/docs/user-guide/](cli/docs/user-guide/)
+   - Browse layer definitions in [spec/layers/](spec/layers/)
+   - Review [cli/docs/](cli/docs/) for implementation guides
+   - Read [cli/README.md](cli/README.md) for CLI documentation
 
 ### For Evaluators
 
 Evaluating this approach?
 
-1. Read [spec/core/](spec/core/) for design decisions
-2. Review [spec/reference/standards-mapping.md](spec/reference/standards-mapping.md)
+1. Read [spec/README.md](spec/README.md) for specification overview
+2. Review the layer definitions in [spec/layers/](spec/layers/)
 3. Check [spec/GOVERNANCE.md](spec/GOVERNANCE.md) for governance model
 
 ## Contributing

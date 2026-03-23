@@ -122,7 +122,7 @@ pipelines:
   - name: "Missing required properties"
     description: "Verify that name property defaults to element ID when not provided"
     steps:
-      - command: 'add api operation missing-name-operation --description ''Missing required name'' --attributes ''{"method":"GET","path":"/test"}'''
+      - command: 'add api operation missing-name-operation --description ''Missing required name'' --attributes ''{"operationId":"missing-name-operation","summary":"Missing Name Operation","tags":"test"}'''
         files_to_compare:
           - manifest.yaml
           - 06_api/operation.yaml

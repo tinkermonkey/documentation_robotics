@@ -257,7 +257,7 @@ import {
   canonicalizePaths,
   normalizeYAML,
   normalizeJSON,
-  trimWhitespace,
+  trimWhitespace
 } from "./normalizers/index";
 
 // Apply specific normalizers in custom order
@@ -385,7 +385,7 @@ Current implementation applies full normalization to all text files. Future phas
 ```typescript
 const NORMALIZATION_EXCEPTIONS = new Map<string, Normalizer[]>([
   ["*.xml", [stripTimestamps]], // XML exports: only strip timestamps
-  ["*.png", []], // Binary files: skip entirely
+  ["*.png", []] // Binary files: skip entirely
 ]);
 ```
 

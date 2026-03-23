@@ -13,7 +13,7 @@ triggers:
     "network",
     "cloud",
     "terraform",
-    "archimate technology",
+    "archimate technology"
   ]
 version: 0.8.3
 ---
@@ -208,7 +208,7 @@ jobs:
 // vite.config.ts
 export default defineConfig({
   server: { port: 3001 },
-  build: { outDir: "dist" },
+  build: { outDir: "dist" }
 });
 ```
 

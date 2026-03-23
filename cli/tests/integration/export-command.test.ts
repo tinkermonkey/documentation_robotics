@@ -70,7 +70,7 @@ describe("Export Command Integration Tests", () => {
     const apiLayer = new Layer("api");
     const endpoint = new Element({
       id: randomUUID(),
-      type: "endpoint",
+      type: "operation",
       name: "Create Order",
       description: "API endpoint for creating orders",
       attributes: {
@@ -96,7 +96,6 @@ describe("Export Command Integration Tests", () => {
       name: "Order",
       description: "Order data entity",
       attributes: {
-        type: "object",
         properties: {
           id: { type: "string", description: "Order ID" },
           customerId: { type: "string", description: "Customer ID" },

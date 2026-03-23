@@ -11,7 +11,7 @@ triggers:
     "screen",
     "form",
     "user experience",
-    "state machine",
+    "state machine"
   ]
 version: 0.8.3
 ---

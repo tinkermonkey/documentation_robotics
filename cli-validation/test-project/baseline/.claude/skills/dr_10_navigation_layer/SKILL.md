@@ -9,7 +9,7 @@ triggers:
     "flow",
     "navigation guard",
     "redirect",
-    "navigation flow",
+    "navigation flow"
   ]
 version: 0.7.0
 ---

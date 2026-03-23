@@ -1,0 +1,8 @@
+data-store.PRIMARY_KEY.todos-primary-key:
+  id: 98671011-da8a-421f-9af9-f704cd2dee5a
+  path: data-store.PRIMARY_KEY.todos-primary-key
+  spec_node_id: ""
+  type: PRIMARY_KEY
+  layer_id: data-store
+  name: Todos Primary Key
+  description: Primary key constraint for todos table

@@ -77,7 +77,7 @@ import { describe, test, beforeAll, afterAll } from "bun:test";
 import {
   startTestFileSpan,
   endTestFileSpan,
-  instrumentTest,
+  instrumentTest
 } from "../../src/telemetry/test-instrumentation.js";
 
 // Create file-level span at the beginning of tests
@@ -118,7 +118,7 @@ For complex tests, manage spans manually:
 ```typescript
 import {
   createTestCaseSpan,
-  recordTestResult,
+  recordTestResult
 } from "../../src/telemetry/test-instrumentation.js";
 
 test("complex test", async () => {
@@ -162,7 +162,7 @@ import { describe, test, beforeAll, afterAll, expect } from "bun:test";
 import {
   startTestFileSpan,
   endTestFileSpan,
-  instrumentTest,
+  instrumentTest
 } from "../../src/telemetry/test-instrumentation.js";
 
 // File-level setup
