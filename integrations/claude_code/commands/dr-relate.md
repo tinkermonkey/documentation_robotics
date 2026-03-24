@@ -52,7 +52,7 @@ the spec and rejects combinations not present in the relationship index.
 ## Usage
 
 ```
-/dr-relate [--layers <layers>] [--intra-only] [--inter-only]
+/dr-relate [--layers <layers>] [--intra-only | --inter-only] [--orphans]
 ```
 
 **Options:**
@@ -61,6 +61,10 @@ the spec and rejects combinations not present in the relationship index.
   (e.g., `ux,api,data-model`). Defaults to all populated layers.
 - `--intra-only` — Skip Phase B; only wire intra-layer relationships.
 - `--inter-only` — Skip Phase A; only wire inter-layer relationships.
+- `--orphans` — Orphan-focused mode: start from `dr validate --orphans` output and
+  work through each unconnected element systematically. Faster than a full pass when
+  most elements are already wired. Use this after `/dr-map` or after a partial
+  `/dr-relate` run.
 
 **Examples:**
 
@@ -69,6 +73,7 @@ the spec and rejects combinations not present in the relationship index.
 /dr-relate --layers ux,navigation
 /dr-relate --layers api,application,data-model --intra-only
 /dr-relate --inter-only
+/dr-relate --orphans
 ```
 
 ---
@@ -98,6 +103,94 @@ If the model exists but has 0 elements, stop:
 The model has no elements yet. Run /dr-map first to populate nodes,
 then re-run /dr-relate to wire their relationships.
 ```
+
+---
+
+### Step 1.5: Establish Validation Baseline
+
+Before wiring any relationships, run validation to surface pre-existing issues.
+This prevents relationship work from obscuring errors that existed before you started.
+
+```bash
+dr validate
+dr validate --orphans
+```
+
+Present the baseline:
+
+```
+Pre-existing model health
+=========================
+Validation: ✓ 0 errors, 3 warnings  (or ❌ N errors)
+Orphans:    124 elements with no relationships
+
+  api (31 orphans) — 28 connectable, 3 dead-end
+  application (18 orphans) — 18 connectable
+  ...
+
+Note: pre-existing errors in unchanged elements will not block /dr-relate.
+      Address them separately after relationship wiring is complete.
+```
+
+If `--orphans` was specified, **jump directly to the Orphans Mode workflow** below
+and skip Steps 2–5.
+
+---
+
+### Orphans Mode Workflow (`--orphans`)
+
+Use this mode when most elements are already wired and you want to focus only on
+unconnected elements. It is faster and more targeted than a full `/dr-relate` pass.
+
+**Step O-1: Get the orphan list**
+
+```bash
+dr validate --orphans
+```
+
+Parse the output to build a working list. Each orphan has a `status`:
+- `connectable` — valid relationship targets exist in the model; wire it now
+- `dead-end` — no valid target types exist yet; note and skip for now
+- `no-schema` — element type has no outgoing relationship schemas defined
+
+**Step O-2: Work through connectable orphans by layer**
+
+For each layer with connectable orphans (highest count first):
+
+1. Read the orphan list for that layer — note the suggested predicates and target types.
+2. Run `dr schema relationship <element-type>` to confirm valid schemas.
+3. For each connectable orphan, identify warranted relationships to existing elements
+   (use element names, descriptions, and source provenance as signals).
+4. Wire each relationship:
+
+   ```bash
+   dr relationship add <source-id> <dest-id> \
+     --predicate <predicate> \
+     --properties '{"source_provenance": "inferred", "confidence": "high"}'
+   ```
+
+5. After completing a layer, re-run `dr validate --orphans` to confirm the orphan count
+   fell and to get a fresh list for the next iteration.
+
+**Step O-3: Skip dead-end orphans**
+
+Dead-end elements cannot be wired until the element types they need are added to the
+model. Log them and move on:
+
+```
+Dead-end elements (cannot wire until target types exist in model):
+  api.info.x — needs: api.contact, api.license
+  [Create those elements or accept this element as intentionally unconnected]
+```
+
+**Step O-4: Final orphan check**
+
+```bash
+dr validate --orphans
+```
+
+Report final orphan count and remaining dead-ends. Anything remaining is either a
+dead-end or requires manual review.
 
 ---
 
@@ -272,26 +365,83 @@ For each pair of populated layers where cross-layer relationship schemas exist:
 
 **Inter-layer relationship schemas (complete spec inventory):**
 
-| Source Layer | Target Layer | Predicates                                                                    |
-| ------------ | ------------ | ----------------------------------------------------------------------------- |
-| api          | application  | references                                                                    |
-| api          | apm          | references                                                                    |
-| api          | business     | references                                                                    |
-| api          | data-store   | maps-to                                                                       |
-| api          | security     | references, requires                                                          |
-| application  | apm          | references                                                                    |
-| application  | business     | realizes                                                                      |
-| application  | motivation   | delivers-value                                                                |
-| business     | application  | aggregates, references                                                        |
-| business     | motivation   | delivers-value                                                                |
-| business     | security     | constrained-by                                                                |
-| data-model   | application  | references                                                                    |
-| data-model   | business     | references                                                                    |
-| testing      | motivation   | constrained-by, fulfills-requirements, governed-by-principles, supports-goals |
+The table below lists every cross-layer layer pair and the predicates defined in the spec.
+Run `dr schema relationship <element-type>` for the exact source/destination node types
+within each pair — this table shows the predicate vocabulary, not individual type combinations.
 
-This table is generated from the spec relationship schemas and is authoritative. Run
-`dr schema relationship <element-type>` for the exact source and destination types
-within each layer pair.
+| Source Layer | Target Layer | Predicates |
+| ------------ | ------------ | ---------- |
+| api          | apm          | references |
+| api          | application  | realizes, references, serves, triggers, uses |
+| api          | business     | maps-to, realizes, references, serves, triggers |
+| api          | data-store   | maps-to |
+| api          | motivation   | realizes, satisfies, serves |
+| api          | security     | implements, maps-to, references, requires, satisfies |
+| api          | technology   | depends-on, uses |
+| apm          | api          | monitors, references |
+| apm          | application  | maps-to, monitors |
+| apm          | business     | maps-to, monitors, serves |
+| apm          | data-model   | monitors, references |
+| apm          | data-store   | accesses, depends-on, monitors, serves |
+| apm          | motivation   | maps-to, realizes, satisfies |
+| apm          | navigation   | monitors, references |
+| apm          | security     | monitors, references, satisfies |
+| apm          | technology   | depends-on, monitors |
+| apm          | ux           | monitors, references |
+| application  | apm          | references |
+| application  | business     | accesses, realizes, serves, triggers |
+| application  | motivation   | delivers-value, realizes, satisfies, serves |
+| application  | security     | accesses, constrained-by, exposes, implements, mitigates, requires |
+| business     | application  | aggregates, references |
+| business     | motivation   | delivers-value, realizes, satisfies, serves |
+| business     | security     | constrained-by |
+| data-model   | api          | maps-to, realizes, serves |
+| data-model   | application  | maps-to, realizes, references, serves |
+| data-model   | business     | realizes, references, serves |
+| data-model   | data-store   | maps-to |
+| data-model   | motivation   | realizes, satisfies |
+| data-model   | security     | references, requires, satisfies |
+| data-model   | technology   | depends-on, maps-to, uses |
+| data-store   | api          | maps-to, realizes, serves |
+| data-store   | application  | implements, serves, triggers |
+| data-store   | business     | realizes, satisfies, serves, triggers |
+| data-store   | motivation   | satisfies |
+| data-store   | security     | implements, requires, satisfies |
+| data-store   | technology   | depends-on, uses |
+| navigation   | api          | accesses, maps-to, references, requires, uses |
+| navigation   | application  | accesses, depends-on, lazy-loads, realizes, references, resolves-with, triggers, uses |
+| navigation   | business     | maps-to, realizes, references, serves, triggers |
+| navigation   | data-model   | accesses, maps-to, references, uses |
+| navigation   | data-store   | accesses, depends-on, uses |
+| navigation   | motivation   | realizes, satisfies |
+| navigation   | security     | accesses, implements, references, requires, satisfies |
+| navigation   | technology   | depends-on, uses |
+| navigation   | ux           | accesses, maps-to, triggers, uses |
+| security     | business     | constrains, governs, maps-to, protects, references, targets |
+| security     | motivation   | implements, maps-to, realizes, satisfies |
+| technology   | application  | realizes, serves |
+| technology   | business     | realizes, serves |
+| technology   | motivation   | implements, realizes, satisfies, serves |
+| technology   | security     | accesses, implements, mitigates, realizes, satisfies |
+| testing      | api          | accesses, covers, references, tests, validates |
+| testing      | apm          | references, tests |
+| testing      | application  | covers, tests |
+| testing      | business     | covers, references, tests |
+| testing      | data-model   | covers, references, tests |
+| testing      | data-store   | accesses, references, tests |
+| testing      | motivation   | constrained-by, fulfills-requirements, governed-by-principles, measures-outcome, references, supports-goals |
+| testing      | navigation   | covers, references, tests |
+| testing      | security     | covers, references, tests, validates |
+| testing      | technology   | references, requires, tests |
+| testing      | ux           | covers, maps-to, tests |
+| ux           | api          | accesses, maps-to, triggers, uses |
+| ux           | application  | accesses, realizes, serves, triggers, uses |
+| ux           | business     | maps-to, realizes, serves, triggers |
+| ux           | data-model   | maps-to, references |
+| ux           | data-store   | accesses, maps-to, triggers |
+| ux           | motivation   | maps-to, realizes, satisfies, serves |
+| ux           | security     | references, requires, satisfies |
+| ux           | technology   | depends-on, requires, uses |
 
 ---
 
@@ -519,6 +669,55 @@ Inter-layer complete. 19 relationships created.
 Validation: ✓ Passed
 ```
 
+### Example 4: Orphan-focused pass after /dr-map
+
+```
+User: /dr-relate --orphans
+
+You:
+Establishing baseline...
+  dr validate --orphans
+
+Orphaned elements: 124
+  api (31): 28 connectable, 3 dead-end
+  application (18): 18 connectable
+  ux (41): 39 connectable, 2 dead-end
+  data-model (34): 34 connectable
+
+Working through connectable orphans by layer...
+
+api layer (28 connectable orphans):
+  api.operation.create-user →[references]→ application.applicationservice.user-service  ✓
+  api.operation.get-user →[references]→ application.applicationservice.user-service      ✓
+  ... (26 more)
+
+application layer (18 connectable orphans):
+  application.applicationservice.user-service →[realizes]→ business.businessservice.user-mgmt  ✓
+  ... (17 more)
+
+ux layer (39 connectable orphans):
+  ... (39 wired)
+
+data-model layer (34 connectable orphans):
+  ... (34 wired)
+
+Dead-end elements (5 — skipped, target types not in model):
+  api.info.x       — needs: api.contact, api.license
+  ux.theme.dark    — needs: ux.designtoken
+  ... (3 more)
+
+Re-checking orphan count...
+  dr validate --orphans
+
+Orphaned elements: 5 (all dead-end — cannot wire without missing element types)
+
+/dr-relate --orphans Complete
+==============================
+Wired: 119 relationships from 124 orphans
+Remaining: 5 dead-end (target types not in model)
+Validation: ✓ Passed
+```
+
 ---
 
 ## Common Mistake
@@ -543,6 +742,8 @@ Validation: ✓ Passed
 - `/dr-model` — Manually add, adjust, or describe individual elements
 - `/dr-validate` — Run deeper model validation after wiring
 - `/dr-sync` — Update model after code changes (re-run `/dr-relate` after if structure changed)
+- `dr validate --orphans` — List unconnected elements grouped by layer with suggestions
+- `dr validate --orphans --output orphans.json` — Machine-readable orphan report for scripting
 - `dr relationship list <id>` — Inspect relationships for a specific element
 - `dr schema relationship <type>` — Query valid predicates for an element type (intra-layer and cross-layer)
 - `dr catalog types --layer <layer>` — Browse semantic relationship type definitions

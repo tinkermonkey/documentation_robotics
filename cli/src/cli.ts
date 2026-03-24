@@ -292,6 +292,7 @@ program
   .option("--quiet", "Show minimal output")
   .option("--output <path>", "Export validation report to file (JSON or Markdown)")
   .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
+  .option("--orphans", "Show only orphaned elements grouped by layer with relationship suggestions")
   .option("--all", "Run all validations (default behavior)")
   .option("--markdown", "Validate markdown structure")
   .option("--schemas", "Validate JSON schemas")
@@ -312,7 +313,9 @@ Examples:
   $ dr validate --output report.md
   $ dr validate --schemas
   $ dr validate --relationships
-  $ dr validate --layers business api`
+  $ dr validate --layers business api
+  $ dr validate --orphans
+  $ dr validate --orphans --output orphans.json`
   )
   .action(validateCommand);
 

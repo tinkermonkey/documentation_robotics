@@ -7,6 +7,7 @@ import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { ChangesetExporter } from "../core/changeset-exporter.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
+import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { Command } from "commander";
 import * as prompts from "@clack/prompts";
 import path from "path";
@@ -230,6 +231,16 @@ export async function changesetApplyCommand(
 
     console.log(ansis.bold(`\nApplying changeset: ${ansis.cyan(name)}\n`));
     console.log(ansis.dim(`Changes: ${changeset.changes.length}`));
+
+    // Show model health snapshot (base model, before this changeset is applied).
+    // This intentionally reflects the pre-apply state so agents see what was already
+    // present, not what the changeset is about to add.
+    const preApplyStats = ValidationFormatter.calculateStats(model);
+    if (preApplyStats.orphanedElements.length > 0) {
+      console.log(ansis.dim(
+        `Model health before apply: ${preApplyStats.orphanedElements.length} orphaned element(s) — run 'dr validate --orphans' for details`
+      ));
+    }
 
     const changesetId = changeset.id || name;
     if (!changesetId) {

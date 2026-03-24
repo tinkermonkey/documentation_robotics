@@ -10,6 +10,7 @@ import { Model } from "../core/model.js";
 import { Validator } from "../validators/validator.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 
 export interface ValidateOptions {
   layers?: string[];
@@ -19,6 +20,7 @@ export interface ValidateOptions {
   output?: string;
   debug?: boolean;
   model?: string;
+  orphans?: boolean;
   // Python CLI compatibility options
   all?: boolean;
   markdown?: boolean;
@@ -151,6 +153,139 @@ async function validateSchemaSynchronization(): Promise<void> {
   }
 }
 
+/**
+ * Display structured orphan report grouped by layer, with dead-end detection.
+ * For each orphan, checks whether valid relationship targets exist in the model.
+ */
+async function validateOrphansOnly(model: Model, outputPath?: string): Promise<void> {
+  const stats = ValidationFormatter.calculateStats(model);
+
+  if (stats.orphanedElements.length === 0) {
+    const msg = "No orphaned elements found. All elements are connected.";
+    if (outputPath) {
+      await fs.writeFile(outputPath, JSON.stringify({ total: 0, byLayer: {} }, null, 2), "utf-8");
+      console.log(`\nOrphan report exported to ${outputPath}`);
+    } else {
+      console.log(ansis.green(`\n✓ ${msg}`));
+    }
+    return;
+  }
+
+  // Build set of element types currently present in the model
+  const typesInModel = new Set<string>();
+  for (const [, layer] of model.layers) {
+    for (const element of layer.listElements()) {
+      const id = element.path || element.id;
+      const parts = id.split(".");
+      if (parts.length >= 2) typesInModel.add(`${parts[0]}.${parts[1]}`);
+    }
+  }
+
+  // Group orphans by layer, annotated with dead-end status
+  const byLayer = new Map<string, Array<{
+    id: string;
+    type: string;
+    status: "dead-end" | "connectable" | "no-schema";
+    reachablePredicates: string[];
+    reachableTargetTypes: string[];
+    needsTypes: string[];
+  }>>();
+
+  for (const elementId of stats.orphanedElements.sort()) {
+    const parts = elementId.split(".");
+    const layer = parts[0] ?? "unknown";
+    const specNodeType = parts.length >= 2 ? `${parts[0]}.${parts[1]}` : elementId;
+
+    // Outgoing: this element can point to others
+    const outgoingRels = RELATIONSHIPS_BY_SOURCE.get(specNodeType) ?? [];
+    const allDestTypes = [...new Set(outgoingRels.map(r => r.destinationSpecNodeId))];
+    const reachableDestTypes = allDestTypes.filter(t => typesInModel.has(t));
+    const reachablePredicates = [...new Set(
+      outgoingRels.filter(r => reachableDestTypes.includes(r.destinationSpecNodeId)).map(r => r.predicate)
+    )];
+
+    // Incoming: other element types in the model can point to this element
+    const incomingRels = RELATIONSHIPS_BY_DESTINATION.get(specNodeType) ?? [];
+    const reachableIncomingSourceTypes = [...new Set(incomingRels.map(r => r.sourceSpecNodeId))]
+      .filter(t => typesInModel.has(t));
+
+    const hasOutgoingTargets = reachableDestTypes.length > 0;
+    const hasIncomingSources = reachableIncomingSourceTypes.length > 0;
+    const hasAnySchemas = outgoingRels.length > 0 || incomingRels.length > 0;
+
+    let status: "dead-end" | "connectable" | "no-schema";
+    if (!hasAnySchemas) {
+      status = "no-schema";
+    } else if (!hasOutgoingTargets && !hasIncomingSources) {
+      status = "dead-end";
+    } else {
+      status = "connectable";
+    }
+
+    if (!byLayer.has(layer)) byLayer.set(layer, []);
+    byLayer.get(layer)!.push({
+      id: elementId,
+      type: specNodeType,
+      status,
+      reachablePredicates,
+      reachableTargetTypes: reachableDestTypes,
+      needsTypes: allDestTypes,
+    });
+  }
+
+  if (outputPath) {
+    const jsonOut: Record<string, unknown> = {
+      total: stats.orphanedElements.length,
+      byLayer: Object.fromEntries(
+        [...byLayer.entries()].map(([layer, items]) => [layer, items])
+      ),
+    };
+    await fs.writeFile(outputPath, JSON.stringify(jsonOut, null, 2), "utf-8");
+    console.log(`\nOrphan report exported to ${outputPath}`);
+    return;
+  }
+
+  console.log(ansis.bold(`\nOrphaned Elements (${stats.orphanedElements.length})`));
+  console.log(ansis.dim("Elements with no intra-layer relationships and no cross-layer references\n"));
+
+  let deadEndCount = 0;
+  let connectableCount = 0;
+
+  for (const [layerName, items] of byLayer) {
+    console.log(ansis.bold(ansis.cyan(`  ${layerName} (${items.length})`)));
+    for (const item of items) {
+      if (item.status === "no-schema") {
+        console.log(`    ${ansis.dim("○")} ${item.id}`);
+        console.log(`      ${ansis.dim("No outgoing relationship schemas defined for type " + item.type)}`);
+      } else if (item.status === "dead-end") {
+        deadEndCount++;
+        const needsPreview = item.needsTypes.slice(0, 4).join(", ") +
+          (item.needsTypes.length > 4 ? ` +${item.needsTypes.length - 4} more` : "");
+        console.log(`    ${ansis.red("✗")} ${item.id} ${ansis.dim("(dead-end)")}`);
+        console.log(`      ${ansis.dim("Needs: " + needsPreview)}`);
+      } else {
+        connectableCount++;
+        const predsPreview = item.reachablePredicates.slice(0, 3).join(", ");
+        const targetsPreview = item.reachableTargetTypes.slice(0, 3).join(", ");
+        console.log(`    ${ansis.yellow("○")} ${item.id}`);
+        console.log(`      ${ansis.dim(`→ try: ${predsPreview} → ${targetsPreview}`)}`);
+      }
+    }
+    console.log();
+  }
+
+  // Summary line
+  const noSchemaCount = stats.orphanedElements.length - connectableCount - deadEndCount;
+  const parts: string[] = [];
+  if (connectableCount > 0) parts.push(`${connectableCount} connectable`);
+  if (deadEndCount > 0) parts.push(`${deadEndCount} dead-end (valid target types missing from model)`);
+  if (noSchemaCount > 0) parts.push(`${noSchemaCount} no-schema`);
+  console.log(ansis.dim(`Summary: ${parts.length > 0 ? parts.join(", ") : "0 actionable"}`));
+  if (connectableCount > 0) {
+    console.log(ansis.dim("Run /dr-relate --orphans to wire connectable elements"));
+  }
+}
+
 export async function validateCommand(options: ValidateOptions): Promise<void> {
   try {
     // Handle schema validation flag
@@ -161,6 +296,16 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
 
     // Load model
     const model = await Model.load(options.model);
+
+    // --orphans mode: focused orphan report, skip full validation
+    if (options.orphans) {
+      const activeChangesetId = model.getActiveChangesetId();
+      const modelForOrphans = activeChangesetId
+        ? (await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)) as unknown as typeof model
+        : model;
+      await validateOrphansOnly(modelForOrphans, options.output);
+      return;
+    }
 
     // Validate
     const validator = new Validator();

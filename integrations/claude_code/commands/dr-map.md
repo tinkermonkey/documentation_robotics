@@ -103,7 +103,20 @@ In recipe mode, extract all layers in the prescribed bottom-up order. The orderi
 
 **Between-layer checkpoint (repeat after each layer):**
 
-After extracting each layer, pause and display:
+After extracting each layer:
+
+1. **Wire intra-layer relationships** for elements just created in this layer:
+   - Run `dr relationship add` for element pairs within this layer that are semantically connected
+   - Use shared `source_file` as the primary signal for high-confidence pairs
+   - Only attempt relationship schema combinations that are valid per `dr schema relationship <type>`
+   - Aim to wire at least the highest-confidence pairs before moving on
+
+2. **Wire cross-layer references to already-populated lower layers** (if applicable):
+   - If a just-extracted element references a type that already exists in a lower layer, wire it now
+   - Example: when extracting API layer, wire `api.operation →[references]→ application.applicationservice` for elements already in the Application layer
+   - This eliminates a significant portion of the inter-layer pass in `/dr-relate`
+
+3. **Pause and display checkpoint:**
 
 ```
 Checkpoint: [Layer Name] Layer Complete
@@ -136,6 +149,12 @@ Total: N elements across M layers
 
 Final validation:
   dr validate --strict
+
+Connectivity:
+  Run: dr validate --orphans
+  This shows elements still needing relationships, grouped by layer with
+  suggested predicates. Orphans remaining after /dr-map are best handled
+  by running /dr-relate --orphans rather than a full /dr-relate pass.
 
 Next steps:
   - Review flagged low-confidence elements
@@ -403,6 +422,10 @@ Cross-Layer References:
 ✓ 8 realizes references (app → business)
 ✓ 35 exposes references (app → api)
 ✓ 12 stores references (data-store → data model)
+
+Connectivity Check:
+  Run: dr validate --orphans
+  [show orphan count and top 3 layers with most orphans]
 
 Validation: ⚠️ 2 warnings, 0 errors
 
