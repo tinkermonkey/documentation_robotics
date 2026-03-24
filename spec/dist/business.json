@@ -479,7 +479,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -490,7 +490,7 @@
       "destination_spec_node_id": "business.contract",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -512,7 +512,7 @@
       "destination_spec_node_id": "motivation.stakeholder",
       "destination_layer": "motivation",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -523,7 +523,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -545,7 +545,7 @@
       "destination_spec_node_id": "business.businessinteraction",
       "destination_layer": "business",
       "predicate": "performs",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -556,7 +556,7 @@
       "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -567,7 +567,7 @@
       "destination_spec_node_id": "business.businessinteraction",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -589,7 +589,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -600,7 +600,7 @@
       "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -611,7 +611,7 @@
       "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -622,7 +622,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -633,7 +633,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -644,7 +644,7 @@
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -655,7 +655,7 @@
       "destination_spec_node_id": "business.businessrole",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -666,7 +666,7 @@
       "destination_spec_node_id": "business.businessevent",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -677,7 +677,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -688,7 +688,7 @@
       "destination_spec_node_id": "business.businessinteraction",
       "destination_layer": "business",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -699,7 +699,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -710,7 +710,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -721,7 +721,7 @@
       "destination_spec_node_id": "business.businessevent",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -732,7 +732,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -743,7 +743,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -754,7 +754,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "provides",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -765,7 +765,7 @@
       "destination_spec_node_id": "business.businessactor",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -776,7 +776,7 @@
       "destination_spec_node_id": "business.businessrole",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -787,7 +787,7 @@
       "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -798,7 +798,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -809,7 +809,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -820,7 +820,7 @@
       "destination_spec_node_id": "application.dataobject",
       "destination_layer": "application",
       "predicate": "references",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -842,7 +842,7 @@
       "destination_spec_node_id": "business.contract",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -853,7 +853,7 @@
       "destination_spec_node_id": "application.applicationprocess",
       "destination_layer": "application",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -864,7 +864,7 @@
       "destination_spec_node_id": "security.securityconstraints",
       "destination_layer": "security",
       "predicate": "constrained-by",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -875,7 +875,7 @@
       "destination_spec_node_id": "security.separationofduty",
       "destination_layer": "security",
       "predicate": "constrained-by",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -886,7 +886,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "delivers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -908,7 +908,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -919,7 +919,7 @@
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -930,7 +930,7 @@
       "destination_spec_node_id": "motivation.outcome",
       "destination_layer": "motivation",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -941,7 +941,7 @@
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
       "predicate": "satisfies",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -952,7 +952,7 @@
       "destination_spec_node_id": "business.businessevent",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -963,7 +963,7 @@
       "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -974,7 +974,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -985,7 +985,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -996,7 +996,7 @@
       "destination_spec_node_id": "business.contract",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1007,7 +1007,7 @@
       "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1018,7 +1018,7 @@
       "destination_spec_node_id": "business.businessinteraction",
       "destination_layer": "business",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1029,7 +1029,7 @@
       "destination_spec_node_id": "business.businessinterface",
       "destination_layer": "business",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1040,7 +1040,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1051,7 +1051,7 @@
       "destination_spec_node_id": "business.businessrole",
       "destination_layer": "business",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1062,7 +1062,7 @@
       "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "performs",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1073,7 +1073,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "performs",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1084,7 +1084,7 @@
       "destination_spec_node_id": "business.businessactor",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1095,7 +1095,7 @@
       "destination_spec_node_id": "motivation.stakeholder",
       "destination_layer": "motivation",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1106,7 +1106,7 @@
       "destination_spec_node_id": "business.businessevent",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1117,7 +1117,7 @@
       "destination_spec_node_id": "business.contract",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1139,7 +1139,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "delivers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1150,7 +1150,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1161,7 +1161,7 @@
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1172,7 +1172,7 @@
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
       "predicate": "satisfies",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1194,7 +1194,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1205,7 +1205,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "governs",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1216,7 +1216,7 @@
       "destination_spec_node_id": "business.businessrole",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1227,7 +1227,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1238,7 +1238,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1249,7 +1249,7 @@
       "destination_spec_node_id": "business.contract",
       "destination_layer": "business",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1260,7 +1260,7 @@
       "destination_spec_node_id": "business.businessobject",
       "destination_layer": "business",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1271,7 +1271,7 @@
       "destination_spec_node_id": "business.contract",
       "destination_layer": "business",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     }

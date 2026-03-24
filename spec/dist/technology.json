@@ -662,7 +662,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -673,7 +673,7 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "associated-with",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -684,7 +684,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -695,7 +695,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "depends-on",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -706,7 +706,7 @@
       "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -717,7 +717,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -728,7 +728,7 @@
       "destination_spec_node_id": "technology.communicationnetwork",
       "destination_layer": "technology",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -739,7 +739,7 @@
       "destination_spec_node_id": "technology.path",
       "destination_layer": "technology",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -750,7 +750,7 @@
       "destination_spec_node_id": "technology.technologycollaboration",
       "destination_layer": "technology",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -761,7 +761,7 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "associated-with",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -772,7 +772,7 @@
       "destination_spec_node_id": "technology.node",
       "destination_layer": "technology",
       "predicate": "connects",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -783,7 +783,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "provides",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -794,7 +794,7 @@
       "destination_spec_node_id": "technology.device",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -805,7 +805,7 @@
       "destination_spec_node_id": "technology.node",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -816,7 +816,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "supports",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -827,7 +827,7 @@
       "destination_spec_node_id": "technology.node",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -838,7 +838,7 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -849,7 +849,7 @@
       "destination_spec_node_id": "security.securitypolicy",
       "destination_layer": "security",
       "predicate": "satisfies",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -860,7 +860,7 @@
       "destination_spec_node_id": "application.applicationcomponent",
       "destination_layer": "application",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -871,7 +871,7 @@
       "destination_spec_node_id": "technology.technologyfunction",
       "destination_layer": "technology",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -882,7 +882,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -893,7 +893,7 @@
       "destination_spec_node_id": "technology.device",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -904,7 +904,7 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -915,7 +915,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -926,7 +926,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -937,7 +937,7 @@
       "destination_spec_node_id": "motivation.constraint",
       "destination_layer": "motivation",
       "predicate": "satisfies",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -948,7 +948,7 @@
       "destination_spec_node_id": "security.securitypolicy",
       "destination_layer": "security",
       "predicate": "satisfies",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -959,7 +959,7 @@
       "destination_spec_node_id": "application.applicationcomponent",
       "destination_layer": "application",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -970,7 +970,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -981,7 +981,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -992,7 +992,7 @@
       "destination_spec_node_id": "technology.path",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1003,7 +1003,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1014,7 +1014,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1025,7 +1025,7 @@
       "destination_spec_node_id": "technology.device",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1036,7 +1036,7 @@
       "destination_spec_node_id": "technology.node",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1047,7 +1047,7 @@
       "destination_spec_node_id": "technology.technologyevent",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1058,7 +1058,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1069,7 +1069,7 @@
       "destination_spec_node_id": "technology.technologyfunction",
       "destination_layer": "technology",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1080,7 +1080,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1091,7 +1091,7 @@
       "destination_spec_node_id": "technology.device",
       "destination_layer": "technology",
       "predicate": "depends-on",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1102,7 +1102,7 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "depends-on",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1113,7 +1113,7 @@
       "destination_spec_node_id": "security.countermeasure",
       "destination_layer": "security",
       "predicate": "implements",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1124,7 +1124,7 @@
       "destination_spec_node_id": "motivation.principle",
       "destination_layer": "motivation",
       "predicate": "implements",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1135,7 +1135,7 @@
       "destination_spec_node_id": "security.threat",
       "destination_layer": "security",
       "predicate": "mitigates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1146,7 +1146,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "provides",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1157,7 +1157,7 @@
       "destination_spec_node_id": "application.applicationservice",
       "destination_layer": "application",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1168,7 +1168,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1179,7 +1179,7 @@
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1190,7 +1190,7 @@
       "destination_spec_node_id": "security.securitypolicy",
       "destination_layer": "security",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1201,7 +1201,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1212,7 +1212,7 @@
       "destination_spec_node_id": "motivation.constraint",
       "destination_layer": "motivation",
       "predicate": "satisfies",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1223,7 +1223,7 @@
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
       "predicate": "satisfies",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1234,7 +1234,7 @@
       "destination_spec_node_id": "application.applicationcomponent",
       "destination_layer": "application",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1245,7 +1245,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1256,7 +1256,7 @@
       "destination_spec_node_id": "technology.technologyfunction",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1267,7 +1267,7 @@
       "destination_spec_node_id": "technology.technologyevent",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1278,7 +1278,7 @@
       "destination_spec_node_id": "technology.communicationnetwork",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1289,7 +1289,7 @@
       "destination_spec_node_id": "technology.path",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1300,7 +1300,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1311,7 +1311,7 @@
       "destination_spec_node_id": "technology.node",
       "destination_layer": "technology",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1322,7 +1322,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1333,7 +1333,7 @@
       "destination_spec_node_id": "technology.technologycollaboration",
       "destination_layer": "technology",
       "predicate": "associated-with",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1344,7 +1344,7 @@
       "destination_spec_node_id": "technology.technologyinteraction",
       "destination_layer": "technology",
       "predicate": "performs",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1355,7 +1355,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1366,7 +1366,7 @@
       "destination_spec_node_id": "technology.technologyevent",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1377,7 +1377,7 @@
       "destination_spec_node_id": "technology.communicationnetwork",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1388,7 +1388,7 @@
       "destination_spec_node_id": "technology.path",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1399,7 +1399,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "associated-with",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1410,7 +1410,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1421,7 +1421,7 @@
       "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1432,7 +1432,7 @@
       "destination_spec_node_id": "technology.technologyfunction",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1443,7 +1443,7 @@
       "destination_spec_node_id": "technology.technologyinteraction",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1454,7 +1454,7 @@
       "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1465,7 +1465,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1476,7 +1476,7 @@
       "destination_spec_node_id": "technology.technologyfunction",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1487,7 +1487,7 @@
       "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1498,7 +1498,7 @@
       "destination_spec_node_id": "security.countermeasure",
       "destination_layer": "security",
       "predicate": "implements",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1509,7 +1509,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1520,7 +1520,7 @@
       "destination_spec_node_id": "application.applicationfunction",
       "destination_layer": "application",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1531,7 +1531,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1542,7 +1542,7 @@
       "destination_spec_node_id": "technology.technologyinteraction",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1553,7 +1553,7 @@
       "destination_spec_node_id": "technology.technologyevent",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1564,7 +1564,7 @@
       "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1575,7 +1575,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1586,7 +1586,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1597,7 +1597,7 @@
       "destination_spec_node_id": "technology.technologyfunction",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1608,7 +1608,7 @@
       "destination_spec_node_id": "technology.technologyinteraction",
       "destination_layer": "technology",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1619,7 +1619,7 @@
       "destination_spec_node_id": "technology.technologycollaboration",
       "destination_layer": "technology",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1630,7 +1630,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1641,7 +1641,7 @@
       "destination_spec_node_id": "technology.technologyevent",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1652,7 +1652,7 @@
       "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1663,7 +1663,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1674,7 +1674,7 @@
       "destination_spec_node_id": "technology.node",
       "destination_layer": "technology",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1685,7 +1685,7 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1696,7 +1696,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "assigned-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1707,7 +1707,7 @@
       "destination_spec_node_id": "technology.technologycollaboration",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1718,7 +1718,7 @@
       "destination_spec_node_id": "technology.technologyfunction",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1729,7 +1729,7 @@
       "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1740,7 +1740,7 @@
       "destination_spec_node_id": "technology.communicationnetwork",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1751,7 +1751,7 @@
       "destination_spec_node_id": "technology.path",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1762,7 +1762,7 @@
       "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "composes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1773,7 +1773,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1784,7 +1784,7 @@
       "destination_spec_node_id": "technology.technologyevent",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1795,7 +1795,7 @@
       "destination_spec_node_id": "technology.path",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1806,7 +1806,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1817,7 +1817,7 @@
       "destination_spec_node_id": "security.secureresource",
       "destination_layer": "security",
       "predicate": "accesses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1828,7 +1828,7 @@
       "destination_spec_node_id": "technology.technologyfunction",
       "destination_layer": "technology",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1839,7 +1839,7 @@
       "destination_spec_node_id": "technology.technologyprocess",
       "destination_layer": "technology",
       "predicate": "aggregates",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1850,7 +1850,7 @@
       "destination_spec_node_id": "technology.technologycollaboration",
       "destination_layer": "technology",
       "predicate": "associated-with",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1861,7 +1861,7 @@
       "destination_spec_node_id": "technology.artifact",
       "destination_layer": "technology",
       "predicate": "consumes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1872,7 +1872,7 @@
       "destination_spec_node_id": "technology.communicationnetwork",
       "destination_layer": "technology",
       "predicate": "depends-on",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1883,7 +1883,7 @@
       "destination_spec_node_id": "technology.node",
       "destination_layer": "technology",
       "predicate": "depends-on",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1894,7 +1894,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "flows-to",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1905,7 +1905,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "provides",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1916,7 +1916,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1927,7 +1927,7 @@
       "destination_spec_node_id": "motivation.goal",
       "destination_layer": "motivation",
       "predicate": "realizes",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1938,7 +1938,7 @@
       "destination_spec_node_id": "motivation.requirement",
       "destination_layer": "motivation",
       "predicate": "satisfies",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1949,7 +1949,7 @@
       "destination_spec_node_id": "security.securitypolicy",
       "destination_layer": "security",
       "predicate": "satisfies",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1960,7 +1960,7 @@
       "destination_spec_node_id": "application.applicationcomponent",
       "destination_layer": "application",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1971,7 +1971,7 @@
       "destination_spec_node_id": "application.applicationservice",
       "destination_layer": "application",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1982,7 +1982,7 @@
       "destination_spec_node_id": "business.businessfunction",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -1993,7 +1993,7 @@
       "destination_spec_node_id": "business.businessprocess",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -2004,7 +2004,7 @@
       "destination_spec_node_id": "business.businessservice",
       "destination_layer": "business",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -2015,7 +2015,7 @@
       "destination_spec_node_id": "motivation.stakeholder",
       "destination_layer": "motivation",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -2026,7 +2026,7 @@
       "destination_spec_node_id": "technology.technologyinterface",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -2037,7 +2037,7 @@
       "destination_spec_node_id": "technology.technologyservice",
       "destination_layer": "technology",
       "predicate": "serves",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -2048,7 +2048,7 @@
       "destination_spec_node_id": "technology.technologyevent",
       "destination_layer": "technology",
       "predicate": "triggers",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     },
@@ -2059,7 +2059,7 @@
       "destination_spec_node_id": "technology.systemsoftware",
       "destination_layer": "technology",
       "predicate": "uses",
-      "cardinality": "many-to-one",
+      "cardinality": "many-to-many",
       "strength": "medium",
       "required": false
     }

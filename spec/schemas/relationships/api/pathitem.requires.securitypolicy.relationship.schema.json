@@ -10,7 +10,7 @@
     "destination_spec_node_id": { "const": "security.securitypolicy" },
     "destination_layer": { "const": "security" },
     "predicate": { "const": "requires" },
-    "cardinality": { "const": "many-to-one" },
+    "cardinality": { "const": "many-to-many" },
     "strength": { "const": "medium" }
   }
 }

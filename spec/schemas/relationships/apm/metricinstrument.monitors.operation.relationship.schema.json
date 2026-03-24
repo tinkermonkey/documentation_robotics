@@ -10,7 +10,7 @@
     "destination_spec_node_id": { "const": "api.operation" },
     "destination_layer": { "const": "api" },
     "predicate": { "const": "monitors" },
-    "cardinality": { "const": "many-to-one" },
+    "cardinality": { "const": "many-to-many" },
     "strength": { "const": "medium" }
   }
 }
