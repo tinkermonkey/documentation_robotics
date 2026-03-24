@@ -24,7 +24,7 @@
           "type": "string"
         },
         "droppedAttributesCount": {
-          "type": "string"
+          "type": "integer"
         },
         "attributes": {
           "type": "object",

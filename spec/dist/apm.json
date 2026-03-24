@@ -297,7 +297,7 @@
               "type": "string"
             },
             "droppedAttributesCount": {
-              "type": "string"
+              "type": "integer"
             },
             "attributes": {
               "type": "object",
@@ -429,7 +429,7 @@
               "type": "string"
             },
             "droppedAttributesCount": {
-              "type": "string"
+              "type": "integer"
             },
             "attributes": {
               "type": "object",
@@ -655,7 +655,7 @@
               "type": "string"
             },
             "droppedAttributesCount": {
-              "type": "string"
+              "type": "integer"
             },
             "droppedEventsCount": {
               "type": "string"
@@ -721,7 +721,7 @@
               "type": "string"
             },
             "droppedAttributesCount": {
-              "type": "string"
+              "type": "integer"
             },
             "attributes": {
               "type": "object",
@@ -767,7 +767,7 @@
               "type": "string"
             },
             "droppedAttributesCount": {
-              "type": "string"
+              "type": "integer"
             },
             "attributes": {
               "type": "object",

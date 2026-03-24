@@ -44,7 +44,7 @@
           "type": "string"
         },
         "droppedAttributesCount": {
-          "type": "string"
+          "type": "integer"
         },
         "droppedEventsCount": {
           "type": "string"
