@@ -15,6 +15,7 @@ beforeEach(() => {
   delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
   delete process.env.OTEL_SERVICE_NAME;
+  delete process.env.DR_CONFIG_PATH;
 });
 
 afterEach(() => {
@@ -27,6 +28,7 @@ afterEach(() => {
   delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
   delete process.env.OTEL_SERVICE_NAME;
+  delete process.env.DR_CONFIG_PATH;
 });
 
 describe("loadOTLPConfig()", () => {
@@ -254,11 +256,12 @@ describe("loadOTLPConfig()", () => {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "invalid-url-string";
 
       // Create a temporary config file with valid URL
-      const { homedir } = await import("node:os");
+      const { tmpdir } = await import("node:os");
       const { writeFileSync, unlinkSync } = await import("node:fs");
       const { join } = await import("node:path");
 
-      const configPath = join(homedir(), ".dr-config.yaml");
+      const configPath = join(tmpdir(), `.dr-config-test-${Date.now()}.yaml`);
+      process.env.DR_CONFIG_PATH = configPath;
       const configContent = `telemetry:
   otlp:
     endpoint: 'http://valid-file-config:4318/v1/traces'
@@ -285,11 +288,12 @@ describe("loadOTLPConfig()", () => {
       process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "not a url";
 
       // Create config file with valid logs endpoint
-      const { homedir } = await import("node:os");
+      const { tmpdir } = await import("node:os");
       const { writeFileSync, unlinkSync } = await import("node:fs");
       const { join } = await import("node:path");
 
-      const configPath = join(homedir(), ".dr-config.yaml");
+      const configPath = join(tmpdir(), `.dr-config-test-${Date.now()}.yaml`);
+      process.env.DR_CONFIG_PATH = configPath;
       const configContent = `telemetry:
   otlp:
     logs_endpoint: 'http://file-logs:4318/v1/logs'
