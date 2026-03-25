@@ -1,0 +1,12 @@
+# Example ~/.dr-config.yaml for sending OpenTelemetry data from dr-cli.
+#
+# Copy this to ~/.dr-config.yaml and update the endpoint to point to your
+# OpenTelemetry Collector. The CLI sends traces and logs via OTLP/HTTP.
+
+telemetry:
+  otlp:
+    endpoint: 'http://localhost:4318/v1/traces'
+    logs_endpoint: 'http://localhost:4318/v1/logs'
+    service_name: 'dr-cli'   # sets service.name on all spans and logs;
+                              # useful for distinguishing instances
+                              # (e.g. 'dr-cli-prod', 'dr-cli-staging')
