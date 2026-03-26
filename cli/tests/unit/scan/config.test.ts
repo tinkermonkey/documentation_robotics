@@ -80,17 +80,25 @@ describe("Scan Config Loader", () => {
   });
 
   it("should handle invalid YAML gracefully", async () => {
+    // Use YAML with bad indentation which will fail parsing
     const yaml = `scan:
-    codeprism:
-      - invalid
-    : yaml
+  codeprism:
+    command: test
+  confidence_threshold: 0.5
+	invalid_tab: here
 `;
     await writeFile(tempConfigPath, yaml);
     process.env.DR_CONFIG_PATH = tempConfigPath;
 
-    // Should return defaults when YAML is invalid
-    const config = await loadScanConfig();
-    expect(config).toBeDefined();
-    expect(config.codeprism?.command).toBe("codeprism");
+    // Should throw error when YAML is invalid - fail explicitly to alert user
+    try {
+      await loadScanConfig();
+      throw new Error("Should have thrown for invalid YAML");
+    } catch (error) {
+      expect(error instanceof Error).toBe(true);
+      const message = (error as Error).message;
+      // Error message should mention YAML syntax issue or config file error
+      expect(message.toLowerCase()).toContain("yaml") || expect(message).toContain("config file");
+    }
   });
 });

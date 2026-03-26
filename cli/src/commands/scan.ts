@@ -25,7 +25,7 @@ import ansis from "ansis";
 import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
 import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, extractLayerFromId, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
-import { getErrorMessage } from "../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage, handleError } from "../utils/errors.js";
 import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 
@@ -322,10 +322,23 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
       }
     }
   } catch (error) {
-    const errorMsg = getErrorMessage(error);
-    console.error(ansis.red(errorMsg));
+    try {
+      handleError(error);
+    } finally {
+      // Ensure client is disconnected even on error
+      if (client) {
+        try {
+          await disconnectMcpClient(client);
+        } catch (disconnectError) {
+          // Disconnect errors should not mask the original error
+          if (options.verbose) {
+            console.warn(`Warning: Failed to disconnect from CodePrism: ${getErrorMessage(disconnectError)}`);
+          }
+        }
+      }
+    }
   } finally {
-    // Always disconnect MCP client, even on error or dry-run
+    // Always disconnect MCP client on normal exit or dry-run
     if (client) {
       try {
         await disconnectMcpClient(client);
@@ -419,12 +432,12 @@ export async function executePatterns(
         // Map matches to candidates based on pattern produces type
         for (const match of matches) {
           if (pattern.produces.type === "relationship") {
-            const candidate = mapToRelationshipCandidate(pattern, match);
+            const candidate = mapToRelationshipCandidate(pattern, match, warnings);
             if (candidate) {
               relationshipCandidates.push(candidate);
             }
           } else {
-            const candidate = mapToElementCandidate(pattern, match);
+            const candidate = mapToElementCandidate(pattern, match, warnings);
             if (candidate) {
               elementCandidates.push(candidate);
             }
@@ -449,11 +462,13 @@ export async function executePatterns(
  *
  * @param pattern - Pattern definition
  * @param match - Match data from CodePrism
+ * @param warnings - Array to collect mapping errors as warnings
  * @returns Element candidate or null if mapping fails
  */
 function mapToElementCandidate(
   pattern: PatternDefinition,
-  match: Record<string, string>
+  match: Record<string, string>,
+  warnings: string[]
 ): ElementCandidate | null {
   try {
     // Get ID template from mapping - must be a string (not nested object)
@@ -497,7 +512,9 @@ function mapToElementCandidate(
       source: match.file ? { file: match.file, line: parseInt(match.line || "0") } : undefined,
     };
   } catch (error) {
-    // Return null if mapping fails
+    // Log mapping error as warning so users know matches were received but couldn't be processed
+    const errorMsg = getErrorMessage(error);
+    warnings.push(`Pattern '${pattern.id}' failed to map element candidate: ${errorMsg}`);
     return null;
   }
 }
@@ -507,11 +524,13 @@ function mapToElementCandidate(
  *
  * @param pattern - Relationship pattern definition
  * @param match - Match data from CodePrism
+ * @param warnings - Array to collect mapping errors as warnings
  * @returns Relationship candidate or null if mapping fails
  */
 function mapToRelationshipCandidate(
   pattern: PatternDefinition,
-  match: Record<string, string>
+  match: Record<string, string>,
+  warnings: string[]
 ): RelationshipCandidate | null {
   try {
     // Get sourceId template from mapping - support both "source" and "sourceId" keys
@@ -571,7 +590,9 @@ function mapToRelationshipCandidate(
       source: match.file ? { file: match.file, line: parseInt(match.line || "0") } : undefined,
     };
   } catch (error) {
-    // Return null if mapping fails
+    // Log mapping error as warning so users know matches were received but couldn't be processed
+    const errorMsg = getErrorMessage(error);
+    warnings.push(`Pattern '${pattern.id}' failed to map relationship candidate: ${errorMsg}`);
     return null;
   }
 }

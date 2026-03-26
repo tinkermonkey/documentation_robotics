@@ -68,19 +68,21 @@ export async function loadScanConfig(): Promise<ScanConfig> {
       const parsed = parse(content) as Record<string, any>;
       fileConfig = parsed?.scan ?? {};
     } catch (error) {
-      // Provide specific error messages based on error type
+      // Build detailed error message for specific error types
+      let errorMessage = "";
+      let suggestions: string[] = [];
+
       if (error instanceof Error) {
         const errorMsg = error.message;
 
         // File permission errors
         if (errorMsg.includes("EACCES") || errorMsg.includes("permission denied")) {
-          process.stderr.write(
-            `Error: Cannot read config file ${configPath} - permission denied\n`
-          );
-          process.stderr.write("Suggestions:\n");
-          process.stderr.write(`  • Check file permissions with: ls -l ${configPath}\n`);
-          process.stderr.write("  • Ensure you have read access to the file\n");
-          process.stderr.write(`  • Try: chmod 644 ${configPath}\n`);
+          errorMessage = `Cannot read config file ${configPath} - permission denied`;
+          suggestions = [
+            `Check file permissions with: ls -l ${configPath}`,
+            "Ensure you have read access to the file",
+            `Try: chmod 644 ${configPath}`,
+          ];
         }
         // YAML parse errors
         else if (
@@ -89,24 +91,29 @@ export async function loadScanConfig(): Promise<ScanConfig> {
           errorMsg.includes("bad indentation") ||
           errorMsg.includes("unexpected")
         ) {
-          process.stderr.write(`Error: Invalid YAML syntax in ${configPath}\n`);
-          process.stderr.write(`Details: ${errorMsg}\n`);
-          process.stderr.write("Suggestions:\n");
-          process.stderr.write("  • Validate your YAML syntax at https://www.yamllint.com/\n");
-          process.stderr.write("  • Check for proper indentation (use spaces, not tabs)\n");
-          process.stderr.write("  • Verify colons have spaces after them\n");
+          errorMessage = `Invalid YAML syntax in ${configPath}: ${errorMsg}`;
+          suggestions = [
+            "Validate your YAML syntax at https://www.yamllint.com/",
+            "Check for proper indentation (use spaces, not tabs)",
+            "Verify colons have spaces after them",
+          ];
         }
         // File encoding or other I/O errors
         else {
-          process.stderr.write(`Error: Failed to load config file ${configPath}\n`);
-          process.stderr.write(`Details: ${errorMsg}\n`);
-          process.stderr.write("Suggestions:\n");
-          process.stderr.write("  • Verify the file is valid UTF-8 encoded text\n");
-          process.stderr.write("  • Check if the file system is accessible\n");
-          process.stderr.write("  • Try recreating the file if it may be corrupted\n");
+          errorMessage = `Failed to load config file ${configPath}: ${errorMsg}`;
+          suggestions = [
+            "Verify the file is valid UTF-8 encoded text",
+            "Check if the file system is accessible",
+            "Try recreating the file if it may be corrupted",
+          ];
         }
-        process.stderr.write(`Using default scan configuration due to config file error\n`);
+      } else {
+        errorMessage = `Unknown error reading config file ${configPath}`;
       }
+
+      throw new Error(
+        `${errorMessage}\n\nSuggestions:\n${suggestions.map((s) => `  • ${s}`).join("\n")}`
+      );
     }
   }
 
