@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { isValidRelationshipDirection, LAYER_INDEX } from "../../../src/scan/pattern-loader.js";
+import { isValidRelationshipDirection } from "../../../src/scan/pattern-loader.js";
 
 describe("Relationship Direction Validation", () => {
   describe("same-layer relationships (always allowed)", () => {
@@ -25,7 +25,7 @@ describe("Relationship Direction Validation", () => {
       expect(isValidRelationshipDirection("api.endpoint.get-users", "application.service.user-service")).toBe(true);
     });
 
-    it("should allow data-model[7] → data-store[8] (same layer, allowed)", () => {
+    it("should reject data-model[7] → data-store[8] (lower → higher)", () => {
       expect(isValidRelationshipDirection("data-model.entity.x", "data-store.table.y")).toBe(false); // 7 > 8 is false
     });
 

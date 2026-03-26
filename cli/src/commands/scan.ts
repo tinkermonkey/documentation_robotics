@@ -554,19 +554,10 @@ function mapToRelationshipCandidate(
     }
     let sourceId = renderTemplate(sourceIdTemplate, { match });
 
-    // If source is a bare name (no dots), qualify it with the pattern's layer and a default element type
+    // If source is a bare name (no dots), qualify it with the pattern's layer and element type
     if (!sourceId.includes(".")) {
-      // Use 'item' as a generic element type for bare source names
-      sourceId = qualifyElementId(sourceId, pattern.produces.layer, "item");
-    }
-
-    // Validate that sourceId is now a valid fully-qualified element ID
-    if (!sourceId.includes(".")) {
-      throw new Error(
-        `Source element ID could not be qualified: '${sourceId}'. ` +
-        `Expected format: '{layer}.{elementType}.{name}' (e.g., 'application.service.user-service'). ` +
-        `Provide either a fully-qualified ID or a bare name that can be auto-qualified.`
-      );
+      const elementType = pattern.produces.elementType || "element";
+      sourceId = qualifyElementId(sourceId, pattern.produces.layer, elementType);
     }
 
     // Get targetId template from mapping - support both "target" and "targetId" keys
@@ -580,19 +571,10 @@ function mapToRelationshipCandidate(
     }
     let targetId = renderTemplate(targetIdTemplate, { match });
 
-    // If target is a bare name (no dots), qualify it with the pattern's layer and a default element type
+    // If target is a bare name (no dots), qualify it with the pattern's layer and element type
     if (!targetId.includes(".")) {
-      // Use 'item' as a generic element type for bare target names
-      targetId = qualifyElementId(targetId, pattern.produces.layer, "item");
-    }
-
-    // Validate that targetId is now a valid fully-qualified element ID
-    if (!targetId.includes(".")) {
-      throw new Error(
-        `Target element ID could not be qualified: '${targetId}'. ` +
-        `Expected format: '{layer}.{elementType}.{name}' (e.g., 'application.service.user-service'). ` +
-        `Provide either a fully-qualified ID or a bare name that can be auto-qualified.`
-      );
+      const elementType = pattern.produces.elementType || "element";
+      targetId = qualifyElementId(targetId, pattern.produces.layer, elementType);
     }
 
     // Get relationshipType from pattern definition
