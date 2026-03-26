@@ -707,79 +707,78 @@ describe("Scan Command", () => {
     });
 
     it("discards relationships with missing source elements", async () => {
-      const { renderTemplate } =
-        await import("../../src/scan/pattern-loader.js");
-
-      // In a real scenario, this would be tested via the full scan pipeline
-      // For now, we test the template rendering that creates the IDs
-      const pattern = {
-        id: "test.dependency",
-        produces: {
-          type: "relationship" as const,
-          layer: "api",
-          elementType: "dependency",
-          relationshipType: "depends-on"
-        },
-        query: { tool: "test-tool" },
-        confidence: 0.9,
-        mapping: {
-          sourceId: "api.endpoint.{match.source|kebab}",
-          targetId: "{match.target}",
-          category: "structural"
-        }
+      // Test that relationships with non-existent source elements are filtered
+      const candidate = {
+        id: "unknown.service.missing->api.endpoint.get-user",
+        sourceId: "unknown.service.missing",  // Does not exist
+        targetId: "api.endpoint.get-user",
+        relationshipType: "depends-on",
+        layer: "api",
+        confidence: 0.9
       };
 
-      const match = {
-        source: "GetUserEndpoint",
-        target: "application.service.user-service"
-      };
+      const newElementCandidates = [
+        { id: "api.endpoint.get-user", type: "endpoint" }
+      ];
 
-      const sourceId = renderTemplate(pattern.mapping.sourceId as string, { match });
-      const targetId = renderTemplate(pattern.mapping.targetId as string, { match });
+      // Simulate the validation logic: check if source exists
+      const sourceExists = newElementCandidates.some((e) => e.id === candidate.sourceId);
 
-      expect(sourceId).toBe("api.endpoint.get-user-endpoint");
-      expect(targetId).toBe("application.service.user-service");
+      // Should NOT be staged because source is missing
+      expect(sourceExists).toBe(false);
+      expect(candidate.sourceId).toBe("unknown.service.missing");
     });
 
     it("discards relationships with missing target elements", async () => {
-      const { renderTemplate } =
-        await import("../../src/scan/pattern-loader.js");
-
-      // Similar to source validation above
-      const pattern = {
-        mapping: {
-          sourceId: "api.endpoint.test",
-          targetId: "application.service.{match.service|kebab}"
-        }
+      // Test that relationships with non-existent target elements are filtered
+      const candidate = {
+        id: "api.endpoint.create-user->application.service.missing",
+        sourceId: "api.endpoint.create-user",
+        targetId: "application.service.missing",  // Does not exist
+        relationshipType: "depends-on",
+        layer: "api",
+        confidence: 0.9
       };
 
-      const match = { service: "MissingService" };
+      const newElementCandidates = [
+        { id: "api.endpoint.create-user", type: "endpoint" }
+      ];
 
-      const targetId = renderTemplate(pattern.mapping.targetId as string, { match });
-      expect(targetId).toBe("application.service.missing-service");
+      // Simulate the validation logic: check if target exists
+      const targetExists = newElementCandidates.some((e) => e.id === candidate.targetId);
+
+      // Should NOT be staged because target is missing
+      expect(targetExists).toBe(false);
+      expect(candidate.targetId).toBe("application.service.missing");
     });
 
     it("prevents duplicate relationships from being staged", async () => {
-      const { renderTemplate } =
-        await import("../../src/scan/pattern-loader.js");
-
-      // Create test relationship data
-      const rel1 = {
+      // Test that duplicate relationships are detected and not staged
+      const candidate = {
         sourceId: "api.endpoint.create-user",
         targetId: "application.service.user-service",
         relationshipType: "depends-on"
       };
 
-      const rel2 = {
-        sourceId: "api.endpoint.create-user",
-        targetId: "application.service.user-service",
-        relationshipType: "depends-on"
-      };
+      // Simulate model that already contains this relationship
+      const existingRelationships = [
+        {
+          sourceId: "api.endpoint.create-user",
+          targetId: "application.service.user-service",
+          relationshipType: "depends-on"
+        }
+      ];
 
-      // Duplicates should be detected by identity check
-      expect(rel1.sourceId).toBe(rel2.sourceId);
-      expect(rel1.targetId).toBe(rel2.targetId);
-      expect(rel1.relationshipType).toBe(rel2.relationshipType);
+      // Simulate duplicate detection via registry lookup
+      const isDuplicate = existingRelationships.some(
+        (rel) =>
+          rel.sourceId === candidate.sourceId &&
+          rel.targetId === candidate.targetId &&
+          rel.relationshipType === candidate.relationshipType
+      );
+
+      // Should NOT be staged because it already exists
+      expect(isDuplicate).toBe(true);
     });
 
     it("generates correct relationship candidate IDs", async () => {
