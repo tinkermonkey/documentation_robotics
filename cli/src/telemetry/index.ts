@@ -31,7 +31,7 @@ let sdk: NodeSDK | null = null;
 let tracer: Tracer | null = null;
 let loggerProvider: any = null; // LoggerProvider type
 let logger: OTelLogger | null = null;
-let spanProcessor: any = null; // SimpleSpanProcessor type - stored for explicit forceFlush
+let spanProcessor: any = null; // BatchSpanProcessor instance - stored for explicit forceFlush
 
 // Cache OpenTelemetry API imports for synchronous access
 let cachedContext: any = null;
@@ -43,9 +43,9 @@ let cachedTrace: any = null;
  *
  * Initializes both TracerProvider and LoggerProvider with:
  * - Service name: from environment/config (default "dr-cli")
- * - Service version: from package.json
+ * - Service version: build-time constant
  * - Project name: from model manifest (if available)
- * - Processors: SimpleSpanProcessor and SimpleLogRecordProcessor
+ * - Processors: BatchSpanProcessor and SimpleLogRecordProcessor
  * - Exporters: ResilientOTLPExporter with circuit-breaker pattern
  *
  * OTLP configuration is loaded from multiple sources with precedence:

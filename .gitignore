@@ -84,3 +84,6 @@ cli-validation/test-project/python-cli/
 
 # CLI runtime test artifacts (generated during test execution)
 cli/documentation-robotics/
+
+# Configuration files (environment-specific)
+.dr-config.yaml
