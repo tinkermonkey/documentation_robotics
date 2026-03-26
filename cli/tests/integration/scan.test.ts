@@ -971,27 +971,5 @@ describe("Scan Command", () => {
       expect(validTargetId).toBe("application.service.user-service");
       expect(validTargetId.includes(".")).toBe(true);
     });
-
-    it("rejects relationship patterns that produce bare names via mapToRelationshipCandidate", async () => {
-      // This test verifies that mapToRelationshipCandidate function throws clear errors
-      // when patterns render to bare names instead of fully-qualified IDs
-
-      // We can't directly test mapToRelationshipCandidate without mocking the entire
-      // pattern system, but we can verify the validation logic and error messages
-      // by ensuring they follow the expected behavior.
-
-      // The error message structure is tested indirectly through the pattern validation
-      // in the bare-name validation test above. The actual mapToRelationshipCandidate
-      // function validates both source and target IDs with clear error messages that
-      // include the expected format and valid layer names from LAYER_INDEX.
-
-      // This ensures that bare names are caught early with:
-      // - The actual bare name that was rendered (e.g., "user-service")
-      // - The expected format (e.g., "api.endpoint.kebab-case-name")
-      // - List of valid layer names from LAYER_INDEX
-      // - Guidance that the pattern's mapping should produce complete IDs
-
-      expect(true).toBe(true); // Placeholder for structure; actual validation occurs in mapToRelationshipCandidate
-    });
   });
 });
