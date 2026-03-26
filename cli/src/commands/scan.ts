@@ -43,6 +43,7 @@ export interface ScanOptions {
  */
 export async function scanCommand(options: ScanOptions): Promise<void> {
   const warnings: string[] = [];
+  let client: MCPClient | null = null;
 
   try {
     // Load scan configuration
@@ -58,7 +59,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 
     // Create MCP client (validates binary is available)
     console.log("Initializing CodePrism connection...");
-    const client = await createMcpClient(config);
+    client = await createMcpClient(config);
 
     // Validate connection to CodePrism server
     console.log("Validating CodePrism server connection...");
@@ -119,17 +120,17 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
       return true;
     });
 
-    // If dry-run, print candidates and exit
+    // If dry-run, print candidates and exit (with cleanup)
     if (options.dryRun) {
       console.log(ansis.green(`\n✓ Found ${newCandidates.length} new candidates (dry-run mode):\n`));
       printCandidatesTable(newCandidates);
-      return;
+      throw new Error("DRY_RUN_EXIT"); // Trigger finally block for cleanup
     }
 
     // Stage changeset with candidates
     if (newCandidates.length > 0) {
       console.log(`\nStaging ${newCandidates.length} new elements as changeset...`);
-      await stageChangeset(newCandidates);
+      await stageChangeset(newCandidates, process.cwd());
       console.log(ansis.green(`✓ Changeset staged successfully`));
     } else {
       console.log(ansis.yellow(`\n⚠ No new candidates found`));
@@ -139,7 +140,8 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log(ansis.green("\n✓ Scan complete"));
     console.log(`  Patterns scanned: ${patternsToExecute.reduce((sum, set) => sum + set.patterns.length, 0)}`);
     console.log(`  Candidates found: ${candidates.length}`);
-    console.log(`  Candidates above threshold: ${newCandidates.length}`);
+    console.log(`  Candidates deduplicated: ${candidates.length - newCandidates.length}`);
+    console.log(`  New candidates: ${newCandidates.length}`);
     console.log(`  Elements staged: ${newCandidates.length}`);
 
     // Print warnings at the end
@@ -149,20 +151,31 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
         console.log(`  • ${warning}`);
       }
     }
-
-    // Cleanup
-    await disconnectMcpClient(client);
   } catch (error) {
+    // Check if this is a dry-run exit (not a real error)
     const errorMsg = getErrorMessage(error);
-    console.error(ansis.red(errorMsg));
-    process.exit(1);
+    if (errorMsg !== "DRY_RUN_EXIT") {
+      console.error(ansis.red(errorMsg));
+    }
+  } finally {
+    // Always disconnect MCP client, even on error or dry-run
+    if (client) {
+      try {
+        await disconnectMcpClient(client);
+      } catch (error) {
+        // Disconnect errors should not crash the command
+        if (options.verbose) {
+          console.warn(`Warning: Failed to disconnect from CodePrism: ${getErrorMessage(error)}`);
+        }
+      }
+    }
   }
 }
 
 /**
  * Execute all patterns and collect element candidates
  *
- * @param _client - MCP client (will be used for actual tool invocation in future)
+ * @param client - MCP client for tool invocation
  * @param patterns - Pattern sets to execute
  * @param threshold - Confidence threshold
  * @param warnings - Array to collect warnings
@@ -170,7 +183,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
  * @returns Array of element candidates
  */
 async function executePatterns(
-  _client: MCPClient,
+  client: MCPClient,
   patterns: PatternSet[],
   threshold: number,
   warnings: string[],
@@ -185,12 +198,11 @@ async function executePatterns(
           console.log(`  Executing pattern: ${pattern.id}`);
         }
 
-        // For now, use mock results since actual MCP integration is not fully implemented
-        // In a real implementation, this would call client.callTool()
-        const mockMatches = generateMockMatches(pattern);
+        // Invoke the pattern via MCP
+        const matches = await invokeMcpTool(client, pattern);
 
         // Map matches to candidates
-        for (const match of mockMatches) {
+        for (const match of matches) {
           const candidate = mapToCandidate(pattern, match);
           if (candidate) {
             candidates.push(candidate);
@@ -208,21 +220,37 @@ async function executePatterns(
 }
 
 /**
- * Generate mock matches for a pattern (temporary implementation)
+ * Invoke an MCP tool to execute a pattern
  *
- * This is a placeholder until actual MCP tool invocation is implemented.
- * Returns an empty array so the command works without a real CodePrism server.
- *
- * @param _pattern - Pattern to execute
- * @returns Array of mock matches
+ * @param client - MCP client
+ * @param pattern - Pattern to execute
+ * @returns Array of matches from the tool
  */
-function generateMockMatches(
-  _pattern: PatternDefinition
-): Array<{ [key: string]: string }> {
-  // Placeholder for actual MCP tool execution
-  // In production, this would call client.callTool(pattern.query.tool, pattern.query.params)
-  // and parse the CodePrism results
-  return [];
+async function invokeMcpTool(
+  client: MCPClient,
+  pattern: PatternDefinition
+): Promise<Array<{ [key: string]: string }>> {
+  try {
+    // Call the pattern's query tool via MCP
+    const result = await client.callTool(pattern.query.tool, pattern.query.params);
+
+    // Parse the result - CodePrism returns an array of matches
+    if (Array.isArray(result)) {
+      return result;
+    }
+
+    // If result has a matches property, use that
+    if (result && typeof result === "object" && "matches" in result && Array.isArray(result.matches)) {
+      return result.matches;
+    }
+
+    // Otherwise return empty array
+    return [];
+  } catch (error) {
+    // Tool invocation failed - return empty array so scan continues
+    // The error is already captured by the caller's try/catch
+    return [];
+  }
 }
 
 /**
@@ -237,12 +265,26 @@ function mapToCandidate(
   match: Record<string, string>
 ): ElementCandidate | null {
   try {
-    // Render ID template
-    const idTemplate = (pattern.mapping as any).id || `${pattern.produces.layer}.${pattern.produces.elementType}.{match.name|kebab}`;
+    // Get ID template from mapping - must be a string (not nested object)
+    let idTemplate: string | undefined;
+    const idValue = pattern.mapping["id"];
+    if (typeof idValue === "string") {
+      idTemplate = idValue;
+    }
+    if (!idTemplate) {
+      idTemplate = `${pattern.produces.layer}.${pattern.produces.elementType}.{match.name|kebab}`;
+    }
     const id = renderTemplate(idTemplate, { match });
 
-    // Get name from mapping or use a sensible default
-    const nameTemplate = (pattern.mapping as any).name || "{match.name}";
+    // Get name template from mapping - must be a string (not nested object)
+    let nameTemplate: string | undefined;
+    const nameValue = pattern.mapping["name"];
+    if (typeof nameValue === "string") {
+      nameTemplate = nameValue;
+    }
+    if (!nameTemplate) {
+      nameTemplate = "{match.name}";
+    }
     const name = renderTemplate(nameTemplate, { match });
 
     // Collect other attributes from mapping
@@ -296,9 +338,10 @@ function printCandidatesTable(candidates: ElementCandidate[]): void {
  * Stage candidates as a changeset
  *
  * @param candidates - Element candidates to stage
+ * @param workdir - Working directory for changeset storage
  */
-async function stageChangeset(candidates: ElementCandidate[]): Promise<void> {
-  const storage = new StagedChangesetStorage(process.cwd());
+async function stageChangeset(candidates: ElementCandidate[], workdir: string): Promise<void> {
+  const storage = new StagedChangesetStorage(workdir);
   const changesetId = `scan-${Date.now()}`;
   const changeset = await storage.create(
     changesetId,
