@@ -206,37 +206,107 @@ export async function loadBuiltinPatterns(): Promise<PatternSet[]> {
  * Load pattern files from a project-specific directory
  *
  * Allows users to extend built-in patterns with project-specific pattern definitions.
+ * Pattern files are discovered from `{projectRoot}/documentation-robotics/.scan-patterns/`.
+ * Project patterns follow the same schema as built-in patterns and can override
+ * built-in patterns with matching IDs via mergePatterns().
+ *
  * Not required for basic functionality (built-in patterns are sufficient).
+ * If the directory doesn't exist, returns an empty array.
  *
  * @param projectRoot - Root directory to search for pattern files
- * @param patternDir - Subdirectory within projectRoot (default: .dr/patterns)
+ * @param patternDir - Subdirectory within projectRoot (default: documentation-robotics/.scan-patterns)
  * @returns Array of pattern sets from project, or empty array if directory doesn't exist
+ * @throws PatternValidationError if a project pattern file fails schema validation
  *
  * @example
  * ```typescript
  * const projectPatterns = await loadProjectPatterns(process.cwd());
  * ```
- *
- * @todo Implement in Phase 3 (https://github.com/tinkermonkey/documentation_robotics/issues/...)
  */
 export async function loadProjectPatterns(
-  _projectRoot: string,
-  _patternDir: string = ".dr/patterns"
+  projectRoot: string,
+  patternDir: string = "documentation-robotics/.scan-patterns"
 ): Promise<PatternSet[]> {
-  // Implementation placeholder - not required for Phase 2
-  // This will be implemented in a future phase for user-defined patterns
-  return [];
+  const fullPath = join(projectRoot, patternDir);
+
+  // Check if directory exists
+  try {
+    const stat = await readdir(fullPath, { withFileTypes: true });
+    if (!stat || stat.length === 0) {
+      return [];
+    }
+  } catch (error) {
+    // ENOENT = directory doesn't exist, which is fine
+    if (error instanceof Error && error.message.includes("ENOENT")) {
+      return [];
+    }
+    // Other errors (permissions, etc.) should be thrown
+    throw error;
+  }
+
+  const patterns: PatternSet[] = [];
+
+  // Recursively discover all .yaml files
+  async function walkDir(dir: string): Promise<string[]> {
+    const files: string[] = [];
+    const entries = await readdir(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...(await walkDir(entryPath)));
+      } else if (entry.name.endsWith(".yaml")) {
+        files.push(entryPath);
+      }
+    }
+
+    return files;
+  }
+
+  const patternFiles = await walkDir(fullPath);
+
+  // Load each pattern file, with detailed error reporting
+  for (const filePath of patternFiles) {
+    try {
+      const content = await readFile(filePath, "utf-8");
+      const parsed = parse(content);
+
+      // Validate against pattern set schema
+      const patternSet = PatternSetSchema.parse(parsed);
+      patterns.push(patternSet);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const messages = error.issues.map((issue) => `${issue.path.join(".")} - ${issue.message}`).join("; ");
+        throw new Error(`Invalid project pattern file ${filePath}: ${messages}`);
+      } else if (error instanceof Error && error.message.includes("ENOENT")) {
+        throw new Error(`Project pattern file not found: ${filePath}`);
+      } else {
+        throw new Error(
+          `Failed to load project pattern file ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+  }
+
+  return patterns;
 }
 
 /**
  * Merge builtin and project patterns
  *
- * Project patterns override built-in patterns with matching IDs.
- * Maintains order: built-in patterns first, then project patterns.
+ * Merges patterns with the following semantics:
+ * - Start with all builtin patterns
+ * - For each project pattern: if its ID matches a builtin pattern ID, replace it (override)
+ * - Otherwise append the project pattern (new project-only frameworks/patterns)
+ * - Merged set enforces pattern ID uniqueness
+ *
+ * Pattern ID uniqueness is enforced within the merged set. Duplicate IDs across
+ * project patterns (same ID appearing in multiple project frameworks) are treated as errors.
  *
  * @param builtin - Built-in pattern sets
  * @param project - Project-specific pattern sets
- * @returns Merged array of pattern sets
+ * @returns Merged array of pattern sets with override semantics applied
+ * @throws Error if pattern IDs are not unique after merging
  *
  * @example
  * ```typescript
@@ -246,29 +316,74 @@ export async function loadProjectPatterns(
  * ```
  */
 export function mergePatterns(builtin: PatternSet[], project: PatternSet[]): PatternSet[] {
-  // Create a map of built-in pattern IDs for quick lookup
-  const builtinMap = new Map<string, PatternSet>();
+  // Map of pattern ID to its definition for override detection
+  // Also track which builtin pattern IDs exist
+  const patternIdMap = new Map<string, PatternDefinition>();
+  const builtinPatternIds = new Set<string>();
+
+  // First pass: index all builtin patterns by ID
   for (const patternSet of builtin) {
-    const key = `${patternSet.framework}:${patternSet.version || "default"}`;
-    builtinMap.set(key, patternSet);
-  }
-
-  // Start with built-in patterns
-  const merged: PatternSet[] = [...builtin];
-
-  // Override with project patterns that have the same framework
-  for (const projectSet of project) {
-    const key = `${projectSet.framework}:${projectSet.version || "default"}`;
-    const builtinIndex = merged.findIndex((p) => `${p.framework}:${p.version || "default"}` === key);
-
-    if (builtinIndex >= 0) {
-      merged[builtinIndex] = projectSet;
-    } else {
-      merged.push(projectSet);
+    for (const pattern of patternSet.patterns) {
+      patternIdMap.set(pattern.id, pattern);
+      builtinPatternIds.add(pattern.id);
     }
   }
 
-  return merged;
+  // Second pass: index project patterns and apply overrides
+  // Track which non-builtin project pattern IDs we've seen to catch duplicates
+  const seenProjectOnlyIds = new Set<string>();
+
+  for (const projectSet of project) {
+    for (const pattern of projectSet.patterns) {
+      const isBuiltinPattern = builtinPatternIds.has(pattern.id);
+
+      // Check for duplicate IDs within project patterns (only for new/non-builtin patterns)
+      if (!isBuiltinPattern && seenProjectOnlyIds.has(pattern.id)) {
+        throw new Error(`Duplicate pattern ID after merge: ${pattern.id}`);
+      }
+
+      // Track this project-only ID
+      if (!isBuiltinPattern) {
+        seenProjectOnlyIds.add(pattern.id);
+      }
+
+      // Override builtin pattern if it exists, or add new pattern
+      patternIdMap.set(pattern.id, pattern);
+    }
+  }
+
+  // Third pass: rebuild pattern sets maintaining framework structure
+  const resultSets: PatternSet[] = [];
+  const processedFrameworks = new Set<string>();
+
+  // Process builtin pattern sets first (maintain order)
+  for (const builtinSet of builtin) {
+    const setKey = `${builtinSet.framework}:${builtinSet.version || "default"}`;
+    processedFrameworks.add(setKey);
+
+    // Collect patterns for this framework (may include overrides from project)
+    const mergedPatterns = builtinSet.patterns
+      .map((p) => patternIdMap.get(p.id))
+      .filter((p): p is PatternDefinition => p !== undefined);
+
+    if (mergedPatterns.length > 0) {
+      resultSets.push({
+        ...builtinSet,
+        patterns: mergedPatterns,
+      });
+    }
+  }
+
+  // Then add project frameworks that don't have a builtin counterpart
+  for (const projectSet of project) {
+    const setKey = `${projectSet.framework}:${projectSet.version || "default"}`;
+    if (!processedFrameworks.has(setKey)) {
+      resultSets.push(projectSet);
+      processedFrameworks.add(setKey);
+    }
+  }
+
+  return resultSets;
 }
 
 /**

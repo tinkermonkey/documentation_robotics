@@ -307,7 +307,7 @@ describe("Pattern Loader", () => {
       expect(merged[1].framework).toBe("custom");
     });
 
-    it("project patterns override builtin patterns with same framework", () => {
+    it("project patterns override builtin patterns with same ID", () => {
       const builtinPatterns: PatternSet[] = [
         {
           layer: "api",
@@ -328,11 +328,10 @@ describe("Pattern Loader", () => {
       const projectPatterns: PatternSet[] = [
         {
           layer: "api",
-          framework: "nestjs",
-          version: "1.0",
+          framework: "custom",
           patterns: [
             {
-              id: "nestjs.custom",
+              id: "nestjs.controller", // Same ID as builtin - should override
               produces: { type: "node", layer: "api", elementType: "endpoint" },
               query: { tool: "search_code" },
               confidence: 0.75,
@@ -344,24 +343,158 @@ describe("Pattern Loader", () => {
 
       const merged = mergePatterns(builtinPatterns, projectPatterns);
 
-      expect(merged.length).toBe(1);
-      expect(merged[0].patterns[0].id).toBe("nestjs.custom");
+      // Should have 2 frameworks: nestjs and custom
+      expect(merged.length).toBe(2);
+
+      // Find nestjs and verify it has the overridden pattern
+      const nestjsSet = merged.find((p) => p.framework === "nestjs");
+      expect(nestjsSet?.patterns[0].id).toBe("nestjs.controller");
+      expect(nestjsSet?.patterns[0].confidence).toBe(0.75); // From project
+      expect((nestjsSet?.patterns[0].mapping as any).id).toBe("api.endpoint.custom");
+
+      // Custom framework should also be present
+      const customSet = merged.find((p) => p.framework === "custom");
+      expect(customSet).toBeDefined();
     });
 
-    it("preserves builtin patterns order", () => {
+    it("preserves builtin patterns order when no overrides", () => {
       const builtinPatterns: PatternSet[] = [
-        { layer: "api", framework: "nestjs", patterns: [] },
-        { layer: "api", framework: "express", patterns: [] },
-        { layer: "data-model", framework: "typeorm", patterns: [] },
+        {
+          layer: "api",
+          framework: "nestjs",
+          patterns: [
+            {
+              id: "nestjs.test",
+              produces: { type: "node", layer: "api", elementType: "endpoint" },
+              query: { tool: "test" },
+              confidence: 0.8,
+              mapping: { id: "api.test" },
+            },
+          ],
+        },
+        {
+          layer: "api",
+          framework: "express",
+          patterns: [
+            {
+              id: "express.test",
+              produces: { type: "node", layer: "api", elementType: "endpoint" },
+              query: { tool: "test" },
+              confidence: 0.8,
+              mapping: { id: "api.test" },
+            },
+          ],
+        },
+        {
+          layer: "data-model",
+          framework: "typeorm",
+          patterns: [
+            {
+              id: "typeorm.test",
+              produces: { type: "node", layer: "data-model", elementType: "entity" },
+              query: { tool: "test" },
+              confidence: 0.8,
+              mapping: { id: "data-model.test" },
+            },
+          ],
+        },
       ];
 
       const projectPatterns: PatternSet[] = [];
 
       const merged = mergePatterns(builtinPatterns, projectPatterns);
 
+      expect(merged.length).toBe(3);
       expect(merged[0].framework).toBe("nestjs");
       expect(merged[1].framework).toBe("express");
       expect(merged[2].framework).toBe("typeorm");
+    });
+
+    it("Phase 4: project pattern with matching ID overrides builtin pattern", () => {
+      const builtinPatterns: PatternSet[] = [
+        {
+          layer: "api",
+          framework: "nestjs",
+          version: "1.0",
+          patterns: [
+            {
+              id: "nestjs.controller.route",
+              produces: { type: "node", layer: "api", elementType: "endpoint" },
+              query: { tool: "search_code" },
+              confidence: 0.85,
+              mapping: { id: "api.endpoint.builtin" },
+            },
+          ],
+        },
+      ];
+
+      const projectPatterns: PatternSet[] = [
+        {
+          layer: "api",
+          framework: "custom",
+          patterns: [
+            {
+              id: "nestjs.controller.route", // Same ID as builtin
+              produces: { type: "node", layer: "api", elementType: "endpoint" },
+              query: { tool: "search_code" },
+              confidence: 0.95,
+              mapping: { id: "api.endpoint.custom-override" },
+            },
+          ],
+        },
+      ];
+
+      const merged = mergePatterns(builtinPatterns, projectPatterns);
+
+      // Should have 2 pattern sets (nestjs and custom)
+      expect(merged.length).toBe(2);
+
+      // Find the nestjs pattern set and verify the override
+      const nestjsSet = merged.find((p) => p.framework === "nestjs");
+      expect(nestjsSet).toBeDefined();
+      expect(nestjsSet?.patterns[0].confidence).toBe(0.95);
+      expect(nestjsSet?.patterns[0].mapping.id).toBe("api.endpoint.custom-override");
+
+      // Custom framework should also be in result
+      const customSet = merged.find((p) => p.framework === "custom");
+      expect(customSet).toBeDefined();
+    });
+
+    it("Phase 4: duplicate project pattern IDs in non-builtin patterns throw error", () => {
+      // When the same pattern ID appears in two different project frameworks (not overriding builtin),
+      // it should throw an error
+      const builtinPatterns: PatternSet[] = [];
+
+      const projectPatterns: PatternSet[] = [
+        {
+          layer: "api",
+          framework: "custom1",
+          patterns: [
+            {
+              id: "custom.newpattern",
+              produces: { type: "node", layer: "api", elementType: "endpoint" },
+              query: { tool: "search_code" },
+              confidence: 0.8,
+              mapping: { id: "api.endpoint.dup1" },
+            },
+          ],
+        },
+        {
+          layer: "api",
+          framework: "custom2",
+          patterns: [
+            {
+              id: "custom.newpattern", // Duplicate ID not in builtin
+              produces: { type: "node", layer: "api", elementType: "endpoint" },
+              query: { tool: "search_code" },
+              confidence: 0.8,
+              mapping: { id: "api.endpoint.dup2" },
+            },
+          ],
+        },
+      ];
+
+      expect(() => mergePatterns(builtinPatterns, projectPatterns)).toThrow(/Duplicate pattern ID/);
     });
   });
 

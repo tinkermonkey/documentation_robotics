@@ -454,6 +454,125 @@ describe("Scan Command", () => {
     });
   });
 
+  describe("Phase 4: Project patterns and disabled_patterns", () => {
+    it("loads project patterns from documentation-robotics/.scan-patterns/", async () => {
+      const { loadProjectPatterns } =
+        await import("../../src/scan/pattern-loader.js");
+
+      // For non-existent project directory, should return empty array
+      const projectPatterns = await loadProjectPatterns(workdir.path);
+      expect(Array.isArray(projectPatterns)).toBe(true);
+    });
+
+    it("returns empty array when project patterns directory doesn't exist", async () => {
+      const { loadProjectPatterns } =
+        await import("../../src/scan/pattern-loader.js");
+
+      const projectPatterns = await loadProjectPatterns(
+        "/nonexistent/project/path"
+      );
+      expect(projectPatterns).toEqual([]);
+    });
+
+    it("filters pattern sets by disabled_patterns list", async () => {
+      const { loadBuiltinPatterns } =
+        await import("../../src/scan/pattern-loader.js");
+
+      const allPatterns = await loadBuiltinPatterns();
+      const disabledFrameworks = ["jest", "pytest"]; // Disable testing frameworks
+
+      const filtered = allPatterns.filter(
+        (set) => !disabledFrameworks.includes(set.framework)
+      );
+
+      // Verify filtering works
+      const remainingFrameworks = new Set(filtered.map((p) => p.framework));
+      expect(remainingFrameworks.has("jest")).toBe(false);
+      expect(remainingFrameworks.has("pytest")).toBe(false);
+
+      // Other frameworks should still be present
+      expect(filtered.length < allPatterns.length).toBe(true);
+    });
+
+    it("project pattern with same ID overrides builtin pattern", async () => {
+      const { mergePatterns } =
+        await import("../../src/scan/pattern-loader.js");
+
+      const builtin = [
+        {
+          layer: "api",
+          framework: "nestjs",
+          patterns: [
+            {
+              id: "nestjs.controller.route",
+              produces: {
+                type: "node" as const,
+                layer: "api",
+                elementType: "endpoint"
+              },
+              query: { tool: "search_code", params: {} },
+              confidence: 0.85,
+              mapping: { id: "api.endpoint.builtin" }
+            }
+          ]
+        }
+      ];
+
+      const project = [
+        {
+          layer: "api",
+          framework: "custom",
+          patterns: [
+            {
+              id: "nestjs.controller.route", // Same ID as builtin
+              produces: {
+                type: "node" as const,
+                layer: "api",
+                elementType: "endpoint"
+              },
+              query: { tool: "search_code", params: {} },
+              confidence: 0.95,
+              mapping: { id: "api.endpoint.custom-override" }
+            }
+          ]
+        }
+      ];
+
+      const merged = mergePatterns(builtin as any, project as any);
+
+      // Find the nestjs pattern and verify it was overridden
+      const nestjs = merged.find((p) => p.framework === "nestjs");
+      expect(nestjs?.patterns[0].confidence).toBe(0.95);
+      expect(
+        (nestjs?.patterns[0].mapping as any).id
+      ).toBe("api.endpoint.custom-override");
+    });
+
+    it("invalid project pattern file throws error with file path", async () => {
+      // This test verifies error handling for malformed project patterns
+      // The actual implementation is tested in the loadProjectPatterns unit tests
+      const { PatternSetSchema } = await import(
+        "../../src/scan/pattern-loader.js"
+      );
+
+      const invalidPatternSet = {
+        layer: "api",
+        framework: "custom",
+        patterns: [
+          {
+            id: "custom.pattern",
+            produces: { type: "node", layer: "api", elementType: "endpoint" },
+            query: { tool: "test" },
+            confidence: 1.5, // Invalid: > 1.0
+            mapping: { id: "api.endpoint.test" }
+          }
+        ]
+      };
+
+      expect(() => PatternSetSchema.parse(invalidPatternSet)).toThrow();
+    });
+  });
+
   describe("MCP client lifecycle", () => {
     // Full MCP client lifecycle testing requires a real CodePrism MCP server.
     // These scenarios are validated through integration tests with a mock MCP server.

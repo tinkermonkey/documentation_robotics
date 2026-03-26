@@ -22,7 +22,7 @@
  */
 
 import ansis from "ansis";
-import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
+import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient, type ScanConfig } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
 import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, type PatternDefinition, type PatternSet, type ElementCandidate } from "../scan/pattern-loader.js";
 import { getErrorMessage } from "../utils/errors.js";
@@ -34,6 +34,21 @@ export interface ScanOptions {
   dryRun?: boolean;
   layer?: string;
   verbose?: boolean;
+}
+
+/**
+ * Filter pattern sets by removing those whose framework appears in disabled_patterns list
+ *
+ * @param patterns - Pattern sets to filter
+ * @param disabledPatterns - List of framework names to disable
+ * @returns Pattern sets after removing disabled frameworks
+ */
+function filterDisabledPatterns(patterns: PatternSet[], disabledPatterns?: string[]): PatternSet[] {
+  if (!disabledPatterns || disabledPatterns.length === 0) {
+    return patterns;
+  }
+
+  return patterns.filter((patternSet) => !disabledPatterns.includes(patternSet.framework));
 }
 
 /**
@@ -73,13 +88,21 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log("\nLoading pattern library...");
     const builtinPatterns = await loadBuiltinPatterns();
     const projectPatterns = await loadProjectPatterns(process.cwd());
-    const allPatterns = mergePatterns(builtinPatterns, projectPatterns);
+    const mergedPatterns = mergePatterns(builtinPatterns, projectPatterns);
+
+    // Apply disabled patterns filter
+    const allPatterns = filterDisabledPatterns(mergedPatterns, config.disabled_patterns);
 
     console.log(ansis.green(`✓ Loaded ${allPatterns.length} pattern sets`));
 
     // Count total patterns
     const totalPatterns = allPatterns.reduce((sum, set) => sum + set.patterns.length, 0);
     console.log(`  Total patterns: ${totalPatterns}`);
+
+    // Report disabled patterns if any
+    if (config.disabled_patterns && config.disabled_patterns.length > 0) {
+      console.log(`  Disabled frameworks: ${config.disabled_patterns.join(", ")}`);
+    }
 
     // Apply layer filter if specified
     let patternsToExecute = allPatterns;
