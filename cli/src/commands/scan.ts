@@ -530,6 +530,15 @@ function mapToRelationshipCandidate(
     }
     const sourceId = renderTemplate(sourceIdTemplate, { match });
 
+    // Validate that sourceId is a fully-qualified element ID
+    if (!sourceId.includes(".")) {
+      throw new Error(
+        `Source element ID is not fully-qualified: '${sourceId}'. ` +
+        `Expected format: '{layer}.{elementType}.{name}' (e.g., 'application.service.user-service'). ` +
+        `The pattern's 'source' mapping should render to a complete ID, not just a bare name.`
+      );
+    }
+
     // Get targetId template from mapping - support both "target" and "targetId" keys
     let targetIdTemplate: string | undefined;
     const targetIdValue = pattern.mapping["targetId"] || pattern.mapping["target"];
@@ -541,16 +550,39 @@ function mapToRelationshipCandidate(
     }
     const targetId = renderTemplate(targetIdTemplate, { match });
 
+    // Validate that targetId is a fully-qualified element ID
+    if (!targetId.includes(".")) {
+      throw new Error(
+        `Target element ID is not fully-qualified: '${targetId}'. ` +
+        `Expected format: '{layer}.{elementType}.{name}' (e.g., 'application.service.user-service'). ` +
+        `The pattern's 'target' mapping should render to a complete ID, not just a bare name.`
+      );
+    }
+
     // Get relationshipType from pattern definition
     const relationshipType = pattern.produces.relationshipType;
     if (!relationshipType) {
       throw new Error("Relationship pattern must define 'relationshipType' in produces");
     }
 
-    // Extract source layer from source element ID
+    // Extract source layer from source element ID (validation occurs here)
     const sourceLayer = extractLayerFromId(sourceId);
     if (!sourceLayer) {
-      throw new Error(`Invalid source element ID format: ${sourceId}`);
+      throw new Error(
+        `Invalid source element ID format: '${sourceId}'. ` +
+        `Expected format: '{layer}.{elementType}.{kebab-case-name}' where layer is one of: ` +
+        `${Object.keys(LAYER_INDEX).join(", ")}`
+      );
+    }
+
+    // Extract target layer from target element ID (validation occurs here)
+    const targetLayer = extractLayerFromId(targetId);
+    if (!targetLayer) {
+      throw new Error(
+        `Invalid target element ID format: '${targetId}'. ` +
+        `Expected format: '{layer}.{elementType}.{kebab-case-name}' where layer is one of: ` +
+        `${Object.keys(LAYER_INDEX).join(", ")}`
+      );
     }
 
     // Create relationship candidate ID

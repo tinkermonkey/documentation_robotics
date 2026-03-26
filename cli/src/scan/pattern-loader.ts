@@ -596,10 +596,12 @@ export function extractLayerFromId(elementId: string): string | null {
 }
 
 /**
- * Validate cross-layer relationship direction
+ * Validate relationship direction (same-layer and cross-layer)
  *
- * Relationships must follow the direction rule: source element's layer must be
- * numerically higher (later in the 12-layer sequence) than target element's layer.
+ * Relationship direction rules:
+ * - Same-layer (intra-layer): Always allowed - source and target in same layer
+ * - Cross-layer: source element's layer must be numerically higher (later in the 12-layer sequence)
+ *   than target element's layer. For example, api (6) can reference application (4), but not vice versa.
  *
  * @param sourceId - Source element ID
  * @param targetId - Target element ID
@@ -607,9 +609,12 @@ export function extractLayerFromId(elementId: string): string | null {
  *
  * @example
  * ```typescript
- * // Valid: api (6) → data-model (7) is invalid direction (but demonstrates extraction)
- * // Valid: api (6) → application (4) ✓
+ * // Valid cross-layer: api (6) → application (4) ✓
  * isValidRelationshipDirection("api.endpoint.create-order", "application.service.user-service") // => true
+ * // Valid same-layer: api (6) → api (6) ✓
+ * isValidRelationshipDirection("api.endpoint.get-users", "api.endpoint.post-user") // => true
+ * // Invalid: application (4) → api (6) ✗
+ * isValidRelationshipDirection("application.service.user", "api.endpoint.get-users") // => false
  * ```
  */
 export function isValidRelationshipDirection(sourceId: string, targetId: string): boolean {
@@ -627,6 +632,11 @@ export function isValidRelationshipDirection(sourceId: string, targetId: string)
     return false;
   }
 
-  // Valid cross-layer: source layer must be higher (greater index) than target layer
+  // Valid if same-layer (intra-layer relationships allowed)
+  if (sourceIndex === targetIndex) {
+    return true;
+  }
+
+  // For cross-layer: source layer must be higher (greater index) than target layer
   return sourceIndex > targetIndex;
 }

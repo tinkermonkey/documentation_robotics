@@ -641,11 +641,11 @@ describe("Scan Command", () => {
   });
 
   describe("Relationship candidate handling", () => {
-    it("validates cross-layer direction rule: higher layer → lower layer", async () => {
+    it("validates relationship direction: same-layer and cross-layer rules", async () => {
       const { isValidRelationshipDirection, extractLayerFromId, LAYER_INDEX } =
         await import("../../src/scan/pattern-loader.js");
 
-      // Valid relationships: higher layer index → lower layer index
+      // Valid cross-layer relationships: higher layer index → lower layer index
       expect(isValidRelationshipDirection(
         "api.endpoint.get-users",      // api = index 6
         "application.service.user-srv" // application = index 4
@@ -661,7 +661,18 @@ describe("Scan Command", () => {
         "data-model.entity.user"       // data-model = index 7
       )).toBe(true);
 
-      // Invalid relationships: lower layer index → higher layer index
+      // Valid same-layer (intra-layer) relationships
+      expect(isValidRelationshipDirection(
+        "api.endpoint.get-users",
+        "api.endpoint.post-user"       // Same layer allowed
+      )).toBe(true);
+
+      expect(isValidRelationshipDirection(
+        "application.service.user-service",
+        "application.service.order-service" // Same layer allowed
+      )).toBe(true);
+
+      // Invalid cross-layer relationships: lower layer index → higher layer index
       expect(isValidRelationshipDirection(
         "application.service.user",    // application = index 4
         "api.endpoint.get-users"       // api = index 6
@@ -670,12 +681,6 @@ describe("Scan Command", () => {
       expect(isValidRelationshipDirection(
         "business.process.order",      // business = index 2
         "application.service.order"    // application = index 4
-      )).toBe(false);
-
-      // Same layer relationships are invalid (must have different layers)
-      expect(isValidRelationshipDirection(
-        "api.endpoint.get-users",
-        "api.endpoint.post-user"
       )).toBe(false);
 
       // Invalid element ID format
