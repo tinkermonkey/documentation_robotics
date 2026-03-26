@@ -146,31 +146,6 @@ describe("expandWildcardElementId", () => {
   });
 });
 
-describe("mapToRelationshipCandidate dual-key acceptance", () => {
-  it("accepts 'source' and 'target' key names (canonical YAML keys)", async () => {
-    const { mapToRelationshipCandidate } = await import("../../../src/commands/scan.js");
-
-    // Note: mapToRelationshipCandidate is not exported, so this test documents the expected behavior
-    // The function should accept both key names as the code shows:
-    // const sourceIdValue = pattern.mapping["sourceId"] || pattern.mapping["source"];
-    // const targetIdValue = pattern.mapping["targetId"] || pattern.mapping["target"];
-  });
-
-  it("accepts 'sourceId' and 'targetId' key names (legacy code expectation)", async () => {
-    const { mapToRelationshipCandidate } = await import("../../../src/commands/scan.js");
-
-    // Note: mapToRelationshipCandidate is not exported, so this test documents the expected behavior
-    // The code supports both patterns for backwards compatibility
-  });
-
-  it("prioritizes 'sourceId' over 'source' when both are present", async () => {
-    // This documents the behavior: sourceId || source means sourceId takes precedence
-    // However, all canonical YAML files use only source/target, not both
-    // This is acceptable since:
-    // 1. No existing YAML files define both keys
-    // 2. Future patterns should consistently use one naming convention
-  });
-});
 
 describe("wildcard expansion with relationship candidates", () => {
   it("correctly expands both source and target wildcards in relationships", async () => {
