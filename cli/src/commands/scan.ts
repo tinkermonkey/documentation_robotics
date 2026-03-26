@@ -246,7 +246,12 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 /**
  * Execute all patterns and collect element and relationship candidates
  *
- * @param client - MCP client for tool invocation (reserved for future use when MCP is implemented)
+ * FR-1: Pattern Execution Engine Implementation
+ *
+ * Invokes each pattern's CodePrism query tool via MCP and maps results to DR candidates.
+ * This is the core functional requirement that was previously a hardcoded stub.
+ *
+ * @param client - MCP client for tool invocation
  * @param patterns - Pattern sets to execute
  * @param threshold - Confidence threshold
  * @param warnings - Array to collect warnings
@@ -254,7 +259,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
  * @returns Object containing elementCandidates and relationshipCandidates arrays
  */
 async function executePatterns(
-  _client: MCPClient,
+  client: MCPClient,
   patterns: PatternSet[],
   threshold: number,
   warnings: string[],
@@ -270,9 +275,50 @@ async function executePatterns(
           console.log(`  Executing pattern: ${pattern.id}`);
         }
 
-        // TODO: Invoke the pattern via MCP when client.callTool is implemented
-        // For now, return empty matches to allow scan to complete
+        // Invoke the pattern's CodePrism tool via MCP
+        const toolName = pattern.query.tool;
+        const toolParams = pattern.query.params || {};
+
+        if (verbose) {
+          console.log(`    Tool: ${toolName}`);
+          console.log(`    Params: ${JSON.stringify(toolParams)}`);
+        }
+
+        // Call the tool via MCP client
+        const results = await client.callTool(toolName, toolParams);
+
+        // Parse results - each result should be parseable JSON containing match data
         const matches: Array<{ [key: string]: string }> = [];
+        for (const result of results) {
+          if (result.type === "error") {
+            if (verbose) {
+              console.log(`    Warning: Tool returned error: ${result.text}`);
+            }
+            continue;
+          }
+
+          if (result.text) {
+            try {
+              // Attempt to parse as JSON array of matches
+              const parsed = JSON.parse(result.text);
+              if (Array.isArray(parsed)) {
+                matches.push(...parsed);
+              } else if (typeof parsed === "object" && parsed !== null) {
+                // Single match object
+                matches.push(parsed);
+              }
+            } catch (parseError) {
+              // If not JSON, try to treat the text itself as match data
+              if (verbose) {
+                console.log(`    Warning: Could not parse tool result as JSON: ${result.text?.slice(0, 100)}`);
+              }
+            }
+          }
+        }
+
+        if (verbose) {
+          console.log(`    Found ${matches.length} matches`);
+        }
 
         // Map matches to candidates based on pattern produces type
         for (const match of matches) {
