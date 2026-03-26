@@ -343,8 +343,8 @@ describe("Pattern Loader", () => {
 
       const merged = mergePatterns(builtinPatterns, projectPatterns);
 
-      // Should have 2 frameworks: nestjs and custom
-      expect(merged.length).toBe(2);
+      // Should have 1 framework (nestjs) since custom's only pattern overrides builtin
+      expect(merged.length).toBe(1);
 
       // Find nestjs and verify it has the overridden pattern
       const nestjsSet = merged.find((p) => p.framework === "nestjs");
@@ -352,9 +352,9 @@ describe("Pattern Loader", () => {
       expect(nestjsSet?.patterns[0].confidence).toBe(0.75); // From project
       expect((nestjsSet?.patterns[0].mapping as any).id).toBe("api.endpoint.custom");
 
-      // Custom framework should also be present
+      // Custom framework should NOT be present since all its patterns override builtin
       const customSet = merged.find((p) => p.framework === "custom");
-      expect(customSet).toBeDefined();
+      expect(customSet).toBeUndefined();
     });
 
     it("preserves builtin patterns order when no overrides", () => {
@@ -410,7 +410,7 @@ describe("Pattern Loader", () => {
       expect(merged[2].framework).toBe("typeorm");
     });
 
-    it("Phase 4: project pattern with matching ID overrides builtin pattern", () => {
+    it("project pattern with matching ID overrides builtin pattern", () => {
       const builtinPatterns: PatternSet[] = [
         {
           layer: "api",
@@ -434,7 +434,7 @@ describe("Pattern Loader", () => {
           framework: "custom",
           patterns: [
             {
-              id: "nestjs.controller.route", // Same ID as builtin
+              id: "nestjs.controller.route", // Same ID as builtin - overrides
               produces: { type: "node", layer: "api", elementType: "endpoint" },
               query: { tool: "search_code" },
               confidence: 0.95,
@@ -446,8 +446,8 @@ describe("Pattern Loader", () => {
 
       const merged = mergePatterns(builtinPatterns, projectPatterns);
 
-      // Should have 2 pattern sets (nestjs and custom)
-      expect(merged.length).toBe(2);
+      // Should have only 1 pattern set (nestjs) since custom's only pattern overrides builtin
+      expect(merged.length).toBe(1);
 
       // Find the nestjs pattern set and verify the override
       const nestjsSet = merged.find((p) => p.framework === "nestjs");
@@ -455,12 +455,12 @@ describe("Pattern Loader", () => {
       expect(nestjsSet?.patterns[0].confidence).toBe(0.95);
       expect(nestjsSet?.patterns[0].mapping.id).toBe("api.endpoint.custom-override");
 
-      // Custom framework should also be in result
+      // Custom framework should NOT be in result since all its patterns override builtin
       const customSet = merged.find((p) => p.framework === "custom");
-      expect(customSet).toBeDefined();
+      expect(customSet).toBeUndefined();
     });
 
-    it("Phase 4: duplicate project pattern IDs in non-builtin patterns throw error", () => {
+    it("duplicate project pattern IDs in non-builtin patterns throw error", () => {
       // When the same pattern ID appears in two different project frameworks (not overriding builtin),
       // it should throw an error
       const builtinPatterns: PatternSet[] = [];

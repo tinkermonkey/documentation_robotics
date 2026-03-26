@@ -127,6 +127,29 @@ export interface ElementCandidate {
 }
 
 /**
+ * Discover all .yaml files in a directory tree
+ *
+ * @param dir - Directory to search
+ * @returns Array of absolute paths to .yaml files
+ * @private
+ */
+async function discoverYamlFiles(dir: string): Promise<string[]> {
+  const files: string[] = [];
+  const entries = await readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await discoverYamlFiles(fullPath)));
+    } else if (entry.name.endsWith(".yaml")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+/**
  * Load all built-in pattern files from the CLI package
  *
  * Pattern files are embedded in the CLI distribution at cli/src/scan/patterns/
@@ -153,25 +176,7 @@ export async function loadBuiltinPatterns(): Promise<PatternSet[]> {
 
   const patterns: PatternSet[] = [];
 
-  // Recursively discover all .yaml files
-  // Simple recursive walker using async fs API for consistency
-  async function walkDir(dir: string): Promise<string[]> {
-    const files: string[] = [];
-    const entries = await readdir(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        files.push(...(await walkDir(fullPath)));
-      } else if (entry.name.endsWith(".yaml")) {
-        files.push(fullPath);
-      }
-    }
-
-    return files;
-  }
-
-  const patternFiles = await walkDir(patternsDir);
+  const patternFiles = await discoverYamlFiles(patternsDir);
 
   if (patternFiles.length === 0) {
     throw new Error("No pattern files found. Check that the patterns/ directory exists and contains YAML files.");
@@ -189,7 +194,7 @@ export async function loadBuiltinPatterns(): Promise<PatternSet[]> {
       if (error instanceof z.ZodError) {
         const messages = error.issues.map((issue) => `${issue.path.join(".")} - ${issue.message}`).join("; ");
         throw new Error(`Invalid pattern file ${fullPath}: ${messages}`);
-      } else if (error instanceof Error && error.message.includes("ENOENT")) {
+      } else if (error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT") {
         throw new Error(`Pattern file not found: ${fullPath}`);
       } else {
         throw new Error(
@@ -237,7 +242,7 @@ export async function loadProjectPatterns(
     }
   } catch (error) {
     // ENOENT = directory doesn't exist, which is fine
-    if (error instanceof Error && error.message.includes("ENOENT")) {
+    if (error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT") {
       return [];
     }
     // Other errors (permissions, etc.) should be thrown
@@ -246,24 +251,7 @@ export async function loadProjectPatterns(
 
   const patterns: PatternSet[] = [];
 
-  // Recursively discover all .yaml files
-  async function walkDir(dir: string): Promise<string[]> {
-    const files: string[] = [];
-    const entries = await readdir(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const entryPath = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        files.push(...(await walkDir(entryPath)));
-      } else if (entry.name.endsWith(".yaml")) {
-        files.push(entryPath);
-      }
-    }
-
-    return files;
-  }
-
-  const patternFiles = await walkDir(fullPath);
+  const patternFiles = await discoverYamlFiles(fullPath);
 
   // Load each pattern file, with detailed error reporting
   for (const filePath of patternFiles) {
@@ -278,7 +266,7 @@ export async function loadProjectPatterns(
       if (error instanceof z.ZodError) {
         const messages = error.issues.map((issue) => `${issue.path.join(".")} - ${issue.message}`).join("; ");
         throw new Error(`Invalid project pattern file ${filePath}: ${messages}`);
-      } else if (error instanceof Error && error.message.includes("ENOENT")) {
+      } else if (error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT") {
         throw new Error(`Project pattern file not found: ${filePath}`);
       } else {
         throw new Error(
@@ -320,6 +308,7 @@ export function mergePatterns(builtin: PatternSet[], project: PatternSet[]): Pat
   // Also track which builtin pattern IDs exist
   const patternIdMap = new Map<string, PatternDefinition>();
   const builtinPatternIds = new Set<string>();
+  const overridingProjectPatternIds = new Set<string>();
 
   // First pass: index all builtin patterns by ID
   for (const patternSet of builtin) {
@@ -345,6 +334,9 @@ export function mergePatterns(builtin: PatternSet[], project: PatternSet[]): Pat
       // Track this project-only ID
       if (!isBuiltinPattern) {
         seenProjectOnlyIds.add(pattern.id);
+      } else {
+        // Track which builtin pattern IDs are being overridden
+        overridingProjectPatternIds.add(pattern.id);
       }
 
       // Override builtin pattern if it exists, or add new pattern
@@ -374,11 +366,22 @@ export function mergePatterns(builtin: PatternSet[], project: PatternSet[]): Pat
     }
   }
 
-  // Then add project frameworks that don't have a builtin counterpart
+  // Then add project frameworks, but exclude patterns that override builtin ones
   for (const projectSet of project) {
     const setKey = `${projectSet.framework}:${projectSet.version || "default"}`;
     if (!processedFrameworks.has(setKey)) {
-      resultSets.push(projectSet);
+      // Filter out any patterns in this project set that are overriding builtin patterns
+      const projectOnlyPatterns = projectSet.patterns.filter(
+        (pattern) => !overridingProjectPatternIds.has(pattern.id)
+      );
+
+      // Only add the project set if it has patterns after filtering
+      if (projectOnlyPatterns.length > 0) {
+        resultSets.push({
+          ...projectSet,
+          patterns: projectOnlyPatterns,
+        });
+      }
       processedFrameworks.add(setKey);
     }
   }

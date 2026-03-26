@@ -43,7 +43,7 @@ export interface ScanOptions {
  * @param disabledPatterns - List of framework names to disable
  * @returns Pattern sets after removing disabled frameworks
  */
-function filterDisabledPatterns(patterns: PatternSet[], disabledPatterns?: string[]): PatternSet[] {
+export function filterDisabledPatterns(patterns: PatternSet[], disabledPatterns?: string[]): PatternSet[] {
   if (!disabledPatterns || disabledPatterns.length === 0) {
     return patterns;
   }

@@ -454,7 +454,7 @@ describe("Scan Command", () => {
     });
   });
 
-  describe("Phase 4: Project patterns and disabled_patterns", () => {
+  describe("Project patterns and disabled patterns", () => {
     it("loads project patterns from documentation-robotics/.scan-patterns/", async () => {
       const { loadProjectPatterns } =
         await import("../../src/scan/pattern-loader.js");
@@ -477,13 +477,13 @@ describe("Scan Command", () => {
     it("filters pattern sets by disabled_patterns list", async () => {
       const { loadBuiltinPatterns } =
         await import("../../src/scan/pattern-loader.js");
+      const { filterDisabledPatterns } =
+        await import("../../src/commands/scan.js");
 
       const allPatterns = await loadBuiltinPatterns();
       const disabledFrameworks = ["jest", "pytest"]; // Disable testing frameworks
 
-      const filtered = allPatterns.filter(
-        (set) => !disabledFrameworks.includes(set.framework)
-      );
+      const filtered = filterDisabledPatterns(allPatterns, disabledFrameworks);
 
       // Verify filtering works
       const remainingFrameworks = new Set(filtered.map((p) => p.framework));
