@@ -65,8 +65,8 @@ export interface ToolResult {
 export interface MCPClient {
   isConnected: boolean;
   endpoint?: string;
-  disconnect?: () => Promise<void>;
-  callTool: (toolName: string, args: Record<string, unknown>) => Promise<ToolResult[]>;
+  disconnect: () => Promise<void>;
+  callTool: (toolName: string, toolArgs: Record<string, unknown>) => Promise<ToolResult[]>;
   listTools: () => Promise<Tool[]>;
 }
 
@@ -146,10 +146,14 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
 
   try {
     // @ts-ignore - MCP SDK will be installed at runtime
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mcpModule = await import("@modelcontextprotocol/sdk/client/stdio.js");
-    ClientClass = mcpModule.Client;
-    StdioClientTransportClass = mcpModule.StdioClientTransport;
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    const clientModule = await import("@modelcontextprotocol/sdk/client/index.js");
+    ClientClass = clientModule.Client;
+
+    // @ts-ignore - MCP SDK will be installed at runtime
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    const stdioModule = await import("@modelcontextprotocol/sdk/client/stdio.js");
+    StdioClientTransportClass = stdioModule.StdioClientTransport;
   } catch (importError) {
     throw new Error(
       "MCP SDK not installed. Please install with:\n" +
@@ -203,10 +207,15 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
 
   // Wrapper client object
   const client: MCPClient = {
-    isConnected: isConnectedFlag,
+    get isConnected(): boolean {
+      return isConnectedFlag;
+    },
+    set isConnected(value: boolean) {
+      isConnectedFlag = value;
+    },
     endpoint: `${command}:${args.join(" ")}`,
 
-    async callTool(toolName: string, args: Record<string, unknown>): Promise<ToolResult[]> {
+    async callTool(toolName: string, toolArgs: Record<string, unknown>): Promise<ToolResult[]> {
       if (!actualClient) {
         throw new Error("MCP client not connected");
       }
@@ -215,7 +224,7 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
         const result = await (actualClient as any).callTool(
           {
             name: toolName,
-            arguments: args,
+            arguments: toolArgs,
           },
           {}
         );
@@ -315,8 +324,9 @@ export async function validateConnection(client: MCPClient): Promise<void> {
 
     client.isConnected = true;
   } catch (error) {
+    // Preserve the original error while adding context
     const errorMsg = getErrorMessage(error);
-    throw new Error(
+    const wrappedError = new Error(
       `Error: Cannot reach CodePrism MCP server (${client.endpoint})\n\n` +
         `Details: ${errorMsg}\n\n` +
         "Suggestions:\n" +
@@ -325,6 +335,11 @@ export async function validateConnection(client: MCPClient): Promise<void> {
         "  • Review CodePrism logs for errors\n" +
         "  • Verify the configuration in ~/.dr-config.yaml"
     );
+    // Preserve original error chain
+    if (error instanceof Error) {
+      wrappedError.cause = error;
+    }
+    throw wrappedError;
   }
 }
 
@@ -334,8 +349,6 @@ export async function validateConnection(client: MCPClient): Promise<void> {
  * @param client - MCP client to disconnect
  */
 export async function disconnectMcpClient(client: MCPClient): Promise<void> {
-  if (client.disconnect) {
-    await client.disconnect();
-  }
+  await client.disconnect();
   client.isConnected = false;
 }

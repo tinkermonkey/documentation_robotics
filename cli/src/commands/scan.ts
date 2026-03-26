@@ -258,7 +258,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
  * @param verbose - Show detailed output
  * @returns Object containing elementCandidates and relationshipCandidates arrays
  */
-async function executePatterns(
+export async function executePatterns(
   client: MCPClient,
   patterns: PatternSet[],
   threshold: number,

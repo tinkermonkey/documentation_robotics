@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
+import { executePatterns } from "../../src/commands/scan.js";
 import { createMockMcpClient } from "../helpers/mock-mcp-client.js";
 import type { PatternSet, PatternDefinition } from "../../src/scan/pattern-loader.js";
 
@@ -51,20 +52,26 @@ describe("Pattern Execution via MCP", () => {
         },
       };
 
-      // Execute the pattern
-      const results = await client.callTool("search_code", pattern.query.params);
+      // Execute the pattern through the production executePatterns function
+      const patternSet: PatternSet = {
+        layer: "api",
+        framework: "express",
+        version: "1.0",
+        patterns: [pattern],
+      };
 
-      // Verify results are returned
-      expect(results).toBeDefined();
-      expect(results.length).toBeGreaterThan(0);
+      const warnings: string[] = [];
+      const result = await executePatterns(client, [patternSet], 0.5, warnings, false);
 
-      // Parse the JSON response
-      if (results[0].text) {
-        const matches = JSON.parse(results[0].text);
-        expect(matches).toHaveLength(2);
-        expect(matches[0].path).toBe("/api/users");
-        expect(matches[0].file).toBe("src/routes/users.ts");
-      }
+      // Verify candidates were produced
+      expect(result).toBeDefined();
+      expect(result.elementCandidates).toBeDefined();
+      expect(result.elementCandidates.length).toBeGreaterThan(0);
+
+      // Verify the candidates have the expected structure
+      const candidate = result.elementCandidates[0];
+      expect(candidate.id).toBeDefined();
+      expect(candidate.name).toBeDefined();
     });
 
     it("should handle empty pattern results gracefully", async () => {
@@ -77,15 +84,37 @@ describe("Pattern Execution via MCP", () => {
         ],
       });
 
-      const results = await client.callTool("search_code", { pattern: "notfound" });
+      const pattern: PatternDefinition = {
+        id: "test.pattern",
+        produces: {
+          type: "node",
+          layer: "api",
+          elementType: "endpoint",
+        },
+        query: {
+          tool: "search_code",
+          params: { pattern: "notfound" },
+        },
+        confidence: 0.85,
+        mapping: {
+          id: "api.endpoint.test",
+          name: "test",
+        },
+      };
 
-      expect(results).toBeDefined();
-      expect(results[0].type).toBe("text");
+      const patternSet: PatternSet = {
+        layer: "api",
+        framework: "test",
+        version: "1.0",
+        patterns: [pattern],
+      };
 
-      if (results[0].text) {
-        const matches = JSON.parse(results[0].text);
-        expect(matches).toHaveLength(0);
-      }
+      const warnings: string[] = [];
+      const result = await executePatterns(client, [patternSet], 0.5, warnings, false);
+
+      // Should handle empty results without crashing
+      expect(result.elementCandidates).toBeDefined();
+      expect(result.elementCandidates.length).toBe(0);
     });
   });
 
@@ -102,9 +131,21 @@ describe("Pattern Execution via MCP", () => {
 
       const client = createMockMcpClient({
         search_code: mockResults,
+        find_dependencies: [
+          {
+            type: "text" as const,
+            text: JSON.stringify([
+              {
+                sourceId: "api.endpoint.get-users",
+                targetId: "data-model.entity.user",
+                type: "accesses",
+              },
+            ]),
+          },
+        ],
       });
 
-      // Create a minimal pattern set
+      // Create a pattern set with multiple patterns
       const patternSet: PatternSet = {
         layer: "api",
         framework: "express",
@@ -133,11 +174,13 @@ describe("Pattern Execution via MCP", () => {
         ],
       };
 
-      // Execute the pattern set's query
-      const results = await client.callTool("search_code", patternSet.patterns[0].query.params);
+      // Execute the pattern set through production code
+      const warnings: string[] = [];
+      const result = await executePatterns(client, [patternSet], 0.5, warnings, false);
 
-      expect(results).toBeDefined();
-      expect(results[0].type).toBe("text");
+      expect(result).toBeDefined();
+      expect(result.elementCandidates).toBeDefined();
+      expect(result.elementCandidates.length).toBeGreaterThan(0);
     });
   });
 
@@ -160,18 +203,45 @@ describe("Pattern Execution via MCP", () => {
         find_dependencies: mockResults,
       });
 
-      const results = await client.callTool("find_dependencies", {
-        symbolId: "getUsersEndpoint",
-      });
+      const pattern: PatternDefinition = {
+        id: "api.endpoint.accesses.data-model",
+        produces: {
+          type: "relationship",
+          sourceLayer: "api",
+          targetLayer: "data-model",
+          relationshipType: "accesses",
+        },
+        query: {
+          tool: "find_dependencies",
+          params: {
+            symbolId: "getUsersEndpoint",
+          },
+        },
+        confidence: 0.8,
+        mapping: {
+          sourceId: "{match.sourceId}",
+          targetId: "{match.targetId}",
+          type: "{match.type}",
+        },
+      };
 
-      expect(results).toBeDefined();
-      expect(results[0].type).toBe("text");
+      const patternSet: PatternSet = {
+        layer: "api",
+        framework: "express",
+        version: "1.0",
+        patterns: [pattern],
+      };
 
-      if (results[0].text) {
-        const matches = JSON.parse(results[0].text);
-        expect(matches).toHaveLength(1);
-        expect(matches[0].sourceId).toBe("api.endpoint.get-users");
-      }
+      const warnings: string[] = [];
+      const result = await executePatterns(client, [patternSet], 0.5, warnings, false);
+
+      // Should produce relationship candidates
+      expect(result.relationshipCandidates).toBeDefined();
+      expect(result.relationshipCandidates.length).toBeGreaterThan(0);
+
+      const candidate = result.relationshipCandidates[0];
+      expect(candidate.sourceId).toBe("api.endpoint.get-users");
+      expect(candidate.targetId).toBe("data-model.entity.user");
     });
   });
 
@@ -188,11 +258,39 @@ describe("Pattern Execution via MCP", () => {
         search_code: mockResults,
       });
 
-      const results = await client.callTool("search_code", { pattern: "test" });
+      const pattern: PatternDefinition = {
+        id: "test.error.pattern",
+        produces: {
+          type: "node",
+          layer: "api",
+          elementType: "endpoint",
+        },
+        query: {
+          tool: "search_code",
+          params: { pattern: "test" },
+        },
+        confidence: 0.85,
+        mapping: {
+          id: "api.endpoint.test",
+          name: "test",
+        },
+      };
 
-      expect(results).toBeDefined();
-      expect(results[0].type).toBe("error");
-      expect(results[0].text).toContain("timeout");
+      const patternSet: PatternSet = {
+        layer: "api",
+        framework: "test",
+        version: "1.0",
+        patterns: [pattern],
+      };
+
+      const warnings: string[] = [];
+      const result = await executePatterns(client, [patternSet], 0.5, warnings, false);
+
+      // Should handle errors gracefully without throwing
+      expect(result).toBeDefined();
+      expect(warnings.length).toBeGreaterThan(0);
+      // Warnings should contain information about the failed pattern
+      expect(warnings[0]).toContain("test.error.pattern");
     });
   });
 });
