@@ -38,6 +38,12 @@ export type QuerySpec = z.infer<typeof QuerySpecSchema>;
 
 /**
  * Target element specification
+ *
+ * Note: `elementType` values (e.g., "endpoint", "dependency", "protection") are not validated
+ * against spec layer node types in this schema. Validation occurs when candidates are processed
+ * into actual DR elements. This allows patterns to declare structural intent independently of
+ * the current spec version, avoiding coupling between pattern definitions and spec evolution.
+ * A future enhancement could add optional spec-aware validation via a registry lookup.
  */
 export const ProducesSchema = z.object({
   type: z.enum(["node", "relationship"]),
@@ -127,12 +133,15 @@ export interface ElementCandidate {
  * and compiled into the final package. This function requires no configuration
  * from the user and always returns the same set of patterns.
  *
+ * Dynamically discovers all *.yaml files under the patterns/ directory tree,
+ * with no hardcoded file list required.
+ *
  * @returns Array of pattern sets for all built-in frameworks and concerns
  * @throws Error if pattern files are missing or invalid YAML/schema
  *
  * @example
  * ```typescript
- * const patterns = loadBuiltinPatterns();
+ * const patterns = await loadBuiltinPatterns();
  * console.log(`Loaded ${patterns.length} pattern sets`);
  * ```
  */
@@ -142,34 +151,35 @@ export async function loadBuiltinPatterns(): Promise<PatternSet[]> {
   const currentDir = dirname(currentFile);
   const patternsDir = join(currentDir, "patterns");
 
-  // Pattern files to load, organized by layer
-  const patternFiles = [
-    // API Layer
-    "api/nestjs.yaml",
-    "api/express.yaml",
-    // Application Layer
-    "application/nestjs-service.yaml",
-    // Data Model Layer
-    "data-model/typeorm.yaml",
-    "data-model/prisma.yaml",
-    // Data Store Layer
-    "data-store/prisma-schema.yaml",
-    // UX Layer
-    "ux/react.yaml",
-    // Testing Layer
-    "testing/jest.yaml",
-    "testing/pytest.yaml",
-    // Security Layer
-    "security/passport.yaml",
-    // APM Layer
-    "apm/opentelemetry.yaml",
-  ];
-
   const patterns: PatternSet[] = [];
 
-  for (const filePath of patternFiles) {
+  // Recursively discover all .yaml files
+  // Simple recursive walker compatible with Node 18+
+  async function walkDir(dir: string): Promise<string[]> {
+    const { readdirSync } = await import("node:fs");
+    const files: string[] = [];
+    const entries = readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...(await walkDir(fullPath)));
+      } else if (entry.name.endsWith(".yaml")) {
+        files.push(fullPath);
+      }
+    }
+
+    return files;
+  }
+
+  const patternFiles = await walkDir(patternsDir);
+
+  if (patternFiles.length === 0) {
+    throw new Error("No pattern files found. Check that the patterns/ directory exists and contains YAML files.");
+  }
+
+  for (const fullPath of patternFiles) {
     try {
-      const fullPath = join(patternsDir, filePath);
       const content = await readFile(fullPath, "utf-8");
       const parsed = parse(content);
 
@@ -177,22 +187,17 @@ export async function loadBuiltinPatterns(): Promise<PatternSet[]> {
       const patternSet = PatternSetSchema.parse(parsed);
       patterns.push(patternSet);
     } catch (error) {
-      const fullPath = join(patternsDir, filePath);
       if (error instanceof z.ZodError) {
-        const messages = (error as z.ZodError).issues.map((issue) => `${issue.path.join(".")} - ${issue.message}`).join("; ");
-        throw new Error(
-          `Invalid pattern file ${filePath}: ${messages}`
-        );
+        const messages = error.issues.map((issue) => `${issue.path.join(".")} - ${issue.message}`).join("; ");
+        throw new Error(`Invalid pattern file ${fullPath}: ${messages}`);
       } else if (error instanceof Error && error.message.includes("ENOENT")) {
         throw new Error(`Pattern file not found: ${fullPath}`);
       } else {
-        throw new Error(`Failed to load pattern file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(
+          `Failed to load pattern file ${fullPath}: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
-  }
-
-  if (patterns.length === 0) {
-    throw new Error("No pattern files loaded. Check that cli/src/scan/patterns/ directory exists and contains YAML files.");
   }
 
   return patterns;
@@ -212,6 +217,8 @@ export async function loadBuiltinPatterns(): Promise<PatternSet[]> {
  * ```typescript
  * const projectPatterns = await loadProjectPatterns(process.cwd());
  * ```
+ *
+ * @todo Implement in Phase 3 (https://github.com/tinkermonkey/documentation_robotics/issues/...)
  */
 export async function loadProjectPatterns(
   _projectRoot: string,
@@ -234,7 +241,7 @@ export async function loadProjectPatterns(
  *
  * @example
  * ```typescript
- * const builtinPatterns = loadBuiltinPatterns();
+ * const builtinPatterns = await loadBuiltinPatterns();
  * const projectPatterns = await loadProjectPatterns(cwd);
  * const merged = mergePatterns(builtinPatterns, projectPatterns);
  * ```

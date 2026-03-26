@@ -223,13 +223,28 @@ describe("Pattern Loader", () => {
       }
     });
 
-    it("throws error if pattern files are missing", async () => {
-      // This test would require mocking the file system or modifying loadBuiltinPatterns
-      // to accept a custom directory. For now, we test that it loads successfully.
-      // In practice, if pattern files are missing, the error would be caught at deployment time.
-
+    it("loads all built-in patterns successfully", async () => {
       const patterns = await loadBuiltinPatterns();
       expect(patterns.length).toBeGreaterThan(0); // Proves files were found
+    });
+
+    it("throws error with descriptive message when pattern has invalid schema", () => {
+      // Test that PatternSetSchema properly validates and reports schema errors
+      const invalidPatternSet = {
+        layer: "api",
+        framework: "test",
+        patterns: [
+          {
+            id: "test.pattern",
+            produces: { type: "node", layer: "api", elementType: "endpoint" },
+            query: { tool: "search_code" },
+            confidence: 1.5, // Invalid: exceeds max of 1.0
+            mapping: { id: "api.endpoint.test" },
+          },
+        ],
+      };
+
+      expect(() => PatternSetSchema.parse(invalidPatternSet)).toThrow("confidence");
     });
   });
 

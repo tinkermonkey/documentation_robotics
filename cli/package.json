@@ -10,8 +10,7 @@
   "files": [
     "dist/**",
     "README.md",
-    "LICENSE",
-    "src/scan/patterns/**"
+    "LICENSE"
   ],
   "scripts": {
     "build": "bash scripts/sync-spec-schemas.sh && bash scripts/download-viewer.sh && bun scripts/generate-registry.ts && bun scripts/generate-validators.ts && tsc && node esbuild.config.js && npm run copy-schemas",
