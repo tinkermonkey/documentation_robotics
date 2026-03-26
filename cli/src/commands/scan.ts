@@ -21,6 +21,7 @@
 import ansis from "ansis";
 import { createMcpClient, validateConnection, disconnectMcpClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
+import { loadBuiltinPatterns } from "../scan/pattern-loader.js";
 import { getErrorMessage } from "../utils/errors.js";
 
 export interface ScanOptions {
@@ -56,6 +57,19 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log(ansis.green("✓ Connected to CodePrism"));
     console.log(`  Endpoint: ${client.endpoint}`);
     console.log(`  Confidence threshold: ${config.confidence_threshold}`);
+
+    // Load built-in patterns
+    console.log("\nLoading pattern library...");
+    const patterns = await loadBuiltinPatterns();
+    console.log(ansis.green(`✓ Loaded ${patterns.length} pattern sets`));
+
+    // Count total patterns
+    const totalPatterns = patterns.reduce((sum, set) => sum + set.patterns.length, 0);
+    console.log(`  Total patterns: ${totalPatterns}`);
+
+    // Display framework coverage
+    const frameworks = [...new Set(patterns.map((p) => p.framework))].sort();
+    console.log(`  Frameworks: ${frameworks.join(", ")}`);
 
     // TODO: Scanning operations will be added in subsequent phases
 

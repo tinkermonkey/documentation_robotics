@@ -1,0 +1,49 @@
+# Prisma Data Model Layer Patterns
+layer: data-model
+framework: prisma
+version: "1.0"
+patterns:
+  - id: prisma.model.definition
+    produces:
+      type: node
+      layer: data-model
+      elementType: entity
+    query:
+      tool: search_code
+      params:
+        pattern: "^\\s*model\\s+(\\w+)\\s*\\{"
+        language: prisma
+    confidence: 0.95
+    mapping:
+      id: "data-model.entity.{match.modelName|kebab}"
+      name: "{match.modelName}"
+  - id: prisma.model.field
+    produces:
+      type: relationship
+      layer: data-model
+      elementType: field
+      relationshipType: has-property
+    query:
+      tool: search_code
+      params:
+        pattern: "^\\s*(\\w+)\\s+(\\w+)(\\s+@[a-z]+\\([^)]*\\))*"
+        language: prisma
+    confidence: 0.9
+    mapping:
+      source: "{match.modelName|kebab}"
+      target: "{match.fieldName|kebab}"
+  - id: prisma.model.relation
+    produces:
+      type: relationship
+      layer: data-model
+      elementType: link
+      relationshipType: references
+    query:
+      tool: search_code
+      params:
+        pattern: "^\\s*(\\w+)\\s+(\\w+)\\s+@relation\\(name:\\s*['\"]([^'\"]+)['\"]"
+        language: prisma
+    confidence: 0.85
+    mapping:
+      source: "{match.sourceModel|kebab}"
+      target: "{match.targetModel|kebab}"

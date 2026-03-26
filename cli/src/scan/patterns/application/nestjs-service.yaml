@@ -1,0 +1,49 @@
+# NestJS Application Layer Patterns
+layer: application
+framework: nestjs-service
+version: "1.0"
+patterns:
+  - id: nestjs.service.injectable
+    produces:
+      type: node
+      layer: application
+      elementType: service
+    query:
+      tool: search_code
+      params:
+        pattern: "@Injectable\\(\\)\\s*export\\s*class\\s+(\\w+Service)"
+        language: typescript
+    confidence: 0.9
+    mapping:
+      id: "application.service.{match.className|kebab}"
+      name: "{match.className}"
+  - id: nestjs.service.method
+    produces:
+      type: relationship
+      layer: application
+      elementType: method
+      relationshipType: exposes
+    query:
+      tool: search_code
+      params:
+        pattern: "public\\s+(async\\s+)?\\w+\\s*\\([^)]*\\)"
+        language: typescript
+    confidence: 0.7
+    mapping:
+      source: "{match.serviceName|kebab}"
+      target: "{match.methodName|kebab}"
+  - id: nestjs.service.dependency
+    produces:
+      type: relationship
+      layer: application
+      elementType: dependency
+      relationshipType: depends-on
+    query:
+      tool: search_code
+      params:
+        pattern: "constructor\\([^)]*private\\s+\\w+\\s*:\\s*([A-Za-z0-9]+)"
+        language: typescript
+    confidence: 0.8
+    mapping:
+      source: "{match.serviceName|kebab}"
+      target: "{match.dependencyType|kebab}"

@@ -1,0 +1,78 @@
+# React UX Layer Patterns
+layer: ux
+framework: react
+version: "1.0"
+patterns:
+  - id: react.component.function
+    produces:
+      type: node
+      layer: ux
+      elementType: component
+    query:
+      tool: search_code
+      params:
+        pattern: "export\\s+(default\\s+)?function\\s+(\\w+)\\s*\\(.*\\).*return.*<"
+        language: typescript
+    confidence: 0.9
+    mapping:
+      id: "ux.component.{match.componentName|kebab}"
+      name: "{match.componentName}"
+  - id: react.component.class
+    produces:
+      type: node
+      layer: ux
+      elementType: component
+    query:
+      tool: search_code
+      params:
+        pattern: "export\\s+class\\s+(\\w+)\\s+extends\\s+(React\\.)?Component"
+        language: typescript
+    confidence: 0.92
+    mapping:
+      id: "ux.component.{match.componentName|kebab}"
+      name: "{match.componentName}"
+  - id: react.component.hook
+    produces:
+      type: relationship
+      layer: ux
+      elementType: hook
+      relationshipType: uses-hook
+    query:
+      tool: search_code
+      params:
+        pattern: "(useState|useEffect|useContext|useReducer|useCallback|useMemo)\\s*<"
+        language: typescript
+    confidence: 0.85
+    mapping:
+      source: "{match.componentName|kebab}"
+      target: "{match.hookName|kebab}"
+  - id: react.component.props
+    produces:
+      type: relationship
+      layer: ux
+      elementType: prop
+      relationshipType: accepts-props
+    query:
+      tool: search_code
+      params:
+        pattern: "interface\\s+(\\w+Props)\\s*\\{"
+        language: typescript
+    confidence: 0.8
+    mapping:
+      source: "{match.componentName|kebab}"
+      target: "{match.propsInterface|kebab}"
+  - id: react.component.composition
+    produces:
+      type: relationship
+      layer: ux
+      elementType: composition
+      relationshipType: composes
+    query:
+      tool: search_code
+      params:
+        pattern: "<([A-Z][a-zA-Z0-9]*)(\\s+[^>]*)?>.*</\\1>"
+        language: typescript
+    confidence: 0.75
+    mapping:
+      source: "{match.parentComponent|kebab}"
+      target: "{match.childComponent|kebab}"

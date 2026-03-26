@@ -1,0 +1,78 @@
+# Pytest Testing Layer Patterns
+layer: testing
+framework: pytest
+version: "1.0"
+patterns:
+  - id: pytest.suite.class
+    produces:
+      type: node
+      layer: testing
+      elementType: test-suite
+    query:
+      tool: search_code
+      params:
+        pattern: "^\\s*class\\s+(Test\\w+)\\s*\\(?"
+        language: python
+    confidence: 0.9
+    mapping:
+      id: "testing.test-suite.{match.className|kebab}"
+      name: "{match.className}"
+  - id: pytest.test.function
+    produces:
+      type: node
+      layer: testing
+      elementType: test-case
+    query:
+      tool: search_code
+      params:
+        pattern: "^\\s*def\\s+(test_\\w+)\\s*\\(.*\\)\\s*:"
+        language: python
+    confidence: 0.95
+    mapping:
+      id: "testing.test-case.{match.functionName|kebab}"
+      name: "{match.functionName}"
+  - id: pytest.test.assertion
+    produces:
+      type: relationship
+      layer: testing
+      elementType: assertion
+      relationshipType: validates
+    query:
+      tool: search_code
+      params:
+        pattern: "^\\s*assert\\s+[^=]+(==|!=|in|is|<|>)"
+        language: python
+    confidence: 0.85
+    mapping:
+      source: "{match.testName|kebab}"
+      target: "{match.condition|kebab}"
+  - id: pytest.test.fixture
+    produces:
+      type: relationship
+      layer: testing
+      elementType: fixture
+      relationshipType: uses-fixture
+    query:
+      tool: search_code
+      params:
+        pattern: "@pytest\\.fixture\\s*def\\s+(\\w+)\\s*\\("
+        language: python
+    confidence: 0.9
+    mapping:
+      source: "{match.testName|kebab}"
+      target: "{match.fixtureName|kebab}"
+  - id: pytest.test.parametrize
+    produces:
+      type: relationship
+      layer: testing
+      elementType: parametrization
+      relationshipType: parametrized
+    query:
+      tool: search_code
+      params:
+        pattern: "@pytest\\.mark\\.parametrize\\s*\\(\\s*['\"]([^'\"]+)['\"]"
+        language: python
+    confidence: 0.85
+    mapping:
+      source: "{match.testName|kebab}"
+      target: "{match.parameterNames|kebab}"
