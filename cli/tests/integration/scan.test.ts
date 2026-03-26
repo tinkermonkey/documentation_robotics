@@ -5,7 +5,6 @@ import { Model } from "../../src/core/model.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import * as path from "path";
 import * as fs from "fs";
-import * as fsPromises from "fs/promises";
 
 describe("Scan Command", () => {
   let workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
@@ -434,24 +433,9 @@ describe("Scan Command", () => {
   });
 
   describe("MCP client lifecycle", () => {
-    it("properly manages MCP client connection in success path", async () => {
-      // Note: Full integration test would require a real CodePrism MCP server.
-      // This test validates that the client lifecycle is properly managed.
-      // The actual test is verified through integration tests with a mock MCP server.
-      expect(true).toBe(true);
-    });
-
-    it("disconnects MCP client on dry-run execution", async () => {
-      // Test that dry-run mode properly disconnects the client
-      // This requires mocking the MCP client and verifying disconnect is called
-      expect(true).toBe(true);
-    });
-
-    it("disconnects MCP client on error", async () => {
-      // Test that errors trigger client cleanup
-      // This requires error injection and verifying disconnect is called
-      expect(true).toBe(true);
-    });
+    // Full MCP client lifecycle testing requires a real CodePrism MCP server.
+    // These scenarios are validated through integration tests with a mock MCP server.
+    // Skip: client connection management, disconnect on dry-run, disconnect on error
   });
 
   describe("Summary statistics", () => {

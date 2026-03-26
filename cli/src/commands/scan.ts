@@ -124,7 +124,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     if (options.dryRun) {
       console.log(ansis.green(`\n✓ Found ${newCandidates.length} new candidates (dry-run mode):\n`));
       printCandidatesTable(newCandidates);
-      throw new Error("DRY_RUN_EXIT"); // Trigger finally block for cleanup
+      return; // Exit cleanly - finally block will run for cleanup
     }
 
     // Stage changeset with candidates
@@ -152,11 +152,8 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
       }
     }
   } catch (error) {
-    // Check if this is a dry-run exit (not a real error)
     const errorMsg = getErrorMessage(error);
-    if (errorMsg !== "DRY_RUN_EXIT") {
-      console.error(ansis.red(errorMsg));
-    }
+    console.error(ansis.red(errorMsg));
   } finally {
     // Always disconnect MCP client, even on error or dry-run
     if (client) {
