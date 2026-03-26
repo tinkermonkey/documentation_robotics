@@ -153,17 +153,20 @@ export class Changeset {
 
   /**
    * Add a change to the changeset.
-   * Records element mutation with before/after snapshots for audit purposes.
+   * Records element or relationship mutation with before/after snapshots for audit purposes.
    *
-   * @param type - Type of change (add, update, delete)
-   * @param elementId - ID of the element being changed
-   * @param layerName - Layer containing the element
-   * @param before - Element state before change (for update/delete operations)
-   * @param after - Element state after change (for add/update operations)
+   * Supports both element changes (add/update/delete) and relationship changes (relationship-add/relationship-delete).
+   * For relationship changes, elementId should be formatted as: source::predicate::target
+   *
+   * @param type - Type of change (add, update, delete, relationship-add, relationship-delete)
+   * @param elementId - ID of the element being changed (or composite key for relationships: source::predicate::target)
+   * @param layerName - Layer containing the element (or source layer for relationships)
+   * @param before - Element/relationship state before change (for update/delete operations)
+   * @param after - Element/relationship state after change (for add/update operations)
    * @throws No exceptions; updates modified timestamp on success
    */
   addChange(
-    type: "add" | "update" | "delete",
+    type: "add" | "update" | "delete" | "relationship-add" | "relationship-delete",
     elementId: string,
     layerName: string,
     before?: Record<string, unknown>,

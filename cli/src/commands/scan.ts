@@ -24,7 +24,7 @@
 import ansis from "ansis";
 import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
-import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, type PatternDefinition, type PatternSet, type ElementCandidate } from "../scan/pattern-loader.js";
+import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, extractLayerFromId, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
@@ -117,7 +117,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 
     // Execute patterns and collect candidates
     console.log("\nScanning codebase...");
-    const candidates = await executePatterns(client, patternsToExecute, config.confidence_threshold || 0.7, warnings, options.verbose || false);
+    const { elementCandidates, relationshipCandidates } = await executePatterns(client, patternsToExecute, config.confidence_threshold || 0.7, warnings, options.verbose || false);
 
     // Load current model for deduplication
     let model: Model | null = null;
@@ -129,30 +129,79 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
       }
     }
 
-    // Deduplicate against current model
-    const newCandidates = candidates.filter((candidate) => {
+    // Deduplicate element candidates against current model
+    const newElementCandidates = elementCandidates.filter((candidate) => {
       if (!model) return true; // Keep all if no model
       const element = model.getElementById(candidate.id);
       if (element) {
         if (options.verbose) {
-          console.log(`  Skipping duplicate: ${candidate.id}`);
+          console.log(`  Skipping duplicate element: ${candidate.id}`);
         }
         return false;
       }
       return true;
     });
 
+    // Validate and filter relationship candidates
+    const validRelationshipCandidates = relationshipCandidates.filter((candidate) => {
+      // Check cross-layer direction rule
+      if (!isValidRelationshipDirection(candidate.sourceId, candidate.targetId)) {
+        warnings.push(`Relationship violates cross-layer direction rule: ${candidate.sourceId} → ${candidate.targetId} (higher layer must reference lower layer)`);
+        return false;
+      }
+
+      // Check if source element exists
+      const sourceExists = model?.getElementById(candidate.sourceId) !== undefined ||
+                         newElementCandidates.some((e) => e.id === candidate.sourceId);
+      if (!sourceExists) {
+        warnings.push(`Relationship references missing source element: ${candidate.sourceId}`);
+        return false;
+      }
+
+      // Check if target element exists
+      const targetExists = model?.getElementById(candidate.targetId) !== undefined ||
+                         newElementCandidates.some((e) => e.id === candidate.targetId);
+      if (!targetExists) {
+        warnings.push(`Relationship references missing target element: ${candidate.targetId}`);
+        return false;
+      }
+
+      // Check for duplicates in existing model
+      if (model) {
+        const existing = model.relationships.find(
+          candidate.sourceId,
+          candidate.targetId,
+          candidate.relationshipType
+        );
+        if (existing && existing.length > 0) {
+          if (options.verbose) {
+            console.log(`  Skipping duplicate relationship: ${candidate.sourceId} → ${candidate.targetId}`);
+          }
+          return false;
+        }
+      }
+
+      return true;
+    });
+
     // If dry-run, print candidates and exit (with cleanup)
     if (options.dryRun) {
-      console.log(ansis.green(`\n✓ Found ${newCandidates.length} new candidates (dry-run mode):\n`));
-      printCandidatesTable(newCandidates);
+      console.log(ansis.green(`\n✓ Found ${newElementCandidates.length} element candidates and ${validRelationshipCandidates.length} relationship candidates (dry-run mode):\n`));
+      if (newElementCandidates.length > 0) {
+        console.log("Elements:");
+        printCandidatesTable(newElementCandidates);
+      }
+      if (validRelationshipCandidates.length > 0) {
+        console.log("\nRelationships:");
+        printRelationshipCandidatesTable(validRelationshipCandidates);
+      }
       return; // Exit cleanly - finally block will run for cleanup
     }
 
     // Stage changeset with candidates
-    if (newCandidates.length > 0) {
-      console.log(`\nStaging ${newCandidates.length} new elements as changeset...`);
-      await stageChangeset(newCandidates, process.cwd());
+    if (newElementCandidates.length > 0 || validRelationshipCandidates.length > 0) {
+      console.log(`\nStaging ${newElementCandidates.length} elements and ${validRelationshipCandidates.length} relationships as changeset...`);
+      await stageChangeset(newElementCandidates, validRelationshipCandidates, process.cwd());
       console.log(ansis.green(`✓ Changeset staged successfully`));
     } else {
       console.log(ansis.yellow(`\n⚠ No new candidates found`));
@@ -161,10 +210,13 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     // Print summary
     console.log(ansis.green("\n✓ Scan complete"));
     console.log(`  Patterns scanned: ${patternsToExecute.reduce((sum, set) => sum + set.patterns.length, 0)}`);
-    console.log(`  Candidates found: ${candidates.length}`);
-    console.log(`  Candidates deduplicated: ${candidates.length - newCandidates.length}`);
-    console.log(`  New candidates: ${newCandidates.length}`);
-    console.log(`  Elements staged: ${newCandidates.length}`);
+    console.log(`  Element candidates found: ${elementCandidates.length}`);
+    console.log(`  Element candidates deduplicated: ${elementCandidates.length - newElementCandidates.length}`);
+    console.log(`  New element candidates: ${newElementCandidates.length}`);
+    console.log(`  Relationship candidates found: ${relationshipCandidates.length}`);
+    console.log(`  Valid relationships staged: ${validRelationshipCandidates.length}`);
+    console.log(`  Elements staged: ${newElementCandidates.length}`);
+    console.log(`  Relationships staged: ${validRelationshipCandidates.length}`);
 
     // Print warnings at the end
     if (warnings.length > 0) {
@@ -192,14 +244,14 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 }
 
 /**
- * Execute all patterns and collect element candidates
+ * Execute all patterns and collect element and relationship candidates
  *
  * @param client - MCP client for tool invocation (reserved for future use when MCP is implemented)
  * @param patterns - Pattern sets to execute
  * @param threshold - Confidence threshold
  * @param warnings - Array to collect warnings
  * @param verbose - Show detailed output
- * @returns Array of element candidates
+ * @returns Object containing elementCandidates and relationshipCandidates arrays
  */
 async function executePatterns(
   _client: MCPClient,
@@ -207,8 +259,9 @@ async function executePatterns(
   threshold: number,
   warnings: string[],
   verbose: boolean
-): Promise<ElementCandidate[]> {
-  const candidates: ElementCandidate[] = [];
+): Promise<{ elementCandidates: ElementCandidate[]; relationshipCandidates: RelationshipCandidate[] }> {
+  const elementCandidates: ElementCandidate[] = [];
+  const relationshipCandidates: RelationshipCandidate[] = [];
 
   for (const patternSet of patterns) {
     for (const pattern of patternSet.patterns) {
@@ -221,11 +274,18 @@ async function executePatterns(
         // For now, return empty matches to allow scan to complete
         const matches: Array<{ [key: string]: string }> = [];
 
-        // Map matches to candidates
+        // Map matches to candidates based on pattern produces type
         for (const match of matches) {
-          const candidate = mapToCandidate(pattern, match);
-          if (candidate) {
-            candidates.push(candidate);
+          if (pattern.produces.type === "relationship") {
+            const candidate = mapToRelationshipCandidate(pattern, match);
+            if (candidate) {
+              relationshipCandidates.push(candidate);
+            }
+          } else {
+            const candidate = mapToElementCandidate(pattern, match);
+            if (candidate) {
+              elementCandidates.push(candidate);
+            }
           }
         }
       } catch (error) {
@@ -236,7 +296,10 @@ async function executePatterns(
   }
 
   // Filter by confidence
-  return filterByConfidence(candidates, threshold);
+  const filteredElements = filterByConfidence(elementCandidates, threshold);
+  const filteredRelationships = filterByConfidence(relationshipCandidates, threshold);
+
+  return { elementCandidates: filteredElements, relationshipCandidates: filteredRelationships };
 }
 
 /**
@@ -246,7 +309,7 @@ async function executePatterns(
  * @param match - Match data from CodePrism
  * @returns Element candidate or null if mapping fails
  */
-function mapToCandidate(
+function mapToElementCandidate(
   pattern: PatternDefinition,
   match: Record<string, string>
 ): ElementCandidate | null {
@@ -298,7 +361,81 @@ function mapToCandidate(
 }
 
 /**
- * Print candidates as a table
+ * Map a pattern match to a relationship candidate
+ *
+ * @param pattern - Relationship pattern definition
+ * @param match - Match data from CodePrism
+ * @returns Relationship candidate or null if mapping fails
+ */
+function mapToRelationshipCandidate(
+  pattern: PatternDefinition,
+  match: Record<string, string>
+): RelationshipCandidate | null {
+  try {
+    // Get sourceId template from mapping
+    let sourceIdTemplate: string | undefined;
+    const sourceIdValue = pattern.mapping["sourceId"];
+    if (typeof sourceIdValue === "string") {
+      sourceIdTemplate = sourceIdValue;
+    }
+    if (!sourceIdTemplate) {
+      throw new Error("Relationship pattern must define 'sourceId' in mapping");
+    }
+    const sourceId = renderTemplate(sourceIdTemplate, { match });
+
+    // Get targetId template from mapping
+    let targetIdTemplate: string | undefined;
+    const targetIdValue = pattern.mapping["targetId"];
+    if (typeof targetIdValue === "string") {
+      targetIdTemplate = targetIdValue;
+    }
+    if (!targetIdTemplate) {
+      throw new Error("Relationship pattern must define 'targetId' in mapping");
+    }
+    const targetId = renderTemplate(targetIdTemplate, { match });
+
+    // Get relationshipType from pattern definition
+    const relationshipType = pattern.produces.relationshipType;
+    if (!relationshipType) {
+      throw new Error("Relationship pattern must define 'relationshipType' in produces");
+    }
+
+    // Extract source layer from source element ID
+    const sourceLayer = extractLayerFromId(sourceId);
+    if (!sourceLayer) {
+      throw new Error(`Invalid source element ID format: ${sourceId}`);
+    }
+
+    // Create relationship candidate ID
+    const id = `${sourceId}->${targetId}`;
+
+    // Collect attributes from mapping (excluding sourceId and targetId)
+    const attributes: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(pattern.mapping)) {
+      if (key === "sourceId" || key === "targetId") continue;
+      if (typeof value === "string") {
+        attributes[key] = renderTemplate(value, { match });
+      }
+    }
+
+    return {
+      id,
+      relationshipType,
+      sourceId,
+      targetId,
+      layer: sourceLayer,
+      confidence: pattern.confidence,
+      attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
+      source: match.file ? { file: match.file, line: parseInt(match.line || "0") } : undefined,
+    };
+  } catch (error) {
+    // Return null if mapping fails
+    return null;
+  }
+}
+
+/**
+ * Print element candidates as a table
  *
  * @param candidates - Candidates to print
  */
@@ -321,23 +458,55 @@ function printCandidatesTable(candidates: ElementCandidate[]): void {
 }
 
 /**
+ * Print relationship candidates as a table
+ *
+ * @param candidates - Relationship candidates to print
+ */
+function printRelationshipCandidatesTable(candidates: RelationshipCandidate[]): void {
+  if (candidates.length === 0) {
+    console.log("No relationship candidates to display");
+    return;
+  }
+
+  // Print header
+  console.log(`${"Source ID".padEnd(35)} ${"Target ID".padEnd(35)} ${"Type".padEnd(20)} ${"Confidence".padEnd(12)}`);
+  console.log("-".repeat(102));
+
+  // Print rows
+  for (const candidate of candidates) {
+    const sourceTruncated = candidate.sourceId.length > 35 ? candidate.sourceId.slice(0, 32) + "..." : candidate.sourceId;
+    const targetTruncated = candidate.targetId.length > 35 ? candidate.targetId.slice(0, 32) + "..." : candidate.targetId;
+    const confidence = (candidate.confidence * 100).toFixed(0) + "%";
+    console.log(`${sourceTruncated.padEnd(35)} ${targetTruncated.padEnd(35)} ${candidate.relationshipType.padEnd(20)} ${confidence.padEnd(12)}`);
+  }
+}
+
+/**
  * Stage candidates as a changeset
  *
- * @param candidates - Element candidates to stage
+ * Stages both element and relationship candidates with proper ordering:
+ * - All element 'add' operations first
+ * - All relationship 'relationship-add' operations second
+ *
+ * This ensures elements exist before relationships reference them.
+ *
+ * @param elementCandidates - Element candidates to stage
+ * @param relationshipCandidates - Relationship candidates to stage
  * @param workdir - Working directory for changeset storage
  */
-async function stageChangeset(candidates: ElementCandidate[], workdir: string): Promise<void> {
+async function stageChangeset(elementCandidates: ElementCandidate[], relationshipCandidates: RelationshipCandidate[], workdir: string): Promise<void> {
   const storage = new StagedChangesetStorage(workdir);
   const changesetId = `scan-${Date.now()}`;
+  const totalItems = elementCandidates.length + relationshipCandidates.length;
   const changeset = await storage.create(
     changesetId,
     `Scan Results - ${new Date().toLocaleString()}`,
-    `${candidates.length} elements found by architecture scan`,
+    `${totalItems} items (${elementCandidates.length} elements, ${relationshipCandidates.length} relationships) found by architecture scan`,
     "current"
   );
 
-  // Add each candidate as an 'add' operation
-  for (const candidate of candidates) {
+  // First: Add all element candidates as 'add' operations
+  for (const candidate of elementCandidates) {
     // Extract layer name from full layer ID
     const layerName = candidate.layer;
 
@@ -354,6 +523,25 @@ async function stageChangeset(candidates: ElementCandidate[], workdir: string): 
     };
 
     changeset.addChange("add", candidate.id, layerName, undefined, elementData);
+  }
+
+  // Second: Add all relationship candidates as 'relationship-add' operations
+  for (const candidate of relationshipCandidates) {
+    // Create relationship data
+    const relationshipData = {
+      source: candidate.sourceId,
+      target: candidate.targetId,
+      predicate: candidate.relationshipType,
+      layer: candidate.layer,
+      category: candidate.attributes?.category || "structural",
+      ...(candidate.attributes && { properties: candidate.attributes }),
+      ...(candidate.source && { source_reference: candidate.source }),
+    };
+
+    // Composite key for relationships: source::predicate::target
+    const relationshipId = `${candidate.sourceId}::${candidate.relationshipType}::${candidate.targetId}`;
+
+    changeset.addChange("relationship-add", relationshipId, candidate.layer, undefined, relationshipData);
   }
 
   // Save changeset

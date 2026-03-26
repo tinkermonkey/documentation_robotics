@@ -127,6 +127,28 @@ export interface ElementCandidate {
 }
 
 /**
+ * Relationship candidate produced from a relationship pattern match
+ *
+ * Represents a cross-layer relationship between two architecture elements.
+ * Relationships must respect the direction rule: source element layer must be
+ * numerically higher (later in the layer sequence) than target element layer.
+ */
+export interface RelationshipCandidate {
+  id: string;                    // e.g. "api.endpoint.create-order->data-model.entity.order"
+  relationshipType: string;      // e.g. "depends-on", "realizes", "accesses"
+  sourceId: string;              // must be valid element ID
+  targetId: string;              // must be valid element ID
+  layer: string;                 // owning layer (source element's layer)
+  confidence: number;            // 0.0-1.0 confidence score
+  attributes?: Record<string, unknown>;
+  source?: {
+    file: string;
+    line?: number;
+    column?: number;
+  };
+}
+
+/**
  * Discover all .yaml files in a directory tree
  *
  * @param dir - Directory to search
@@ -425,21 +447,22 @@ export function mergePatterns(builtin: PatternSet[], project: PatternSet[]): Pat
  *
  * Removes any candidate whose confidence is below the threshold.
  * Used to discard low-confidence matches before they appear in output.
+ * Works with both element and relationship candidates.
  *
- * @param candidates - Element candidates to filter
+ * @param candidates - Candidates to filter (ElementCandidate[] or RelationshipCandidate[])
  * @param threshold - Confidence threshold (0.0-1.0, default 0.7)
  * @returns Candidates with confidence >= threshold
  *
  * @example
  * ```typescript
- * const allCandidates = await executePatterns(patterns, codebaseRoot);
- * const highConfidence = filterByConfidence(allCandidates, 0.7);
+ * const elementCandidates = await executePatterns(patterns, codebaseRoot);
+ * const highConfidence = filterByConfidence(elementCandidates, 0.7);
  * ```
  */
-export function filterByConfidence(
-  candidates: ElementCandidate[],
+export function filterByConfidence<T extends ElementCandidate | RelationshipCandidate>(
+  candidates: T[],
   threshold: number = 0.7
-): ElementCandidate[] {
+): T[] {
   if (threshold < 0 || threshold > 1) {
     throw new Error("Confidence threshold must be between 0.0 and 1.0");
   }
@@ -502,4 +525,84 @@ export function renderTemplate(template: string, data: Record<string, any>): str
 
     return result;
   });
+}
+
+/**
+ * Layer index mapping for cross-layer relationship validation
+ *
+ * Maps canonical layer names to numeric indices (1-12) to enforce the
+ * cross-layer direction rule: source layer index > target layer index
+ */
+export const LAYER_INDEX: Record<string, number> = {
+  motivation: 1,
+  business: 2,
+  security: 3,
+  application: 4,
+  technology: 5,
+  api: 6,
+  "data-model": 7,
+  "data-store": 8,
+  ux: 9,
+  navigation: 10,
+  apm: 11,
+  testing: 12,
+};
+
+/**
+ * Extract layer name from an element ID
+ *
+ * Element IDs follow the format: {layer}.{elementType}.{kebab-case-name}
+ *
+ * @param elementId - Full element ID
+ * @returns Layer name or null if ID format is invalid
+ *
+ * @example
+ * ```typescript
+ * extractLayerFromId("api.endpoint.create-order") // => "api"
+ * extractLayerFromId("data-model.entity.customer") // => "data-model"
+ * extractLayerFromId("invalid-id") // => null
+ * ```
+ */
+export function extractLayerFromId(elementId: string): string | null {
+  const parts = elementId.split(".");
+  if (parts.length < 3) {
+    return null;
+  }
+  return parts[0];
+}
+
+/**
+ * Validate cross-layer relationship direction
+ *
+ * Relationships must follow the direction rule: source element's layer must be
+ * numerically higher (later in the 12-layer sequence) than target element's layer.
+ *
+ * @param sourceId - Source element ID
+ * @param targetId - Target element ID
+ * @returns true if relationship direction is valid, false otherwise
+ *
+ * @example
+ * ```typescript
+ * // Valid: api (6) → data-model (7) is invalid direction (but demonstrates extraction)
+ * // Valid: api (6) → application (4) ✓
+ * isValidRelationshipDirection("api.endpoint.create-order", "application.service.user-service") // => true
+ * ```
+ */
+export function isValidRelationshipDirection(sourceId: string, targetId: string): boolean {
+  const sourceLayer = extractLayerFromId(sourceId);
+  const targetLayer = extractLayerFromId(targetId);
+
+  if (!sourceLayer || !targetLayer) {
+    return false;
+  }
+
+  const sourceIndex = LAYER_INDEX[sourceLayer];
+  const targetIndex = LAYER_INDEX[targetLayer];
+
+  if (sourceIndex === undefined || targetIndex === undefined) {
+    return false;
+  }
+
+  // Valid cross-layer: source layer must be higher (greater index) than target layer
+  return sourceIndex > targetIndex;
 }
