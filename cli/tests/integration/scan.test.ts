@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll, spyOn } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterEach,
+  afterAll,
+  spyOn
+} from "bun:test";
 import { scanCommand, type ScanOptions } from "../../src/commands/scan.js";
 import { StagedChangesetStorage } from "../../src/core/staged-changeset-storage.js";
 import { Model } from "../../src/core/model.js";
@@ -15,7 +23,11 @@ describe("Scan Command", () => {
 
   afterEach(async () => {
     // Clean up changesets between tests
-    const changesetsDir = path.join(workdir.path, "documentation-robotics", "changesets");
+    const changesetsDir = path.join(
+      workdir.path,
+      "documentation-robotics",
+      "changesets"
+    );
     if (fs.existsSync(changesetsDir)) {
       const entries = fs.readdirSync(changesetsDir);
       for (const entry of entries) {
@@ -57,9 +69,8 @@ describe("Scan Command", () => {
   describe("Pattern loading and execution", () => {
     it("loads built-in patterns and project patterns", async () => {
       // This tests the core pattern loading that happens early in scanCommand
-      const { loadBuiltinPatterns, loadProjectPatterns, mergePatterns } = await import(
-        "../../src/scan/pattern-loader.js"
-      );
+      const { loadBuiltinPatterns, loadProjectPatterns, mergePatterns } =
+        await import("../../src/scan/pattern-loader.js");
 
       const builtin = await loadBuiltinPatterns();
       expect(builtin.length).toBeGreaterThan(0);
@@ -73,7 +84,8 @@ describe("Scan Command", () => {
     });
 
     it("filters patterns by layer when --layer option is provided", async () => {
-      const { loadBuiltinPatterns } = await import("../../src/scan/pattern-loader.js");
+      const { loadBuiltinPatterns } =
+        await import("../../src/scan/pattern-loader.js");
 
       const patterns = await loadBuiltinPatterns();
       const apiPatterns = patterns.filter((set) => set.layer === "api");
@@ -87,21 +99,22 @@ describe("Scan Command", () => {
     });
 
     it("merges built-in and project patterns correctly", async () => {
-      const { mergePatterns } = await import("../../src/scan/pattern-loader.js");
+      const { mergePatterns } =
+        await import("../../src/scan/pattern-loader.js");
 
       const builtin = [
         {
           layer: "api",
           framework: "nestjs",
           version: "default",
-          patterns: [{ id: "builtin-pattern-1" }],
+          patterns: [{ id: "builtin-pattern-1" }]
         },
         {
           layer: "api",
           framework: "express",
           version: "default",
-          patterns: [{ id: "builtin-pattern-2" }],
-        },
+          patterns: [{ id: "builtin-pattern-2" }]
+        }
       ];
 
       const project = [
@@ -109,14 +122,14 @@ describe("Scan Command", () => {
           layer: "api",
           framework: "nestjs",
           version: "default",
-          patterns: [{ id: "project-pattern-1" }], // Overrides builtin nestjs
+          patterns: [{ id: "project-pattern-1" }] // Overrides builtin nestjs
         },
         {
           layer: "api",
           framework: "fastify",
           version: "default",
-          patterns: [{ id: "project-pattern-3" }], // New framework
-        },
+          patterns: [{ id: "project-pattern-3" }] // New framework
+        }
       ];
 
       const merged = mergePatterns(builtin as any, project as any);
@@ -138,7 +151,8 @@ describe("Scan Command", () => {
 
   describe("Pattern to candidate mapping", () => {
     it("maps pattern matches to element candidates correctly", async () => {
-      const { renderTemplate } = await import("../../src/scan/pattern-loader.js");
+      const { renderTemplate } =
+        await import("../../src/scan/pattern-loader.js");
 
       // Create a test pattern
       const testPattern = {
@@ -146,19 +160,19 @@ describe("Scan Command", () => {
         produces: {
           type: "node" as const,
           layer: "api",
-          elementType: "endpoint",
+          elementType: "endpoint"
         },
         query: {
           tool: "test-tool",
-          params: {},
+          params: {}
         },
         confidence: 0.85,
         mapping: {
           id: "api.endpoint.{match.path|kebab}",
           name: "{match.operationId}",
           method: "{match.method|upper}",
-          description: "{match.summary}",
-        },
+          description: "{match.summary}"
+        }
       };
 
       // Test rendering with sample data
@@ -166,50 +180,55 @@ describe("Scan Command", () => {
         path: "GetUserByID",
         operationId: "getUserById",
         method: "get",
-        summary: "Retrieve user by ID",
+        summary: "Retrieve user by ID"
       };
 
       const idRendered = renderTemplate(testPattern.mapping.id as string, {
-        match: matchData,
+        match: matchData
       });
       expect(idRendered).toBe("api.endpoint.get-user-by-id");
 
       const nameRendered = renderTemplate(testPattern.mapping.name as string, {
-        match: matchData,
+        match: matchData
       });
       expect(nameRendered).toBe("getUserById");
 
-      const methodRendered = renderTemplate(testPattern.mapping.method as string, {
-        match: matchData,
-      });
+      const methodRendered = renderTemplate(
+        testPattern.mapping.method as string,
+        {
+          match: matchData
+        }
+      );
       expect(methodRendered).toBe("GET");
     });
 
     it("generates valid element IDs following naming conventions", async () => {
-      const { renderTemplate } = await import("../../src/scan/pattern-loader.js");
+      const { renderTemplate } =
+        await import("../../src/scan/pattern-loader.js");
 
       // Test various ID generation templates
       const testCases = [
         {
-          template: "api.endpoint.{match.controller|kebab}-{match.method|kebab}",
+          template:
+            "api.endpoint.{match.controller|kebab}-{match.method|kebab}",
           data: { match: { controller: "UserController", method: "GetUser" } },
-          expected: "api.endpoint.user-controller-get-user",
+          expected: "api.endpoint.user-controller-get-user"
         },
         {
           template: "application.service.{match.className|kebab}",
           data: { match: { className: "AuthenticationService" } },
-          expected: "application.service.authentication-service",
+          expected: "application.service.authentication-service"
         },
         {
           template: "data-model.entity.{match.modelName|kebab}",
           data: { match: { modelName: "UserAccount" } },
-          expected: "data-model.entity.user-account",
+          expected: "data-model.entity.user-account"
         },
         {
           template: "api.endpoint.{match.resource|lower}",
           data: { match: { resource: "USERS" } },
-          expected: "api.endpoint.users",
-        },
+          expected: "api.endpoint.users"
+        }
       ];
 
       for (const testCase of testCases) {
@@ -221,7 +240,8 @@ describe("Scan Command", () => {
 
   describe("Candidate filtering and deduplication", () => {
     it("filters candidates by confidence threshold", async () => {
-      const { filterByConfidence } = await import("../../src/scan/pattern-loader.js");
+      const { filterByConfidence } =
+        await import("../../src/scan/pattern-loader.js");
 
       const candidates = [
         {
@@ -230,7 +250,7 @@ describe("Scan Command", () => {
           layer: "api",
           name: "High Confidence",
           confidence: 0.95,
-          attributes: {},
+          attributes: {}
         },
         {
           id: "api.endpoint.medium-confidence",
@@ -238,7 +258,7 @@ describe("Scan Command", () => {
           layer: "api",
           name: "Medium Confidence",
           confidence: 0.75,
-          attributes: {},
+          attributes: {}
         },
         {
           id: "api.endpoint.low-confidence",
@@ -246,8 +266,8 @@ describe("Scan Command", () => {
           layer: "api",
           name: "Low Confidence",
           confidence: 0.45,
-          attributes: {},
-        },
+          attributes: {}
+        }
       ];
 
       const highConfidence = filterByConfidence(candidates, 0.8);
@@ -270,7 +290,7 @@ describe("Scan Command", () => {
           layer: "api",
           name: "Get User",
           confidence: 0.9,
-          attributes: {},
+          attributes: {}
         },
         {
           id: "api.endpoint.create-user",
@@ -278,7 +298,7 @@ describe("Scan Command", () => {
           layer: "api",
           name: "Create User",
           confidence: 0.85,
-          attributes: {},
+          attributes: {}
         },
         {
           id: "application.service.user-service",
@@ -286,8 +306,8 @@ describe("Scan Command", () => {
           layer: "application",
           name: "User Service",
           confidence: 0.75,
-          attributes: {},
-        },
+          attributes: {}
+        }
       ];
 
       // Load the test model
@@ -324,15 +344,15 @@ describe("Scan Command", () => {
           type: "endpoint",
           layer: "api",
           name: "Test Endpoint",
-          confidence: 0.9,
+          confidence: 0.9
         },
         {
           id: "application.service.test-service",
           type: "service",
           layer: "application",
           name: "Test Service",
-          confidence: 0.85,
-        },
+          confidence: 0.85
+        }
       ];
 
       for (const candidate of candidates) {
@@ -343,7 +363,7 @@ describe("Scan Command", () => {
           layer_id: candidate.layer,
           spec_node_id: candidate.type,
           path: candidate.id.replace(/\./g, "/"),
-          attributes: {},
+          attributes: {}
         });
       }
 
@@ -359,7 +379,8 @@ describe("Scan Command", () => {
 
     it("handles empty scan results gracefully", async () => {
       // When no candidates are found, the scan should complete successfully
-      const { loadBuiltinPatterns } = await import("../../src/scan/pattern-loader.js");
+      const { loadBuiltinPatterns } =
+        await import("../../src/scan/pattern-loader.js");
 
       const patterns = await loadBuiltinPatterns();
       expect(patterns.length > 0).toBe(true);
@@ -379,23 +400,23 @@ describe("Scan Command", () => {
           produces: {
             type: "node" as const,
             layer: "api",
-            elementType: "endpoint",
+            elementType: "endpoint"
           },
           query: { tool: "valid-tool", params: {} },
           confidence: 0.85,
-          mapping: { id: "api.endpoint.valid" },
+          mapping: { id: "api.endpoint.valid" }
         },
         {
           id: "invalid.pattern",
           produces: {
             type: "node" as const,
             layer: "api",
-            elementType: "endpoint",
+            elementType: "endpoint"
           },
           query: { tool: "invalid-tool", params: {} },
           confidence: 0.85,
-          mapping: { id: "api.endpoint.{match.nonexistent}" }, // Will fail mapping
-        },
+          mapping: { id: "api.endpoint.{match.nonexistent}" } // Will fail mapping
+        }
       ];
 
       const warnings: string[] = [];
@@ -418,7 +439,8 @@ describe("Scan Command", () => {
 
     it("respects disabled patterns from configuration", async () => {
       // Configuration can disable certain pattern sets
-      const { loadBuiltinPatterns } = await import("../../src/scan/pattern-loader.js");
+      const { loadBuiltinPatterns } =
+        await import("../../src/scan/pattern-loader.js");
 
       const allPatterns = await loadBuiltinPatterns();
       const disabledPatterns = ["jest", "pytest"]; // Example disabled patterns
@@ -452,7 +474,7 @@ describe("Scan Command", () => {
           layer: "api",
           name: "Endpoint 1",
           confidence: 0.9,
-          attributes: {},
+          attributes: {}
         },
         {
           id: "api.endpoint.2",
@@ -460,8 +482,8 @@ describe("Scan Command", () => {
           layer: "api",
           name: "Endpoint 2",
           confidence: 0.85,
-          attributes: {},
-        },
+          attributes: {}
+        }
       ];
 
       const stats = {
@@ -469,7 +491,7 @@ describe("Scan Command", () => {
         candidatesFound: candidates.length,
         candidatesDeduplicated: 0,
         newCandidates: candidates.length,
-        elementsStaged: candidates.length,
+        elementsStaged: candidates.length
       };
 
       expect(stats.patternCount).toBeGreaterThan(0);
@@ -487,7 +509,13 @@ describe("Scan Command", () => {
       expect(model).toBeDefined();
 
       // Model should have some elements from the golden copy
-      const elementCount = model.getAllElements().length;
+      let elementCount = 0;
+      for (const layerName of model.getLayerNames()) {
+        const layer = await model.getLayer(layerName);
+        if (layer) {
+          elementCount += layer.listElements().length;
+        }
+      }
       expect(elementCount >= 0).toBe(true);
     });
   });

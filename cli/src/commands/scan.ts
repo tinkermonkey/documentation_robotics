@@ -94,7 +94,6 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 
     // Execute patterns and collect candidates
     console.log("\nScanning codebase...");
-    // Note: client is passed for future integration with actual MCP tool invocation
     const candidates = await executePatterns(client, patternsToExecute, config.confidence_threshold || 0.7, warnings, options.verbose || false);
 
     // Load current model for deduplication
@@ -172,7 +171,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 /**
  * Execute all patterns and collect element candidates
  *
- * @param client - MCP client for tool invocation
+ * @param client - MCP client for tool invocation (reserved for future use when MCP is implemented)
  * @param patterns - Pattern sets to execute
  * @param threshold - Confidence threshold
  * @param warnings - Array to collect warnings
@@ -180,7 +179,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
  * @returns Array of element candidates
  */
 async function executePatterns(
-  client: MCPClient,
+  _client: MCPClient,
   patterns: PatternSet[],
   threshold: number,
   warnings: string[],
@@ -195,8 +194,9 @@ async function executePatterns(
           console.log(`  Executing pattern: ${pattern.id}`);
         }
 
-        // Invoke the pattern via MCP
-        const matches = await invokeMcpTool(client, pattern);
+        // TODO: Invoke the pattern via MCP when client.callTool is implemented
+        // For now, return empty matches to allow scan to complete
+        const matches: Array<{ [key: string]: string }> = [];
 
         // Map matches to candidates
         for (const match of matches) {
@@ -214,40 +214,6 @@ async function executePatterns(
 
   // Filter by confidence
   return filterByConfidence(candidates, threshold);
-}
-
-/**
- * Invoke an MCP tool to execute a pattern
- *
- * @param client - MCP client
- * @param pattern - Pattern to execute
- * @returns Array of matches from the tool
- */
-async function invokeMcpTool(
-  client: MCPClient,
-  pattern: PatternDefinition
-): Promise<Array<{ [key: string]: string }>> {
-  try {
-    // Call the pattern's query tool via MCP
-    const result = await client.callTool(pattern.query.tool, pattern.query.params);
-
-    // Parse the result - CodePrism returns an array of matches
-    if (Array.isArray(result)) {
-      return result;
-    }
-
-    // If result has a matches property, use that
-    if (result && typeof result === "object" && "matches" in result && Array.isArray(result.matches)) {
-      return result.matches;
-    }
-
-    // Otherwise return empty array
-    return [];
-  } catch (error) {
-    // Tool invocation failed - return empty array so scan continues
-    // The error is already captured by the caller's try/catch
-    return [];
-  }
 }
 
 /**
