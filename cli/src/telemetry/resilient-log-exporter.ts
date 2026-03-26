@@ -41,7 +41,9 @@ export class ResilientLogExporter implements LogRecordExporter {
     this.delegate = new OTLPLogExporter({
       ...config,
       url: this.url,
-      timeoutMillis: config?.timeoutMillis ?? 5000, // 5s timeout to allow for network latency
+      timeoutMillis: config?.timeoutMillis ?? 5000,
+      // Disable HTTP keepAlive for CLI use case
+      keepAlive: false,
     });
 
     if (this.debug) {

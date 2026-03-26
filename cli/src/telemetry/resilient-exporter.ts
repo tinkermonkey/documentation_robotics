@@ -52,11 +52,14 @@ export class ResilientOTLPExporter implements SpanExporter {
         process.stderr.write(`[TELEMETRY] Using fetch-based exporter for Bun compatibility\n`);
       }
     } else {
-      // Use standard http-based exporter for Node.js
+      // Use standard http-based exporter for Node.js with keepAlive disabled
+      // for short-lived CLI processes to prevent hanging on shutdown
       this.delegate = new OTLPTraceExporter({
         ...config,
         url: this.url,
         timeoutMillis: config?.timeoutMillis ?? 5000,
+        // Disable HTTP keepAlive for CLI use case
+        keepAlive: false,
       });
       if (this.debug) {
         process.stderr.write(`[TELEMETRY] Trace exporter initialized: ${this.url}\n`);

@@ -1,6 +1,6 @@
 import * as esbuild from 'esbuild';
 import { globSync } from 'glob';
-import { renameSync, rmSync, cpSync } from 'fs';
+import { renameSync, rmSync, cpSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
 
@@ -12,6 +12,15 @@ try {
   gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 } catch (error) {
   console.warn('Warning: Could not determine git hash. Build may not be in a git repository.');
+}
+
+// Capture CLI version from package.json at build time
+let cliVersion = '0.1.3';
+try {
+  const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
+  cliVersion = pkg.version || '0.1.3';
+} catch (error) {
+  console.warn('Warning: Could not read CLI version from package.json.');
 }
 
 // Find all compiled JS files to process with esbuild
@@ -37,6 +46,7 @@ await esbuild.build({
   define: {
     'TELEMETRY_ENABLED': isDebug ? 'true' : 'false',
     'GIT_HASH': JSON.stringify(gitHash),
+    'CLI_VERSION': JSON.stringify(cliVersion),
   },
   minifySyntax: true, // Enables dead branch elimination for if(TELEMETRY_ENABLED)
   sourcemap: true,

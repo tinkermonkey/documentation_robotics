@@ -20,6 +20,8 @@ export { SeverityNumber } from "@opentelemetry/api-logs";
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 // This ensures tests and non-bundled code don't crash
 declare const TELEMETRY_ENABLED: boolean | undefined;
+declare const CLI_VERSION: string | undefined;
+
 export const isTelemetryEnabled =
   typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
@@ -55,18 +57,26 @@ let cachedTrace: any = null;
  */
 export async function initTelemetry(): Promise<void> {
   if (isTelemetryEnabled) {
-    // Dynamic imports ensure tree-shaking when TELEMETRY_ENABLED is false
-    // These imports are completely eliminated from production builds
+    // Load OTLP config FIRST to check if telemetry is actually configured
+    const { loadOTLPConfig } = await import("./config.js");
+    const otlpConfig = await loadOTLPConfig();
+
+    // Early return if not configured - avoid loading heavy OTEL dependencies
+    // This prevents hanging at shutdown when no collector is running
+    if (!otlpConfig.isExplicitlyConfigured) {
+      return;
+    }
+
+    // Now load heavy dependencies only when telemetry is actually configured
     const [
       { NodeSDK },
-      { SimpleSpanProcessor },
+      { BatchSpanProcessor },
       { SimpleLogRecordProcessor },
       otelApi,
       { Resource },
       { LoggerProvider },
       { ResilientOTLPExporter },
       { ResilientLogExporter },
-      { loadOTLPConfig },
     ] = await Promise.all([
       import("@opentelemetry/sdk-node"),
       import("@opentelemetry/sdk-trace-base"),
@@ -76,19 +86,7 @@ export async function initTelemetry(): Promise<void> {
       import("@opentelemetry/sdk-logs"),
       import("./resilient-exporter.js"),
       import("./resilient-log-exporter.js"),
-      import("./config.js"),
     ]);
-
-    // Load OTLP configuration from environment variables, config file, and defaults
-    const otlpConfig = await loadOTLPConfig();
-
-    // Runtime guard: TELEMETRY_ENABLED is a build-time capability flag, but we only
-    // actually send data when an OTLP endpoint is explicitly configured at runtime.
-    // Without this check the SDK would connect to the localhost:4318 default even
-    // when no collector is running, causing the process to hang at shutdown.
-    if (!otlpConfig.isExplicitlyConfigured) {
-      return;
-    }
 
     // Cache API imports for synchronous access in other functions
     const { trace, context } = otelApi;
@@ -103,14 +101,8 @@ export async function initTelemetry(): Promise<void> {
       process.stderr.write(`  - Service name: ${otlpConfig.serviceName}\n`);
     }
 
-    // Attempt to get CLI version from package.json
-    let cliVersion = "0.1.0";
-    try {
-      const pkg = await import("../../package.json", { assert: { type: "json" } });
-      cliVersion = pkg.default.version || "0.1.0";
-    } catch {
-      // Use default version if package.json not accessible
-    }
+    // Use build-time constant (substituted by esbuild)
+    const cliVersion = typeof CLI_VERSION !== "undefined" ? CLI_VERSION : "0.1.0";
 
     // Attempt to load project name from model manifest
     let projectName = "unknown";
@@ -157,10 +149,16 @@ export async function initTelemetry(): Promise<void> {
       timeoutMillis: 10000, // 10s timeout for network requests (serialization + network latency)
     });
 
-    // Create span processor and store reference for forceFlush during shutdown
-    spanProcessor = new SimpleSpanProcessor(traceExporter);
+    // Create span processor with batching for CLI use case
+    // Short delay (100ms) balances latency vs HTTP request overhead
+    spanProcessor = new BatchSpanProcessor(traceExporter, {
+      maxExportBatchSize: 32,
+      maxQueueSize: 64,
+      scheduledDelayMillis: 100, // Short delay for CLI
+      exportTimeoutMillis: 5000,
+    });
 
-    // Initialize NodeSDK with SimpleSpanProcessor for immediate export
+    // Initialize NodeSDK with BatchSpanProcessor for efficient export
     const nodeSdk = new NodeSDK({
       resource,
       spanProcessor,

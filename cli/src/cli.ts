@@ -41,13 +41,15 @@ import { auditDiffCommand } from "./commands/audit-diff.js";
 import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
-import { readJSON, fileExists } from "./utils/file-io.js";
 import { getErrorMessage } from "./utils/errors.js";
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
 declare const TELEMETRY_ENABLED: boolean;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
+
+// Commands that require console interceptor for telemetry logging
+const CONSOLE_LOGGING_COMMANDS = new Set(['chat', 'validate', 'import', 'export']);
 
 /**
  * Extract exit code from an error object.
@@ -77,28 +79,9 @@ async function extractExitCode(error: unknown): Promise<number> {
   return 1;
 }
 
-// Get CLI version from package.json
-async function getCliVersion(): Promise<string> {
-  const possiblePaths = [
-    `${process.cwd()}/package.json`,
-    `${import.meta.url.replace("file://", "").split("/src/")[0]}/package.json`,
-  ];
-
-  for (const path of possiblePaths) {
-    if (await fileExists(path)) {
-      try {
-        const data = await readJSON<{ version: string }>(path);
-        return data.version;
-      } catch {
-        continue;
-      }
-    }
-  }
-
-  return "0.1.0";
-}
-
-const cliVersion = await getCliVersion();
+// Declare build-time constant (substituted by esbuild)
+declare const CLI_VERSION: string;
+const cliVersion = typeof CLI_VERSION !== "undefined" ? CLI_VERSION : "0.1.3";
 
 const program = new Command();
 
@@ -755,22 +738,20 @@ copilotCommands(program);
     if (isTelemetryEnabled) {
       // Initialize telemetry before execution
       await initTelemetry();
-      await installConsoleInterceptor();
 
+      // Only install console interceptor for commands that need it
       const commandName = process.argv[2] || "unknown";
+      if (CONSOLE_LOGGING_COMMANDS.has(commandName)) {
+        await installConsoleInterceptor();
+      }
+
       const args = process.argv.slice(3).join(" ");
 
       // Wrap entire CLI execution in active span for proper context propagation
       await startActiveSpan(
         "cli.execute",
         async (span) => {
-          span.setAttributes({
-            "cli.command": commandName,
-            "cli.args": args,
-            "cli.cwd": process.cwd(),
-            "cli.version": cliVersion,
-          });
-
+          // Attributes already set via options parameter - no duplicate setAttributes needed
           try {
             // Execute command - all child spans will now link to this root span
             await program.parseAsync(process.argv);
@@ -811,10 +792,7 @@ copilotCommands(program);
       // Shutdown telemetry after execution completes
       await shutdownTelemetry();
 
-      // Always call process.exit() after telemetry shutdown to avoid hanging on
-      // http.Agent keepAlive timers from the OTLPLogExporter when the OTEL
-      // endpoint is not reachable. Without this, the event loop stays alive for
-      // several seconds waiting for keepAlive sockets to time out.
+      // Exit with exit code (keepAlive disabled in exporters prevents hanging)
       process.exit(exitCode);
     } else {
       // No telemetry - just parse normally with error handling
