@@ -370,6 +370,7 @@ class RAGPipeline:
 - ApplicationComponent: "RAGService" — owns all four functions via `assigned-to`
 
 **Key relationships:**
+
 ```
 ApplicationFunction: chunker → flows-to → ApplicationFunction: embedder
 ApplicationFunction: embedder → flows-to → ApplicationFunction: retriever
