@@ -22,7 +22,7 @@
  */
 
 import ansis from "ansis";
-import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient, type ScanConfig } from "../scan/mcp-client.js";
+import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
 import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, type PatternDefinition, type PatternSet, type ElementCandidate } from "../scan/pattern-loader.js";
 import { getErrorMessage } from "../utils/errors.js";
