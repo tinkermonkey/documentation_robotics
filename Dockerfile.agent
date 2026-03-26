@@ -26,6 +26,13 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint-agent.sh"]
 # when GITHUB_TOKEN is set. No ENV declaration needed here — runtime
 # environment variables are picked up automatically.
 
+# Disable keyring-based credential storage for gh CLI.
+# Without this, gh tries to use dbus-launch to access the system keyring,
+# which requires the dbus-x11 package (and X11 dependencies). Setting
+# GH_NO_KEYRING=1 tells gh to store credentials in plain text config
+# files instead — appropriate for headless container environments.
+ENV GH_NO_KEYRING=1
+
 # ============================================================================
 # Stage 2: Install Project-Specific Runtimes
 # ============================================================================
