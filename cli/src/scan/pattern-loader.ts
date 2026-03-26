@@ -568,7 +568,15 @@ export function extractLayerFromId(elementId: string): string | null {
   if (parts.length < 3) {
     return null;
   }
-  return parts[0];
+
+  const layerName = parts[0];
+
+  // Validate that the layer name is a known layer
+  if (!(layerName in LAYER_INDEX)) {
+    return null;
+  }
+
+  return layerName;
 }
 
 /**

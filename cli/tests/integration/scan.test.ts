@@ -820,10 +820,12 @@ describe("Scan Command", () => {
       // Create a sample changeset with mixed operations
       const { Changeset } = await import("../../src/core/changeset.js");
 
-      const changeset = new Changeset();
-      changeset.id = "test-changeset";
-      changeset.name = "Test";
-      changeset.baseSnapshot = "test";
+      const changeset = Changeset.create(
+        "Test Changeset",
+        "Test changeset for ordering",
+        "test-changeset-123",
+        "snapshot-abc123"
+      );
 
       // Add element operations first
       changeset.addChange("add", "api.endpoint.test", "api", undefined, {
