@@ -30,8 +30,8 @@ patterns:
         language: typescript
     confidence: 0.75
     mapping:
-      source: "{match.controller}"
-      target: "{match.serviceName|kebab}"
+      source: "api.controller.{match.controller}"
+      target: "application.service.{match.serviceName|kebab}"
   - id: nestjs.controller.guard
     produces:
       type: relationship
@@ -45,8 +45,8 @@ patterns:
         language: typescript
     confidence: 0.8
     mapping:
-      source: "{match.endpoint}"
-      target: "{match.guardName|kebab}"
+      source: "api.endpoint.{match.endpoint}"
+      target: "security.guard.{match.guardName|kebab}"
   - id: nestjs.module.provider
     produces:
       type: relationship
@@ -60,5 +60,5 @@ patterns:
         language: typescript
     confidence: 0.8
     mapping:
-      source: "{match.module}"
-      target: "{match.provider|kebab}"
+      source: "api.module.{match.module}"
+      target: "application.service.{match.provider|kebab}"

@@ -44,8 +44,8 @@ patterns:
         language: typescript
     confidence: 0.85
     mapping:
-      source: "{match.componentName|kebab}"
-      target: "{match.hookName|kebab}"
+      source: "ux.component.{match.componentName|kebab}"
+      target: "ux.hook.{match.hookName|kebab}"
   - id: react.component.props
     produces:
       type: relationship
@@ -59,8 +59,8 @@ patterns:
         language: typescript
     confidence: 0.8
     mapping:
-      source: "{match.componentName|kebab}"
-      target: "{match.propsInterface|kebab}"
+      source: "ux.component.{match.componentName|kebab}"
+      target: "ux.prop.{match.propsInterface|kebab}"
   - id: react.component.composition
     produces:
       type: relationship
@@ -74,5 +74,5 @@ patterns:
         language: typescript
     confidence: 0.75
     mapping:
-      source: "{match.parentComponent|kebab}"
-      target: "{match.childComponent|kebab}"
+      source: "ux.component.{match.parentComponent|kebab}"
+      target: "ux.component.{match.childComponent|kebab}"

@@ -44,8 +44,8 @@ patterns:
         language: typescript
     confidence: 0.8
     mapping:
-      source: "{match.testName|kebab}"
-      target: "{match.assertionType|kebab}"
+      source: "testing.test-case.{match.testName|kebab}"
+      target: "testing.assertion.{match.assertionType|kebab}"
   - id: jest.test.mock
     produces:
       type: relationship
@@ -59,5 +59,5 @@ patterns:
         language: typescript
     confidence: 0.85
     mapping:
-      source: "{match.testName|kebab}"
-      target: "{match.mockedModule|kebab}"
+      source: "testing.test-case.{match.testName|kebab}"
+      target: "testing.mock.{match.mockedModule|kebab}"

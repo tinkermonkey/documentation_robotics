@@ -30,8 +30,8 @@ patterns:
         language: typescript
     confidence: 0.85
     mapping:
-      source: "{match.tracerName|kebab}"
-      target: "{match.spanName|kebab}"
+      source: "apm.tracer.{match.tracerName|kebab}"
+      target: "apm.span.{match.spanName|kebab}"
   - id: otel.metric.creation
     produces:
       type: node
@@ -60,7 +60,7 @@ patterns:
     confidence: 0.8
     mapping:
       source: "apm.instrumentation.auto"
-      target: "{match.packageName|kebab}"
+      target: "apm.instrument.{match.packageName|kebab}"
   - id: otel.exporter.configuration
     produces:
       type: node

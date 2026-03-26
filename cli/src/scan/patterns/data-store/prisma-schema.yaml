@@ -30,8 +30,8 @@ patterns:
         language: prisma
     confidence: 0.8
     mapping:
-      source: "{match.modelName|kebab}"
-      target: "{match.fieldName|kebab}"
+      source: "data-store.table.{match.modelName|kebab}"
+      target: "data-store.index.{match.fieldName|kebab}"
   - id: prisma.model.unique
     produces:
       type: relationship
@@ -45,5 +45,5 @@ patterns:
         language: prisma
     confidence: 0.85
     mapping:
-      source: "{match.modelName|kebab}"
-      target: "{match.fieldName|kebab}"
+      source: "data-store.table.{match.modelName|kebab}"
+      target: "data-store.constraint.{match.fieldName|kebab}"

@@ -30,8 +30,8 @@ patterns:
         language: typescript
     confidence: 0.7
     mapping:
-      source: "{match.serviceName|kebab}"
-      target: "{match.methodName|kebab}"
+      source: "application.service.{match.serviceName|kebab}"
+      target: "application.method.{match.methodName|kebab}"
   - id: nestjs.service.dependency
     produces:
       type: relationship
@@ -45,5 +45,5 @@ patterns:
         language: typescript
     confidence: 0.8
     mapping:
-      source: "{match.serviceName|kebab}"
-      target: "{match.dependencyType|kebab}"
+      source: "application.service.{match.serviceName|kebab}"
+      target: "application.service.{match.dependencyType|kebab}"

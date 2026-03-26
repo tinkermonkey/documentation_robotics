@@ -44,8 +44,8 @@ patterns:
         language: python
     confidence: 0.85
     mapping:
-      source: "{match.testName|kebab}"
-      target: "{match.condition|kebab}"
+      source: "testing.test-case.{match.testName|kebab}"
+      target: "testing.assertion.{match.condition|kebab}"
   - id: pytest.test.fixture
     produces:
       type: relationship
@@ -59,8 +59,8 @@ patterns:
         language: python
     confidence: 0.9
     mapping:
-      source: "{match.testName|kebab}"
-      target: "{match.fixtureName|kebab}"
+      source: "testing.test-case.{match.testName|kebab}"
+      target: "testing.fixture.{match.fixtureName|kebab}"
   - id: pytest.test.parametrize
     produces:
       type: relationship
@@ -74,5 +74,5 @@ patterns:
         language: python
     confidence: 0.85
     mapping:
-      source: "{match.testName|kebab}"
-      target: "{match.parameterNames|kebab}"
+      source: "testing.test-case.{match.testName|kebab}"
+      target: "testing.parametrization.{match.parameterNames|kebab}"

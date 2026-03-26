@@ -221,7 +221,9 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
           // Check cross-layer direction rule
           if (!isValidRelationshipDirection(expandedCandidate.sourceId, expandedCandidate.targetId)) {
             warnings.push(
-              `Relationship violates cross-layer direction rule: ${expandedCandidate.sourceId} → ${expandedCandidate.targetId} (higher layer must reference lower layer)`
+              `Relationship violates direction rule: ${expandedCandidate.sourceId} → ${expandedCandidate.targetId}. ` +
+              `Cross-layer relationships must go from higher-numbered layers to lower-numbered layers (e.g., api[6] → application[4]). ` +
+              `Same-layer relationships are always allowed.`
             );
             continue;
           }
@@ -506,6 +508,28 @@ function mapToElementCandidate(
 }
 
 /**
+ * Qualify a bare element name to a fully-qualified element ID
+ *
+ * If the name already contains dots, returns it as-is (assumed to be fully-qualified).
+ * If the name is bare (no dots), qualifies it using the pattern's declared layer and
+ * a sensible element type derived from context.
+ *
+ * @param bareOrQualifiedId - Bare name or potentially fully-qualified ID
+ * @param layer - The pattern's declared layer for qualification
+ * @param elementType - Default element type to use if qualifying
+ * @returns Fully-qualified element ID
+ */
+function qualifyElementId(bareOrQualifiedId: string, layer: string, elementType: string): string {
+  // If already fully-qualified (contains dots), return as-is
+  if (bareOrQualifiedId.includes(".")) {
+    return bareOrQualifiedId;
+  }
+
+  // Bare name: qualify it with layer and element type
+  return `${layer}.${elementType}.${bareOrQualifiedId}`;
+}
+
+/**
  * Map a pattern match to a relationship candidate
  *
  * @param pattern - Relationship pattern definition
@@ -528,14 +552,20 @@ function mapToRelationshipCandidate(
     if (!sourceIdTemplate) {
       throw new Error("Relationship pattern must define 'source' or 'sourceId' in mapping");
     }
-    const sourceId = renderTemplate(sourceIdTemplate, { match });
+    let sourceId = renderTemplate(sourceIdTemplate, { match });
 
-    // Validate that sourceId is a fully-qualified element ID
+    // If source is a bare name (no dots), qualify it with the pattern's layer and a default element type
+    if (!sourceId.includes(".")) {
+      // Use 'item' as a generic element type for bare source names
+      sourceId = qualifyElementId(sourceId, pattern.produces.layer, "item");
+    }
+
+    // Validate that sourceId is now a valid fully-qualified element ID
     if (!sourceId.includes(".")) {
       throw new Error(
-        `Source element ID is not fully-qualified: '${sourceId}'. ` +
+        `Source element ID could not be qualified: '${sourceId}'. ` +
         `Expected format: '{layer}.{elementType}.{name}' (e.g., 'application.service.user-service'). ` +
-        `The pattern's 'source' mapping should render to a complete ID, not just a bare name.`
+        `Provide either a fully-qualified ID or a bare name that can be auto-qualified.`
       );
     }
 
@@ -548,14 +578,20 @@ function mapToRelationshipCandidate(
     if (!targetIdTemplate) {
       throw new Error("Relationship pattern must define 'target' or 'targetId' in mapping");
     }
-    const targetId = renderTemplate(targetIdTemplate, { match });
+    let targetId = renderTemplate(targetIdTemplate, { match });
 
-    // Validate that targetId is a fully-qualified element ID
+    // If target is a bare name (no dots), qualify it with the pattern's layer and a default element type
+    if (!targetId.includes(".")) {
+      // Use 'item' as a generic element type for bare target names
+      targetId = qualifyElementId(targetId, pattern.produces.layer, "item");
+    }
+
+    // Validate that targetId is now a valid fully-qualified element ID
     if (!targetId.includes(".")) {
       throw new Error(
-        `Target element ID is not fully-qualified: '${targetId}'. ` +
+        `Target element ID could not be qualified: '${targetId}'. ` +
         `Expected format: '{layer}.{elementType}.{name}' (e.g., 'application.service.user-service'). ` +
-        `The pattern's 'target' mapping should render to a complete ID, not just a bare name.`
+        `Provide either a fully-qualified ID or a bare name that can be auto-qualified.`
       );
     }
 
@@ -610,7 +646,12 @@ function mapToRelationshipCandidate(
   } catch (error) {
     // Log mapping error as warning so users know matches were received but couldn't be processed
     const errorMsg = getErrorMessage(error);
-    warnings.push(`Pattern '${pattern.id}' failed to map relationship candidate: ${errorMsg}`);
+    warnings.push(
+      `Pattern '${pattern.id}' mapping error: ${errorMsg}. ` +
+      `This relationship candidate will be skipped. Review the pattern's 'source' and 'target' mappings ` +
+      `to ensure they render to valid element IDs (either fully-qualified like 'api.endpoint.get-users' ` +
+      `or bare names like 'get-users' which will be auto-qualified).`
+    );
     return null;
   }
 }

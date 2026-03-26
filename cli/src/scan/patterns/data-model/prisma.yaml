@@ -30,8 +30,8 @@ patterns:
         language: prisma
     confidence: 0.9
     mapping:
-      source: "{match.modelName|kebab}"
-      target: "{match.fieldName|kebab}"
+      source: "data-model.entity.{match.modelName|kebab}"
+      target: "data-model.field.{match.fieldName|kebab}"
   - id: prisma.model.relation
     produces:
       type: relationship
@@ -45,5 +45,5 @@ patterns:
         language: prisma
     confidence: 0.85
     mapping:
-      source: "{match.sourceModel|kebab}"
-      target: "{match.targetModel|kebab}"
+      source: "data-model.entity.{match.sourceModel|kebab}"
+      target: "data-model.entity.{match.targetModel|kebab}"

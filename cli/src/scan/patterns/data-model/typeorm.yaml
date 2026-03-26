@@ -30,8 +30,8 @@ patterns:
         language: typescript
     confidence: 0.9
     mapping:
-      source: "{match.entityName|kebab}"
-      target: "{match.columnName|kebab}"
+      source: "data-model.entity.{match.entityName|kebab}"
+      target: "data-model.column.{match.columnName|kebab}"
   - id: typeorm.entity.relationship
     produces:
       type: relationship
@@ -45,5 +45,5 @@ patterns:
         language: typescript
     confidence: 0.85
     mapping:
-      source: "{match.sourceEntity|kebab}"
-      target: "{match.targetEntity|kebab}"
+      source: "data-model.entity.{match.sourceEntity|kebab}"
+      target: "data-model.entity.{match.targetEntity|kebab}"

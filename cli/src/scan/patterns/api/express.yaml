@@ -30,7 +30,7 @@ patterns:
         language: javascript
     confidence: 0.75
     mapping:
-      source: "{match.middlewareName|kebab}"
+      source: "api.middleware.{match.middlewareName|kebab}"
       target: "api.endpoint.*"
   - id: express.error.handler
     produces:
@@ -45,5 +45,5 @@ patterns:
         language: javascript
     confidence: 0.8
     mapping:
-      source: "{match.handlerName|kebab}"
+      source: "api.middleware.{match.handlerName|kebab}"
       target: "api.endpoint.*"
