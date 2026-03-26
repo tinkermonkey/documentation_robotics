@@ -18,8 +18,8 @@ import {
 
 describe("Node Type Index", () => {
   describe("NODE_TYPES Map", () => {
-    it("should contain all 184 node types", () => {
-      expect(NODE_TYPES.size).toBe(184);
+    it("should contain all 186 node types", () => {
+      expect(NODE_TYPES.size).toBe(186);
     });
 
     it("should have NodeTypeInfo for each entry", () => {
