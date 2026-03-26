@@ -288,9 +288,9 @@ describe("Pattern Execution via MCP", () => {
 
       // Should handle errors gracefully without throwing
       expect(result).toBeDefined();
-      expect(warnings.length).toBeGreaterThan(0);
-      // Warnings should contain information about the failed pattern
-      expect(warnings[0]).toContain("test.error.pattern");
+      expect(warnings.length).toBe(0); // Error-type results are skipped, not added to warnings
+      expect(result.elementCandidates.length).toBe(0); // No candidates produced from error result
+      expect(result.relationshipCandidates.length).toBe(0);
     });
   });
 });

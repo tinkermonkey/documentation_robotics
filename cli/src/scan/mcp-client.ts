@@ -146,12 +146,10 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
 
   try {
     // @ts-ignore - MCP SDK will be installed at runtime
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     const clientModule = await import("@modelcontextprotocol/sdk/client/index.js");
     ClientClass = clientModule.Client;
 
     // @ts-ignore - MCP SDK will be installed at runtime
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     const stdioModule = await import("@modelcontextprotocol/sdk/client/stdio.js");
     StdioClientTransportClass = stdioModule.StdioClientTransport;
   } catch (importError) {
