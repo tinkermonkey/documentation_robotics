@@ -52,6 +52,41 @@ export function filterDisabledPatterns(patterns: PatternSet[], disabledPatterns?
 }
 
 /**
+ * Expand wildcard element IDs to concrete element IDs
+ *
+ * Wildcards (e.g., "api.endpoint.*") are resolved against available elements.
+ * Pattern: "{layer}.{elementType}.*" matches any element of that type in that layer.
+ *
+ * @param elementId - Element ID that may contain a wildcard
+ * @param availableElements - Elements to match against (from model and candidates)
+ * @returns Array of concrete element IDs matching the wildcard, or [elementId] if no wildcard
+ */
+export function expandWildcardElementId(elementId: string, availableElements: Array<{ id: string }>): string[] {
+  // Check if elementId contains a wildcard
+  if (!elementId.includes("*")) {
+    return [elementId];
+  }
+
+  // Parse the wildcard pattern: "{layer}.{elementType}.*"
+  const parts = elementId.split(".");
+  if (parts.length < 3 || parts[parts.length - 1] !== "*") {
+    // Invalid wildcard format, return as-is
+    return [elementId];
+  }
+
+  const targetLayer = parts[0];
+  const targetElementType = parts[1];
+
+  // Match against available elements
+  const matched = availableElements.filter((elem) => {
+    const elemParts = elem.id.split(".");
+    return elemParts.length >= 3 && elemParts[0] === targetLayer && elemParts[1] === targetElementType;
+  });
+
+  return matched.length > 0 ? matched.map((e) => e.id) : [elementId];
+}
+
+/**
  * Execute the scan command
  *
  * @param options - Command options
@@ -142,47 +177,79 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
       return true;
     });
 
-    // Validate and filter relationship candidates
-    const validRelationshipCandidates = relationshipCandidates.filter((candidate) => {
-      // Check cross-layer direction rule
-      if (!isValidRelationshipDirection(candidate.sourceId, candidate.targetId)) {
-        warnings.push(`Relationship violates cross-layer direction rule: ${candidate.sourceId} → ${candidate.targetId} (higher layer must reference lower layer)`);
-        return false;
-      }
+    // Expand wildcards and validate relationship candidates
+    const expandedRelationshipCandidates: RelationshipCandidate[] = [];
+    const allAvailableElements = [
+      ...(model?.allElements || []),
+      ...newElementCandidates,
+    ];
 
-      // Check if source element exists
-      const sourceExists = model?.getElementById(candidate.sourceId) !== undefined ||
-                         newElementCandidates.some((e) => e.id === candidate.sourceId);
-      if (!sourceExists) {
-        warnings.push(`Relationship references missing source element: ${candidate.sourceId}`);
-        return false;
-      }
+    for (const candidate of relationshipCandidates) {
+      // Expand wildcards in source and target
+      const sourceIds = expandWildcardElementId(candidate.sourceId, allAvailableElements);
+      const targetIds = expandWildcardElementId(candidate.targetId, allAvailableElements);
 
-      // Check if target element exists
-      const targetExists = model?.getElementById(candidate.targetId) !== undefined ||
-                         newElementCandidates.some((e) => e.id === candidate.targetId);
-      if (!targetExists) {
-        warnings.push(`Relationship references missing target element: ${candidate.targetId}`);
-        return false;
-      }
+      // Create expanded candidates for each source-target combination
+      for (const sourceId of sourceIds) {
+        for (const targetId of targetIds) {
+          const expandedCandidate: RelationshipCandidate = {
+            ...candidate,
+            sourceId,
+            targetId,
+            id: `${sourceId}->${targetId}`,
+          };
 
-      // Check for duplicates in existing model
-      if (model) {
-        const existing = model.relationships.find(
-          candidate.sourceId,
-          candidate.targetId,
-          candidate.relationshipType
-        );
-        if (existing && existing.length > 0) {
-          if (options.verbose) {
-            console.log(`  Skipping duplicate relationship: ${candidate.sourceId} → ${candidate.targetId}`);
+          // Check cross-layer direction rule
+          if (!isValidRelationshipDirection(expandedCandidate.sourceId, expandedCandidate.targetId)) {
+            warnings.push(
+              `Relationship violates cross-layer direction rule: ${expandedCandidate.sourceId} → ${expandedCandidate.targetId} (higher layer must reference lower layer)`
+            );
+            continue;
           }
-          return false;
+
+          // Check if source element exists
+          const sourceExists = model?.getElementById(expandedCandidate.sourceId) !== undefined ||
+                             newElementCandidates.some((e) => e.id === expandedCandidate.sourceId);
+          if (!sourceExists) {
+            warnings.push(
+              `Relationship references missing source element: ${expandedCandidate.sourceId}`
+            );
+            continue;
+          }
+
+          // Check if target element exists
+          const targetExists = model?.getElementById(expandedCandidate.targetId) !== undefined ||
+                             newElementCandidates.some((e) => e.id === expandedCandidate.targetId);
+          if (!targetExists) {
+            warnings.push(
+              `Relationship references missing target element: ${expandedCandidate.targetId}`
+            );
+            continue;
+          }
+
+          // Check for duplicates in existing model
+          if (model) {
+            const existing = model.relationships.find(
+              expandedCandidate.sourceId,
+              expandedCandidate.targetId,
+              expandedCandidate.relationshipType
+            );
+            if (existing && existing.length > 0) {
+              if (options.verbose) {
+                console.log(
+                  `  Skipping duplicate relationship: ${expandedCandidate.sourceId} → ${expandedCandidate.targetId}`
+                );
+              }
+              continue;
+            }
+          }
+
+          expandedRelationshipCandidates.push(expandedCandidate);
         }
       }
+    }
 
-      return true;
-    });
+    const validRelationshipCandidates = expandedRelationshipCandidates;
 
     // If dry-run, print candidates and exit (with cleanup)
     if (options.dryRun) {
@@ -418,25 +485,25 @@ function mapToRelationshipCandidate(
   match: Record<string, string>
 ): RelationshipCandidate | null {
   try {
-    // Get sourceId template from mapping
+    // Get sourceId template from mapping - support both "source" and "sourceId" keys
     let sourceIdTemplate: string | undefined;
-    const sourceIdValue = pattern.mapping["sourceId"];
+    const sourceIdValue = pattern.mapping["sourceId"] || pattern.mapping["source"];
     if (typeof sourceIdValue === "string") {
       sourceIdTemplate = sourceIdValue;
     }
     if (!sourceIdTemplate) {
-      throw new Error("Relationship pattern must define 'sourceId' in mapping");
+      throw new Error("Relationship pattern must define 'source' or 'sourceId' in mapping");
     }
     const sourceId = renderTemplate(sourceIdTemplate, { match });
 
-    // Get targetId template from mapping
+    // Get targetId template from mapping - support both "target" and "targetId" keys
     let targetIdTemplate: string | undefined;
-    const targetIdValue = pattern.mapping["targetId"];
+    const targetIdValue = pattern.mapping["targetId"] || pattern.mapping["target"];
     if (typeof targetIdValue === "string") {
       targetIdTemplate = targetIdValue;
     }
     if (!targetIdTemplate) {
-      throw new Error("Relationship pattern must define 'targetId' in mapping");
+      throw new Error("Relationship pattern must define 'target' or 'targetId' in mapping");
     }
     const targetId = renderTemplate(targetIdTemplate, { match });
 
@@ -455,10 +522,10 @@ function mapToRelationshipCandidate(
     // Create relationship candidate ID
     const id = `${sourceId}->${targetId}`;
 
-    // Collect attributes from mapping (excluding sourceId and targetId)
+    // Collect attributes from mapping (excluding source, target, sourceId, and targetId)
     const attributes: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(pattern.mapping)) {
-      if (key === "sourceId" || key === "targetId") continue;
+      if (key === "source" || key === "target" || key === "sourceId" || key === "targetId") continue;
       if (typeof value === "string") {
         attributes[key] = renderTemplate(value, { match });
       }
