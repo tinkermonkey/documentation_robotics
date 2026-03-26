@@ -122,7 +122,7 @@ describe("Scan Command", () => {
           layer: "api",
           framework: "nestjs",
           version: "default",
-          patterns: [{ id: "project-pattern-1" }] // Overrides builtin nestjs
+          patterns: [{ id: "builtin-pattern-1" }] // Same ID as builtin - override
         },
         {
           layer: "api",
@@ -134,12 +134,13 @@ describe("Scan Command", () => {
 
       const merged = mergePatterns(builtin as any, project as any);
 
-      // Should have: nestjs (from project), express (from builtin), fastify (from project)
+      // Should have: nestjs (with project override), express (from builtin), fastify (from project)
       expect(merged.length).toBe(3);
 
       // Find merged patterns
       const nestjs = merged.find((p) => p.framework === "nestjs");
-      expect(nestjs?.patterns[0].id).toBe("project-pattern-1"); // Project overwrites
+      expect(nestjs?.patterns.length).toBe(1);
+      expect(nestjs?.patterns[0].id).toBe("builtin-pattern-1"); // Project override replaces builtin
 
       const express = merged.find((p) => p.framework === "express");
       expect(express?.patterns[0].id).toBe("builtin-pattern-2"); // Builtin kept

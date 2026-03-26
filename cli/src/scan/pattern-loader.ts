@@ -347,42 +347,73 @@ export function mergePatterns(builtin: PatternSet[], project: PatternSet[]): Pat
   // Third pass: rebuild pattern sets maintaining framework structure
   const resultSets: PatternSet[] = [];
   const processedFrameworks = new Set<string>();
+  const frameworkPatterns = new Map<string, PatternDefinition[]>();
 
-  // Process builtin pattern sets first (maintain order)
+  // First collect all patterns for each framework (builtin + project merged)
   for (const builtinSet of builtin) {
     const setKey = `${builtinSet.framework}:${builtinSet.version || "default"}`;
-    processedFrameworks.add(setKey);
 
     // Collect patterns for this framework (may include overrides from project)
     const mergedPatterns = builtinSet.patterns
       .map((p) => patternIdMap.get(p.id))
       .filter((p): p is PatternDefinition => p !== undefined);
 
-    if (mergedPatterns.length > 0) {
+    frameworkPatterns.set(setKey, mergedPatterns);
+    processedFrameworks.add(setKey);
+  }
+
+  // Add project frameworks' new patterns (non-overriding) to matching builtin frameworks
+  for (const projectSet of project) {
+    const setKey = `${projectSet.framework}:${projectSet.version || "default"}`;
+
+    // Filter out patterns that override builtin ones
+    const projectOnlyPatterns = projectSet.patterns.filter(
+      (pattern) => !overridingProjectPatternIds.has(pattern.id)
+    );
+
+    if (projectOnlyPatterns.length > 0) {
+      if (processedFrameworks.has(setKey)) {
+        // Add new project patterns to existing builtin framework
+        const existing = frameworkPatterns.get(setKey) || [];
+        frameworkPatterns.set(setKey, [
+          ...existing,
+          ...projectOnlyPatterns,
+        ]);
+      } else {
+        // Add project-only framework
+        frameworkPatterns.set(setKey, projectOnlyPatterns);
+        processedFrameworks.add(setKey);
+      }
+    }
+  }
+
+  // Build result sets from merged framework patterns
+  for (const builtinSet of builtin) {
+    const setKey = `${builtinSet.framework}:${builtinSet.version || "default"}`;
+    const patterns = frameworkPatterns.get(setKey);
+
+    if (patterns && patterns.length > 0) {
       resultSets.push({
         ...builtinSet,
-        patterns: mergedPatterns,
+        patterns,
       });
     }
   }
 
-  // Then add project frameworks, but exclude patterns that override builtin ones
+  // Add project-only frameworks
   for (const projectSet of project) {
     const setKey = `${projectSet.framework}:${projectSet.version || "default"}`;
-    if (!processedFrameworks.has(setKey)) {
-      // Filter out any patterns in this project set that are overriding builtin patterns
-      const projectOnlyPatterns = projectSet.patterns.filter(
-        (pattern) => !overridingProjectPatternIds.has(pattern.id)
-      );
 
-      // Only add the project set if it has patterns after filtering
-      if (projectOnlyPatterns.length > 0) {
+    // Only process if this is a project-only framework (not in builtin)
+    if (!builtin.some((b) => `${b.framework}:${b.version || "default"}` === setKey)) {
+      const patterns = frameworkPatterns.get(setKey);
+
+      if (patterns && patterns.length > 0) {
         resultSets.push({
           ...projectSet,
-          patterns: projectOnlyPatterns,
+          patterns,
         });
       }
-      processedFrameworks.add(setKey);
     }
   }
 
