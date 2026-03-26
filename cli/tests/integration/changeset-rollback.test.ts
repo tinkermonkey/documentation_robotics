@@ -245,8 +245,9 @@ describe("Changeset Rollback Verification", () => {
       });
 
       // Try to commit (should fail and rollback)
+      // Using validate: false to skip schema validation so we can test layer-not-found error
       try {
-        await manager.commit(model, changeset.id!, { force: true });
+        await manager.commit(model, changeset.id!, { validate: false, force: true });
         expect(true).toBe(false); // Should not reach
       } catch (error) {
         expect(error instanceof Error).toBe(true);
