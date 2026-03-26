@@ -12,14 +12,14 @@
  *
  * @example
  * ```typescript
- * const builtinPatterns = loadBuiltinPatterns();
+ * const builtinPatterns = await loadBuiltinPatterns();
  * const projectPatterns = await loadProjectPatterns(projectRoot);
  * const merged = mergePatterns(builtinPatterns, projectPatterns);
  * const filtered = filterByConfidence(merged, confidenceThreshold);
  * ```
  */
 
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
@@ -154,11 +154,10 @@ export async function loadBuiltinPatterns(): Promise<PatternSet[]> {
   const patterns: PatternSet[] = [];
 
   // Recursively discover all .yaml files
-  // Simple recursive walker compatible with Node 18+
+  // Simple recursive walker using async fs API for consistency
   async function walkDir(dir: string): Promise<string[]> {
-    const { readdirSync } = await import("node:fs");
     const files: string[] = [];
-    const entries = readdirSync(dir, { withFileTypes: true });
+    const entries = await readdir(dir, { withFileTypes: true });
 
     for (const entry of entries) {
       const fullPath = join(dir, entry.name);
