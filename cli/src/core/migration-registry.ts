@@ -7,6 +7,11 @@
 
 import type { Model } from "./model.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { startSpan, endSpan } from "../telemetry/index.js";
+
+// Build-time constant for telemetry feature detection
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
  * Represents a single version migration
@@ -153,6 +158,24 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.8.2 to v0.8.3: Layer Guidance Documentation
+    this.migrations.push({
+      fromVersion: "0.8.2",
+      toVersion: "0.8.3",
+      description: "Layer Guidance Documentation (Spec v0.8.3)",
+      apply: async () => {
+        // Enhanced documentation and layer governance metadata
+        // - All layer specification markdown files have comprehensive SKILL.md-compatible guidance
+        // - Layer metadata sections synchronized with spec JSON sources
+        // Fully backward compatible - existing models continue to work
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: "Spec version updated to 0.8.3 (Layer Guidance Documentation)",
+        };
+      },
+    });
   }
 
   /**
@@ -224,57 +247,121 @@ export class MigrationRegistry {
     const path = this.getMigrationPath(options.fromVersion, options.toVersion);
     const targetVersion = options.toVersion || this.getLatestVersion();
 
-    if (path.length === 0) {
-      return {
+    // Create parent span for the entire migration sequence
+    const sequenceSpan = isTelemetryEnabled
+      ? startSpan("migration.sequence", {
+          "migration.from_version": options.fromVersion,
+          "migration.to_version": targetVersion,
+          "migration.count": path.length,
+          "migration.dry_run": options.dryRun || false,
+          "migration.validate": options.validate !== false,
+        })
+      : null;
+
+    try {
+      if (path.length === 0) {
+        if (sequenceSpan) {
+          sequenceSpan.setAttribute("migration.result", "no_migrations_needed");
+        }
+        return {
+          applied: [],
+          currentVersion: options.fromVersion,
+          targetVersion,
+          totalChanges: 0,
+        };
+      }
+
+      const results: ApplyMigrationsResult = {
         applied: [],
         currentVersion: options.fromVersion,
         targetVersion,
         totalChanges: 0,
       };
-    }
 
-    const results: ApplyMigrationsResult = {
-      applied: [],
-      currentVersion: options.fromVersion,
-      targetVersion,
-      totalChanges: 0,
-    };
+      for (const migration of path) {
+        // Create child span for each individual migration
+        const migrationSpan = isTelemetryEnabled
+          ? startSpan("migration.apply", {
+              "migration.from_version": migration.fromVersion,
+              "migration.to_version": migration.toVersion,
+              "migration.description": migration.description,
+              "migration.dry_run": options.dryRun || false,
+            })
+          : null;
 
-    for (const migration of path) {
-      if (!options.dryRun) {
         try {
-          const result = await migration.apply(model);
+          if (!options.dryRun) {
+            const result = await migration.apply(model);
 
-          results.applied.push({
-            from: migration.fromVersion,
-            to: migration.toVersion,
-            description: migration.description,
-            changes: result,
-          });
+            results.applied.push({
+              from: migration.fromVersion,
+              to: migration.toVersion,
+              description: migration.description,
+              changes: result,
+            });
 
-          results.totalChanges += result.migrationsApplied;
+            results.totalChanges += result.migrationsApplied;
 
-          // Update model's spec version
-          model.manifest.specVersion = migration.toVersion;
+            // Update model's spec version
+            model.manifest.specVersion = migration.toVersion;
+
+            if (migrationSpan) {
+              migrationSpan.setAttribute("migration.migrations_applied", result.migrationsApplied);
+              migrationSpan.setAttribute("migration.files_modified", result.filesModified);
+              migrationSpan.setAttribute("migration.result", "success");
+            }
+          } else {
+            // Dry run - just record what would happen
+            results.applied.push({
+              from: migration.fromVersion,
+              to: migration.toVersion,
+              description: migration.description,
+              dryRun: true,
+            });
+
+            if (migrationSpan) {
+              migrationSpan.setAttribute("migration.result", "dry_run");
+            }
+          }
         } catch (error) {
+          if (migrationSpan) {
+            migrationSpan.recordException(error as Error);
+            migrationSpan.setStatus({
+              code: 2, // SpanStatusCode.ERROR
+              message: getErrorMessage(error),
+            });
+            migrationSpan.setAttribute("migration.result", "error");
+          }
           throw new Error(
             `Migration ${migration.fromVersion} → ${migration.toVersion} failed: ${
               getErrorMessage(error)
             }`
           );
+        } finally {
+          endSpan(migrationSpan);
         }
-      } else {
-        // Dry run - just record what would happen
-        results.applied.push({
-          from: migration.fromVersion,
-          to: migration.toVersion,
-          description: migration.description,
-          dryRun: true,
-        });
       }
-    }
 
-    return results;
+      if (sequenceSpan) {
+        sequenceSpan.setAttribute("migration.result", "success");
+        sequenceSpan.setAttribute("migration.total_changes", results.totalChanges);
+        sequenceSpan.setAttribute("migration.migrations_applied", results.applied.length);
+      }
+
+      return results;
+    } catch (error) {
+      if (sequenceSpan) {
+        sequenceSpan.recordException(error as Error);
+        sequenceSpan.setStatus({
+          code: 2, // SpanStatusCode.ERROR
+          message: getErrorMessage(error),
+        });
+        sequenceSpan.setAttribute("migration.result", "error");
+      }
+      throw error;
+    } finally {
+      endSpan(sequenceSpan);
+    }
   }
 
   /**
