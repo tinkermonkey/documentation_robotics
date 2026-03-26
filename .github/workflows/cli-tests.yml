@@ -135,6 +135,7 @@ jobs:
           name: coverage-report-shard-${{ matrix.shard }}
           path: cli/coverage/
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Upload test results
         if: always()
@@ -186,7 +187,7 @@ jobs:
   test-aggregate:
     name: Aggregate Test Results
     runs-on: ubuntu-latest
-    if: always()
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     needs: [test-full]
 
     steps:
@@ -217,6 +218,7 @@ jobs:
           name: coverage-report-merged
           path: cli/coverage-merged/
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Comment PR with test results
         if: github.event_name == 'pull_request'
