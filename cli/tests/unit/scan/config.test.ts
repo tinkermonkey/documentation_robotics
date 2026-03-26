@@ -98,7 +98,8 @@ describe("Scan Config Loader", () => {
       expect(error instanceof Error).toBe(true);
       const message = (error as Error).message;
       // Error message should mention YAML syntax issue or config file error
-      expect(message.toLowerCase()).toContain("yaml") || expect(message).toContain("config file");
+      const lowerMessage = message.toLowerCase();
+      expect(lowerMessage.includes("yaml") || lowerMessage.includes("config file")).toBe(true);
     }
   });
 });

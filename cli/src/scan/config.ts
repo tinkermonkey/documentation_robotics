@@ -109,11 +109,13 @@ export async function loadScanConfig(): Promise<ScanConfig> {
         }
       } else {
         errorMessage = `Unknown error reading config file ${configPath}`;
+        suggestions = ["Check the config file for issues"];
       }
 
-      throw new Error(
-        `${errorMessage}\n\nSuggestions:\n${suggestions.map((s) => `  • ${s}`).join("\n")}`
-      );
+      const suggestionBlock = suggestions.length > 0
+        ? `\n\nSuggestions:\n${suggestions.map((s) => `  • ${s}`).join("\n")}`
+        : "";
+      throw new Error(`${errorMessage}${suggestionBlock}`);
     }
   }
 

@@ -322,23 +322,9 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
       }
     }
   } catch (error) {
-    try {
-      handleError(error);
-    } finally {
-      // Ensure client is disconnected even on error
-      if (client) {
-        try {
-          await disconnectMcpClient(client);
-        } catch (disconnectError) {
-          // Disconnect errors should not mask the original error
-          if (options.verbose) {
-            console.warn(`Warning: Failed to disconnect from CodePrism: ${getErrorMessage(disconnectError)}`);
-          }
-        }
-      }
-    }
+    handleError(error);
   } finally {
-    // Always disconnect MCP client on normal exit or dry-run
+    // Always disconnect MCP client
     if (client) {
       try {
         await disconnectMcpClient(client);
