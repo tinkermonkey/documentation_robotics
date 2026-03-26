@@ -57,10 +57,26 @@ export type Produces = z.infer<typeof ProducesSchema>;
 /**
  * Template-based mapping for element ID and attributes
  *
+ * Common keys:
+ * - `id` - Element ID template (for nodes only)
+ * - `name` - Element name template
+ * - `source` / `sourceId` - Source element ID (for relationships) — use `source` (canonical)
+ * - `target` / `targetId` - Target element ID (for relationships) — use `target` (canonical)
+ *
+ * Canonical key names for relationship patterns:
+ * - Use `source` and `target` as the standard naming convention in YAML patterns
+ * - `sourceId` and `targetId` are accepted for backwards compatibility but should not be used in new patterns
+ * - When both are present, `sourceId`/`targetId` take precedence
+ *
  * Templates support:
  * - {match.*} - Access match properties (e.g., {match.decoratorArg})
  * - Kebab-case transformation: {match.className|kebab}
  * - Uppercase transformation: {match.method|upper}
+ *
+ * Wildcard patterns:
+ * - `source` or `target` can contain wildcards like "api.endpoint.*" to match any element of that type
+ * - Wildcards are expanded at scan time against available model elements and newly discovered elements
+ * - Invalid wildcard patterns or patterns with no matches result in the relationship being skipped
  */
 export const MappingSchema = z.record(z.string(), z.union([z.string(), z.record(z.string(), z.string())]));
 

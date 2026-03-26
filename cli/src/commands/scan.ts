@@ -57,9 +57,12 @@ export function filterDisabledPatterns(patterns: PatternSet[], disabledPatterns?
  * Wildcards (e.g., "api.endpoint.*") are resolved against available elements.
  * Pattern: "{layer}.{elementType}.*" matches any element of that type in that layer.
  *
+ * When a wildcard is provided but no matching elements are found, returns an empty array
+ * rather than the unresolved wildcard, allowing the relationship candidate to be skipped.
+ *
  * @param elementId - Element ID that may contain a wildcard
  * @param availableElements - Elements to match against (from model and candidates)
- * @returns Array of concrete element IDs matching the wildcard, or [elementId] if no wildcard
+ * @returns Array of concrete element IDs matching the wildcard, or empty array if wildcard matches nothing
  */
 export function expandWildcardElementId(elementId: string, availableElements: Array<{ id: string }>): string[] {
   // Check if elementId contains a wildcard
@@ -70,8 +73,8 @@ export function expandWildcardElementId(elementId: string, availableElements: Ar
   // Parse the wildcard pattern: "{layer}.{elementType}.*"
   const parts = elementId.split(".");
   if (parts.length < 3 || parts[parts.length - 1] !== "*") {
-    // Invalid wildcard format, return as-is
-    return [elementId];
+    // Invalid wildcard format - not a valid wildcard pattern, return empty array
+    return [];
   }
 
   const targetLayer = parts[0];
@@ -83,7 +86,8 @@ export function expandWildcardElementId(elementId: string, availableElements: Ar
     return elemParts.length >= 3 && elemParts[0] === targetLayer && elemParts[1] === targetElementType;
   });
 
-  return matched.length > 0 ? matched.map((e) => e.id) : [elementId];
+  // Return matched elements, or empty array if no matches (allows candidate to be skipped)
+  return matched.map((e) => e.id);
 }
 
 /**
@@ -179,15 +183,30 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 
     // Expand wildcards and validate relationship candidates
     const expandedRelationshipCandidates: RelationshipCandidate[] = [];
-    const allAvailableElements = [
-      ...(model?.allElements || []),
-      ...newElementCandidates,
-    ];
+
+    // Collect all available elements from model and new candidates
+    const allAvailableElements: Array<{ id: string }> = [];
+    if (model) {
+      for (const layer of model.layers.values()) {
+        for (const element of layer.elements.values()) {
+          allAvailableElements.push({ id: element.id });
+        }
+      }
+    }
+    allAvailableElements.push(...newElementCandidates);
+
+    // Track relationship keys already added to avoid duplicates among expanded candidates
+    const addedRelationshipKeys = new Set<string>();
 
     for (const candidate of relationshipCandidates) {
       // Expand wildcards in source and target
       const sourceIds = expandWildcardElementId(candidate.sourceId, allAvailableElements);
       const targetIds = expandWildcardElementId(candidate.targetId, allAvailableElements);
+
+      // Skip this candidate if wildcard expansion produces no matches
+      if (sourceIds.length === 0 || targetIds.length === 0) {
+        continue;
+      }
 
       // Create expanded candidates for each source-target combination
       for (const sourceId of sourceIds) {
@@ -244,31 +263,41 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
             }
           }
 
+          // Check for duplicates among expanded candidates in this scan
+          const relationshipKey = `${expandedCandidate.sourceId}|${expandedCandidate.targetId}|${expandedCandidate.relationshipType}`;
+          if (addedRelationshipKeys.has(relationshipKey)) {
+            if (options.verbose) {
+              console.log(
+                `  Skipping duplicate expanded relationship: ${expandedCandidate.sourceId} → ${expandedCandidate.targetId}`
+              );
+            }
+            continue;
+          }
+
+          addedRelationshipKeys.add(relationshipKey);
           expandedRelationshipCandidates.push(expandedCandidate);
         }
       }
     }
 
-    const validRelationshipCandidates = expandedRelationshipCandidates;
-
     // If dry-run, print candidates and exit (with cleanup)
     if (options.dryRun) {
-      console.log(ansis.green(`\n✓ Found ${newElementCandidates.length} element candidates and ${validRelationshipCandidates.length} relationship candidates (dry-run mode):\n`));
+      console.log(ansis.green(`\n✓ Found ${newElementCandidates.length} element candidates and ${expandedRelationshipCandidates.length} relationship candidates (dry-run mode):\n`));
       if (newElementCandidates.length > 0) {
         console.log("Elements:");
         printCandidatesTable(newElementCandidates);
       }
-      if (validRelationshipCandidates.length > 0) {
+      if (expandedRelationshipCandidates.length > 0) {
         console.log("\nRelationships:");
-        printRelationshipCandidatesTable(validRelationshipCandidates);
+        printRelationshipCandidatesTable(expandedRelationshipCandidates);
       }
       return; // Exit cleanly - finally block will run for cleanup
     }
 
     // Stage changeset with candidates
-    if (newElementCandidates.length > 0 || validRelationshipCandidates.length > 0) {
-      console.log(`\nStaging ${newElementCandidates.length} elements and ${validRelationshipCandidates.length} relationships as changeset...`);
-      await stageChangeset(newElementCandidates, validRelationshipCandidates, process.cwd());
+    if (newElementCandidates.length > 0 || expandedRelationshipCandidates.length > 0) {
+      console.log(`\nStaging ${newElementCandidates.length} elements and ${expandedRelationshipCandidates.length} relationships as changeset...`);
+      await stageChangeset(newElementCandidates, expandedRelationshipCandidates, process.cwd());
       console.log(ansis.green(`✓ Changeset staged successfully`));
     } else {
       console.log(ansis.yellow(`\n⚠ No new candidates found`));
@@ -281,9 +310,9 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log(`  Element candidates deduplicated: ${elementCandidates.length - newElementCandidates.length}`);
     console.log(`  New element candidates: ${newElementCandidates.length}`);
     console.log(`  Relationship candidates found: ${relationshipCandidates.length}`);
-    console.log(`  Valid relationships staged: ${validRelationshipCandidates.length}`);
+    console.log(`  Valid relationships staged: ${expandedRelationshipCandidates.length}`);
     console.log(`  Elements staged: ${newElementCandidates.length}`);
-    console.log(`  Relationships staged: ${validRelationshipCandidates.length}`);
+    console.log(`  Relationships staged: ${expandedRelationshipCandidates.length}`);
 
     // Print warnings at the end
     if (warnings.length > 0) {
