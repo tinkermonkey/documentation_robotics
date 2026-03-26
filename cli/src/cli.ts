@@ -726,7 +726,6 @@ program
   .command("scan")
   .description("Scan codebase using CodePrism MCP server")
   .option("--config", "Validate configuration without connecting to CodePrism")
-  .option("--debug", "Enable debug logging")
   .addHelpText(
     "after",
     `
@@ -747,7 +746,6 @@ Examples:
   .action(async (options) => {
     await scanCommand({
       config: options.config,
-      debug: options.debug,
     });
   });
 
