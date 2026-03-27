@@ -7,10 +7,11 @@ import {
   afterAll,
   spyOn
 } from "bun:test";
-import { scanCommand, type ScanOptions } from "../../src/commands/scan.js";
+import { scanCommand, type ScanOptions, stageChangeset } from "../../src/commands/scan.js";
 import { StagedChangesetStorage } from "../../src/core/staged-changeset-storage.js";
 import { Model } from "../../src/core/model.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { type RelationshipCandidate } from "../../src/scan/pattern-loader.js";
 import * as path from "path";
 import * as fs from "fs";
 
@@ -173,8 +174,11 @@ describe("Scan Command", () => {
       expect(expanded).toContain("api.endpoint.create-user");
       expect(expanded).toContain("api.endpoint.delete-user");
 
-      // Step 6: Test deduplication
+      // Step 6: Test deduplication component (model loading and filtering logic)
       const model = await Model.load(workdir.path);
+      expect(model).toBeDefined();
+
+      // Verify model can identify existing elements for deduplication purposes
       const elementsInModel = new Set<string>();
       for (const layerName of model.getLayerNames()) {
         const layer = await model.getLayer(layerName);
@@ -185,44 +189,45 @@ describe("Scan Command", () => {
         }
       }
 
-      const candidates = [
+      // Test candidates that don't exist in the model
+      const testCandidates = [
         { id: "api.endpoint.new-one", type: "endpoint", layer: "api", name: "New", confidence: 0.9, attributes: {} },
         { id: "api.endpoint.new-two", type: "endpoint", layer: "api", name: "New", confidence: 0.9, attributes: {} }
       ];
 
-      const deduplicated = candidates.filter((c) => !elementsInModel.has(c.id));
-      expect(deduplicated.length).toBe(2); // Both should be new
+      // Verify test candidates are actually new (not already in model)
+      for (const candidate of testCandidates) {
+        expect(elementsInModel.has(candidate.id)).toBe(false);
+      }
 
-      // Step 7: Test changeset staging
+      // Step 7: Test changeset staging via stageChangeset function
+      // This directly tests the exported stageChangeset function with real candidates
+      const stageableElements = testCandidates;
+      const stageableRelationships: RelationshipCandidate[] = [];
+
+      // Call the exported stageChangeset function - the actual code path that should be tested
+      await stageChangeset(stageableElements, stageableRelationships, workdir.path);
+
+      // Verify the changeset was created by loading the most recent one
       const storage = new StagedChangesetStorage(workdir.path);
-      const testChangesetId = `pipeline-test-${Date.now()}`;
-      const changeset = await storage.create(
-        testChangesetId,
-        "Pipeline Test",
-        "Testing full pipeline",
-        "current"
-      );
+      const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
+      expect(changesets.length).toBeGreaterThan(0);
 
-      // Add element candidate
-      changeset.addChange("add", candidates[0].id, candidates[0].layer, undefined, {
-        id: candidates[0].id,
-        type: candidates[0].type,
-        name: candidates[0].name,
-        layer_id: candidates[0].layer,
-        spec_node_id: candidates[0].type,
-        path: candidates[0].id.replace(/\./g, "/"),
-        attributes: {}
-      });
+      // Load the latest changeset to verify it contains our elements
+      const latestChangesetId = changesets.sort().pop();
+      expect(latestChangesetId).toBeDefined();
 
-      // Save and verify
-      await storage.save(changeset);
-      const loaded = await storage.load(testChangesetId);
-      expect(loaded).toBeDefined();
-      expect(loaded?.changes.length).toBe(1);
-      expect(loaded?.changes[0].elementId).toBe(candidates[0].id);
+      if (latestChangesetId) {
+        const loadedChangeset = await storage.load(latestChangesetId);
+        expect(loadedChangeset).toBeDefined();
+        expect(loadedChangeset?.changes.length).toBe(stageableElements.length);
 
-      // Cleanup
-      await storage.delete(testChangesetId);
+        // Verify element IDs match what we staged
+        const stagedIds = new Set(loadedChangeset?.changes.map((c) => c.elementId));
+        for (const element of stageableElements) {
+          expect(stagedIds.has(element.id)).toBe(true);
+        }
+      }
     });
   });
 
@@ -821,7 +826,7 @@ describe("Scan Command", () => {
 
       // Verify model structure is correct
       expect(loadedLayers.length).toBeGreaterThan(0);
-      expect(elementCount).toBeGreaterThanOrEqual(0);
+      expect(elementCount).toBeGreaterThan(0);
 
       // Count should match sum of elements across layers
       let verifyCount = 0;
