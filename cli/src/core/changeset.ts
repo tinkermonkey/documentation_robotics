@@ -202,10 +202,13 @@ export class Changeset {
   /**
    * Get all changes of a specific type.
    *
-   * @param type - Type of changes to filter for
-   * @returns Array of changes matching the type
+   * Supports filtering by element change types (add, update, delete) and
+   * relationship change types (relationship-add, relationship-delete).
+   *
+   * @param type - Type of changes to filter for (add, update, delete, relationship-add, relationship-delete)
+   * @returns Array of changes matching the specified type
    */
-  getChangesByType(type: Change["type"]): Change[] {
+  getChangesByType(type: "add" | "update" | "delete" | "relationship-add" | "relationship-delete"): Change[] {
     return this.changes.filter((c) => c.type === type);
   }
 
