@@ -6,7 +6,7 @@ import { readFile, writeFile, readdir, mkdir, rm } from "fs/promises";
 import path from "path";
 import { createHash } from "crypto";
 import { fileExists, ensureDir } from "../../src/utils/file-io.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 
 describe("Changeset Rollback Verification", () => {
   let model: Model;
@@ -22,7 +22,7 @@ describe("Changeset Rollback Verification", () => {
     // Eager loading required: Test validates changeset rollback functionality
     // which requires all layers loaded to verify state restoration
     model = await Model.load(TEST_DIR, { lazyLoad: false });
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     // Clean up test directory
@@ -1151,7 +1151,7 @@ describe("Backup Creation Failure Handling - CRITICAL Issue Fix", () => {
     const workdir = await createTestWorkdir();
     TEST_DIR = workdir.path;
     cleanup = workdir.cleanup;
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     try {

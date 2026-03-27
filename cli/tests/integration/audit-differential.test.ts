@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SnapshotStorage } from "../../src/audit/snapshot-storage.js";
 import { DifferentialAnalyzer } from "../../src/audit/differential-analyzer.js";
 import { AuditReport, CoverageMetrics, GapCandidate, DuplicateCandidate, BalanceAssessment, gapImpactScore, duplicateImpactScore } from "../../src/audit/types.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 import * as path from "path";
 import { promises as fs } from "fs";
 
@@ -22,7 +22,7 @@ describe("Snapshot Storage", () => {
     storage = new SnapshotStorage({
       storageDir: path.join(workdir.path, ".dr", "audit-snapshots"),
     });
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     await workdir.cleanup();

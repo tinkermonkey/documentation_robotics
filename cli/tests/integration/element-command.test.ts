@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Model } from "../../src/core/model.js";
 import { runDr as runDrHelper } from "../helpers/cli-runner.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 import { findElementBySemanticId } from "../helpers/element-finder.js";
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
@@ -23,7 +23,7 @@ async function runDr(
 describe("Element Subcommand Group", () => {
   beforeEach(async () => {
     tempDir = await createTestWorkdir();
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     await tempDir.cleanup();

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 
 describe("Changeset Concurrent Operations", () => {
   let model: Model;
@@ -17,7 +17,7 @@ describe("Changeset Concurrent Operations", () => {
     // Eager loading required: Test validates concurrent changeset operations
     // which requires all layers loaded upfront to detect staging conflicts
     model = await Model.load(TEST_DIR, { lazyLoad: false });
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     try {

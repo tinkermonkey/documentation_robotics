@@ -17,6 +17,13 @@ import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { cwd } from "process";
 
+/**
+ * Recommended timeout (ms) for beforeEach hooks that call createTestWorkdir().
+ * Golden copy clone + filesystem verification can take several seconds in
+ * containerized environments with slow disk I/O or high concurrency.
+ */
+export const GOLDEN_COPY_HOOK_TIMEOUT = 30_000;
+
 let goldenCopyPath: string | null = null;
 let initializationPromise: Promise<string> | null = null;
 let initializationError: Error | null = null;

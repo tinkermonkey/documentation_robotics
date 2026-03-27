@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
 import { Model } from "../../src/core/model.js";
 import { findElementBySemanticId } from "../helpers/element-finder.js";
@@ -23,7 +23,7 @@ describe("regression: naming-edge-cases", () => {
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     if (workdir) {

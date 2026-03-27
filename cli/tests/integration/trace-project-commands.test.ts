@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Model } from "../../src/core/model.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 
 describe("Dependency Tracing Commands", () => {
   let testDir: string;
@@ -19,7 +19,7 @@ describe("Dependency Tracing Commands", () => {
     testDir = workdir.path;
     cleanup = workdir.cleanup;
     model = await Model.load(testDir);
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     await cleanup();

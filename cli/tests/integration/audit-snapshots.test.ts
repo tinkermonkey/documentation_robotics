@@ -12,14 +12,14 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { auditSnapshotsCommand } from "../../src/commands/audit-snapshots.js";
 import { SnapshotStorage } from "../../src/audit/snapshot-storage.js";
 import { auditCommand } from "../../src/commands/audit.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 
 describe("audit snapshots command", () => {
   let workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     await workdir.cleanup();
