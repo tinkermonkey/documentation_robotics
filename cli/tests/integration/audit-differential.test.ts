@@ -32,7 +32,7 @@ describe("Snapshot Storage", () => {
     const report = createMockAuditReport();
     const metadata = await storage.save(report);
 
-    expect(metadata.id).toMatch(/^\d{8}-\d{6}$/);
+    expect(metadata.id).toMatch(/^\d{8}-\d{9}$/);
     expect(metadata.timestamp).toBe(report.timestamp);
     expect(metadata.modelName).toBe(report.model.name);
     expect(metadata.modelVersion).toBe(report.model.version);
