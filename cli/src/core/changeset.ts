@@ -158,7 +158,7 @@ export class Changeset {
    * Supports both element changes (add/update/delete) and relationship changes (relationship-add/relationship-delete).
    * For relationship changes, elementId should be formatted as: source::predicate::target
    *
-   * @param type - Type of change (add, update, delete, relationship-add, relationship-delete)
+   * @param type - Type of change
    * @param elementId - ID of the element being changed (or composite key for relationships: source::predicate::target)
    * @param layerName - Layer containing the element (or source layer for relationships)
    * @param before - Element/relationship state before change (for update/delete operations)
@@ -166,7 +166,7 @@ export class Changeset {
    * @throws No exceptions; updates modified timestamp on success
    */
   addChange(
-    type: "add" | "update" | "delete" | "relationship-add" | "relationship-delete",
+    type: Change["type"],
     elementId: string,
     layerName: string,
     before?: Record<string, unknown>,
@@ -201,14 +201,10 @@ export class Changeset {
 
   /**
    * Get all changes of a specific type.
-   *
-   * Supports filtering by element change types (add, update, delete) and
-   * relationship change types (relationship-add, relationship-delete).
-   *
-   * @param type - Type of changes to filter for (add, update, delete, relationship-add, relationship-delete)
+   * @param type - Type of change to filter for
    * @returns Array of changes matching the specified type
    */
-  getChangesByType(type: "add" | "update" | "delete" | "relationship-add" | "relationship-delete"): Change[] {
+  getChangesByType(type: Change["type"]): Change[] {
     return this.changes.filter((c) => c.type === type);
   }
 
