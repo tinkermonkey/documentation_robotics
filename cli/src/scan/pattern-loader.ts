@@ -598,8 +598,15 @@ export function extractLayerFromId(elementId: string): string | null {
   const sortedLayers = knownLayers.sort((a, b) => b.length - a.length);
 
   for (const layer of sortedLayers) {
-    if (elementId.startsWith(layer + separator)) {
-      return layer;
+    const prefix = layer + separator;
+    if (elementId.startsWith(prefix)) {
+      const remainder = elementId.slice(prefix.length);
+      // Ensure remainder has at least type + separator + name (i.e., contains at least one separator)
+      if (remainder.includes(separator)) {
+        return layer;
+      }
+      // If remainder doesn't have proper structure, this isn't a valid element ID
+      return null;
     }
   }
 
