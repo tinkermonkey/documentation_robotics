@@ -131,7 +131,7 @@ jobs:
           fi
 
           echo "Tests for shard $SHARD: $(echo $SHARD_TESTS | wc -w) files"
-          time bun test --concurrent --coverage --reporter json --reporter default $SHARD_TESTS 2>&1 | tee test-results.json
+          time bun test --concurrent --coverage $SHARD_TESTS 2>&1 | tee test-results.json
 
       - name: Upload shard coverage report
         if: always()
