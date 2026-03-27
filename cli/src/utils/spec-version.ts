@@ -6,6 +6,9 @@
 
 import { readJSON, fileExists } from "./file-io.js";
 import { join } from "path";
+import { fileURLToPath } from "url";
+import path from "path";
+import { readFileSync, existsSync } from "fs";
 
 /**
  * CLI version
@@ -15,11 +18,57 @@ import { join } from "path";
 const CLI_VERSION = "0.1.3";
 
 /**
- * Bundled spec version
- * This should match the version in ../../../spec/VERSION
- * Updated during build process
+ * Resolve the bundled spec directory
+ * Priority:
+ * 1. CLI installation: schemas/bundled/ next to compiled source
+ * 2. Development monorepo: spec/dist/
  */
-const BUNDLED_SPEC_VERSION = "0.8.3";
+function getBundledSpecDir(): string {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+
+  // Try 1: CLI installation (dist/utils → dist/schemas/bundled)
+  const installPath = path.join(currentDir, "..", "schemas", "bundled");
+  if (existsSync(path.join(installPath, "manifest.json"))) {
+    return installPath;
+  }
+
+  // Try 2: Development path — spec/dist/ in monorepo
+  const devDistPath = path.join(currentDir, "../../../spec/dist");
+  if (existsSync(path.join(devDistPath, "manifest.json"))) {
+    return devDistPath;
+  }
+
+  // Fallback to CLI installation path (will fail at runtime if not found)
+  return installPath;
+}
+
+/**
+ * Read the bundled spec version from manifest.json at module load time.
+ * This is cached and reused for all subsequent calls.
+ */
+function readBundledSpecVersionSync(): string {
+  try {
+    const bundledDir = getBundledSpecDir();
+    const manifestPath = path.join(bundledDir, "manifest.json");
+    const content = readFileSync(manifestPath, "utf-8");
+    const manifest = JSON.parse(content) as { specVersion?: string };
+
+    if (!manifest.specVersion) {
+      throw new Error("manifest.json is missing specVersion field");
+    }
+
+    return manifest.specVersion;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to read bundled spec version from manifest.json: ${message}`);
+  }
+}
+
+/**
+ * Bundled spec version (read from manifest.json at module load time)
+ * This is cached and reused for all subsequent calls.
+ */
+const BUNDLED_SPEC_VERSION = readBundledSpecVersionSync();
 
 /**
  * Get the CLI version
@@ -35,6 +84,8 @@ export function getCliVersion(): string {
  *
  * This is the version of the DR specification that is bundled with this CLI.
  * It represents what version of the spec this CLI supports.
+ *
+ * The version is read from bundled manifest.json at module load time.
  *
  * @returns Bundled spec version string
  */
