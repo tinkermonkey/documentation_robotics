@@ -52,6 +52,19 @@ describe("OpenAPIExporter", () => {
 
   it("should include source reference on operations", async () => {
     const apiLayer = new Layer("api");
+    const sourceReference = {
+      provenance: "extracted",
+      locations: [
+        {
+          file: "src/api/users.ts",
+          symbol: "createUser",
+        },
+      ],
+      repository: {
+        url: "https://github.com/example/repo",
+        commit: "abc123def456789012345678901234567890abcd",
+      },
+    };
     const endpoint = new Element({
       id: "api-endpoint-create-user",
       type: "endpoint",
@@ -59,20 +72,8 @@ describe("OpenAPIExporter", () => {
       attributes: {
         path: "/users",
         method: "POST",
-        "x-source-reference": {
-          provenance: "extracted",
-          locations: [
-            {
-              file: "src/api/users.ts",
-              symbol: "createUser",
-            },
-          ],
-          repository: {
-            url: "https://github.com/example/repo",
-            commit: "abc123def456789012345678901234567890abcd",
-          },
-        },
       },
+      source_reference: sourceReference,
     });
 
     apiLayer.addElement(endpoint);
@@ -93,6 +94,14 @@ describe("OpenAPIExporter", () => {
 
   it("should include source reference on path items", async () => {
     const apiLayer = new Layer("api");
+    const sourceReference = {
+      provenance: "manual",
+      locations: [
+        {
+          file: "src/api/users.ts",
+        },
+      ],
+    };
     const endpoint = new Element({
       id: "api-endpoint-get-users",
       type: "endpoint",
@@ -100,15 +109,8 @@ describe("OpenAPIExporter", () => {
       attributes: {
         path: "/users",
         method: "GET",
-        "x-source-reference": {
-          provenance: "manual",
-          locations: [
-            {
-              file: "src/api/users.ts",
-            },
-          ],
-        },
       },
+      source_reference: sourceReference,
     });
 
     apiLayer.addElement(endpoint);
@@ -136,6 +138,11 @@ describe("OpenAPIExporter", () => {
   it("should handle multiple endpoints with mixed source references", async () => {
     const apiLayer = new Layer("api");
 
+    const sourceReference = {
+      provenance: "extracted",
+      locations: [{ file: "src/api/users.ts", symbol: "getUsers" }],
+    };
+
     const endpoint1 = new Element({
       id: "api-endpoint-get-users",
       type: "endpoint",
@@ -143,11 +150,8 @@ describe("OpenAPIExporter", () => {
       attributes: {
         path: "/users",
         method: "GET",
-        "x-source-reference": {
-          provenance: "extracted",
-          locations: [{ file: "src/api/users.ts", symbol: "getUsers" }],
-        },
       },
+      source_reference: sourceReference,
     });
 
     const endpoint2 = new Element({

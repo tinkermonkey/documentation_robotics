@@ -49,17 +49,18 @@ describe("ArchiMateExporter", () => {
       id: "motivation-requirement-test-req",
       type: "requirement",
       name: "Test Requirement",
-      references: [
-        {
-          source: "motivation-requirement-test-req",
-          target: "business-process-test",
-          type: "implements",
-        },
-      ],
     });
 
     motivationLayer.addElement(goal);
     motivationLayer.addElement(requirement);
+
+    // Add relationship to model
+    model.relationships.add({
+      source: "motivation-requirement-test-req",
+      target: "business-process-test",
+      predicate: "implements",
+      type: "cross-layer",
+    });
   });
 
   it("should export ArchiMate XML with valid declaration", async () => {
