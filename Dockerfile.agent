@@ -26,6 +26,11 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint-agent.sh"]
 # when GITHUB_TOKEN is set. No ENV declaration needed here — runtime
 # environment variables are picked up automatically.
 
+# Disable D-Bus keyring integration for gh CLI in headless containers.
+# Without this, gh tries to use dbus-launch for credential storage,
+# which fails with "dbus-launch not found" in containers without X11/D-Bus.
+ENV GH_NO_KEYRING=1
+
 # ============================================================================
 # Stage 2: Install Project-Specific Runtimes
 # ============================================================================
