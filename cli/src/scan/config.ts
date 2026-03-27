@@ -59,14 +59,14 @@ export async function loadScanConfig(): Promise<ScanConfig> {
   };
 
   // Load file configuration
-  let fileConfig: Record<string, any> = {};
+  let fileConfig: Record<string, unknown> = {};
   const configPath = process.env.DR_CONFIG_PATH ?? join(homedir(), CONFIG_FILENAME);
 
   if (existsSync(configPath)) {
     try {
       const content = await readFile(configPath, "utf-8");
-      const parsed = parse(content) as Record<string, any>;
-      fileConfig = parsed?.scan ?? {};
+      const parsed = parse(content) as Record<string, unknown>;
+      fileConfig = (parsed?.scan ?? {}) as Record<string, unknown>;
     } catch (error) {
       // Build detailed error message for specific error types
       let errorMessage = "";
@@ -120,17 +120,18 @@ export async function loadScanConfig(): Promise<ScanConfig> {
   }
 
   // Merge file config and environment overrides into defaults
+  const fileCodeprism = fileConfig.codeprism as Record<string, unknown> | undefined;
   const config: ScanConfig = {
     codeprism: {
-      command: process.env.SCAN_CODEPRISM_COMMAND ?? fileConfig.codeprism?.command ?? defaults.codeprism?.command,
-      args: fileConfig.codeprism?.args ?? defaults.codeprism?.args,
-      timeout: fileConfig.codeprism?.timeout ?? defaults.codeprism?.timeout,
+      command: process.env.SCAN_CODEPRISM_COMMAND ?? (fileCodeprism?.command as string | undefined) ?? defaults.codeprism?.command,
+      args: (fileCodeprism?.args as string[] | undefined) ?? defaults.codeprism?.args,
+      timeout: (fileCodeprism?.timeout as number | undefined) ?? defaults.codeprism?.timeout,
     },
     confidence_threshold:
       (!isNaN(parseFloat(process.env.SCAN_CONFIDENCE_THRESHOLD ?? ""))
         ? parseFloat(process.env.SCAN_CONFIDENCE_THRESHOLD!)
-        : fileConfig.confidence_threshold) ?? defaults.confidence_threshold,
-    disabled_patterns: fileConfig.disabled_patterns ?? defaults.disabled_patterns,
+        : (fileConfig.confidence_threshold as number | undefined)) ?? defaults.confidence_threshold,
+    disabled_patterns: (fileConfig.disabled_patterns as string[] | undefined) ?? defaults.disabled_patterns,
   };
 
   // Validate configuration

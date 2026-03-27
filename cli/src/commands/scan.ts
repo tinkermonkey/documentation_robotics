@@ -548,6 +548,11 @@ function mapToRelationshipCandidate(
   warnings: string[]
 ): RelationshipCandidate | null {
   try {
+    // Type guard: this function should only be called with relationship patterns
+    if (pattern.produces.type !== "relationship") {
+      throw new Error("mapToRelationshipCandidate called with non-relationship pattern");
+    }
+
     // Get sourceId template from mapping - support both "source" and "sourceId" keys
     let sourceIdTemplate: string | undefined;
     const sourceIdValue = pattern.mapping["sourceId"] || pattern.mapping["source"];

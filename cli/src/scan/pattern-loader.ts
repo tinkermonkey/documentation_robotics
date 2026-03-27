@@ -45,12 +45,19 @@ export type QuerySpec = z.infer<typeof QuerySpecSchema>;
  * the current spec version, avoiding coupling between pattern definitions and spec evolution.
  * A future enhancement could add optional spec-aware validation via a registry lookup.
  */
-export const ProducesSchema = z.object({
-  type: z.enum(["node", "relationship"]),
-  layer: z.string(),
-  elementType: z.string(),
-  relationshipType: z.string().optional(),
-});
+export const ProducesSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("node"),
+    layer: z.string(),
+    elementType: z.string(),
+  }),
+  z.object({
+    type: z.literal("relationship"),
+    layer: z.string(),
+    elementType: z.string(),
+    relationshipType: z.string(),
+  }),
+]);
 
 export type Produces = z.infer<typeof ProducesSchema>;
 
@@ -115,7 +122,7 @@ export type PatternSet = z.infer<typeof PatternSetSchema>;
 export interface PatternMatch {
   patternId: string;
   confidence: number;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   source?: {
     file: string;
     line?: number;
@@ -134,7 +141,7 @@ export interface ElementCandidate {
   layer: string;
   name: string;
   confidence: number;
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
   source?: {
     file: string;
     line?: number;
@@ -505,11 +512,11 @@ export function filterByConfidence<T extends ElementCandidate | RelationshipCand
  * // => "api.endpoint.create-user"
  * ```
  */
-export function renderTemplate(template: string, data: Record<string, any>): string {
+export function renderTemplate(template: string, data: Record<string, unknown>): string {
   return template.replace(/\{([^}]+)\}/g, (match, key) => {
     const [path, ...transforms] = key.split("|");
     const parts = path.split(".");
-    let value: any = data;
+    let value: unknown = data;
 
     // Navigate the object path
     for (const part of parts) {
@@ -518,7 +525,9 @@ export function renderTemplate(template: string, data: Record<string, any>): str
           `Template rendering failed: cannot resolve placeholder '${match}' - path '${path}' does not exist in data`
         );
       }
-      value = value[part];
+      // Type assertion is necessary here since value is unknown and we need dynamic property access
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      value = (value as any)[part];
     }
 
     if (value === null || value === undefined) {
