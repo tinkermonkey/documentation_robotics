@@ -35,13 +35,7 @@
     "test:coverage:html": "[ -f dist/cli.js ] || npm run build && bun test --concurrent --coverage --coverage-reporter=html ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage --coverage-reporter=html tests/unit/integrations/base-manager.test.ts",
     "test:coverage:ci": "[ -f dist/cli.js ] || npm run build && bun test --concurrent --coverage --coverage-reporter=lcov ./tests/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage --coverage-reporter=lcov tests/unit/integrations/base-manager.test.ts && node scripts/validate-coverage-threshold.js",
     "test:perf": "bun test tests/performance/**/*.test.ts",
-    "test:parallel": "bash scripts/run-parallel-tests.sh false",
-    "test:parallel:coverage": "bash scripts/run-parallel-tests.sh true",
-    "test:fast-track": "[ -f dist/cli.js ] || npm run build && bash -c 'FAST_TRACK_TESTS=$(find tests -name \"*.test.ts\" | grep -v \"visualization-server\" | grep -v \"telemetry-config-integration\" | grep -v \"/performance/\" | tr \"\\n\" \" \") && bun test $FAST_TRACK_TESTS'",
-    "test:shard1": "bun test --concurrent $(find tests -name '*.test.ts' | grep -v 'visualization-server' | grep -v 'telemetry-config-integration' | grep -v '/performance/' | sort | awk 'NR % 4 == 0')",
-    "test:shard2": "bun test --concurrent $(find tests -name '*.test.ts' | grep -v 'visualization-server' | grep -v 'telemetry-config-integration' | grep -v '/performance/' | sort | awk 'NR % 4 == 1')",
-    "test:shard3": "bun test --concurrent $(find tests -name '*.test.ts' | grep -v 'visualization-server' | grep -v 'telemetry-config-integration' | grep -v '/performance/' | sort | awk 'NR % 4 == 2')",
-    "test:shard4": "bun test --concurrent $(find tests -name '*.test.ts' | grep -v 'visualization-server' | grep -v 'telemetry-config-integration' | grep -v '/performance/' | sort | awk 'NR % 4 == 3')"
+    "test:smoke": "[ -f dist/cli.js ] || npm run build && bash scripts/run-smoke-tests.sh"
   },
   "keywords": [
     "architecture",

@@ -369,27 +369,21 @@ See `docs/STAGING_GUIDE.md` for architecture details. For command reference, see
 
 ### Testing
 
-**Standard Test Commands:**
+**Local-First Testing Model:** The full test suite runs locally. CI runs only a curated smoke suite to verify the CLI builds and core functionality works.
+
+**Test Commands:**
 
 ```bash
-npm run test              # All tests (authoritative for daily development)
+npm run test              # Full test suite (run before pushing)
 npm run test:unit         # Unit tests only
 npm run test:integration  # Integration tests only
-npm run test:performance  # Performance benchmarks
+npm run test:smoke        # CI smoke suite (~22 tests, matches what CI runs)
+npm run test:perf         # Performance benchmarks
 ```
 
-**Parallel Test Execution (Matching CI Pipeline):**
-
-```bash
-npm run test:parallel           # 4 parallel shards (same as CI)
-npm run test:parallel:coverage  # With coverage
-npm run test:fast-track         # Quick PR validation (sequential)
-npm run test:shard2             # Debug specific CI shard failure
-```
-
-- `npm test` is authoritative for daily development
-- Parallel scripts are primarily for debugging CI shard failures
-- See `cli/scripts/README.md` for full parallel testing documentation
+- `npm test` is authoritative for daily development — run before pushing
+- `npm run test:smoke` runs the same tests as CI, useful for quick local validation
+- Smoke test manifest: `cli/tests/ci-smoke.manifest.ts`
 
 ### Golden Copy Test Initialization
 
