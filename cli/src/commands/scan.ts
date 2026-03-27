@@ -508,29 +508,16 @@ function mapToElementCandidate(
 }
 
 /**
- * Qualify a bare element name to a fully-qualified element ID
- *
- * If the name already contains dots, returns it as-is (assumed to be fully-qualified).
- * If the name is bare (no dots), qualifies it using the pattern's declared layer and
- * a sensible element type derived from context.
- *
- * @param bareOrQualifiedId - Bare name or potentially fully-qualified ID
- * @param layer - The pattern's declared layer for qualification
- * @param elementType - Default element type to use if qualifying
- * @returns Fully-qualified element ID
- */
-function qualifyElementId(bareOrQualifiedId: string, layer: string, elementType: string): string {
-  // If already fully-qualified (contains dots), return as-is
-  if (bareOrQualifiedId.includes(".")) {
-    return bareOrQualifiedId;
-  }
-
-  // Bare name: qualify it with layer and element type
-  return `${layer}.${elementType}.${bareOrQualifiedId}`;
-}
-
-/**
  * Map a pattern match to a relationship candidate
+ *
+ * Relationship patterns must produce fully-qualified element IDs (format: layer.elementType.name).
+ * Bare names (e.g., "user-service") are NOT supported because we cannot reliably infer both the
+ * target layer and element type from a bare name alone. Pattern writers should use templates like:
+ * - source: "api.endpoint.{match.endpointName|kebab}"
+ * - target: "application.service.{match.serviceName|kebab}"
+ *
+ * Wildcard patterns (e.g., "api.endpoint.*") are handled separately during wildcard expansion
+ * in the scan command and are valid for both source and target.
  *
  * @param pattern - Relationship pattern definition
  * @param match - Match data from CodePrism
@@ -554,12 +541,6 @@ function mapToRelationshipCandidate(
     }
     let sourceId = renderTemplate(sourceIdTemplate, { match });
 
-    // If source is a bare name (no dots), qualify it with the pattern's layer and element type
-    if (!sourceId.includes(".")) {
-      const elementType = pattern.produces.elementType || "element";
-      sourceId = qualifyElementId(sourceId, pattern.produces.layer, elementType);
-    }
-
     // Get targetId template from mapping - support both "target" and "targetId" keys
     let targetIdTemplate: string | undefined;
     const targetIdValue = pattern.mapping["targetId"] || pattern.mapping["target"];
@@ -570,12 +551,6 @@ function mapToRelationshipCandidate(
       throw new Error("Relationship pattern must define 'target' or 'targetId' in mapping");
     }
     let targetId = renderTemplate(targetIdTemplate, { match });
-
-    // If target is a bare name (no dots), qualify it with the pattern's layer and element type
-    if (!targetId.includes(".")) {
-      const elementType = pattern.produces.elementType || "element";
-      targetId = qualifyElementId(targetId, pattern.produces.layer, elementType);
-    }
 
     // Get relationshipType from pattern definition
     const relationshipType = pattern.produces.relationshipType;
@@ -588,8 +563,9 @@ function mapToRelationshipCandidate(
     if (!sourceLayer) {
       throw new Error(
         `Invalid source element ID format: '${sourceId}'. ` +
-        `Expected format: '{layer}.{elementType}.{kebab-case-name}' where layer is one of: ` +
-        `${Object.keys(LAYER_INDEX).join(", ")}`
+        `Relationship patterns must produce fully-qualified element IDs in the format: ` +
+        `'layer.elementType.element-name' (e.g., 'api.endpoint.get-users'). ` +
+        `Valid layers are: ${Object.keys(LAYER_INDEX).join(", ")}`
       );
     }
 
@@ -598,8 +574,9 @@ function mapToRelationshipCandidate(
     if (!targetLayer) {
       throw new Error(
         `Invalid target element ID format: '${targetId}'. ` +
-        `Expected format: '{layer}.{elementType}.{kebab-case-name}' where layer is one of: ` +
-        `${Object.keys(LAYER_INDEX).join(", ")}`
+        `Relationship patterns must produce fully-qualified element IDs in the format: ` +
+        `'layer.elementType.element-name' (e.g., 'application.service.user-service'). ` +
+        `Valid layers are: ${Object.keys(LAYER_INDEX).join(", ")}`
       );
     }
 
@@ -631,8 +608,8 @@ function mapToRelationshipCandidate(
     warnings.push(
       `Pattern '${pattern.id}' mapping error: ${errorMsg}. ` +
       `This relationship candidate will be skipped. Review the pattern's 'source' and 'target' mappings ` +
-      `to ensure they render to valid element IDs (either fully-qualified like 'api.endpoint.get-users' ` +
-      `or bare names like 'get-users' which will be auto-qualified).`
+      `to ensure they render to fully-qualified element IDs in the format: 'layer.elementType.element-name' ` +
+      `(e.g., 'api.endpoint.get-users', 'application.service.user-service').`
     );
     return null;
   }
