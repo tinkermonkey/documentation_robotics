@@ -646,13 +646,13 @@ describe("Pattern Loader", () => {
       expect(result).toBe("value");
     });
 
-    it("returns unchanged placeholder for missing data", () => {
+    it("throws error for missing data", () => {
       const template = "api.endpoint.{match.missing}";
       const data = { match: { name: "test" } };
 
-      const result = renderTemplate(template, data);
-
-      expect(result).toBe("api.endpoint.{match.missing}");
+      expect(() => renderTemplate(template, data)).toThrow(
+        /Template rendering failed.*cannot resolve placeholder.*match\.missing/
+      );
     });
 
     it("handles multiple placeholders in single template", () => {

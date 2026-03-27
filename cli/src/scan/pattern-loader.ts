@@ -497,6 +497,7 @@ export function filterByConfidence<T extends ElementCandidate | RelationshipCand
  * @param template - Template string with placeholders
  * @param data - Data object for substitution
  * @returns Rendered string
+ * @throws Error if template contains a placeholder that cannot be resolved in the data
  *
  * @example
  * ```typescript
@@ -513,13 +514,17 @@ export function renderTemplate(template: string, data: Record<string, any>): str
     // Navigate the object path
     for (const part of parts) {
       if (value === null || value === undefined) {
-        return match;
+        throw new Error(
+          `Template rendering failed: cannot resolve placeholder '${match}' - path '${path}' does not exist in data`
+        );
       }
       value = value[part];
     }
 
     if (value === null || value === undefined) {
-      return match;
+      throw new Error(
+        `Template rendering failed: cannot resolve placeholder '${match}' - required field '${path}' is missing or null`
+      );
     }
 
     // Apply transformations
@@ -568,6 +573,8 @@ export const LAYER_INDEX: Record<string, number> = {
  * Extract layer name from an element ID
  *
  * Element IDs follow the format: {layer}.{elementType}.{kebab-case-name}
+ * Handles both dot-separated and hyphenated formats.
+ * Uses longest-prefix matching to correctly handle multi-word layer names like "data-model".
  *
  * @param elementId - Full element ID
  * @returns Layer name or null if ID format is invalid
@@ -580,19 +587,24 @@ export const LAYER_INDEX: Record<string, number> = {
  * ```
  */
 export function extractLayerFromId(elementId: string): string | null {
-  const parts = elementId.split(".");
-  if (parts.length < 3) {
-    return null;
+  // Determine if using dot-separated format (e.g., motivation.goal.name) or hyphenated (e.g., motivation-goal-name)
+  const isDotSeparated = elementId.includes(".");
+  const separator = isDotSeparated ? "." : "-";
+
+  // Get known layers from LAYER_INDEX
+  const knownLayers = Object.keys(LAYER_INDEX);
+
+  // Try to match known layers in order of specificity (longest first)
+  const sortedLayers = knownLayers.sort((a, b) => b.length - a.length);
+
+  for (const layer of sortedLayers) {
+    if (elementId.startsWith(layer + separator)) {
+      return layer;
+    }
   }
 
-  const layerName = parts[0];
-
-  // Validate that the layer name is a known layer
-  if (!(layerName in LAYER_INDEX)) {
-    return null;
-  }
-
-  return layerName;
+  // Return null if no valid layer prefix found
+  return null;
 }
 
 /**
