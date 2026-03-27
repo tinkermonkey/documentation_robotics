@@ -205,7 +205,7 @@ export class Changeset {
    * @param type - Type of changes to filter for
    * @returns Array of changes matching the type
    */
-  getChangesByType(type: "add" | "update" | "delete"): Change[] {
+  getChangesByType(type: "add" | "update" | "delete" | "relationship-add" | "relationship-delete"): Change[] {
     return this.changes.filter((c) => c.type === type);
   }
 
