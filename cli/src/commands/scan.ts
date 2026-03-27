@@ -26,6 +26,8 @@ import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClien
 import { loadScanConfig } from "../scan/config.js";
 import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, extractLayerFromId, LAYER_INDEX, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
 import { getErrorMessage, handleError } from "../utils/errors.js";
+import { isValidLayerName, CANONICAL_LAYER_NAMES } from "../core/layers.js";
+import { CLIError, ErrorCategory } from "../utils/errors.js";
 import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 
@@ -100,6 +102,17 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
   let client: MCPClient | null = null;
 
   try {
+    // Validate layer name first, before any other operations
+    if (options.layer) {
+      if (!isValidLayerName(options.layer)) {
+        throw new CLIError(
+          `Invalid layer name: '${options.layer}'`,
+          ErrorCategory.USER,
+          [`Valid layers are: ${CANONICAL_LAYER_NAMES.join(", ")}`]
+        );
+      }
+    }
+
     // Load scan configuration
     const config = await loadScanConfig();
 
@@ -163,8 +176,13 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     try {
       model = await Model.load(process.cwd());
     } catch (error) {
+      const modelLoadError = `Could not load existing model for deduplication: ${getErrorMessage(error)}`;
+      // In verbose mode, add to warnings array for display at end
+      // In non-verbose mode, warn immediately so user knows deduplication is being skipped
       if (options.verbose) {
-        warnings.push(`Could not load existing model for deduplication: ${getErrorMessage(error)}`);
+        warnings.push(modelLoadError);
+      } else {
+        console.warn(ansis.yellow(`⚠ ${modelLoadError}`));
       }
     }
 
@@ -316,8 +334,8 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log(`  Elements staged: ${newElementCandidates.length}`);
     console.log(`  Relationships staged: ${expandedRelationshipCandidates.length}`);
 
-    // Print warnings at the end
-    if (warnings.length > 0) {
+    // Print warnings at the end (only in verbose mode, since non-verbose already printed them)
+    if (options.verbose && warnings.length > 0) {
       console.log(ansis.yellow("\n⚠ Warnings:"));
       for (const warning of warnings) {
         console.log(`  • ${warning}`);
