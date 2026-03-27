@@ -149,6 +149,7 @@ dr validate --orphans
 ```
 
 Parse the output to build a working list. Each orphan has a `status`:
+
 - `connectable` — valid relationship targets exist in the model; wire it now
 - `dead-end` — no valid target types exist yet; note and skip for now
 - `no-schema` — element type has no outgoing relationship schemas defined
@@ -369,79 +370,79 @@ The table below lists every cross-layer layer pair and the predicates defined in
 Run `dr schema relationship <element-type>` for the exact source/destination node types
 within each pair — this table shows the predicate vocabulary, not individual type combinations.
 
-| Source Layer | Target Layer | Predicates |
-| ------------ | ------------ | ---------- |
-| api          | apm          | references |
-| api          | application  | realizes, references, serves, triggers, uses |
-| api          | business     | maps-to, realizes, references, serves, triggers |
-| api          | data-store   | maps-to |
-| api          | motivation   | realizes, satisfies, serves |
-| api          | security     | implements, maps-to, references, requires, satisfies |
-| api          | technology   | depends-on, uses |
-| apm          | api          | monitors, references |
-| apm          | application  | maps-to, monitors |
-| apm          | business     | maps-to, monitors, serves |
-| apm          | data-model   | monitors, references |
-| apm          | data-store   | accesses, depends-on, monitors, serves |
-| apm          | motivation   | maps-to, realizes, satisfies |
-| apm          | navigation   | monitors, references |
-| apm          | security     | monitors, references, satisfies |
-| apm          | technology   | depends-on, monitors |
-| apm          | ux           | monitors, references |
-| application  | apm          | references |
-| application  | business     | accesses, realizes, serves, triggers |
-| application  | motivation   | delivers-value, realizes, satisfies, serves |
-| application  | security     | accesses, constrained-by, exposes, implements, mitigates, requires |
-| business     | application  | aggregates, references |
-| business     | motivation   | delivers-value, realizes, satisfies, serves |
-| business     | security     | constrained-by |
-| data-model   | api          | maps-to, realizes, serves |
-| data-model   | application  | maps-to, realizes, references, serves |
-| data-model   | business     | realizes, references, serves |
-| data-model   | data-store   | maps-to |
-| data-model   | motivation   | realizes, satisfies |
-| data-model   | security     | references, requires, satisfies |
-| data-model   | technology   | depends-on, maps-to, uses |
-| data-store   | api          | maps-to, realizes, serves |
-| data-store   | application  | implements, serves, triggers |
-| data-store   | business     | realizes, satisfies, serves, triggers |
-| data-store   | motivation   | satisfies |
-| data-store   | security     | implements, requires, satisfies |
-| data-store   | technology   | depends-on, uses |
-| navigation   | api          | accesses, maps-to, references, requires, uses |
-| navigation   | application  | accesses, depends-on, lazy-loads, realizes, references, resolves-with, triggers, uses |
-| navigation   | business     | maps-to, realizes, references, serves, triggers |
-| navigation   | data-model   | accesses, maps-to, references, uses |
-| navigation   | data-store   | accesses, depends-on, uses |
-| navigation   | motivation   | realizes, satisfies |
-| navigation   | security     | accesses, implements, references, requires, satisfies |
-| navigation   | technology   | depends-on, uses |
-| navigation   | ux           | accesses, maps-to, triggers, uses |
-| security     | business     | constrains, governs, maps-to, protects, references, targets |
-| security     | motivation   | implements, maps-to, realizes, satisfies |
-| technology   | application  | realizes, serves |
-| technology   | business     | realizes, serves |
-| technology   | motivation   | implements, realizes, satisfies, serves |
-| technology   | security     | accesses, implements, mitigates, realizes, satisfies |
-| testing      | api          | accesses, covers, references, tests, validates |
-| testing      | apm          | references, tests |
-| testing      | application  | covers, tests |
-| testing      | business     | covers, references, tests |
-| testing      | data-model   | covers, references, tests |
-| testing      | data-store   | accesses, references, tests |
+| Source Layer | Target Layer | Predicates                                                                                                  |
+| ------------ | ------------ | ----------------------------------------------------------------------------------------------------------- |
+| api          | apm          | references                                                                                                  |
+| api          | application  | realizes, references, serves, triggers, uses                                                                |
+| api          | business     | maps-to, realizes, references, serves, triggers                                                             |
+| api          | data-store   | maps-to                                                                                                     |
+| api          | motivation   | realizes, satisfies, serves                                                                                 |
+| api          | security     | implements, maps-to, references, requires, satisfies                                                        |
+| api          | technology   | depends-on, uses                                                                                            |
+| apm          | api          | monitors, references                                                                                        |
+| apm          | application  | maps-to, monitors                                                                                           |
+| apm          | business     | maps-to, monitors, serves                                                                                   |
+| apm          | data-model   | monitors, references                                                                                        |
+| apm          | data-store   | accesses, depends-on, monitors, serves                                                                      |
+| apm          | motivation   | maps-to, realizes, satisfies                                                                                |
+| apm          | navigation   | monitors, references                                                                                        |
+| apm          | security     | monitors, references, satisfies                                                                             |
+| apm          | technology   | depends-on, monitors                                                                                        |
+| apm          | ux           | monitors, references                                                                                        |
+| application  | apm          | references                                                                                                  |
+| application  | business     | accesses, realizes, serves, triggers                                                                        |
+| application  | motivation   | delivers-value, realizes, satisfies, serves                                                                 |
+| application  | security     | accesses, constrained-by, exposes, implements, mitigates, requires                                          |
+| business     | application  | aggregates, references                                                                                      |
+| business     | motivation   | delivers-value, realizes, satisfies, serves                                                                 |
+| business     | security     | constrained-by                                                                                              |
+| data-model   | api          | maps-to, realizes, serves                                                                                   |
+| data-model   | application  | maps-to, realizes, references, serves                                                                       |
+| data-model   | business     | realizes, references, serves                                                                                |
+| data-model   | data-store   | maps-to                                                                                                     |
+| data-model   | motivation   | realizes, satisfies                                                                                         |
+| data-model   | security     | references, requires, satisfies                                                                             |
+| data-model   | technology   | depends-on, maps-to, uses                                                                                   |
+| data-store   | api          | maps-to, realizes, serves                                                                                   |
+| data-store   | application  | implements, serves, triggers                                                                                |
+| data-store   | business     | realizes, satisfies, serves, triggers                                                                       |
+| data-store   | motivation   | satisfies                                                                                                   |
+| data-store   | security     | implements, requires, satisfies                                                                             |
+| data-store   | technology   | depends-on, uses                                                                                            |
+| navigation   | api          | accesses, maps-to, references, requires, uses                                                               |
+| navigation   | application  | accesses, depends-on, lazy-loads, realizes, references, resolves-with, triggers, uses                       |
+| navigation   | business     | maps-to, realizes, references, serves, triggers                                                             |
+| navigation   | data-model   | accesses, maps-to, references, uses                                                                         |
+| navigation   | data-store   | accesses, depends-on, uses                                                                                  |
+| navigation   | motivation   | realizes, satisfies                                                                                         |
+| navigation   | security     | accesses, implements, references, requires, satisfies                                                       |
+| navigation   | technology   | depends-on, uses                                                                                            |
+| navigation   | ux           | accesses, maps-to, triggers, uses                                                                           |
+| security     | business     | constrains, governs, maps-to, protects, references, targets                                                 |
+| security     | motivation   | implements, maps-to, realizes, satisfies                                                                    |
+| technology   | application  | realizes, serves                                                                                            |
+| technology   | business     | realizes, serves                                                                                            |
+| technology   | motivation   | implements, realizes, satisfies, serves                                                                     |
+| technology   | security     | accesses, implements, mitigates, realizes, satisfies                                                        |
+| testing      | api          | accesses, covers, references, tests, validates                                                              |
+| testing      | apm          | references, tests                                                                                           |
+| testing      | application  | covers, tests                                                                                               |
+| testing      | business     | covers, references, tests                                                                                   |
+| testing      | data-model   | covers, references, tests                                                                                   |
+| testing      | data-store   | accesses, references, tests                                                                                 |
 | testing      | motivation   | constrained-by, fulfills-requirements, governed-by-principles, measures-outcome, references, supports-goals |
-| testing      | navigation   | covers, references, tests |
-| testing      | security     | covers, references, tests, validates |
-| testing      | technology   | references, requires, tests |
-| testing      | ux           | covers, maps-to, tests |
-| ux           | api          | accesses, maps-to, triggers, uses |
-| ux           | application  | accesses, realizes, serves, triggers, uses |
-| ux           | business     | maps-to, realizes, serves, triggers |
-| ux           | data-model   | maps-to, references |
-| ux           | data-store   | accesses, maps-to, triggers |
-| ux           | motivation   | maps-to, realizes, satisfies, serves |
-| ux           | security     | references, requires, satisfies |
-| ux           | technology   | depends-on, requires, uses |
+| testing      | navigation   | covers, references, tests                                                                                   |
+| testing      | security     | covers, references, tests, validates                                                                        |
+| testing      | technology   | references, requires, tests                                                                                 |
+| testing      | ux           | covers, maps-to, tests                                                                                      |
+| ux           | api          | accesses, maps-to, triggers, uses                                                                           |
+| ux           | application  | accesses, realizes, serves, triggers, uses                                                                  |
+| ux           | business     | maps-to, realizes, serves, triggers                                                                         |
+| ux           | data-model   | maps-to, references                                                                                         |
+| ux           | data-store   | accesses, maps-to, triggers                                                                                 |
+| ux           | motivation   | maps-to, realizes, satisfies, serves                                                                        |
+| ux           | security     | references, requires, satisfies                                                                             |
+| ux           | technology   | depends-on, requires, uses                                                                                  |
 
 ---
 

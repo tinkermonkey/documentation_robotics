@@ -424,8 +424,8 @@ Cross-Layer References:
 ✓ 12 stores references (data-store → data model)
 
 Connectivity Check:
-  Run: dr validate --orphans
-  [show orphan count and top 3 layers with most orphans]
+Run: dr validate --orphans
+[show orphan count and top 3 layers with most orphans]
 
 Validation: ⚠️ 2 warnings, 0 errors
 

@@ -4,11 +4,11 @@
 telemetry:
   otlp:
     # SigNoz OTLP HTTP endpoint for traces
-    endpoint: 'http://192.168.0.117:4318/v1/traces'
-    
+    endpoint: "http://192.168.0.117:4318/v1/traces"
+
     # SigNoz OTLP HTTP endpoint for logs
-    logs_endpoint: 'http://192.168.0.117:4318/v1/logs'
-    
+    logs_endpoint: "http://192.168.0.117:4318/v1/logs"
+
     # Service name for identifying this CLI in traces
     # The project name (dr-codebase) will be added as resource attribute "dr.project.name"
-    service_name: 'dr-cli'
+    service_name: "dr-cli"
