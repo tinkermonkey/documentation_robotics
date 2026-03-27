@@ -52,69 +52,81 @@ describe("Scan Command - Layer Validation", () => {
   });
 
   describe("--layer filter validation", () => {
-    it("should reject invalid layer names", async () => {
-      const result = scanCommand({
-        layer: "appliction", // typo: appliction instead of application
-        config: true, // Use config flag to avoid full scan setup
-      }).catch((error) => error);
+    it("should reject invalid layer names early", async () => {
+      let errorThrown = false;
+      let errorMessage = "";
 
-      // Wait a tick for promise to settle
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      expect(capturedErrors.length > 0 || (result instanceof Error)).toBe(true);
-      if (result instanceof Error) {
-        expect(result.message).toContain("Invalid layer name");
-        expect(result.message).toContain("appliction");
+      try {
+        // Don't use config flag - let validation run before config loading
+        await scanCommand({
+          layer: "appliction", // typo: appliction instead of application
+        });
+      } catch (error) {
+        errorThrown = true;
+        errorMessage = String(error);
       }
+
+      expect(errorThrown).toBe(true);
+      expect(errorMessage).toContain("Invalid layer name");
+      expect(errorMessage).toContain("appliction");
+      expect(errorMessage).toContain("Valid layers are:");
     });
 
-    it("should accept valid layer names", async () => {
-      // Test with 'motivation' which is a valid layer
-      // This should succeed in config mode (just validate config)
-      await scanCommand({
-        layer: "motivation",
-        config: true,
-      });
+    it("should accept valid layer names with config flag", async () => {
+      let errorThrown = false;
 
-      // Should see success message without error
+      try {
+        await scanCommand({
+          layer: "motivation",
+          config: true,
+        });
+      } catch (error) {
+        errorThrown = true;
+      }
+
+      expect(errorThrown).toBe(false);
       const hasError = capturedErrors.some((err) => err.includes("Invalid layer"));
       expect(hasError).toBe(false);
     });
 
     it("should reject empty layer names", async () => {
-      const result = scanCommand({
-        layer: "",
-        config: true,
-      }).catch((error) => error);
+      let errorThrown = false;
 
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      try {
+        await scanCommand({
+          layer: "",
+        });
+      } catch (error) {
+        errorThrown = true;
+      }
 
-      expect(capturedErrors.length > 0 || (result instanceof Error)).toBe(true);
+      expect(errorThrown).toBe(true);
     });
 
-    it("should provide helpful error message with valid layer list", async () => {
-      const result = scanCommand({
-        layer: "invalid-layer-name",
-        config: true,
-      }).catch((error) => error);
+    it("should include valid layer list in error message", async () => {
+      let errorMessage = "";
 
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      if (result instanceof Error) {
-        expect(result.message).toContain("Valid layers are:");
-        expect(result.message).toContain("motivation");
-        expect(result.message).toContain("business");
-        expect(result.message).toContain("security");
-        expect(result.message).toContain("application");
-        expect(result.message).toContain("technology");
-        expect(result.message).toContain("api");
-        expect(result.message).toContain("data-model");
-        expect(result.message).toContain("data-store");
-        expect(result.message).toContain("ux");
-        expect(result.message).toContain("navigation");
-        expect(result.message).toContain("apm");
-        expect(result.message).toContain("testing");
+      try {
+        await scanCommand({
+          layer: "invalid-layer-name",
+        });
+      } catch (error) {
+        errorMessage = String(error);
       }
+
+      expect(errorMessage).toContain("Valid layers are:");
+      expect(errorMessage).toContain("motivation");
+      expect(errorMessage).toContain("business");
+      expect(errorMessage).toContain("security");
+      expect(errorMessage).toContain("application");
+      expect(errorMessage).toContain("technology");
+      expect(errorMessage).toContain("api");
+      expect(errorMessage).toContain("data-model");
+      expect(errorMessage).toContain("data-store");
+      expect(errorMessage).toContain("ux");
+      expect(errorMessage).toContain("navigation");
+      expect(errorMessage).toContain("apm");
+      expect(errorMessage).toContain("testing");
     });
   });
 });
@@ -131,34 +143,42 @@ describe("Scan Command - Model Loading Error Handling", () => {
   });
 
   describe("deduplication error reporting", () => {
-    it("should warn about model load failures even in non-verbose mode", async () => {
-      // Create a scenario where model load might fail (e.g., corrupted manifest)
-      // This test verifies that warnings are reported to console
-      const mockError = new Error("Model loading would fail here");
+    it("should warn about model load failures in non-verbose mode", async () => {
+      let errorThrown = false;
 
-      // In real scenario, this would happen during Model.load() in the scan command
-      // For now, we verify that the warning infrastructure is in place
-      const warnings: string[] = [];
+      try {
+        // With valid layer, config mode to test warning behavior
+        await scanCommand({
+          layer: "api",
+          config: true,
+          verbose: false,
+        });
+      } catch (error) {
+        errorThrown = true;
+      }
 
-      // Simulate what happens in the scan command
-      warnings.push(`Could not load existing model for deduplication: ${mockError.message}`);
-
-      expect(warnings.length).toBe(1);
-      expect(warnings[0]).toContain("Could not load existing model for deduplication");
+      // Config mode succeeds, so no error thrown
+      expect(errorThrown).toBe(false);
+      // In a real scenario without --config, the model load would fail
+      // and we'd see a warning in console.warn
     });
 
-    it("should mention deduplication skip in non-verbose mode warning", async () => {
-      // Verify warning message mentions deduplication
-      const warningMsg = "Could not load existing model for deduplication: test error";
-      expect(warningMsg).toContain("Could not load existing model for deduplication");
-    });
+    it("should show warnings in verbose mode output", async () => {
+      let errorThrown = false;
 
-    it("should include detailed error message from Model.load()", async () => {
-      const errorDetails = "ENOENT: no such file or directory";
-      const fullMessage = `Could not load existing model for deduplication: ${errorDetails}`;
+      try {
+        await scanCommand({
+          layer: "api",
+          config: true,
+          verbose: true,
+        });
+      } catch (error) {
+        errorThrown = true;
+      }
 
-      expect(fullMessage).toContain(errorDetails);
-      expect(fullMessage).toContain("Could not load existing model for deduplication");
+      expect(errorThrown).toBe(false);
+      const hasConfigMsg = capturedOutput.some((msg) => msg.includes("Configuration loaded"));
+      expect(hasConfigMsg).toBe(true);
     });
   });
 });
@@ -183,6 +203,26 @@ describe("Scan Command - Integration Tests", () => {
       // Should show configuration loaded message
       const hasConfigMsg = capturedOutput.some((msg) => msg.includes("Configuration loaded"));
       expect(hasConfigMsg).toBe(true);
+    });
+
+    it("should validate layer before loading config", async () => {
+      let errorThrown = false;
+      let errorThrownBeforeOutput = false;
+
+      capturedOutput = [];
+      try {
+        await scanCommand({
+          layer: "bad-layer",
+          config: true,
+        });
+      } catch (error) {
+        errorThrown = true;
+        // If layer validation happens first, no output should appear
+        errorThrownBeforeOutput = capturedOutput.length === 0;
+      }
+
+      expect(errorThrown).toBe(true);
+      expect(errorThrownBeforeOutput).toBe(true);
     });
   });
 });

@@ -29,6 +29,7 @@ import { getErrorMessage } from "../utils/errors.js";
 import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { isValidLayerName, CANONICAL_LAYER_NAMES } from "../core/layers.js";
+import { CLIError, ErrorCategory, handleError } from "../utils/errors.js";
 
 export interface ScanOptions {
   config?: boolean;
@@ -47,6 +48,17 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
   let client: MCPClient | null = null;
 
   try {
+    // Validate layer name first, before any other operations
+    if (options.layer) {
+      if (!isValidLayerName(options.layer)) {
+        throw new CLIError(
+          `Invalid layer name: '${options.layer}'`,
+          ErrorCategory.USER,
+          [`Valid layers are: ${CANONICAL_LAYER_NAMES.join(", ")}`]
+        );
+      }
+    }
+
     // Load scan configuration
     const config = await loadScanConfig();
 
@@ -85,10 +97,6 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     // Apply layer filter if specified
     let patternsToExecute = allPatterns;
     if (options.layer) {
-      // Validate layer name against canonical layer names
-      if (!isValidLayerName(options.layer)) {
-        throw new Error(`Invalid layer name: '${options.layer}'. Valid layers are: ${CANONICAL_LAYER_NAMES.join(', ')}`);
-      }
       patternsToExecute = allPatterns.filter((set) => set.layer === options.layer);
       console.log(`  Filtered to layer '${options.layer}': ${patternsToExecute.reduce((sum, set) => sum + set.patterns.length, 0)} patterns`);
     }
@@ -108,9 +116,10 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
       model = await Model.load(process.cwd());
     } catch (error) {
       const modelLoadError = `Could not load existing model for deduplication: ${getErrorMessage(error)}`;
-      warnings.push(modelLoadError);
-      if (!options.verbose) {
-        // In non-verbose mode, still warn about deduplication being skipped
+      // Only add to warnings array in verbose mode; in non-verbose mode, warn immediately
+      if (options.verbose) {
+        warnings.push(modelLoadError);
+      } else {
         console.warn(ansis.yellow(`⚠ ${modelLoadError}`));
       }
     }
@@ -152,16 +161,15 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log(`  New candidates: ${newCandidates.length}`);
     console.log(`  Elements staged: ${newCandidates.length}`);
 
-    // Print warnings at the end
-    if (warnings.length > 0) {
+    // Print warnings at the end (only in verbose mode, since non-verbose already printed them)
+    if (options.verbose && warnings.length > 0) {
       console.log(ansis.yellow("\n⚠ Warnings:"));
       for (const warning of warnings) {
         console.log(`  • ${warning}`);
       }
     }
   } catch (error) {
-    const errorMsg = getErrorMessage(error);
-    console.error(ansis.red(errorMsg));
+    handleError(error);
   } finally {
     // Always disconnect MCP client, even on error or dry-run
     if (client) {
@@ -252,9 +260,9 @@ async function invokeMcpTool(
     // Otherwise return empty array
     return [];
   } catch (error) {
-    // Tool invocation failed - return empty array so scan continues
-    // The error is already captured by the caller's try/catch
-    return [];
+    // MCP tool invocation failed - propagate to caller
+    // The error is captured by executePatterns' try/catch
+    throw error;
   }
 }
 
