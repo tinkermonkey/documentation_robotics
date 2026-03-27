@@ -63,7 +63,8 @@ describe("Scan Command - Layer Validation", () => {
         });
       } catch (error) {
         errorThrown = true;
-        errorMessage = String(error);
+        const cliError = error as any;
+        errorMessage = cliError.format ? cliError.format() : String(error);
       }
 
       expect(errorThrown).toBe(true);
@@ -111,7 +112,8 @@ describe("Scan Command - Layer Validation", () => {
           layer: "invalid-layer-name",
         });
       } catch (error) {
-        errorMessage = String(error);
+        const cliError = error as any;
+        errorMessage = cliError.format ? cliError.format() : String(error);
       }
 
       expect(errorMessage).toContain("Valid layers are:");
