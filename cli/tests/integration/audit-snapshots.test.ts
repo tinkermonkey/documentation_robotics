@@ -268,9 +268,9 @@ describe("audit snapshots command", () => {
         console.log = (..._args: any[]) => {};
 
         try {
-          // Create multiple snapshots (need > 1 second delay for unique IDs)
+          // Create multiple snapshots (millisecond precision ensures unique IDs)
           await auditCommand({ format: "json", saveSnapshot: true });
-          await new Promise((resolve) => setTimeout(resolve, 1100));
+          await new Promise((resolve) => setTimeout(resolve, 10));
           await auditCommand({ format: "json", saveSnapshot: true });
         } finally {
           console.log = originalLog;

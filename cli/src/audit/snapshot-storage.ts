@@ -53,14 +53,13 @@ export class SnapshotStorage {
    * Generate snapshot ID from timestamp
    */
   private generateSnapshotId(timestamp: string): string {
-    // Format: YYYYMMDD-HHmmss
+    // Format: YYYYMMDD-HHmmssSSS (includes milliseconds for uniqueness)
     const date = new Date(timestamp);
-    const formatted = date
-      .toISOString()
-      .replace(/[-:]/g, "")
-      .replace(/\..+/, "")
-      .replace("T", "-");
-    return formatted;
+    const iso = date.toISOString();
+    const [datePart, timePart] = iso.split("T");
+    const dateFormatted = datePart.replace(/-/g, "");
+    const timeFormatted = timePart.slice(0, 12).replace(/[:.]/g, ""); // HHmmssSSS
+    return `${dateFormatted}-${timeFormatted}`;
   }
 
   /**
