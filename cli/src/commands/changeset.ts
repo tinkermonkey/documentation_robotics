@@ -159,9 +159,9 @@ export async function changesetListCommand(): Promise<void> {
       );
 
       const changesByType = {
-        add: changeset.getChangesByType("add").length,
+        add: changeset.getChangesByType("add").length + changeset.getChangesByType("relationship-add").length,
         update: changeset.getChangesByType("update").length,
-        delete: changeset.getChangesByType("delete").length,
+        delete: changeset.getChangesByType("delete").length + changeset.getChangesByType("relationship-delete").length,
       };
 
       const parts = [];
@@ -976,10 +976,10 @@ export async function changesetPreviewCommand(options: { layer?: string }): Prom
     console.log(ansis.dim(`Changeset: ${changeset.name}`));
     console.log();
 
-    // Show summary of changes
-    const additions = changeset.getChangesByType("add").length;
+    // Show summary of changes (including relationship changes in additions/deletions)
+    const additions = changeset.getChangesByType("add").length + changeset.getChangesByType("relationship-add").length;
     const modifications = changeset.getChangesByType("update").length;
-    const deletions = changeset.getChangesByType("delete").length;
+    const deletions = changeset.getChangesByType("delete").length + changeset.getChangesByType("relationship-delete").length;
 
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute("preview.additions", additions);

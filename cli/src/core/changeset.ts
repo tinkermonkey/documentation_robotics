@@ -155,6 +155,10 @@ export class Changeset {
    * Add a change to the changeset.
    * Records element mutation with before/after snapshots for audit purposes.
    *
+   * Note: Only accepts "add", "update", "delete" types. Relationship changes
+   * ("relationship-add", "relationship-delete") are added directly via the changes
+   * array by the staging workflow to maintain temporal ordering with element changes.
+   *
    * @param type - Type of change (add, update, delete)
    * @param elementId - ID of the element being changed
    * @param layerName - Layer containing the element
@@ -190,7 +194,7 @@ export class Changeset {
   /**
    * Get the total number of changes in this changeset.
    *
-   * @returns Number of changes (add + update + delete)
+   * @returns Number of changes (add + update + delete + relationship-add + relationship-delete)
    */
   getChangeCount(): number {
     return this.changes.length;
@@ -199,10 +203,10 @@ export class Changeset {
   /**
    * Get all changes of a specific type.
    *
-   * @param type - Type of changes to filter for
+   * @param type - Type of changes to filter for (automatically stays in sync with Change.type union)
    * @returns Array of changes matching the type
    */
-  getChangesByType(type: "add" | "update" | "delete" | "relationship-add" | "relationship-delete"): Change[] {
+  getChangesByType(type: Change["type"]): Change[] {
     return this.changes.filter((c) => c.type === type);
   }
 
