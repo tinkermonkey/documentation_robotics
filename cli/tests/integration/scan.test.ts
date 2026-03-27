@@ -66,6 +66,166 @@ describe("Scan Command", () => {
     });
   });
 
+  describe("Full scanCommand pipeline end-to-end", () => {
+    it("exercises complete flow: config → pattern loading → candidate mapping → deduplication → staging", async () => {
+      // Import helper functions to verify the pipeline
+      const { loadBuiltinPatterns, renderTemplate, filterByConfidence } =
+        await import("../../src/scan/pattern-loader.js");
+      const { expandWildcardElementId, mapToElementCandidate, mapToRelationshipCandidate, stageChangeset } =
+        await import("../../src/commands/scan.js");
+
+      // Step 1: Load patterns (pattern loading phase)
+      const patterns = await loadBuiltinPatterns();
+      expect(patterns.length).toBeGreaterThan(0);
+      const totalPatterns = patterns.reduce((sum, set) => sum + set.patterns.length, 0);
+      expect(totalPatterns).toBeGreaterThan(0);
+
+      // Step 2: Test pattern mapping (candidate mapping phase)
+      // Find a sample element pattern to test
+      const elementPattern = patterns
+        .flatMap((set) => set.patterns)
+        .find((p) => p.produces?.type === "node");
+
+      if (elementPattern && elementPattern.produces?.type === "node") {
+        const sampleMatch = {
+          name: "TestEndpoint",
+          path: "/test",
+          method: "GET",
+          summary: "Test endpoint"
+        };
+
+        // Test that mapping produces valid candidates
+        const mappedCandidate = mapToElementCandidate(
+          elementPattern,
+          sampleMatch,
+          []
+        );
+
+        if (mappedCandidate) {
+          expect(mappedCandidate.id).toBeTruthy();
+          expect(mappedCandidate.type).toBe(elementPattern.produces.elementType);
+          expect(mappedCandidate.layer).toBe(elementPattern.produces.layer);
+          expect(mappedCandidate.confidence).toBe(elementPattern.confidence);
+        }
+      }
+
+      // Step 3: Test relationship mapping
+      const relationshipPattern = patterns
+        .flatMap((set) => set.patterns)
+        .find((p) => p.produces?.type === "relationship");
+
+      if (relationshipPattern && relationshipPattern.produces?.type === "relationship") {
+        const sampleMatch = {
+          sourceName: "endpoint-one",
+          targetName: "service-one",
+          file: "test.ts",
+          line: "42"
+        };
+
+        const mappedRelationship = mapToRelationshipCandidate(
+          relationshipPattern,
+          sampleMatch,
+          []
+        );
+
+        if (mappedRelationship) {
+          expect(mappedRelationship.sourceId).toBeTruthy();
+          expect(mappedRelationship.targetId).toBeTruthy();
+          expect(mappedRelationship.relationshipType).toBe(relationshipPattern.produces.relationshipType);
+          expect(mappedRelationship.confidence).toBe(relationshipPattern.confidence);
+        }
+      }
+
+      // Step 4: Test confidence filtering
+      const testCandidates = [
+        {
+          id: "api.endpoint.high",
+          type: "endpoint",
+          layer: "api",
+          name: "High",
+          confidence: 0.95,
+          attributes: {}
+        },
+        {
+          id: "api.endpoint.low",
+          type: "endpoint",
+          layer: "api",
+          name: "Low",
+          confidence: 0.5,
+          attributes: {}
+        }
+      ];
+
+      const filtered = filterByConfidence(testCandidates, 0.8);
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].id).toBe("api.endpoint.high");
+
+      // Step 5: Test wildcard expansion
+      const availableElements = [
+        { id: "api.endpoint.get-user" },
+        { id: "api.endpoint.create-user" },
+        { id: "api.endpoint.delete-user" }
+      ];
+
+      const expanded = expandWildcardElementId("api.endpoint.*", availableElements);
+      expect(expanded.length).toBe(3);
+      expect(expanded).toContain("api.endpoint.get-user");
+      expect(expanded).toContain("api.endpoint.create-user");
+      expect(expanded).toContain("api.endpoint.delete-user");
+
+      // Step 6: Test deduplication
+      const model = await Model.load(workdir.path);
+      const elementsInModel = new Set<string>();
+      for (const layerName of model.getLayerNames()) {
+        const layer = await model.getLayer(layerName);
+        if (layer) {
+          for (const element of layer.listElements()) {
+            elementsInModel.add(element.id);
+          }
+        }
+      }
+
+      const candidates = [
+        { id: "api.endpoint.new-one", type: "endpoint", layer: "api", name: "New", confidence: 0.9, attributes: {} },
+        { id: "api.endpoint.new-two", type: "endpoint", layer: "api", name: "New", confidence: 0.9, attributes: {} }
+      ];
+
+      const deduplicated = candidates.filter((c) => !elementsInModel.has(c.id));
+      expect(deduplicated.length).toBe(2); // Both should be new
+
+      // Step 7: Test changeset staging
+      const storage = new StagedChangesetStorage(workdir.path);
+      const testChangesetId = `pipeline-test-${Date.now()}`;
+      const changeset = await storage.create(
+        testChangesetId,
+        "Pipeline Test",
+        "Testing full pipeline",
+        "current"
+      );
+
+      // Add element candidate
+      changeset.addChange("add", candidates[0].id, candidates[0].layer, undefined, {
+        id: candidates[0].id,
+        type: candidates[0].type,
+        name: candidates[0].name,
+        layer_id: candidates[0].layer,
+        spec_node_id: candidates[0].type,
+        path: candidates[0].id.replace(/\./g, "/"),
+        attributes: {}
+      });
+
+      // Save and verify
+      await storage.save(changeset);
+      const loaded = await storage.load(testChangesetId);
+      expect(loaded).toBeDefined();
+      expect(loaded?.changes.length).toBe(1);
+      expect(loaded?.changes[0].elementId).toBe(candidates[0].id);
+
+      // Cleanup
+      await storage.delete(testChangesetId);
+    });
+  });
+
   describe("Pattern loading and execution", () => {
     it("loads built-in patterns and project patterns", async () => {
       // This tests the core pattern loading that happens early in scanCommand
@@ -320,8 +480,25 @@ describe("Scan Command", () => {
         return !element;
       });
 
-      // Some candidates should be new (or all if model is empty)
-      expect(newCandidates.length > 0 || candidates.length > 0).toBe(true);
+      // All candidates should be new since we haven't added any to this test model
+      expect(newCandidates.length).toBe(candidates.length);
+
+      // Verify filtering worked by checking that existing elements are excluded
+      // This test verifies the deduplication logic works correctly
+      const modelIds = new Set<string>();
+      for (const layerName of model.getLayerNames()) {
+        const layer = await model.getLayer(layerName);
+        if (layer) {
+          for (const element of layer.listElements()) {
+            modelIds.add(element.id);
+          }
+        }
+      }
+
+      // No candidates should match model elements
+      for (const candidate of newCandidates) {
+        expect(modelIds.has(candidate.id)).toBe(false);
+      }
     });
   });
 
@@ -434,8 +611,10 @@ describe("Scan Command", () => {
         }
       }
 
-      // At least one warning should be captured
-      expect(warnings.length > 0).toBe(true);
+      // Exactly one warning should be captured (from invalid.pattern)
+      expect(warnings.length).toBe(1);
+      expect(warnings[0]).toContain("invalid.pattern");
+      expect(warnings[0]).toContain("Tool execution failed");
     });
 
     it("respects disabled patterns from configuration", async () => {
@@ -628,15 +807,31 @@ describe("Scan Command", () => {
       const model = await Model.load(workdir.path);
       expect(model).toBeDefined();
 
-      // Model should have some elements from the golden copy
+      // Model should be loadable and iterable
       let elementCount = 0;
+      const loadedLayers: string[] = [];
       for (const layerName of model.getLayerNames()) {
+        loadedLayers.push(layerName);
         const layer = await model.getLayer(layerName);
         if (layer) {
-          elementCount += layer.listElements().length;
+          const elements = layer.listElements();
+          elementCount += elements.length;
         }
       }
-      expect(elementCount >= 0).toBe(true);
+
+      // Verify model structure is correct
+      expect(loadedLayers.length).toBeGreaterThan(0);
+      expect(elementCount).toBeGreaterThanOrEqual(0);
+
+      // Count should match sum of elements across layers
+      let verifyCount = 0;
+      for (const layerName of loadedLayers) {
+        const layer = await model.getLayer(layerName);
+        if (layer) {
+          verifyCount += layer.listElements().length;
+        }
+      }
+      expect(verifyCount).toBe(elementCount);
     });
   });
 

@@ -18,6 +18,8 @@ describe("Scan Config Loader", () => {
       // File may not exist
     }
     delete process.env.DR_CONFIG_PATH;
+    delete process.env.SCAN_CODEPRISM_COMMAND;
+    delete process.env.SCAN_CONFIDENCE_THRESHOLD;
   });
 
   it("should return default config when file does not exist", async () => {
@@ -58,9 +60,6 @@ describe("Scan Config Loader", () => {
 
     expect(config.codeprism?.command).toBe("env-codeprism");
     expect(config.confidence_threshold).toBe(0.9);
-
-    delete process.env.SCAN_CODEPRISM_COMMAND;
-    delete process.env.SCAN_CONFIDENCE_THRESHOLD;
   });
 
   it("should validate confidence threshold range", async () => {

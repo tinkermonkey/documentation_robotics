@@ -471,7 +471,7 @@ export async function executePatterns(
  * @param warnings - Array to collect mapping errors as warnings
  * @returns Element candidate or null if mapping fails
  */
-function mapToElementCandidate(
+export function mapToElementCandidate(
   pattern: PatternDefinition,
   match: Record<string, string>,
   warnings: string[]
@@ -542,7 +542,7 @@ function mapToElementCandidate(
  * @param warnings - Array to collect mapping errors as warnings
  * @returns Relationship candidate or null if mapping fails
  */
-function mapToRelationshipCandidate(
+export function mapToRelationshipCandidate(
   pattern: PatternDefinition,
   match: Record<string, string>,
   warnings: string[]
@@ -643,7 +643,7 @@ function mapToRelationshipCandidate(
  *
  * @param candidates - Candidates to print
  */
-function printCandidatesTable(candidates: ElementCandidate[]): void {
+export function printCandidatesTable(candidates: ElementCandidate[]): void {
   if (candidates.length === 0) {
     console.log("No candidates to display");
     return;
@@ -666,7 +666,7 @@ function printCandidatesTable(candidates: ElementCandidate[]): void {
  *
  * @param candidates - Relationship candidates to print
  */
-function printRelationshipCandidatesTable(candidates: RelationshipCandidate[]): void {
+export function printRelationshipCandidatesTable(candidates: RelationshipCandidate[]): void {
   if (candidates.length === 0) {
     console.log("No relationship candidates to display");
     return;
@@ -698,7 +698,7 @@ function printRelationshipCandidatesTable(candidates: RelationshipCandidate[]): 
  * @param relationshipCandidates - Relationship candidates to stage
  * @param workdir - Working directory for changeset storage
  */
-async function stageChangeset(elementCandidates: ElementCandidate[], relationshipCandidates: RelationshipCandidate[], workdir: string): Promise<void> {
+export async function stageChangeset(elementCandidates: ElementCandidate[], relationshipCandidates: RelationshipCandidate[], workdir: string): Promise<void> {
   const storage = new StagedChangesetStorage(workdir);
   const changesetId = `scan-${Date.now()}`;
   const totalItems = elementCandidates.length + relationshipCandidates.length;
