@@ -190,19 +190,19 @@ describe("Scan Command", () => {
       }
 
       // Test candidates that don't exist in the model
-      const testCandidates = [
+      const newCandidates = [
         { id: "api.endpoint.new-one", type: "endpoint", layer: "api", name: "New", confidence: 0.9, attributes: {} },
         { id: "api.endpoint.new-two", type: "endpoint", layer: "api", name: "New", confidence: 0.9, attributes: {} }
       ];
 
       // Verify test candidates are actually new (not already in model)
-      for (const candidate of testCandidates) {
+      for (const candidate of newCandidates) {
         expect(elementsInModel.has(candidate.id)).toBe(false);
       }
 
       // Step 7: Test changeset staging via stageChangeset function
       // This directly tests the exported stageChangeset function with real candidates
-      const stageableElements = testCandidates;
+      const stageableElements = newCandidates;
       const stageableRelationships: RelationshipCandidate[] = [];
 
       // Call the exported stageChangeset function - the actual code path that should be tested
