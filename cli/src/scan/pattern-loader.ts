@@ -55,7 +55,7 @@ export const ProducesSchema = z.discriminatedUnion("type", [
     type: z.literal("relationship"),
     layer: z.string(),
     elementType: z.string(),
-    relationshipType: z.string(),
+    relationshipType: z.string().min(1),
   }),
 ]);
 
@@ -526,8 +526,7 @@ export function renderTemplate(template: string, data: Record<string, unknown>):
         );
       }
       // Type assertion is necessary here since value is unknown and we need dynamic property access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      value = (value as any)[part];
+      value = (value as Record<string, unknown>)[part];
     }
 
     if (value === null || value === undefined) {
