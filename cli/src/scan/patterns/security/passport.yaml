@@ -30,8 +30,8 @@ patterns:
         language: typescript
     confidence: 0.85
     mapping:
-      source: "security.authentication.{match.strategy|kebab}"
-      target: "api.endpoint.*"
+      source: "api.endpoint.*"
+      target: "security.authentication.{match.strategy|kebab}"
   - id: passport.endpoint.login
     produces:
       type: relationship

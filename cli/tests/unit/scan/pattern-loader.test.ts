@@ -35,7 +35,6 @@ describe("Pattern Loader", () => {
             mapping: {
               id: "api.endpoint.{match.controller}",
               name: "{match.route}",
-              attributes: {},
             },
           },
         ],
@@ -92,6 +91,28 @@ describe("Pattern Loader", () => {
       };
 
       expect(() => PatternSetSchema.parse(validRelationshipPattern)).not.toThrow();
+    });
+
+    it("rejects mapping with nested objects (only strings allowed)", () => {
+      const invalidPatternSet = {
+        layer: "api",
+        framework: "test",
+        patterns: [
+          {
+            id: "test.pattern",
+            produces: { type: "node", layer: "api", elementType: "endpoint" },
+            query: { tool: "search_code" },
+            confidence: 0.85,
+            mapping: {
+              id: "api.endpoint.test",
+              // Nested object is not allowed - only strings in mapping
+              attributes: { extra: "value" },
+            },
+          },
+        ],
+      };
+
+      expect(() => PatternSetSchema.parse(invalidPatternSet)).toThrow();
     });
   });
 

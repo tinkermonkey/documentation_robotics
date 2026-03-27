@@ -84,10 +84,12 @@ export type Produces = z.infer<typeof ProducesSchema>;
  * - `source` or `target` can contain wildcards like "api.endpoint.*" to match any element of that type
  * - Wildcards are expanded at scan time against available model elements and newly discovered elements
  * - Invalid wildcard patterns or patterns with no matches result in the relationship being skipped
+ *
+ * All mapping values MUST be strings. Nested objects are not supported and will be rejected during validation.
  */
-export const MappingSchema = z.record(z.string(), z.union([z.string(), z.record(z.string(), z.string())]));
+export const MappingSchema = z.record(z.string(), z.string());
 
-export type Mapping = Record<string, string | Record<string, string>>;
+export type Mapping = Record<string, string>;
 
 /**
  * Individual pattern definition within a pattern set
