@@ -142,8 +142,8 @@ export class SnapshotStorage {
 
     let id: string;
 
-    // Check if input is already a snapshot ID
-    if (/^\d{8}-\d{6}$/.test(idOrTimestamp)) {
+    // Check if input is already a snapshot ID (format: YYYYMMDD-HHmmssSSS)
+    if (/^\d{8}-\d{9}$/.test(idOrTimestamp)) {
       id = idOrTimestamp;
     } else {
       // Assume it's a timestamp, convert to ID
@@ -210,7 +210,7 @@ export class SnapshotStorage {
     await this.ensureStorageDir();
 
     let id: string;
-    if (/^\d{8}-\d{6}$/.test(idOrTimestamp)) {
+    if (/^\d{8}-\d{9}$/.test(idOrTimestamp)) {
       id = idOrTimestamp;
     } else {
       id = this.generateSnapshotId(idOrTimestamp);
