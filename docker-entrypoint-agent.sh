@@ -5,6 +5,22 @@ PROJECT_DIR="/workspace/documentation_robotics"
 CLI_DIR="$PROJECT_DIR/cli"
 
 # ============================================================================
+# GitHub CLI authentication (early setup)
+# ============================================================================
+# Set up gh auth BEFORE any npm/build commands that may need GitHub access.
+# The base-image entrypoint also handles this, but we need it earlier because
+# npm install/build steps below may require GitHub API access (e.g., for
+# private packages, git+https dependencies, or GitHub-hosted registries).
+#
+# Supports both GITHUB_TOKEN and GH_TOKEN environment variables.
+# GITHUB_TOKEN is the standard CI/CD convention; GH_TOKEN is gh CLI's native var.
+if [ -n "$GITHUB_TOKEN" ] || [ -n "$GH_TOKEN" ]; then
+  AUTH_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"
+  echo "[agent-entrypoint] Configuring GitHub CLI authentication..."
+  echo "$AUTH_TOKEN" | gh auth login --with-token 2>/dev/null || true
+fi
+
+# ============================================================================
 # Build CLI if dist/cli.js is missing (required for integration tests)
 # ============================================================================
 # Integration tests depend on the compiled CLI binary at cli/dist/cli.js.
