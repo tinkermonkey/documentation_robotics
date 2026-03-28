@@ -224,15 +224,23 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
       console.log(`  Inferred ${inferredRelationships.length} relationships from patterns`);
     }
 
+    // Filter inferred relationships by confidence threshold (same threshold applied to pattern-extracted relationships)
+    const confidenceThreshold = config.confidence_threshold ?? 0.7;
+    const filteredInferredRelationships = filterByConfidence(inferredRelationships, confidenceThreshold);
+
+    if (options.verbose && filteredInferredRelationships.length < inferredRelationships.length) {
+      console.log(`  ${inferredRelationships.length - filteredInferredRelationships.length} inferred relationships filtered by confidence threshold`);
+    }
+
     // Merge inferred relationships with pattern-extracted ones
-    relationshipCandidates.push(...inferredRelationships);
+    relationshipCandidates.push(...filteredInferredRelationships);
 
     // Load current model for deduplication
     let model: Model | null = null;
     try {
       model = await Model.load(process.cwd());
     } catch (error) {
-      const modelLoadError = `Could not load existing model: ${getErrorMessage(error)}. Deduplication will be skipped and all candidates will be staged, including potential duplicates.`;
+      const modelLoadError = `Could not load existing model: ${getErrorMessage(error)}. Deduplication will be skipped and all candidates will be staged, including potential duplicates. Additionally, wildcard expansion in relationships will be limited to newly-discovered candidates only.`;
       warnings.push(modelLoadError);
     }
 
