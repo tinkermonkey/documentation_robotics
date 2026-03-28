@@ -18,7 +18,7 @@
  *       command: codeprism
  *       args: ["--mcp"]
  *       timeout: 5000
- *     confidence_threshold: 0.6
+ *     confidence_threshold: 0.7
  */
 
 import ansis from "ansis";
@@ -36,6 +36,17 @@ export interface ScanOptions {
   dryRun?: boolean;
   layer?: string;
   verbose?: boolean;
+}
+
+/**
+ * Derive relationship candidate ID from source and target element IDs
+ *
+ * @param sourceId - Source element ID
+ * @param targetId - Target element ID
+ * @returns Relationship ID in format "sourceId->targetId"
+ */
+export function deriveRelationshipId(sourceId: string, targetId: string): string {
+  return `${sourceId}->${targetId}`;
 }
 
 /**
@@ -64,9 +75,10 @@ export function filterDisabledPatterns(patterns: PatternSet[], disabledPatterns?
  *
  * @param elementId - Element ID that may contain a wildcard
  * @param availableElements - Elements to match against (from model and candidates)
+ * @param warnings - Array to collect warning messages
  * @returns Array of concrete element IDs matching the wildcard, or empty array if wildcard matches nothing
  */
-export function expandWildcardElementId(elementId: string, availableElements: Array<{ id: string }>): string[] {
+export function expandWildcardElementId(elementId: string, availableElements: Array<{ id: string }>, warnings?: string[]): string[] {
   // Check if elementId contains a wildcard
   if (!elementId.includes("*")) {
     return [elementId];
@@ -75,7 +87,14 @@ export function expandWildcardElementId(elementId: string, availableElements: Ar
   // Parse the wildcard pattern: "{layer}.{elementType}.*"
   const parts = elementId.split(".");
   if (parts.length < 3 || parts[parts.length - 1] !== "*") {
-    // Invalid wildcard format - not a valid wildcard pattern, return empty array
+    // Invalid wildcard format - not a valid wildcard pattern
+    if (warnings) {
+      warnings.push(
+        `Invalid wildcard pattern: '${elementId}'. ` +
+        `Wildcard patterns must be in the format: 'layer.elementType.*' ` +
+        `(e.g., 'api.endpoint.*'). This relationship will be skipped.`
+      );
+    }
     return [];
   }
 
@@ -120,7 +139,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     if (options.config) {
       console.log(ansis.green("✓ Configuration loaded successfully"));
       console.log(`  CodePrism command: ${config.codeprism?.command || "codeprism"}`);
-      console.log(`  Confidence threshold: ${config.confidence_threshold || 0.7}`);
+      console.log(`  Confidence threshold: ${config.confidence_threshold ?? 0.7}`);
       return;
     }
 
@@ -169,7 +188,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 
     // Execute patterns and collect candidates
     console.log("\nScanning codebase...");
-    const { elementCandidates, relationshipCandidates } = await executePatterns(client, patternsToExecute, config.confidence_threshold || 0.7, warnings, options.verbose || false);
+    const { elementCandidates, relationshipCandidates } = await executePatterns(client, patternsToExecute, config.confidence_threshold ?? 0.7, warnings, options.verbose || false);
 
     // Load current model for deduplication
     let model: Model | null = null;
@@ -218,8 +237,8 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 
     for (const candidate of relationshipCandidates) {
       // Expand wildcards in source and target
-      const sourceIds = expandWildcardElementId(candidate.sourceId, allAvailableElements);
-      const targetIds = expandWildcardElementId(candidate.targetId, allAvailableElements);
+      const sourceIds = expandWildcardElementId(candidate.sourceId, allAvailableElements, warnings);
+      const targetIds = expandWildcardElementId(candidate.targetId, allAvailableElements, warnings);
 
       // Skip this candidate if wildcard expansion produces no matches
       if (sourceIds.length === 0 || targetIds.length === 0) {
@@ -233,7 +252,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
             ...candidate,
             sourceId,
             targetId,
-            id: `${sourceId}->${targetId}`,
+            id: deriveRelationshipId(sourceId, targetId),
           };
 
           // Check cross-layer direction rule
@@ -427,11 +446,12 @@ export async function executePatterns(
               }
             } catch (parseError) {
               // If not JSON, treat the text as unparseable tool output.
-              // Log as warning so user knows tool ran but output couldn't be interpreted.
+              // Always add to warnings so user knows tool ran but output couldn't be interpreted.
               const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
               warnings.push(parseMsg);
-              if (verbose) {
-                console.log(`    Warning: ${parseMsg}`);
+              // In non-verbose mode, warn immediately so user knows parsing failed
+              if (!verbose) {
+                console.warn(ansis.yellow(`⚠ ${parseMsg}`));
               }
             }
           }
@@ -609,8 +629,8 @@ export function mapToRelationshipCandidate(
       );
     }
 
-    // Create relationship candidate ID
-    const id = `${sourceId}->${targetId}`;
+    // Create relationship candidate ID using derivation helper
+    const id = deriveRelationshipId(sourceId, targetId);
 
     // Collect attributes from mapping (excluding source, target, sourceId, and targetId)
     const attributes: Record<string, unknown> = {};

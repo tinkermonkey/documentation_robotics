@@ -10,7 +10,7 @@
  *     command: codeprism      # CodePrism binary or path
  *     args: [--mcp]           # MCP server args
  *     timeout: 5000           # Connection timeout in ms
- *   confidence_threshold: 0.6 # Pattern matching confidence (0.0-1.0)
+ *   confidence_threshold: 0.7 # Pattern matching confidence (0.0-1.0)
  *   disabled_patterns: []     # Pattern set names to skip
  * ```
  *

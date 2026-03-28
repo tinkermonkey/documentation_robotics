@@ -16,7 +16,7 @@
  *     args: ['--mcp'],
  *     timeout: 5000
  *   },
- *   confidence_threshold: 0.6
+ *   confidence_threshold: 0.7
  * };
  *
  * const client = await createMcpClient(config);
