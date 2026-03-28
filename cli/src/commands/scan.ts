@@ -330,8 +330,10 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     // Stage changeset with candidates
     if (newElementCandidates.length > 0 || expandedRelationshipCandidates.length > 0) {
       console.log(`\nStaging ${newElementCandidates.length} elements and ${expandedRelationshipCandidates.length} relationships as changeset...`);
-      await stageChangeset(newElementCandidates, expandedRelationshipCandidates, process.cwd());
+      const stageWarnings = await stageChangeset(newElementCandidates, expandedRelationshipCandidates, process.cwd());
       console.log(ansis.green(`✓ Changeset staged successfully`));
+      // Add any staging failures to warnings for display in summary
+      warnings.push(...stageWarnings);
     } else {
       console.log(ansis.yellow(`\n⚠ No new candidates found`));
     }
@@ -473,7 +475,7 @@ export async function executePatterns(
           }
         } catch (matchError) {
           // Unexpected errors during match processing (programming errors, not expected validation errors)
-          // These should be tracked separately from warnings since they indicate bugs
+          // Tracked as warnings to preserve partial results and report issues to the user
           const errorMsg = getErrorMessage(matchError);
           const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
           warnings.push(errorDetail);
@@ -724,11 +726,15 @@ export function printRelationshipCandidatesTable(candidates: RelationshipCandida
  *
  * This ensures elements exist before relationships reference them.
  *
+ * Partial success is preserved: if some candidates fail to stage, the changeset
+ * is still saved with the successful candidates, and failures are returned as warnings.
+ *
  * @param elementCandidates - Element candidates to stage
  * @param relationshipCandidates - Relationship candidates to stage
  * @param workdir - Working directory for changeset storage
+ * @returns Array of warning messages for any staging failures (empty if all succeeded)
  */
-export async function stageChangeset(elementCandidates: ElementCandidate[], relationshipCandidates: RelationshipCandidate[], workdir: string): Promise<void> {
+export async function stageChangeset(elementCandidates: ElementCandidate[], relationshipCandidates: RelationshipCandidate[], workdir: string): Promise<string[]> {
   const storage = new StagedChangesetStorage(workdir);
   const changesetId = `scan-${Date.now()}`;
   const totalItems = elementCandidates.length + relationshipCandidates.length;
@@ -795,21 +801,18 @@ export async function stageChangeset(elementCandidates: ElementCandidate[], rela
   // Save changeset with successfully staged candidates
   await storage.save(changeset);
 
-  // Report any failures after save completes (so partial success is preserved)
+  // Return staging failures as warnings (partial success is preserved by the save above)
+  const warnings: string[] = [];
   if (failedElements.length > 0 || failedRelationships.length > 0) {
-    const errors: string[] = [];
     if (failedElements.length > 0) {
-      errors.push(`Failed to stage ${failedElements.length} element(s):`);
-      failedElements.forEach((msg) => errors.push(`  • ${msg}`));
+      warnings.push(`Failed to stage ${failedElements.length} element(s):`);
+      failedElements.forEach((msg) => warnings.push(`  • ${msg}`));
     }
     if (failedRelationships.length > 0) {
-      errors.push(`Failed to stage ${failedRelationships.length} relationship(ies):`);
-      failedRelationships.forEach((msg) => errors.push(`  • ${msg}`));
+      const plural = failedRelationships.length === 1 ? 'relationship' : 'relationships';
+      warnings.push(`Failed to stage ${failedRelationships.length} ${plural}:`);
+      failedRelationships.forEach((msg) => warnings.push(`  • ${msg}`));
     }
-    throw new CLIError(
-      `Could not stage all candidates (${failedElements.length} elements, ${failedRelationships.length} relationships failed)`,
-      ErrorCategory.VALIDATION,
-      errors
-    );
   }
+  return warnings;
 }
