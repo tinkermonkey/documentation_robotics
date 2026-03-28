@@ -207,8 +207,8 @@ describe("Pattern Execution via MCP", () => {
         id: "api.endpoint.accesses.data-model",
         produces: {
           type: "relationship",
-          sourceLayer: "api",
-          targetLayer: "data-model",
+          layer: "api",
+          elementType: "data-access",
           relationshipType: "accesses",
         },
         query: {
@@ -221,7 +221,6 @@ describe("Pattern Execution via MCP", () => {
         mapping: {
           sourceId: "{match.sourceId}",
           targetId: "{match.targetId}",
-          type: "{match.type}",
         },
       };
 

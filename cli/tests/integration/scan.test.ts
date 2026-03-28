@@ -1788,7 +1788,7 @@ describe("Scan Command", () => {
 
       const pattern = {
         id: "test.relationship",
-        produces: { type: "relationship" as const, relationshipType: "implements" },
+        produces: { type: "relationship" as const, layer: "api", elementType: "dependency", relationshipType: "implements" },
         query: { tool: "test", params: {} },
         confidence: 0.9,
         mapping: {
@@ -1818,7 +1818,7 @@ describe("Scan Command", () => {
 
       const pattern = {
         id: "test.relationship",
-        produces: { type: "relationship" as const, relationshipType: "implements" },
+        produces: { type: "relationship" as const, layer: "api", elementType: "dependency", relationshipType: "implements" },
         query: { tool: "test", params: {} },
         confidence: 0.9,
         mapping: {
