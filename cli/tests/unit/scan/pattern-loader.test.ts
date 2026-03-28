@@ -649,6 +649,15 @@ describe("Pattern Loader", () => {
       expect(result).toBe("GET");
     });
 
+    it("renders lowercase transformation", () => {
+      const template = "{match.method|lower}";
+      const data = { match: { method: "GET" } };
+
+      const result = renderTemplate(template, data);
+
+      expect(result).toBe("get");
+    });
+
     it("renders chained transformations", () => {
       const template = "{match.name|kebab|upper}";
       const data = { match: { name: "CreateUser" } };
@@ -703,14 +712,13 @@ describe("Pattern Loader", () => {
       expect(result).toBe("create-user-endpoint");
     });
 
-    it("ignores unknown transformations", () => {
+    it("throws error for unknown transformations", () => {
       const template = "{match.name|unknown}";
       const data = { match: { name: "TestName" } };
 
-      const result = renderTemplate(template, data);
-
-      // Unknown transformation is ignored, returns original string
-      expect(result).toBe("TestName");
+      expect(() => renderTemplate(template, data)).toThrow(
+        /Template rendering failed.*unknown transform.*unknown.*supported transforms are: kebab, upper, lower/
+      );
     });
   });
 

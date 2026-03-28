@@ -502,11 +502,12 @@ export function filterByConfidence<T extends ElementCandidate | RelationshipCand
  * - {match.field} - Direct field access
  * - {match.field|kebab} - Convert to kebab-case
  * - {match.field|upper} - Convert to UPPERCASE
+ * - {match.field|lower} - Convert to lowercase
  *
  * @param template - Template string with placeholders
  * @param data - Data object for substitution
  * @returns Rendered string
- * @throws Error if template contains a placeholder that cannot be resolved in the data
+ * @throws Error if template contains a placeholder that cannot be resolved in the data or an unrecognized transform is used
  *
  * @example
  * ```typescript
@@ -551,6 +552,10 @@ export function renderTemplate(template: string, data: Record<string, unknown>):
         result = result.toUpperCase();
       } else if (t === "lower") {
         result = result.toLowerCase();
+      } else {
+        throw new Error(
+          `Template rendering failed: unknown transform '${transform}' in placeholder '${match}' - supported transforms are: kebab, upper, lower`
+        );
       }
     }
 
