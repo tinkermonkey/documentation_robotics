@@ -57,7 +57,7 @@ Users can create project-specific patterns to analyze custom languages or propri
 
 1. Understanding CodePrism's pattern query syntax
 2. Writing YAML pattern definitions
-3. Placing them in the project's `documentation-robotics/patterns/` directory
+3. Placing them in the project's `documentation-robotics/.scan-patterns/` directory
 
 ### Language Detection
 
@@ -93,6 +93,8 @@ cli/src/scan/patterns/
 │   └── nestjs.yaml          # NestJS framework (TypeScript)
 ├── application/
 │   └── nestjs-service.yaml  # NestJS service patterns (TypeScript)
+├── apm/
+│   └── opentelemetry.yaml   # OpenTelemetry instrumentation
 ├── data-model/
 │   ├── prisma.yaml          # Prisma ORM (JavaScript/TypeScript)
 │   └── typeorm.yaml         # TypeORM (TypeScript)
@@ -100,13 +102,11 @@ cli/src/scan/patterns/
 │   └── prisma-schema.yaml   # Prisma schema definitions
 ├── security/
 │   └── passport.yaml        # Passport.js authentication (JavaScript/TypeScript)
-├── apm/
-│   └── opentelemetry.yaml   # OpenTelemetry instrumentation
-├── ux/
-│   └── react.yaml           # React components (JavaScript/TypeScript/JSX)
-└── testing/
-    ├── jest.yaml            # Jest test framework (JavaScript/TypeScript)
-    └── pytest.yaml          # pytest framework (Python)
+├── testing/
+│   ├── jest.yaml            # Jest test framework (JavaScript/TypeScript)
+│   └── pytest.yaml          # pytest framework (Python)
+└── ux/
+    └── react.yaml           # React components (JavaScript/TypeScript/JSX)
 ```
 
 Additional frameworks and patterns can be added by creating new YAML files in the corresponding layer directories.
@@ -159,7 +159,7 @@ patterns:
 
 #### Extending Language Support (for users)
 
-1. Create project patterns: `documentation-robotics/patterns/{layer}/custom.yaml`
+1. Create project patterns: `documentation-robotics/.scan-patterns/{layer}/custom.yaml`
 2. Write patterns for your framework
 3. Commit to version control
 4. Run `dr scan` — project patterns are automatically discovered and merged

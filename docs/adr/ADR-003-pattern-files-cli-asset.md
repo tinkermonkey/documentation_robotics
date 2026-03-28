@@ -33,7 +33,7 @@ Previous assumptions treated patterns as a user-facing prerequisite, but this cr
    - Designed to work out-of-the-box with zero user configuration
 
 2. **Project-Specific Patterns** (User-optional, extends built-in)
-   - Located in `documentation-robotics/patterns/{layer}/` within a project
+   - Located in `documentation-robotics/.scan-patterns/` within a project
    - Created only when users need to extend built-in patterns for custom frameworks
    - Merged with and can override built-in patterns during pattern loading
    - Completely optional — projects work fine with only built-in patterns
@@ -60,6 +60,8 @@ cli/src/scan/patterns/
 │   └── nestjs.yaml          # NestJS framework
 ├── application/
 │   └── nestjs-service.yaml  # NestJS service pattern
+├── apm/
+│   └── opentelemetry.yaml   # OpenTelemetry instrumentation
 ├── data-model/
 │   ├── prisma.yaml          # Prisma ORM
 │   └── typeorm.yaml         # TypeORM
@@ -67,13 +69,11 @@ cli/src/scan/patterns/
 │   └── prisma-schema.yaml   # Prisma schema parsing
 ├── security/
 │   └── passport.yaml        # Passport.js authentication
-├── apm/
-│   └── opentelemetry.yaml   # OpenTelemetry instrumentation
-├── ux/
-│   └── react.yaml           # React UI components
-└── testing/
-    ├── jest.yaml            # Jest test framework
-    └── pytest.yaml          # pytest framework
+├── testing/
+│   ├── jest.yaml            # Jest test framework
+│   └── pytest.yaml          # pytest framework
+└── ux/
+    └── react.yaml           # React UI components
 ```
 
 This structure reflects the current set of built-in patterns. New patterns can be added by creating new framework files in the appropriate layer directories.
@@ -83,7 +83,7 @@ This structure reflects the current set of built-in patterns. New patterns can b
 The pattern loader (`cli/src/scan/pattern-loader.ts`) follows this strategy:
 
 1. Load built-in patterns from `cli/src/scan/patterns/`
-2. Check for project patterns in `documentation-robotics/patterns/`
+2. Check for project patterns in `documentation-robotics/.scan-patterns/`
 3. Merge both sets (project patterns override built-in by framework/pattern ID)
 4. Filter merged patterns by confidence threshold
 5. Return combined pattern set to scan command

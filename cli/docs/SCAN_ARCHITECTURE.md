@@ -79,31 +79,37 @@ Located in `cli/src/scan/patterns/{layer}/` and shipped with the CLI:
 cli/src/scan/patterns/
 ├── api/
 │   ├── express.yaml
-│   ├── nestjs.yaml
-│   ├── django.yaml
-│   ├── spring-boot.yaml
-│   └── fastapi.yaml
+│   └── nestjs.yaml
 ├── application/
-│   ├── java-classes.yaml
-│   └── python-classes.yaml
+│   └── nestjs-service.yaml
+├── apm/
+│   └── opentelemetry.yaml
 ├── data-model/
+│   ├── prisma.yaml
+│   └── typeorm.yaml
+├── data-store/
+│   └── prisma-schema.yaml
 ├── security/
+│   └── passport.yaml
 ├── testing/
-└── ... (one per layer)
+│   ├── jest.yaml
+│   └── pytest.yaml
+└── ux/
+    └── react.yaml
 ```
 
 #### Project Patterns (User-optional)
 
-Located in `documentation-robotics/patterns/{layer}/` within a project:
+Located in `documentation-robotics/.scan-patterns/` within a project:
 
-Create a `documentation-robotics/patterns/api/custom.yaml` file to extend patterns for custom frameworks. These patterns are merged with built-in patterns during scan.
+Create a `documentation-robotics/.scan-patterns/api/custom.yaml` file to extend patterns for custom frameworks. These patterns are merged with built-in patterns during scan.
 
 ### How Patterns Load
 
-The `PatternLoader` follows this strategy:
+The pattern loading system follows this strategy:
 
 1. **Load built-in patterns** from `cli/src/scan/patterns/`
-2. **Load project patterns** from `documentation-robotics/patterns/`
+2. **Load project patterns** from `documentation-robotics/.scan-patterns/`
 3. **Merge both sets** (project patterns can override built-in by framework/pattern ID)
 4. **Filter by confidence** (remove patterns below threshold)
 5. **Return merged set** to scan command
@@ -161,10 +167,7 @@ await client.disconnect();
 
 Patterns invoke CodePrism tools via the MCP interface:
 
-- **search_code** — Find code matching patterns (regex/semantic)
-- **analyze_code** — Semantic analysis (scopes, types, dependencies)
-- **list_symbols** — List all symbols of a type
-- **get_symbol_info** — Get detailed information about a symbol
+- **search_code** — Find code matching patterns (regex/semantic) for extracting architectural elements and relationships
 
 ## Language Support
 
