@@ -88,11 +88,12 @@ describe('Relationship Scanning Coverage', function () {
     it('should infer bidirectional relationships', async () => {
       const existingRelationships = [
         {
+          id: 'api.endpoint.create-user->application.service.user-service',
           sourceId: 'api.endpoint.create-user',
           targetId: 'application.service.user-service',
-          type: 'depends-on',
+          relationshipType: 'depends-on',
+          layer: 'api',
           confidence: 0.9,
-          source: 'pattern:direct',
         },
       ];
 
@@ -109,7 +110,7 @@ describe('Relationship Scanning Coverage', function () {
         (r) =>
           r.sourceId === 'application.service.user-service' &&
           r.targetId === 'api.endpoint.create-user' &&
-          r.type === 'provides-to'
+          r.relationshipType === 'provides-to'
       );
 
       expect(reversedRel).toBeDefined();
@@ -125,7 +126,7 @@ describe('Relationship Scanning Coverage', function () {
             layer: 'api',
             name: 'Get User',
             confidence: 0.9,
-            metadata: { module: 'api/users' },
+            attributes: { module: 'api/users' },
           },
         ],
         [
@@ -136,7 +137,7 @@ describe('Relationship Scanning Coverage', function () {
             layer: 'api',
             name: 'Create User',
             confidence: 0.9,
-            metadata: { module: 'api/users' },
+            attributes: { module: 'api/users' },
           },
         ],
       ]);
@@ -151,7 +152,10 @@ describe('Relationship Scanning Coverage', function () {
 
       // Should infer composition relationships between co-located elements
       const compositionRel = inferred.find(
-        (r) => r.source === 'inference:composition' && r.type === 'composed-of'
+        (r) =>
+          r.sourceId === 'api.endpoint.get-user' &&
+          r.targetId === 'api.endpoint.create-user' &&
+          r.relationshipType === 'composed-of'
       );
 
       expect(compositionRel).toBeDefined();
@@ -167,7 +171,7 @@ describe('Relationship Scanning Coverage', function () {
             layer: 'application',
             name: 'User Service',
             confidence: 0.9,
-            metadata: { consumes: 'UserDTO' },
+            attributes: { consumes: 'UserDTO' },
           },
         ],
         [
@@ -178,7 +182,7 @@ describe('Relationship Scanning Coverage', function () {
             layer: 'data-model',
             name: 'User DTO',
             confidence: 0.9,
-            metadata: { produces: 'UserDTO' },
+            attributes: { produces: 'UserDTO' },
           },
         ],
       ]);
@@ -193,7 +197,10 @@ describe('Relationship Scanning Coverage', function () {
 
       // Should infer type-compatibility relationship
       const typeRel = inferred.find(
-        (r) => r.source === 'inference:type-compatibility' && r.type === 'consumes'
+        (r) =>
+          r.sourceId === 'application.service.user-service' &&
+          r.targetId === 'data-model.entity.user-dto' &&
+          r.relationshipType === 'consumes'
       );
 
       expect(typeRel).toBeDefined();
@@ -209,7 +216,7 @@ describe('Relationship Scanning Coverage', function () {
             layer: 'application',
             name: 'User Service',
             confidence: 0.9,
-            metadata: { implements: 'UserManagement' },
+            attributes: { implements: 'UserManagement' },
           },
         ],
         [
@@ -220,7 +227,7 @@ describe('Relationship Scanning Coverage', function () {
             layer: 'technology',
             name: 'REST API',
             confidence: 0.9,
-            metadata: { provides: 'UserManagement' },
+            attributes: { provides: 'UserManagement' },
           },
         ],
       ]);
@@ -235,7 +242,10 @@ describe('Relationship Scanning Coverage', function () {
 
       // Should infer implementation relationship
       const implRel = inferred.find(
-        (r) => r.source === 'inference:implementation' && r.type === 'implements'
+        (r) =>
+          r.sourceId === 'application.service.user-service' &&
+          r.targetId === 'technology.platform.rest-api' &&
+          r.relationshipType === 'implements'
       );
 
       expect(implRel).toBeDefined();
@@ -317,11 +327,12 @@ describe('Relationship Scanning Coverage', function () {
     it('should deduplicate inferred relationships', async () => {
       const existingRelationships = [
         {
+          id: 'api.endpoint.create->application.service.app',
           sourceId: 'api.endpoint.create',
           targetId: 'application.service.app',
-          type: 'depends-on',
+          relationshipType: 'depends-on',
+          layer: 'api',
           confidence: 0.9,
-          source: 'pattern:direct',
         },
       ];
 
@@ -335,7 +346,7 @@ describe('Relationship Scanning Coverage', function () {
 
       // Count reverse relationships with same key
       const uniqueKeys = new Set(
-        inferred.map((r) => `${r.sourceId}|${r.targetId}|${r.type}`)
+        inferred.map((r) => `${r.sourceId}|${r.targetId}|${r.relationshipType}`)
       );
 
       expect(uniqueKeys.size).toBe(inferred.length);
@@ -353,7 +364,7 @@ describe('Relationship Scanning Coverage', function () {
       }
     });
 
-    it('relationship patterns should define sourceId and targetId templates', async () => {
+    it('relationship patterns should define source and target templates', async () => {
       const relationshipPatterns = patterns
         .flatMap((set) => set.patterns)
         .filter((p) => p.produces?.type === 'relationship');

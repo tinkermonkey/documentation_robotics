@@ -1,88 +1,157 @@
-name: Infrastructure and Deployment Patterns
-description: Detects infrastructure components from Kubernetes, Docker, and Terraform configs
-version: '1.0'
+layer: technology
+framework: infrastructure
+version: "1.0"
 patterns:
-  - id: kubernetes-deployment
-    selector: 'k8s_deployment'
-    description: 'Identifies Kubernetes deployments'
-    regex: 'kind:\s*Deployment.*?metadata:.*?name:\s*([^\n]+)'
-    captures:
-      - name: deployment_name
-        group: 1
-    template: 'technology.kubernetes-deployment.{kebab(deployment_name)}'
-
-  - id: kubernetes-service
-    selector: 'k8s_service'
-    description: 'Identifies Kubernetes services'
-    regex: 'kind:\s*Service.*?metadata:.*?name:\s*([^\n]+)'
-    captures:
-      - name: service_name
-        group: 1
-    template: 'technology.kubernetes-service.{kebab(service_name)}'
-
-  - id: docker-image
-    selector: 'docker_image'
-    description: 'Identifies Docker image definitions'
-    regex: 'FROM\s+([^\s]+)'
-    captures:
-      - name: image_name
-        group: 1
-    template: 'technology.docker-image.{kebab(image_name)}'
-
-  - id: terraform-resource
-    selector: 'terraform_resource'
-    description: 'Identifies Terraform resources'
-    regex: 'resource\s+"([^"]+)"\s+"([^"]+)"'
-    captures:
-      - name: resource_type
-        group: 1
-      - name: resource_name
-        group: 2
-    template: 'technology.{kebab(resource_type)}.{kebab(resource_name)}'
-
-  - id: vpc-definition
-    selector: 'vpc'
-    description: 'Identifies VPC configurations'
-    regex: '(?:vpc|virtual.?private.?cloud).*?name[:=]\s*["\''']?([^\n"\'''\s]+)'
-    captures:
-      - name: vpc_name
-        group: 1
-    template: 'technology.vpc.{kebab(vpc_name)}'
-
-  - id: database-instance
-    selector: 'database'
-    description: 'Identifies database instances'
-    regex: '(?:db_instance|RDS|database).*?identifier[:=]\s*["\''']?([^\n"\'''\s]+)'
-    captures:
-      - name: db_name
-        group: 1
-    template: 'technology.database.{kebab(db_name)}'
-
-relationships:
-  - id: k8s-deployment-service
-    source: 'k8s_deployment'
-    target: 'k8s_service'
-    type: 'exposed-by'
-    condition: 'same_file'
+  - id: technology.kubernetes-deployment
+    produces:
+      type: node
+      layer: technology
+      elementType: kubernetes-deployment
+    query:
+      tool: search_code
+      params:
+        pattern: 'kind:\s*Deployment.*?metadata:.*?name:\s*([^\n]+)'
+        language: yaml
     confidence: 0.9
+    mapping:
+      id: "technology.kubernetes-deployment.{match.deploymentName|kebab}"
+      name: "{match.deploymentName}"
 
-  - id: deployment-image
-    source: 'k8s_deployment'
-    target: 'docker_image'
-    type: 'uses'
-    condition: 'referenced_in'
+  - id: technology.kubernetes-service
+    produces:
+      type: node
+      layer: technology
+      elementType: kubernetes-service
+    query:
+      tool: search_code
+      params:
+        pattern: 'kind:\s*Service.*?metadata:.*?name:\s*([^\n]+)'
+        language: yaml
+    confidence: 0.9
+    mapping:
+      id: "technology.kubernetes-service.{match.serviceName|kebab}"
+      name: "{match.serviceName}"
+
+  - id: technology.docker-image
+    produces:
+      type: node
+      layer: technology
+      elementType: docker-image
+    query:
+      tool: search_code
+      params:
+        pattern: 'FROM\s+([^\s]+)'
+        language: dockerfile
     confidence: 0.85
+    mapping:
+      id: "technology.docker-image.{match.imageName|kebab}"
+      name: "{match.imageName}"
 
-  - id: terraform-resource-deps
-    source: 'terraform_resource'
-    target: 'terraform_resource'
-    type: 'depends-on'
-    condition: 'dependency_declared'
+  - id: technology.terraform-resource
+    produces:
+      type: node
+      layer: technology
+      elementType: terraform-resource
+    query:
+      tool: search_code
+      params:
+        pattern: 'resource\s+"([^"]+)"\s+"([^"]+)"'
+        language: hcl
+    confidence: 0.9
+    mapping:
+      id: "technology.terraform-resource.{match.resourceName|kebab}"
+      name: "{match.resourceName}"
+
+  - id: technology.vpc
+    produces:
+      type: node
+      layer: technology
+      elementType: vpc
+    query:
+      tool: search_code
+      params:
+        pattern: '(?:vpc|virtual.?private.?cloud).*?name[:=]\s*["\''']?([^\n"\'''\s]+)'
+        language: hcl
+    confidence: 0.8
+    mapping:
+      id: "technology.vpc.{match.vpcName|kebab}"
+      name: "{match.vpcName}"
+
+  - id: technology.database-instance
+    produces:
+      type: node
+      layer: technology
+      elementType: database
+    query:
+      tool: search_code
+      params:
+        pattern: '(?:db_instance|RDS|database).*?identifier[:=]\s*["\''']?([^\n"\'''\s]+)'
+        language: hcl
+    confidence: 0.85
+    mapping:
+      id: "technology.database.{match.dbName|kebab}"
+      name: "{match.dbName}"
+
+  - id: technology.deployment.exposed-by-service
+    produces:
+      type: relationship
+      layer: technology
+      elementType: deployment-service
+      relationshipType: exposed-by
+    query:
+      tool: search_code
+      params:
+        pattern: 'kind:\s*(?:Deployment|StatefulSet).*?kind:\s*Service'
+        language: yaml
+    confidence: 0.9
+    mapping:
+      source: "technology.kubernetes-deployment.*"
+      target: "technology.kubernetes-service.*"
+
+  - id: technology.deployment.uses-image
+    produces:
+      type: relationship
+      layer: technology
+      elementType: deployment-image
+      relationshipType: uses
+    query:
+      tool: search_code
+      params:
+        pattern: 'image:\s*([^\n]+)'
+        language: yaml
+    confidence: 0.85
+    mapping:
+      source: "technology.kubernetes-deployment.*"
+      target: "technology.docker-image.*"
+
+  - id: technology.terraform.depends-on
+    produces:
+      type: relationship
+      layer: technology
+      elementType: terraform-dependency
+      relationshipType: depends-on
+    query:
+      tool: search_code
+      params:
+        pattern: 'depends_on\s*=\s*\[(.*?)\]'
+        language: hcl
     confidence: 0.95
+    mapping:
+      source: "technology.terraform-resource.*"
+      target: "technology.terraform-resource.*"
 
-  - id: k8s-vpc-relationship
-    source: 'k8s_service'
-    target: 'vpc'
-    type: 'deployed-in'
-    condition: 'annotation_or_label'
+  - id: technology.service.deployed-in-vpc
+    produces:
+      type: relationship
+      layer: technology
+      elementType: service-vpc
+      relationshipType: deployed-in
+    query:
+      tool: search_code
+      params:
+        pattern: 'vpc_id\s*=\s*([^\n]+)|vpcId:\s*([^\n]+)'
+        language: all
     confidence: 0.7
+    mapping:
+      source: "technology.kubernetes-service.*"
+      target: "technology.vpc.*"

@@ -1,54 +1,95 @@
-name: ArchiMate Goals and Requirements
-description: Detects goals, requirements, and constraints in code comments and issue trackers
-version: '1.0'
+layer: motivation
+framework: archimate-goals
+version: "1.0"
 patterns:
-  - id: goal-definition
-    selector: 'goal_definition'
-    description: 'Identifies business goals in comments'
-    regex: '(?:goal|objective|outcome):\s*([^#\n]+)'
-    captures:
-      - name: goal_name
-        group: 1
-    template: 'motivation.goal.{kebab(goal_name)}'
-
-  - id: requirement-definition
-    selector: 'requirement_definition'
-    description: 'Identifies functional and non-functional requirements'
-    regex: '(?:requirement|req|spec):\s*(?:FR|NFR)?\s*([^#\n]+)'
-    captures:
-      - name: req_name
-        group: 1
-    template: 'motivation.requirement.{kebab(req_name)}'
-
-  - id: constraint-definition
-    selector: 'constraint_definition'
-    description: 'Identifies architectural constraints'
-    regex: '(?:constraint|must|shall|required):\s*([^#\n]+)'
-    captures:
-      - name: constraint_name
-        group: 1
-    template: 'motivation.constraint.{kebab(constraint_name)}'
-
-  - id: stakeholder-identification
-    selector: 'stakeholder'
-    description: 'Identifies stakeholders and roles'
-    regex: 'stakeholder:\s*([^#\n]+)'
-    captures:
-      - name: stakeholder_name
-        group: 1
-    template: 'motivation.stakeholder.{kebab(stakeholder_name)}'
-
-relationships:
-  - id: goal-requirement-relationship
-    source: 'goal_definition'
-    target: 'requirement_definition'
-    type: 'realizes'
-    condition: 'same_section'
+  - id: motivation.goal.definition
+    produces:
+      type: node
+      layer: motivation
+      elementType: goal
+    query:
+      tool: search_code
+      params:
+        pattern: '(?:goal|objective|outcome):\s*([^#\n]+)'
+        language: all
     confidence: 0.8
+    mapping:
+      id: "motivation.goal.{match.goalName|kebab}"
+      name: "{match.goalName}"
 
-  - id: stakeholder-goal-relationship
-    source: 'stakeholder'
-    target: 'goal_definition'
-    type: 'concerned-with'
-    condition: 'same_file'
+  - id: motivation.requirement.definition
+    produces:
+      type: node
+      layer: motivation
+      elementType: requirement
+    query:
+      tool: search_code
+      params:
+        pattern: '(?:requirement|req|spec):\s*(?:FR|NFR)?\s*([^#\n]+)'
+        language: all
+    confidence: 0.75
+    mapping:
+      id: "motivation.requirement.{match.reqName|kebab}"
+      name: "{match.reqName}"
+
+  - id: motivation.constraint.definition
+    produces:
+      type: node
+      layer: motivation
+      elementType: constraint
+    query:
+      tool: search_code
+      params:
+        pattern: '(?:constraint|must|shall|required):\s*([^#\n]+)'
+        language: all
+    confidence: 0.8
+    mapping:
+      id: "motivation.constraint.{match.constraintName|kebab}"
+      name: "{match.constraintName}"
+
+  - id: motivation.stakeholder.identification
+    produces:
+      type: node
+      layer: motivation
+      elementType: stakeholder
+    query:
+      tool: search_code
+      params:
+        pattern: 'stakeholder:\s*([^#\n]+)'
+        language: all
+    confidence: 0.7
+    mapping:
+      id: "motivation.stakeholder.{match.stakeholderName|kebab}"
+      name: "{match.stakeholderName}"
+
+  - id: motivation.goal.realizes-requirement
+    produces:
+      type: relationship
+      layer: motivation
+      elementType: goal-requirement
+      relationshipType: realizes
+    query:
+      tool: search_code
+      params:
+        pattern: '(?:goal|objective).*?(?:requirement|req):\s*([^#\n]+)'
+        language: all
+    confidence: 0.8
+    mapping:
+      source: "motivation.goal.*"
+      target: "motivation.requirement.*"
+
+  - id: motivation.stakeholder.concerned-with-goal
+    produces:
+      type: relationship
+      layer: motivation
+      elementType: stakeholder-goal
+      relationshipType: concerned-with
+    query:
+      tool: search_code
+      params:
+        pattern: '(?:stakeholder|actor).*?(?:goal|objective):\s*([^#\n]+)'
+        language: all
     confidence: 0.6
+    mapping:
+      source: "motivation.stakeholder.*"
+      target: "motivation.goal.*"
