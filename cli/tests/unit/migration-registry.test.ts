@@ -35,21 +35,18 @@ describe("MigrationRegistry", () => {
       expect(path2).toHaveLength(0);
     });
 
-    it("should handle pre-release versions when target is later", () => {
+    it("should handle pre-release versions correctly", () => {
       const registry = new MigrationRegistry();
 
-      // If current version is a pre-release of an earlier version (e.g., 0.5.0-beta)
-      // and we want latest, we should get a migration path
-      // (because there are migrations from 0.5.0 onwards)
-      // Note: We ask for latest, which should trigger migrations
-      const latest = registry.getLatestVersion();
-      if (latest !== "0.5.0" && latest !== "0.5.0-anything") {
-        // We should be able to get migrations from a pre-release version
-        // The exact behavior depends on which version is latest
-        const path = registry.getMigrationPath("0.5.0-beta");
-        expect(typeof path).toBe("object");
-        expect(Array.isArray(path)).toBe(true);
-      }
+      // Pre-release version (0.5.0-beta) is less than release version (0.5.0)
+      // There should be a migration path from pre-release to release
+      const pathFromPrerelease = registry.getMigrationPath("0.5.0-beta", "0.5.0");
+      expect(pathFromPrerelease.length).toBeGreaterThan(0);
+
+      // Release version (0.5.0) is greater than pre-release (0.5.0-beta)
+      // No migration path should exist going backward
+      const pathToPrerelease = registry.getMigrationPath("0.5.0", "0.5.0-beta");
+      expect(pathToPrerelease).toHaveLength(0);
     });
   });
 

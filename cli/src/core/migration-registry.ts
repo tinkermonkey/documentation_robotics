@@ -408,8 +408,16 @@ export class MigrationRegistry {
       // Split by + to remove metadata
       const [mainVersion] = version.split("+");
 
-      // Split by - to separate pre-release
-      const [versionPart, prereleasePart] = mainVersion.split("-");
+      // Split by - to separate pre-release (only on first hyphen)
+      const hyphenIndex = mainVersion.indexOf("-");
+      const versionPart =
+        hyphenIndex === -1
+          ? mainVersion
+          : mainVersion.substring(0, hyphenIndex);
+      const prereleasePart =
+        hyphenIndex === -1
+          ? undefined
+          : mainVersion.substring(hyphenIndex + 1);
 
       // Parse numeric version parts
       const parts = versionPart.split(".").map((p) => {
