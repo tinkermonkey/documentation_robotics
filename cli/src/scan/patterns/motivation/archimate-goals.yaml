@@ -10,7 +10,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:goal|objective|outcome):\s*([^#\n]+)'
+        pattern: "(?:goal|objective|outcome):\\s*([^#\\n]+)"
         language: all
     confidence: 0.8
     mapping:
@@ -25,7 +25,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:requirement|req|spec):\s*(?:FR|NFR)?\s*([^#\n]+)'
+        pattern: "(?:requirement|req|spec):\\s*(?:FR|NFR)?\\s*([^#\\n]+)"
         language: all
     confidence: 0.75
     mapping:
@@ -40,7 +40,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:constraint|must|shall|required):\s*([^#\n]+)'
+        pattern: "(?:constraint|must|shall|required):\\s*([^#\\n]+)"
         language: all
     confidence: 0.8
     mapping:
@@ -55,7 +55,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'stakeholder:\s*([^#\n]+)'
+        pattern: "stakeholder:\\s*([^#\\n]+)"
         language: all
     confidence: 0.7
     mapping:
@@ -71,7 +71,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:goal|objective).*?(?:requirement|req):\s*([^#\n]+)'
+        pattern: "(?:goal|objective).*?(?:requirement|req):\\s*([^#\\n]+)"
         language: all
     confidence: 0.8
     mapping:
@@ -87,7 +87,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:stakeholder|actor).*?(?:goal|objective):\s*([^#\n]+)'
+        pattern: "(?:stakeholder|actor).*?(?:goal|objective):\\s*([^#\\n]+)"
         language: all
     confidence: 0.6
     mapping:

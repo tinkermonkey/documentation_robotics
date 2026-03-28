@@ -10,7 +10,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:process|workflow|flow):\s*([^#\n]+)'
+        pattern: "(?:process|workflow|flow):\\s*([^#\\n]+)"
         language: all
     confidence: 0.8
     mapping:
@@ -25,7 +25,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:service|capability):\s*([^#\n]+)'
+        pattern: "(?:service|capability):\\s*([^#\\n]+)"
         language: all
     confidence: 0.85
     mapping:
@@ -40,7 +40,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:event|trigger|when):\s*([^#\n]+)'
+        pattern: "(?:event|trigger|when):\\s*([^#\\n]+)"
         language: all
     confidence: 0.75
     mapping:
@@ -55,7 +55,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:actor|role|agent):\s*([^#\n]+)'
+        pattern: "(?:actor|role|agent):\\s*([^#\\n]+)"
         language: all
     confidence: 0.7
     mapping:
@@ -71,7 +71,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:process|workflow).*?(?:service|capability):\s*([^#\n]+)'
+        pattern: "(?:process|workflow).*?(?:service|capability):\\s*([^#\\n]+)"
         language: all
     confidence: 0.85
     mapping:
@@ -87,7 +87,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:event|trigger).*?(?:process|workflow):\s*([^#\n]+)'
+        pattern: "(?:event|trigger).*?(?:process|workflow):\\s*([^#\\n]+)"
         language: all
     confidence: 0.8
     mapping:
@@ -103,7 +103,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:actor|role).*?(?:process|workflow):\s*([^#\n]+)'
+        pattern: "(?:actor|role).*?(?:process|workflow):\\s*([^#\\n]+)"
         language: all
     confidence: 0.75
     mapping:

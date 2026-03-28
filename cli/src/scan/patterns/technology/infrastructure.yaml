@@ -10,7 +10,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'kind:\s*Deployment.*?metadata:.*?name:\s*([^\n]+)'
+        pattern: "kind:\\s*Deployment.*?metadata:.*?name:\\s*([^\\n]+)"
         language: yaml
     confidence: 0.9
     mapping:
@@ -25,7 +25,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'kind:\s*Service.*?metadata:.*?name:\s*([^\n]+)'
+        pattern: "kind:\\s*Service.*?metadata:.*?name:\\s*([^\\n]+)"
         language: yaml
     confidence: 0.9
     mapping:
@@ -40,7 +40,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'FROM\s+([^\s]+)'
+        pattern: "FROM\\s+([^\\s]+)"
         language: dockerfile
     confidence: 0.85
     mapping:
@@ -55,7 +55,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'resource\s+"([^"]+)"\s+"([^"]+)"'
+        pattern: "resource\\s+\"([^\"]+)\"\\s+\"([^\"]+)\""
         language: hcl
     confidence: 0.9
     mapping:
@@ -70,7 +70,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:vpc|virtual.?private.?cloud).*?name[:=]\s*["\''']?([^\n"\'''\s]+)'
+        pattern: "(?:vpc|virtual.?private.?cloud).*?name[:=]\\s*[\"\\'']?([^\\n\"\\''\\s]+)"
         language: hcl
     confidence: 0.8
     mapping:
@@ -85,7 +85,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:db_instance|RDS|database).*?identifier[:=]\s*["\''']?([^\n"\'''\s]+)'
+        pattern: "(?:db_instance|RDS|database).*?identifier[:=]\\s*[\"\\'']?([^\\n\"\\''\\s]+)"
         language: hcl
     confidence: 0.85
     mapping:
@@ -101,7 +101,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'kind:\s*(?:Deployment|StatefulSet).*?kind:\s*Service'
+        pattern: "kind:\\s*(?:Deployment|StatefulSet).*?kind:\\s*Service"
         language: yaml
     confidence: 0.9
     mapping:
@@ -117,7 +117,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'image:\s*([^\n]+)'
+        pattern: "image:\\s*([^\\n]+)"
         language: yaml
     confidence: 0.85
     mapping:
@@ -133,7 +133,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'depends_on\s*=\s*\[(.*?)\]'
+        pattern: "depends_on\\s*=\\s*\\[(.*?)\\]"
         language: hcl
     confidence: 0.95
     mapping:
@@ -149,7 +149,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'vpc_id\s*=\s*([^\n]+)|vpcId:\s*([^\n]+)'
+        pattern: "vpc_id\\s*=\\s*([^\\n]+)|vpcId:\\s*([^\\n]+)"
         language: all
     confidence: 0.7
     mapping:

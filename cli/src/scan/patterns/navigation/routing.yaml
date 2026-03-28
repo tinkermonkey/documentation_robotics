@@ -10,7 +10,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:path|route|url):\s*["\''']?([^\n"\''']+)["\''']?'
+        pattern: "(?:path|route|url):\\s*[\"\\'']?([^\\n\"\\'']+)[\"\\'']?"
         language: all
     confidence: 0.85
     mapping:
@@ -25,7 +25,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:navigation|nav|menu).*?(?:class|name|id):\s*["\''']?([^\n"\''']+)["\''']?'
+        pattern: "(?:navigation|nav|menu).*?(?:class|name|id):\\s*[\"\\'']?([^\\n\"\\'']+)[\"\\'']?"
         language: all
     confidence: 0.8
     mapping:
@@ -40,7 +40,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:page|view|screen):\s*(?:name|title)?\s*["\''']?([^\n"\''']+)["\''']?'
+        pattern: "(?:page|view|screen):\\s*(?:name|title)?\\s*[\"\\'']?([^\\n\"\\'']+)[\"\\'']?"
         language: all
     confidence: 0.8
     mapping:
@@ -55,7 +55,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:breadcrumb|breadcrumbs):\s*(?:\[|items)\s*([^\]]+)'
+        pattern: "(?:breadcrumb|breadcrumbs):\\s*(?:\\[|items)\\s*([^\\]]+)"
         language: all
     confidence: 0.75
     mapping:
@@ -71,7 +71,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:path|route).*?(?:component|page):\s*([^#\n]+)'
+        pattern: "(?:path|route).*?(?:component|page):\\s*([^#\\n]+)"
         language: all
     confidence: 0.9
     mapping:
@@ -87,7 +87,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: '(?:href|to|link)=[\"\''']([^\"\'''\s]+)[\"\''']'
+        pattern: "(?:href|to|link)=[\\\"\\'']([^\\\"\\''\\s]+)[\\\"\\'']"
         language: all
     confidence: 0.85
     mapping:
@@ -103,7 +103,7 @@ patterns:
     query:
       tool: search_code
       params:
-        pattern: 'breadcrumb.*?page|page.*?breadcrumb'
+        pattern: "breadcrumb.*?page|page.*?breadcrumb"
         language: all
     confidence: 0.8
     mapping:
