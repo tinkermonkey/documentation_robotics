@@ -372,9 +372,6 @@ dr scan --layer api --dry-run
 
 ## Related Documentation
 
-- [Scanning with `dr scan`](./commands.md#dr-scan) — Command-line reference
-- [Creating Architecture Changesets](./CHANGESETS.md) — How changesets work
-- [Pattern File Reference](./PATTERN_REFERENCE.md) — Detailed pattern syntax
-- [ADR-003: Pattern Files](../../docs/adr/ADR-003-pattern-files-cli-asset.md) — Architectural decision
-- [ADR-004: AST Parser](../../docs/adr/ADR-004-ast-parser-selection.md) — Parser selection rationale
-- [ADR-005: Language Support](../../docs/adr/ADR-005-language-support-management.md) — Language coverage strategy
+- [ADR-003: Pattern Files](../../docs/adr/ADR-003-pattern-files-cli-asset.md) — Architectural decision on CLI-maintained patterns
+- [ADR-004: AST Parser](../../docs/adr/ADR-004-ast-parser-selection.md) — Why CodePrism was selected as the AST analysis engine
+- [ADR-005: Language Support](../../docs/adr/ADR-005-language-support-management.md) — Language support strategy and tiers

@@ -21,11 +21,11 @@ The key architectural question: **Which AST parser should drive the scanning sys
 
 **Use CodePrism as the AST analysis engine via MCP (Model Context Protocol).**
 
-CodePrism is Claude's code analysis system that:
+CodePrism is a multi-language code analysis engine that:
 - Parses multiple languages (JavaScript, TypeScript, Python, Go, Java, C#, Rust, and more)
 - Performs semantic analysis across code (scopes, types, dependencies)
 - Provides a standard MCP interface for querying AST results
-- Handles framework-specific patterns through Claude's semantic understanding
+- Handles framework-specific patterns through semantic code understanding
 - Operates as an external MCP server, not embedded in the CLI
 
 ### Comparison with Alternatives

@@ -201,8 +201,6 @@ cp -r integrations/claude_code/. documentation-robotics/.claude/
 
 [→ Claude Code Integration Documentation](integrations/claude_code/)
 
-### 5. Project Documentation
-
 ## Repository Structure
 
 ```

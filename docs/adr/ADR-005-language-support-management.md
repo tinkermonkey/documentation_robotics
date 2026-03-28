@@ -79,22 +79,32 @@ The scan command:
 
 ### Pattern Organization by Language
 
-Built-in patterns are organized by layer and language:
+Built-in patterns are organized by layer. Each pattern file targets specific technologies:
 
 ```
 cli/src/scan/patterns/
 ├── api/
-│   ├── express.yaml         # JavaScript/TypeScript
-│   ├── nestjs.yaml          # TypeScript
-│   ├── django.yaml          # Python
-│   ├── spring-boot.yaml     # Java
-│   └── ... (more frameworks)
+│   ├── express.yaml         # Express.js framework (JavaScript/TypeScript)
+│   └── nestjs.yaml          # NestJS framework (TypeScript)
 ├── application/
-│   ├── java-classes.yaml
-│   ├── python-classes.yaml
-│   └── ... (more patterns)
-└── ... (one directory per layer)
+│   └── nestjs-service.yaml  # NestJS service patterns (TypeScript)
+├── data-model/
+│   ├── prisma.yaml          # Prisma ORM (JavaScript/TypeScript)
+│   └── typeorm.yaml         # TypeORM (TypeScript)
+├── data-store/
+│   └── prisma-schema.yaml   # Prisma schema definitions
+├── security/
+│   └── passport.yaml        # Passport.js authentication (JavaScript/TypeScript)
+├── apm/
+│   └── opentelemetry.yaml   # OpenTelemetry instrumentation
+├── ux/
+│   └── react.yaml           # React components (JavaScript/TypeScript/JSX)
+└── testing/
+    ├── jest.yaml            # Jest test framework (JavaScript/TypeScript)
+    └── pytest.yaml          # pytest framework (Python)
 ```
+
+Additional frameworks and patterns can be added by creating new YAML files in the corresponding layer directories.
 
 ### Pattern Language Coverage
 
@@ -168,9 +178,11 @@ patterns:
 
 ## CodePrism Language Support Matrix
 
-CodePrism supports these languages natively:
+**Note**: This matrix reflects CodePrism's language parsing capabilities based on available documentation and testing. Since CodePrism is an external dependency maintained outside this project, support levels may change and should be verified with current CodePrism documentation.
 
-| Language | Support | Notes |
+CodePrism is designed to support analysis of these languages:
+
+| Language | Expected Support | Notes |
 |----------|---------|-------|
 | JavaScript | Full | Includes JSX, CommonJS, ES modules |
 | TypeScript | Full | Includes TSX, all TS versions |
@@ -185,7 +197,7 @@ CodePrism supports these languages natively:
 | Swift | Partial | Basic parsing, limited semantic analysis |
 | C++ | Partial | Basic parsing, limited framework patterns |
 
-Languages marked "Partial" can be analyzed with CodePrism but may have limited framework support and less precise pattern matching.
+Languages marked "Partial" can be analyzed with CodePrism but may have limited framework support and less precise pattern matching. For the latest CodePrism language support, check the CodePrism documentation directly.
 
 ## Consequences
 
@@ -217,13 +229,17 @@ Languages marked "Partial" can be analyzed with CodePrism but may have limited f
 4. **Community** — Accept pattern contributions from community
 5. **Versioning** — Pattern version bumped with CLI version
 
-### Language Support Roadmap
+### Language Support Roadmap (Tentative)
 
-| Release | New Languages | Enhanced Patterns |
-|---------|---------------|-------------------|
-| v0.2.0 | Go, Python | Expanded Java/Spring Boot |
-| v0.3.0 | C#/.NET, Ruby | Django, FastAPI completeness |
-| v0.4.0 | Rust, PHP | Rails, Laravel frameworks |
+This roadmap represents aspirational goals for future releases. Actual release content may vary based on community contributions, CodePrism capability updates, and project priorities.
+
+| Release | Potential Additions | Notes |
+|---------|-------------------|-------|
+| v0.2.0+ | Go, Python | Expanded Java/Spring Boot patterns — subject to change |
+| v0.3.0+ | C#/.NET, Ruby | Django, FastAPI completeness — subject to change |
+| v0.4.0+ | Rust, PHP | Rails, Laravel frameworks — subject to change |
+
+**Disclaimer**: This roadmap is not a commitment. Features and timelines are subject to change based on community feedback, CodePrism updates, and project resources.
 
 ## Extension Points
 

@@ -50,17 +50,32 @@ Previous assumptions treated patterns as a user-facing prerequisite, but this cr
 
 ### Built-in Pattern Organization
 
+Built-in patterns are organized by layer, with pattern files for specific frameworks and technologies:
+
 ```
 cli/src/scan/patterns/
 ├── api/
-│   ├── express.yaml
-│   ├── nestjs.yaml
-│   └── fastify.yaml
+│   ├── express.yaml         # Express.js framework
+│   └── nestjs.yaml          # NestJS framework
 ├── application/
+│   └── nestjs-service.yaml  # NestJS service pattern
 ├── data-model/
+│   ├── prisma.yaml          # Prisma ORM
+│   └── typeorm.yaml         # TypeORM
+├── data-store/
+│   └── prisma-schema.yaml   # Prisma schema parsing
 ├── security/
-└── ... (one directory per layer)
+│   └── passport.yaml        # Passport.js authentication
+├── apm/
+│   └── opentelemetry.yaml   # OpenTelemetry instrumentation
+├── ux/
+│   └── react.yaml           # React UI components
+└── testing/
+    ├── jest.yaml            # Jest test framework
+    └── pytest.yaml          # pytest framework
 ```
+
+This structure reflects the current set of built-in patterns. New patterns can be added by creating new framework files in the appropriate layer directories.
 
 ### Pattern Loader Behavior
 

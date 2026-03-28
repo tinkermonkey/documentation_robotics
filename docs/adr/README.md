@@ -2,6 +2,8 @@
 
 This directory contains Architecture Decision Records for the Documentation Robotics project. ADRs document significant architectural decisions, their context, consequences, and rationale.
 
+**Note**: ADR numbering starts at 003. Earlier numbers (ADR-001, ADR-002) are reserved for future use or internal architectural decisions that were not formally documented at the time of this project's public release.
+
 ## Index
 
 | Number | Title | Status | Date |
