@@ -41,11 +41,13 @@ Staged Changeset (for review before committing)
 ### What Are Patterns?
 
 Patterns are YAML files that define:
+
 - **What to search for** — Regex/semantic patterns in code
 - **What to produce** — DR layer node types or relationships
 - **How to map results** — Template-based ID and attribute generation
 
 Example pattern:
+
 ```yaml
 layer: api
 framework: express
@@ -70,6 +72,7 @@ patterns:
 ### Pattern Organization
 
 #### Built-in Patterns (CLI-maintained)
+
 Located in `cli/src/scan/patterns/{layer}/` and shipped with the CLI:
 
 ```
@@ -90,6 +93,7 @@ cli/src/scan/patterns/
 ```
 
 #### Project Patterns (User-optional)
+
 Located in `documentation-robotics/patterns/{layer}/` within a project:
 
 Create a `documentation-robotics/patterns/api/custom.yaml` file to extend patterns for custom frameworks. These patterns are merged with built-in patterns during scan.
@@ -118,6 +122,7 @@ const filtered = filterByConfidence(merged, confidenceThreshold);
 [See ADR-004](../../docs/adr/ADR-004-ast-parser-selection.md) for detailed rationale.
 
 **Why CodePrism?**
+
 - Multi-language support (JavaScript, Python, Java, Go, C#, etc.)
 - Semantic analysis (scopes, types, dependencies, cross-file references)
 - Framework-aware (understands decorators, annotations, routing patterns)
@@ -125,6 +130,7 @@ const filtered = filterByConfidence(merged, confidenceThreshold);
 - No embedded dependencies or user project modifications needed
 
 **Alternatives considered:**
+
 - **tree-sitter** — Fast but no semantic analysis, language-specific bindings
 - **Babel** — JavaScript-only, not multi-language
 - **Acorn** — JavaScript-only, minimal semantic analysis
@@ -167,25 +173,30 @@ Patterns invoke CodePrism tools via the MCP interface:
 [See ADR-005](../../docs/adr/ADR-005-language-support-management.md) for detailed information.
 
 #### Tier 1: Fully Supported (Out-of-Box)
+
 - JavaScript/TypeScript (Express, NestJS, Fastify)
 - Python (Django, FastAPI, Flask)
 - Java (Spring Boot, Jakarta EE)
 
 #### Tier 2: Community Patterns
+
 - Go, C#, Ruby, PHP, Rust
 
 #### Tier 3: Extensible
+
 - Any language CodePrism can parse via custom project patterns
 
 ### Adding Language Support
 
 **For CLI maintainers:**
+
 1. Create pattern file: `cli/src/scan/patterns/{layer}/{framework}.yaml`
 2. Verify CodePrism supports the language
 3. Test patterns against real codebases
 4. Submit as PR
 
 **For users (custom languages):**
+
 1. Create pattern file: `documentation-robotics/patterns/{layer}/custom.yaml`
 2. Write patterns for your framework
 3. Run `dr scan` — patterns automatically discovered
@@ -208,13 +219,13 @@ scan:
 
 ### Configuration Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `codeprism.command` | string | `codeprism` | Path to CodePrism MCP server executable |
-| `codeprism.args` | string[] | `["--mcp"]` | Arguments passed to CodePrism |
-| `codeprism.timeout` | number | `5000` | Timeout (ms) for CodePrism connections |
-| `confidence_threshold` | number | `0.7` | Minimum confidence for pattern matches (0-1) |
-| `disabled_patterns` | string[] | `[]` | Framework names to exclude from scanning |
+| Option                 | Type     | Default     | Description                                  |
+| ---------------------- | -------- | ----------- | -------------------------------------------- |
+| `codeprism.command`    | string   | `codeprism` | Path to CodePrism MCP server executable      |
+| `codeprism.args`       | string[] | `["--mcp"]` | Arguments passed to CodePrism                |
+| `codeprism.timeout`    | number   | `5000`      | Timeout (ms) for CodePrism connections       |
+| `confidence_threshold` | number   | `0.7`       | Minimum confidence for pattern matches (0-1) |
+| `disabled_patterns`    | string[] | `[]`        | Framework names to exclude from scanning     |
 
 ## Scan Command Usage
 
@@ -282,26 +293,26 @@ Review changes with: dr changeset show dr-scan-20260328T154532Z
 
 ```yaml
 # Metadata
-layer: api                 # Target DR layer
-framework: express         # Framework identifier
-version: "1.0"            # Pattern version (semver)
+layer: api # Target DR layer
+framework: express # Framework identifier
+version: "1.0" # Pattern version (semver)
 
 patterns:
   - id: pattern.identifier # Unique pattern ID
-    produces:              # What the pattern produces
-      type: node           # or "relationship"
+    produces: # What the pattern produces
+      type: node # or "relationship"
       layer: api
       elementType: endpoint
       # For relationships only:
       # relationshipType: calls
-    query:                # CodePrism query specification
+    query: # CodePrism query specification
       tool: search_code
       params:
         pattern: "regex pattern"
         language: javascript
         # Additional CodePrism-specific params
-    confidence: 0.85      # Confidence score (0-1)
-    mapping:              # Template-based mapping
+    confidence: 0.85 # Confidence score (0-1)
+    mapping: # Template-based mapping
       id: "api.endpoint.{match.path|kebab}"
       name: "{match.path}"
       description: "HTTP {match.method} {match.path}"
@@ -314,12 +325,14 @@ patterns:
 ### Template Syntax
 
 Mappings support:
+
 - `{match.property}` — Access match properties (e.g., `{match.method}`)
 - `{match.property|kebab}` — Transform to kebab-case
 - `{match.property|upper}` — Transform to uppercase
 - `{match.property|lower}` — Transform to lowercase
 
 Example:
+
 ```yaml
 mapping:
   id: "api.endpoint.{match.method|lower}-{match.path|kebab}"

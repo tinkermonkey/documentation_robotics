@@ -6,10 +6,10 @@ This directory contains Architecture Decision Records for the Documentation Robo
 
 ## Index
 
-| Number | Title | Status | Date |
-|--------|-------|--------|------|
-| [ADR-003](./ADR-003-pattern-files-cli-asset.md) | Pattern Files as CLI-Maintained Assets | Accepted | 2026-03-28 |
-| [ADR-004](./ADR-004-ast-parser-selection.md) | AST Parser Selection (CodePrism) | Accepted | 2026-03-28 |
+| Number                                              | Title                                     | Status   | Date       |
+| --------------------------------------------------- | ----------------------------------------- | -------- | ---------- |
+| [ADR-003](./ADR-003-pattern-files-cli-asset.md)     | Pattern Files as CLI-Maintained Assets    | Accepted | 2026-03-28 |
+| [ADR-004](./ADR-004-ast-parser-selection.md)        | AST Parser Selection (CodePrism)          | Accepted | 2026-03-28 |
 | [ADR-005](./ADR-005-language-support-management.md) | Language Support Management via CodePrism | Accepted | 2026-03-28 |
 
 ## ADR Format

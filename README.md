@@ -139,10 +139,10 @@ dr export archimate --output model.xml
 
 Documentation of significant architectural decisions, their rationale, and consequences:
 
-| Decision | Description |
-|----------|-------------|
-| [ADR-003](docs/adr/ADR-003-pattern-files-cli-asset.md) | Pattern files are CLI-maintained assets with optional per-project extensions |
-| [ADR-004](docs/adr/ADR-004-ast-parser-selection.md) | CodePrism selected as AST parser over tree-sitter, Babel, and alternatives |
+| Decision                                                   | Description                                                                    |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [ADR-003](docs/adr/ADR-003-pattern-files-cli-asset.md)     | Pattern files are CLI-maintained assets with optional per-project extensions   |
+| [ADR-004](docs/adr/ADR-004-ast-parser-selection.md)        | CodePrism selected as AST parser over tree-sitter, Babel, and alternatives     |
 | [ADR-005](docs/adr/ADR-005-language-support-management.md) | Language support managed through pattern system with three-tier coverage model |
 
 **Scanning Architecture**: See [Scanning Architecture Guide](cli/docs/SCAN_ARCHITECTURE.md) for comprehensive overview of the code analysis system.

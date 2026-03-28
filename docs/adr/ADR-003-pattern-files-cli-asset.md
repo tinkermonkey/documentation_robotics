@@ -13,6 +13,7 @@ The `dr scan` command enables automated discovery of architectural elements and 
 The key architectural question: **Who maintains pattern files, and what role do they play in the CLI?**
 
 Previous assumptions treated patterns as a user-facing prerequisite, but this created friction:
+
 - Patterns are complex YAML definitions requiring deep knowledge of CodePrism query syntax, DR layer structure, and template systems
 - Framework patterns (Express, NestJS, Spring Boot, etc.) benefit from community maintenance
 - Users should not need to write or understand pattern files to use `dr scan`
@@ -92,22 +93,22 @@ The pattern loader (`cli/src/scan/pattern-loader.ts`) follows this strategy:
 Pattern files are YAML documents defining:
 
 ```yaml
-layer: api                    # Target DR layer
-framework: express            # Framework identifier
-version: "1.0"                # Pattern version
+layer: api # Target DR layer
+framework: express # Framework identifier
+version: "1.0" # Pattern version
 patterns:
   - id: express.route.handler # Unique pattern ID
-    produces:                 # What the pattern produces
+    produces: # What the pattern produces
       type: node
       layer: api
       elementType: endpoint
-    query:                    # CodePrism MCP query specification
+    query: # CodePrism MCP query specification
       tool: search_code
       params:
         pattern: "..."
         language: javascript
-    confidence: 0.9           # Confidence score
-    mapping:                  # Template-based mapping
+    confidence: 0.9 # Confidence score
+    mapping: # Template-based mapping
       id: "api.endpoint.{match.path|kebab}"
       name: "{match.path}"
 ```
@@ -121,11 +122,11 @@ Users configure scan behavior via `~/.dr-config.yaml`, not by modifying patterns
 ```yaml
 scan:
   codeprism:
-    command: codeprism          # Path to CodePrism MCP server
+    command: codeprism # Path to CodePrism MCP server
     args: ["--mcp"]
     timeout: 5000
-  confidence_threshold: 0.7     # Filter patterns by minimum confidence
-  disabled_patterns:            # Disable specific framework patterns
+  confidence_threshold: 0.7 # Filter patterns by minimum confidence
+  disabled_patterns: # Disable specific framework patterns
     - legacy-framework
 ```
 

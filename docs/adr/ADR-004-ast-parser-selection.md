@@ -22,6 +22,7 @@ The key architectural question: **Which AST parser should drive the scanning sys
 **Use CodePrism as the AST analysis engine via MCP (Model Context Protocol).**
 
 CodePrism is a multi-language code analysis engine that:
+
 - Parses multiple languages (JavaScript, TypeScript, Python, Go, Java, C#, Rust, and more)
 - Performs semantic analysis across code (scopes, types, dependencies)
 - Provides a standard MCP interface for querying AST results
@@ -31,6 +32,7 @@ CodePrism is a multi-language code analysis engine that:
 ### Comparison with Alternatives
 
 #### tree-sitter
+
 - **Strengths**: Fast incremental parsing, mature ecosystem, language-agnostic
 - **Weaknesses**:
   - Requires language-specific binding installation (native modules)
@@ -41,6 +43,7 @@ CodePrism is a multi-language code analysis engine that:
 - **Verdict**: Insufficient for framework-level semantic analysis
 
 #### Babel
+
 - **Strengths**: De facto standard for JavaScript/TypeScript, excellent AST quality, extensive plugin ecosystem
 - **Weaknesses**:
   - JavaScript/TypeScript only (doesn't support Java, Python, Go, etc.)
@@ -50,6 +53,7 @@ CodePrism is a multi-language code analysis engine that:
 - **Verdict**: Too language-specific
 
 #### Acorn
+
 - **Strengths**: Lightweight JavaScript parser, minimal dependencies
 - **Weaknesses**:
   - JavaScript only
@@ -58,6 +62,7 @@ CodePrism is a multi-language code analysis engine that:
 - **Verdict**: JavaScript-only, insufficient for multi-language scanning
 
 #### Custom AST Implementation
+
 - **Approach**: Build or integrate multiple language-specific parsers
 - **Weaknesses**:
   - Massive engineering effort (months of work for reasonable language coverage)
@@ -67,6 +72,7 @@ CodePrism is a multi-language code analysis engine that:
 - **Verdict**: Not practical given project scope
 
 #### CodePrism (Selected)
+
 - **Strengths**:
   - Native multi-language support (10+ languages)
   - Semantic analysis: scopes, types, dependencies, cross-file references
@@ -108,10 +114,10 @@ Pattern files specify CodePrism queries using a standard format:
 patterns:
   - id: express.route.handler
     query:
-      tool: search_code              # CodePrism MCP tool name
+      tool: search_code # CodePrism MCP tool name
       params:
-        pattern: "app\\.get\\(.*\\)"  # Regex or semantic pattern
-        language: javascript           # Target language
+        pattern: "app\\.get\\(.*\\)" # Regex or semantic pattern
+        language: javascript # Target language
         # Additional CodePrism-specific params (context, scope, etc.)
 ```
 
@@ -184,6 +190,7 @@ This decision is tightly coupled with [ADR-003: Pattern Files as CLI-Maintained 
 - **Pattern mapping** converts results to DR elements (template-based)
 
 The combination allows:
+
 1. Non-developers can manage patterns (just YAML)
 2. Developers can extend patterns for custom frameworks
 3. Analysis logic stays external (CodePrism)

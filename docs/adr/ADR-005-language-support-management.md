@@ -29,6 +29,7 @@ The key architectural questions:
 ### Three-Tier Support Model
 
 #### Tier 1: Fully Supported (Out-of-Box)
+
 Languages with comprehensive built-in patterns covering major frameworks:
 
 - **JavaScript/TypeScript** — Express, NestJS, Fastify, and others
@@ -38,6 +39,7 @@ Languages with comprehensive built-in patterns covering major frameworks:
 Built-in patterns for these languages are maintained by the CLI team and shipped with each release.
 
 #### Tier 2: Supported (with community patterns)
+
 Languages that CodePrism can parse but lack comprehensive built-in patterns:
 
 - **Go** — Go standard library, popular frameworks
@@ -48,9 +50,11 @@ Languages that CodePrism can parse but lack comprehensive built-in patterns:
 Support is extended through optional community-contributed patterns that users can install or write.
 
 #### Tier 3: Extensible (custom patterns)
+
 Any language CodePrism can parse:
 
 Users can create project-specific patterns to analyze custom languages or proprietary frameworks. This requires:
+
 1. Understanding CodePrism's pattern query syntax
 2. Writing YAML pattern definitions
 3. Placing them in the project's `documentation-robotics/patterns/` directory
@@ -65,10 +69,11 @@ patterns:
     query:
       tool: search_code
       params:
-        language: javascript    # Target language
+        language: javascript # Target language
 ```
 
 The scan command:
+
 1. Discovers files in the codebase
 2. Groups by language (using file extensions)
 3. For each language, loads matching patterns
@@ -123,7 +128,7 @@ patterns:
     query:
       tool: search_code
       params:
-        language: python       # ← Language specification
+        language: python # ← Language specification
         pattern: "@(app|router)\\.route\\("
 ```
 
@@ -139,6 +144,7 @@ patterns:
 6. Submit as PR with tests
 
 Example: Adding Ruby support
+
 ```yaml
 layer: api
 framework: rails
@@ -159,6 +165,7 @@ patterns:
 4. Run `dr scan` — project patterns are automatically discovered and merged
 
 Example: Supporting a custom language or proprietary framework
+
 ```yaml
 layer: application
 framework: proprietary
@@ -172,7 +179,7 @@ patterns:
     query:
       tool: search_code
       params:
-        language: go             # or any language CodePrism supports
+        language: go # or any language CodePrism supports
         pattern: "type \\w+Component struct"
 ```
 
@@ -182,20 +189,20 @@ patterns:
 
 CodePrism is designed to support analysis of these languages:
 
-| Language | Expected Support | Notes |
-|----------|---------|-------|
-| JavaScript | Full | Includes JSX, CommonJS, ES modules |
-| TypeScript | Full | Includes TSX, all TS versions |
-| Python | Full | Python 3.x, including async/await |
-| Java | Full | Java 8+, including annotations |
-| Go | Full | Go 1.x, modules, packages |
-| C# | Full | .NET, .NET Core, async/await |
-| Ruby | Full | Ruby 2.5+, including Rails conventions |
-| PHP | Full | PHP 5.4+, including Laravel patterns |
-| Rust | Full | Rust edition 2015+ |
-| Kotlin | Full | Kotlin 1.x |
-| Swift | Partial | Basic parsing, limited semantic analysis |
-| C++ | Partial | Basic parsing, limited framework patterns |
+| Language   | Expected Support | Notes                                     |
+| ---------- | ---------------- | ----------------------------------------- |
+| JavaScript | Full             | Includes JSX, CommonJS, ES modules        |
+| TypeScript | Full             | Includes TSX, all TS versions             |
+| Python     | Full             | Python 3.x, including async/await         |
+| Java       | Full             | Java 8+, including annotations            |
+| Go         | Full             | Go 1.x, modules, packages                 |
+| C#         | Full             | .NET, .NET Core, async/await              |
+| Ruby       | Full             | Ruby 2.5+, including Rails conventions    |
+| PHP        | Full             | PHP 5.4+, including Laravel patterns      |
+| Rust       | Full             | Rust edition 2015+                        |
+| Kotlin     | Full             | Kotlin 1.x                                |
+| Swift      | Partial          | Basic parsing, limited semantic analysis  |
+| C++        | Partial          | Basic parsing, limited framework patterns |
 
 Languages marked "Partial" can be analyzed with CodePrism but may have limited framework support and less precise pattern matching. For the latest CodePrism language support, check the CodePrism documentation directly.
 
@@ -233,11 +240,11 @@ Languages marked "Partial" can be analyzed with CodePrism but may have limited f
 
 This roadmap represents aspirational goals for future releases. Actual release content may vary based on community contributions, CodePrism capability updates, and project priorities.
 
-| Release | Potential Additions | Notes |
-|---------|-------------------|-------|
-| v0.2.0+ | Go, Python | Expanded Java/Spring Boot patterns — subject to change |
-| v0.3.0+ | C#/.NET, Ruby | Django, FastAPI completeness — subject to change |
-| v0.4.0+ | Rust, PHP | Rails, Laravel frameworks — subject to change |
+| Release | Potential Additions | Notes                                                  |
+| ------- | ------------------- | ------------------------------------------------------ |
+| v0.2.0+ | Go, Python          | Expanded Java/Spring Boot patterns — subject to change |
+| v0.3.0+ | C#/.NET, Ruby       | Django, FastAPI completeness — subject to change       |
+| v0.4.0+ | Rust, PHP           | Rails, Laravel frameworks — subject to change          |
 
 **Disclaimer**: This roadmap is not a commitment. Features and timelines are subject to change based on community feedback, CodePrism updates, and project resources.
 
