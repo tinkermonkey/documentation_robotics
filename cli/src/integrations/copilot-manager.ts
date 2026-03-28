@@ -79,9 +79,10 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     // Validate components
     const invalid = components.filter((c) => !this.components[c]);
     if (invalid.length > 0) {
-      console.error(ansis.red("✗ Invalid components: " + invalid.join(", ")));
-      console.error(ansis.dim("  Valid: " + Object.keys(this.components).join(", ")));
-      process.exit(1);
+      throw new Error(
+        `Invalid components: ${invalid.join(", ")}\n` +
+          `Valid: ${Object.keys(this.components).join(", ")}`
+      );
     }
 
     // Check if already installed
@@ -92,7 +93,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
         });
         if (!response) {
           console.log(ansis.yellow("✗ Installation cancelled"));
-          process.exit(0);
+          return;
         }
       }
     }
@@ -124,10 +125,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       this.printNextSteps();
     } catch (error) {
       spinnerObj.stop("Installation failed");
-      console.error(
-        ansis.red("✗ Error: " + (getErrorMessage(error)))
-      );
-      process.exit(1);
+      throw error;
     }
   }
 
@@ -162,8 +160,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     // Load version file
     const versionData = await this.loadVersionFile();
     if (!versionData) {
-      console.log(ansis.red("✗ Version file corrupted. Run: dr copilot install"));
-      process.exit(1);
+      throw new Error("Version file corrupted. Run: dr copilot install");
     }
 
     // Check for updates
@@ -265,10 +262,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       console.log(ansis.green("✓ Upgrade completed successfully!"));
     } catch (error) {
       spinnerObj.stop("Upgrade failed");
-      console.error(
-        ansis.red("✗ Error: " + (getErrorMessage(error)))
-      );
-      process.exit(1);
+      throw error;
     }
   }
 
@@ -343,10 +337,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       console.log(ansis.green("✓ Removed " + removedCount + " component(s) successfully"));
     } catch (error) {
       spinnerObj.stop("Removal failed");
-      console.error(
-        ansis.red("✗ Error: " + (getErrorMessage(error)))
-      );
-      process.exit(1);
+      throw error;
     }
   }
 
@@ -412,9 +403,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
   private async getProjectRoot(): Promise<string> {
     const root = await findProjectRoot();
     if (!root) {
-      console.error(ansis.red("Error: No DR project found"));
-      console.error(ansis.dim('Run "dr init" to create a new project'));
-      process.exit(1);
+      throw new Error('No DR project found. Run "dr init" to create a new project');
     }
     return root;
   }
