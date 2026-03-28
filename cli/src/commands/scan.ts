@@ -449,10 +449,7 @@ export async function executePatterns(
               // Always add to warnings so user knows tool ran but output couldn't be interpreted.
               const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
               warnings.push(parseMsg);
-              // In non-verbose mode, warn immediately so user knows parsing failed
-              if (!verbose) {
-                console.warn(ansis.yellow(`⚠ ${parseMsg}`));
-              }
+              console.warn(ansis.yellow(`⚠ ${parseMsg}`));
             }
           }
         }
