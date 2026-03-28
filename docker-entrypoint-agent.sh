@@ -12,12 +12,19 @@ CLI_DIR="$PROJECT_DIR/cli"
 # npm install/build steps below may require GitHub API access (e.g., for
 # private packages, git+https dependencies, or GitHub-hosted registries).
 #
-# Supports both GITHUB_TOKEN and GH_TOKEN environment variables.
-# GITHUB_TOKEN is the standard CI/CD convention; GH_TOKEN is gh CLI's native var.
-if [ -n "$GITHUB_TOKEN" ] || [ -n "$GH_TOKEN" ]; then
-  AUTH_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"
-  echo "[agent-entrypoint] Configuring GitHub CLI authentication..."
-  echo "$AUTH_TOKEN" | gh auth login --with-token 2>/dev/null || true
+# gh CLI automatically uses GITHUB_TOKEN and GH_TOKEN environment variables
+# for authentication — no explicit `gh auth login` is needed when these are set.
+# GH_TOKEN takes precedence over GITHUB_TOKEN per gh CLI conventions.
+#
+# We normalize to GH_TOKEN so gh uses a single, predictable source.
+if [ -n "$GITHUB_TOKEN" ] && [ -z "$GH_TOKEN" ]; then
+  export GH_TOKEN="$GITHUB_TOKEN"
+fi
+
+if [ -n "$GH_TOKEN" ]; then
+  echo "[agent-entrypoint] GitHub CLI authentication configured via environment token"
+else
+  echo "[agent-entrypoint] WARNING: No GITHUB_TOKEN or GH_TOKEN set — gh commands requiring auth will fail"
 fi
 
 # ============================================================================
