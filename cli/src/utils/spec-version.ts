@@ -22,6 +22,8 @@ const CLI_VERSION = "0.1.3";
  * Priority:
  * 1. CLI installation: schemas/bundled/ next to compiled source
  * 2. Development monorepo: spec/dist/
+ *
+ * @throws {Error} If manifest.json cannot be found in any candidate location
  */
 function getBundledSpecDir(): string {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -38,8 +40,10 @@ function getBundledSpecDir(): string {
     return devDistPath;
   }
 
-  // Fallback to CLI installation path (will fail at runtime if not found)
-  return installPath;
+  // Manifest not found in any expected location
+  throw new Error(
+    `Could not locate spec manifest.json. Tried: ${installPath}, ${devDistPath}`
+  );
 }
 
 /**
@@ -98,6 +102,7 @@ export function getCliBundledSpecVersion(): string {
  *
  * @param drPath - Path to .dr/ directory
  * @returns Spec version from .dr/manifest.json, or null if not found
+ * @throws {Error} If manifest exists but cannot be read or is corrupted
  */
 export async function getInstalledSpecVersion(drPath: string): Promise<string | null> {
   const manifestPath = join(drPath, "manifest.json");
@@ -109,8 +114,12 @@ export async function getInstalledSpecVersion(drPath: string): Promise<string | 
   try {
     const manifest = await readJSON<{ specVersion?: string }>(manifestPath);
     return manifest.specVersion || null;
-  } catch {
-    return null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to read .dr/manifest.json at ${manifestPath}: ${message}. ` +
+      `Ensure the file is valid JSON. You may need to reinstall the spec reference.`
+    );
   }
 }
 
@@ -119,6 +128,7 @@ export async function getInstalledSpecVersion(drPath: string): Promise<string | 
  *
  * @param modelPath - Path to model directory
  * @returns Spec version from model manifest, or null if not found
+ * @throws {Error} If manifest exists but cannot be read or is corrupted
  */
 export async function getModelSpecVersion(modelPath: string): Promise<string | null> {
   const manifestPath = join(modelPath, "manifest.yaml");
@@ -135,7 +145,11 @@ export async function getModelSpecVersion(modelPath: string): Promise<string | n
     const manifest = yaml.parse(content) as { spec_version?: string; specVersion?: string };
     // Check snake_case first (Python CLI format), then camelCase (legacy)
     return manifest.spec_version || manifest.specVersion || null;
-  } catch {
-    return null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to read manifest.yaml at ${manifestPath}: ${message}. ` +
+      `Ensure the file is valid YAML with spec_version or specVersion field.`
+    );
   }
 }

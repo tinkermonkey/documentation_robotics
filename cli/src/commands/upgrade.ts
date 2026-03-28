@@ -158,7 +158,15 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
         ],
       });
     } else {
-      const installedSpecVersion = await getInstalledSpecVersion(drPath);
+      let installedSpecVersion: string | null = null;
+      try {
+        installedSpecVersion = await getInstalledSpecVersion(drPath);
+      } catch (error) {
+        // Manifest file exists but is corrupted or unreadable
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(ansis.red(`Error: ${message}`));
+        throw error;
+      }
       currentSpecVersion = installedSpecVersion;
 
       if (!installedSpecVersion) {
@@ -204,7 +212,16 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       return;
     }
 
-    const modelSpecVersion = await getModelSpecVersion(modelPath);
+    let modelSpecVersion: string | null = null;
+    try {
+      modelSpecVersion = await getModelSpecVersion(modelPath);
+    } catch (error) {
+      // Manifest file exists but is corrupted or unreadable
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(ansis.red(`Error: ${message}`));
+      throw error;
+    }
+
     if (!modelSpecVersion) {
       console.log(ansis.yellow("⚠ Model manifest.yaml not found or missing specVersion"));
       console.log(ansis.dim("  Check documentation_robotics/model/manifest.yaml\n"));
