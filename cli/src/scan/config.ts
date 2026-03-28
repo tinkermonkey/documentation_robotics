@@ -25,7 +25,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import { join } from "node:path";
-import type { ScanConfig } from "./mcp-client.js";
+import { ScanConfigSchema, type ScanConfig } from "./mcp-client.js";
 
 const CONFIG_FILENAME = ".dr-config.yaml";
 
@@ -141,21 +141,31 @@ export async function loadScanConfig(): Promise<ScanConfig> {
 }
 
 /**
- * Validate scan configuration values
+ * Validate scan configuration values using Zod schema
  *
  * @throws Error if configuration is invalid
  */
 function validateScanConfig(config: ScanConfig): void {
-  if (config.confidence_threshold !== undefined) {
-    if (typeof config.confidence_threshold !== "number") {
-      throw new Error("confidence_threshold must be a number");
-    }
-    if (config.confidence_threshold < 0 || config.confidence_threshold > 1) {
-      throw new Error("confidence_threshold must be between 0.0 and 1.0");
-    }
-  }
+  const result = ScanConfigSchema.safeParse(config);
+  if (!result.success) {
+    // Build user-friendly error messages
+    const errors = result.error.issues.map((issue) => {
+      const path = issue.path.join(".");
 
-  if (config.disabled_patterns !== undefined && !Array.isArray(config.disabled_patterns)) {
-    throw new Error("disabled_patterns must be an array of strings");
+      // Provide more helpful messages for common validation failures
+      if (path === "confidence_threshold" && issue.code === "too_big") {
+        return "confidence_threshold must be between 0.0 and 1.0";
+      }
+      if (path === "confidence_threshold" && issue.code === "too_small") {
+        return "confidence_threshold must be between 0.0 and 1.0";
+      }
+      if (path === "codeprism.timeout" && issue.code === "too_small") {
+        return "codeprism.timeout must be a positive number";
+      }
+
+      return `${path}: ${issue.message}`;
+    });
+
+    throw new Error(`Invalid scan configuration: ${errors.join("; ")}`);
   }
 }

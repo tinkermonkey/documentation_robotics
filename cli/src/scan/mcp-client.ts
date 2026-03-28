@@ -27,6 +27,7 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { z } from "zod";
 import { getErrorMessage } from "../utils/errors.js";
 
 // MCP SDK types - these will be available at runtime when the package is installed
@@ -40,30 +41,50 @@ type Tool = {
 /**
  * Scan configuration loaded from ~/.dr-config.yaml
  */
-export interface ScanConfig {
-  codeprism?: {
-    command?: string;
-    args?: string[];
-    timeout?: number;
-  };
-  confidence_threshold?: number;
-  disabled_patterns?: string[];
-}
+export const ScanConfigSchema = z.object({
+  codeprism: z
+    .object({
+      command: z.string().optional(),
+      args: z.array(z.string()).optional(),
+      timeout: z.number().int().positive().optional(),
+    })
+    .optional(),
+  confidence_threshold: z.number().min(0).max(1).optional(),
+  disabled_patterns: z.array(z.string()).optional(),
+});
+
+export type ScanConfig = z.infer<typeof ScanConfigSchema>;
 
 /**
  * Tool invocation result from CodePrism
+ *
+ * Discriminated union where only relevant fields are required for each type:
+ * - "text" type must have a `text` field
+ * - "image" type must have a `data` field
+ * - "error" type must have a `text` field with error message
  */
-export interface ToolResult {
-  type: "text" | "image" | "error";
-  text?: string;
-  data?: string;
-}
+export const ToolResultSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("text"),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal("image"),
+    data: z.string(),
+  }),
+  z.object({
+    type: z.literal("error"),
+    text: z.string(),
+  }),
+]);
+
+export type ToolResult = z.infer<typeof ToolResultSchema>;
 
 /**
  * MCP Client interface representing connection to CodePrism
  */
 export interface MCPClient {
-  isConnected: boolean;
+  readonly isConnected: boolean;
   endpoint?: string;
   disconnect: () => Promise<void>;
   callTool: (toolName: string, toolArgs: Record<string, unknown>) => Promise<ToolResult[]>;
@@ -79,8 +100,7 @@ export interface MCPClient {
  *
  * @param config - Scan configuration containing CodePrism command and args
  * @returns MCP client object ready for connection validation
- * @throws ConfigurationError if required config is missing
- * @throws ProcessError if CodePrism binary cannot be found or spawn fails
+ * @throws Error if required config is missing or CodePrism binary cannot be found
  *
  * @example
  * ```typescript
@@ -179,7 +199,6 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
   });
 
   let actualClient: any | null = null;
-  let isConnectedFlag = false;
   const tools: Map<string, Tool> = new Map();
 
   try {
@@ -192,13 +211,15 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
     ]);
 
     actualClient = mcpClient;
-    isConnectedFlag = true;
   } catch (error) {
     // Ensure transport is closed on connection failure
     try {
       await transport.close();
     } catch (e) {
-      // Ignore close errors
+      // Log close errors but don't let them mask the primary connection failure.
+      // This prevents transport cleanup from obscuring the real issue.
+      const closeErrorMsg = getErrorMessage(e);
+      console.debug(`Warning: transport close failed during error recovery: ${closeErrorMsg}`);
     }
     throw error;
   }
@@ -206,10 +227,8 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
   // Wrapper client object
   const client: MCPClient = {
     get isConnected(): boolean {
-      return isConnectedFlag;
-    },
-    set isConnected(value: boolean) {
-      isConnectedFlag = value;
+      // Always reflect actual connection state rather than a separate flag
+      return actualClient !== null;
     },
     endpoint: `${command}:${args.join(" ")}`,
 
@@ -268,10 +287,13 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
         try {
           await (actualClient as any).close();
         } catch (error) {
-          // Ignore close errors, best effort
+          // Log disconnect errors but continue cleanup. This prevents client.close()
+          // failures from preventing the actualClient reference from being cleared.
+          const errorMsg = getErrorMessage(error);
+          console.debug(`Warning: failed to close MCP client: ${errorMsg}`);
         }
       }
-      isConnectedFlag = false;
+      actualClient = null;
     },
   };
 
@@ -289,7 +311,7 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
  * if CodePrism is not available.
  *
  * @param client - MCP client from createMcpClient()
- * @throws ConnectionError if CodePrism server is not reachable or unresponsive
+ * @throws Error if CodePrism server is not reachable or unresponsive
  *
  * @example
  * ```typescript
@@ -320,7 +342,7 @@ export async function validateConnection(client: MCPClient): Promise<void> {
       );
     }
 
-    client.isConnected = true;
+    // isConnected is now read-only and reflects actual connection state
   } catch (error) {
     // Preserve the original error while adding context
     const errorMsg = getErrorMessage(error);
@@ -348,5 +370,5 @@ export async function validateConnection(client: MCPClient): Promise<void> {
  */
 export async function disconnectMcpClient(client: MCPClient): Promise<void> {
   await client.disconnect();
-  client.isConnected = false;
+  // isConnected is now read-only and reflects actual connection state (cleared by disconnect())
 }

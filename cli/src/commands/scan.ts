@@ -406,13 +406,16 @@ export async function executePatterns(
         const matches: Array<{ [key: string]: string }> = [];
         for (const result of results) {
           if (result.type === "error") {
+            // Always log tool errors as warnings, not just in verbose mode.
+            // Tool failures should be visible to the user regardless of verbosity.
+            warnings.push(`Tool '${toolName}' returned error: ${result.text}`);
             if (verbose) {
               console.log(`    Warning: Tool returned error: ${result.text}`);
             }
             continue;
           }
 
-          if (result.text) {
+          if (result.type === "text" && result.text) {
             try {
               // Attempt to parse as JSON array of matches
               const parsed = JSON.parse(result.text);
@@ -423,9 +426,12 @@ export async function executePatterns(
                 matches.push(parsed);
               }
             } catch (parseError) {
-              // If not JSON, try to treat the text itself as match data
+              // If not JSON, treat the text as unparseable tool output.
+              // Log as warning so user knows tool ran but output couldn't be interpreted.
+              const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
+              warnings.push(parseMsg);
               if (verbose) {
-                console.log(`    Warning: Could not parse tool result as JSON: ${result.text?.slice(0, 100)}`);
+                console.log(`    Warning: ${parseMsg}`);
               }
             }
           }

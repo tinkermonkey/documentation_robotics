@@ -16,15 +16,20 @@ describe("MCP Client", () => {
   });
 
   describe("disconnectMcpClient", () => {
-    it("should mark client as disconnected", async () => {
+    it("should call disconnect on the client", async () => {
+      let disconnectCalled = false;
       const client = {
-        isConnected: true,
+        get isConnected(): boolean {
+          return false; // Mock is already disconnected
+        },
         endpoint: "test",
-        disconnect: async () => {},
+        disconnect: async () => {
+          disconnectCalled = true;
+        },
       };
 
       await disconnectMcpClient(client);
-      expect(client.isConnected).toBe(false);
+      expect(disconnectCalled).toBe(true);
     });
   });
 });
