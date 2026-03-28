@@ -288,7 +288,8 @@ describe("Pattern Execution via MCP", () => {
 
       // Should handle errors gracefully without throwing
       expect(result).toBeDefined();
-      expect(warnings.length).toBe(0); // Error-type results are skipped, not added to warnings
+      expect(warnings.length).toBe(1); // Tool errors are logged as warnings
+      expect(warnings[0]).toContain("Tool 'search_code' returned error");
       expect(result.elementCandidates.length).toBe(0); // No candidates produced from error result
       expect(result.relationshipCandidates.length).toBe(0);
     });
