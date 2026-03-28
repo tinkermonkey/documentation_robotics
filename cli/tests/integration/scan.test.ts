@@ -560,6 +560,96 @@ describe("Scan Command", () => {
       expect(loaded?.stats.additions).toBe(2);
     });
 
+    it("stages changeset with relationship candidates using composite key format", async () => {
+      const { stageChangeset } =
+        await import("../../src/commands/scan.js");
+
+      // Create element and relationship candidates
+      const elementCandidates = [
+        {
+          id: "api.endpoint.create-order",
+          type: "endpoint",
+          layer: "api",
+          name: "Create Order",
+          confidence: 0.9,
+          attributes: { method: "POST" }
+        },
+        {
+          id: "application.service.order-service",
+          type: "service",
+          layer: "application",
+          name: "Order Service",
+          confidence: 0.85,
+          attributes: {}
+        }
+      ];
+
+      const relationshipCandidates = [
+        {
+          id: "api.endpoint.create-order->application.service.order-service",
+          sourceId: "api.endpoint.create-order",
+          targetId: "application.service.order-service",
+          relationshipType: "depends-on",
+          layer: "api",
+          confidence: 0.88,
+          attributes: { category: "structural" },
+          source: { file: "order.controller.ts", line: 45 }
+        },
+        {
+          id: "api.endpoint.create-order->api.endpoint.validate-order",
+          sourceId: "api.endpoint.create-order",
+          targetId: "api.endpoint.validate-order",
+          relationshipType: "calls",
+          layer: "api",
+          confidence: 0.92,
+          attributes: undefined,
+          source: { file: "order.controller.ts", line: 50 }
+        }
+      ];
+
+      // Stage the changeset with both elements and relationships
+      await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+
+      // Verify the changeset was created and contains both types of operations
+      const storage = new StagedChangesetStorage(workdir.path);
+      const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
+      expect(changesets.length).toBeGreaterThan(0);
+
+      // Load the latest changeset
+      const latestChangesetId = changesets.sort().pop();
+      expect(latestChangesetId).toBeDefined();
+
+      if (latestChangesetId) {
+        const loadedChangeset = await storage.load(latestChangesetId);
+        expect(loadedChangeset).toBeDefined();
+
+        // Should have 2 element operations + 2 relationship operations
+        const changes = loadedChangeset?.changes || [];
+        expect(changes.length).toBe(4);
+
+        // Verify element operations come first
+        const elementOps = changes.filter((c) => c.type === "add");
+        const relationshipOps = changes.filter((c) => c.type === "relationship-add");
+
+        expect(elementOps.length).toBe(2);
+        expect(relationshipOps.length).toBe(2);
+
+        // Verify relationship operations use composite key format: source::predicate::target
+        for (const relOp of relationshipOps) {
+          const parts = relOp.elementId.split("::");
+          expect(parts.length).toBe(3);
+          expect(parts[0]).toMatch(/^[a-z-]+\.[a-z-]+\.[a-z0-9\-]+$/); // source ID format
+          expect(parts[1]).toMatch(/^[a-z\-]+$/); // predicate (relationshipType) format
+          expect(parts[2]).toMatch(/^[a-z-]+\.[a-z-]+\.[a-z0-9\-]+$/); // target ID format
+        }
+
+        // Verify specific composite keys
+        const compositeKeys = changes.map((c) => c.elementId);
+        expect(compositeKeys).toContain("api.endpoint.create-order::depends-on::application.service.order-service");
+        expect(compositeKeys).toContain("api.endpoint.create-order::calls::api.endpoint.validate-order");
+      }
+    });
+
     it("handles empty scan results gracefully", async () => {
       // When no candidates are found, the scan should complete successfully
       const { loadBuiltinPatterns } =
@@ -571,6 +661,252 @@ describe("Scan Command", () => {
       // With empty MCP results (mock returns empty array), candidates would be empty
       const candidates: any[] = [];
       expect(candidates.length).toBe(0);
+    });
+  });
+
+  describe("Pattern execution with non-standard tool results", () => {
+    it("handles non-JSON text results from tools gracefully", async () => {
+      const { executePatterns } =
+        await import("../../src/commands/scan.js");
+
+      // Create a mock MCP client that returns non-JSON text
+      const mockClient = {
+        callTool: async (toolName: string, params: unknown) => [
+          {
+            type: "text",
+            text: "This is plain text output that is not valid JSON. Tool executed but returned unparseable format."
+          }
+        ],
+        endpoint: "mock://test"
+      };
+
+      // Create a simple pattern that should process the results
+      const patterns = [
+        {
+          layer: "api",
+          framework: "test",
+          version: "default",
+          patterns: [
+            {
+              id: "test.pattern.non-json",
+              produces: {
+                type: "node" as const,
+                layer: "api",
+                elementType: "endpoint"
+              },
+              query: {
+                tool: "test-tool",
+                params: {}
+              },
+              confidence: 0.85,
+              mapping: {
+                id: "api.endpoint.test",
+                name: "Test Endpoint"
+              }
+            }
+          ]
+        }
+      ];
+
+      const warnings: string[] = [];
+
+      // Execute patterns with the mock client
+      const result = await executePatterns(mockClient as any, patterns, 0.7, warnings, false);
+
+      // Should return empty candidates since the text couldn't be parsed as JSON
+      expect(result.elementCandidates.length).toBe(0);
+      expect(result.relationshipCandidates.length).toBe(0);
+
+      // Should have recorded a warning about the unparseable result
+      expect(warnings.length).toBeGreaterThan(0);
+      expect(warnings.some((w) => w.includes("Could not parse tool result as JSON"))).toBe(true);
+    });
+
+    it("handles single-object (non-array) JSON results from tools", async () => {
+      const { executePatterns } =
+        await import("../../src/commands/scan.js");
+
+      // Create a mock MCP client that returns a single object (not an array)
+      const mockClient = {
+        callTool: async (toolName: string, params: unknown) => [
+          {
+            type: "text",
+            text: JSON.stringify({
+              path: "/src/users/get-user.ts",
+              operationId: "GetUser",
+              method: "get",
+              summary: "Retrieve user by ID"
+            })
+          }
+        ],
+        endpoint: "mock://test"
+      };
+
+      // Create a pattern for element candidates
+      const patterns = [
+        {
+          layer: "api",
+          framework: "test",
+          version: "default",
+          patterns: [
+            {
+              id: "test.pattern.single-object",
+              produces: {
+                type: "node" as const,
+                layer: "api",
+                elementType: "endpoint"
+              },
+              query: {
+                tool: "test-tool",
+                params: {}
+              },
+              confidence: 0.85,
+              mapping: {
+                id: "api.endpoint.{match.method|lower}-{match.operationId|kebab}",
+                name: "{match.operationId}",
+                method: "{match.method|upper}"
+              }
+            }
+          ]
+        }
+      ];
+
+      const warnings: string[] = [];
+
+      // Execute patterns with the mock client
+      const result = await executePatterns(mockClient as any, patterns, 0.7, warnings, false);
+
+      // Should successfully parse the single object and create a candidate
+      expect(result.elementCandidates.length).toBe(1);
+      const candidate = result.elementCandidates[0];
+      expect(candidate.id).toBe("api.endpoint.get-get-user");
+      expect(candidate.name).toBe("GetUser");
+      expect(candidate.attributes.method).toBe("GET");
+
+      // Should have no warnings since parsing succeeded
+      expect(warnings.length).toBe(0);
+    });
+
+    it("handles array of objects JSON results from tools", async () => {
+      const { executePatterns } =
+        await import("../../src/commands/scan.js");
+
+      // Create a mock MCP client that returns an array of objects
+      const mockClient = {
+        callTool: async (toolName: string, params: unknown) => [
+          {
+            type: "text",
+            text: JSON.stringify([
+              {
+                path: "/src/users/get-user.ts",
+                operationId: "GetUser",
+                method: "get"
+              },
+              {
+                path: "/src/users/create-user.ts",
+                operationId: "CreateUser",
+                method: "post"
+              }
+            ])
+          }
+        ],
+        endpoint: "mock://test"
+      };
+
+      // Create a pattern for element candidates
+      const patterns = [
+        {
+          layer: "api",
+          framework: "test",
+          version: "default",
+          patterns: [
+            {
+              id: "test.pattern.array-objects",
+              produces: {
+                type: "node" as const,
+                layer: "api",
+                elementType: "endpoint"
+              },
+              query: {
+                tool: "test-tool",
+                params: {}
+              },
+              confidence: 0.85,
+              mapping: {
+                id: "api.endpoint.{match.operationId|kebab}",
+                name: "{match.operationId}"
+              }
+            }
+          ]
+        }
+      ];
+
+      const warnings: string[] = [];
+
+      // Execute patterns with the mock client
+      const result = await executePatterns(mockClient as any, patterns, 0.7, warnings, false);
+
+      // Should successfully parse the array and create two candidates
+      expect(result.elementCandidates.length).toBe(2);
+      expect(result.elementCandidates[0].id).toBe("api.endpoint.get-user");
+      expect(result.elementCandidates[1].id).toBe("api.endpoint.create-user");
+
+      // Should have no warnings
+      expect(warnings.length).toBe(0);
+    });
+
+    it("handles tool error results gracefully", async () => {
+      const { executePatterns } =
+        await import("../../src/commands/scan.js");
+
+      // Create a mock MCP client that returns an error result
+      const mockClient = {
+        callTool: async (toolName: string, params: unknown) => [
+          {
+            type: "error",
+            text: "Tool execution failed: search_code not found"
+          }
+        ],
+        endpoint: "mock://test"
+      };
+
+      const patterns = [
+        {
+          layer: "api",
+          framework: "test",
+          version: "default",
+          patterns: [
+            {
+              id: "test.pattern.error",
+              produces: {
+                type: "node" as const,
+                layer: "api",
+                elementType: "endpoint"
+              },
+              query: {
+                tool: "missing-tool",
+                params: {}
+              },
+              confidence: 0.85,
+              mapping: {
+                id: "api.endpoint.test"
+              }
+            }
+          ]
+        }
+      ];
+
+      const warnings: string[] = [];
+
+      // Execute patterns with the mock client
+      const result = await executePatterns(mockClient as any, patterns, 0.7, warnings, false);
+
+      // Should return no candidates
+      expect(result.elementCandidates.length).toBe(0);
+
+      // Should have recorded the error as a warning
+      expect(warnings.length).toBeGreaterThan(0);
+      expect(warnings.some((w) => w.includes("Tool") && w.includes("returned error"))).toBe(true);
     });
   });
 
