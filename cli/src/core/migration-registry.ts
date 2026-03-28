@@ -396,21 +396,100 @@ export class MigrationRegistry {
   }
 
   /**
-   * Compare two version strings
+   * Compare two version strings following semantic versioning
    * Returns: -1 if a < b, 0 if a == b, 1 if a > b
+   *
+   * Handles pre-release versions (e.g., "0.8.3-beta", "1.0.0-rc.1")
+   * Pre-release versions have lower precedence than release versions
+   * Example: "0.8.3-beta" < "0.8.3"
    */
   private compareVersions(a: string, b: string): number {
-    const aParts = a.split(".").map(Number);
-    const bParts = b.split(".").map(Number);
+    const parseVersion = (version: string) => {
+      // Split by + to remove metadata
+      const [mainVersion] = version.split("+");
 
-    const maxLength = Math.max(aParts.length, bParts.length);
+      // Split by - to separate pre-release
+      const [versionPart, prereleasePart] = mainVersion.split("-");
 
+      // Parse numeric version parts
+      const parts = versionPart.split(".").map((p) => {
+        const num = Number(p);
+        return Number.isNaN(num) ? 0 : num;
+      });
+
+      // Ensure we have at least 3 parts (major, minor, patch)
+      while (parts.length < 3) {
+        parts.push(0);
+      }
+
+      return {
+        major: parts[0],
+        minor: parts[1],
+        patch: parts[2],
+        prerelease: prereleasePart,
+      };
+    };
+
+    const aParsed = parseVersion(a);
+    const bParsed = parseVersion(b);
+
+    // Compare major.minor.patch
+    if (aParsed.major !== bParsed.major) {
+      return aParsed.major < bParsed.major ? -1 : 1;
+    }
+    if (aParsed.minor !== bParsed.minor) {
+      return aParsed.minor < bParsed.minor ? -1 : 1;
+    }
+    if (aParsed.patch !== bParsed.patch) {
+      return aParsed.patch < bParsed.patch ? -1 : 1;
+    }
+
+    // Handle pre-release versions
+    // Release version > pre-release version (per semver)
+    if (aParsed.prerelease && !bParsed.prerelease) {
+      return -1; // a is pre-release, b is release
+    }
+    if (!aParsed.prerelease && bParsed.prerelease) {
+      return 1; // a is release, b is pre-release
+    }
+
+    // Both have pre-release or both don't
+    if (!aParsed.prerelease && !bParsed.prerelease) {
+      return 0; // Both are release versions with same major.minor.patch
+    }
+
+    // Compare pre-release identifiers (both are pre-release)
+    const aIdentifiers = aParsed.prerelease!.split(".");
+    const bIdentifiers = bParsed.prerelease!.split(".");
+
+    const maxLength = Math.max(aIdentifiers.length, bIdentifiers.length);
     for (let i = 0; i < maxLength; i++) {
-      const aPart = aParts[i] || 0;
-      const bPart = bParts[i] || 0;
+      const aId = aIdentifiers[i];
+      const bId = bIdentifiers[i];
 
-      if (aPart < bPart) return -1;
-      if (aPart > bPart) return 1;
+      // Missing identifier means it's smaller
+      if (aId === undefined) return -1;
+      if (bId === undefined) return 1;
+
+      // Both numeric - compare numerically
+      const aNum = Number(aId);
+      const bNum = Number(bId);
+      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+        if (aNum !== bNum) {
+          return aNum < bNum ? -1 : 1;
+        }
+      } else {
+        // At least one is non-numeric - compare lexicographically
+        // But numeric identifiers always come before non-numeric
+        const aIsNum = !Number.isNaN(aNum);
+        const bIsNum = !Number.isNaN(bNum);
+        if (aIsNum && !bIsNum) return -1;
+        if (!aIsNum && bIsNum) return 1;
+
+        // Both non-numeric or both numeric (already compared above)
+        if (aId < bId) return -1;
+        if (aId > bId) return 1;
+      }
     }
 
     return 0;

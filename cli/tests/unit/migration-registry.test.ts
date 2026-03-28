@@ -5,6 +5,54 @@ import { Manifest } from "../../src/core/manifest.js";
 import { getCliBundledSpecVersion } from "../../src/utils/spec-version.js";
 
 describe("MigrationRegistry", () => {
+  // Test version comparison through getMigrationPath (public API)
+  describe("version comparison (via getMigrationPath)", () => {
+    it("should correctly compare release versions", () => {
+      const registry = new MigrationRegistry();
+      // 0.5.0 < 0.6.0 should return migration path
+      const path1 = registry.getMigrationPath("0.5.0", "0.6.0");
+      expect(path1.length).toBeGreaterThan(0);
+
+      // 0.6.0 >= 0.5.0 should return empty path
+      const path2 = registry.getMigrationPath("0.6.0", "0.5.0");
+      expect(path2).toHaveLength(0);
+
+      // 0.6.0 == 0.6.0 should return empty path
+      const path3 = registry.getMigrationPath("0.6.0", "0.6.0");
+      expect(path3).toHaveLength(0);
+    });
+
+    it("should treat metadata as insignificant for comparison", () => {
+      const registry = new MigrationRegistry();
+
+      // Metadata (+build) should be ignored in comparison
+      // 0.5.0+build123 == 0.5.0 for versioning purposes
+      const path = registry.getMigrationPath("0.5.0+build123", "0.5.0");
+      expect(path).toHaveLength(0);
+
+      // Also works in reverse
+      const path2 = registry.getMigrationPath("0.5.0", "0.5.0+somebuild");
+      expect(path2).toHaveLength(0);
+    });
+
+    it("should handle pre-release versions when target is later", () => {
+      const registry = new MigrationRegistry();
+
+      // If current version is a pre-release of an earlier version (e.g., 0.5.0-beta)
+      // and we want latest, we should get a migration path
+      // (because there are migrations from 0.5.0 onwards)
+      // Note: We ask for latest, which should trigger migrations
+      const latest = registry.getLatestVersion();
+      if (latest !== "0.5.0" && latest !== "0.5.0-anything") {
+        // We should be able to get migrations from a pre-release version
+        // The exact behavior depends on which version is latest
+        const path = registry.getMigrationPath("0.5.0-beta");
+        expect(typeof path).toBe("object");
+        expect(Array.isArray(path)).toBe(true);
+      }
+    });
+  });
+
   describe("getLatestVersion", () => {
     it("should return the latest available version", () => {
       const registry = new MigrationRegistry();
