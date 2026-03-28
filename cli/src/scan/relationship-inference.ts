@@ -168,7 +168,7 @@ export class RelationshipInferenceEngine {
         if (sourceLayer === targetLayer) continue; // Skip same-layer
 
         // Only allow higher → lower layer references (spec rule)
-        if (sourceLayer < targetLayer) continue;
+        if (sourceLayer >= targetLayer) continue;
 
         // Check for semantic relationship hints
         if (
@@ -234,7 +234,7 @@ export class RelationshipInferenceEngine {
     if (sourceLayer === null || targetLayer === null) return true; // Skip validation if can't determine
 
     // Allow same-layer, but higher→lower is the standard direction
-    return sourceLayer >= targetLayer;
+    return sourceLayer <= targetLayer;
   }
 
   private isSameLayer(id1: string, id2: string): boolean {
