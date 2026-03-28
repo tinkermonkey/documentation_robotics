@@ -586,7 +586,7 @@ describe("Scan Command", () => {
 
       const relationshipCandidates = [
         {
-          id: "api.endpoint.create-order->application.service.order-service",
+          id: "api.endpoint.create-order::depends-on::application.service.order-service",
           sourceId: "api.endpoint.create-order",
           targetId: "application.service.order-service",
           relationshipType: "depends-on",
@@ -596,7 +596,7 @@ describe("Scan Command", () => {
           source: { file: "order.controller.ts", line: 45 }
         },
         {
-          id: "api.endpoint.create-order->api.endpoint.validate-order",
+          id: "api.endpoint.create-order::calls::api.endpoint.validate-order",
           sourceId: "api.endpoint.create-order",
           targetId: "api.endpoint.validate-order",
           relationshipType: "calls",
@@ -1645,6 +1645,202 @@ describe("Scan Command", () => {
       expect(warnings.length).toBeGreaterThan(0);
       expect(warnings.some((w) => w.includes("Tool 'search_code' returned error"))).toBe(true);
       expect(warnings.some((w) => w.includes("Pattern matching failed"))).toBe(true);
+    });
+  });
+
+  describe("Line number parsing safety", () => {
+    it("parseLineNumber correctly parses valid numeric strings", async () => {
+      const { parseLineNumber } = await import("../../src/commands/scan.js");
+
+      expect(parseLineNumber("42")).toBe(42);
+      expect(parseLineNumber("1")).toBe(1);
+      expect(parseLineNumber("999")).toBe(999);
+      expect(parseLineNumber("0")).toBe(0);
+    });
+
+    it("parseLineNumber returns undefined for non-numeric strings", async () => {
+      const { parseLineNumber } = await import("../../src/commands/scan.js");
+
+      expect(parseLineNumber("not-a-number")).toBeUndefined();
+      expect(parseLineNumber("abc")).toBeUndefined();
+      expect(parseLineNumber("xyz123")).toBeUndefined();
+      expect(parseLineNumber("float-12.34")).toBeUndefined();
+    });
+
+    it("parseLineNumber returns undefined for undefined or empty string", async () => {
+      const { parseLineNumber } = await import("../../src/commands/scan.js");
+
+      expect(parseLineNumber()).toBeUndefined();
+      expect(parseLineNumber("")).toBeUndefined();
+    });
+
+    it("parseLineNumber silently handles leading/trailing whitespace", async () => {
+      const { parseLineNumber } = await import("../../src/commands/scan.js");
+
+      // parseInt ignores leading/trailing whitespace
+      expect(parseLineNumber(" 42 ")).toBe(42);
+      expect(parseLineNumber("\t99\n")).toBe(99);
+    });
+
+    it("parseLineNumber handles negative numbers and negative zero", async () => {
+      const { parseLineNumber } = await import("../../src/commands/scan.js");
+
+      expect(parseLineNumber("-5")).toBe(-5);
+      expect(parseLineNumber("-1")).toBe(-1);
+    });
+  });
+
+  describe("Relationship ID derivation", () => {
+    it("deriveRelationshipId produces persistence format with relationshipType", async () => {
+      const { deriveRelationshipId } = await import("../../src/commands/scan.js");
+
+      const id = deriveRelationshipId("api.endpoint.get-user", "implements", "application.service.user-service");
+      expect(id).toBe("api.endpoint.get-user::implements::application.service.user-service");
+    });
+
+    it("deriveRelationshipId maintains consistent format for different relationship types", async () => {
+      const { deriveRelationshipId } = await import("../../src/commands/scan.js");
+
+      const sourceId = "api.endpoint.create-order";
+      const targetId = "application.service.order-service";
+
+      const implementsId = deriveRelationshipId(sourceId, "implements", targetId);
+      const dependsOnId = deriveRelationshipId(sourceId, "depends-on", targetId);
+      const relatedToId = deriveRelationshipId(sourceId, "related-to", targetId);
+
+      expect(implementsId).toBe("api.endpoint.create-order::implements::application.service.order-service");
+      expect(dependsOnId).toBe("api.endpoint.create-order::depends-on::application.service.order-service");
+      expect(relatedToId).toBe("api.endpoint.create-order::related-to::application.service.order-service");
+
+      // Verify format is consistent: sourceId::relationshipType::targetId
+      expect(implementsId).toContain("::");
+      expect(dependsOnId).toContain("::");
+      expect(relatedToId).toContain("::");
+    });
+
+    it("deriveRelationshipId produces unique IDs for different source-target-type combinations", async () => {
+      const { deriveRelationshipId } = await import("../../src/commands/scan.js");
+
+      const id1 = deriveRelationshipId("api.endpoint.a", "implements", "app.service.b");
+      const id2 = deriveRelationshipId("api.endpoint.a", "depends-on", "app.service.b");
+      const id3 = deriveRelationshipId("api.endpoint.b", "implements", "app.service.a");
+
+      // All should be different
+      expect(id1).not.toBe(id2);
+      expect(id1).not.toBe(id3);
+      expect(id2).not.toBe(id3);
+    });
+  });
+
+  describe("Source reference line number handling", () => {
+    it("mapToElementCandidate omits line field when line number is invalid", async () => {
+      const { mapToElementCandidate } = await import("../../src/commands/scan.js");
+
+      const pattern = {
+        id: "test.endpoint",
+        produces: { type: "node" as const, layer: "api", elementType: "endpoint" },
+        query: { tool: "test", params: {} },
+        confidence: 0.9,
+        mapping: { id: "api.endpoint.test", name: "Test" }
+      };
+
+      const warnings: string[] = [];
+
+      // Test with non-numeric line value
+      const candidate = mapToElementCandidate(
+        pattern,
+        { name: "Test", file: "test.ts", line: "not-a-line" },
+        warnings
+      );
+
+      expect(candidate).toBeDefined();
+      expect(candidate?.source?.file).toBe("test.ts");
+      expect(candidate?.source?.line).toBeUndefined(); // Should not include line
+    });
+
+    it("mapToElementCandidate includes valid line numbers in source reference", async () => {
+      const { mapToElementCandidate } = await import("../../src/commands/scan.js");
+
+      const pattern = {
+        id: "test.endpoint",
+        produces: { type: "node" as const, layer: "api", elementType: "endpoint" },
+        query: { tool: "test", params: {} },
+        confidence: 0.9,
+        mapping: { id: "api.endpoint.test", name: "Test" }
+      };
+
+      const warnings: string[] = [];
+
+      // Test with valid numeric line value
+      const candidate = mapToElementCandidate(
+        pattern,
+        { name: "Test", file: "test.ts", line: "42" },
+        warnings
+      );
+
+      expect(candidate).toBeDefined();
+      expect(candidate?.source?.file).toBe("test.ts");
+      expect(candidate?.source?.line).toBe(42);
+    });
+
+    it("mapToRelationshipCandidate omits line field when line number is invalid", async () => {
+      const { mapToRelationshipCandidate } = await import("../../src/commands/scan.js");
+
+      const pattern = {
+        id: "test.relationship",
+        produces: { type: "relationship" as const, relationshipType: "implements" },
+        query: { tool: "test", params: {} },
+        confidence: 0.9,
+        mapping: {
+          source: "api.endpoint.{match.name}",
+          target: "application.service.{match.name}",
+          sourceId: "api.endpoint.test",
+          targetId: "application.service.test"
+        }
+      };
+
+      const warnings: string[] = [];
+
+      // Test with non-numeric line value
+      const candidate = mapToRelationshipCandidate(
+        pattern,
+        { name: "Test", file: "test.ts", line: "not-a-line" },
+        warnings
+      );
+
+      expect(candidate).toBeDefined();
+      expect(candidate?.source?.file).toBe("test.ts");
+      expect(candidate?.source?.line).toBeUndefined(); // Should not include line
+    });
+
+    it("mapToRelationshipCandidate includes valid line numbers in source reference", async () => {
+      const { mapToRelationshipCandidate } = await import("../../src/commands/scan.js");
+
+      const pattern = {
+        id: "test.relationship",
+        produces: { type: "relationship" as const, relationshipType: "implements" },
+        query: { tool: "test", params: {} },
+        confidence: 0.9,
+        mapping: {
+          source: "api.endpoint.{match.name}",
+          target: "application.service.{match.name}",
+          sourceId: "api.endpoint.test",
+          targetId: "application.service.test"
+        }
+      };
+
+      const warnings: string[] = [];
+
+      // Test with valid numeric line value
+      const candidate = mapToRelationshipCandidate(
+        pattern,
+        { name: "Test", file: "test.ts", line: "99" },
+        warnings
+      );
+
+      expect(candidate).toBeDefined();
+      expect(candidate?.source?.file).toBe("test.ts");
+      expect(candidate?.source?.line).toBe(99);
     });
   });
 });

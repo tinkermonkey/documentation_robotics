@@ -39,14 +39,30 @@ export interface ScanOptions {
 }
 
 /**
- * Derive relationship candidate ID from source and target element IDs
+ * Parse a line number string safely, validating the result
+ *
+ * @param lineStr - Line number as string or undefined
+ * @returns Valid line number or undefined if parsing fails
+ */
+export function parseLineNumber(lineStr?: string): number | undefined {
+  if (!lineStr) {
+    return undefined;
+  }
+  const parsed = parseInt(lineStr, 10);
+  // Return undefined if parse produced NaN or invalid number
+  return isNaN(parsed) ? undefined : parsed;
+}
+
+/**
+ * Derive relationship candidate ID from source, target, and relationship type
  *
  * @param sourceId - Source element ID
+ * @param relationshipType - Relationship predicate type
  * @param targetId - Target element ID
- * @returns Relationship ID in format "sourceId->targetId"
+ * @returns Relationship ID in format "sourceId::relationshipType::targetId"
  */
-export function deriveRelationshipId(sourceId: string, targetId: string): string {
-  return `${sourceId}->${targetId}`;
+export function deriveRelationshipId(sourceId: string, relationshipType: string, targetId: string): string {
+  return `${sourceId}::${relationshipType}::${targetId}`;
 }
 
 /**
@@ -246,7 +262,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
             ...candidate,
             sourceId,
             targetId,
-            id: deriveRelationshipId(sourceId, targetId),
+            id: deriveRelationshipId(sourceId, candidate.relationshipType, targetId),
           };
 
           // Check cross-layer direction rule
@@ -540,6 +556,7 @@ export function mapToElementCandidate(
       }
     }
 
+    const lineNumber = parseLineNumber(match.line);
     return {
       id,
       type: pattern.produces.elementType,
@@ -547,7 +564,7 @@ export function mapToElementCandidate(
       name,
       confidence: pattern.confidence,
       attributes,
-      source: match.file ? { file: match.file, line: parseInt(match.line || "0") } : undefined,
+      source: match.file ? { file: match.file, ...(lineNumber !== undefined && { line: lineNumber }) } : undefined,
     };
   } catch (error) {
     // Log mapping error as warning so users know matches were received but couldn't be processed
@@ -636,7 +653,7 @@ export function mapToRelationshipCandidate(
     }
 
     // Create relationship candidate ID using derivation helper
-    const id = deriveRelationshipId(sourceId, targetId);
+    const id = deriveRelationshipId(sourceId, relationshipType, targetId);
 
     // Collect attributes from mapping (excluding source, target, sourceId, and targetId)
     const attributes: Record<string, unknown> = {};
@@ -647,6 +664,7 @@ export function mapToRelationshipCandidate(
       }
     }
 
+    const lineNumber = parseLineNumber(match.line);
     return {
       id,
       relationshipType,
@@ -655,7 +673,7 @@ export function mapToRelationshipCandidate(
       layer: sourceLayer,
       confidence: pattern.confidence,
       attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
-      source: match.file ? { file: match.file, line: parseInt(match.line || "0") } : undefined,
+      source: match.file ? { file: match.file, ...(lineNumber !== undefined && { line: lineNumber }) } : undefined,
     };
   } catch (error) {
     // Log mapping error as warning so users know matches were received but couldn't be processed
@@ -788,10 +806,8 @@ export async function stageChangeset(elementCandidates: ElementCandidate[], rela
         ...(candidate.source && { source_reference: candidate.source }),
       };
 
-      // Composite key for relationships: source::predicate::target
-      const relationshipId = `${candidate.sourceId}::${candidate.relationshipType}::${candidate.targetId}`;
-
-      changeset.addChange("relationship-add", relationshipId, candidate.layer, undefined, relationshipData);
+      // Use candidate ID directly (already in persistence format: source::predicate::target)
+      changeset.addChange("relationship-add", candidate.id, candidate.layer, undefined, relationshipData);
     } catch (error) {
       // Track failed relationship but continue processing others
       failedRelationships.push(`${candidate.sourceId} → ${candidate.targetId}: ${getErrorMessage(error)}`);
