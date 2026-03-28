@@ -93,7 +93,7 @@ export type ToolResult = z.infer<typeof ToolResultSchema>;
  * @param error - The error to check
  * @returns true if this is a transport/infrastructure error, false if tool-level
  */
-function isTransportError(error: unknown): boolean {
+export function isTransportError(error: unknown): boolean {
   if (!error) return false;
 
   const errorMsg = getErrorMessage(error);
