@@ -39,10 +39,19 @@ export function createMockMcpClient(
       if (toolErrors[toolName]) {
         const error = toolErrors[toolName];
 
-        // Throw the raw error without wrapping. Transport error detection and wrapping
-        // is the responsibility of the real client's callTool method (mcp-client.ts).
-        // The mock only needs to throw what was configured; tests verify that
-        // transport errors propagate correctly from the real client logic.
+        // Detect and wrap transport errors just like the real client does.
+        // Transport errors (connection lost, timeouts, process crash) should include
+        // tool context so callers can provide better error messages.
+        if (isTransportError(error)) {
+          const errorMsg = getErrorMessage(error);
+          throw new Error(
+            `CodePrism connection lost while calling '${toolName}': ${errorMsg}\n\n` +
+              "The MCP server may have crashed, become unreachable, or been terminated.\n" +
+              "Remaining scan results are unreliable and the scan cannot continue."
+          );
+        }
+
+        // For non-transport errors, throw as-is
         throw error;
       }
 
