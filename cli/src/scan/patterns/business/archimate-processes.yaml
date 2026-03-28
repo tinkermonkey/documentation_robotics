@@ -1,0 +1,61 @@
+name: ArchiMate Business Processes and Services
+description: Extracts business processes, services, and events from code
+version: '1.0'
+patterns:
+  - id: business-process
+    selector: 'process'
+    description: 'Identifies business process definitions'
+    regex: '(?:process|workflow|flow):\s*([^#\n]+)'
+    captures:
+      - name: process_name
+        group: 1
+    template: 'business.process.{kebab(process_name)}'
+
+  - id: business-service
+    selector: 'service'
+    description: 'Identifies business service definitions'
+    regex: '(?:service|capability):\s*([^#\n]+)'
+    captures:
+      - name: service_name
+        group: 1
+    template: 'business.service.{kebab(service_name)}'
+
+  - id: business-event
+    selector: 'event'
+    description: 'Identifies business events and triggers'
+    regex: '(?:event|trigger|when):\s*([^#\n]+)'
+    captures:
+      - name: event_name
+        group: 1
+    template: 'business.event.{kebab(event_name)}'
+
+  - id: business-role
+    selector: 'actor'
+    description: 'Identifies business actors and roles'
+    regex: '(?:actor|role|agent):\s*([^#\n]+)'
+    captures:
+      - name: role_name
+        group: 1
+    template: 'business.role.{kebab(role_name)}'
+
+relationships:
+  - id: process-service-relationship
+    source: 'process'
+    target: 'service'
+    type: 'supports'
+    condition: 'referenced_in'
+    confidence: 0.85
+
+  - id: event-process-relationship
+    source: 'event'
+    target: 'process'
+    type: 'triggers'
+    condition: 'referenced_in'
+    confidence: 0.8
+
+  - id: actor-process-relationship
+    source: 'actor'
+    target: 'process'
+    type: 'performs'
+    condition: 'referenced_in'
+    confidence: 0.75

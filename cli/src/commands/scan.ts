@@ -30,6 +30,7 @@ import { isValidLayerName, CANONICAL_LAYER_NAMES } from "../core/layers.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
+import { RelationshipInferenceEngine } from "../scan/relationship-inference.js";
 
 export interface ScanOptions {
   config?: boolean;
@@ -205,6 +206,26 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     // Execute patterns and collect candidates
     console.log("\nScanning codebase...");
     const { elementCandidates, relationshipCandidates } = await executePatterns(client, patternsToExecute, config.confidence_threshold ?? 0.7, warnings, options.verbose || false);
+
+    // Apply relationship inference engine to derive implicit relationships
+    if (options.verbose) {
+      console.log("\nApplying relationship inference engine...");
+    }
+
+    const inferenceContext = {
+      elements: new Map(elementCandidates.map((el) => [el.id, el])),
+      existingRelationships: relationshipCandidates,
+    };
+
+    const inferenceEngine = new RelationshipInferenceEngine(inferenceContext);
+    const inferredRelationships = inferenceEngine.inferRelationships();
+
+    if (options.verbose) {
+      console.log(`  Inferred ${inferredRelationships.length} relationships from patterns`);
+    }
+
+    // Merge inferred relationships with pattern-extracted ones
+    relationshipCandidates.push(...inferredRelationships);
 
     // Load current model for deduplication
     let model: Model | null = null;

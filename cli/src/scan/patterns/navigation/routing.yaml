@@ -1,0 +1,61 @@
+name: Navigation and Routing Patterns
+description: Detects routing configurations and navigation flows
+version: '1.0'
+patterns:
+  - id: route-definition
+    selector: 'route'
+    description: 'Identifies route definitions'
+    regex: '(?:path|route|url):\s*["\''']?([^\n"\''']+)["\''']?'
+    captures:
+      - name: route_path
+        group: 1
+    template: 'navigation.route.{kebab(route_path)}'
+
+  - id: navigation-component
+    selector: 'nav_component'
+    description: 'Identifies navigation menu components'
+    regex: '(?:navigation|nav|menu).*?(?:class|name|id):\s*["\''']?([^\n"\''']+)["\''']?'
+    captures:
+      - name: nav_name
+        group: 1
+    template: 'navigation.menu.{kebab(nav_name)}'
+
+  - id: page-definition
+    selector: 'page'
+    description: 'Identifies page/view definitions'
+    regex: '(?:page|view|screen):\s*(?:name|title)?\s*["\''']?([^\n"\''']+)["\''']?'
+    captures:
+      - name: page_name
+        group: 1
+    template: 'navigation.page.{kebab(page_name)}'
+
+  - id: breadcrumb-trail
+    selector: 'breadcrumb'
+    description: 'Identifies breadcrumb configurations'
+    regex: '(?:breadcrumb|breadcrumbs):\s*(?:\[|items)\s*([^\]]+)'
+    captures:
+      - name: breadcrumb_path
+        group: 1
+    template: 'navigation.breadcrumb-trail.{kebab(breadcrumb_path)}'
+
+relationships:
+  - id: route-page-relationship
+    source: 'route'
+    target: 'page'
+    type: 'maps-to'
+    condition: 'same_config'
+    confidence: 0.9
+
+  - id: nav-route-relationship
+    source: 'nav_component'
+    target: 'route'
+    type: 'links-to'
+    condition: 'href_match'
+    confidence: 0.85
+
+  - id: page-breadcrumb-relationship
+    source: 'page'
+    target: 'breadcrumb'
+    type: 'uses'
+    condition: 'same_file'
+    confidence: 0.8

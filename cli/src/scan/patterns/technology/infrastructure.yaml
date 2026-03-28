@@ -1,0 +1,88 @@
+name: Infrastructure and Deployment Patterns
+description: Detects infrastructure components from Kubernetes, Docker, and Terraform configs
+version: '1.0'
+patterns:
+  - id: kubernetes-deployment
+    selector: 'k8s_deployment'
+    description: 'Identifies Kubernetes deployments'
+    regex: 'kind:\s*Deployment.*?metadata:.*?name:\s*([^\n]+)'
+    captures:
+      - name: deployment_name
+        group: 1
+    template: 'technology.kubernetes-deployment.{kebab(deployment_name)}'
+
+  - id: kubernetes-service
+    selector: 'k8s_service'
+    description: 'Identifies Kubernetes services'
+    regex: 'kind:\s*Service.*?metadata:.*?name:\s*([^\n]+)'
+    captures:
+      - name: service_name
+        group: 1
+    template: 'technology.kubernetes-service.{kebab(service_name)}'
+
+  - id: docker-image
+    selector: 'docker_image'
+    description: 'Identifies Docker image definitions'
+    regex: 'FROM\s+([^\s]+)'
+    captures:
+      - name: image_name
+        group: 1
+    template: 'technology.docker-image.{kebab(image_name)}'
+
+  - id: terraform-resource
+    selector: 'terraform_resource'
+    description: 'Identifies Terraform resources'
+    regex: 'resource\s+"([^"]+)"\s+"([^"]+)"'
+    captures:
+      - name: resource_type
+        group: 1
+      - name: resource_name
+        group: 2
+    template: 'technology.{kebab(resource_type)}.{kebab(resource_name)}'
+
+  - id: vpc-definition
+    selector: 'vpc'
+    description: 'Identifies VPC configurations'
+    regex: '(?:vpc|virtual.?private.?cloud).*?name[:=]\s*["\''']?([^\n"\'''\s]+)'
+    captures:
+      - name: vpc_name
+        group: 1
+    template: 'technology.vpc.{kebab(vpc_name)}'
+
+  - id: database-instance
+    selector: 'database'
+    description: 'Identifies database instances'
+    regex: '(?:db_instance|RDS|database).*?identifier[:=]\s*["\''']?([^\n"\'''\s]+)'
+    captures:
+      - name: db_name
+        group: 1
+    template: 'technology.database.{kebab(db_name)}'
+
+relationships:
+  - id: k8s-deployment-service
+    source: 'k8s_deployment'
+    target: 'k8s_service'
+    type: 'exposed-by'
+    condition: 'same_file'
+    confidence: 0.9
+
+  - id: deployment-image
+    source: 'k8s_deployment'
+    target: 'docker_image'
+    type: 'uses'
+    condition: 'referenced_in'
+    confidence: 0.85
+
+  - id: terraform-resource-deps
+    source: 'terraform_resource'
+    target: 'terraform_resource'
+    type: 'depends-on'
+    condition: 'dependency_declared'
+    confidence: 0.95
+
+  - id: k8s-vpc-relationship
+    source: 'k8s_service'
+    target: 'vpc'
+    type: 'deployed-in'
+    condition: 'annotation_or_label'
+    confidence: 0.7
