@@ -35,9 +35,9 @@ export class RelationshipInferenceEngine {
   /**
    * Infer reverse relationships (e.g., A depends-on B → B provides-to A)
    *
-   * Note: Cross-layer reverse relationships may violate the architectural direction rule
-   * (higher → lower layers only). The deduplicateAndValidate pipeline filters these out
-   * during the final validation step.
+   * Cross-layer reverse relationships are skipped to prevent violating the architectural
+   * direction rule (higher → lower layers only). A same-layer guard ensures that only
+   * relationships within the same layer are candidates for bidirectional inference.
    */
   private inferBidirectionalRelationships(): RelationshipCandidate[] {
     const inferred: RelationshipCandidate[] = [];
@@ -54,7 +54,8 @@ export class RelationshipInferenceEngine {
       const reverseType = bidirectionalPairs.get(rel.relationshipType);
       if (reverseType && rel.sourceId && rel.targetId) {
         // Only infer same-layer bidirectional relationships to avoid cross-layer direction violations.
-        // Cross-layer bidirectional inferences are skipped unless source and target are in the same layer.
+        // Cross-layer bidirectional inferences are skipped at the source to prevent reverse
+        // relationships from violating the architectural direction rule.
         if (!this.isSameLayer(rel.sourceId, rel.targetId)) {
           continue;
         }
@@ -210,9 +211,9 @@ export class RelationshipInferenceEngine {
           targetEl.attributes?.provides &&
           sourceEl.attributes.implements === targetEl.attributes.provides
         ) {
-          const sourceLayer = this.extractLayerFromId(sourceEl.id);
+          const sourceLayerName = this.extractLayerFromId(sourceEl.id);
           // Skip if source element ID is malformed (missing layer segment)
-          if (!sourceLayer) {
+          if (!sourceLayerName) {
             continue;
           }
 
@@ -222,7 +223,7 @@ export class RelationshipInferenceEngine {
             targetId: targetEl.id,
             relationshipType: 'implements',
             confidence: 0.85,
-            layer: sourceLayer,
+            layer: sourceLayerName,
           });
         }
       }
