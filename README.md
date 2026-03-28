@@ -133,7 +133,23 @@ dr export archimate --output model.xml
 
 [→ CLI Documentation](cli/) | [→ CLI Docs](cli/docs/)
 
-### 3. Claude Code Integration
+### 3. Architecture Decision Records (ADRs)
+
+**Location:** [`docs/adr/`](docs/adr/)
+
+Documentation of significant architectural decisions, their rationale, and consequences:
+
+| Decision | Description |
+|----------|-------------|
+| [ADR-003](docs/adr/ADR-003-pattern-files-cli-asset.md) | Pattern files are CLI-maintained assets with optional per-project extensions |
+| [ADR-004](docs/adr/ADR-004-ast-parser-selection.md) | CodePrism selected as AST parser over tree-sitter, Babel, and alternatives |
+| [ADR-005](docs/adr/ADR-005-language-support-management.md) | Language support managed through pattern system with three-tier coverage model |
+
+**Scanning Architecture**: See [Scanning Architecture Guide](cli/docs/SCAN_ARCHITECTURE.md) for comprehensive overview of the code analysis system.
+
+[→ Full ADR Documentation](docs/adr/)
+
+### 4. Claude Code Integration
 
 The CLI is integrated with Claude Code, enabling natural language interaction with your models through specialized agents and commands.
 
@@ -184,6 +200,8 @@ cp -r integrations/claude_code/. documentation-robotics/.claude/
 ```
 
 [→ Claude Code Integration Documentation](integrations/claude_code/)
+
+### 5. Project Documentation
 
 ## Repository Structure
 
