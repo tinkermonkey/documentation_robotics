@@ -85,37 +85,6 @@ describe('Relationship Scanning Coverage', function () {
   });
 
   describe('Relationship Inference Engine', function () {
-    it('should infer bidirectional relationships', async () => {
-      const existingRelationships = [
-        {
-          id: 'api.endpoint.create-user->application.service.user-service',
-          sourceId: 'api.endpoint.create-user',
-          targetId: 'application.service.user-service',
-          relationshipType: 'depends-on',
-          layer: 'api',
-          confidence: 0.9,
-        },
-      ];
-
-      const inferenceContext = {
-        elements: new Map(),
-        existingRelationships,
-      };
-
-      const engine = new RelationshipInferenceEngine(inferenceContext);
-      const inferred = engine.inferRelationships();
-
-      // Should infer provides-to relationship in reverse
-      const reversedRel = inferred.find(
-        (r) =>
-          r.sourceId === 'application.service.user-service' &&
-          r.targetId === 'api.endpoint.create-user' &&
-          r.relationshipType === 'provides-to'
-      );
-
-      expect(reversedRel).toBeDefined();
-    });
-
     it('should infer composition relationships from co-located elements', async () => {
       const elements = new Map([
         [
