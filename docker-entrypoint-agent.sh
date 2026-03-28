@@ -21,6 +21,24 @@ if [ -n "$GITHUB_TOKEN" ] && [ -z "$GH_TOKEN" ]; then
   export GH_TOKEN="$GITHUB_TOKEN"
 fi
 
+# Clean up stale gh CLI config to prevent multi-account migration errors.
+# gh CLI 2.40+ introduced multi-account support with a new config format.
+# If a previous run or bind mount left an old-format hosts.yml, gh may fail
+# with "multi-account migration" errors. Removing stale config ensures gh
+# starts fresh and uses the environment token directly.
+GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}"
+if [ -d "$GH_CONFIG_DIR" ]; then
+  if [ -f "$GH_CONFIG_DIR/hosts.yml" ]; then
+    # Check for corrupted or old-format config that triggers migration errors
+    if gh auth status >/dev/null 2>&1; then
+      : # Config is valid, leave it alone
+    else
+      echo "[agent-entrypoint] Cleaning stale gh CLI config to avoid migration errors"
+      rm -f "$GH_CONFIG_DIR/hosts.yml"
+    fi
+  fi
+fi
+
 if [ -n "$GH_TOKEN" ]; then
   echo "[agent-entrypoint] GitHub CLI authentication configured via environment token"
 else
