@@ -195,14 +195,8 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     try {
       model = await Model.load(process.cwd());
     } catch (error) {
-      const modelLoadError = `Could not load existing model for deduplication: ${getErrorMessage(error)}`;
-      // In verbose mode, add to warnings array for display at end
-      // In non-verbose mode, warn immediately so user knows deduplication is being skipped
-      if (options.verbose) {
-        warnings.push(modelLoadError);
-      } else {
-        console.warn(ansis.yellow(`⚠ ${modelLoadError}`));
-      }
+      const modelLoadError = `Could not load existing model: ${getErrorMessage(error)}. Deduplication will be skipped and all candidates will be staged, including potential duplicates.`;
+      warnings.push(modelLoadError);
     }
 
     // Deduplicate element candidates against current model
@@ -353,8 +347,8 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log(`  Elements staged: ${newElementCandidates.length}`);
     console.log(`  Relationships staged: ${expandedRelationshipCandidates.length}`);
 
-    // Print warnings at the end (only in verbose mode, since non-verbose already printed them)
-    if (options.verbose && warnings.length > 0) {
+    // Print warnings at the end (all warnings displayed, not just in verbose mode)
+    if (warnings.length > 0) {
       console.log(ansis.yellow("\n⚠ Warnings:"));
       for (const warning of warnings) {
         console.log(`  • ${warning}`);
@@ -453,7 +447,6 @@ export async function executePatterns(
             // Always add to warnings so user knows tool ran but output couldn't be interpreted.
             const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
             warnings.push(parseMsg);
-            console.warn(ansis.yellow(`⚠ ${parseMsg}`));
           }
         }
       }
@@ -463,8 +456,10 @@ export async function executePatterns(
       }
 
       // Map matches to candidates based on pattern produces type
-      try {
-        for (const match of matches) {
+      // Wrap each match individually so one error doesn't break the entire pattern
+      let matchErrorCount = 0;
+      for (const match of matches) {
+        try {
           if (pattern.produces.type === "relationship") {
             const candidate = mapToRelationshipCandidate(pattern, match, warnings);
             if (candidate) {
@@ -476,12 +471,17 @@ export async function executePatterns(
               elementCandidates.push(candidate);
             }
           }
+        } catch (matchError) {
+          // Unexpected errors during match processing (programming errors, not expected validation errors)
+          // These should be tracked separately from warnings since they indicate bugs
+          const errorMsg = getErrorMessage(matchError);
+          const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
+          warnings.push(errorDetail);
+          matchErrorCount++;
         }
-      } catch (mappingError) {
-        // Mapping/transformation errors (parse errors, invalid candidates) are non-fatal
-        // and don't indicate transport problems
-        const errorMsg = getErrorMessage(mappingError);
-        warnings.push(`Pattern '${pattern.id}' failed to map candidates: ${errorMsg}`);
+      }
+      if (matchErrorCount > 0 && verbose) {
+        console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
       }
     }
   }
@@ -739,45 +739,77 @@ export async function stageChangeset(elementCandidates: ElementCandidate[], rela
     "current"
   );
 
+  // Track failed candidates so partial success is still saved
+  const failedElements: string[] = [];
+  const failedRelationships: string[] = [];
+
   // First: Add all element candidates as 'add' operations
   for (const candidate of elementCandidates) {
-    // Extract layer name from full layer ID
-    const layerName = candidate.layer;
+    try {
+      // Extract layer name from full layer ID
+      const layerName = candidate.layer;
 
-    // Create element data matching spec-node format
-    const elementData = {
-      id: candidate.id,
-      type: candidate.type,
-      name: candidate.name,
-      layer_id: layerName,
-      spec_node_id: candidate.type, // Use type as spec_node_id
-      path: candidate.id.replace(/\./g, "/"),
-      attributes: candidate.attributes,
-      ...(candidate.source && { source_reference: candidate.source }),
-    };
+      // Create element data matching spec-node format
+      const elementData = {
+        id: candidate.id,
+        type: candidate.type,
+        name: candidate.name,
+        layer_id: layerName,
+        spec_node_id: candidate.type, // Use type as spec_node_id
+        path: candidate.id.replace(/\./g, "/"),
+        attributes: candidate.attributes,
+        ...(candidate.source && { source_reference: candidate.source }),
+      };
 
-    changeset.addChange("add", candidate.id, layerName, undefined, elementData);
+      changeset.addChange("add", candidate.id, layerName, undefined, elementData);
+    } catch (error) {
+      // Track failed element but continue processing others
+      failedElements.push(`${candidate.id}: ${getErrorMessage(error)}`);
+    }
   }
 
   // Second: Add all relationship candidates as 'relationship-add' operations
   for (const candidate of relationshipCandidates) {
-    // Create relationship data
-    const relationshipData = {
-      source: candidate.sourceId,
-      target: candidate.targetId,
-      predicate: candidate.relationshipType,
-      layer: candidate.layer,
-      category: candidate.attributes?.category || "structural",
-      ...(candidate.attributes && { properties: candidate.attributes }),
-      ...(candidate.source && { source_reference: candidate.source }),
-    };
+    try {
+      // Create relationship data
+      const relationshipData = {
+        source: candidate.sourceId,
+        target: candidate.targetId,
+        predicate: candidate.relationshipType,
+        layer: candidate.layer,
+        category: candidate.attributes?.category || "structural",
+        ...(candidate.attributes && { properties: candidate.attributes }),
+        ...(candidate.source && { source_reference: candidate.source }),
+      };
 
-    // Composite key for relationships: source::predicate::target
-    const relationshipId = `${candidate.sourceId}::${candidate.relationshipType}::${candidate.targetId}`;
+      // Composite key for relationships: source::predicate::target
+      const relationshipId = `${candidate.sourceId}::${candidate.relationshipType}::${candidate.targetId}`;
 
-    changeset.addChange("relationship-add", relationshipId, candidate.layer, undefined, relationshipData);
+      changeset.addChange("relationship-add", relationshipId, candidate.layer, undefined, relationshipData);
+    } catch (error) {
+      // Track failed relationship but continue processing others
+      failedRelationships.push(`${candidate.sourceId} → ${candidate.targetId}: ${getErrorMessage(error)}`);
+    }
   }
 
-  // Save changeset
+  // Save changeset with successfully staged candidates
   await storage.save(changeset);
+
+  // Report any failures after save completes (so partial success is preserved)
+  if (failedElements.length > 0 || failedRelationships.length > 0) {
+    const errors: string[] = [];
+    if (failedElements.length > 0) {
+      errors.push(`Failed to stage ${failedElements.length} element(s):`);
+      failedElements.forEach((msg) => errors.push(`  • ${msg}`));
+    }
+    if (failedRelationships.length > 0) {
+      errors.push(`Failed to stage ${failedRelationships.length} relationship(ies):`);
+      failedRelationships.forEach((msg) => errors.push(`  • ${msg}`));
+    }
+    throw new CLIError(
+      `Could not stage all candidates (${failedElements.length} elements, ${failedRelationships.length} relationships failed)`,
+      ErrorCategory.VALIDATION,
+      errors
+    );
+  }
 }
