@@ -34,6 +34,10 @@ export class RelationshipInferenceEngine {
 
   /**
    * Infer reverse relationships (e.g., A depends-on B → B provides-to A)
+   *
+   * Note: Cross-layer reverse relationships may violate the architectural direction rule
+   * (higher → lower layers only). The deduplicateAndValidate pipeline filters these out
+   * during the final validation step.
    */
   private inferBidirectionalRelationships(): RelationshipCandidate[] {
     const inferred: RelationshipCandidate[] = [];
@@ -49,13 +53,25 @@ export class RelationshipInferenceEngine {
     for (const rel of this.context.existingRelationships) {
       const reverseType = bidirectionalPairs.get(rel.relationshipType);
       if (reverseType && rel.sourceId && rel.targetId) {
+        // Only infer same-layer bidirectional relationships to avoid cross-layer direction violations.
+        // Cross-layer bidirectional inferences are skipped unless source and target are in the same layer.
+        if (!this.isSameLayer(rel.sourceId, rel.targetId)) {
+          continue;
+        }
+
+        const targetLayer = this.extractLayerFromId(rel.targetId);
+        // Skip if target element ID is malformed (missing layer segment)
+        if (!targetLayer) {
+          continue;
+        }
+
         inferred.push({
           id: `${rel.targetId}::${reverseType}::${rel.sourceId}`,
           sourceId: rel.targetId,
           targetId: rel.sourceId,
           relationshipType: reverseType,
           confidence: Math.max(0, rel.confidence - 0.1),
-          layer: this.extractLayerFromId(rel.targetId),
+          layer: targetLayer,
         });
       }
     }
@@ -94,13 +110,19 @@ export class RelationshipInferenceEngine {
           );
 
           if (!exists && this.isSameLayer(el1.id, el2.id)) {
+            const sourceLayer = this.extractLayerFromId(el1.id);
+            // Skip if source element ID is malformed (missing layer segment)
+            if (!sourceLayer) {
+              continue;
+            }
+
             inferred.push({
               id: `${el1.id}::composed-of::${el2.id}`,
               sourceId: el1.id,
               targetId: el2.id,
               relationshipType: 'composed-of',
               confidence: 0.6,
-              layer: this.extractLayerFromId(el1.id),
+              layer: sourceLayer,
             });
           }
         }
@@ -136,13 +158,19 @@ export class RelationshipInferenceEngine {
             String(targetEl.attributes.produces)
           )
         ) {
+          const sourceLayer = this.extractLayerFromId(sourceEl.id);
+          // Skip if source element ID is malformed (missing layer segment)
+          if (!sourceLayer) {
+            continue;
+          }
+
           inferred.push({
             id: `${sourceEl.id}::consumes::${targetEl.id}`,
             sourceId: sourceEl.id,
             targetId: targetEl.id,
             relationshipType: 'consumes',
             confidence: 0.7,
-            layer: this.extractLayerFromId(sourceEl.id),
+            layer: sourceLayer,
           });
         }
       }
@@ -153,6 +181,10 @@ export class RelationshipInferenceEngine {
 
   /**
    * Infer cross-layer relationships with proper direction validation.
+   *
+   * Cross-layer relationships must respect the architectural direction rule:
+   * higher layers (lower layer numbers, e.g., Motivation=1) can reference lower layers
+   * (higher layer numbers, e.g., Testing=12), but not vice versa.
    */
   private inferCrossLayerRelationships(): RelationshipCandidate[] {
     const inferred: RelationshipCandidate[] = [];
@@ -167,7 +199,9 @@ export class RelationshipInferenceEngine {
         if (sourceLayer === null || targetLayer === null) continue;
         if (sourceLayer === targetLayer) continue; // Skip same-layer
 
-        // Only allow higher → lower layer references (spec rule)
+        // Only allow higher → lower layer references (spec rule):
+        // higher layers (lower numbers like Motivation=1) → lower layers (higher numbers like Testing=12)
+        // Therefore, allow only when sourceLayer < targetLayer
         if (sourceLayer >= targetLayer) continue;
 
         // Check for semantic relationship hints
@@ -176,13 +210,19 @@ export class RelationshipInferenceEngine {
           targetEl.attributes?.provides &&
           sourceEl.attributes.implements === targetEl.attributes.provides
         ) {
+          const sourceLayer = this.extractLayerFromId(sourceEl.id);
+          // Skip if source element ID is malformed (missing layer segment)
+          if (!sourceLayer) {
+            continue;
+          }
+
           inferred.push({
             id: `${sourceEl.id}::implements::${targetEl.id}`,
             sourceId: sourceEl.id,
             targetId: targetEl.id,
             relationshipType: 'implements',
             confidence: 0.85,
-            layer: this.extractLayerFromId(sourceEl.id),
+            layer: sourceLayer,
           });
         }
       }
@@ -216,12 +256,25 @@ export class RelationshipInferenceEngine {
     return valid;
   }
 
+  /**
+   * Check if a relationship candidate meets basic validity requirements.
+   *
+   * The confidence threshold of 0.5 is a hard floor for all inferred relationships,
+   * independent of the user-configurable confidence_threshold setting (default 0.7).
+   * This hard floor (0.5) acts as the baseline quality gate ensuring no inference
+   * produces relationships below minimum confidence. The configurable threshold
+   * (0.7) is applied later in the proposal builder when creating the changeset,
+   * allowing users to be more selective about which inferred relationships to review.
+   *
+   * @param rel Relationship candidate to validate
+   * @returns true if the relationship passes basic validity checks
+   */
   private isValidRelationship(rel: RelationshipCandidate): boolean {
     return (
       rel.sourceId !== undefined &&
       rel.targetId !== undefined &&
       rel.sourceId !== rel.targetId &&
-      rel.confidence > 0.5
+      rel.confidence > 0.5  // Hard floor: all inferred relationships must meet this minimum
     );
   }
 
@@ -248,8 +301,16 @@ export class RelationshipInferenceEngine {
     return type1 === type2;
   }
 
-  private extractLayerFromId(elementId: string): string {
+  /**
+   * Extract layer name from element ID.
+   *
+   * Element IDs follow the format: {layer}.{elementType}.{kebab-name}
+   * This method extracts the layer segment.
+   *
+   * @returns The layer name (e.g., 'api', 'data-model'), or null if the ID is malformed
+   */
+  private extractLayerFromId(elementId: string): string | null {
     const parts = elementId.split('.');
-    return parts[0] || 'unknown';
+    return parts[0] || null;
   }
 }
