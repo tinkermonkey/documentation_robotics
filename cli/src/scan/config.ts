@@ -121,7 +121,7 @@ export async function loadScanConfig(): Promise<ScanConfig> {
 
   // Merge file config and environment overrides into defaults
   const fileCodeprism = fileConfig.codeprism as Record<string, unknown> | undefined;
-  const config: ScanConfig = {
+  const rawConfig: unknown = {
     codeprism: {
       command: process.env.SCAN_CODEPRISM_COMMAND ?? (fileCodeprism?.command as string | undefined) ?? defaults.codeprism?.command,
       args: (fileCodeprism?.args as string[] | undefined) ?? defaults.codeprism?.args,
@@ -134,19 +134,21 @@ export async function loadScanConfig(): Promise<ScanConfig> {
     disabled_patterns: (fileConfig.disabled_patterns as string[] | undefined) ?? defaults.disabled_patterns,
   };
 
-  // Validate configuration
-  validateScanConfig(config);
+  // Validate configuration on raw data before typing
+  const config = validateScanConfig(rawConfig);
 
   return config;
 }
 
 /**
- * Validate scan configuration values using Zod schema
+ * Validate raw scan configuration data using Zod schema
  *
+ * @param rawConfig - Unvalidated configuration data from file/env
+ * @returns Validated ScanConfig with correct types
  * @throws Error if configuration is invalid
  */
-function validateScanConfig(config: ScanConfig): void {
-  const result = ScanConfigSchema.safeParse(config);
+function validateScanConfig(rawConfig: unknown): ScanConfig {
+  const result = ScanConfigSchema.safeParse(rawConfig);
   if (!result.success) {
     // Build user-friendly error messages
     const errors = result.error.issues.map((issue) => {
@@ -168,4 +170,6 @@ function validateScanConfig(config: ScanConfig): void {
 
     throw new Error(`Invalid scan configuration: ${errors.join("; ")}`);
   }
+
+  return result.data;
 }

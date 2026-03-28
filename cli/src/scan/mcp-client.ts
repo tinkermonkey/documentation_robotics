@@ -199,6 +199,7 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
   });
 
   let actualClient: any | null = null;
+  let actualTransport: any | null = transport;
   const tools: Map<string, Tool> = new Map();
 
   try {
@@ -221,6 +222,7 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
       const closeErrorMsg = getErrorMessage(e);
       console.debug(`Warning: transport close failed during error recovery: ${closeErrorMsg}`);
     }
+    actualTransport = null;
     throw error;
   }
 
@@ -246,15 +248,25 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
           {}
         );
 
-        // Convert MCP tool result to ToolResult format
+        // Convert MCP tool result to ToolResult format and validate against schema
         return result.content.map((content: any) => {
-          if (content.type === "text") {
-            return { type: "text", text: content.text };
-          } else if (content.type === "image") {
-            return { type: "image", data: content.data };
-          } else {
-            return { type: "error", text: "unknown_type" };
+          const toolResult =
+            content.type === "text"
+              ? { type: "text" as const, text: content.text }
+              : content.type === "image"
+                ? { type: "image" as const, data: content.data }
+                : { type: "error" as const, text: "unknown_type" };
+
+          // Validate result against schema to ensure all required fields are present
+          const validated = ToolResultSchema.safeParse(toolResult);
+          if (!validated.success) {
+            // If validation fails, return error result with validation message
+            return {
+              type: "error" as const,
+              text: `Invalid tool result: ${validated.error.message}`,
+            };
           }
+          return validated.data;
         });
       } catch (error) {
         const errorMsg = getErrorMessage(error);
@@ -294,6 +306,19 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
         }
       }
       actualClient = null;
+
+      // Close the stdio transport to ensure the CodePrism process doesn't linger
+      if (actualTransport) {
+        try {
+          await actualTransport.close();
+        } catch (error) {
+          // Log transport close errors but continue cleanup. The MCP client is already
+          // closed, so a transport close failure is secondary and shouldn't prevent cleanup.
+          const errorMsg = getErrorMessage(error);
+          console.debug(`Warning: failed to close transport: ${errorMsg}`);
+        }
+      }
+      actualTransport = null;
     },
   };
 
@@ -341,8 +366,6 @@ export async function validateConnection(client: MCPClient): Promise<void> {
           "This may indicate a server configuration issue."
       );
     }
-
-    // isConnected is now read-only and reflects actual connection state
   } catch (error) {
     // Preserve the original error while adding context
     const errorMsg = getErrorMessage(error);
@@ -370,5 +393,4 @@ export async function validateConnection(client: MCPClient): Promise<void> {
  */
 export async function disconnectMcpClient(client: MCPClient): Promise<void> {
   await client.disconnect();
-  // isConnected is now read-only and reflects actual connection state (cleared by disconnect())
 }
