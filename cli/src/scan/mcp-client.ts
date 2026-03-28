@@ -81,6 +81,55 @@ export const ToolResultSchema = z.discriminatedUnion("type", [
 export type ToolResult = z.infer<typeof ToolResultSchema>;
 
 /**
+ * Detects if an error is a transport/infrastructure failure (connection lost, timeout, process crash)
+ * rather than a tool-level error (tool ran but returned error).
+ *
+ * Transport errors include:
+ * - Connection refused/reset/closed (ECONNREFUSED, ECONNRESET, EPIPE)
+ * - Timeouts (ETIMEDOUT)
+ * - Transport layer errors from MCP SDK
+ * - Process/binary errors (ENOENT, crash messages)
+ *
+ * @param error - The error to check
+ * @returns true if this is a transport/infrastructure error, false if tool-level
+ */
+function isTransportError(error: unknown): boolean {
+  if (!error) return false;
+
+  const errorMsg = getErrorMessage(error);
+  const errorName = (error as any)?.name || "";
+  const errorCode = (error as any)?.code || "";
+
+  // Explicit error codes indicating transport failure
+  if (["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "EPIPE", "ENOTFOUND", "EHOSTUNREACH"].includes(errorCode)) {
+    return true;
+  }
+
+  // Message patterns indicating transport failure
+  if (
+    errorMsg.includes("disconnected") ||
+    errorMsg.includes("connection closed") ||
+    errorMsg.includes("transport") ||
+    errorMsg.includes("timeout") ||
+    errorMsg.includes("ECONNREFUSED") ||
+    errorMsg.includes("ECONNRESET") ||
+    errorMsg.includes("refused") ||
+    errorMsg.includes("reset by peer") ||
+    errorMsg.includes("broken pipe") ||
+    errorMsg.includes("EPIPE")
+  ) {
+    return true;
+  }
+
+  // MCP SDK specific errors
+  if (errorName.includes("Transport") || errorName.includes("Connection")) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * MCP Client interface representing connection to CodePrism
  */
 export interface MCPClient {
@@ -269,6 +318,20 @@ export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
           return validated.data;
         });
       } catch (error) {
+        // Distinguish between transport/infrastructure errors and tool-level errors.
+        // Transport errors (connection lost, process crash, timeout) should be thrown
+        // to fail the scan immediately, as remaining patterns are unreliable.
+        // Tool-level errors (tool runs but fails) can be returned as error results.
+        if (isTransportError(error)) {
+          const errorMsg = getErrorMessage(error);
+          throw new Error(
+            `CodePrism connection lost while calling '${toolName}': ${errorMsg}\n\n` +
+              "The MCP server may have crashed, become unreachable, or been terminated.\n" +
+              "Remaining scan results are unreliable and the scan cannot continue."
+          );
+        }
+
+        // For non-transport errors, return as a tool-level error result
         const errorMsg = getErrorMessage(error);
         return [{ type: "error", text: errorMsg }];
       }

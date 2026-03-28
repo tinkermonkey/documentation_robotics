@@ -1508,4 +1508,143 @@ describe("Scan Command", () => {
       expect(validTargetId.includes(".")).toBe(true);
     });
   });
+
+  describe("Transport error handling", () => {
+    it("should fail the entire scan when CodePrism connection is lost mid-scan", async () => {
+      // This test verifies the critical fix: transport errors should fail the scan,
+      // not be silently swallowed as tool-level errors that get logged as warnings.
+      const { executePatterns } = await import("../../src/commands/scan.js");
+      const { createMockMcpClient } = await import("../helpers/mock-mcp-client.js");
+
+      // Create a mock client that throws a transport error on the second pattern execution
+      const transportError = new Error("ECONNRESET: Connection reset by peer (MCP server crashed)");
+
+      // Mock successful results for the first tool, then transport failure for the second
+      const client = createMockMcpClient(
+        {
+          search_code: [
+            {
+              type: "text" as const,
+              text: JSON.stringify([
+                { name: "user-service", path: "/users", method: "GET" }
+              ])
+            }
+          ]
+        },
+        {
+          // This tool will throw a transport error, simulating server crash
+          analyze_api_surface: transportError
+        }
+      );
+
+      // Create minimal pattern sets that would execute both tools
+      const patterns = [
+        {
+          framework: "express",
+          layer: "api",
+          patterns: [
+            {
+              id: "express.endpoints",
+              category: "node",
+              confidence: 0.85,
+              query: { tool: "search_code", params: {} },
+              produces: {
+                type: "node" as const,
+                layer: "api",
+                elementType: "endpoint"
+              },
+              mapping: { id: "api.endpoint.{match.name|kebab}", name: "{match.name}" }
+            },
+            {
+              id: "express.api-surface",
+              category: "node",
+              confidence: 0.80,
+              query: { tool: "analyze_api_surface", params: {} },
+              produces: {
+                type: "node" as const,
+                layer: "api",
+                elementType: "operation"
+              },
+              mapping: { id: "api.operation.{match.name|kebab}", name: "{match.name}" }
+            }
+          ]
+        }
+      ];
+
+      const warnings: string[] = [];
+
+      // Execute patterns - the second pattern should throw a transport error
+      try {
+        await executePatterns(client, patterns, 0.7, warnings, false);
+        throw new Error("Should have thrown a transport error");
+      } catch (error) {
+        // Verify that the error is a transport error (not swallowed)
+        expect(error instanceof Error).toBe(true);
+        const errorMessage = (error as Error).message;
+
+        // The error should mention "connection lost" or the transport error
+        expect(
+          errorMessage.includes("connection lost") ||
+          errorMessage.includes("ECONNRESET") ||
+          errorMessage.includes("Connection reset")
+        ).toBe(true);
+
+        // The error should be about the specific tool
+        expect(errorMessage).toContain("analyze_api_surface");
+      }
+
+      // Verify that we did not get 0 matches for all patterns (which would happen if error was silently converted)
+      // The first pattern should have produced a match before the second pattern failed
+      // However, since the second pattern fails, we expect warnings to NOT contain the successful result
+      // (because the scan failed before processing was complete)
+    });
+
+    it("should distinguish tool-level errors from transport errors", async () => {
+      // This test verifies that tool-level errors (tool runs but fails) are handled
+      // differently from transport errors (connection lost, server crash).
+      const { executePatterns } = await import("../../src/commands/scan.js");
+      const { createMockMcpClient } = await import("../helpers/mock-mcp-client.js");
+
+      // Create a mock client that returns tool-level errors (tool runs but fails)
+      const client = createMockMcpClient({
+        search_code: [
+          {
+            type: "error" as const,
+            text: "Pattern matching failed: Invalid regex"
+          }
+        ]
+      });
+
+      const patterns = [
+        {
+          framework: "express",
+          layer: "api",
+          patterns: [
+            {
+              id: "express.endpoints",
+              category: "node",
+              confidence: 0.85,
+              query: { tool: "search_code", params: { pattern: "invalid[regex" } },
+              produces: {
+                type: "node" as const,
+                layer: "api",
+                elementType: "endpoint"
+              },
+              mapping: { id: "api.endpoint.{match.name|kebab}", name: "{match.name}" }
+            }
+          ]
+        }
+      ];
+
+      const warnings: string[] = [];
+
+      // Execute patterns - should NOT throw, but should add to warnings
+      await executePatterns(client, patterns, 0.7, warnings, false);
+
+      // Verify that the tool-level error was added to warnings, not thrown
+      expect(warnings.length).toBeGreaterThan(0);
+      expect(warnings.some((w) => w.includes("Tool 'search_code' returned error"))).toBe(true);
+      expect(warnings.some((w) => w.includes("Pattern matching failed"))).toBe(true);
+    });
+  });
 });

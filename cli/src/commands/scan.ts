@@ -404,61 +404,66 @@ export async function executePatterns(
 
   for (const patternSet of patterns) {
     for (const pattern of patternSet.patterns) {
+      if (verbose) {
+        console.log(`  Executing pattern: ${pattern.id}`);
+      }
+
+      // Invoke the pattern's CodePrism tool via MCP
+      const toolName = pattern.query.tool;
+      const toolParams = pattern.query.params || {};
+
+      if (verbose) {
+        console.log(`    Tool: ${toolName}`);
+        console.log(`    Params: ${JSON.stringify(toolParams)}`);
+      }
+
+      // Call the tool via MCP client. Transport/infrastructure errors are thrown
+      // (connection lost, server crash) and will bubble up to fail the entire scan.
+      // Tool-level errors (tool runs but fails) are returned as ToolResult with type: "error"
+      // and can be handled gracefully.
+      const results = await client.callTool(toolName, toolParams);
+
+      // Parse results - each result should be parseable JSON containing match data
+      const matches: Array<{ [key: string]: string }> = [];
+      for (const result of results) {
+        if (result.type === "error") {
+          // Tool-level errors (tool ran but failed) are logged as warnings.
+          // These are recoverable; we can continue with remaining patterns.
+          // Always log tool errors as warnings, not just in verbose mode.
+          // Tool failures should be visible to the user regardless of verbosity.
+          warnings.push(`Tool '${toolName}' returned error: ${result.text}`);
+          if (verbose) {
+            console.log(`    Warning: Tool returned error: ${result.text}`);
+          }
+          continue;
+        }
+
+        if (result.type === "text" && result.text) {
+          try {
+            // Attempt to parse as JSON array of matches
+            const parsed = JSON.parse(result.text);
+            if (Array.isArray(parsed)) {
+              matches.push(...parsed);
+            } else if (typeof parsed === "object" && parsed !== null) {
+              // Single match object
+              matches.push(parsed);
+            }
+          } catch (parseError) {
+            // If not JSON, treat the text as unparseable tool output.
+            // Always add to warnings so user knows tool ran but output couldn't be interpreted.
+            const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
+            warnings.push(parseMsg);
+            console.warn(ansis.yellow(`⚠ ${parseMsg}`));
+          }
+        }
+      }
+
+      if (verbose) {
+        console.log(`    Found ${matches.length} matches`);
+      }
+
+      // Map matches to candidates based on pattern produces type
       try {
-        if (verbose) {
-          console.log(`  Executing pattern: ${pattern.id}`);
-        }
-
-        // Invoke the pattern's CodePrism tool via MCP
-        const toolName = pattern.query.tool;
-        const toolParams = pattern.query.params || {};
-
-        if (verbose) {
-          console.log(`    Tool: ${toolName}`);
-          console.log(`    Params: ${JSON.stringify(toolParams)}`);
-        }
-
-        // Call the tool via MCP client
-        const results = await client.callTool(toolName, toolParams);
-
-        // Parse results - each result should be parseable JSON containing match data
-        const matches: Array<{ [key: string]: string }> = [];
-        for (const result of results) {
-          if (result.type === "error") {
-            // Always log tool errors as warnings, not just in verbose mode.
-            // Tool failures should be visible to the user regardless of verbosity.
-            warnings.push(`Tool '${toolName}' returned error: ${result.text}`);
-            if (verbose) {
-              console.log(`    Warning: Tool returned error: ${result.text}`);
-            }
-            continue;
-          }
-
-          if (result.type === "text" && result.text) {
-            try {
-              // Attempt to parse as JSON array of matches
-              const parsed = JSON.parse(result.text);
-              if (Array.isArray(parsed)) {
-                matches.push(...parsed);
-              } else if (typeof parsed === "object" && parsed !== null) {
-                // Single match object
-                matches.push(parsed);
-              }
-            } catch (parseError) {
-              // If not JSON, treat the text as unparseable tool output.
-              // Always add to warnings so user knows tool ran but output couldn't be interpreted.
-              const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
-              warnings.push(parseMsg);
-              console.warn(ansis.yellow(`⚠ ${parseMsg}`));
-            }
-          }
-        }
-
-        if (verbose) {
-          console.log(`    Found ${matches.length} matches`);
-        }
-
-        // Map matches to candidates based on pattern produces type
         for (const match of matches) {
           if (pattern.produces.type === "relationship") {
             const candidate = mapToRelationshipCandidate(pattern, match, warnings);
@@ -472,9 +477,11 @@ export async function executePatterns(
             }
           }
         }
-      } catch (error) {
-        const errorMsg = getErrorMessage(error);
-        warnings.push(`Pattern '${pattern.id}' failed: ${errorMsg}`);
+      } catch (mappingError) {
+        // Mapping/transformation errors (parse errors, invalid candidates) are non-fatal
+        // and don't indicate transport problems
+        const errorMsg = getErrorMessage(mappingError);
+        warnings.push(`Pattern '${pattern.id}' failed to map candidates: ${errorMsg}`);
       }
     }
   }

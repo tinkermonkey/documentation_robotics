@@ -42,7 +42,7 @@ describe("MCP Client", () => {
       }
     });
 
-    it("should handle error results from tools", async () => {
+    it("should handle error results from tools (tool-level errors)", async () => {
       const mockResults = [
         {
           type: "error" as const,
@@ -59,6 +59,46 @@ describe("MCP Client", () => {
       expect(results).toBeDefined();
       expect(results[0].type).toBe("error");
       expect(results[0].text).toBe("Tool not found");
+    });
+
+    it("should throw transport errors that indicate connection loss", async () => {
+      // Create a mock client that throws a transport error when a tool is called
+      const transportError = new Error("ECONNREFUSED: Connection refused");
+      const client = createMockMcpClient(
+        {}, // no normal results
+        { search_code: transportError } // this tool throws transport error
+      );
+
+      try {
+        await client.callTool("search_code", {});
+        throw new Error("Should have thrown a transport error");
+      } catch (error) {
+        // Verify it's a transport error (error should be thrown, not converted to ToolResult)
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        // Should contain "connection lost" (from wrapped error message) and tool name
+        expect(message).toContain("connection lost");
+        expect(message).toContain("search_code");
+      }
+    });
+
+    it("should throw when MCP server crashes mid-operation", async () => {
+      const crashError = new Error("EPIPE: broken pipe");
+      const client = createMockMcpClient(
+        {},
+        { analyze_api_surface: crashError }
+      );
+
+      try {
+        await client.callTool("analyze_api_surface", {});
+        throw new Error("Should have thrown");
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        // Should contain "connection lost" and reference the tool name
+        expect(message).toContain("connection lost");
+        expect(message).toContain("analyze_api_surface");
+      }
     });
 
     it("should list available tools", async () => {
