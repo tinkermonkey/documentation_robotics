@@ -1,0 +1,10 @@
+
+> @documentation-robotics/cli@0.1.3 pretest
+> [ -f dist/cli.js ] || npm run build
+
+
+> @documentation-robotics/cli@0.1.3 test
+> bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/unit/server/ ./tests/unit/audit/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts tests/unit/integrations/base-manager.test.ts
+
+bun test v1.3.5 (1e86cebd)
+bun test v1.3.5 (1e86cebd)

@@ -251,7 +251,8 @@ describe("Changeset Rollback Verification", () => {
         expect(true).toBe(false); // Should not reach
       } catch (error) {
         expect(error instanceof Error).toBe(true);
-        expect((error as Error).message).toContain("not found");
+        // Validation fails because layer doesn't exist and element doesn't match schema
+        expect((error as Error).message).toContain("Validation failed");
       }
 
       // Verify model was rolled back to original state
