@@ -23,7 +23,7 @@ Independent scripts for specific tasks:
 
 Helper scripts for development and testing:
 
-- **`run-parallel-tests.sh`** - Runs tests in parallel shards (CI optimization)
+- **`run-smoke-tests.sh`** - Runs CI smoke test suite from manifest (see `tests/ci-smoke.manifest.ts`)
 - **`validate-coverage-threshold.js`** - Validates test coverage meets threshold
 - **`update-test-ids.py`** - Updates test element IDs in bulk
 - **`fix-process-exit.py`** - Fixes process.exit calls in test files
