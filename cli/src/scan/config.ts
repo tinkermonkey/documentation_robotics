@@ -132,10 +132,7 @@ export async function loadScanConfig(): Promise<LoadedScanConfig> {
       const path = issue.path.join(".");
 
       // Provide more helpful messages for common validation failures
-      if (path === "confidence_threshold" && issue.code === "too_big") {
-        return "confidence_threshold must be between 0.0 and 1.0";
-      }
-      if (path === "confidence_threshold" && issue.code === "too_small") {
+      if (path === "confidence_threshold" && (issue.code === "too_big" || issue.code === "too_small")) {
         return "confidence_threshold must be between 0.0 and 1.0";
       }
       if (path === "codeprism.timeout" && issue.code === "too_small") {
@@ -183,10 +180,7 @@ function validateScanConfig(config: unknown): LoadedScanConfig {
       const path = issue.path.join(".");
 
       // Provide more helpful messages for common validation failures
-      if (path === "confidence_threshold" && issue.code === "too_big") {
-        return "confidence_threshold must be between 0.0 and 1.0";
-      }
-      if (path === "confidence_threshold" && issue.code === "too_small") {
+      if (path === "confidence_threshold" && (issue.code === "too_big" || issue.code === "too_small")) {
         return "confidence_threshold must be between 0.0 and 1.0";
       }
       if (path === "codeprism.timeout" && issue.code === "too_small") {
