@@ -25,7 +25,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import { join } from "node:path";
-import { ScanConfigSchema, type ScanConfig } from "./mcp-client.js";
+import { LoadedScanConfigSchema, type LoadedScanConfig } from "./mcp-client.js";
 
 const CONFIG_FILENAME = ".dr-config.yaml";
 
@@ -37,18 +37,23 @@ const CONFIG_FILENAME = ".dr-config.yaml";
  * 2. ~/.dr-config.yaml `scan:` section
  * 3. Hard-coded defaults (lowest priority)
  *
- * @returns Validated scan configuration
+ * Returns configuration with all fields populated from merged defaults.
+ * All fields are guaranteed to be non-null/non-undefined, eliminating
+ * the need for ?? fallbacks in consumers.
+ *
+ * @returns Validated scan configuration with all defaults merged
  * @throws Error if configuration is invalid
  *
  * @example
  * ```typescript
  * const config = await loadScanConfig();
  * const client = await createMcpClient(config);
+ * // config.confidence_threshold is guaranteed to be a number, no ?? needed
  * ```
  */
-export async function loadScanConfig(): Promise<ScanConfig> {
+export async function loadScanConfig(): Promise<LoadedScanConfig> {
   // Hard-coded defaults
-  const defaults: ScanConfig = {
+  const defaults: LoadedScanConfig = {
     codeprism: {
       command: "codeprism",
       args: ["--mcp"],
@@ -141,14 +146,14 @@ export async function loadScanConfig(): Promise<ScanConfig> {
 }
 
 /**
- * Validate raw scan configuration data using Zod schema
+ * Validate loaded scan configuration (with defaults merged) using Zod schema
  *
- * @param rawConfig - Unvalidated configuration data from file/env
- * @returns Validated ScanConfig with correct types
+ * @param config - Configuration data with defaults already merged
+ * @returns Validated LoadedScanConfig with all fields guaranteed to be populated
  * @throws Error if configuration is invalid
  */
-function validateScanConfig(rawConfig: unknown): ScanConfig {
-  const result = ScanConfigSchema.safeParse(rawConfig);
+function validateScanConfig(config: unknown): LoadedScanConfig {
+  const result = LoadedScanConfigSchema.safeParse(config);
   if (!result.success) {
     // Build user-friendly error messages
     const errors = result.error.issues.map((issue) => {

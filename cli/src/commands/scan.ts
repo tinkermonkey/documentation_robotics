@@ -156,8 +156,8 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     // If --config flag is set, just validate configuration loaded successfully
     if (options.config) {
       console.log(ansis.green("✓ Configuration loaded successfully"));
-      console.log(`  CodePrism command: ${config.codeprism?.command || "codeprism"}`);
-      console.log(`  Confidence threshold: ${config.confidence_threshold ?? 0.7}`);
+      console.log(`  CodePrism command: ${config.codeprism.command}`);
+      console.log(`  Confidence threshold: ${config.confidence_threshold}`);
       return;
     }
 
@@ -189,7 +189,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log(`  Total patterns: ${totalPatterns}`);
 
     // Report disabled patterns if any
-    if (config.disabled_patterns && config.disabled_patterns.length > 0) {
+    if (config.disabled_patterns.length > 0) {
       console.log(`  Disabled frameworks: ${config.disabled_patterns.join(", ")}`);
     }
 
@@ -410,9 +410,13 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
       try {
         await disconnectMcpClient(client);
       } catch (error) {
-        // Disconnect errors should not crash the command
+        // Disconnect errors should always be reported to prevent silent zombie processes.
+        // Even though the command completes, zombie processes could accumulate across
+        // multiple scan invocations if disconnection failures go unnoticed.
+        console.warn(ansis.yellow(`⚠ Warning: Failed to disconnect from CodePrism: ${getErrorMessage(error)}`));
         if (options.verbose) {
-          console.warn(`Warning: Failed to disconnect from CodePrism: ${getErrorMessage(error)}`);
+          // In verbose mode, provide additional context about potential process cleanup
+          console.warn("  The CodePrism process may still be running. You may need to terminate it manually.");
         }
       }
     }

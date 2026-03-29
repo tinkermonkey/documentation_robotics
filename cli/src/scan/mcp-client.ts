@@ -39,9 +39,10 @@ type Tool = {
 };
 
 /**
- * Scan configuration loaded from ~/.dr-config.yaml
+ * Raw scan configuration schema for validation before merging defaults
+ * All fields are optional since file config may be partial
  */
-export const ScanConfigSchema = z.object({
+export const RawScanConfigSchema = z.object({
   codeprism: z
     .object({
       command: z.string().optional(),
@@ -53,7 +54,27 @@ export const ScanConfigSchema = z.object({
   disabled_patterns: z.array(z.string()).optional(),
 });
 
-export type ScanConfig = z.infer<typeof ScanConfigSchema>;
+export type RawScanConfig = z.infer<typeof RawScanConfigSchema>;
+
+/**
+ * Loaded scan configuration with all defaults merged in
+ * All fields are guaranteed to be populated after loadScanConfig()
+ * This eliminates the need for ?? fallbacks in consumers
+ */
+export const LoadedScanConfigSchema = z.object({
+  codeprism: z.object({
+    command: z.string(),
+    args: z.array(z.string()),
+    timeout: z.number().int().positive(),
+  }),
+  confidence_threshold: z.number().min(0).max(1),
+  disabled_patterns: z.array(z.string()),
+});
+
+export type LoadedScanConfig = z.infer<typeof LoadedScanConfigSchema>;
+
+// Keep ScanConfig as alias for backwards compatibility during transition
+export type ScanConfig = LoadedScanConfig;
 
 /**
  * Tool invocation result from CodePrism
@@ -159,21 +180,10 @@ export interface MCPClient {
  * ```
  */
 export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
-  if (!config.codeprism) {
-    throw new Error(
-      "Missing scan configuration\n\n" +
-        "Configure CodePrism in ~/.dr-config.yaml:\n" +
-        "  scan:\n" +
-        "    codeprism:\n" +
-        "      command: codeprism      # or path to binary\n" +
-        "      args: [--mcp]           # arguments for MCP mode\n" +
-        "      timeout: 5000           # connection timeout in ms"
-    );
-  }
-
-  const command = config.codeprism.command || "codeprism";
-  const args = config.codeprism.args || ["--mcp"];
-  const timeout = config.codeprism.timeout || 5000;
+  // LoadedScanConfig guarantees all codeprism fields are populated, no null checks needed
+  const command = config.codeprism.command;
+  const args = config.codeprism.args;
+  const timeout = config.codeprism.timeout;
 
   // Validate binary is available by checking if it can be spawned
   // Use spawnSync without shell to get proper ENOENT errors
