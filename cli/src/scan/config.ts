@@ -130,6 +130,18 @@ export async function loadScanConfig(): Promise<LoadedScanConfig> {
   if (!rawValidationResult.success) {
     const errors = rawValidationResult.error.issues.map((issue) => {
       const path = issue.path.join(".");
+
+      // Provide more helpful messages for common validation failures
+      if (path === "confidence_threshold" && issue.code === "too_big") {
+        return "confidence_threshold must be between 0.0 and 1.0";
+      }
+      if (path === "confidence_threshold" && issue.code === "too_small") {
+        return "confidence_threshold must be between 0.0 and 1.0";
+      }
+      if (path === "codeprism.timeout" && issue.code === "too_small") {
+        return "codeprism.timeout must be a positive number";
+      }
+
       return path ? `${path}: ${issue.message}` : issue.message;
     });
     throw new Error(`Invalid configuration in ${configPath}: ${errors.join("; ")}`);
