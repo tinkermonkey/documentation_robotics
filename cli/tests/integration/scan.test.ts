@@ -1178,7 +1178,7 @@ describe("Scan Command", () => {
 
   describe("Relationship candidate handling", () => {
     it("validates relationship direction: same-layer and cross-layer rules", async () => {
-      const { isValidRelationshipDirection, extractLayerFromId, LAYER_INDEX } =
+      const { isValidRelationshipDirection, extractLayerFromId } =
         await import("../../src/scan/pattern-loader.js");
 
       // Valid cross-layer relationships: higher layer index → lower layer index
@@ -1436,7 +1436,7 @@ describe("Scan Command", () => {
 
     it("validates relationship patterns produce fully-qualified element IDs", async () => {
       // Import the internal function to test bare-name validation
-      const { renderTemplate, LAYER_INDEX } =
+      const { renderTemplate } =
         await import("../../src/scan/pattern-loader.js");
 
       // Test 1: Source ID validation for bare names

@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
+import { LAYER_MAP } from "./layer-constants.js";
 
 /**
  * Query specification for CodePrism MCP tools
@@ -563,26 +564,6 @@ export function renderTemplate(template: string, data: Record<string, unknown>):
   });
 }
 
-/**
- * Layer index mapping for cross-layer relationship validation
- *
- * Maps canonical layer names to numeric indices (1-12) to enforce the
- * cross-layer direction rule: source layer index > target layer index
- */
-export const LAYER_INDEX: Record<string, number> = {
-  motivation: 1,
-  business: 2,
-  security: 3,
-  application: 4,
-  technology: 5,
-  api: 6,
-  "data-model": 7,
-  "data-store": 8,
-  ux: 9,
-  navigation: 10,
-  apm: 11,
-  testing: 12,
-};
 
 /**
  * Extract layer name from an element ID
@@ -606,8 +587,8 @@ export function extractLayerFromId(elementId: string): string | null {
   const isDotSeparated = elementId.includes(".");
   const separator = isDotSeparated ? "." : "-";
 
-  // Get known layers from LAYER_INDEX
-  const knownLayers = Object.keys(LAYER_INDEX);
+  // Get known layers from LAYER_MAP (single source of truth)
+  const knownLayers = Object.keys(LAYER_MAP);
 
   // Try to match known layers in order of specificity (longest first)
   const sortedLayers = knownLayers.sort((a, b) => b.length - a.length);
@@ -659,8 +640,8 @@ export function isValidRelationshipDirection(sourceId: string, targetId: string)
     return false;
   }
 
-  const sourceIndex = LAYER_INDEX[sourceLayer];
-  const targetIndex = LAYER_INDEX[targetLayer];
+  const sourceIndex = LAYER_MAP[sourceLayer];
+  const targetIndex = LAYER_MAP[targetLayer];
 
   if (sourceIndex === undefined || targetIndex === undefined) {
     return false;

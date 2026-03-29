@@ -24,7 +24,8 @@
 import ansis from "ansis";
 import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
-import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, extractLayerFromId, LAYER_INDEX, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
+import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, extractLayerFromId, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
+import { LAYER_MAP } from "../scan/layer-constants.js";
 import { getErrorMessage, handleError } from "../utils/errors.js";
 import { isValidLayerName, CANONICAL_LAYER_NAMES } from "../core/layers.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
@@ -666,7 +667,7 @@ export function mapToRelationshipCandidate(
         `Invalid source element ID format: '${sourceId}'. ` +
         `Relationship patterns must produce fully-qualified element IDs in the format: ` +
         `'layer.elementType.element-name' (e.g., 'api.endpoint.get-users'). ` +
-        `Valid layers are: ${Object.keys(LAYER_INDEX).join(", ")}`
+        `Valid layers are: ${Object.keys(LAYER_MAP).join(", ")}`
       );
     }
 
@@ -677,7 +678,7 @@ export function mapToRelationshipCandidate(
         `Invalid target element ID format: '${targetId}'. ` +
         `Relationship patterns must produce fully-qualified element IDs in the format: ` +
         `'layer.elementType.element-name' (e.g., 'application.service.user-service'). ` +
-        `Valid layers are: ${Object.keys(LAYER_INDEX).join(", ")}`
+        `Valid layers are: ${Object.keys(LAYER_MAP).join(", ")}`
       );
     }
 
