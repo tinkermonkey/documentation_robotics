@@ -194,7 +194,7 @@ describe("Scan Command - Pattern Mapping", () => {
       expect(candidate?.sourceId).toBe("api.endpoint.get-user");
       expect(candidate?.targetId).toBe("application.service.user-service");
       expect(candidate?.relationshipType).toBe("depends-on");
-      expect(candidate?.id).toBe("api.endpoint.get-user->application.service.user-service");
+      expect(candidate?.id).toBe("api.endpoint.get-user::depends-on::application.service.user-service");
       expect(candidate?.confidence).toBe(0.9);
     });
 
