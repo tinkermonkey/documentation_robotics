@@ -122,5 +122,5 @@ export function getLayerNumber(elementId: string): number | null {
   if (!layerName) {
     return null;
   }
-  return LAYER_MAP[layerName] ?? null;
+  return LAYER_MAP[layerName as CanonicalLayerName] ?? null;
 }

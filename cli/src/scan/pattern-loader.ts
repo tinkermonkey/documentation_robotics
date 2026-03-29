@@ -25,7 +25,7 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
-import { LAYER_MAP, extractLayerFromId } from "../core/layers.js";
+import { LAYER_MAP, extractLayerFromId, type CanonicalLayerName } from "../core/layers.js";
 
 /**
  * Query specification for CodePrism MCP tools
@@ -594,8 +594,8 @@ export function isValidRelationshipDirection(sourceId: string, targetId: string)
     return false;
   }
 
-  const sourceIndex = LAYER_MAP[sourceLayer];
-  const targetIndex = LAYER_MAP[targetLayer];
+  const sourceIndex = LAYER_MAP[sourceLayer as CanonicalLayerName];
+  const targetIndex = LAYER_MAP[targetLayer as CanonicalLayerName];
 
   if (sourceIndex === undefined || targetIndex === undefined) {
     return false;
