@@ -188,7 +188,7 @@ export class MigrationRegistry {
 
     // Return the highest toVersion from all migrations
     const versions = this.migrations.map((m) => m.toVersion);
-    return versions.sort().reverse()[0];
+    return versions.sort((a, b) => this.compareVersions(a, b)).reverse()[0];
   }
 
   /**
