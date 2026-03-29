@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { getLayerNumber, LAYER_MAP, LAYER_NAMES } from "../../../src/scan/layer-constants.js";
+import { getLayerNumber, LAYER_MAP, LAYER_NAMES } from "../../../src/core/layers.js";
 
 describe("Layer Constants", () => {
   describe("LAYER_MAP", () => {
@@ -62,10 +62,12 @@ describe("Layer Constants", () => {
       expect(getLayerNumber("random.type.name")).toBeNull();
     });
 
-    it("returns correct layer number even for abbreviated element IDs", () => {
-      // The function just looks at the first segment before the first dot
-      expect(getLayerNumber("api")).toBe(6);
-      expect(getLayerNumber("api.endpoint")).toBe(6);
+    it("returns null for abbreviated element IDs (must have type and name)", () => {
+      // Robust validation requires full format: layer.type.name
+      // "api" alone is invalid (no type.name)
+      expect(getLayerNumber("api")).toBeNull();
+      // "api.endpoint" is invalid (missing name after type)
+      expect(getLayerNumber("api.endpoint")).toBeNull();
 
       // Invalid layer name still returns null
       expect(getLayerNumber("badlayer.type.name")).toBeNull();

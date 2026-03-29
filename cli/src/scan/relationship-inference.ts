@@ -1,5 +1,5 @@
 import { ElementCandidate, RelationshipCandidate } from './pattern-loader.js';
-import { getLayerNumber } from './layer-constants.js';
+import { getLayerNumber, extractLayerFromId } from '../core/layers.js';
 
 interface InferenceContext {
   elements: Map<string, ElementCandidate>;
@@ -60,7 +60,7 @@ export class RelationshipInferenceEngine {
           continue;
         }
 
-        const targetLayer = this.extractLayerFromId(rel.targetId);
+        const targetLayer = extractLayerFromId(rel.targetId);
         // Skip if target element ID is malformed (missing layer segment)
         if (!targetLayer) {
           continue;
@@ -111,7 +111,7 @@ export class RelationshipInferenceEngine {
           );
 
           if (!exists && this.isSameLayer(el1.id, el2.id)) {
-            const sourceLayer = this.extractLayerFromId(el1.id);
+            const sourceLayer = extractLayerFromId(el1.id);
             // Skip if source element ID is malformed (missing layer segment)
             if (!sourceLayer) {
               continue;
@@ -159,7 +159,7 @@ export class RelationshipInferenceEngine {
             String(targetEl.attributes.produces)
           )
         ) {
-          const sourceLayer = this.extractLayerFromId(sourceEl.id);
+          const sourceLayer = extractLayerFromId(sourceEl.id);
           // Skip if source element ID is malformed (missing layer segment)
           if (!sourceLayer) {
             continue;
@@ -211,7 +211,7 @@ export class RelationshipInferenceEngine {
           targetEl.attributes?.provides &&
           sourceEl.attributes.implements === targetEl.attributes.provides
         ) {
-          const sourceLayerName = this.extractLayerFromId(sourceEl.id);
+          const sourceLayerName = extractLayerFromId(sourceEl.id);
           // Skip if source element ID is malformed (missing layer segment)
           if (!sourceLayerName) {
             continue;
@@ -293,26 +293,13 @@ export class RelationshipInferenceEngine {
   }
 
   private isSameLayer(id1: string, id2: string): boolean {
-    const layer1 = id1.split('.')[0];
-    const layer2 = id2.split('.')[0];
-    return layer1 === layer2;
+    const layer1 = extractLayerFromId(id1);
+    const layer2 = extractLayerFromId(id2);
+    return layer1 !== null && layer1 === layer2;
   }
 
   private typesCompatible(type1: string, type2: string): boolean {
     // Simple exact match; can be enhanced with type hierarchy
     return type1 === type2;
-  }
-
-  /**
-   * Extract layer name from element ID.
-   *
-   * Element IDs follow the format: {layer}.{elementType}.{kebab-name}
-   * This method extracts the layer segment.
-   *
-   * @returns The layer name (e.g., 'api', 'data-model'), or null if the ID is malformed
-   */
-  private extractLayerFromId(elementId: string): string | null {
-    const parts = elementId.split('.');
-    return parts[0] || null;
   }
 }

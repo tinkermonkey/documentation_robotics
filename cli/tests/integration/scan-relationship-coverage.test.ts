@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { loadBuiltinPatterns } from '../../src/scan/pattern-loader.js';
 import { RelationshipInferenceEngine } from '../../src/scan/relationship-inference.js';
-import { LAYER_MAP } from '../../src/scan/layer-constants.js';
-
-function extractLayerNum(elementId: string): number | null {
-  const layer = elementId.split('.')[0];
-  return LAYER_MAP[layer] ?? null;
-}
+import { LAYER_MAP, getLayerNumber } from '../../src/core/layers.js';
 
 describe('Relationship Scanning Coverage', function () {
   let patterns: Awaited<ReturnType<typeof loadBuiltinPatterns>>;
@@ -255,8 +250,8 @@ describe('Relationship Scanning Coverage', function () {
       // All inferred relationships should respect layer hierarchy
       for (const rel of inferred) {
         if (rel.sourceId && rel.targetId) {
-          const sourceLayer = extractLayerNum(rel.sourceId);
-          const targetLayer = extractLayerNum(rel.targetId);
+          const sourceLayer = getLayerNumber(rel.sourceId);
+          const targetLayer = getLayerNumber(rel.targetId);
 
           if (sourceLayer && targetLayer && sourceLayer !== targetLayer) {
             expect(sourceLayer).toBeGreaterThanOrEqual(targetLayer);

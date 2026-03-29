@@ -25,7 +25,7 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
-import { LAYER_MAP } from "./layer-constants.js";
+import { LAYER_MAP } from "../core/layers.js";
 
 /**
  * Query specification for CodePrism MCP tools
