@@ -383,32 +383,40 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     }
 
     // Stage changeset with candidates
+    let scanSucceeded = true;
     if (newElementCandidates.length > 0 || expandedRelationshipCandidates.length > 0) {
       console.log(`\nStaging ${newElementCandidates.length} elements and ${expandedRelationshipCandidates.length} relationships as changeset...`);
-      const stageWarnings = await stageChangeset(newElementCandidates, expandedRelationshipCandidates, process.cwd());
+      const stageResult = await stageChangeset(newElementCandidates, expandedRelationshipCandidates, process.cwd());
       // Add any staging failures to warnings for display in summary
-      warnings.push(...stageWarnings);
+      warnings.push(...stageResult.warnings);
 
-      // Only report success if no critical failures (changeset was actually saved)
-      if (!stageWarnings.some((w) => w.includes("Failed to stage any candidates"))) {
+      // Report success or failure based on whether changeset was saved
+      if (stageResult.changesetSaved) {
         console.log(ansis.green(`✓ Changeset staged successfully`));
       } else {
         console.log(ansis.red(`✗ Failed to stage changeset: no valid candidates`));
+        scanSucceeded = false;
       }
     } else {
       console.log(ansis.yellow(`\n⚠ No new candidates found`));
     }
 
-    // Print summary
-    console.log(ansis.green("\n✓ Scan complete"));
+    // Print summary - only show success if scan actually succeeded
+    if (scanSucceeded) {
+      console.log(ansis.green("\n✓ Scan complete"));
+    } else {
+      console.log(ansis.red("\n✗ Scan failed: no candidates were staged"));
+    }
     console.log(`  Patterns scanned: ${patternsToExecute.reduce((sum, set) => sum + set.patterns.length, 0)}`);
     console.log(`  Element candidates found: ${elementCandidates.length}`);
     console.log(`  Element candidates deduplicated: ${elementCandidates.length - newElementCandidates.length}`);
     console.log(`  New element candidates: ${newElementCandidates.length}`);
     console.log(`  Relationship candidates found: ${relationshipCandidates.length}`);
     console.log(`  Valid relationships staged: ${expandedRelationshipCandidates.length}`);
-    console.log(`  Elements staged: ${newElementCandidates.length}`);
-    console.log(`  Relationships staged: ${expandedRelationshipCandidates.length}`);
+    if (scanSucceeded) {
+      console.log(`  Elements staged: ${newElementCandidates.length}`);
+      console.log(`  Relationships staged: ${expandedRelationshipCandidates.length}`);
+    }
 
     // Print warnings at the end (all warnings displayed, not just in verbose mode)
     if (warnings.length > 0) {
@@ -799,9 +807,13 @@ export function printRelationshipCandidatesTable(candidates: RelationshipCandida
  * @param elementCandidates - Element candidates to stage
  * @param relationshipCandidates - Relationship candidates to stage
  * @param workdir - Working directory for changeset storage
- * @returns Array of warning messages for any staging failures (empty if all succeeded)
+ * @returns Object with warnings array and whether changeset was saved
  */
-export async function stageChangeset(elementCandidates: ElementCandidate[], relationshipCandidates: RelationshipCandidate[], workdir: string): Promise<string[]> {
+export async function stageChangeset(
+  elementCandidates: ElementCandidate[],
+  relationshipCandidates: RelationshipCandidate[],
+  workdir: string
+): Promise<{ warnings: string[]; changesetSaved: boolean }> {
   const storage = new StagedChangesetStorage(workdir);
   const changesetId = `scan-${Date.now()}`;
   const totalItems = elementCandidates.length + relationshipCandidates.length;
@@ -865,8 +877,10 @@ export async function stageChangeset(elementCandidates: ElementCandidate[], rela
 
   // Save changeset only if it has changes; partial success is preserved
   const warnings: string[] = [];
+  let changesetSaved = false;
   if (changeset.changes.length > 0) {
     await storage.save(changeset);
+    changesetSaved = true;
   } else {
     // All candidates failed to stage - report this as a critical issue
     warnings.push(`Failed to stage any candidates. All ${totalItems} item(s) failed to add to changeset.`);
@@ -884,5 +898,5 @@ export async function stageChangeset(elementCandidates: ElementCandidate[], rela
       failedRelationships.forEach((msg) => warnings.push(`  • ${msg}`));
     }
   }
-  return warnings;
+  return { warnings, changesetSaved };
 }
