@@ -184,8 +184,8 @@ export class RelationshipInferenceEngine {
    * Infer cross-layer relationships with proper direction validation.
    *
    * Cross-layer relationships must respect the architectural direction rule:
-   * higher layers (lower layer numbers, e.g., Motivation=1) can reference lower layers
-   * (higher layer numbers, e.g., Testing=12), but not vice versa.
+   * higher layers (higher layer numbers, e.g., Testing=12) can reference lower layers
+   * (lower layer numbers, e.g., Motivation=1), but not vice versa.
    */
   private inferCrossLayerRelationships(): RelationshipCandidate[] {
     const inferred: RelationshipCandidate[] = [];
@@ -201,9 +201,9 @@ export class RelationshipInferenceEngine {
         if (sourceLayer === targetLayer) continue; // Skip same-layer
 
         // Only allow higher → lower layer references (spec rule):
-        // higher layers (lower numbers like Motivation=1) → lower layers (higher numbers like Testing=12)
-        // Therefore, allow only when sourceLayer < targetLayer
-        if (sourceLayer >= targetLayer) continue;
+        // higher layers (larger numbers like Testing=12) → lower layers (smaller numbers like Motivation=1)
+        // Therefore, allow only when sourceLayer > targetLayer
+        if (sourceLayer <= targetLayer) continue;
 
         // Check for semantic relationship hints
         if (
@@ -264,7 +264,7 @@ export class RelationshipInferenceEngine {
    * independent of the user-configurable confidence_threshold setting (default 0.7).
    * This hard floor (0.5) acts as the baseline quality gate ensuring no inference
    * produces relationships below minimum confidence. The configurable threshold
-   * (0.7) is applied later in the proposal builder when creating the changeset,
+   * (0.7) is applied later in scanCommand via filterByConfidence (see scan.ts:230),
    * allowing users to be more selective about which inferred relationships to review.
    *
    * @param rel Relationship candidate to validate
@@ -285,10 +285,11 @@ export class RelationshipInferenceEngine {
     const sourceLayer = getLayerNumber(rel.sourceId);
     const targetLayer = getLayerNumber(rel.targetId);
 
-    if (sourceLayer === null || targetLayer === null) return true; // Skip validation if can't determine
+    if (sourceLayer === null || targetLayer === null) return false; // Fail closed: reject malformed element IDs
 
-    // Allow same-layer, but higher→lower is the standard direction
-    return sourceLayer <= targetLayer;
+    // Allow same-layer relationships and higher→lower cross-layer relationships
+    // Higher layers (larger numbers) can reference lower layers (smaller numbers)
+    return sourceLayer === targetLayer || sourceLayer > targetLayer;
   }
 
   private isSameLayer(id1: string, id2: string): boolean {
