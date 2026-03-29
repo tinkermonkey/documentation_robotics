@@ -25,7 +25,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import { join } from "node:path";
-import { LoadedScanConfigSchema, type LoadedScanConfig } from "./mcp-client.js";
+import { RawScanConfigSchema, LoadedScanConfigSchema, type LoadedScanConfig } from "./mcp-client.js";
 
 const CONFIG_FILENAME = ".dr-config.yaml";
 
@@ -124,6 +124,17 @@ export async function loadScanConfig(): Promise<LoadedScanConfig> {
     }
   }
 
+  // Validate file config against raw schema (before merging defaults)
+  // This catches file config errors early and separately from defaults
+  const rawValidationResult = RawScanConfigSchema.safeParse(fileConfig);
+  if (!rawValidationResult.success) {
+    const errors = rawValidationResult.error.issues.map((issue) => {
+      const path = issue.path.join(".");
+      return path ? `${path}: ${issue.message}` : issue.message;
+    });
+    throw new Error(`Invalid configuration in ${configPath}: ${errors.join("; ")}`);
+  }
+
   // Merge file config and environment overrides into defaults
   const fileCodeprism = fileConfig.codeprism as Record<string, unknown> | undefined;
   const rawConfig: unknown = {
@@ -139,7 +150,7 @@ export async function loadScanConfig(): Promise<LoadedScanConfig> {
     disabled_patterns: (fileConfig.disabled_patterns as string[] | undefined) ?? defaults.disabled_patterns,
   };
 
-  // Validate configuration on raw data before typing
+  // Validate configuration on merged data
   const config = validateScanConfig(rawConfig);
 
   return config;

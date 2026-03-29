@@ -10,13 +10,14 @@
  *
  * @example
  * ```typescript
- * const config: ScanConfig = {
+ * const config: LoadedScanConfig = {
  *   codeprism: {
  *     command: 'codeprism',
  *     args: ['--mcp'],
  *     timeout: 5000
  *   },
- *   confidence_threshold: 0.7
+ *   confidence_threshold: 0.7,
+ *   disabled_patterns: []
  * };
  *
  * const client = await createMcpClient(config);
@@ -72,9 +73,6 @@ export const LoadedScanConfigSchema = z.object({
 });
 
 export type LoadedScanConfig = z.infer<typeof LoadedScanConfigSchema>;
-
-// Keep ScanConfig as alias for backwards compatibility during transition
-export type ScanConfig = LoadedScanConfig;
 
 /**
  * Tool invocation result from CodePrism
@@ -179,7 +177,7 @@ export interface MCPClient {
  * const results = await client.callTool('search_code', { pattern: 'foo', language: 'js' });
  * ```
  */
-export async function createMcpClient(config: ScanConfig): Promise<MCPClient> {
+export async function createMcpClient(config: LoadedScanConfig): Promise<MCPClient> {
   // LoadedScanConfig guarantees all codeprism fields are populated, no null checks needed
   const command = config.codeprism.command;
   const args = config.codeprism.args;
