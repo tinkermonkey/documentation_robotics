@@ -201,9 +201,9 @@ export class RelationshipInferenceEngine {
         if (sourceLayer === targetLayer) continue; // Skip same-layer
 
         // Only allow higher → lower layer references (spec rule):
-        // higher layers (larger numbers like Testing=12) → lower layers (smaller numbers like Motivation=1)
-        // Therefore, allow only when sourceLayer > targetLayer
-        if (sourceLayer <= targetLayer) continue;
+        // higher layers (lower numbers like Motivation=1) → lower layers (larger numbers like Testing=12)
+        // Therefore, allow only when sourceLayer < targetLayer
+        if (sourceLayer >= targetLayer) continue;
 
         // Check for semantic relationship hints
         if (
@@ -288,8 +288,8 @@ export class RelationshipInferenceEngine {
     if (sourceLayer === null || targetLayer === null) return false; // Fail closed: reject malformed element IDs
 
     // Allow same-layer relationships and higher→lower cross-layer relationships
-    // Higher layers (larger numbers) can reference lower layers (smaller numbers)
-    return sourceLayer >= targetLayer;
+    // Higher layers (lower numbers like Motivation=1) can reference lower layers (higher numbers like Testing=12)
+    return sourceLayer <= targetLayer;
   }
 
   private isSameLayer(id1: string, id2: string): boolean {
