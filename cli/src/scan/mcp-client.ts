@@ -40,6 +40,71 @@ type Tool = {
 };
 
 /**
+ * MCP tool result content item returned by CodePrism
+ * Has optional text (for text/error types) and data (for image type)
+ */
+type MCPToolResultContent = {
+  type: string;
+  text?: string;
+  data?: string;
+};
+
+/**
+ * MCP tool call response returned by the SDK's callTool method
+ * Note: content can be undefined if the server returns a malformed response
+ */
+type MCPToolCallResponse = {
+  content?: MCPToolResultContent[];
+};
+
+/**
+ * MCP list tools response returned by the SDK's listTools method
+ */
+type MCPListToolsResponse = {
+  tools: Tool[];
+};
+
+/**
+ * MCP Client instance from @modelcontextprotocol/sdk
+ * Provides connection and tool invocation methods.
+ * We use a minimal interface that captures only what we need,
+ * without requiring the full SDK types at compile time.
+ */
+type MCPClientInstance = {
+  connect(transport: unknown): Promise<void>;
+  callTool(request: unknown, options?: unknown): Promise<MCPToolCallResponse>;
+  listTools(): Promise<MCPListToolsResponse>;
+  close(): Promise<void>;
+};
+
+/**
+ * Constructor for MCP Client class.
+ * The actual SDK constructor signature is complex with generics;
+ * we use a simple constructor type that accepts name and version.
+ */
+type MCPClientConstructor = {
+  new (options: { name: string; version: string }): MCPClientInstance;
+};
+
+/**
+ * MCP stdio transport instance for process communication
+ */
+type MCPStdioTransport = {
+  close(): Promise<void>;
+};
+
+/**
+ * Constructor for MCP stdio transport class
+ */
+type MCPStdioTransportConstructor = {
+  new (options: {
+    command: string;
+    args: string[];
+    env: Record<string, string | undefined>;
+  }): MCPStdioTransport;
+};
+
+/**
  * Raw scan configuration schema for validation before merging defaults
  * All fields are optional since file config may be partial
  */
@@ -116,8 +181,23 @@ export function isTransportError(error: unknown): boolean {
   if (!error) return false;
 
   const errorMsg = getErrorMessage(error);
-  const errorName = (error as any)?.name || "";
-  const errorCode = (error as any)?.code || "";
+
+  // Safely extract error properties using type guards
+  let errorName = "";
+  let errorCode = "";
+
+  if (typeof error === "object" && error !== null) {
+    const errorObj = error as Record<string, unknown>;
+    const name = errorObj.name;
+    const code = errorObj.code;
+
+    if (typeof name === "string") {
+      errorName = name;
+    }
+    if (typeof code === "string") {
+      errorCode = code;
+    }
+  }
 
   // Explicit error codes indicating transport failure
   if (["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "EPIPE", "ENOTFOUND", "EHOSTUNREACH"].includes(errorCode)) {
@@ -218,17 +298,15 @@ export async function createMcpClient(config: LoadedScanConfig): Promise<MCPClie
   }
 
   // Dynamically import MCP SDK at runtime to defer dependency requirements
-  let ClientClass: any;
-  let StdioClientTransportClass: any;
+  let ClientClass: MCPClientConstructor;
+  let StdioClientTransportClass: MCPStdioTransportConstructor;
 
   try {
-    // @ts-ignore - MCP SDK will be installed at runtime
     const clientModule = await import("@modelcontextprotocol/sdk/client/index.js");
-    ClientClass = clientModule.Client;
+    ClientClass = clientModule.Client as unknown as MCPClientConstructor;
 
-    // @ts-ignore - MCP SDK will be installed at runtime
     const stdioModule = await import("@modelcontextprotocol/sdk/client/stdio.js");
-    StdioClientTransportClass = stdioModule.StdioClientTransport;
+    StdioClientTransportClass = stdioModule.StdioClientTransport as unknown as MCPStdioTransportConstructor;
   } catch (importError) {
     throw new Error(
       "MCP SDK not installed. Please install with:\n" +
@@ -255,8 +333,8 @@ export async function createMcpClient(config: LoadedScanConfig): Promise<MCPClie
     version: "0.1.0",
   });
 
-  let actualClient: any | null = null;
-  let actualTransport: any | null = transport;
+  let actualClient: MCPClientInstance | null = null;
+  let actualTransport: MCPStdioTransport | null = transport;
   const tools: Map<string, Tool> = new Map();
 
   try {
@@ -297,7 +375,7 @@ export async function createMcpClient(config: LoadedScanConfig): Promise<MCPClie
       }
 
       try {
-        const result = await (actualClient as any).callTool(
+        const result = await actualClient.callTool(
           {
             name: toolName,
             arguments: toolArgs,
@@ -305,8 +383,18 @@ export async function createMcpClient(config: LoadedScanConfig): Promise<MCPClie
           {}
         );
 
+        // Validate that the server response includes the content property
+        if (!result.content || !Array.isArray(result.content)) {
+          return [
+            {
+              type: "error" as const,
+              text: `CodePrism returned malformed response: missing or invalid 'content' array`,
+            },
+          ];
+        }
+
         // Convert MCP tool result to ToolResult format and validate against schema
-        return result.content.map((content: any) => {
+        return result.content.map((content) => {
           const toolResult =
             content.type === "text"
               ? { type: "text" as const, text: content.text }
@@ -353,7 +441,7 @@ export async function createMcpClient(config: LoadedScanConfig): Promise<MCPClie
       try {
         // Get tools list and cache it
         if (tools.size === 0) {
-          const response = await (actualClient as any).listTools();
+          const response = await actualClient.listTools();
           for (const tool of response.tools) {
             tools.set(tool.name, tool);
           }
@@ -368,7 +456,7 @@ export async function createMcpClient(config: LoadedScanConfig): Promise<MCPClie
     async disconnect(): Promise<void> {
       if (actualClient) {
         try {
-          await (actualClient as any).close();
+          await actualClient.close();
         } catch (error) {
           // Log disconnect errors but continue cleanup. This prevents client.close()
           // failures from preventing the actualClient reference from being cleared.
