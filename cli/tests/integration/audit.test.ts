@@ -7,14 +7,14 @@ import { auditCommand } from "../../src/commands/audit.js";
 import { fileExists, readFile } from "../../src/utils/file-io.js";
 import { unlinkSync } from "node:fs";
 import path from "path";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 
 describe("audit command", () => {
   let workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     await workdir.cleanup();

@@ -6,7 +6,7 @@ import { readFile, writeFile, readdir, mkdir, rm } from "fs/promises";
 import path from "path";
 import { createHash } from "crypto";
 import { fileExists, ensureDir } from "../../src/utils/file-io.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 
 describe("Changeset Rollback Verification", () => {
   let model: Model;
@@ -22,7 +22,7 @@ describe("Changeset Rollback Verification", () => {
     // Eager loading required: Test validates changeset rollback functionality
     // which requires all layers loaded to verify state restoration
     model = await Model.load(TEST_DIR, { lazyLoad: false });
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     // Clean up test directory
@@ -245,8 +245,9 @@ describe("Changeset Rollback Verification", () => {
       });
 
       // Try to commit (should fail and rollback)
+      // Using validate: false to skip schema validation so we can test layer-not-found error
       try {
-        await manager.commit(model, changeset.id!, { force: true });
+        await manager.commit(model, changeset.id!, { validate: false, force: true });
         expect(true).toBe(false); // Should not reach
       } catch (error) {
         expect(error instanceof Error).toBe(true);
@@ -1150,7 +1151,7 @@ describe("Backup Creation Failure Handling - CRITICAL Issue Fix", () => {
     const workdir = await createTestWorkdir();
     TEST_DIR = workdir.path;
     cleanup = workdir.cleanup;
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     try {

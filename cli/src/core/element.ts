@@ -66,9 +66,14 @@ export class Element implements IElement {
     // Handle attributes - spec requires 'attributes' field only
     this.attributes = data.attributes || {};
 
-    // Extract source_reference
+    // Extract source_reference from top-level or attributes["x-source-reference"]
     if (data.source_reference) {
       this.source_reference = data.source_reference;
+    } else if (this.attributes["x-source-reference"]) {
+      // Support migrating x-source-reference from attributes to source_reference field
+      this.source_reference = this.attributes["x-source-reference"] as SourceReference;
+      // Remove from attributes to avoid duplication
+      delete this.attributes["x-source-reference"];
     }
 
     this.metadata = data.metadata;

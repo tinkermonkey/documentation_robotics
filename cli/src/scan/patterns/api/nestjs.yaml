@@ -1,0 +1,64 @@
+# NestJS API Layer Patterns
+layer: api
+framework: nestjs
+version: "1.0"
+patterns:
+  - id: nestjs.controller.route
+    produces:
+      type: node
+      layer: api
+      elementType: endpoint
+    query:
+      tool: search_code
+      params:
+        pattern: "@(Get|Post|Put|Delete|Patch|Options|Head)\\(['\"]?([^'\"\\)]*)['\"]?\\)"
+        language: typescript
+    confidence: 0.85
+    mapping:
+      id: "api.endpoint.{match.controller|kebab}-{match.route|kebab}"
+      name: "{match.route}"
+  - id: nestjs.controller.dependency
+    produces:
+      type: relationship
+      layer: api
+      elementType: dependency
+      relationshipType: depends-on
+    query:
+      tool: search_code
+      params:
+        pattern: "constructor\\([^)]*@Inject\\(['\"]?([^'\"\\)]+)['\"]?\\)\\s+private\\s+\\w+\\s*:"
+        language: typescript
+    confidence: 0.75
+    mapping:
+      source: "api.controller.{match.controller}"
+      target: "application.service.{match.serviceName|kebab}"
+  - id: nestjs.controller.guard
+    produces:
+      type: relationship
+      layer: api
+      elementType: protection
+      relationshipType: protected-by
+    query:
+      tool: search_code
+      params:
+        pattern: "@UseGuards\\(([^)]+)\\)"
+        language: typescript
+    confidence: 0.8
+    mapping:
+      source: "api.endpoint.{match.endpoint}"
+      target: "security.guard.{match.guardName|kebab}"
+  - id: nestjs.module.provider
+    produces:
+      type: relationship
+      layer: api
+      elementType: provision
+      relationshipType: provides
+    query:
+      tool: search_code
+      params:
+        pattern: "@Module\\([^)]*providers\\s*:\\s*\\[([^\\]]+)\\]"
+        language: typescript
+    confidence: 0.8
+    mapping:
+      source: "api.module.{match.module}"
+      target: "application.service.{match.provider|kebab}"

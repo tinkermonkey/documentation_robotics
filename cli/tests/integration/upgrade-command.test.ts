@@ -16,6 +16,7 @@ import { join } from "path";
 import yaml from "yaml";
 import { createTempWorkdir, runDr, assertOutputContains } from "../helpers/cli-runner.js";
 import { fileExists } from "../../src/utils/file-io.js";
+import { getCliBundledSpecVersion } from "../../src/utils/spec-version.js";
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
@@ -440,10 +441,10 @@ describe("upgrade command - unified flow", () => {
 
       expect(result.exitCode).toBe(0);
 
-      // Verify model spec version was updated to latest (0.8.2)
+      // Verify model spec version was updated to latest
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.8.2");
+      expect(updatedManifest.spec_version).toBe(getCliBundledSpecVersion());
     });
 
     it("should handle chained migrations across multiple versions", async () => {
@@ -464,10 +465,10 @@ describe("upgrade command - unified flow", () => {
       const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
 
       expect(result.exitCode).toBe(0);
-      // Should complete all migrations and reach latest version (0.8.2)
+      // Should complete all migrations and reach latest version
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.8.2");
+      expect(updatedManifest.spec_version).toBe(getCliBundledSpecVersion());
     });
 
     it("should show migration steps in output", async () => {
@@ -527,10 +528,10 @@ describe("upgrade command - unified flow", () => {
       // .dr folder should be created/restored
       expect(await fileExists(drPath)).toBe(true);
 
-      // Model should be upgraded to latest version (0.8.2)
+      // Model should be upgraded to latest version
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.8.2");
+      expect(updatedManifest.spec_version).toBe(getCliBundledSpecVersion());
     });
 
     it("should complete both upgrades successfully", async () => {

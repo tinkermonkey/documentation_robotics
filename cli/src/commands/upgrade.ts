@@ -23,6 +23,11 @@ import { Model } from "../core/model.js";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
 import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { startSpan, endSpan } from "../telemetry/index.js";
+
+// Build-time constant for telemetry feature detection
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 export interface UpgradeOptions {
   yes?: boolean;
@@ -102,15 +107,32 @@ async function buildIntegrationActions(
 }
 
 export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void> {
+  const commandSpan = isTelemetryEnabled
+    ? startSpan("upgrade.execute", {
+        "upgrade.yes": options.yes || false,
+        "upgrade.dry_run": options.dryRun || false,
+        "upgrade.force": options.force || false,
+      })
+    : null;
+
   try {
     console.log(ansis.bold("\nScanning for available upgrades...\n"));
 
     // Find project root
     const projectRoot = await findProjectRoot();
     if (!projectRoot) {
+      const error = new Error("No DR project found. Run \"dr init\" to create a new project");
+      if (commandSpan) {
+        commandSpan.recordException(error);
+        commandSpan.setStatus({
+          code: 2, // SpanStatusCode.ERROR
+          message: error.message,
+        });
+        commandSpan.setAttribute("upgrade.result", "no_project");
+      }
       console.error(ansis.red("Error: No DR project found"));
       console.error(ansis.dim('Run "dr init" to create a new project'));
-      process.exit(1);
+      throw error;
     }
 
     const bundledSpecVersion = getCliBundledSpecVersion();
@@ -136,7 +158,15 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
         ],
       });
     } else {
-      const installedSpecVersion = await getInstalledSpecVersion(drPath);
+      let installedSpecVersion: string | null = null;
+      try {
+        installedSpecVersion = await getInstalledSpecVersion(drPath);
+      } catch (error) {
+        // Manifest file exists but is corrupted or unreadable
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(ansis.red(`Error: ${message}`));
+        throw error;
+      }
       currentSpecVersion = installedSpecVersion;
 
       if (!installedSpecVersion) {
@@ -177,12 +207,21 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
         const { actions: integrationActions, upToDate: integrationUpToDate } =
           await buildIntegrationActions(cliVersion, options.force ?? false);
         actions.push(...integrationActions);
-        await handleUpgrade(projectRoot, actions, options, integrationUpToDate);
+        await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
       }
       return;
     }
 
-    const modelSpecVersion = await getModelSpecVersion(modelPath);
+    let modelSpecVersion: string | null = null;
+    try {
+      modelSpecVersion = await getModelSpecVersion(modelPath);
+    } catch (error) {
+      // Manifest file exists but is corrupted or unreadable
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(ansis.red(`Error: ${message}`));
+      throw error;
+    }
+
     if (!modelSpecVersion) {
       console.log(ansis.yellow("⚠ Model manifest.yaml not found or missing specVersion"));
       console.log(ansis.dim("  Check documentation_robotics/model/manifest.yaml\n"));
@@ -192,7 +231,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
         const { actions: integrationActions, upToDate: integrationUpToDate } =
           await buildIntegrationActions(cliVersion, options.force ?? false);
         actions.push(...integrationActions);
-        await handleUpgrade(projectRoot, actions, options, integrationUpToDate);
+        await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
       }
       return;
     }
@@ -219,6 +258,17 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
             versionBumpOnly: true,
           });
         } else {
+          const error = new Error(
+            `No migration path found from model v${modelSpecVersion} to v${targetSpecVersion}`
+          );
+          if (commandSpan) {
+            commandSpan.recordException(error);
+            commandSpan.setStatus({
+              code: 2, // SpanStatusCode.ERROR
+              message: error.message,
+            });
+            commandSpan.setAttribute("upgrade.result", "no_migration_path");
+          }
           console.log(
             ansis.yellow(
               `⚠ No migration path found from model v${modelSpecVersion} to v${targetSpecVersion}`
@@ -232,7 +282,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
             );
           }
           console.log();
-          process.exit(1);
+          throw error;
         }
       }
 
@@ -262,16 +312,50 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     // ============================================================================
 
     if (actions.length === 0) {
+      if (commandSpan) {
+        commandSpan.setAttribute("upgrade.result", "up_to_date");
+        commandSpan.setAttribute("upgrade.actions_count", 0);
+      }
       console.log(ansis.green("✓ Everything is up to date!\n"));
       console.log(ansis.dim(`  Spec reference: v${currentSpecVersion || bundledSpecVersion}`));
       console.log(ansis.dim(`  Model: v${modelSpecVersion}\n`));
       return;
     }
 
-    await handleUpgrade(projectRoot, actions, options, integrationUpToDate);
+    if (commandSpan) {
+      commandSpan.setAttribute("upgrade.actions_count", actions.length);
+      commandSpan.setAttribute(
+        "upgrade.has_spec_upgrade",
+        actions.some((a) => a.type === "spec")
+      );
+      commandSpan.setAttribute(
+        "upgrade.has_model_migration",
+        actions.some((a) => a.type === "model")
+      );
+      commandSpan.setAttribute(
+        "upgrade.has_integration_upgrade",
+        actions.some((a) => a.type === "integration")
+      );
+    }
+
+    await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
+
+    if (commandSpan) {
+      commandSpan.setAttribute("upgrade.result", "success");
+    }
   } catch (error) {
+    if (commandSpan) {
+      commandSpan.recordException(error as Error);
+      commandSpan.setStatus({
+        code: 2, // SpanStatusCode.ERROR
+        message: getErrorMessage(error),
+      });
+      commandSpan.setAttribute("upgrade.result", "error");
+    }
     console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
-    process.exit(1);
+    throw error;
+  } finally {
+    endSpan(commandSpan);
   }
 }
 
@@ -282,7 +366,8 @@ async function handleUpgrade(
   projectRoot: string,
   actions: UpgradeAction[],
   options: UpgradeOptions,
-  integrationUpToDate: string[] = []
+  integrationUpToDate: string[] = [],
+  parentSpan: any = null
 ): Promise<void> {
   // Display upgrade plan
   if (actions.length > 0) {
@@ -316,6 +401,9 @@ async function handleUpgrade(
   // Handle dry-run mode
   if (options.dryRun) {
     console.log(ansis.yellow("[DRY RUN] No changes will be made\n"));
+    if (parentSpan) {
+      parentSpan.setAttribute("upgrade.dry_run_completed", true);
+    }
     return;
   }
 
@@ -331,15 +419,23 @@ async function handleUpgrade(
       });
       shouldProceed = response === true;
     } else {
+      const error = new Error("Non-interactive mode requires --yes flag to proceed with upgrade");
+      if (parentSpan) {
+        parentSpan.recordException(error);
+        parentSpan.setAttribute("upgrade.result", "non_interactive_abort");
+      }
       console.error(
         ansis.red("Error: Non-interactive mode requires --yes flag to proceed with upgrade")
       );
-      process.exit(1);
+      throw error;
     }
   }
 
   if (!shouldProceed) {
     console.log(ansis.dim("\nUpgrade cancelled\n"));
+    if (parentSpan) {
+      parentSpan.setAttribute("upgrade.user_cancelled", true);
+    }
     return;
   }
 
@@ -371,17 +467,39 @@ async function handleUpgrade(
  * Execute spec reference upgrade
  */
 async function executeSpecUpgrade(projectRoot: string, action: UpgradeAction): Promise<void> {
+  const operationSpan = isTelemetryEnabled
+    ? startSpan("upgrade.spec", {
+        "upgrade.spec.from_version": action.fromVersion || "none",
+        "upgrade.spec.to_version": action.toVersion,
+        "upgrade.spec.is_reinstall": !action.fromVersion,
+      })
+    : null;
+
   try {
     console.log(ansis.dim(`Installing spec reference v${action.toVersion}...`));
     await installSpecReference(projectRoot, true);
     console.log(ansis.green(`✓ Spec reference upgraded to v${action.toVersion}`));
+
+    if (operationSpan) {
+      operationSpan.setAttribute("upgrade.spec.result", "success");
+    }
   } catch (error) {
+    if (operationSpan) {
+      operationSpan.recordException(error as Error);
+      operationSpan.setStatus({
+        code: 2, // SpanStatusCode.ERROR
+        message: getErrorMessage(error),
+      });
+      operationSpan.setAttribute("upgrade.spec.result", "error");
+    }
     console.error(
       ansis.red(
         `Error upgrading spec reference: ${getErrorMessage(error)}`
       )
     );
     throw error;
+  } finally {
+    endSpan(operationSpan);
   }
 }
 
@@ -392,6 +510,15 @@ async function executeModelMigration(
   action: UpgradeAction,
   options: UpgradeOptions
 ): Promise<void> {
+  const operationSpan = isTelemetryEnabled
+    ? startSpan("upgrade.model", {
+        "upgrade.model.from_version": action.fromVersion || "unknown",
+        "upgrade.model.to_version": action.toVersion,
+        "upgrade.model.version_bump_only": action.versionBumpOnly || false,
+        "upgrade.model.validate": !options.force,
+      })
+    : null;
+
   try {
     if (action.versionBumpOnly) {
       console.log(
@@ -401,6 +528,10 @@ async function executeModelMigration(
       model.manifest.specVersion = action.toVersion;
       await model.saveManifest();
       console.log(ansis.green(`✓ Model spec version updated to v${action.toVersion}`));
+
+      if (operationSpan) {
+        operationSpan.setAttribute("upgrade.model.result", "version_bumped");
+      }
       return;
     }
 
@@ -433,11 +564,26 @@ async function executeModelMigration(
     await model.saveDirtyLayers();
 
     console.log(ansis.green(`✓ Model migrated to v${action.toVersion}`));
+
+    if (operationSpan) {
+      operationSpan.setAttribute("upgrade.model.result", "migrated");
+      operationSpan.setAttribute("upgrade.model.migrations_applied", result.applied.length);
+    }
   } catch (error) {
+    if (operationSpan) {
+      operationSpan.recordException(error as Error);
+      operationSpan.setStatus({
+        code: 2, // SpanStatusCode.ERROR
+        message: getErrorMessage(error),
+      });
+      operationSpan.setAttribute("upgrade.model.result", "error");
+    }
     console.error(
       ansis.red(`Error migrating model: ${getErrorMessage(error)}`)
     );
     throw error;
+  } finally {
+    endSpan(operationSpan);
   }
 }
 
@@ -448,12 +594,37 @@ async function executeIntegrationUpdate(
   label: string,
   updateFn: () => Promise<void>
 ): Promise<void> {
+  const operationSpan = isTelemetryEnabled
+    ? startSpan("upgrade.integration", {
+        "upgrade.integration.label": label,
+        "upgrade.integration.type": label.includes("Claude")
+          ? "claude"
+          : label.includes("Copilot")
+          ? "copilot"
+          : "unknown",
+      })
+    : null;
+
   try {
     console.log(ansis.dim(`${label}...`));
     await updateFn();
     console.log(ansis.green(`✓ ${label}`));
+
+    if (operationSpan) {
+      operationSpan.setAttribute("upgrade.integration.result", "success");
+    }
   } catch (error) {
+    if (operationSpan) {
+      operationSpan.recordException(error as Error);
+      operationSpan.setStatus({
+        code: 2, // SpanStatusCode.ERROR
+        message: getErrorMessage(error),
+      });
+      operationSpan.setAttribute("upgrade.integration.result", "error");
+    }
     console.error(ansis.red(`Error: ${label} failed: ${getErrorMessage(error)}`));
     throw error;
+  } finally {
+    endSpan(operationSpan);
   }
 }

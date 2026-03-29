@@ -53,14 +53,13 @@ export class SnapshotStorage {
    * Generate snapshot ID from timestamp
    */
   private generateSnapshotId(timestamp: string): string {
-    // Format: YYYYMMDD-HHmmss
+    // Format: YYYYMMDD-HHmmssSSS (includes milliseconds for uniqueness)
     const date = new Date(timestamp);
-    const formatted = date
-      .toISOString()
-      .replace(/[-:]/g, "")
-      .replace(/\..+/, "")
-      .replace("T", "-");
-    return formatted;
+    const iso = date.toISOString();
+    const [datePart, timePart] = iso.split("T");
+    const dateFormatted = datePart.replace(/-/g, "");
+    const timeFormatted = timePart.slice(0, 12).replace(/[:.]/g, ""); // HHmmssSSS
+    return `${dateFormatted}-${timeFormatted}`;
   }
 
   /**
@@ -143,8 +142,8 @@ export class SnapshotStorage {
 
     let id: string;
 
-    // Check if input is already a snapshot ID
-    if (/^\d{8}-\d{6}$/.test(idOrTimestamp)) {
+    // Check if input is already a snapshot ID (format: YYYYMMDD-HHmmssSSS)
+    if (/^\d{8}-\d{9}$/.test(idOrTimestamp)) {
       id = idOrTimestamp;
     } else {
       // Assume it's a timestamp, convert to ID
@@ -211,7 +210,7 @@ export class SnapshotStorage {
     await this.ensureStorageDir();
 
     let id: string;
-    if (/^\d{8}-\d{6}$/.test(idOrTimestamp)) {
+    if (/^\d{8}-\d{9}$/.test(idOrTimestamp)) {
       id = idOrTimestamp;
     } else {
       id = this.generateSnapshotId(idOrTimestamp);

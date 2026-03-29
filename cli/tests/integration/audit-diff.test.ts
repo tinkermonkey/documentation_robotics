@@ -7,14 +7,14 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { auditDiffCommand } from "../../src/commands/audit-diff.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 
 describe("audit diff command", () => {
   let workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     await workdir.cleanup();

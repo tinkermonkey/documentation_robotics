@@ -26,6 +26,13 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint-agent.sh"]
 # when GITHUB_TOKEN is set. No ENV declaration needed here — runtime
 # environment variables are picked up automatically.
 
+# Disable keyring-based credential storage for gh CLI.
+# Without this, gh tries to use dbus-launch to access the system keyring,
+# which requires the dbus-x11 package (and X11 dependencies). Setting
+# GH_NO_KEYRING=1 tells gh to store credentials in plain text config
+# files instead — appropriate for headless container environments.
+ENV GH_NO_KEYRING=1
+
 # ============================================================================
 # Stage 2: Install Project-Specific Runtimes
 # ============================================================================
@@ -128,6 +135,14 @@ RUN pip install --no-cache-dir \
 # Source code ownership is handled by the mount
 
 # Python packages are already installed in /usr/local as root, no chown needed
+
+# ============================================================================
+# Stage 4b: Optimize filesystem for test execution
+# ============================================================================
+# Ensure /tmp has proper permissions for test golden copy operations.
+# Tests create many temporary directories under /tmp for golden copy cloning.
+# When running with --tmpfs /tmp, this is RAM-backed and fast.
+RUN chmod 1777 /tmp
 
 # ============================================================================
 # Stage 5: Switch to Runtime User

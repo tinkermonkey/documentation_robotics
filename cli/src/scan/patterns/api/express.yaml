@@ -1,0 +1,49 @@
+# Express.js API Layer Patterns
+layer: api
+framework: express
+version: "1.0"
+patterns:
+  - id: express.route.handler
+    produces:
+      type: node
+      layer: api
+      elementType: endpoint
+    query:
+      tool: search_code
+      params:
+        pattern: "(app|router)\\.(get|post|put|delete|patch|options|head)\\(['\"]([^'\"]+)['\"]"
+        language: javascript
+    confidence: 0.9
+    mapping:
+      id: "api.endpoint.{match.path|kebab}"
+      name: "{match.path}"
+  - id: express.middleware.usage
+    produces:
+      type: relationship
+      layer: api
+      elementType: middleware-usage
+      relationshipType: applies-to
+    query:
+      tool: search_code
+      params:
+        pattern: "(app|router)\\.use\\(([^)]+)\\)"
+        language: javascript
+    confidence: 0.75
+    mapping:
+      source: "api.middleware.{match.middlewareName|kebab}"
+      target: "api.endpoint.*"
+  - id: express.error.handler
+    produces:
+      type: relationship
+      layer: api
+      elementType: error-handling
+      relationshipType: handles
+    query:
+      tool: search_code
+      params:
+        pattern: "\\((err|error)\\s*,\\s*req\\s*,\\s*res\\s*,\\s*next\\s*\\)"
+        language: javascript
+    confidence: 0.8
+    mapping:
+      source: "api.middleware.{match.handlerName|kebab}"
+      target: "api.endpoint.*"

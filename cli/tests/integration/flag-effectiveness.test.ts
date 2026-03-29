@@ -13,7 +13,7 @@ import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
 import { validateCommand } from "@/commands/validate";
 import { auditCommand } from "@/commands/audit";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 import path from "path";
 
 describe("Flag Effectiveness Tests", () => {
@@ -80,7 +80,7 @@ describe("Flag Effectiveness Tests", () => {
       // Save model to disk
       await model.saveManifest();
       await model.saveLayer("motivation");
-    });
+    }, GOLDEN_COPY_HOOK_TIMEOUT);
 
     afterEach(async () => {
       await workdir.cleanup();
@@ -215,7 +215,7 @@ describe("Flag Effectiveness Tests", () => {
       // Save model to disk
       await model.saveManifest();
       await model.saveLayer("motivation");
-    });
+    }, GOLDEN_COPY_HOOK_TIMEOUT);
 
     afterEach(async () => {
       await workdir.cleanup();

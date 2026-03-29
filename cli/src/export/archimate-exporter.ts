@@ -105,6 +105,7 @@ export class ArchiMateExporter implements Exporter {
 
       let relationshipCount = 0;
       const elementIds = new Set(elementsByLayer.map((e) => e.element.path));
+      const exportedElementsById = new Map(elementsByLayer.map((e) => [e.element.id, e.element]));
 
       // Filter relationships to those between exported elements
       for (const rel of model.relationships.getAll()) {
@@ -119,6 +120,30 @@ export class ArchiMateExporter implements Exporter {
         lines.push(`      <name>${rel.predicate}</name>`);
         lines.push(`    </relationship>`);
         relationshipCount++;
+      }
+
+      // Also export cross-layer references as Association relationships
+      for (const { element } of elementsByLayer) {
+        if (element.references && Array.isArray(element.references)) {
+          for (const ref of element.references) {
+            // Check if target is in exported elements
+            const targetElement = exportedElementsById.get(ref.target);
+            if (!targetElement) {
+              continue; // Target not exported, skip this reference
+            }
+
+            // Use element.path for source (elements in this layer have path set)
+            const sourcePath = element.path;
+            const targetPath = targetElement.path;
+            const relId = this.escapeId(`${sourcePath}-${ref.type}-${targetPath}`);
+            lines.push(`    <relationship identifier="${relId}" `);
+            lines.push(`                  source="${sourcePath}" target="${targetPath}" `);
+            lines.push(`                  xsi:type="Association">`);
+            lines.push(`      <name>${ref.type}</name>`);
+            lines.push(`    </relationship>`);
+            relationshipCount++;
+          }
+        }
       }
 
       lines.push("  </relationships>");

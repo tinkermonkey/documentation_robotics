@@ -1,0 +1,49 @@
+# TypeORM Data Model Layer Patterns
+layer: data-model
+framework: typeorm
+version: "1.0"
+patterns:
+  - id: typeorm.entity.definition
+    produces:
+      type: node
+      layer: data-model
+      elementType: entity
+    query:
+      tool: search_code
+      params:
+        pattern: "@Entity\\([^)]*\\)\\s*export\\s*class\\s+(\\w+)"
+        language: typescript
+    confidence: 0.95
+    mapping:
+      id: "data-model.entity.{match.className|kebab}"
+      name: "{match.className}"
+  - id: typeorm.entity.column
+    produces:
+      type: relationship
+      layer: data-model
+      elementType: column
+      relationshipType: has-property
+    query:
+      tool: search_code
+      params:
+        pattern: "@Column\\(([^)]*)\\)\\s*\\w+\\s*:\\s*(\\w+)"
+        language: typescript
+    confidence: 0.9
+    mapping:
+      source: "data-model.entity.{match.entityName|kebab}"
+      target: "data-model.column.{match.columnName|kebab}"
+  - id: typeorm.entity.relationship
+    produces:
+      type: relationship
+      layer: data-model
+      elementType: link
+      relationshipType: references
+    query:
+      tool: search_code
+      params:
+        pattern: "@(OneToMany|ManyToOne)\\(\\s*\\(\\)\\s*=>\\s*(\\w+)"
+        language: typescript
+    confidence: 0.85
+    mapping:
+      source: "data-model.entity.{match.sourceEntity|kebab}"
+      target: "data-model.entity.{match.targetEntity|kebab}"

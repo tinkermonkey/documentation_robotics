@@ -5,7 +5,7 @@ import { rm, readFile, writeFile, readdir, chmod } from "fs/promises";
 import path from "path";
 import { createHash } from "crypto";
 import { fileExists, ensureDir } from "../../src/utils/file-io.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 
 describe("Backup Validation Failure Paths", () => {
   let model: Model;
@@ -20,7 +20,7 @@ describe("Backup Validation Failure Paths", () => {
     // Eager loading required: Test validates backup integrity in failure scenarios
     // which requires all layers loaded to detect incomplete or corrupted backups
     model = await Model.load(TEST_DIR, { lazyLoad: false });
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     try {

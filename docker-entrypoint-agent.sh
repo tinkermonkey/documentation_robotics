@@ -5,6 +5,47 @@ PROJECT_DIR="/workspace/documentation_robotics"
 CLI_DIR="$PROJECT_DIR/cli"
 
 # ============================================================================
+# GitHub CLI authentication (early setup)
+# ============================================================================
+# Set up gh auth BEFORE any npm/build commands that may need GitHub access.
+# The base-image entrypoint also handles this, but we need it earlier because
+# npm install/build steps below may require GitHub API access (e.g., for
+# private packages, git+https dependencies, or GitHub-hosted registries).
+#
+# gh CLI automatically uses GITHUB_TOKEN and GH_TOKEN environment variables
+# for authentication — no explicit `gh auth login` is needed when these are set.
+# GH_TOKEN takes precedence over GITHUB_TOKEN per gh CLI conventions.
+#
+# We normalize to GH_TOKEN so gh uses a single, predictable source.
+if [ -n "$GITHUB_TOKEN" ] && [ -z "$GH_TOKEN" ]; then
+  export GH_TOKEN="$GITHUB_TOKEN"
+fi
+
+# Clean up stale gh CLI config to prevent multi-account migration errors.
+# gh CLI 2.40+ introduced multi-account support with a new config format.
+# If a previous run or bind mount left an old-format hosts.yml, gh may fail
+# with "multi-account migration" errors. Removing stale config ensures gh
+# starts fresh and uses the environment token directly.
+GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}"
+if [ -d "$GH_CONFIG_DIR" ]; then
+  if [ -f "$GH_CONFIG_DIR/hosts.yml" ]; then
+    # Check for corrupted or old-format config that triggers migration errors
+    if gh auth status >/dev/null 2>&1; then
+      : # Config is valid, leave it alone
+    else
+      echo "[agent-entrypoint] Cleaning stale gh CLI config to avoid migration errors"
+      rm -f "$GH_CONFIG_DIR/hosts.yml"
+    fi
+  fi
+fi
+
+if [ -n "$GH_TOKEN" ]; then
+  echo "[agent-entrypoint] GitHub CLI authentication configured via environment token"
+else
+  echo "[agent-entrypoint] WARNING: No GITHUB_TOKEN or GH_TOKEN set — gh commands requiring auth will fail"
+fi
+
+# ============================================================================
 # Build CLI if dist/cli.js is missing (required for integration tests)
 # ============================================================================
 # Integration tests depend on the compiled CLI binary at cli/dist/cli.js.

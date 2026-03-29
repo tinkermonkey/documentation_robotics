@@ -11,6 +11,11 @@ import { Validator } from "../validators/validator.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
+import { startSpan, endSpan } from "../telemetry/index.js";
+
+// Telemetry detection
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 export interface ValidateOptions {
   layers?: string[];
@@ -287,10 +292,27 @@ async function validateOrphansOnly(model: Model, outputPath?: string): Promise<v
 }
 
 export async function validateCommand(options: ValidateOptions): Promise<void> {
+  // Create command-level span with options as attributes
+  const commandSpan = isTelemetryEnabled
+    ? startSpan("validate.execute", {
+        "validate.layers": options.layers?.join(",") || "all",
+        "validate.strict": options.strict || false,
+        "validate.verbose": options.verbose || false,
+        "validate.orphans": options.orphans || false,
+        "validate.schemas": options.schemas || options.schema || false,
+        "validate.output": options.output || "console",
+      })
+    : null;
+
   try {
     // Handle schema validation flag
     if (options.schemas || options.schema) {
       await validateSchemaSynchronization();
+
+      if (commandSpan) {
+        commandSpan.setAttribute("validate.mode", "schema-sync");
+        commandSpan.setAttribute("validate.result", "success");
+      }
       return;
     }
 
@@ -299,11 +321,19 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
 
     // --orphans mode: focused orphan report, skip full validation
     if (options.orphans) {
+      if (commandSpan) {
+        commandSpan.setAttribute("validate.mode", "orphans-only");
+      }
+
       const activeChangesetId = model.getActiveChangesetId();
       const modelForOrphans = activeChangesetId
         ? (await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)) as unknown as typeof model
         : model;
       await validateOrphansOnly(modelForOrphans, options.output);
+
+      if (commandSpan) {
+        commandSpan.setAttribute("validate.result", "success");
+      }
       return;
     }
 
@@ -360,6 +390,14 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       }
     }
 
+    // Record validation results in span
+    if (commandSpan) {
+      commandSpan.setAttribute("validate.valid", result.isValid());
+      commandSpan.setAttribute("validate.error_count", result.errors.length);
+      commandSpan.setAttribute("validate.warning_count", result.warnings.length);
+      commandSpan.setAttribute("validate.orphan_count", stats.orphanedElements.length);
+    }
+
     // Format and display output
     if (options.output) {
       // Export to file
@@ -380,6 +418,10 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       if (!result.isValid()) {
         throw new Error("Validation failed");
       }
+
+      if (commandSpan) {
+        commandSpan.setAttribute("validate.result", "success");
+      }
       return;
     }
 
@@ -397,11 +439,25 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
         console.log(ansis.red("Strict mode enabled: treating warnings as errors"));
         throw new Error("Validation failed (strict mode)");
       }
+
+      if (commandSpan) {
+        commandSpan.setAttribute("validate.result", "success");
+      }
       return;
     } else {
       throw new Error("Validation failed");
     }
   } catch (error) {
+    // Record exception in span with full context
+    if (commandSpan) {
+      commandSpan.recordException(error as Error);
+      commandSpan.setStatus({
+        code: 2, // SpanStatusCode.ERROR
+        message: getErrorMessage(error),
+      });
+      commandSpan.setAttribute("validate.result", "error");
+    }
+
     const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
 
@@ -419,6 +475,11 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
         console.error(ansis.dim(`Error cause: ${(error as any).cause || "none"}`));
       }
     }
+
+    // Re-throw to let root span handle exit
     throw error;
+  } finally {
+    // Always end span
+    endSpan(commandSpan);
   }
 }

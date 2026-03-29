@@ -7,12 +7,21 @@ on:
     paths:
       - "cli/**"
       - "spec/**"
+      - "docs/api-spec.yaml"
+      - "docker-entrypoint-agent.sh"
       - ".github/workflows/cli-tests.yml"
   pull_request:
     branches: ["**"]
     paths:
       - "cli/**"
       - "spec/**"
+      - "docs/api-spec.yaml"
+      - "docker-entrypoint-agent.sh"
+
+# Expose GITHUB_TOKEN to all jobs so `gh` CLI can authenticate
+# for operations like fetching CI run info, posting PR comments, etc.
+env:
+  GITHUB_TOKEN: ${{ github.token }}
 
 # Expose GITHUB_TOKEN to all jobs so `gh` CLI can authenticate
 # for operations like fetching CI run info, posting PR comments, etc.

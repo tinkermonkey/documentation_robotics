@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { runDr } from "../helpers/cli-runner.js";
@@ -30,7 +30,7 @@ describe("Changeset Staged Visibility", () => {
 
     // Load with lazy loading disabled for access to staging functionality
     model = await Model.load(TEST_DIR, { lazyLoad: false });
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     try {

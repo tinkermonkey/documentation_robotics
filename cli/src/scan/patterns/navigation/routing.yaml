@@ -1,0 +1,111 @@
+layer: navigation
+framework: routing
+version: "1.0"
+patterns:
+  - id: navigation.route.definition
+    produces:
+      type: node
+      layer: navigation
+      elementType: route
+    query:
+      tool: search_code
+      params:
+        pattern: "(?:path|route|url):\\s*[\"\\'']?([^\\n\"\\'']+)[\"\\'']?"
+        language: all
+    confidence: 0.85
+    mapping:
+      id: "navigation.route.{match.routePath|kebab}"
+      name: "{match.routePath}"
+
+  - id: navigation.menu.definition
+    produces:
+      type: node
+      layer: navigation
+      elementType: menu
+    query:
+      tool: search_code
+      params:
+        pattern: "(?:navigation|nav|menu).*?(?:class|name|id):\\s*[\"\\'']?([^\\n\"\\'']+)[\"\\'']?"
+        language: all
+    confidence: 0.8
+    mapping:
+      id: "navigation.menu.{match.menuName|kebab}"
+      name: "{match.menuName}"
+
+  - id: navigation.page.definition
+    produces:
+      type: node
+      layer: navigation
+      elementType: page
+    query:
+      tool: search_code
+      params:
+        pattern: "(?:page|view|screen):\\s*(?:name|title)?\\s*[\"\\'']?([^\\n\"\\'']+)[\"\\'']?"
+        language: all
+    confidence: 0.8
+    mapping:
+      id: "navigation.page.{match.pageName|kebab}"
+      name: "{match.pageName}"
+
+  - id: navigation.breadcrumb.trail
+    produces:
+      type: node
+      layer: navigation
+      elementType: breadcrumb
+    query:
+      tool: search_code
+      params:
+        pattern: "(?:breadcrumb|breadcrumbs):\\s*(?:\\[|items)\\s*([^\\]]+)"
+        language: all
+    confidence: 0.75
+    mapping:
+      id: "navigation.breadcrumb.{match.breadcrumbPath|kebab}"
+      name: "{match.breadcrumbPath}"
+
+  - id: navigation.route.maps-to-page
+    produces:
+      type: relationship
+      layer: navigation
+      elementType: route-page
+      relationshipType: maps-to
+    query:
+      tool: search_code
+      params:
+        pattern: "(?:path|route).*?(?:component|page):\\s*([^#\\n]+)"
+        language: all
+    confidence: 0.9
+    mapping:
+      source: "navigation.route.*"
+      target: "navigation.page.*"
+
+  - id: navigation.menu.links-to-route
+    produces:
+      type: relationship
+      layer: navigation
+      elementType: menu-route
+      relationshipType: links-to
+    query:
+      tool: search_code
+      params:
+        pattern: "(?:href|to|link)=[\\\"\\'']([^\\\"\\''\\s]+)[\\\"\\'']"
+        language: all
+    confidence: 0.85
+    mapping:
+      source: "navigation.menu.*"
+      target: "navigation.route.*"
+
+  - id: navigation.page.uses-breadcrumb
+    produces:
+      type: relationship
+      layer: navigation
+      elementType: page-breadcrumb
+      relationshipType: uses
+    query:
+      tool: search_code
+      params:
+        pattern: "breadcrumb.*?page|page.*?breadcrumb"
+        language: all
+    confidence: 0.8
+    mapping:
+      source: "navigation.page.*"
+      target: "navigation.breadcrumb.*"

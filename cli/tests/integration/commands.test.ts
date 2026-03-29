@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "bun:test";
 import { Model } from "../../src/core/model.js";
 import { fileExists } from "../../src/utils/file-io.js";
 import { runDr as runDrHelper } from "../helpers/cli-runner.js";
-import { createTestWorkdir } from "../helpers/golden-copy.js";
+import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
 import { findElementBySemanticId } from "../helpers/element-finder.js";
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
@@ -36,7 +36,7 @@ async function ensureSetup() {
 describe("CLI Commands Integration Tests", () => {
   beforeEach(async () => {
     tempDir = await createTestWorkdir();
-  });
+  }, GOLDEN_COPY_HOOK_TIMEOUT);
 
   afterEach(async () => {
     await tempDir.cleanup();

@@ -1,0 +1,49 @@
+# Prisma Data Store Layer Patterns
+layer: data-store
+framework: prisma-schema
+version: "1.0"
+patterns:
+  - id: prisma.datasource.provider
+    produces:
+      type: node
+      layer: data-store
+      elementType: database
+    query:
+      tool: search_code
+      params:
+        pattern: "datasource\\s+db\\s*\\{.*provider\\s*=\\s*['\"]([^'\"]+)['\"]"
+        language: prisma
+    confidence: 0.95
+    mapping:
+      id: "data-store.database.{match.provider|kebab}"
+      name: "{match.provider}"
+  - id: prisma.model.index
+    produces:
+      type: relationship
+      layer: data-store
+      elementType: index
+      relationshipType: indexes
+    query:
+      tool: search_code
+      params:
+        pattern: "@@index\\(\\[(\\w+)\\]"
+        language: prisma
+    confidence: 0.8
+    mapping:
+      source: "data-store.table.{match.modelName|kebab}"
+      target: "data-store.index.{match.fieldName|kebab}"
+  - id: prisma.model.unique
+    produces:
+      type: relationship
+      layer: data-store
+      elementType: constraint
+      relationshipType: constrains
+    query:
+      tool: search_code
+      params:
+        pattern: "@@unique\\(\\[(\\w+)\\]"
+        language: prisma
+    confidence: 0.85
+    mapping:
+      source: "data-store.table.{match.modelName|kebab}"
+      target: "data-store.constraint.{match.fieldName|kebab}"

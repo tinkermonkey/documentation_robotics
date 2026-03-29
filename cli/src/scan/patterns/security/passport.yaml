@@ -1,0 +1,64 @@
+# Passport Security Layer Patterns
+layer: security
+framework: passport
+version: "1.0"
+patterns:
+  - id: passport.strategy.registration
+    produces:
+      type: node
+      layer: security
+      elementType: authentication
+    query:
+      tool: search_code
+      params:
+        pattern: "passport\\.use\\s*\\(\\s*['\"]?([^'\"\\)]+)['\"]?\\s*,\\s*new\\s+(\\w+Strategy)"
+        language: typescript
+    confidence: 0.9
+    mapping:
+      id: "security.authentication.{match.strategyName|kebab}"
+      name: "{match.strategyName}"
+  - id: passport.middleware.authenticate
+    produces:
+      type: relationship
+      layer: security
+      elementType: enforcement
+      relationshipType: enforces
+    query:
+      tool: search_code
+      params:
+        pattern: "passport\\.authenticate\\s*\\(\\s*['\"]([^'\"]+)['\"]"
+        language: typescript
+    confidence: 0.85
+    mapping:
+      source: "api.endpoint.*"
+      target: "security.authentication.{match.strategy|kebab}"
+  - id: passport.endpoint.login
+    produces:
+      type: relationship
+      layer: security
+      elementType: authentication-endpoint
+      relationshipType: authenticates
+    query:
+      tool: search_code
+      params:
+        pattern: "(app|router)\\.(get|post)\\s*\\(\\s*['\"]?(\\/login)['\"]?"
+        language: typescript
+    confidence: 0.8
+    mapping:
+      source: "api.endpoint.login"
+      target: "security.authentication.*"
+  - id: passport.authorization.role
+    produces:
+      type: relationship
+      layer: security
+      elementType: authorization
+      relationshipType: authorizes
+    query:
+      tool: search_code
+      params:
+        pattern: "(requireRole|authorize|checkPermission)\\s*\\(.*['\"]?(admin|user|guest)['\"]?\\)"
+        language: typescript
+    confidence: 0.7
+    mapping:
+      source: "api.endpoint.*"
+      target: "security.authorization.{match.role|kebab}"
