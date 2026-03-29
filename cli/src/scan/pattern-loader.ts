@@ -27,6 +27,9 @@ import { parse } from "yaml";
 import { z } from "zod";
 import { LAYER_MAP, extractLayerFromId, type CanonicalLayerName } from "../core/layers.js";
 
+// Re-export for test access
+export { extractLayerFromId };
+
 /**
  * Query specification for CodePrism MCP tools
  */
