@@ -152,7 +152,7 @@ describe("stageChangeset - Partial Failure Path", () => {
         }
       ];
 
-      const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+      const { warnings } = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
       // Should have no warnings in success path
       expect(warnings.length).toBe(0);
@@ -195,7 +195,7 @@ describe("stageChangeset - Partial Failure Path", () => {
       await withMockedCreate(
         (callCount) => callCount === 2, // Fail on second call
         async () => {
-          const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+          const { warnings } = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
           // Should have warnings about the failed element
           expect(warnings.length).toBeGreaterThan(0);
@@ -230,11 +230,11 @@ describe("stageChangeset - Partial Failure Path", () => {
       const relationshipCandidates: RelationshipCandidate[] = [];
 
       await withMockedCreateSimpleFail(async () => {
-        const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+        const { warnings } = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
         // Should have warning about failed element, with exact format
         expect(warnings.length).toBeGreaterThan(0);
-        expect(warnings[0]).toContain("Failed to stage 1 element(s)");
+        expect(warnings.some((w) => w.includes("Failed to stage 1 element(s)"))).toBe(true);
         expect(warnings.some((w) => w.includes("api.endpoint.test-1"))).toBe(true);
         expect(warnings.some((w) => w.includes("Test error"))).toBe(true);
       });
@@ -269,7 +269,7 @@ describe("stageChangeset - Partial Failure Path", () => {
       await withMockedCreate(
         (callCount) => callCount === 2, // Fail on second call (first relationship)
         async () => {
-          const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+          const { warnings } = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
           // Should have warnings about failed relationship
           expect(warnings.length).toBeGreaterThan(0);
@@ -303,11 +303,11 @@ describe("stageChangeset - Partial Failure Path", () => {
       ];
 
       await withMockedCreateSimpleFail(async () => {
-        const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+        const { warnings } = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
         // Should have warning about failed relationship with details
         expect(warnings.length).toBeGreaterThan(0);
-        expect(warnings[0]).toContain("Failed to stage 1 relationship");
+        expect(warnings.some((w) => w.includes("Failed to stage 1 relationship"))).toBe(true);
         expect(warnings.some((w) => w.includes("api.endpoint.x"))).toBe(true);
         expect(warnings.some((w) => w.includes("api.endpoint.y"))).toBe(true);
         expect(warnings.some((w) => w.includes("Test error"))).toBe(true);
@@ -351,7 +351,7 @@ describe("stageChangeset - Partial Failure Path", () => {
       await withMockedCreate(
         (callCount) => callCount === 2 || callCount === 3, // Fail on second element and relationship
         async () => {
-          const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+          const { warnings } = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
           // Should have warnings for both elements and relationships
           expect(warnings.length).toBeGreaterThan(0);
@@ -386,7 +386,7 @@ describe("stageChangeset - Partial Failure Path", () => {
       const relationshipCandidates: RelationshipCandidate[] = [];
 
       await withMockedCreateSimpleFail(async () => {
-        const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+        const { warnings } = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
         // Changeset directory should exist even though all candidates failed
         const changesetsDir = path.join(workdir.path, "documentation-robotics", "changesets");
@@ -419,7 +419,7 @@ describe("stageChangeset - Partial Failure Path", () => {
       ];
 
       await withMockedCreateSimpleFail(async () => {
-        const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+        const { warnings } = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
         // With singular count, should use singular form
         expect(warnings.some((w) => w.includes("1 relationship"))).toBe(true);
@@ -449,7 +449,7 @@ describe("stageChangeset - Partial Failure Path", () => {
       const relationshipCandidates: RelationshipCandidate[] = [];
 
       await withMockedCreateSimpleFail(async () => {
-        const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
+        const { warnings } = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
         // Element format always uses element(s) regardless of count
         expect(warnings.some((w) => w.includes("2 element(s)"))).toBe(true);
