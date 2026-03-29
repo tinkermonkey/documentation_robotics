@@ -264,7 +264,7 @@ export class RelationshipInferenceEngine {
    * independent of the user-configurable confidence_threshold setting (default 0.7).
    * This hard floor (0.5) acts as the baseline quality gate ensuring no inference
    * produces relationships below minimum confidence. The configurable threshold
-   * (0.7) is applied later in scanCommand via filterByConfidence (see scan.ts:230),
+   * (0.7) is applied later in scanCommand via filterByConfidence function,
    * allowing users to be more selective about which inferred relationships to review.
    *
    * @param rel Relationship candidate to validate
@@ -289,7 +289,7 @@ export class RelationshipInferenceEngine {
 
     // Allow same-layer relationships and higher→lower cross-layer relationships
     // Higher layers (larger numbers) can reference lower layers (smaller numbers)
-    return sourceLayer === targetLayer || sourceLayer > targetLayer;
+    return sourceLayer >= targetLayer;
   }
 
   private isSameLayer(id1: string, id2: string): boolean {
