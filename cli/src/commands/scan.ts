@@ -123,6 +123,17 @@ export function expandWildcardElementId(elementId: string, availableElements: Ar
     return elemParts.length >= 3 && elemParts[0] === targetLayer && elemParts[1] === targetElementType;
   });
 
+  // Warn if valid wildcard pattern matches zero elements
+  if (matched.length === 0) {
+    if (warnings) {
+      warnings.push(
+        `Wildcard pattern '${elementId}' matched zero elements. ` +
+        `No elements found in layer '${targetLayer}' with type '${targetElementType}'. ` +
+        `This relationship will be skipped.`
+      );
+    }
+  }
+
   // Return matched elements, or empty array if no matches (allows candidate to be skipped)
   return matched.map((e) => e.id);
 }
@@ -375,9 +386,15 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     if (newElementCandidates.length > 0 || expandedRelationshipCandidates.length > 0) {
       console.log(`\nStaging ${newElementCandidates.length} elements and ${expandedRelationshipCandidates.length} relationships as changeset...`);
       const stageWarnings = await stageChangeset(newElementCandidates, expandedRelationshipCandidates, process.cwd());
-      console.log(ansis.green(`✓ Changeset staged successfully`));
       // Add any staging failures to warnings for display in summary
       warnings.push(...stageWarnings);
+
+      // Only report success if no critical failures (changeset was actually saved)
+      if (!stageWarnings.some((w) => w.includes("Failed to stage any candidates"))) {
+        console.log(ansis.green(`✓ Changeset staged successfully`));
+      } else {
+        console.log(ansis.red(`✗ Failed to stage changeset: no valid candidates`));
+      }
     } else {
       console.log(ansis.yellow(`\n⚠ No new candidates found`));
     }
@@ -846,11 +863,16 @@ export async function stageChangeset(elementCandidates: ElementCandidate[], rela
     }
   }
 
-  // Save changeset with successfully staged candidates
-  await storage.save(changeset);
-
-  // Return staging failures as warnings (partial success is preserved by the save above)
+  // Save changeset only if it has changes; partial success is preserved
   const warnings: string[] = [];
+  if (changeset.changes.length > 0) {
+    await storage.save(changeset);
+  } else {
+    // All candidates failed to stage - report this as a critical issue
+    warnings.push(`Failed to stage any candidates. All ${totalItems} item(s) failed to add to changeset.`);
+  }
+
+  // Return staging failures as warnings
   if (failedElements.length > 0 || failedRelationships.length > 0) {
     if (failedElements.length > 0) {
       warnings.push(`Failed to stage ${failedElements.length} element(s):`);

@@ -163,7 +163,7 @@ export interface ElementCandidate {
  * numerically higher (later in the layer sequence) than target element layer.
  */
 export interface RelationshipCandidate {
-  id: string;                    // e.g. "api.endpoint.create-order->data-model.entity.order"
+  id: string;                    // e.g. "api.endpoint.create-order::depends-on::data-model.entity.order"
   relationshipType: string;      // e.g. "depends-on", "realizes", "accesses"
   sourceId: string;              // must be valid element ID
   targetId: string;              // must be valid element ID
