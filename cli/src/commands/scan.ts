@@ -24,10 +24,9 @@
 import ansis from "ansis";
 import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
-import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, extractLayerFromId, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
-import { LAYER_MAP, isValidLayerName, CANONICAL_LAYER_NAMES } from "../core/layers.js";
-import { getErrorMessage, handleError } from "../utils/errors.js";
-import { CLIError, ErrorCategory } from "../utils/errors.js";
+import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
+import { LAYER_MAP, isValidLayerName, CANONICAL_LAYER_NAMES, extractLayerFromId } from "../core/layers.js";
+import { getErrorMessage, handleError, CLIError, ErrorCategory } from "../utils/errors.js";
 import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { RelationshipInferenceEngine } from "../scan/relationship-inference.js";

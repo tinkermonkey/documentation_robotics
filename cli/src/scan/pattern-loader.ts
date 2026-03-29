@@ -25,7 +25,7 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
-import { LAYER_MAP } from "../core/layers.js";
+import { LAYER_MAP, extractLayerFromId } from "../core/layers.js";
 
 /**
  * Query specification for CodePrism MCP tools
@@ -562,52 +562,6 @@ export function renderTemplate(template: string, data: Record<string, unknown>):
 
     return result;
   });
-}
-
-
-/**
- * Extract layer name from an element ID
- *
- * Element IDs follow the format: {layer}.{elementType}.{kebab-case-name}
- * Handles both dot-separated and hyphenated formats.
- * Uses longest-prefix matching to correctly handle multi-word layer names like "data-model".
- *
- * @param elementId - Full element ID
- * @returns Layer name or null if ID format is invalid
- *
- * @example
- * ```typescript
- * extractLayerFromId("api.endpoint.create-order") // => "api"
- * extractLayerFromId("data-model.entity.customer") // => "data-model"
- * extractLayerFromId("invalid-id") // => null
- * ```
- */
-export function extractLayerFromId(elementId: string): string | null {
-  // Determine if using dot-separated format (e.g., motivation.goal.name) or hyphenated (e.g., motivation-goal-name)
-  const isDotSeparated = elementId.includes(".");
-  const separator = isDotSeparated ? "." : "-";
-
-  // Get known layers from LAYER_MAP (single source of truth)
-  const knownLayers = Object.keys(LAYER_MAP);
-
-  // Try to match known layers in order of specificity (longest first)
-  const sortedLayers = knownLayers.sort((a, b) => b.length - a.length);
-
-  for (const layer of sortedLayers) {
-    const prefix = layer + separator;
-    if (elementId.startsWith(prefix)) {
-      const remainder = elementId.slice(prefix.length);
-      // Ensure remainder has at least type + separator + name (i.e., contains at least one separator)
-      if (remainder.includes(separator)) {
-        return layer;
-      }
-      // If remainder doesn't have proper structure, this isn't a valid element ID
-      return null;
-    }
-  }
-
-  // Return null if no valid layer prefix found
-  return null;
 }
 
 /**

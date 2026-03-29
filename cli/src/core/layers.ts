@@ -24,15 +24,15 @@ export type CanonicalLayerName = (typeof CANONICAL_LAYER_NAMES)[number];
  * Map of layer names to their numeric order (1-12).
  * Derived from CANONICAL_LAYER_NAMES as the single source of truth.
  */
-export const LAYER_MAP: Record<string, number> = Object.fromEntries(
+export const LAYER_MAP: Record<CanonicalLayerName, number> = Object.fromEntries(
   CANONICAL_LAYER_NAMES.map((name, index) => [name, index + 1])
-);
+) as Record<CanonicalLayerName, number>;
 
 /**
  * Array of all layer names in order.
  * Derived from CANONICAL_LAYER_NAMES.
  */
-export const LAYER_NAMES = [...CANONICAL_LAYER_NAMES];
+export const LAYER_NAMES: readonly CanonicalLayerName[] = CANONICAL_LAYER_NAMES;
 
 /**
  * Get the numeric order of a layer (1-12)
