@@ -35,6 +35,87 @@ describe("stageChangeset - Partial Failure Path", () => {
     await workdir.cleanup();
   });
 
+  // Helper to reduce mock duplication
+  async function withMockedCreate(
+    failFn: (callCount: number) => boolean,
+    testFn: () => Promise<void>
+  ) {
+    const originalCreate = StagedChangesetStorage.prototype.create;
+    let callCount = 0;
+
+    const mockCreate = async function (
+      this: StagedChangesetStorage,
+      id: string,
+      name: string,
+      description: string | undefined,
+      baseSnapshot: string
+    ) {
+      const changeset = await originalCreate.call(
+        this,
+        id,
+        name,
+        description,
+        baseSnapshot
+      );
+      const originalAddChange = changeset.addChange.bind(changeset);
+
+      changeset.addChange = function (...args: any[]) {
+        callCount++;
+        if (failFn(callCount)) {
+          throw new Error("Simulated failure");
+        }
+        return originalAddChange(...args);
+      };
+
+      return changeset;
+    };
+
+    spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(
+      mockCreate as any
+    );
+
+    try {
+      await testFn();
+    } finally {
+      (StagedChangesetStorage.prototype.create as any).mockRestore?.();
+    }
+  }
+
+  // Helper for simple mocks that always fail
+  async function withMockedCreateSimpleFail(testFn: () => Promise<void>) {
+    const originalCreate = StagedChangesetStorage.prototype.create;
+
+    const mockCreate = async function (
+      this: StagedChangesetStorage,
+      id: string,
+      name: string,
+      description: string | undefined,
+      baseSnapshot: string
+    ) {
+      const changeset = await originalCreate.call(
+        this,
+        id,
+        name,
+        description,
+        baseSnapshot
+      );
+      changeset.addChange = function () {
+        throw new Error("Test error");
+      };
+      return changeset;
+    };
+
+    spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(
+      mockCreate as any
+    );
+
+    try {
+      await testFn();
+    } finally {
+      (StagedChangesetStorage.prototype.create as any).mockRestore?.();
+    }
+  }
+
   describe("success path", () => {
     it("stages all candidates successfully when no errors occur", async () => {
       const elementCandidates: ElementCandidate[] = [
@@ -111,49 +192,27 @@ describe("stageChangeset - Partial Failure Path", () => {
 
       const relationshipCandidates: RelationshipCandidate[] = [];
 
-      // Mock the storage's create method to return a changeset with a failing addChange method
-      // We'll use a test spy to track calls and simulate failures
-      let callCount = 0;
-      const originalCreate = StagedChangesetStorage.prototype.create;
+      await withMockedCreate(
+        (callCount) => callCount === 2, // Fail on second call
+        async () => {
+          const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
-      const mockCreate = async function (this: StagedChangesetStorage, id: string, name: string, description: string | undefined, baseSnapshot: string) {
-        const changeset = await originalCreate.call(this, id, name, description, baseSnapshot);
-        const originalAddChange = changeset.addChange.bind(changeset);
+          // Should have warnings about the failed element
+          expect(warnings.length).toBeGreaterThan(0);
+          expect(warnings.some((w) => w.includes("Failed to stage"))).toBe(true);
+          expect(warnings.some((w) => w.includes("element"))).toBe(true);
 
-        // Mock addChange to fail on the second call
-        changeset.addChange = function(...args: any[]) {
-          callCount++;
-          if (callCount === 2) {
-            throw new Error("Simulated failure: element validation failed");
-          }
-          return originalAddChange(...args);
-        };
+          // Verify the successful candidate was still staged
+          const storage = new StagedChangesetStorage(workdir.path);
+          const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
+          expect(changesets.length).toBe(1);
 
-        return changeset;
-      };
-
-      spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(mockCreate as any);
-
-      try {
-        const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
-
-        // Should have warnings about the failed element
-        expect(warnings.length).toBeGreaterThan(0);
-        expect(warnings.some((w) => w.includes("Failed to stage"))).toBe(true);
-        expect(warnings.some((w) => w.includes("element"))).toBe(true);
-
-        // Verify the successful candidate was still staged
-        const storage = new StagedChangesetStorage(workdir.path);
-        const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
-        expect(changesets.length).toBe(1);
-
-        const changeset = await storage.load(changesets[0]);
-        expect(changeset).toBeDefined();
-        // Should have 1 successful element change (the second one failed)
-        expect(changeset?.changes.length).toBe(1);
-      } finally {
-        (StagedChangesetStorage.prototype.create as any).mockRestore?.();
-      }
+          const changeset = await storage.load(changesets[0]);
+          expect(changeset).toBeDefined();
+          // Should have 1 successful element change (the second one failed)
+          expect(changeset?.changes.length).toBe(1);
+        }
+      );
     });
 
     it("returns warning messages detailing which elements failed", async () => {
@@ -170,30 +229,15 @@ describe("stageChangeset - Partial Failure Path", () => {
 
       const relationshipCandidates: RelationshipCandidate[] = [];
 
-      // Mock the changeset to always fail
-      const originalCreate = StagedChangesetStorage.prototype.create;
-
-      const mockCreate = async function (this: StagedChangesetStorage, id: string, name: string, description: string | undefined, baseSnapshot: string) {
-        const changeset = await originalCreate.call(this, id, name, description, baseSnapshot);
-        changeset.addChange = function() {
-          throw new Error("Schema validation error");
-        };
-        return changeset;
-      };
-
-      spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(mockCreate as any);
-
-      try {
+      await withMockedCreateSimpleFail(async () => {
         const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
-        // Should have warning about failed element
+        // Should have warning about failed element, with exact format
         expect(warnings.length).toBeGreaterThan(0);
-        expect(warnings[0]).toContain("Failed to stage 1 element");
+        expect(warnings[0]).toContain("Failed to stage 1 element(s)");
         expect(warnings.some((w) => w.includes("api.endpoint.test-1"))).toBe(true);
-        expect(warnings.some((w) => w.includes("Schema validation error"))).toBe(true);
-      } finally {
-        (StagedChangesetStorage.prototype.create as any).mockRestore?.();
-      }
+        expect(warnings.some((w) => w.includes("Test error"))).toBe(true);
+      });
     });
   });
 
@@ -222,45 +266,25 @@ describe("stageChangeset - Partial Failure Path", () => {
         }
       ];
 
-      let callCount = 0;
-      const originalCreate = StagedChangesetStorage.prototype.create;
+      await withMockedCreate(
+        (callCount) => callCount === 2, // Fail on second call (first relationship)
+        async () => {
+          const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
-      const mockCreate = async function (this: StagedChangesetStorage, id: string, name: string, description: string | undefined, baseSnapshot: string) {
-        const changeset = await originalCreate.call(this, id, name, description, baseSnapshot);
-        const originalAddChange = changeset.addChange.bind(changeset);
+          // Should have warnings about failed relationship
+          expect(warnings.length).toBeGreaterThan(0);
+          expect(warnings.some((w) => w.includes("Failed to stage"))).toBe(true);
+          expect(warnings.some((w) => w.includes("relationship"))).toBe(true);
 
-        // Mock addChange to fail on the second call (first relationship)
-        changeset.addChange = function(...args: any[]) {
-          callCount++;
-          if (callCount === 2) { // Second call is the first relationship
-            throw new Error("Simulated failure: relationship target not found");
-          }
-          return originalAddChange(...args);
-        };
+          // Verify the successful relationship was still staged
+          const storage = new StagedChangesetStorage(workdir.path);
+          const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
+          expect(changesets.length).toBe(1);
 
-        return changeset;
-      };
-
-      spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(mockCreate as any);
-
-      try {
-        const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
-
-        // Should have warnings about failed relationship
-        expect(warnings.length).toBeGreaterThan(0);
-        expect(warnings.some((w) => w.includes("Failed to stage"))).toBe(true);
-        expect(warnings.some((w) => w.includes("relationship"))).toBe(true);
-
-        // Verify the successful relationship was still staged
-        const storage = new StagedChangesetStorage(workdir.path);
-        const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
-        expect(changesets.length).toBe(1);
-
-        const changeset = await storage.load(changesets[0]);
-        expect(changeset?.changes.length).toBe(1); // One successful relationship
-      } finally {
-        (StagedChangesetStorage.prototype.create as any).mockRestore?.();
-      }
+          const changeset = await storage.load(changesets[0]);
+          expect(changeset?.changes.length).toBe(1); // One successful relationship
+        }
+      );
     });
 
     it("returns warning messages detailing which relationships failed", async () => {
@@ -278,19 +302,7 @@ describe("stageChangeset - Partial Failure Path", () => {
         }
       ];
 
-      const originalCreate = StagedChangesetStorage.prototype.create;
-
-      const mockCreate = async function (this: StagedChangesetStorage, id: string, name: string, description: string | undefined, baseSnapshot: string) {
-        const changeset = await originalCreate.call(this, id, name, description, baseSnapshot);
-        changeset.addChange = function() {
-          throw new Error("Invalid relationship predicate");
-        };
-        return changeset;
-      };
-
-      spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(mockCreate as any);
-
-      try {
+      await withMockedCreateSimpleFail(async () => {
         const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
         // Should have warning about failed relationship with details
@@ -298,10 +310,8 @@ describe("stageChangeset - Partial Failure Path", () => {
         expect(warnings[0]).toContain("Failed to stage 1 relationship");
         expect(warnings.some((w) => w.includes("api.endpoint.x"))).toBe(true);
         expect(warnings.some((w) => w.includes("api.endpoint.y"))).toBe(true);
-        expect(warnings.some((w) => w.includes("Invalid relationship predicate"))).toBe(true);
-      } finally {
-        (StagedChangesetStorage.prototype.create as any).mockRestore?.();
-      }
+        expect(warnings.some((w) => w.includes("Test error"))).toBe(true);
+      });
     });
   });
 
@@ -338,48 +348,25 @@ describe("stageChangeset - Partial Failure Path", () => {
         }
       ];
 
-      let callCount = 0;
-      const originalCreate = StagedChangesetStorage.prototype.create;
+      await withMockedCreate(
+        (callCount) => callCount === 2 || callCount === 3, // Fail on second element and relationship
+        async () => {
+          const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
-      const mockCreate = async function (this: StagedChangesetStorage, id: string, name: string, description: string | undefined, baseSnapshot: string) {
-        const changeset = await originalCreate.call(this, id, name, description, baseSnapshot);
-        const originalAddChange = changeset.addChange.bind(changeset);
+          // Should have warnings for both elements and relationships
+          expect(warnings.length).toBeGreaterThan(0);
+          expect(warnings.some((w) => w.includes("element"))).toBe(true);
+          expect(warnings.some((w) => w.includes("relationship"))).toBe(true);
 
-        // Fail on second element and the relationship
-        changeset.addChange = function(...args: any[]) {
-          callCount++;
-          // callCount 1: first element (succeeds)
-          // callCount 2: second element (fails)
-          // callCount 3: first relationship (fails)
-          if (callCount === 2 || callCount === 3) {
-            throw new Error("Simulated failure");
-          }
-          return originalAddChange(...args);
-        };
+          // Verify changesets with partial success
+          const storage = new StagedChangesetStorage(workdir.path);
+          const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
+          const changeset = await storage.load(changesets[0]);
 
-        return changeset;
-      };
-
-      spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(mockCreate as any);
-
-      try {
-        const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
-
-        // Should have warnings for both elements and relationships
-        expect(warnings.length).toBeGreaterThan(0);
-        expect(warnings.some((w) => w.includes("element"))).toBe(true);
-        expect(warnings.some((w) => w.includes("relationship"))).toBe(true);
-
-        // Verify changesets with partial success
-        const storage = new StagedChangesetStorage(workdir.path);
-        const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
-        const changeset = await storage.load(changesets[0]);
-
-        // Should have 1 successful change (1 element only, relationship failed)
-        expect(changeset?.changes.length).toBe(1);
-      } finally {
-        (StagedChangesetStorage.prototype.create as any).mockRestore?.();
-      }
+          // Should have 1 successful change (1 element only, relationship failed)
+          expect(changeset?.changes.length).toBe(1);
+        }
+      );
     });
   });
 
@@ -398,19 +385,7 @@ describe("stageChangeset - Partial Failure Path", () => {
 
       const relationshipCandidates: RelationshipCandidate[] = [];
 
-      const originalCreate = StagedChangesetStorage.prototype.create;
-
-      const mockCreate = async function (this: StagedChangesetStorage, id: string, name: string, description: string | undefined, baseSnapshot: string) {
-        const changeset = await originalCreate.call(this, id, name, description, baseSnapshot);
-        changeset.addChange = function() {
-          throw new Error("Processing error");
-        };
-        return changeset;
-      };
-
-      spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(mockCreate as any);
-
-      try {
+      await withMockedCreateSimpleFail(async () => {
         const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
         // Changeset directory should exist even though all candidates failed
@@ -423,9 +398,7 @@ describe("stageChangeset - Partial Failure Path", () => {
         const changeset = await storage.load(changesets[0]);
         expect(changeset).toBeDefined();
         expect(changeset?.changes.length).toBe(0); // No successful changes
-      } finally {
-        (StagedChangesetStorage.prototype.create as any).mockRestore?.();
-      }
+      });
     });
   });
 
@@ -445,26 +418,12 @@ describe("stageChangeset - Partial Failure Path", () => {
         }
       ];
 
-      const originalCreate = StagedChangesetStorage.prototype.create;
-
-      const mockCreate = async function (this: StagedChangesetStorage, id: string, name: string, description: string | undefined, baseSnapshot: string) {
-        const changeset = await originalCreate.call(this, id, name, description, baseSnapshot);
-        changeset.addChange = function() {
-          throw new Error("Test error");
-        };
-        return changeset;
-      };
-
-      spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(mockCreate as any);
-
-      try {
+      await withMockedCreateSimpleFail(async () => {
         const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
         // With singular count, should use singular form
         expect(warnings.some((w) => w.includes("1 relationship"))).toBe(true);
-      } finally {
-        (StagedChangesetStorage.prototype.create as any).mockRestore?.();
-      }
+      });
     });
 
     it("formats warning messages with proper pluralization for elements", async () => {
@@ -489,26 +448,12 @@ describe("stageChangeset - Partial Failure Path", () => {
 
       const relationshipCandidates: RelationshipCandidate[] = [];
 
-      const originalCreate = StagedChangesetStorage.prototype.create;
-
-      const mockCreate = async function (this: StagedChangesetStorage, id: string, name: string, description: string | undefined, baseSnapshot: string) {
-        const changeset = await originalCreate.call(this, id, name, description, baseSnapshot);
-        changeset.addChange = function() {
-          throw new Error("Test error");
-        };
-        return changeset;
-      };
-
-      spyOn(StagedChangesetStorage.prototype, "create").mockImplementation(mockCreate as any);
-
-      try {
+      await withMockedCreateSimpleFail(async () => {
         const warnings = await stageChangeset(elementCandidates, relationshipCandidates, workdir.path);
 
-        // With plural count, should use plural form
+        // Element format always uses element(s) regardless of count
         expect(warnings.some((w) => w.includes("2 element(s)"))).toBe(true);
-      } finally {
-        (StagedChangesetStorage.prototype.create as any).mockRestore?.();
-      }
+      });
     });
   });
 });

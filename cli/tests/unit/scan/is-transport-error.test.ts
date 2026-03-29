@@ -169,7 +169,7 @@ describe("isTransportError", () => {
       expect(isTransportError(error)).toBe(true);
     });
 
-    it("is case-sensitive for code matching but case-insensitive for message patterns", () => {
+    it("prioritizes message pattern when error code is invalid case", () => {
       const error = new Error("connection timeout");
       (error as any).code = "econnrefused";
       // Code check is case-sensitive, so false
