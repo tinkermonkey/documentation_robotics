@@ -23,11 +23,6 @@ on:
 env:
   GITHUB_TOKEN: ${{ github.token }}
 
-# Expose GITHUB_TOKEN to all jobs so `gh` CLI can authenticate
-# for operations like fetching CI run info, posting PR comments, etc.
-env:
-  GITHUB_TOKEN: ${{ github.token }}
-
 jobs:
   build-and-smoke:
     name: Build & Smoke Tests
