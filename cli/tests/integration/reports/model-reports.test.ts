@@ -239,7 +239,7 @@ describe('ModelReportOrchestrator Integration', () => {
     const initialLength = initialContent.length;
 
     // Add a new endpoint element to the API layer
-    const apiLayer = model.getLayer('api');
+    const apiLayer = await model.getLayer('api');
     if (!apiLayer) throw new Error('API layer not found');
 
     apiLayer.addElement({
