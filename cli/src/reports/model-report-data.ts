@@ -48,7 +48,7 @@ export class ModelReportDataCollector {
     // Get all elements in this layer via Layer.elements getter (uses canonical conversion pattern)
     const layerElements = model.layers.get(layerName);
     const elements: Element[] = layerElements
-      ? Array.from(layerElements.values()).sort((a, b) =>
+      ? Array.from(layerElements.elements.values()).sort((a, b) =>
           (a.path || a.id).localeCompare(b.path || b.id)
         )
       : [];
