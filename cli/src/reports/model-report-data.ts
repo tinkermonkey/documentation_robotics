@@ -45,30 +45,13 @@ export class ModelReportDataCollector {
     // Get the layer number for file naming
     const layerNumber = LAYER_MAP[layerName as keyof typeof LAYER_MAP] ?? -1;
 
-    // Get all elements in this layer from the graph model using O(1) index lookup
-    const graphNodes = model.graph.getNodesByLayer(layerName);
-
-    // Convert GraphNodes to Elements (matching Layer.elements getter pattern)
-    const elements: Element[] = graphNodes.map(node => {
-      return {
-        id: node.uuid || node.id,
-        path: node.id,
-        spec_node_id: node.spec_node_id,
-        layer_id: node.layer_id,
-        type: node.type,
-        name: node.name,
-        description: node.description,
-        attributes: node.attributes,
-        source_reference: node.source_reference,
-        metadata: node.metadata,
-        layer: node.layer,
-        references: (node.properties?.['__references__'] ?? []) as any[],
-        relationships: (node.properties?.['__relationships__'] ?? []) as any[],
-      } as Element;
-    });
-
-    // Sort elements deterministically by path
-    elements.sort((a, b) => (a.path || a.id).localeCompare(b.path || b.id));
+    // Get all elements in this layer via Layer.elements getter (uses canonical conversion pattern)
+    const layerElements = model.layers.get(layerName);
+    const elements: Element[] = layerElements
+      ? Array.from(layerElements.values()).sort((a, b) =>
+          (a.path || a.id).localeCompare(b.path || b.id)
+        )
+      : [];
 
     // Get all relationships and classify them
     const allRelationships = model.relationships.getAll();
@@ -91,29 +74,25 @@ export class ModelReportDataCollector {
     // Compute upstream and downstream layers from inter-layer relationships
     const upstreamLayerSet = new Set<string>();
     const downstreamLayerSet = new Set<string>();
-    const inboundCount: { [layer: string]: number } = {};
-    const outboundCount: { [layer: string]: number } = {};
+    let inboundRelationshipCount = 0;
+    let outboundRelationshipCount = 0;
 
     for (const rel of interRelationships) {
       // Upstream: layers that have relationships targeting THIS layer
       if (rel.targetLayer === layerName && rel.layer !== layerName) {
         upstreamLayerSet.add(rel.layer);
-        inboundCount[rel.layer] = (inboundCount[rel.layer] ?? 0) + 1;
+        inboundRelationshipCount++;
       }
       // Downstream: layers that THIS layer references
       if (rel.layer === layerName && rel.targetLayer && rel.targetLayer !== layerName) {
         downstreamLayerSet.add(rel.targetLayer);
-        outboundCount[rel.targetLayer] = (outboundCount[rel.targetLayer] ?? 0) + 1;
+        outboundRelationshipCount++;
       }
     }
 
     // Sort upstream and downstream layers
     const upstreamLayers = Array.from(upstreamLayerSet).sort();
     const downstreamLayers = Array.from(downstreamLayerSet).sort();
-
-    // Count inbound and outbound relationships
-    const inboundRelationshipCount = Object.values(inboundCount).reduce((sum, c) => sum + c, 0);
-    const outboundRelationshipCount = Object.values(outboundCount).reduce((sum, c) => sum + c, 0);
 
     // Sort relationships deterministically by "${source}-${predicate}-${target}"
     intraRelationships.sort((a, b) => {

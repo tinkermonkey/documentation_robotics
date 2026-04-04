@@ -43,7 +43,8 @@ describe('ModelReportDataCollector', () => {
       model.graph.addNode(node);
     }
 
-    // Add relationships
+    // Bypass normal model loading path for unit testing - we're directly setting relationships
+    // to test the collector in isolation without requiring full model initialization
     model.relationships = new Relationships(relationships);
 
     return model;
