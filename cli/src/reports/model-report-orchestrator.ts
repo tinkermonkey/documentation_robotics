@@ -8,7 +8,7 @@
 import type { Model } from '../core/model.js';
 import { ModelReportDataCollector } from './model-report-data.js';
 import { ModelLayerReportGenerator } from './model-layer-report-generator.js';
-import { CANONICAL_LAYER_NAMES, getLayerOrder } from '../core/layers.js';
+import { CANONICAL_LAYER_NAMES, getLayerOrder, isValidLayerName } from '../core/layers.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -35,7 +35,7 @@ export class ModelReportOrchestrator {
 
     for (const layerName of affectedLayers) {
       // Validate layer name before processing
-      if (!CANONICAL_LAYER_NAMES.includes(layerName)) {
+      if (!isValidLayerName(layerName)) {
         console.warn(
           `Skipping invalid layer name in affected set: '${layerName}' is not a recognized canonical layer`
         );
@@ -71,7 +71,7 @@ export class ModelReportOrchestrator {
    */
   computeAffectedLayers(primaryLayer: string): Set<string> {
     // Validate that the primary layer is a known canonical layer
-    if (!CANONICAL_LAYER_NAMES.includes(primaryLayer)) {
+    if (!isValidLayerName(primaryLayer)) {
       throw new Error(
         `Invalid primary layer name: '${primaryLayer}' is not a recognized canonical layer. ` +
         `Valid layers are: ${CANONICAL_LAYER_NAMES.join(', ')}`

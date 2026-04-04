@@ -56,6 +56,19 @@ fi
 if [ -d "$CLI_DIR/src" ] && [ ! -f "$CLI_DIR/dist/cli.js" ]; then
   echo "[agent-entrypoint] CLI dist/cli.js not found — building CLI..."
 
+  # Clean stale build artifacts to prevent type definition mismatches.
+  # Stale .tsbuildinfo or cached .d.ts files in dist/ can cause TypeScript
+  # to see outdated function signatures (e.g., isValidLayerName expecting
+  # CanonicalLayerName instead of string). Removing dist/ and tsbuildinfo
+  # forces a clean compilation from source.
+  if [ -d "$CLI_DIR/dist" ]; then
+    echo "[agent-entrypoint] Removing stale dist/ to prevent type cache issues..."
+    rm -rf "$CLI_DIR/dist"
+  fi
+  if [ -f "$CLI_DIR/tsconfig.tsbuildinfo" ]; then
+    rm -f "$CLI_DIR/tsconfig.tsbuildinfo"
+  fi
+
   # Install root dependencies (needed for build:spec via tsx)
   if [ -f "$PROJECT_DIR/package.json" ] && [ ! -d "$PROJECT_DIR/node_modules" ]; then
     echo "[agent-entrypoint] Installing root dependencies..."
