@@ -21,7 +21,7 @@ import { execSync } from "child_process";
 import { formatLayerName as formatLayerNameUtil } from "../cli/src/utils/layer-name-formatter.js";
 import { formatMarkdownTable } from "../cli/src/utils/markdown-table.js";
 import { createAnchor } from "../cli/src/utils/markdown-anchor.js";
-import { createDescriptiveLinkText } from "../cli/src/utils/markdown-link.js";
+import { createDescriptiveLinkText, formatNodeTypeName } from "../cli/src/utils/markdown-link.js";
 import { sanitizeMermaidId } from "../cli/src/utils/mermaid-utils.js";
 import { SpecDataLoader } from "../cli/src/core/spec-loader.js";
 import type { LayerSpec, NodeTypeSpec, RelationshipTypeSpec, PredicateSpec } from "../cli/src/core/spec-loader-types.js";
@@ -313,14 +313,6 @@ class ReportDataModel {
 function formatLayerName(layerId: string): string {
   return formatLayerNameUtil(layerId);
 }
-
-function formatNodeTypeName(type: string): string {
-  return type
-    .split(/(?=[A-Z])/)
-    .join(" ")
-    .replace(/^./, (c) => c.toUpperCase());
-}
-
 
 // ============================================================================
 // Layer Report Generator

@@ -860,4 +860,4 @@ An externally visible unit of technology functionality exposed to other technolo
 
 ---
 
-_Generated: 2026-04-04T12:15:20.254Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_
+_Generated: 2026-04-04T12:20:35.636Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_

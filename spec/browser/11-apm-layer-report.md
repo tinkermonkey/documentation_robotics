@@ -865,4 +865,4 @@ OTel TracerProvider configuration covering sampler selection, context propagatio
 
 ---
 
-_Generated: 2026-04-04T12:15:20.276Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_
+_Generated: 2026-04-04T12:20:35.656Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_

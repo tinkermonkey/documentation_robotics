@@ -7,7 +7,7 @@
  * @param type The node type string (e.g., "CustomEndpoint")
  * @returns Formatted display name (e.g., "Custom Endpoint")
  */
-function formatNodeTypeName(type: string): string {
+export function formatNodeTypeName(type: string): string {
   return type
     .split(/(?=[A-Z])/)
     .join(" ")
