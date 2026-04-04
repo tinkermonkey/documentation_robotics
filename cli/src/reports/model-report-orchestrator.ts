@@ -26,6 +26,7 @@ export class ModelReportOrchestrator {
   /**
    * Regenerate reports for a specific set of affected layers.
    * On first invocation or when reports don't exist, regenerates all 12 reports.
+   * Invalid layer names in the affected set are skipped with a warning.
    */
   async regenerate(affectedLayers: Set<string>): Promise<void> {
     if (!(await this.isInitialized())) {
@@ -33,6 +34,13 @@ export class ModelReportOrchestrator {
     }
 
     for (const layerName of affectedLayers) {
+      // Validate layer name before processing
+      if (!CANONICAL_LAYER_NAMES.includes(layerName)) {
+        console.warn(
+          `Skipping invalid layer name in affected set: '${layerName}' is not a recognized canonical layer`
+        );
+        continue;
+      }
       await this.generateLayerReport(layerName);
     }
   }
@@ -59,8 +67,17 @@ export class ModelReportOrchestrator {
   /**
    * Compute the set of layers affected by a change to a primary layer.
    * Returns the primary layer plus any layers that have cross-layer relationships with it.
+   * Throws if the primary layer is not a recognized canonical layer name.
    */
   computeAffectedLayers(primaryLayer: string): Set<string> {
+    // Validate that the primary layer is a known canonical layer
+    if (!CANONICAL_LAYER_NAMES.includes(primaryLayer)) {
+      throw new Error(
+        `Invalid primary layer name: '${primaryLayer}' is not a recognized canonical layer. ` +
+        `Valid layers are: ${CANONICAL_LAYER_NAMES.join(', ')}`
+      );
+    }
+
     const affected = new Set<string>([primaryLayer]);
 
     for (const rel of this.model.relationships.getAll()) {
