@@ -148,7 +148,7 @@ describe('ModelLayerReportGenerator', () => {
       expect(output).not.toContain('flowchart LR');
     });
 
-    it('should render summary table for large layer (>30 elements)', () => {
+    it('should render mermaid diagram for large layer (>30 elements)', () => {
       // Create 31 elements
       const elements: Element[] = [];
       for (let i = 0; i < 31; i++) {
@@ -162,13 +162,16 @@ describe('ModelLayerReportGenerator', () => {
 
       const output = generator.generate(data);
 
-      expect(output).toContain('Element Overview');
-      expect(output).not.toContain('flowchart LR');
-      expect(output).toContain('endpoint');
-      expect(output).toContain('31');
+      // Mermaid diagram should be rendered for all layers (including large ones)
+      expect(output).toContain('flowchart LR');
+      expect(output).not.toContain('Element Overview');
+      // All elements should be represented in the diagram
+      for (let i = 0; i < 31; i++) {
+        expect(output).toContain(`Endpoint ${i}`);
+      }
     });
 
-    it('should not render summary table for layer with exactly 30 elements', () => {
+    it('should render mermaid diagram for layer with exactly 30 elements', () => {
       // Create exactly 30 elements
       const elements: Element[] = [];
       for (let i = 0; i < 30; i++) {
@@ -182,6 +185,7 @@ describe('ModelLayerReportGenerator', () => {
 
       const output = generator.generate(data);
 
+      // Mermaid diagram should be rendered for all layers
       expect(output).toContain('flowchart LR');
       expect(output).not.toContain('Element Overview');
     });
@@ -241,7 +245,7 @@ describe('ModelLayerReportGenerator', () => {
   });
 
   describe('Inter-layer relationships table', () => {
-    it('should include table only when inter-relationships exist', () => {
+    it('should include table with all required columns when inter-relationships exist', () => {
       const element = createMockElement('api.endpoint.get-users', 'Get Users', 'endpoint');
       const interRel = createMockRelationship(
         'api.endpoint.get-users',
@@ -257,10 +261,14 @@ describe('ModelLayerReportGenerator', () => {
       const output = generator.generate(data);
 
       expect(output).toContain('## Inter-Layer Relationships Table');
-      expect(output).toContain('Source');
+      // Check for all required columns per spec
+      expect(output).toContain('Relationship ID');
+      expect(output).toContain('Source Node');
+      expect(output).toContain('Dest Node');
+      expect(output).toContain('Dest Layer');
       expect(output).toContain('Predicate');
-      expect(output).toContain('Target');
-      expect(output).toContain('Direction');
+      expect(output).toContain('Cardinality');
+      expect(output).toContain('Strength');
     });
 
     it('should not include table when no inter-relationships exist', () => {
@@ -273,7 +281,7 @@ describe('ModelLayerReportGenerator', () => {
       expect(output).not.toContain('## Inter-Layer Relationships Table');
     });
 
-    it('should mark outbound relationships correctly', () => {
+    it('should include destination layer in table', () => {
       const element = createMockElement('api.endpoint.get-users', 'Get Users', 'endpoint');
       const interRel = createMockRelationship(
         'api.endpoint.get-users',
@@ -288,17 +296,18 @@ describe('ModelLayerReportGenerator', () => {
 
       const output = generator.generate(data);
 
-      expect(output).toContain('outbound');
+      // Destination layer should appear in the table
+      expect(output).toContain('application');
     });
 
-    it('should mark inbound relationships correctly', () => {
+    it('should include relationship identifier in table', () => {
       const element = createMockElement('api.endpoint.get-users', 'Get Users', 'endpoint');
       const interRel = createMockRelationship(
-        'application.service.user-app',
-        'calls',
         'api.endpoint.get-users',
-        'application',
-        'api'
+        'calls',
+        'application.service.user-app',
+        'api',
+        'application'
       );
 
       const data = createMockReportData('api', [element], [], [interRel]);
@@ -306,7 +315,8 @@ describe('ModelLayerReportGenerator', () => {
 
       const output = generator.generate(data);
 
-      expect(output).toContain('inbound');
+      // Relationship ID should be in format: source-predicate-target
+      expect(output).toContain('api.endpoint.get-users-calls-application.service.user-app');
     });
   });
 
@@ -357,6 +367,31 @@ describe('ModelLayerReportGenerator', () => {
       expect(output).toContain('Value');
       expect(output).toContain('GET');
       expect(output).toContain('/users');
+    });
+
+    it('should properly format different attribute value types', () => {
+      const element = createMockElement('api.endpoint.test', 'Test Endpoint', 'endpoint', {
+        stringAttr: 'hello world',
+        numberAttr: 42,
+        booleanAttr: true,
+        arrayAttr: [1, 2, 3],
+        objectAttr: { key: 'value' },
+      });
+      const data = createMockReportData('api', [element]);
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+
+      const output = generator.generate(data);
+
+      // valueToMarkdown should handle each type correctly
+      expect(output).toContain('stringAttr');
+      expect(output).toContain('hello world');
+      expect(output).toContain('numberAttr');
+      expect(output).toContain('42');
+      expect(output).toContain('booleanAttr');
+      expect(output).toContain('true');
+      expect(output).toContain('arrayAttr');
+      expect(output).toContain('[1, 2, 3]');
+      expect(output).toContain('objectAttr');
     });
 
     it('should include relationships table if relationships exist', () => {

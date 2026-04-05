@@ -18,8 +18,9 @@ import { formatLayerName } from '../utils/layer-name-formatter.js';
 import { formatMarkdownTable } from '../utils/markdown-table.js';
 import { sanitizeMermaidId } from '../utils/mermaid-utils.js';
 import { createAnchor } from '../utils/markdown-anchor.js';
-import { escapeMarkdown, getLayerDescription } from '../export/markdown-utils.js';
+import { escapeMarkdown, getLayerDescription, valueToMarkdown } from '../export/markdown-utils.js';
 import { getLayerOrder, CANONICAL_LAYER_NAMES } from '../core/layers.js';
+import { getValidRelationships } from '../generated/relationship-index.js';
 
 export class ModelLayerReportGenerator {
   constructor(private modelVersion: string, private generatedAt: string) {}
@@ -143,45 +144,7 @@ export class ModelLayerReportGenerator {
       return lines.join('');
     }
 
-    // Large layer handling: use summary table instead of mermaid
-    if (data.elements.length > 30) {
-      lines.push('### Element Overview\n');
-      lines.push('\n');
-      lines.push('Layer has many elements; showing summary by element type.\n');
-      lines.push('\n');
-
-      // Group elements by type
-      const elementsByType = new Map<string, Element[]>();
-      for (const element of data.elements) {
-        const type = element.type;
-        if (!elementsByType.has(type)) {
-          elementsByType.set(type, []);
-        }
-        elementsByType.get(type)!.push(element);
-      }
-
-      // Create summary table
-      const headers = ['Element Type', 'Count', 'Elements'];
-      const rows: string[][] = [];
-
-      // Sort by type for deterministic output
-      const sortedTypes = Array.from(elementsByType.keys()).sort();
-      for (const type of sortedTypes) {
-        const elements = elementsByType.get(type)!;
-        const elementList = elements
-          .map((e) => `\`${escapeMarkdown(e.name)}\``)
-          .join(', ');
-        rows.push([type, String(elements.length), elementList]);
-      }
-
-      const table = formatMarkdownTable(headers, rows);
-      lines.push(table);
-      lines.push('\n');
-
-      return lines.join('');
-    }
-
-    // Normal layer: generate mermaid diagram
+    // Generate mermaid diagram for all layers (including large ones)
     lines.push('```mermaid\n');
     lines.push('flowchart LR\n');
     lines.push(`  subgraph ${sanitizeMermaidId(data.layerName)}\n`);
@@ -292,18 +255,27 @@ export class ModelLayerReportGenerator {
       return aKey.localeCompare(bKey);
     });
 
-    const headers = ['Source', 'Predicate', 'Target', 'Direction'];
+    const headers = ['Relationship ID', 'Source Node', 'Dest Node', 'Dest Layer', 'Predicate', 'Cardinality', 'Strength'];
     const rows: string[][] = [];
 
     for (const rel of sortedRels) {
-      // Determine direction
-      const direction = rel.layer === data.layerName ? 'outbound' : 'inbound';
+      // Extract element types from paths (e.g., "motivation.goal.customer-satisfaction" -> "goal")
+      const sourceType = this.extractElementType(rel.source);
+      const targetType = this.extractElementType(rel.target);
+
+      // Look up spec-level relationship properties
+      const specs = getValidRelationships(sourceType, rel.predicate, targetType);
+      const cardinality = specs.length > 0 ? specs[0].cardinality : 'unknown';
+      const strength = specs.length > 0 ? specs[0].strength : 'unknown';
 
       rows.push([
+        `\`${escapeMarkdown(rel.source)}-${escapeMarkdown(rel.predicate)}-${escapeMarkdown(rel.target)}\``,
         `\`${escapeMarkdown(rel.source)}\``,
-        `\`${escapeMarkdown(rel.predicate)}\``,
         `\`${escapeMarkdown(rel.target)}\``,
-        direction,
+        rel.targetLayer ? `\`${escapeMarkdown(rel.targetLayer)}\`` : '—',
+        `\`${escapeMarkdown(rel.predicate)}\``,
+        cardinality,
+        strength,
       ]);
     }
 
@@ -350,10 +322,7 @@ export class ModelLayerReportGenerator {
         );
 
         for (const [name, value] of sortedAttrs) {
-          const valueStr =
-            typeof value === 'string'
-              ? escapeMarkdown(value)
-              : escapeMarkdown(JSON.stringify(value));
+          const valueStr = valueToMarkdown(value);
           attrRows.push([name, valueStr]);
         }
 
@@ -441,5 +410,17 @@ export class ModelLayerReportGenerator {
     }
 
     return rels;
+  }
+
+  /**
+   * Extract element type from element path
+   * Example: "motivation.goal.customer-satisfaction" -> "goal"
+   */
+  private extractElementType(elementPath: string): string {
+    const parts = elementPath.split('.');
+    if (parts.length >= 2) {
+      return parts[1];
+    }
+    return elementPath;
   }
 }
