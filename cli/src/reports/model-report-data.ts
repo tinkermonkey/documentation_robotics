@@ -1,7 +1,7 @@
 import type { Model } from '../core/model.js';
 import { Element } from '../core/element.js';
 import type { Relationship } from '../core/relationships.js';
-import { LAYER_MAP } from '../core/layers.js';
+import { LAYER_MAP, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
 
 /**
  * Statistics about relationships in a layer
@@ -19,13 +19,13 @@ export interface ModelLayerStatistics {
  * Analogous to ReportDataModel in scripts/generate-layer-reports.ts
  */
 export interface ModelLayerReportData {
-  layerName: string;
+  layerName: CanonicalLayerName;
   layerNumber: number;
-  elements: Element[];                // sorted by element.path
-  intraRelationships: Relationship[]; // both source and target in same layer
-  interRelationships: Relationship[]; // source or target in a different layer
-  upstreamLayers: string[];           // canonical layer names referencing INTO this layer
-  downstreamLayers: string[];         // canonical layer names this layer references OUT TO
+  elements: Element[];                        // sorted by element.path
+  intraRelationships: Relationship[];         // both source and target in same layer
+  interRelationships: Relationship[];         // source or target in a different layer
+  upstreamLayers: CanonicalLayerName[];       // canonical layer names referencing INTO this layer
+  downstreamLayers: CanonicalLayerName[];     // canonical layer names this layer references OUT TO
   statistics: ModelLayerStatistics;
 }
 
@@ -40,10 +40,19 @@ export class ModelReportDataCollector {
    * @param model - The live Model instance
    * @param layerName - The canonical layer name (e.g., 'api', 'data-model')
    * @returns Report-friendly data structure for the layer
+   * @throws Error if layerName is not a valid canonical layer name
    */
-  collectLayerData(model: Model, layerName: string): ModelLayerReportData {
+  collectLayerData(model: Model, layerName: CanonicalLayerName): ModelLayerReportData {
+    // Validate layer name
+    if (!isValidLayerName(layerName)) {
+      throw new Error(
+        `Invalid layer name: '${layerName}' is not a recognized canonical layer. ` +
+        `Expected one of the 12 canonical layers.`
+      );
+    }
+
     // Get the layer number for file naming
-    const layerNumber = LAYER_MAP[layerName as keyof typeof LAYER_MAP] ?? -1;
+    const layerNumber = LAYER_MAP[layerName];
 
     // Get all elements in this layer using GraphModel's indexed lookup for O(1) layer-scoped access
     // Convert GraphNodes to Elements for report-friendly shape

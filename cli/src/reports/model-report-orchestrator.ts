@@ -8,7 +8,7 @@
 import type { Model } from '../core/model.js';
 import { ModelReportDataCollector } from './model-report-data.js';
 import { ModelLayerReportGenerator } from './model-layer-report-generator.js';
-import { CANONICAL_LAYER_NAMES, getLayerOrder, isValidLayerName } from '../core/layers.js';
+import { CANONICAL_LAYER_NAMES, type CanonicalLayerName, getLayerOrder, isValidLayerName } from '../core/layers.js';
 import { getErrorMessage } from '../utils/errors.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -40,7 +40,7 @@ export class ModelReportOrchestrator {
         console.warn(`Skipping invalid layer name: ${layerName}`);
         continue;
       }
-      await this.generateLayerReport(layerName);
+      await this.generateLayerReport(layerName as CanonicalLayerName);
     }
   }
 
@@ -120,7 +120,7 @@ export class ModelReportOrchestrator {
   /**
    * Get the full file path for a layer report.
    */
-  private getReportFilePath(layerName: string): string {
+  private getReportFilePath(layerName: CanonicalLayerName): string {
     const layerNumber = getLayerOrder(layerName);
     const paddedNumber = String(layerNumber).padStart(2, '0');
     const filename = `${paddedNumber}-${layerName}-layer-report.md`;
@@ -132,7 +132,7 @@ export class ModelReportOrchestrator {
    * Separates concerns to distinguish programming bugs from I/O errors.
    * Lets write errors propagate so callers can handle them with proper telemetry.
    */
-  private async generateLayerReport(layerName: string): Promise<void> {
+  private async generateLayerReport(layerName: CanonicalLayerName): Promise<void> {
     let data;
     let markdown;
 
