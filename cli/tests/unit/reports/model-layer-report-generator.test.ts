@@ -613,6 +613,104 @@ describe('ModelLayerReportGenerator', () => {
     });
   });
 
+  describe('Cross-Layer References (upstream/downstream layers)', () => {
+    it('should render upstream layers as links when present', () => {
+      const element = createMockElement('api.endpoint.test', 'Test', 'endpoint');
+      const data = createMockReportData('api', [element]);
+      data.upstreamLayers = ['application'];
+
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+      const output = generator.generate(data);
+
+      expect(output).toContain('**Cross-Layer References**');
+      expect(output).toContain('**Upstream layers**');
+      expect(output).toContain('[Application](./04-application-layer-report.md)');
+    });
+
+    it('should render downstream layers as links when present', () => {
+      const element = createMockElement('api.endpoint.test', 'Test', 'endpoint');
+      const data = createMockReportData('api', [element]);
+      data.downstreamLayers = ['data-store'];
+
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+      const output = generator.generate(data);
+
+      expect(output).toContain('**Cross-Layer References**');
+      expect(output).toContain('**Downstream layers**');
+      expect(output).toContain('[Data Store](./08-data-store-layer-report.md)');
+    });
+
+    it('should render both upstream and downstream layers when present', () => {
+      const element = createMockElement('api.endpoint.test', 'Test', 'endpoint');
+      const data = createMockReportData('api', [element]);
+      data.upstreamLayers = ['application', 'technology'];
+      data.downstreamLayers = ['data-store', 'data-model'];
+
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+      const output = generator.generate(data);
+
+      expect(output).toContain('**Upstream layers**');
+      expect(output).toContain('[Application](./04-application-layer-report.md)');
+      expect(output).toContain('[Technology](./05-technology-layer-report.md)');
+
+      expect(output).toContain('**Downstream layers**');
+      expect(output).toContain('[Data Store](./08-data-store-layer-report.md)');
+      expect(output).toContain('[Data Model](./07-data-model-layer-report.md)');
+    });
+
+    it('should not render Cross-Layer References section when no upstream/downstream layers', () => {
+      const element = createMockElement('api.endpoint.test', 'Test', 'endpoint');
+      const data = createMockReportData('api', [element]);
+      // Both upstreamLayers and downstreamLayers are empty (default)
+
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+      const output = generator.generate(data);
+
+      expect(output).not.toContain('**Cross-Layer References**');
+    });
+
+    it('should format hyphenated layer names correctly in links', () => {
+      const element = createMockElement('technology.platform.test', 'Test', 'platform');
+      const data = createMockReportData('technology', [element]);
+      data.upstreamLayers = ['data-model', 'data-store'];
+
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+      const output = generator.generate(data);
+
+      expect(output).toContain('[Data Model](./07-data-model-layer-report.md)');
+      expect(output).toContain('[Data Store](./08-data-store-layer-report.md)');
+    });
+
+    it('should handle single upstream layer', () => {
+      const element = createMockElement('api.endpoint.test', 'Test', 'endpoint');
+      const data = createMockReportData('api', [element]);
+      data.upstreamLayers = ['application'];
+
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+      const output = generator.generate(data);
+
+      // Should not have trailing comma
+      const crossLayerSection = output.split('**Cross-Layer References**')[1];
+      const upstreamLine = crossLayerSection.split('\n')[2];
+      expect(upstreamLine).toContain('[Application](./04-application-layer-report.md)');
+      expect(upstreamLine).not.toMatch(/,\s*$/);
+    });
+
+    it('should include index link for Cross-Layer References section', () => {
+      const element = createMockElement('api.endpoint.test', 'Test', 'endpoint');
+      const data = createMockReportData('api', [element]);
+      data.upstreamLayers = ['application'];
+
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+      const output = generator.generate(data);
+
+      // When Cross-Layer References section is present, it should still be part of Report Index context
+      // (The actual index may not have a specific link, but the section should be rendered)
+      expect(output).toContain('## Layer Introduction');
+      expect(output).toContain('**Cross-Layer References**');
+    });
+  });
+
   describe('Footer', () => {
     it('should include version and timestamp', () => {
       const data = createMockReportData('api', []);

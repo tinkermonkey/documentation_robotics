@@ -500,10 +500,7 @@ describe('Mutation → Report Generation Integration', () => {
 
     // Find an existing relationship
     const allRelationships = model.relationships.getAll();
-    if (allRelationships.length === 0) {
-      // Skip if no relationships exist to delete
-      return;
-    }
+    expect(allRelationships.length).toBeGreaterThan(0);
 
     const relToDelete = allRelationships[0];
     const layer1 = relToDelete.layer;
