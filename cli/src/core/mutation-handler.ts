@@ -14,6 +14,7 @@ import { StagingAreaManager } from "./staging-area.js";
 import { CLIError } from "../utils/errors.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
+import { emitLog, SeverityNumber } from "../telemetry/index.js";
 
 export type MutationType = "add" | "update" | "delete";
 
@@ -321,7 +322,16 @@ export class MutationHandler {
       const affected = orchestrator.computeAffectedLayers(this.context.layerName);
       await orchestrator.regenerate(affected);
     } catch (error) {
-      console.warn(`Warning: Failed to update layer reports - ${getErrorMessage(error)}`);
+      emitLog(
+        SeverityNumber.WARN,
+        "Failed to regenerate layer reports after element mutation",
+        {
+          "mutation.elementId": this.context.elementId,
+          "mutation.layerName": this.context.layerName,
+          "mutation.type": type,
+          "error.message": getErrorMessage(error),
+        }
+      );
     }
   }
 }
