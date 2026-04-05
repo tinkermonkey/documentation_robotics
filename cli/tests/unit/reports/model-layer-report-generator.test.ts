@@ -148,7 +148,7 @@ describe('ModelLayerReportGenerator', () => {
       expect(output).not.toContain('flowchart LR');
     });
 
-    it('should render mermaid diagram for large layer (>30 elements)', () => {
+    it('should render summary table for large layer (>30 elements)', () => {
       // Create 31 elements
       const elements: Element[] = [];
       for (let i = 0; i < 31; i++) {
@@ -162,12 +162,15 @@ describe('ModelLayerReportGenerator', () => {
 
       const output = generator.generate(data);
 
-      // Mermaid diagram should be rendered for all layers (including large ones)
-      expect(output).toContain('flowchart LR');
-      expect(output).not.toContain('Element Overview');
-      // All elements should be represented in the diagram
+      // Summary table should be rendered instead of Mermaid diagram for large layers
+      expect(output).not.toContain('flowchart LR');
+      expect(output).toContain('This layer has >30 elements. Summary table shown instead of diagram');
+      expect(output).toContain('| Element');
+      expect(output).toContain('| Type');
+      expect(output).toContain('| Relationships');
+      // All elements should still be represented in the summary table
       for (let i = 0; i < 31; i++) {
-        expect(output).toContain(`Endpoint ${i}`);
+        expect(output).toContain(`api.endpoint.endpoint-${i}`);
       }
     });
 

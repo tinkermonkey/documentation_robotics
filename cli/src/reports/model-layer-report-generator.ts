@@ -15,7 +15,7 @@ import type { ModelLayerReportData } from './model-report-data.js';
 import type { Relationship } from '../core/relationships.js';
 import { formatLayerName } from '../utils/layer-name-formatter.js';
 import { formatMarkdownTable } from '../utils/markdown-table.js';
-import { sanitizeMermaidId } from '../utils/mermaid-utils.js';
+import { sanitizeMermaidId, escapeMermaidLabel } from '../utils/mermaid-utils.js';
 import { createAnchor } from '../utils/markdown-anchor.js';
 import { escapeMarkdown, getLayerDescription, valueToMarkdown } from '../export/markdown-utils.js';
 import { getLayerOrder, CANONICAL_LAYER_NAMES } from '../core/layers.js';
@@ -143,15 +143,43 @@ export class ModelLayerReportGenerator {
       return lines.join('');
     }
 
-    // Generate mermaid diagram for all layers (including large ones)
+    // Large layer fallback: For >30 elements, use summary table instead of Mermaid
+    // to prevent rendering failures
+    if (data.elements.length > 30) {
+      lines.push('*This layer has >30 elements. Summary table shown instead of diagram.*\n');
+      lines.push('\n');
+
+      const headers = ['Element', 'Type', 'Relationships'];
+      const rows: string[][] = [];
+
+      for (const element of data.elements) {
+        const relCount = data.intraRelationships.filter(
+          (rel) => rel.source === element.path || rel.target === element.path
+        ).length;
+
+        rows.push([
+          `\`${escapeMarkdown(element.path)}\``,
+          `\`${escapeMarkdown(element.type)}\``,
+          String(relCount),
+        ]);
+      }
+
+      const table = formatMarkdownTable(headers, rows);
+      lines.push(table);
+      lines.push('\n');
+
+      return lines.join('');
+    }
+
+    // Generate mermaid diagram for layers with ≤30 elements
     lines.push('```mermaid\n');
     lines.push('flowchart LR\n');
     lines.push(`  subgraph ${sanitizeMermaidId(data.layerName)}\n`);
 
-    // Add all elements as nodes
+    // Add all elements as nodes (use escapeMermaidLabel for correct Mermaid escaping)
     for (const element of data.elements) {
       const nodeId = sanitizeMermaidId(element.path);
-      const label = escapeMarkdown(element.name);
+      const label = escapeMermaidLabel(element.name);
       lines.push(`    ${nodeId}["${label}"]\n`);
     }
 
@@ -165,7 +193,7 @@ export class ModelLayerReportGenerator {
     for (const rel of sortedRelationships) {
       const sourceId = sanitizeMermaidId(rel.source);
       const targetId = sanitizeMermaidId(rel.target);
-      const predicate = escapeMarkdown(rel.predicate);
+      const predicate = escapeMermaidLabel(rel.predicate);
       lines.push(`    ${sourceId} -->|${predicate}| ${targetId}\n`);
     }
 
