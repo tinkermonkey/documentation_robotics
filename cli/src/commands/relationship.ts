@@ -14,6 +14,7 @@ import {
   getValidDestinationsForSourceAndPredicate,
 } from "../generated/relationship-index.js";
 import { normalizeNodeType } from "../generated/node-types.js";
+import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 
 /**
  * Validate element properties and construct a SpecNodeId
@@ -235,6 +236,15 @@ Examples:
           model.relationships.add(relData);
           await model.saveRelationships();
           await model.saveManifest();
+
+          // Regenerate reports for source and target layers
+          try {
+            const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
+            const affectedLayers = new Set<string>([sourceLayerName, targetLayerName]);
+            await orchestrator.regenerate(affectedLayers);
+          } catch {
+            console.warn("Warning: Failed to update layer reports");
+          }
         }
 
         // Show cardinality and strength in output
@@ -332,6 +342,24 @@ Examples:
           model.relationships.delete(source, target, options.predicate);
           await model.saveRelationships();
           await model.saveManifest();
+
+          // Regenerate reports for affected layers
+          try {
+            const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
+            const affectedLayers = new Set<string>();
+
+            // Collect all layers affected by the deleted relationships
+            for (const rel of toDelete) {
+              affectedLayers.add(rel.layer);
+              if (rel.targetLayer) {
+                affectedLayers.add(rel.targetLayer);
+              }
+            }
+
+            await orchestrator.regenerate(affectedLayers);
+          } catch {
+            console.warn("Warning: Failed to update layer reports");
+          }
         }
 
         const stagedSuffix = activeChangesetId ? " [staged]" : "";

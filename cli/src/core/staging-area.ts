@@ -28,6 +28,7 @@ import {
   emitLog,
   SeverityNumber,
 } from "../telemetry/index.js";
+import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 
 /**
  * Options for commit operation
@@ -728,6 +729,20 @@ export class StagingAreaManager {
             `Failed to save manifest with changeset history: ${manifestError instanceof Error ? manifestError.message : String(manifestError)}. ` +
               `Model will be rolled back to maintain consistency.`
           );
+        }
+
+        // Step 9.5: Regenerate reports for all layers modified by this changeset
+        try {
+          const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
+          const affectedLayers = new Set<string>();
+          for (const change of sortedChanges) {
+            for (const layer of orchestrator.computeAffectedLayers(change.layerName)) {
+              affectedLayers.add(layer);
+            }
+          }
+          await orchestrator.regenerate(affectedLayers);
+        } catch {
+          console.warn("Warning: Failed to update layer reports after changeset commit");
         }
 
         // Step 10: Clean up backup directory after successful commit

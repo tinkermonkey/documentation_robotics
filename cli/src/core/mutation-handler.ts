@@ -13,6 +13,7 @@ import { Element } from "./element.js";
 import { StagingAreaManager } from "./staging-area.js";
 import { CLIError } from "../utils/errors.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 
 export type MutationType = "add" | "update" | "delete";
 
@@ -308,6 +309,19 @@ export class MutationHandler {
         1,
         ["Check that the model directory is writable", "Verify the model is not corrupted"]
       );
+    }
+
+    // Post-persist: regenerate affected layer reports (non-blocking, FR-4)
+    // This is a separate try/catch from the above to ensure report failures never cause mutations to fail
+    try {
+      const orchestrator = new ModelReportOrchestrator(
+        this.context.model,
+        this.context.model.rootPath
+      );
+      const affected = orchestrator.computeAffectedLayers(this.context.layerName);
+      await orchestrator.regenerate(affected);
+    } catch {
+      console.warn("Warning: Failed to update layer reports");
     }
   }
 }
