@@ -253,5 +253,75 @@ describe("Relationship Command Orchestrator Hooks", () => {
         regenerateSpy.mockRestore();
       }
     });
+
+    it("should include transitively related layers when computing affected layers", async () => {
+      // This test verifies that the orchestrator computes transitive relationships
+      // by creating a chain: motivation -> business -> application
+      // When we modify a relationship in business, all three layers should be regenerated
+
+      // Setup: First add a motivation value that can be targeted
+      const motivationLayer = await model.getLayer("motivation");
+      if (motivationLayer) {
+        motivationLayer.addElement(new Element({
+          id: "motivation.value.motivation-value-business-value",
+          type: "value",
+          name: "Business Value",
+        }));
+        await model.saveLayer("motivation");
+      }
+
+      // Create a chain of cross-layer relationships
+      // business -> motivation (via delivers-value)
+      model.relationships.add({
+        source: "business.businessservice.business-businessservice-service-a",
+        target: "motivation.value.motivation-value-business-value",
+        predicate: "delivers-value",
+        layer: "business",
+        targetLayer: "motivation",
+        category: "structural",
+      });
+
+      // application -> business (via aggregates)
+      model.relationships.add({
+        source: "application.service.application-service-service-b",
+        target: "business.businessservice.business-businessservice-service-a",
+        predicate: "aggregates",
+        layer: "application",
+        targetLayer: "business",
+        category: "structural",
+      });
+
+      await model.saveRelationships();
+      await model.saveManifest();
+
+      let regenerateCallCount = 0;
+      let regenerateCalledWith: Set<string> | null = null;
+
+      const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
+        regenerateCallCount++;
+        regenerateCalledWith = new Set(affectedLayers);
+      });
+
+      try {
+        // Add a new relationship in the business layer, which should cascade
+        // to both motivation and application layers
+        await addRelationshipHandler(
+          model,
+          "business.businessservice.business-businessservice-service-a",
+          "motivation.value.motivation-value-business-value",
+          "delivers-value"
+        );
+
+        // Verify all transitively affected layers are included
+        expect(regenerateCallCount).toBeGreaterThan(0);
+        expect(regenerateCalledWith).toBeDefined();
+        // Should include: business (source), motivation (target), and application (transitively connected to business)
+        expect(regenerateCalledWith!.has("business")).toBe(true);
+        expect(regenerateCalledWith!.has("motivation")).toBe(true);
+        expect(regenerateCalledWith!.has("application")).toBe(true);
+      } finally {
+        regenerateSpy.mockRestore();
+      }
+    });
   });
 });

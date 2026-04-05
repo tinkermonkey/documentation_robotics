@@ -210,10 +210,21 @@ export async function addRelationshipHandler(
     await model.saveRelationships();
     await model.saveManifest();
 
-    // Regenerate reports for source and target layers
+    // Regenerate reports for all affected layers (including transitively related)
     try {
       const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
-      const affectedLayers = new Set<string>([sourceLayerName, targetLayerName]);
+      const affectedLayers = new Set<string>();
+
+      // Compute affected layers for source layer
+      for (const layer of orchestrator.computeAffectedLayers(sourceLayerName)) {
+        affectedLayers.add(layer);
+      }
+
+      // Compute affected layers for target layer
+      for (const layer of orchestrator.computeAffectedLayers(targetLayerName)) {
+        affectedLayers.add(layer);
+      }
+
       await orchestrator.regenerate(affectedLayers);
     } catch (error) {
       emitLog(
@@ -284,16 +295,23 @@ export async function deleteRelationshipHandler(
     await model.saveRelationships();
     await model.saveManifest();
 
-    // Regenerate reports for affected layers
+    // Regenerate reports for all affected layers (including transitively related)
     try {
       const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
       const affectedLayers = new Set<string>();
 
-      // Collect all layers affected by the deleted relationships
+      // Compute affected layers for each deleted relationship's source and target
       for (const rel of toDelete) {
-        affectedLayers.add(rel.layer);
+        // Compute affected layers for source layer
+        for (const layer of orchestrator.computeAffectedLayers(rel.layer)) {
+          affectedLayers.add(layer);
+        }
+
+        // Compute affected layers for target layer
         if (rel.targetLayer) {
-          affectedLayers.add(rel.targetLayer);
+          for (const layer of orchestrator.computeAffectedLayers(rel.targetLayer)) {
+            affectedLayers.add(layer);
+          }
         }
       }
 
