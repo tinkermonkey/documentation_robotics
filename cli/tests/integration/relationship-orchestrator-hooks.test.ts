@@ -10,6 +10,7 @@ import { Layer } from "../../src/core/layer.js";
 import { Element } from "../../src/core/element.js";
 import { Manifest } from "../../src/core/manifest.js";
 import { ModelReportOrchestrator } from "../../src/reports/model-report-orchestrator.js";
+import { addRelationshipHandler, deleteRelationshipHandler } from "../../src/commands/relationship.js";
 import { tmpdir } from "os";
 import { mkdtemp, rm } from "fs/promises";
 import { join } from "path";
@@ -96,35 +97,28 @@ describe("Relationship Command Orchestrator Hooks", () => {
 
   describe("add-relationship command path invokes orchestrator with correct layers", () => {
     it("should pass affected layer to orchestrator.regenerate for intra-layer relationships", async () => {
-      // This test directly exercises the production code path in relationship.ts lines 241-260
-      // by calling model.relationships.add() and orchestrator.regenerate() as the command does
+      // This test exercises the production code path in relationship.ts by calling the actual handler
+      // which verifies that the command handler internally calls orchestrator.regenerate with the correct layers
 
       let regenerateCallCount = 0;
       let regenerateCalledWith: Set<string> | null = null;
 
-      const orchestrator = new ModelReportOrchestrator(model, tempDir);
-      const regenerateSpy = spyOn(orchestrator, "regenerate").mockImplementation(async (affectedLayers: Set<string>) => {
+      const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
         regenerateCallCount++;
         regenerateCalledWith = new Set(affectedLayers);
       });
 
       try {
-        // Add intra-layer relationship and invoke regenerate as the command does
-        model.relationships.add({
-          source: "motivation.goal.motivation-goal-goal-a",
-          target: "motivation.goal.motivation-goal-goal-b",
-          predicate: "aggregates",
-          layer: "motivation",
-          category: "structural",
-        });
-        await model.saveRelationships();
-        await model.saveManifest();
+        // Call the handler function, which internally calls orchestrator.regenerate
+        // This exercises the actual command handler code path (relationship.ts)
+        await addRelationshipHandler(
+          model,
+          "motivation.goal.motivation-goal-goal-a",
+          "motivation.goal.motivation-goal-goal-b",
+          "aggregates"
+        );
 
-        // Call regenerate as the add-relationship command does (lines 241-260 in relationship.ts)
-        const affectedLayers = new Set<string>(["motivation"]);
-        await orchestrator.regenerate(affectedLayers);
-
-        // Verify regenerate was called with the motivation layer
+        // Verify regenerate was called by the handler with the motivation layer
         expect(regenerateCallCount).toBeGreaterThan(0);
         expect(regenerateCalledWith).toBeDefined();
         expect(regenerateCalledWith!.has("motivation")).toBe(true);
@@ -133,41 +127,45 @@ describe("Relationship Command Orchestrator Hooks", () => {
       }
     });
 
-    it("should pass both layers to orchestrator.regenerate for cross-layer relationships", async () => {
-      // This test directly exercises the production code path in relationship.ts lines 241-260
+    it("should handle relationships between different layers", async () => {
+      // This test verifies the handler correctly passes all affected layers to regenerate
+      // using a valid cross-layer relationship (business.businessservice -> motivation.value via delivers-value)
 
       let regenerateCallCount = 0;
       let regenerateCalledWith: Set<string> | null = null;
 
-      const orchestrator = new ModelReportOrchestrator(model, tempDir);
-      const regenerateSpy = spyOn(orchestrator, "regenerate").mockImplementation(async (affectedLayers: Set<string>) => {
+      // First, add a motivation value to test against
+      const motivationLayer = await model.getLayer("motivation");
+      if (motivationLayer) {
+        motivationLayer.addElement(new Element({
+          id: "motivation.value.motivation-value-customer-value",
+          type: "value",
+          name: "Customer Value",
+        }));
+        await model.saveLayer("motivation");
+      }
+
+      const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
         regenerateCallCount++;
         regenerateCalledWith = new Set(affectedLayers);
       });
 
       try {
-        // Add cross-layer relationship
-        model.relationships.add({
-          source: "business.businessservice.business-businessservice-service-a",
-          target: "application.service.application-service-service-b",
-          predicate: "realizes",
-          layer: "business",
-          targetLayer: "application",
-          category: "structural",
-        });
-        await model.saveRelationships();
-        await model.saveManifest();
+        // Test with a valid cross-layer relationship from business to motivation
+        // The handler should identify and pass both layers to regenerate
+        await addRelationshipHandler(
+          model,
+          "business.businessservice.business-businessservice-service-a",
+          "motivation.value.motivation-value-customer-value",
+          "delivers-value"
+        );
 
-        // Call regenerate as the add-relationship command does (with both source and target layers)
-        const affectedLayers = new Set<string>(["business", "application"]);
-        await orchestrator.regenerate(affectedLayers);
-
-        // Verify both layers were passed
+        // Verify both layers were passed to regenerate by the handler
         expect(regenerateCallCount).toBeGreaterThan(0);
         expect(regenerateCalledWith).toBeDefined();
         expect(regenerateCalledWith!.size).toBe(2);
         expect(regenerateCalledWith!.has("business")).toBe(true);
-        expect(regenerateCalledWith!.has("application")).toBe(true);
+        expect(regenerateCalledWith!.has("motivation")).toBe(true);
       } finally {
         regenerateSpy.mockRestore();
       }
@@ -176,7 +174,7 @@ describe("Relationship Command Orchestrator Hooks", () => {
 
   describe("delete-relationship command path invokes orchestrator with correct layers", () => {
     it("should pass affected layer to orchestrator.regenerate for intra-layer relationship deletion", async () => {
-      // This test directly exercises the production code path in relationship.ts lines 358-371
+      // This test exercises the production code path in relationship.ts by calling the actual handler
 
       // Setup: Add relationship first
       model.relationships.add({
@@ -192,23 +190,20 @@ describe("Relationship Command Orchestrator Hooks", () => {
       let regenerateCallCount = 0;
       let regenerateCalledWith: Set<string> | null = null;
 
-      const orchestrator = new ModelReportOrchestrator(model, tempDir);
-      const regenerateSpy = spyOn(orchestrator, "regenerate").mockImplementation(async (affectedLayers: Set<string>) => {
+      const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
         regenerateCallCount++;
         regenerateCalledWith = new Set(affectedLayers);
       });
 
       try {
-        // Delete the relationship
-        model.relationships.delete("motivation.goal.motivation-goal-goal-a", "motivation.goal.motivation-goal-goal-b");
-        await model.saveRelationships();
-        await model.saveManifest();
+        // Call the handler function, which internally calls orchestrator.regenerate
+        await deleteRelationshipHandler(
+          model,
+          "motivation.goal.motivation-goal-goal-a",
+          "motivation.goal.motivation-goal-goal-b"
+        );
 
-        // Call regenerate as the delete-relationship command does (lines 358-371 in relationship.ts)
-        const affectedLayers = new Set<string>(["motivation"]);
-        await orchestrator.regenerate(affectedLayers);
-
-        // Verify the layer was passed
+        // Verify the layer was passed to regenerate by the handler
         expect(regenerateCallCount).toBeGreaterThan(0);
         expect(regenerateCalledWith).toBeDefined();
         expect(regenerateCalledWith!.has("motivation")).toBe(true);
@@ -218,7 +213,7 @@ describe("Relationship Command Orchestrator Hooks", () => {
     });
 
     it("should pass both layers to orchestrator.regenerate for cross-layer relationship deletion", async () => {
-      // This test directly exercises the production code path in relationship.ts lines 358-371
+      // This test exercises the production code path in relationship.ts by calling the actual handler
 
       // Setup: Add cross-layer relationship first
       model.relationships.add({
@@ -235,23 +230,20 @@ describe("Relationship Command Orchestrator Hooks", () => {
       let regenerateCallCount = 0;
       let regenerateCalledWith: Set<string> | null = null;
 
-      const orchestrator = new ModelReportOrchestrator(model, tempDir);
-      const regenerateSpy = spyOn(orchestrator, "regenerate").mockImplementation(async (affectedLayers: Set<string>) => {
+      const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
         regenerateCallCount++;
         regenerateCalledWith = new Set(affectedLayers);
       });
 
       try {
-        // Delete the cross-layer relationship
-        model.relationships.delete("api.endpoint.api-endpoint-endpoint-1", "data-model.entity.data-model-entity-entity-1");
-        await model.saveRelationships();
-        await model.saveManifest();
+        // Call the handler function, which internally calls orchestrator.regenerate for both layers
+        await deleteRelationshipHandler(
+          model,
+          "api.endpoint.api-endpoint-endpoint-1",
+          "data-model.entity.data-model-entity-entity-1"
+        );
 
-        // Call regenerate as the delete-relationship command does (with both source and target layers)
-        const affectedLayers = new Set<string>(["api", "data-model"]);
-        await orchestrator.regenerate(affectedLayers);
-
-        // Verify both layers were passed
+        // Verify both layers were passed to regenerate by the handler
         expect(regenerateCallCount).toBeGreaterThan(0);
         expect(regenerateCalledWith).toBeDefined();
         expect(regenerateCalledWith!.size).toBe(2);
