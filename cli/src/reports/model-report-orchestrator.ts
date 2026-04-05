@@ -35,12 +35,12 @@ export class ModelReportOrchestrator {
     }
 
     for (const layerName of affectedLayers) {
-      // Validate layer name before processing
+      // Type predicate narrows layerName to CanonicalLayerName automatically
       if (!isValidLayerName(layerName)) {
         console.warn(`Skipping invalid layer name: ${layerName}`);
         continue;
       }
-      await this.generateLayerReport(layerName as CanonicalLayerName);
+      await this.generateLayerReport(layerName);
     }
   }
 
@@ -64,8 +64,8 @@ export class ModelReportOrchestrator {
    * Returns the primary layer plus any layers that have cross-layer relationships with it.
    * Throws if the primary layer is not a recognized canonical layer name.
    */
-  computeAffectedLayers(primaryLayer: string): Set<string> {
-    // Validate that the primary layer is a known canonical layer
+  computeAffectedLayers(primaryLayer: CanonicalLayerName): Set<CanonicalLayerName> {
+    // Defense-in-depth: validate despite type signature (guards against as casts from callers)
     if (!isValidLayerName(primaryLayer)) {
       throw new Error(
         `Invalid primary layer name: '${primaryLayer}' is not a recognized canonical layer. ` +
@@ -73,16 +73,16 @@ export class ModelReportOrchestrator {
       );
     }
 
-    const affected = new Set<string>([primaryLayer]);
+    const affected = new Set<CanonicalLayerName>([primaryLayer]);
 
     for (const rel of this.model.relationships.getAll()) {
       // Outbound: this layer references another layer
       if (rel.layer === primaryLayer && rel.targetLayer) {
-        affected.add(rel.targetLayer);
+        affected.add(rel.targetLayer as CanonicalLayerName);
       }
       // Inbound: another layer references this layer
       if (rel.targetLayer === primaryLayer) {
-        affected.add(rel.layer);
+        affected.add(rel.layer as CanonicalLayerName);
       }
     }
 

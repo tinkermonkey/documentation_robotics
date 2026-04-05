@@ -40,17 +40,8 @@ export class ModelReportDataCollector {
    * @param model - The live Model instance
    * @param layerName - The canonical layer name (e.g., 'api', 'data-model')
    * @returns Report-friendly data structure for the layer
-   * @throws Error if layerName is not a valid canonical layer name
    */
   collectLayerData(model: Model, layerName: CanonicalLayerName): ModelLayerReportData {
-    // Validate layer name
-    if (!isValidLayerName(layerName)) {
-      throw new Error(
-        `Invalid layer name: '${layerName}' is not a recognized canonical layer. ` +
-        `Expected one of the 12 canonical layers.`
-      );
-    }
-
     // Get the layer number for file naming
     const layerNumber = LAYER_MAP[layerName];
 
@@ -96,20 +87,20 @@ export class ModelReportDataCollector {
     );
 
     // Compute upstream and downstream layers from inter-layer relationships
-    const upstreamLayerSet = new Set<string>();
-    const downstreamLayerSet = new Set<string>();
+    const upstreamLayerSet = new Set<CanonicalLayerName>();
+    const downstreamLayerSet = new Set<CanonicalLayerName>();
     let inboundRelationshipCount = 0;
     let outboundRelationshipCount = 0;
 
     for (const rel of interRelationships) {
       // Upstream: layers that have relationships targeting THIS layer
       if (rel.targetLayer === layerName && rel.layer !== layerName) {
-        upstreamLayerSet.add(rel.layer);
+        upstreamLayerSet.add(rel.layer as CanonicalLayerName);
         inboundRelationshipCount++;
       }
       // Downstream: layers that THIS layer references
       if (rel.layer === layerName && rel.targetLayer && rel.targetLayer !== layerName) {
-        downstreamLayerSet.add(rel.targetLayer);
+        downstreamLayerSet.add(rel.targetLayer as CanonicalLayerName);
         outboundRelationshipCount++;
       }
     }
