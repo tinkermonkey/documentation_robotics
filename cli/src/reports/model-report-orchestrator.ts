@@ -53,13 +53,8 @@ export class ModelReportOrchestrator {
     try {
       await fs.mkdir(reportDir, { recursive: true });
     } catch (error) {
-      emitLog(
-        SeverityNumber.WARN,
-        "Failed to create reports directory, skipping report generation",
-        {
-          "reportDir": reportDir,
-          "error.message": getErrorMessage(error),
-        }
+      console.warn(
+        `Failed to create reports directory, skipping report generation - ${reportDir}: ${getErrorMessage(error)}`
       );
       return;
     }
