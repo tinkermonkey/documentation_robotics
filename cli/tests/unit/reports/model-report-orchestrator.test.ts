@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
 import { ModelReportOrchestrator } from '@/reports/model-report-orchestrator';
 import { Model } from '@/core/model';
 import { Element } from '@/core/element';
 import { Relationships } from '@/core/relationships';
 import { Manifest } from '@/core/manifest';
 import type { Relationship } from '@/core/relationships';
+import * as fs from 'fs/promises';
 
 describe('ModelReportOrchestrator', () => {
   let model: Model;
@@ -156,6 +157,176 @@ describe('ModelReportOrchestrator', () => {
       const orchestrator = new ModelReportOrchestrator(model, '/test/path');
       expect(typeof orchestrator.regenerate).toBe('function');
       expect(typeof orchestrator.regenerateAll).toBe('function');
+    });
+  });
+
+  describe('isInitialized() error handling', () => {
+    it('should return false when files do not exist (ENOENT)', async () => {
+      const orchestrator = new ModelReportOrchestrator(model, '/test/path');
+      const accessSpy = spyOn(fs, 'access').mockImplementation(() => {
+        const error = new Error('ENOENT: no such file or directory') as NodeJS.ErrnoException;
+        error.code = 'ENOENT';
+        return Promise.reject(error);
+      });
+
+      const result = await orchestrator['isInitialized']();
+      expect(result).toBe(false);
+      accessSpy.mockRestore();
+    });
+
+    it('should propagate permission errors (EACCES)', async () => {
+      const orchestrator = new ModelReportOrchestrator(model, '/test/path');
+      const error = new Error('EACCES: permission denied') as NodeJS.ErrnoException;
+      error.code = 'EACCES';
+
+      const accessSpy = spyOn(fs, 'access').mockImplementation(() => Promise.reject(error));
+
+      try {
+        await orchestrator['isInitialized']();
+        expect(true).toBe(false); // Should not reach here
+      } catch (err) {
+        expect((err as NodeJS.ErrnoException).code).toBe('EACCES');
+      }
+      accessSpy.mockRestore();
+    });
+
+    it('should propagate I/O errors (EIO)', async () => {
+      const orchestrator = new ModelReportOrchestrator(model, '/test/path');
+      const error = new Error('EIO: input/output error') as NodeJS.ErrnoException;
+      error.code = 'EIO';
+
+      const accessSpy = spyOn(fs, 'access').mockImplementation(() => Promise.reject(error));
+
+      try {
+        await orchestrator['isInitialized']();
+        expect(true).toBe(false); // Should not reach here
+      } catch (err) {
+        expect((err as NodeJS.ErrnoException).code).toBe('EIO');
+      }
+      accessSpy.mockRestore();
+    });
+
+    it('should return true when all files exist', async () => {
+      const orchestrator = new ModelReportOrchestrator(model, '/test/path');
+      const accessSpy = spyOn(fs, 'access').mockImplementation(() => Promise.resolve());
+
+      const result = await orchestrator['isInitialized']();
+      expect(result).toBe(true);
+      accessSpy.mockRestore();
+    });
+  });
+
+  describe('regenerateAll() error handling', () => {
+    it('should propagate mkdir errors to caller', async () => {
+      const orchestrator = new ModelReportOrchestrator(model, '/test/path');
+      const error = new Error('EACCES: permission denied') as NodeJS.ErrnoException;
+      error.code = 'EACCES';
+
+      const mkdirSpy = spyOn(fs, 'mkdir').mockImplementation(() => Promise.reject(error));
+
+      try {
+        await orchestrator['regenerateAll']();
+        expect(true).toBe(false); // Should not reach here
+      } catch (err) {
+        expect((err as NodeJS.ErrnoException).code).toBe('EACCES');
+      }
+      mkdirSpy.mockRestore();
+    });
+
+    it('should propagate disk full errors (ENOSPC)', async () => {
+      const orchestrator = new ModelReportOrchestrator(model, '/test/path');
+      const error = new Error('ENOSPC: no space left on device') as NodeJS.ErrnoException;
+      error.code = 'ENOSPC';
+
+      const mkdirSpy = spyOn(fs, 'mkdir').mockImplementation(() => Promise.reject(error));
+
+      try {
+        await orchestrator['regenerateAll']();
+        expect(true).toBe(false); // Should not reach here
+      } catch (err) {
+        expect((err as NodeJS.ErrnoException).code).toBe('ENOSPC');
+      }
+      mkdirSpy.mockRestore();
+    });
+  });
+
+  describe('generateLayerReport() error handling', () => {
+    it('should log and return early on data collection error without attempting write', async () => {
+      const orchestrator = new ModelReportOrchestrator(model, '/test/path');
+      const collectionError = new Error('Corrupted model data');
+
+      // Mock the collector to throw
+      const collectorSpy = spyOn(orchestrator['collector'], 'collectLayerData').mockImplementation(() => {
+        throw collectionError;
+      });
+
+      // Mock console.warn to verify logging
+      const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+
+      // Mock fs.writeFile - should not be called
+      const writeFileSpy = spyOn(fs, 'writeFile').mockImplementation(() => Promise.reject(new Error('Should not be called')));
+
+      await orchestrator['generateLayerReport']('api');
+
+      expect(warnSpy).toHaveBeenCalled();
+      expect(warnSpy.mock.calls[0][0]).toContain('programming error or corrupted model');
+      expect(writeFileSpy).not.toHaveBeenCalled();
+
+      collectorSpy.mockRestore();
+      warnSpy.mockRestore();
+      writeFileSpy.mockRestore();
+    });
+
+    it('should propagate write errors instead of swallowing them', async () => {
+      const orchestrator = new ModelReportOrchestrator(model, '/test/path');
+      const writeError = new Error('ENOSPC: no space left on device') as NodeJS.ErrnoException;
+      writeError.code = 'ENOSPC';
+
+      // Mock collector to succeed
+      const collectorSpy = spyOn(orchestrator['collector'], 'collectLayerData').mockImplementation(() => ({
+        layerName: 'api',
+        elements: [],
+        relationships: [],
+      }));
+
+      // Mock generator to succeed
+      const generatorSpy = spyOn(orchestrator['generator'], 'generate').mockImplementation(() => 'test markdown');
+
+      // Mock fs.writeFile to throw
+      const writeFileSpy = spyOn(fs, 'writeFile').mockImplementation(() => Promise.reject(writeError));
+
+      try {
+        await orchestrator['generateLayerReport']('api');
+        expect(true).toBe(false); // Should not reach here
+      } catch (err) {
+        expect((err as NodeJS.ErrnoException).code).toBe('ENOSPC');
+      }
+
+      collectorSpy.mockRestore();
+      generatorSpy.mockRestore();
+      writeFileSpy.mockRestore();
+    });
+
+    it('should distinguish programming errors from filesystem errors', async () => {
+      const orchestrator = new ModelReportOrchestrator(model, '/test/path');
+      const typeError = new TypeError('Cannot read property of undefined');
+
+      // Mock collector to throw TypeError (programming error)
+      const collectorSpy = spyOn(orchestrator['collector'], 'collectLayerData').mockImplementation(() => {
+        throw typeError;
+      });
+
+      const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+
+      await orchestrator['generateLayerReport']('api');
+
+      // Verify the error message indicates programming error
+      const calls = warnSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      expect(calls[0][0]).toContain('programming error or corrupted model');
+
+      collectorSpy.mockRestore();
+      warnSpy.mockRestore();
     });
   });
 });

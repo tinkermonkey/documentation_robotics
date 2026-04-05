@@ -130,6 +130,7 @@ export class ModelReportOrchestrator {
   /**
    * Generate and write a single layer report.
    * Separates concerns to distinguish programming bugs from I/O errors.
+   * Lets write errors propagate so callers can handle them with proper telemetry.
    */
   private async generateLayerReport(layerName: string): Promise<void> {
     let data;
@@ -148,14 +149,9 @@ export class ModelReportOrchestrator {
       return;
     }
 
-    try {
-      // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
-      const filePath = this.getReportFilePath(layerName);
-      await fs.writeFile(filePath, markdown, 'utf-8');
-    } catch (error) {
-      console.warn(
-        `Failed to write report file for layer: ${layerName} (filesystem error) - ${getErrorMessage(error)}`
-      );
-    }
+    // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
+    // Let write errors propagate so callers can handle them with proper telemetry
+    const filePath = this.getReportFilePath(layerName);
+    await fs.writeFile(filePath, markdown, 'utf-8');
   }
 }
