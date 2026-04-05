@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import { createTestWorkdir } from '../../helpers/golden-copy.js';
 import { Model } from '@/core/model';
 import { ModelReportOrchestrator } from '@/reports/model-report-orchestrator';
@@ -9,6 +9,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CANONICAL_LAYER_NAMES, getLayerOrder } from '@/core/layers';
 import { SeverityNumber } from '@/telemetry/index';
+import * as telemetry from '@/telemetry/index';
 
 describe('ModelReportOrchestrator Integration', () => {
   let workdir: Awaited<ReturnType<typeof createTestWorkdir>> | null = null;
@@ -565,23 +566,8 @@ describe('Mutation → Report Generation Integration', () => {
       throw regenerateError;
     };
 
-    // Capture stderr/stdout to verify emitLog is called
-    // The emitLog function (line 335 in mutation-handler.ts) is guaranteed to be called
-    // when orchestrator.regenerate throws, as it's in the catch block
-    const originalStderr = process.stderr;
-    const capturedOutput: string[] = [];
-
-    // Patch console methods that might be used by telemetry
-    const originalError = console.error;
-    const originalLog = console.log;
-
-    console.error = (...args: unknown[]) => {
-      capturedOutput.push(String(args.join(' ')));
-    };
-
-    console.log = (...args: unknown[]) => {
-      capturedOutput.push(String(args.join(' ')));
-    };
+    // Spy on telemetry.emitLog to verify it's called when orchestrator fails
+    const emitLogSpy = spyOn(telemetry, 'emitLog');
 
     try {
       await handler.executeAdd(newElement, async () => {
@@ -601,16 +587,14 @@ describe('Mutation → Report Generation Integration', () => {
       // Verify the orchestrator error was captured and handled
       expect(regenerateError).not.toBeNull();
 
-      // Note: emitLog is guaranteed to be called at line 335 in mutation-handler.ts
-      // when the orchestrator throws. It's in the catch block that handles orchestrator failures.
-      // This test verifies that emitLog receives a SeverityNumber.WARN with the error message
-      // through code inspection: the exact call is:
-      // emitLog(SeverityNumber.WARN, "Failed to update layer reports after mutation", {...})
+      // Verify emitLog was called with the correct severity and message when orchestrator fails
+      expect(emitLogSpy.mock.calls.length).toBeGreaterThan(0);
+      const lastCall = emitLogSpy.mock.calls[emitLogSpy.mock.calls.length - 1];
+      expect(lastCall[0]).toBe(SeverityNumber.WARN);
+      expect(String(lastCall[1])).toContain('Failed to update layer reports after mutation');
     } finally {
       // Restore original methods
       ModelReportOrchestrator.prototype.regenerate = originalInstanceCreator;
-      console.error = originalError;
-      console.log = originalLog;
     }
   });
 
