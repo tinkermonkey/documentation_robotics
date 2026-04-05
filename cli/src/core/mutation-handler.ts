@@ -15,6 +15,7 @@ import { isValidLayerName } from "./layers.js";
 import { CLIError } from "../utils/errors.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
+import { emitLog, SeverityNumber } from "../telemetry/index.js";
 
 export type MutationType = "add" | "update" | "delete";
 
@@ -287,10 +288,12 @@ export class MutationHandler {
   }
 
   /**
-   * Persist changes atomically
+   * Persist changes to disk
    *
-   * This ensures all writes happen together or not at all.
-   * Prevents partial writes that could corrupt the model.
+   * Performs sequential writes to layer, relationships, and manifest files.
+   * If any write fails, subsequent writes are skipped via error propagation.
+   * Note: Not truly atomic—if a write succeeds then a later write fails,
+   * earlier writes remain on disk. Use within transaction-like contexts only.
    */
   private async _persistChanges(type?: string): Promise<void> {
     try {
@@ -322,9 +325,18 @@ export class MutationHandler {
       if (isValidLayerName(this.context.layerName)) {
         const affected = orchestrator.computeAffectedLayers(this.context.layerName);
         await orchestrator.regenerate(affected);
+      } else {
+        emitLog(SeverityNumber.WARN, "Report regeneration skipped: invalid layer name", {
+          "layer.name": this.context.layerName,
+          "elementId": this.context.elementId,
+        });
       }
     } catch (error) {
-      console.warn(`Warning: Failed to update layer reports after mutation - ${getErrorMessage(error)}`);
+      emitLog(SeverityNumber.WARN, "Failed to update layer reports after mutation", {
+        "error": getErrorMessage(error),
+        "layer.name": this.context.layerName,
+        "elementId": this.context.elementId,
+      });
     }
   }
 }
