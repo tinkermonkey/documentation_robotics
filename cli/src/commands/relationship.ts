@@ -124,49 +124,73 @@ export function getRelationshipConstraints(
  * Handler function for adding a relationship
  * Encapsulates the core logic of the add-relationship command
  * @internal Exported for testing purposes
+ *
+ * @param model - The architecture model
+ * @param source - Source element ID
+ * @param target - Target element ID
+ * @param predicate - Relationship predicate
+ * @param properties - Optional relationship properties
+ * @param sourceElement - Pre-resolved source element (optional, for performance)
+ * @param sourceLayerName - Pre-resolved source layer name (optional, for performance)
+ * @param targetElement - Pre-resolved target element (optional, for performance)
+ * @param targetLayerName - Pre-resolved target layer name (optional, for performance)
  */
 export async function addRelationshipHandler(
   model: Model,
   source: string,
   target: string,
   predicate: string,
-  properties?: Record<string, unknown>
+  properties?: Record<string, unknown>,
+  sourceElement?: unknown,
+  sourceLayerName?: string,
+  targetElement?: unknown,
+  targetLayerName?: string
 ): Promise<void> {
-  // Find source element
-  const sourceLayerName = await findElementLayer(model, source);
-  if (!sourceLayerName) {
-    throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+  // Use pre-resolved elements if provided, otherwise resolve them
+  let resolvedSourceLayerName = sourceLayerName;
+  let resolvedSourceElement = sourceElement;
+  let resolvedTargetLayerName = targetLayerName;
+  let resolvedTargetElement = targetElement;
+
+  if (!resolvedSourceLayerName) {
+    resolvedSourceLayerName = await findElementLayer(model, source);
+    if (!resolvedSourceLayerName) {
+      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+    }
   }
 
-  // Find source element for schema validation
-  const sourceLayer = await model.getLayer(sourceLayerName);
-  if (!sourceLayer) {
-    throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
-  }
-  const sourceElement = sourceLayer.getElement(source);
-  if (!sourceElement) {
-    throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
-  }
-
-  // Find target element
-  const targetLayerName = await findElementLayer(model, target);
-  if (!targetLayerName) {
-    throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+  if (!resolvedSourceElement) {
+    const sourceLayer = await model.getLayer(resolvedSourceLayerName);
+    if (!sourceLayer) {
+      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+    }
+    resolvedSourceElement = sourceLayer.getElement(source);
+    if (!resolvedSourceElement) {
+      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+    }
   }
 
-  // Find target element for schema validation
-  const targetLayer = await model.getLayer(targetLayerName);
-  if (!targetLayer) {
-    throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+  if (!resolvedTargetLayerName) {
+    resolvedTargetLayerName = await findElementLayer(model, target);
+    if (!resolvedTargetLayerName) {
+      throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+    }
   }
-  const targetElement = targetLayer.getElement(target);
-  if (!targetElement) {
-    throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+
+  if (!resolvedTargetElement) {
+    const targetLayer = await model.getLayer(resolvedTargetLayerName);
+    if (!targetLayer) {
+      throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+    }
+    resolvedTargetElement = targetLayer.getElement(target);
+    if (!resolvedTargetElement) {
+      throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+    }
   }
 
   // Schema-driven validation
-  const sourceSpecNodeId = constructSpecNodeId(sourceElement, source);
-  const targetSpecNodeId = constructSpecNodeId(targetElement, target);
+  const sourceSpecNodeId = constructSpecNodeId(resolvedSourceElement, source);
+  const targetSpecNodeId = constructSpecNodeId(resolvedTargetElement, target);
 
   const validation = validateRelationshipCombination(
     sourceSpecNodeId,
@@ -190,8 +214,8 @@ export async function addRelationshipHandler(
     source,
     target,
     predicate,
-    layer: sourceLayerName,
-    ...(targetLayerName !== sourceLayerName ? { targetLayer: targetLayerName } : {}),
+    layer: resolvedSourceLayerName,
+    ...(resolvedTargetLayerName !== resolvedSourceLayerName ? { targetLayer: resolvedTargetLayerName } : {}),
     category: "structural" as const,
     ...(properties ? { properties } : {}),
   };
@@ -202,7 +226,7 @@ export async function addRelationshipHandler(
     await stagingManager.stage(activeChangesetId, {
       type: "relationship-add",
       elementId: compositeKey,
-      layerName: sourceLayerName,
+      layerName: resolvedSourceLayerName,
       after: relData,
     });
   } else {
@@ -217,15 +241,15 @@ export async function addRelationshipHandler(
       const affectedLayers = new Set<string>();
 
       // Compute affected layers for source layer
-      if (isValidLayerName(sourceLayerName)) {
-        for (const layer of orchestrator.computeAffectedLayers(sourceLayerName)) {
+      if (isValidLayerName(resolvedSourceLayerName)) {
+        for (const layer of orchestrator.computeAffectedLayers(resolvedSourceLayerName)) {
           affectedLayers.add(layer);
         }
       }
 
       // Compute affected layers for target layer
-      if (isValidLayerName(targetLayerName)) {
-        for (const layer of orchestrator.computeAffectedLayers(targetLayerName)) {
+      if (isValidLayerName(resolvedTargetLayerName)) {
+        for (const layer of orchestrator.computeAffectedLayers(resolvedTargetLayerName)) {
           affectedLayers.add(layer);
         }
       }
@@ -237,8 +261,8 @@ export async function addRelationshipHandler(
         "Failed to regenerate layer reports after relationship add",
         {
           "relationship.predicate": predicate,
-          "relationship.sourceLayer": sourceLayerName,
-          "relationship.targetLayer": targetLayerName,
+          "relationship.sourceLayer": resolvedSourceLayerName,
+          "relationship.targetLayer": resolvedTargetLayerName,
           "relationship.source": source,
           "relationship.target": target,
           "error.message": getErrorMessage(error),
@@ -252,23 +276,38 @@ export async function addRelationshipHandler(
  * Handler function for deleting relationships
  * Encapsulates the core logic of the delete-relationship command
  * @internal Exported for testing purposes
+ *
+ * @param model - The architecture model
+ * @param source - Source element ID
+ * @param target - Target element ID
+ * @param predicate - Optional relationship predicate
+ * @param sourceLayerName - Pre-resolved source layer name (optional, for performance)
+ * @param toDelete - Pre-found relationships (optional, for performance)
  */
 export async function deleteRelationshipHandler(
   model: Model,
   source: string,
   target: string,
-  predicate?: string
+  predicate?: string,
+  sourceLayerName?: string,
+  toDelete?: any[]
 ): Promise<{ deletedCount: number }> {
-  // Find source element
-  const sourceLayerName = await findElementLayer(model, source);
-  if (!sourceLayerName) {
-    throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+  // Use pre-resolved source layer if provided, otherwise resolve it
+  let resolvedSourceLayerName = sourceLayerName;
+  if (!resolvedSourceLayerName) {
+    resolvedSourceLayerName = await findElementLayer(model, source);
+    if (!resolvedSourceLayerName) {
+      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+    }
   }
 
-  // Find relationships to delete
-  const toDelete = model.relationships.find(source, target, predicate);
+  // Use pre-found relationships if provided, otherwise find them
+  let resolvedToDelete = toDelete;
+  if (!resolvedToDelete) {
+    resolvedToDelete = model.relationships.find(source, target, predicate);
+  }
 
-  if (toDelete.length === 0) {
+  if (resolvedToDelete.length === 0) {
     throw new CLIError("No matching relationships found", ErrorCategory.USER);
   }
 
@@ -278,7 +317,7 @@ export async function deleteRelationshipHandler(
 
   if (activeChangesetId) {
     // Stage each relationship deletion in the active changeset
-    for (const rel of toDelete) {
+    for (const rel of resolvedToDelete) {
       const compositeKey = `${rel.source}::${rel.predicate}::${rel.target}`;
       await stagingManager.stage(activeChangesetId, {
         type: "relationship-delete",
@@ -306,7 +345,7 @@ export async function deleteRelationshipHandler(
       const affectedLayers = new Set<string>();
 
       // Compute affected layers for each deleted relationship's source and target
-      for (const rel of toDelete) {
+      for (const rel of resolvedToDelete) {
         // Compute affected layers for source layer
         if (rel.layer && isValidLayerName(rel.layer)) {
           for (const layer of orchestrator.computeAffectedLayers(rel.layer)) {
@@ -331,14 +370,14 @@ export async function deleteRelationshipHandler(
           "relationship.predicate": predicate,
           "relationship.source": source,
           "relationship.target": target,
-          "relationship.deleteCount": toDelete.length,
+          "relationship.deleteCount": resolvedToDelete.length,
           "error.message": getErrorMessage(error),
         }
       );
     }
   }
 
-  return { deletedCount: toDelete.length };
+  return { deletedCount: resolvedToDelete.length };
 }
 
 export function relationshipCommands(program: Command): void {
@@ -415,8 +454,18 @@ Examples:
         const stagingManager = new StagingAreaManager(model.rootPath, model);
         const activeChangesetId = await stagingManager.getActiveId();
 
-        // Call the handler function
-        await addRelationshipHandler(model, source, target, options.predicate, properties);
+        // Call the handler function with pre-resolved elements to avoid duplicate lookups
+        await addRelationshipHandler(
+          model,
+          source,
+          target,
+          options.predicate,
+          properties,
+          sourceElement,
+          sourceLayerName,
+          targetElement,
+          targetLayerName
+        );
 
         // Show cardinality and strength in output
         let message = `✓ Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
@@ -490,8 +539,15 @@ Examples:
         const stagingManager = new StagingAreaManager(model.rootPath, model);
         const activeChangesetId = await stagingManager.getActiveId();
 
-        // Call the handler function
-        const result = await deleteRelationshipHandler(model, source, target, options.predicate);
+        // Call the handler function with pre-resolved values to avoid duplicate lookups
+        const result = await deleteRelationshipHandler(
+          model,
+          source,
+          target,
+          options.predicate,
+          sourceLayerName,
+          toDelete
+        );
 
         const stagedSuffix = activeChangesetId ? " [staged]" : "";
         console.log(
