@@ -46,18 +46,12 @@ export class ModelReportOrchestrator {
 
   /**
    * Regenerate all 12 layer reports.
+   * Lets mkdir errors propagate so callers can handle them with proper telemetry.
    */
   async regenerateAll(): Promise<void> {
     // Ensure report directory exists
     const reportDir = this.getReportDir();
-    try {
-      await fs.mkdir(reportDir, { recursive: true });
-    } catch (error) {
-      console.warn(
-        `Failed to create reports directory, skipping report generation - ${reportDir}: ${getErrorMessage(error)}`
-      );
-      return;
-    }
+    await fs.mkdir(reportDir, { recursive: true });
 
     // Generate all 12 layer reports
     for (const layerName of CANONICAL_LAYER_NAMES) {
@@ -97,16 +91,23 @@ export class ModelReportOrchestrator {
 
   /**
    * Check if all 12 report files exist and are initialized.
+   * Returns false only if files don't exist (ENOENT); propagates other errors like EACCES, EMFILE, EIO.
    */
   private async isInitialized(): Promise<boolean> {
-    try {
-      for (const layerName of CANONICAL_LAYER_NAMES) {
+    for (const layerName of CANONICAL_LAYER_NAMES) {
+      try {
         await fs.access(this.getReportFilePath(layerName));
+      } catch (error: unknown) {
+        const err = error as NodeJS.ErrnoException;
+        // Only ENOENT (file not found) should return false; other errors propagate
+        if (err.code === 'ENOENT') {
+          return false;
+        }
+        // Re-throw permission errors, I/O errors, etc.
+        throw error;
       }
-      return true;
-    } catch {
-      return false;
     }
+    return true;
   }
 
   /**
@@ -128,21 +129,33 @@ export class ModelReportOrchestrator {
 
   /**
    * Generate and write a single layer report.
-   * Wraps generation in try/catch to isolate failures.
+   * Separates concerns to distinguish programming bugs from I/O errors.
    */
   private async generateLayerReport(layerName: string): Promise<void> {
+    let data;
+    let markdown;
+
     try {
-      // Collect layer data
-      const data = this.collector.collectLayerData(this.model, layerName);
+      // Collect layer data (may throw if programming bug or model is corrupted)
+      data = this.collector.collectLayerData(this.model, layerName);
 
-      // Generate markdown report
-      const markdown = this.generator.generate(data);
+      // Generate markdown report (may throw if programming bug)
+      markdown = this.generator.generate(data);
+    } catch (error) {
+      console.warn(
+        `Failed to generate report content for layer: ${layerName} (programming error or corrupted model) - ${getErrorMessage(error)}`
+      );
+      return;
+    }
 
-      // Write to file
+    try {
+      // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
       const filePath = this.getReportFilePath(layerName);
       await fs.writeFile(filePath, markdown, 'utf-8');
     } catch (error) {
-      console.warn(`Failed to generate report for layer: ${layerName} - ${getErrorMessage(error)}`);
+      console.warn(
+        `Failed to write report file for layer: ${layerName} (filesystem error) - ${getErrorMessage(error)}`
+      );
     }
   }
 }
