@@ -741,8 +741,17 @@ export class StagingAreaManager {
             }
           }
           await orchestrator.regenerate(affectedLayers);
-        } catch {
-          console.warn("Warning: Failed to update layer reports after changeset commit");
+        } catch (error) {
+          emitLog(
+            SeverityNumber.WARN,
+            "Failed to regenerate layer reports after changeset commit",
+            {
+              "changeset.id": changesetId,
+              "changeset.name": changeset.name,
+              "changeset.changeCount": sortedChanges.length,
+              "error.message": getErrorMessage(error),
+            }
+          );
         }
 
         // Step 10: Clean up backup directory after successful commit

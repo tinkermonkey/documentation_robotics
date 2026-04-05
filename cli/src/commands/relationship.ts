@@ -7,7 +7,7 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { findElementLayer } from "../utils/element-utils.js";
-import { CLIError, ErrorCategory, handleError } from "../utils/errors.js";
+import { CLIError, ErrorCategory, handleError, getErrorMessage } from "../utils/errors.js";
 import {
   getValidRelationships,
   getValidPredicatesForSource,
@@ -15,6 +15,7 @@ import {
 } from "../generated/relationship-index.js";
 import { normalizeNodeType } from "../generated/node-types.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
+import { emitLog, SeverityNumber } from "../telemetry/index.js";
 
 /**
  * Validate element properties and construct a SpecNodeId
@@ -242,8 +243,19 @@ Examples:
             const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
             const affectedLayers = new Set<string>([sourceLayerName, targetLayerName]);
             await orchestrator.regenerate(affectedLayers);
-          } catch {
-            console.warn("Warning: Failed to update layer reports");
+          } catch (error) {
+            emitLog(
+              SeverityNumber.WARN,
+              "Failed to regenerate layer reports after relationship add",
+              {
+                "relationship.predicate": options.predicate,
+                "relationship.sourceLayer": sourceLayerName,
+                "relationship.targetLayer": targetLayerName,
+                "relationship.source": source,
+                "relationship.target": target,
+                "error.message": getErrorMessage(error),
+              }
+            );
           }
         }
 
@@ -357,8 +369,18 @@ Examples:
             }
 
             await orchestrator.regenerate(affectedLayers);
-          } catch {
-            console.warn("Warning: Failed to update layer reports");
+          } catch (error) {
+            emitLog(
+              SeverityNumber.WARN,
+              "Failed to regenerate layer reports after relationship delete",
+              {
+                "relationship.predicate": options.predicate,
+                "relationship.source": source,
+                "relationship.target": target,
+                "relationship.deleteCount": toDelete.length,
+                "error.message": getErrorMessage(error),
+              }
+            );
           }
         }
 
