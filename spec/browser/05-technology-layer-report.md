@@ -33,7 +33,7 @@ Layer 5: Technology Layer
 | Metric                    | Count |
 | ------------------------- | ----- |
 | Node Types                | 13    |
-| Intra-Layer Relationships | 85    |
+| Intra-Layer Relationships | 97    |
 | Inter-Layer Relationships | 76    |
 | Inbound Relationships     | 45    |
 | Outbound Relationships    | 31    |
@@ -62,20 +62,29 @@ flowchart LR
     technologyinterface["technologyinterface"]
     technologyprocess["technologyprocess"]
     technologyservice["technologyservice"]
+    artifact -->|aggregates| artifact
+    artifact -->|associated-with| systemsoftware
+    artifact -->|composes| artifact
+    artifact -->|depends-on| artifact
+    artifact -->|flows-to| technologyprocess
+    artifact -->|realizes| technologyservice
     communicationnetwork -->|aggregates| communicationnetwork
     communicationnetwork -->|aggregates| path
     communicationnetwork -->|assigned-to| technologycollaboration
     communicationnetwork -->|associated-with| systemsoftware
+    communicationnetwork -->|connects| node
     communicationnetwork -->|provides| technologyinterface
     communicationnetwork -->|serves| device
     communicationnetwork -->|serves| node
     communicationnetwork -->|supports| technologyservice
     device -->|composes| node
+    device -->|composes| systemsoftware
     node -->|assigned-to| technologyfunction
     node -->|composes| artifact
     node -->|composes| device
     node -->|composes| systemsoftware
     node -->|composes| technologyinterface
+    node -->|realizes| technologyservice
     path -->|assigned-to| technologyinterface
     path -->|composes| path
     path -->|flows-to| technologyservice
@@ -133,10 +142,13 @@ flowchart LR
     technologyinterface -->|serves| technologyprocess
     technologyinterface -->|uses| communicationnetwork
     technologyinterface -->|uses| path
+    technologyprocess -->|composes| technologyprocess
     technologyprocess -->|realizes| technologyservice
     technologyprocess -->|triggers| technologyevent
     technologyprocess -->|uses| path
+    technologyprocess -->|uses| technologyinterface
     technologyservice -->|aggregates| technologyfunction
+    technologyservice -->|aggregates| technologyprocess
     technologyservice -->|associated-with| technologycollaboration
     technologyservice -->|consumes| artifact
     technologyservice -->|depends-on| communicationnetwork
@@ -194,6 +206,7 @@ flowchart TB
   data_model --> api
   data_model --> application
   data_model --> business
+  data_model --> data_store
   data_model --> motivation
   data_model --> security
   data_model --> technology
@@ -242,84 +255,84 @@ flowchart TB
 
 ## Inter-Layer Relationships Table
 
-| Relationship ID                                                      | Source Node                                                              | Dest Node                                                                     | Dest Layer                                      | Predicate  | Cardinality | Strength |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | ----------- | -------- |
-| api.openapidocument.depends-on.technology.technologyservice          | [Openapidocument](./06-api-layer-report.md#openapidocument)              | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| api.operation.uses.technology.technologyservice                      | [Operation](./06-api-layer-report.md#operation)                          | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| api.pathitem.depends-on.technology.technologyservice                 | [Pathitem](./06-api-layer-report.md#pathitem)                            | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| api.ratelimit.uses.technology.systemsoftware                         | [Ratelimit](./06-api-layer-report.md#ratelimit)                          | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| api.securityscheme.uses.technology.systemsoftware                    | [Securityscheme](./06-api-layer-report.md#securityscheme)                | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| api.server.depends-on.technology.node                                | [Server](./06-api-layer-report.md#server)                                | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| api.server.uses.technology.systemsoftware                            | [Server](./06-api-layer-report.md#server)                                | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| apm.exporterconfig.depends-on.technology.technologyservice           | [Exporterconfig](./11-apm-layer-report.md#exporterconfig)                | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| apm.instrumentationconfig.monitors.technology.systemsoftware         | [Instrumentationconfig](./11-apm-layer-report.md#instrumentationconfig)  | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-one | medium   |
-| apm.logconfiguration.depends-on.technology.technologyservice         | [Logconfiguration](./11-apm-layer-report.md#logconfiguration)            | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| apm.metricinstrument.monitors.technology.technologyservice           | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)            | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-one | medium   |
-| apm.resource.monitors.technology.node                                | [Resource](./11-apm-layer-report.md#resource)                            | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-one | medium   |
-| apm.resource.monitors.technology.systemsoftware                      | [Resource](./11-apm-layer-report.md#resource)                            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-one | medium   |
-| apm.span.monitors.technology.technologyservice                       | [Span](./11-apm-layer-report.md#span)                                    | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-one | medium   |
-| apm.traceconfiguration.depends-on.technology.technologyservice       | [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)        | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| data-model.jsonschema.depends-on.technology.systemsoftware           | [Jsonschema](./07-data-model-layer-report.md#jsonschema)                 | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| data-model.jsonschema.maps-to.technology.artifact                    | [Jsonschema](./07-data-model-layer-report.md#jsonschema)                 | [Artifact](./05-technology-layer-report.md#artifact)                          | [Technology](./05-technology-layer-report.md)   | maps-to    | many-to-one | medium   |
-| data-model.jsonschema.uses.technology.technologyservice              | [Jsonschema](./07-data-model-layer-report.md#jsonschema)                 | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| data-model.objectschema.depends-on.technology.systemsoftware         | [Objectschema](./07-data-model-layer-report.md#objectschema)             | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| data-model.schemadefinition.depends-on.technology.systemsoftware     | [Schemadefinition](./07-data-model-layer-report.md#schemadefinition)     | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| data-store.database.depends-on.technology.node                       | [Database](./08-data-store-layer-report.md#database)                     | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| data-store.database.depends-on.technology.systemsoftware             | [Database](./08-data-store-layer-report.md#database)                     | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| data-store.database.uses.technology.technologyservice                | [Database](./08-data-store-layer-report.md#database)                     | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| data-store.retentionpolicy.uses.technology.technologyservice         | [Retentionpolicy](./08-data-store-layer-report.md#retentionpolicy)       | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| data-store.storedlogic.depends-on.technology.systemsoftware          | [Storedlogic](./08-data-store-layer-report.md#storedlogic)               | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| data-store.storedlogic.uses.technology.technologyservice             | [Storedlogic](./08-data-store-layer-report.md#storedlogic)               | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| navigation.navigationflow.uses.technology.systemsoftware             | [Navigationflow](./10-navigation-layer-report.md#navigationflow)         | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| navigation.navigationgraph.uses.technology.systemsoftware            | [Navigationgraph](./10-navigation-layer-report.md#navigationgraph)       | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| navigation.navigationguard.uses.technology.systemsoftware            | [Navigationguard](./10-navigation-layer-report.md#navigationguard)       | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| navigation.route.depends-on.technology.technologyservice             | [Route](./10-navigation-layer-report.md#route)                           | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| navigation.route.uses.technology.systemsoftware                      | [Route](./10-navigation-layer-report.md#route)                           | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| navigation.route.uses.technology.technologyfunction                  | [Route](./10-navigation-layer-report.md#route)                           | [Technologyfunction](./05-technology-layer-report.md#technologyfunction)      | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| technology.device.satisfies.security.securitypolicy                  | [Device](./05-technology-layer-report.md#device)                         | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | many-to-one | medium   |
-| technology.device.serves.application.applicationcomponent            | [Device](./05-technology-layer-report.md#device)                         | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | many-to-one | medium   |
-| technology.node.satisfies.motivation.constraint                      | [Node](./05-technology-layer-report.md#node)                             | [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
-| technology.node.satisfies.security.securitypolicy                    | [Node](./05-technology-layer-report.md#node)                             | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | many-to-one | medium   |
-| technology.node.serves.application.applicationcomponent              | [Node](./05-technology-layer-report.md#node)                             | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | many-to-one | medium   |
-| technology.node.serves.business.businessprocess                      | [Node](./05-technology-layer-report.md#node)                             | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
-| technology.systemsoftware.implements.motivation.principle            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Principle](./01-motivation-layer-report.md#principle)                        | [Motivation](./01-motivation-layer-report.md)   | implements | many-to-one | medium   |
-| technology.systemsoftware.implements.security.countermeasure         | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Countermeasure](./03-security-layer-report.md#countermeasure)                | [Security](./03-security-layer-report.md)       | implements | many-to-one | medium   |
-| technology.systemsoftware.mitigates.security.threat                  | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Threat](./03-security-layer-report.md#threat)                                | [Security](./03-security-layer-report.md)       | mitigates  | many-to-one | medium   |
-| technology.systemsoftware.realizes.application.applicationservice    | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | realizes   | many-to-one | medium   |
-| technology.systemsoftware.realizes.business.businessservice          | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | realizes   | many-to-one | medium   |
-| technology.systemsoftware.realizes.motivation.goal                   | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | many-to-one | medium   |
-| technology.systemsoftware.realizes.security.securitypolicy           | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | realizes   | many-to-one | medium   |
-| technology.systemsoftware.satisfies.motivation.constraint            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
-| technology.systemsoftware.satisfies.motivation.requirement           | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
-| technology.systemsoftware.serves.application.applicationcomponent    | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | many-to-one | medium   |
-| technology.systemsoftware.serves.business.businessprocess            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
-| technology.technologyfunction.implements.security.countermeasure     | [Technologyfunction](./05-technology-layer-report.md#technologyfunction) | [Countermeasure](./03-security-layer-report.md#countermeasure)                | [Security](./03-security-layer-report.md)       | implements | many-to-one | medium   |
-| technology.technologyfunction.serves.application.applicationfunction | [Technologyfunction](./05-technology-layer-report.md#technologyfunction) | [Applicationfunction](./04-application-layer-report.md#applicationfunction)   | [Application](./04-application-layer-report.md) | serves     | many-to-one | medium   |
-| technology.technologyfunction.serves.business.businessservice        | [Technologyfunction](./05-technology-layer-report.md#technologyfunction) | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
-| technology.technologyservice.accesses.security.secureresource        | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | accesses   | many-to-one | medium   |
-| technology.technologyservice.realizes.business.businessservice       | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | realizes   | many-to-one | medium   |
-| technology.technologyservice.realizes.motivation.goal                | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | many-to-one | medium   |
-| technology.technologyservice.satisfies.motivation.requirement        | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-one | medium   |
-| technology.technologyservice.satisfies.security.securitypolicy       | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | many-to-one | medium   |
-| technology.technologyservice.serves.application.applicationcomponent | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | many-to-one | medium   |
-| technology.technologyservice.serves.application.applicationservice   | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | serves     | many-to-one | medium   |
-| technology.technologyservice.serves.business.businessfunction        | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
-| technology.technologyservice.serves.business.businessprocess         | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
-| technology.technologyservice.serves.business.businessservice         | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | serves     | many-to-one | medium   |
-| technology.technologyservice.serves.motivation.stakeholder           | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Stakeholder](./01-motivation-layer-report.md#stakeholder)                    | [Motivation](./01-motivation-layer-report.md)   | serves     | many-to-one | medium   |
-| testing.environmentfactor.references.technology.node                 | [Environmentfactor](./12-testing-layer-report.md#environmentfactor)      | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | references | many-to-one | medium   |
-| testing.environmentfactor.references.technology.systemsoftware       | [Environmentfactor](./12-testing-layer-report.md#environmentfactor)      | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | references | many-to-one | medium   |
-| testing.testcasesketch.requires.technology.systemsoftware            | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | requires   | many-to-one | medium   |
-| testing.testcoveragemodel.tests.technology.systemsoftware            | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)      | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | tests      | many-to-one | medium   |
-| testing.testcoveragemodel.tests.technology.technologyservice         | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)      | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | tests      | many-to-one | medium   |
-| testing.testcoveragetarget.references.technology.node                | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)    | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | references | many-to-one | medium   |
-| testing.testcoveragetarget.references.technology.systemsoftware      | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)    | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | references | many-to-one | medium   |
-| testing.testcoveragetarget.references.technology.technologyservice   | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)    | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | references | many-to-one | medium   |
-| ux.actioncomponent.uses.technology.technologyservice                 | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)               | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-one | medium   |
-| ux.librarycomponent.depends-on.technology.systemsoftware             | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)             | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| ux.librarycomponent.requires.technology.technologyservice            | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)             | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | requires   | many-to-one | medium   |
-| ux.view.depends-on.technology.systemsoftware                         | [View](./09-ux-layer-report.md#view)                                     | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-one | medium   |
-| ux.view.requires.technology.technologyservice                        | [View](./09-ux-layer-report.md#view)                                     | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | requires   | many-to-one | medium   |
+| Relationship ID                                                      | Source Node                                                              | Dest Node                                                                     | Dest Layer                                      | Predicate  | Cardinality  | Strength |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | ------------ | -------- |
+| api.openapidocument.depends-on.technology.technologyservice          | [Openapidocument](./06-api-layer-report.md#openapidocument)              | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| api.operation.uses.technology.technologyservice                      | [Operation](./06-api-layer-report.md#operation)                          | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| api.pathitem.depends-on.technology.technologyservice                 | [Pathitem](./06-api-layer-report.md#pathitem)                            | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| api.ratelimit.uses.technology.systemsoftware                         | [Ratelimit](./06-api-layer-report.md#ratelimit)                          | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| api.securityscheme.uses.technology.systemsoftware                    | [Securityscheme](./06-api-layer-report.md#securityscheme)                | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| api.server.depends-on.technology.node                                | [Server](./06-api-layer-report.md#server)                                | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| api.server.uses.technology.systemsoftware                            | [Server](./06-api-layer-report.md#server)                                | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| apm.exporterconfig.depends-on.technology.technologyservice           | [Exporterconfig](./11-apm-layer-report.md#exporterconfig)                | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| apm.instrumentationconfig.monitors.technology.systemsoftware         | [Instrumentationconfig](./11-apm-layer-report.md#instrumentationconfig)  | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-many | medium   |
+| apm.logconfiguration.depends-on.technology.technologyservice         | [Logconfiguration](./11-apm-layer-report.md#logconfiguration)            | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| apm.metricinstrument.monitors.technology.technologyservice           | [Metricinstrument](./11-apm-layer-report.md#metricinstrument)            | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-many | medium   |
+| apm.resource.monitors.technology.node                                | [Resource](./11-apm-layer-report.md#resource)                            | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-many | medium   |
+| apm.resource.monitors.technology.systemsoftware                      | [Resource](./11-apm-layer-report.md#resource)                            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-many | medium   |
+| apm.span.monitors.technology.technologyservice                       | [Span](./11-apm-layer-report.md#span)                                    | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | monitors   | many-to-many | medium   |
+| apm.traceconfiguration.depends-on.technology.technologyservice       | [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)        | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| data-model.jsonschema.depends-on.technology.systemsoftware           | [Jsonschema](./07-data-model-layer-report.md#jsonschema)                 | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| data-model.jsonschema.maps-to.technology.artifact                    | [Jsonschema](./07-data-model-layer-report.md#jsonschema)                 | [Artifact](./05-technology-layer-report.md#artifact)                          | [Technology](./05-technology-layer-report.md)   | maps-to    | many-to-many | medium   |
+| data-model.jsonschema.uses.technology.technologyservice              | [Jsonschema](./07-data-model-layer-report.md#jsonschema)                 | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| data-model.objectschema.depends-on.technology.systemsoftware         | [Objectschema](./07-data-model-layer-report.md#objectschema)             | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| data-model.schemadefinition.depends-on.technology.systemsoftware     | [Schemadefinition](./07-data-model-layer-report.md#schemadefinition)     | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| data-store.database.depends-on.technology.node                       | [Database](./08-data-store-layer-report.md#database)                     | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| data-store.database.depends-on.technology.systemsoftware             | [Database](./08-data-store-layer-report.md#database)                     | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| data-store.database.uses.technology.technologyservice                | [Database](./08-data-store-layer-report.md#database)                     | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| data-store.retentionpolicy.uses.technology.technologyservice         | [Retentionpolicy](./08-data-store-layer-report.md#retentionpolicy)       | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| data-store.storedlogic.depends-on.technology.systemsoftware          | [Storedlogic](./08-data-store-layer-report.md#storedlogic)               | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| data-store.storedlogic.uses.technology.technologyservice             | [Storedlogic](./08-data-store-layer-report.md#storedlogic)               | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| navigation.navigationflow.uses.technology.systemsoftware             | [Navigationflow](./10-navigation-layer-report.md#navigationflow)         | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| navigation.navigationgraph.uses.technology.systemsoftware            | [Navigationgraph](./10-navigation-layer-report.md#navigationgraph)       | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| navigation.navigationguard.uses.technology.systemsoftware            | [Navigationguard](./10-navigation-layer-report.md#navigationguard)       | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| navigation.route.depends-on.technology.technologyservice             | [Route](./10-navigation-layer-report.md#route)                           | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| navigation.route.uses.technology.systemsoftware                      | [Route](./10-navigation-layer-report.md#route)                           | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| navigation.route.uses.technology.technologyfunction                  | [Route](./10-navigation-layer-report.md#route)                           | [Technologyfunction](./05-technology-layer-report.md#technologyfunction)      | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| technology.device.satisfies.security.securitypolicy                  | [Device](./05-technology-layer-report.md#device)                         | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | many-to-many | medium   |
+| technology.device.serves.application.applicationcomponent            | [Device](./05-technology-layer-report.md#device)                         | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | many-to-many | medium   |
+| technology.node.satisfies.motivation.constraint                      | [Node](./05-technology-layer-report.md#node)                             | [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-many | medium   |
+| technology.node.satisfies.security.securitypolicy                    | [Node](./05-technology-layer-report.md#node)                             | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | many-to-many | medium   |
+| technology.node.serves.application.applicationcomponent              | [Node](./05-technology-layer-report.md#node)                             | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | many-to-many | medium   |
+| technology.node.serves.business.businessprocess                      | [Node](./05-technology-layer-report.md#node)                             | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | many-to-many | medium   |
+| technology.systemsoftware.implements.motivation.principle            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Principle](./01-motivation-layer-report.md#principle)                        | [Motivation](./01-motivation-layer-report.md)   | implements | many-to-many | medium   |
+| technology.systemsoftware.implements.security.countermeasure         | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Countermeasure](./03-security-layer-report.md#countermeasure)                | [Security](./03-security-layer-report.md)       | implements | many-to-many | medium   |
+| technology.systemsoftware.mitigates.security.threat                  | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Threat](./03-security-layer-report.md#threat)                                | [Security](./03-security-layer-report.md)       | mitigates  | many-to-many | medium   |
+| technology.systemsoftware.realizes.application.applicationservice    | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | realizes   | many-to-many | medium   |
+| technology.systemsoftware.realizes.business.businessservice          | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | realizes   | many-to-many | medium   |
+| technology.systemsoftware.realizes.motivation.goal                   | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | many-to-many | medium   |
+| technology.systemsoftware.realizes.security.securitypolicy           | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | realizes   | many-to-many | medium   |
+| technology.systemsoftware.satisfies.motivation.constraint            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-many | medium   |
+| technology.systemsoftware.satisfies.motivation.requirement           | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-many | medium   |
+| technology.systemsoftware.serves.application.applicationcomponent    | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | many-to-many | medium   |
+| technology.systemsoftware.serves.business.businessprocess            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)         | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | many-to-many | medium   |
+| technology.technologyfunction.implements.security.countermeasure     | [Technologyfunction](./05-technology-layer-report.md#technologyfunction) | [Countermeasure](./03-security-layer-report.md#countermeasure)                | [Security](./03-security-layer-report.md)       | implements | many-to-many | medium   |
+| technology.technologyfunction.serves.application.applicationfunction | [Technologyfunction](./05-technology-layer-report.md#technologyfunction) | [Applicationfunction](./04-application-layer-report.md#applicationfunction)   | [Application](./04-application-layer-report.md) | serves     | many-to-many | medium   |
+| technology.technologyfunction.serves.business.businessservice        | [Technologyfunction](./05-technology-layer-report.md#technologyfunction) | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | serves     | many-to-many | medium   |
+| technology.technologyservice.accesses.security.secureresource        | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | accesses   | many-to-many | medium   |
+| technology.technologyservice.realizes.business.businessservice       | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | realizes   | many-to-many | medium   |
+| technology.technologyservice.realizes.motivation.goal                | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | many-to-many | medium   |
+| technology.technologyservice.satisfies.motivation.requirement        | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | many-to-many | medium   |
+| technology.technologyservice.satisfies.security.securitypolicy       | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | many-to-many | medium   |
+| technology.technologyservice.serves.application.applicationcomponent | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | many-to-many | medium   |
+| technology.technologyservice.serves.application.applicationservice   | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | serves     | many-to-many | medium   |
+| technology.technologyservice.serves.business.businessfunction        | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | serves     | many-to-many | medium   |
+| technology.technologyservice.serves.business.businessprocess         | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | many-to-many | medium   |
+| technology.technologyservice.serves.business.businessservice         | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | serves     | many-to-many | medium   |
+| technology.technologyservice.serves.motivation.stakeholder           | [Technologyservice](./05-technology-layer-report.md#technologyservice)   | [Stakeholder](./01-motivation-layer-report.md#stakeholder)                    | [Motivation](./01-motivation-layer-report.md)   | serves     | many-to-many | medium   |
+| testing.environmentfactor.references.technology.node                 | [Environmentfactor](./12-testing-layer-report.md#environmentfactor)      | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | references | many-to-many | medium   |
+| testing.environmentfactor.references.technology.systemsoftware       | [Environmentfactor](./12-testing-layer-report.md#environmentfactor)      | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | references | many-to-many | medium   |
+| testing.testcasesketch.requires.technology.systemsoftware            | [Testcasesketch](./12-testing-layer-report.md#testcasesketch)            | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | requires   | many-to-many | medium   |
+| testing.testcoveragemodel.tests.technology.systemsoftware            | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)      | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | tests      | many-to-many | medium   |
+| testing.testcoveragemodel.tests.technology.technologyservice         | [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)      | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | tests      | many-to-many | medium   |
+| testing.testcoveragetarget.references.technology.node                | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)    | [Node](./05-technology-layer-report.md#node)                                  | [Technology](./05-technology-layer-report.md)   | references | many-to-many | medium   |
+| testing.testcoveragetarget.references.technology.systemsoftware      | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)    | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | references | many-to-many | medium   |
+| testing.testcoveragetarget.references.technology.technologyservice   | [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)    | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | references | many-to-many | medium   |
+| ux.actioncomponent.uses.technology.technologyservice                 | [Actioncomponent](./09-ux-layer-report.md#actioncomponent)               | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | uses       | many-to-many | medium   |
+| ux.librarycomponent.depends-on.technology.systemsoftware             | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)             | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| ux.librarycomponent.requires.technology.technologyservice            | [Librarycomponent](./09-ux-layer-report.md#librarycomponent)             | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | requires   | many-to-many | medium   |
+| ux.view.depends-on.technology.systemsoftware                         | [View](./09-ux-layer-report.md#view)                                     | [Systemsoftware](./05-technology-layer-report.md#systemsoftware)              | [Technology](./05-technology-layer-report.md)   | depends-on | many-to-many | medium   |
+| ux.view.requires.technology.technologyservice                        | [View](./09-ux-layer-report.md#view)                                     | [Technologyservice](./05-technology-layer-report.md#technologyservice)        | [Technology](./05-technology-layer-report.md)   | requires   | many-to-many | medium   |
 
 ## Node Reference
 
@@ -331,27 +344,33 @@ A piece of data that is used or produced in a software development process, or b
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 8 | Outbound: 0
+- **Intra-Layer**: Inbound: 11 | Outbound: 6
 - **Inter-Layer**: Inbound: 1 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate | Direction | Cardinality |
-| --------------------------------------------------- | --------- | --------- | ----------- |
-| [Node](#node)                                       | composes  | inbound   | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | accesses  | inbound   | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | composes  | inbound   | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | accesses  | inbound   | many-to-one |
-| [Technologyevent](#technologyevent)                 | flows-to  | inbound   | many-to-one |
-| [Technologyfunction](#technologyfunction)           | accesses  | inbound   | many-to-one |
-| [Technologyinteraction](#technologyinteraction)     | accesses  | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)             | consumes  | inbound   | many-to-one |
+| Related Node                                        | Predicate       | Direction | Cardinality  |
+| --------------------------------------------------- | --------------- | --------- | ------------ |
+| [Artifact](#artifact)                               | aggregates      | outbound  | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | associated-with | outbound  | many-to-many |
+| [Artifact](#artifact)                               | composes        | outbound  | many-to-many |
+| [Artifact](#artifact)                               | depends-on      | outbound  | many-to-many |
+| [Technologyprocess](#technologyprocess)             | flows-to        | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | realizes        | outbound  | many-to-many |
+| [Node](#node)                                       | composes        | inbound   | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | accesses        | inbound   | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | composes        | inbound   | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | accesses        | inbound   | many-to-many |
+| [Technologyevent](#technologyevent)                 | flows-to        | inbound   | many-to-many |
+| [Technologyfunction](#technologyfunction)           | accesses        | inbound   | many-to-many |
+| [Technologyinteraction](#technologyinteraction)     | accesses        | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)             | consumes        | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
-| Related Node                                             | Layer                                         | Predicate | Direction | Cardinality |
-| -------------------------------------------------------- | --------------------------------------------- | --------- | --------- | ----------- |
-| [Jsonschema](./07-data-model-layer-report.md#jsonschema) | [Data Model](./07-data-model-layer-report.md) | maps-to   | inbound   | many-to-one |
+| Related Node                                             | Layer                                         | Predicate | Direction | Cardinality  |
+| -------------------------------------------------------- | --------------------------------------------- | --------- | --------- | ------------ |
+| [Jsonschema](./07-data-model-layer-report.md#jsonschema) | [Data Model](./07-data-model-layer-report.md) | maps-to   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -363,25 +382,26 @@ A set of structures that connects nodes for the purpose of transmission, routing
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 8
+- **Intra-Layer**: Inbound: 5 | Outbound: 9
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate       | Direction | Cardinality |
-| --------------------------------------------------- | --------------- | --------- | ----------- |
-| [Communicationnetwork](#communicationnetwork)       | aggregates      | outbound  | many-to-one |
-| [Path](#path)                                       | aggregates      | outbound  | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | assigned-to     | outbound  | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | associated-with | outbound  | many-to-one |
-| [Technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-one |
-| [Device](#device)                                   | serves          | outbound  | many-to-one |
-| [Node](#node)                                       | serves          | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)             | supports        | outbound  | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | uses            | inbound   | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | uses            | inbound   | many-to-one |
-| [Technologyinterface](#technologyinterface)         | uses            | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)             | depends-on      | inbound   | many-to-one |
+| Related Node                                        | Predicate       | Direction | Cardinality  |
+| --------------------------------------------------- | --------------- | --------- | ------------ |
+| [Communicationnetwork](#communicationnetwork)       | aggregates      | outbound  | many-to-many |
+| [Path](#path)                                       | aggregates      | outbound  | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | assigned-to     | outbound  | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | associated-with | outbound  | many-to-many |
+| [Node](#node)                                       | connects        | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-many |
+| [Device](#device)                                   | serves          | outbound  | many-to-many |
+| [Node](#node)                                       | serves          | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | supports        | outbound  | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | uses            | inbound   | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | uses            | inbound   | many-to-many |
+| [Technologyinterface](#technologyinterface)         | uses            | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)             | depends-on      | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -393,25 +413,26 @@ A physical IT resource upon which system software and artifacts may be stored or
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 4 | Outbound: 1
+- **Intra-Layer**: Inbound: 4 | Outbound: 2
 - **Inter-Layer**: Inbound: 0 | Outbound: 2
 
 #### Intra-Layer Relationships
 
-| Related Node                                  | Predicate  | Direction | Cardinality |
-| --------------------------------------------- | ---------- | --------- | ----------- |
-| [Communicationnetwork](#communicationnetwork) | serves     | inbound   | many-to-one |
-| [Node](#node)                                 | composes   | outbound  | many-to-one |
-| [Node](#node)                                 | composes   | inbound   | many-to-one |
-| [Path](#path)                                 | serves     | inbound   | many-to-one |
-| [Systemsoftware](#systemsoftware)             | depends-on | inbound   | many-to-one |
+| Related Node                                  | Predicate  | Direction | Cardinality  |
+| --------------------------------------------- | ---------- | --------- | ------------ |
+| [Communicationnetwork](#communicationnetwork) | serves     | inbound   | many-to-many |
+| [Node](#node)                                 | composes   | outbound  | many-to-many |
+| [Systemsoftware](#systemsoftware)             | composes   | outbound  | many-to-many |
+| [Node](#node)                                 | composes   | inbound   | many-to-many |
+| [Path](#path)                                 | serves     | inbound   | many-to-many |
+| [Systemsoftware](#systemsoftware)             | depends-on | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                  | Layer                                           | Predicate | Direction | Cardinality |
-| ----------------------------------------------------------------------------- | ----------------------------------------------- | --------- | --------- | ----------- |
-| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies | outbound  | many-to-one |
-| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves    | outbound  | many-to-one |
+| Related Node                                                                  | Layer                                           | Predicate | Direction | Cardinality  |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | --------- | --------- | ------------ |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies | outbound  | many-to-many |
+| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves    | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -423,38 +444,40 @@ A computational or physical resource that hosts, manipulates, or interacts with 
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 6 | Outbound: 5
+- **Intra-Layer**: Inbound: 7 | Outbound: 6
 - **Inter-Layer**: Inbound: 5 | Outbound: 4
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate   | Direction | Cardinality |
-| --------------------------------------------------- | ----------- | --------- | ----------- |
-| [Communicationnetwork](#communicationnetwork)       | serves      | inbound   | many-to-one |
-| [Device](#device)                                   | composes    | inbound   | many-to-one |
-| [Technologyfunction](#technologyfunction)           | assigned-to | outbound  | many-to-one |
-| [Artifact](#artifact)                               | composes    | outbound  | many-to-one |
-| [Device](#device)                                   | composes    | outbound  | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | composes    | outbound  | many-to-one |
-| [Technologyinterface](#technologyinterface)         | composes    | outbound  | many-to-one |
-| [Path](#path)                                       | serves      | inbound   | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-one |
-| [Technologyinterface](#technologyinterface)         | assigned-to | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)             | depends-on  | inbound   | many-to-one |
+| Related Node                                        | Predicate   | Direction | Cardinality  |
+| --------------------------------------------------- | ----------- | --------- | ------------ |
+| [Communicationnetwork](#communicationnetwork)       | connects    | inbound   | many-to-many |
+| [Communicationnetwork](#communicationnetwork)       | serves      | inbound   | many-to-many |
+| [Device](#device)                                   | composes    | inbound   | many-to-many |
+| [Technologyfunction](#technologyfunction)           | assigned-to | outbound  | many-to-many |
+| [Artifact](#artifact)                               | composes    | outbound  | many-to-many |
+| [Device](#device)                                   | composes    | outbound  | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | composes    | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)         | composes    | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | realizes    | outbound  | many-to-many |
+| [Path](#path)                                       | serves      | inbound   | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-many |
+| [Technologyinterface](#technologyinterface)         | assigned-to | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)             | depends-on  | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                  | Layer                                           | Predicate  | Direction | Cardinality |
-| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [Server](./06-api-layer-report.md#server)                                     | [API](./06-api-layer-report.md)                 | depends-on | inbound   | many-to-one |
-| [Resource](./11-apm-layer-report.md#resource)                                 | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
-| [Database](./08-data-store-layer-report.md#database)                          | [Data Store](./08-data-store-layer-report.md)   | depends-on | inbound   | many-to-one |
-| [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-one |
-| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | outbound  | many-to-one |
-| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-one |
-| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-one |
-| [Environmentfactor](./12-testing-layer-report.md#environmentfactor)           | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-one |
-| [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)         | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-one |
+| Related Node                                                                  | Layer                                           | Predicate  | Direction | Cardinality  |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ------------ |
+| [Server](./06-api-layer-report.md#server)                                     | [API](./06-api-layer-report.md)                 | depends-on | inbound   | many-to-many |
+| [Resource](./11-apm-layer-report.md#resource)                                 | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-many |
+| [Database](./08-data-store-layer-report.md#database)                          | [Data Store](./08-data-store-layer-report.md)   | depends-on | inbound   | many-to-many |
+| [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-many |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | outbound  | many-to-many |
+| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-many |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-many |
+| [Environmentfactor](./12-testing-layer-report.md#environmentfactor)           | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-many |
+| [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)         | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -471,20 +494,20 @@ A link between two or more nodes through which those nodes can exchange data, re
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate   | Direction | Cardinality |
-| --------------------------------------------------- | ----------- | --------- | ----------- |
-| [Communicationnetwork](#communicationnetwork)       | aggregates  | inbound   | many-to-one |
-| [Technologyinterface](#technologyinterface)         | assigned-to | outbound  | many-to-one |
-| [Path](#path)                                       | composes    | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)             | flows-to    | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)             | realizes    | outbound  | many-to-one |
-| [Device](#device)                                   | serves      | outbound  | many-to-one |
-| [Node](#node)                                       | serves      | outbound  | many-to-one |
-| [Technologyevent](#technologyevent)                 | triggers    | outbound  | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | uses        | inbound   | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | uses        | inbound   | many-to-one |
-| [Technologyinterface](#technologyinterface)         | uses        | inbound   | many-to-one |
-| [Technologyprocess](#technologyprocess)             | uses        | inbound   | many-to-one |
+| Related Node                                        | Predicate   | Direction | Cardinality  |
+| --------------------------------------------------- | ----------- | --------- | ------------ |
+| [Communicationnetwork](#communicationnetwork)       | aggregates  | inbound   | many-to-many |
+| [Technologyinterface](#technologyinterface)         | assigned-to | outbound  | many-to-many |
+| [Path](#path)                                       | composes    | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | flows-to    | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | realizes    | outbound  | many-to-many |
+| [Device](#device)                                   | serves      | outbound  | many-to-many |
+| [Node](#node)                                       | serves      | outbound  | many-to-many |
+| [Technologyevent](#technologyevent)                 | triggers    | outbound  | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | uses        | inbound   | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | uses        | inbound   | many-to-many |
+| [Technologyinterface](#technologyinterface)         | uses        | inbound   | many-to-many |
+| [Technologyprocess](#technologyprocess)             | uses        | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -496,64 +519,66 @@ Software that provides or contributes to an environment for storing, executing, 
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 5 | Outbound: 11
+- **Intra-Layer**: Inbound: 7 | Outbound: 11
 - **Inter-Layer**: Inbound: 20 | Outbound: 11
 
 #### Intra-Layer Relationships
 
-| Related Node                                  | Predicate       | Direction | Cardinality |
-| --------------------------------------------- | --------------- | --------- | ----------- |
-| [Communicationnetwork](#communicationnetwork) | associated-with | inbound   | many-to-one |
-| [Node](#node)                                 | composes        | inbound   | many-to-one |
-| [Artifact](#artifact)                         | accesses        | outbound  | many-to-one |
-| [Technologyfunction](#technologyfunction)     | assigned-to     | outbound  | many-to-one |
-| [Artifact](#artifact)                         | composes        | outbound  | many-to-one |
-| [Device](#device)                             | depends-on      | outbound  | many-to-one |
-| [Systemsoftware](#systemsoftware)             | depends-on      | outbound  | many-to-one |
-| [Technologyinterface](#technologyinterface)   | provides        | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)       | realizes        | outbound  | many-to-one |
-| [Technologyfunction](#technologyfunction)     | serves          | outbound  | many-to-one |
-| [Technologyevent](#technologyevent)           | triggers        | outbound  | many-to-one |
-| [Communicationnetwork](#communicationnetwork) | uses            | outbound  | many-to-one |
-| [Path](#path)                                 | uses            | outbound  | many-to-one |
-| [Technologyinterface](#technologyinterface)   | assigned-to     | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)       | uses            | inbound   | many-to-one |
+| Related Node                                  | Predicate       | Direction | Cardinality  |
+| --------------------------------------------- | --------------- | --------- | ------------ |
+| [Artifact](#artifact)                         | associated-with | inbound   | many-to-many |
+| [Communicationnetwork](#communicationnetwork) | associated-with | inbound   | many-to-many |
+| [Device](#device)                             | composes        | inbound   | many-to-many |
+| [Node](#node)                                 | composes        | inbound   | many-to-many |
+| [Artifact](#artifact)                         | accesses        | outbound  | many-to-many |
+| [Technologyfunction](#technologyfunction)     | assigned-to     | outbound  | many-to-many |
+| [Artifact](#artifact)                         | composes        | outbound  | many-to-many |
+| [Device](#device)                             | depends-on      | outbound  | many-to-many |
+| [Systemsoftware](#systemsoftware)             | depends-on      | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)   | provides        | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)       | realizes        | outbound  | many-to-many |
+| [Technologyfunction](#technologyfunction)     | serves          | outbound  | many-to-many |
+| [Technologyevent](#technologyevent)           | triggers        | outbound  | many-to-many |
+| [Communicationnetwork](#communicationnetwork) | uses            | outbound  | many-to-many |
+| [Path](#path)                                 | uses            | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)   | assigned-to     | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)       | uses            | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                  | Layer                                           | Predicate  | Direction | Cardinality |
-| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [Ratelimit](./06-api-layer-report.md#ratelimit)                               | [API](./06-api-layer-report.md)                 | uses       | inbound   | many-to-one |
-| [Securityscheme](./06-api-layer-report.md#securityscheme)                     | [API](./06-api-layer-report.md)                 | uses       | inbound   | many-to-one |
-| [Server](./06-api-layer-report.md#server)                                     | [API](./06-api-layer-report.md)                 | uses       | inbound   | many-to-one |
-| [Instrumentationconfig](./11-apm-layer-report.md#instrumentationconfig)       | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
-| [Resource](./11-apm-layer-report.md#resource)                                 | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
-| [Jsonschema](./07-data-model-layer-report.md#jsonschema)                      | [Data Model](./07-data-model-layer-report.md)   | depends-on | inbound   | many-to-one |
-| [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | depends-on | inbound   | many-to-one |
-| [Schemadefinition](./07-data-model-layer-report.md#schemadefinition)          | [Data Model](./07-data-model-layer-report.md)   | depends-on | inbound   | many-to-one |
-| [Database](./08-data-store-layer-report.md#database)                          | [Data Store](./08-data-store-layer-report.md)   | depends-on | inbound   | many-to-one |
-| [Storedlogic](./08-data-store-layer-report.md#storedlogic)                    | [Data Store](./08-data-store-layer-report.md)   | depends-on | inbound   | many-to-one |
-| [Navigationflow](./10-navigation-layer-report.md#navigationflow)              | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-one |
-| [Navigationgraph](./10-navigation-layer-report.md#navigationgraph)            | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-one |
-| [Navigationguard](./10-navigation-layer-report.md#navigationguard)            | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-one |
-| [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-one |
-| [Principle](./01-motivation-layer-report.md#principle)                        | [Motivation](./01-motivation-layer-report.md)   | implements | outbound  | many-to-one |
-| [Countermeasure](./03-security-layer-report.md#countermeasure)                | [Security](./03-security-layer-report.md)       | implements | outbound  | many-to-one |
-| [Threat](./03-security-layer-report.md#threat)                                | [Security](./03-security-layer-report.md)       | mitigates  | outbound  | many-to-one |
-| [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | realizes   | outbound  | many-to-one |
-| [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | realizes   | outbound  | many-to-one |
-| [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | outbound  | many-to-one |
-| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | realizes   | outbound  | many-to-one |
-| [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-one |
-| [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-one |
-| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-one |
-| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-one |
-| [Environmentfactor](./12-testing-layer-report.md#environmentfactor)           | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-one |
-| [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                 | [Testing](./12-testing-layer-report.md)         | requires   | inbound   | many-to-one |
-| [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)           | [Testing](./12-testing-layer-report.md)         | tests      | inbound   | many-to-one |
-| [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)         | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-one |
-| [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                  | [UX](./09-ux-layer-report.md)                   | depends-on | inbound   | many-to-one |
-| [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | depends-on | inbound   | many-to-one |
+| Related Node                                                                  | Layer                                           | Predicate  | Direction | Cardinality  |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ------------ |
+| [Ratelimit](./06-api-layer-report.md#ratelimit)                               | [API](./06-api-layer-report.md)                 | uses       | inbound   | many-to-many |
+| [Securityscheme](./06-api-layer-report.md#securityscheme)                     | [API](./06-api-layer-report.md)                 | uses       | inbound   | many-to-many |
+| [Server](./06-api-layer-report.md#server)                                     | [API](./06-api-layer-report.md)                 | uses       | inbound   | many-to-many |
+| [Instrumentationconfig](./11-apm-layer-report.md#instrumentationconfig)       | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-many |
+| [Resource](./11-apm-layer-report.md#resource)                                 | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-many |
+| [Jsonschema](./07-data-model-layer-report.md#jsonschema)                      | [Data Model](./07-data-model-layer-report.md)   | depends-on | inbound   | many-to-many |
+| [Objectschema](./07-data-model-layer-report.md#objectschema)                  | [Data Model](./07-data-model-layer-report.md)   | depends-on | inbound   | many-to-many |
+| [Schemadefinition](./07-data-model-layer-report.md#schemadefinition)          | [Data Model](./07-data-model-layer-report.md)   | depends-on | inbound   | many-to-many |
+| [Database](./08-data-store-layer-report.md#database)                          | [Data Store](./08-data-store-layer-report.md)   | depends-on | inbound   | many-to-many |
+| [Storedlogic](./08-data-store-layer-report.md#storedlogic)                    | [Data Store](./08-data-store-layer-report.md)   | depends-on | inbound   | many-to-many |
+| [Navigationflow](./10-navigation-layer-report.md#navigationflow)              | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-many |
+| [Navigationgraph](./10-navigation-layer-report.md#navigationgraph)            | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-many |
+| [Navigationguard](./10-navigation-layer-report.md#navigationguard)            | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-many |
+| [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-many |
+| [Principle](./01-motivation-layer-report.md#principle)                        | [Motivation](./01-motivation-layer-report.md)   | implements | outbound  | many-to-many |
+| [Countermeasure](./03-security-layer-report.md#countermeasure)                | [Security](./03-security-layer-report.md)       | implements | outbound  | many-to-many |
+| [Threat](./03-security-layer-report.md#threat)                                | [Security](./03-security-layer-report.md)       | mitigates  | outbound  | many-to-many |
+| [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | realizes   | outbound  | many-to-many |
+| [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | realizes   | outbound  | many-to-many |
+| [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | outbound  | many-to-many |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | realizes   | outbound  | many-to-many |
+| [Constraint](./01-motivation-layer-report.md#constraint)                      | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-many |
+| [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-many |
+| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-many |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-many |
+| [Environmentfactor](./12-testing-layer-report.md#environmentfactor)           | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-many |
+| [Testcasesketch](./12-testing-layer-report.md#testcasesketch)                 | [Testing](./12-testing-layer-report.md)         | requires   | inbound   | many-to-many |
+| [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)           | [Testing](./12-testing-layer-report.md)         | tests      | inbound   | many-to-many |
+| [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)         | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-many |
+| [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                  | [UX](./09-ux-layer-report.md)                   | depends-on | inbound   | many-to-many |
+| [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | depends-on | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -570,21 +595,21 @@ An aggregate of two or more technology active structure elements that work toget
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate       | Direction | Cardinality |
-| --------------------------------------------------- | --------------- | --------- | ----------- |
-| [Communicationnetwork](#communicationnetwork)       | assigned-to     | inbound   | many-to-one |
-| [Artifact](#artifact)                               | accesses        | outbound  | many-to-one |
-| [Node](#node)                                       | aggregates      | outbound  | many-to-one |
-| [Technologyinterface](#technologyinterface)         | aggregates      | outbound  | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-one |
-| [Technologyinteraction](#technologyinteraction)     | performs        | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)             | realizes        | outbound  | many-to-one |
-| [Technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-one |
-| [Communicationnetwork](#communicationnetwork)       | uses            | outbound  | many-to-one |
-| [Path](#path)                                       | uses            | outbound  | many-to-one |
-| [Technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-one |
-| [Technologyinterface](#technologyinterface)         | serves          | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)             | associated-with | inbound   | many-to-one |
+| Related Node                                        | Predicate       | Direction | Cardinality  |
+| --------------------------------------------------- | --------------- | --------- | ------------ |
+| [Communicationnetwork](#communicationnetwork)       | assigned-to     | inbound   | many-to-many |
+| [Artifact](#artifact)                               | accesses        | outbound  | many-to-many |
+| [Node](#node)                                       | aggregates      | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)         | aggregates      | outbound  | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-many |
+| [Technologyinteraction](#technologyinteraction)     | performs        | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | realizes        | outbound  | many-to-many |
+| [Technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-many |
+| [Communicationnetwork](#communicationnetwork)       | uses            | outbound  | many-to-many |
+| [Path](#path)                                       | uses            | outbound  | many-to-many |
+| [Technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-many |
+| [Technologyinterface](#technologyinterface)         | serves          | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)             | associated-with | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -601,21 +626,21 @@ A technology behavior element that denotes a state change in the technology laye
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate       | Direction | Cardinality |
-| --------------------------------------------------- | --------------- | --------- | ----------- |
-| [Path](#path)                                       | triggers        | inbound   | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | triggers        | inbound   | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | triggers        | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)             | associated-with | outbound  | many-to-one |
-| [Artifact](#artifact)                               | flows-to        | outbound  | many-to-one |
-| [Technologyprocess](#technologyprocess)             | flows-to        | outbound  | many-to-one |
-| [Technologyfunction](#technologyfunction)           | triggers        | outbound  | many-to-one |
-| [Technologyinteraction](#technologyinteraction)     | triggers        | outbound  | many-to-one |
-| [Technologyprocess](#technologyprocess)             | triggers        | outbound  | many-to-one |
-| [Technologyfunction](#technologyfunction)           | triggers        | inbound   | many-to-one |
-| [Technologyinteraction](#technologyinteraction)     | triggers        | inbound   | many-to-one |
-| [Technologyprocess](#technologyprocess)             | triggers        | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)             | triggers        | inbound   | many-to-one |
+| Related Node                                        | Predicate       | Direction | Cardinality  |
+| --------------------------------------------------- | --------------- | --------- | ------------ |
+| [Path](#path)                                       | triggers        | inbound   | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | triggers        | inbound   | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | triggers        | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)             | associated-with | outbound  | many-to-many |
+| [Artifact](#artifact)                               | flows-to        | outbound  | many-to-many |
+| [Technologyprocess](#technologyprocess)             | flows-to        | outbound  | many-to-many |
+| [Technologyfunction](#technologyfunction)           | triggers        | outbound  | many-to-many |
+| [Technologyinteraction](#technologyinteraction)     | triggers        | outbound  | many-to-many |
+| [Technologyprocess](#technologyprocess)             | triggers        | outbound  | many-to-many |
+| [Technologyfunction](#technologyfunction)           | triggers        | inbound   | many-to-many |
+| [Technologyinteraction](#technologyinteraction)     | triggers        | inbound   | many-to-many |
+| [Technologyprocess](#technologyprocess)             | triggers        | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)             | triggers        | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -632,32 +657,32 @@ A collection of technology behavior that can be performed by a node, representin
 
 #### Intra-Layer Relationships
 
-| Related Node                                    | Predicate   | Direction | Cardinality |
-| ----------------------------------------------- | ----------- | --------- | ----------- |
-| [Node](#node)                                   | assigned-to | inbound   | many-to-one |
-| [Systemsoftware](#systemsoftware)               | assigned-to | inbound   | many-to-one |
-| [Systemsoftware](#systemsoftware)               | serves      | inbound   | many-to-one |
-| [Technologyevent](#technologyevent)             | triggers    | inbound   | many-to-one |
-| [Artifact](#artifact)                           | accesses    | outbound  | many-to-one |
-| [Technologyfunction](#technologyfunction)       | composes    | outbound  | many-to-one |
-| [Technologyprocess](#technologyprocess)         | flows-to    | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)         | realizes    | outbound  | many-to-one |
-| [Technologyinteraction](#technologyinteraction) | serves      | outbound  | many-to-one |
-| [Technologyevent](#technologyevent)             | triggers    | outbound  | many-to-one |
-| [Technologyprocess](#technologyprocess)         | triggers    | outbound  | many-to-one |
-| [Technologyinterface](#technologyinterface)     | uses        | outbound  | many-to-one |
-| [Technologyinteraction](#technologyinteraction) | composes    | inbound   | many-to-one |
-| [Technologyinterface](#technologyinterface)     | serves      | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)         | aggregates  | inbound   | many-to-one |
+| Related Node                                    | Predicate   | Direction | Cardinality  |
+| ----------------------------------------------- | ----------- | --------- | ------------ |
+| [Node](#node)                                   | assigned-to | inbound   | many-to-many |
+| [Systemsoftware](#systemsoftware)               | assigned-to | inbound   | many-to-many |
+| [Systemsoftware](#systemsoftware)               | serves      | inbound   | many-to-many |
+| [Technologyevent](#technologyevent)             | triggers    | inbound   | many-to-many |
+| [Artifact](#artifact)                           | accesses    | outbound  | many-to-many |
+| [Technologyfunction](#technologyfunction)       | composes    | outbound  | many-to-many |
+| [Technologyprocess](#technologyprocess)         | flows-to    | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)         | realizes    | outbound  | many-to-many |
+| [Technologyinteraction](#technologyinteraction) | serves      | outbound  | many-to-many |
+| [Technologyevent](#technologyevent)             | triggers    | outbound  | many-to-many |
+| [Technologyprocess](#technologyprocess)         | triggers    | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)     | uses        | outbound  | many-to-many |
+| [Technologyinteraction](#technologyinteraction) | composes    | inbound   | many-to-many |
+| [Technologyinterface](#technologyinterface)     | serves      | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)         | aggregates  | inbound   | many-to-many |
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                | Layer                                           | Predicate  | Direction | Cardinality |
-| --------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [Route](./10-navigation-layer-report.md#route)                              | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-one |
-| [Countermeasure](./03-security-layer-report.md#countermeasure)              | [Security](./03-security-layer-report.md)       | implements | outbound  | many-to-one |
-| [Applicationfunction](./04-application-layer-report.md#applicationfunction) | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-one |
-| [Businessservice](./02-business-layer-report.md#businessservice)            | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-one |
+| Related Node                                                                | Layer                                           | Predicate  | Direction | Cardinality  |
+| --------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ------------ |
+| [Route](./10-navigation-layer-report.md#route)                              | [Navigation](./10-navigation-layer-report.md)   | uses       | inbound   | many-to-many |
+| [Countermeasure](./03-security-layer-report.md#countermeasure)              | [Security](./03-security-layer-report.md)       | implements | outbound  | many-to-many |
+| [Applicationfunction](./04-application-layer-report.md#applicationfunction) | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-many |
+| [Businessservice](./02-business-layer-report.md#businessservice)            | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -674,19 +699,19 @@ A unit of collective technology behavior performed by two or more collaborating 
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate | Direction | Cardinality |
-| --------------------------------------------------- | --------- | --------- | ----------- |
-| [Technologycollaboration](#technologycollaboration) | performs  | inbound   | many-to-one |
-| [Technologyevent](#technologyevent)                 | triggers  | inbound   | many-to-one |
-| [Technologyfunction](#technologyfunction)           | serves    | inbound   | many-to-one |
-| [Artifact](#artifact)                               | accesses  | outbound  | many-to-one |
-| [Technologyfunction](#technologyfunction)           | composes  | outbound  | many-to-one |
-| [Technologyinteraction](#technologyinteraction)     | flows-to  | outbound  | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | realizes  | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)             | realizes  | outbound  | many-to-one |
-| [Technologyevent](#technologyevent)                 | triggers  | outbound  | many-to-one |
-| [Technologyprocess](#technologyprocess)             | triggers  | outbound  | many-to-one |
-| [Technologyinterface](#technologyinterface)         | uses      | outbound  | many-to-one |
+| Related Node                                        | Predicate | Direction | Cardinality  |
+| --------------------------------------------------- | --------- | --------- | ------------ |
+| [Technologycollaboration](#technologycollaboration) | performs  | inbound   | many-to-many |
+| [Technologyevent](#technologyevent)                 | triggers  | inbound   | many-to-many |
+| [Technologyfunction](#technologyfunction)           | serves    | inbound   | many-to-many |
+| [Artifact](#artifact)                               | accesses  | outbound  | many-to-many |
+| [Technologyfunction](#technologyfunction)           | composes  | outbound  | many-to-many |
+| [Technologyinteraction](#technologyinteraction)     | flows-to  | outbound  | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | realizes  | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | realizes  | outbound  | many-to-many |
+| [Technologyevent](#technologyevent)                 | triggers  | outbound  | many-to-many |
+| [Technologyprocess](#technologyprocess)             | triggers  | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)         | uses      | outbound  | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -694,34 +719,35 @@ A unit of collective technology behavior performed by two or more collaborating 
 
 **Spec Node ID**: `technology.technologyinterface`
 
-Point of access where technology services are available
+Point of access where technology services are made available to consuming components, per ArchiMate 3.2 TechnologyInterface. Represents the contractual boundary of a technology service — specifying the communication protocol and interaction semantics through which infrastructure capabilities are consumed. A TechnologyInterface anchors the technical coupling point between service provider and consumer within the technology layer.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 9 | Outbound: 8
+- **Intra-Layer**: Inbound: 10 | Outbound: 8
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate   | Direction | Cardinality |
-| --------------------------------------------------- | ----------- | --------- | ----------- |
-| [Communicationnetwork](#communicationnetwork)       | provides    | inbound   | many-to-one |
-| [Node](#node)                                       | composes    | inbound   | many-to-one |
-| [Path](#path)                                       | assigned-to | inbound   | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | provides    | inbound   | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-one |
-| [Technologyfunction](#technologyfunction)           | uses        | inbound   | many-to-one |
-| [Technologyinteraction](#technologyinteraction)     | uses        | inbound   | many-to-one |
-| [Node](#node)                                       | assigned-to | outbound  | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | assigned-to | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)             | assigned-to | outbound  | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | serves      | outbound  | many-to-one |
-| [Technologyfunction](#technologyfunction)           | serves      | outbound  | many-to-one |
-| [Technologyprocess](#technologyprocess)             | serves      | outbound  | many-to-one |
-| [Communicationnetwork](#communicationnetwork)       | uses        | outbound  | many-to-one |
-| [Path](#path)                                       | uses        | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)             | provides    | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)             | serves      | inbound   | many-to-one |
+| Related Node                                        | Predicate   | Direction | Cardinality  |
+| --------------------------------------------------- | ----------- | --------- | ------------ |
+| [Communicationnetwork](#communicationnetwork)       | provides    | inbound   | many-to-many |
+| [Node](#node)                                       | composes    | inbound   | many-to-many |
+| [Path](#path)                                       | assigned-to | inbound   | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | provides    | inbound   | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | aggregates  | inbound   | many-to-many |
+| [Technologyfunction](#technologyfunction)           | uses        | inbound   | many-to-many |
+| [Technologyinteraction](#technologyinteraction)     | uses        | inbound   | many-to-many |
+| [Node](#node)                                       | assigned-to | outbound  | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | assigned-to | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | assigned-to | outbound  | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | serves      | outbound  | many-to-many |
+| [Technologyfunction](#technologyfunction)           | serves      | outbound  | many-to-many |
+| [Technologyprocess](#technologyprocess)             | serves      | outbound  | many-to-many |
+| [Communicationnetwork](#communicationnetwork)       | uses        | outbound  | many-to-many |
+| [Path](#path)                                       | uses        | outbound  | many-to-many |
+| [Technologyprocess](#technologyprocess)             | uses        | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)             | provides    | inbound   | many-to-many |
+| [Technologyservice](#technologyservice)             | serves      | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -733,22 +759,26 @@ A sequence of technology behaviors that achieves a specific technology result, s
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 6 | Outbound: 3
+- **Intra-Layer**: Inbound: 9 | Outbound: 5
 - **Inter-Layer**: Inbound: 0 | Outbound: 0
 
 #### Intra-Layer Relationships
 
-| Related Node                                    | Predicate | Direction | Cardinality |
-| ----------------------------------------------- | --------- | --------- | ----------- |
-| [Technologyevent](#technologyevent)             | flows-to  | inbound   | many-to-one |
-| [Technologyevent](#technologyevent)             | triggers  | inbound   | many-to-one |
-| [Technologyfunction](#technologyfunction)       | flows-to  | inbound   | many-to-one |
-| [Technologyfunction](#technologyfunction)       | triggers  | inbound   | many-to-one |
-| [Technologyinteraction](#technologyinteraction) | triggers  | inbound   | many-to-one |
-| [Technologyinterface](#technologyinterface)     | serves    | inbound   | many-to-one |
-| [Technologyservice](#technologyservice)         | realizes  | outbound  | many-to-one |
-| [Technologyevent](#technologyevent)             | triggers  | outbound  | many-to-one |
-| [Path](#path)                                   | uses      | outbound  | many-to-one |
+| Related Node                                    | Predicate  | Direction | Cardinality  |
+| ----------------------------------------------- | ---------- | --------- | ------------ |
+| [Artifact](#artifact)                           | flows-to   | inbound   | many-to-many |
+| [Technologyevent](#technologyevent)             | flows-to   | inbound   | many-to-many |
+| [Technologyevent](#technologyevent)             | triggers   | inbound   | many-to-many |
+| [Technologyfunction](#technologyfunction)       | flows-to   | inbound   | many-to-many |
+| [Technologyfunction](#technologyfunction)       | triggers   | inbound   | many-to-many |
+| [Technologyinteraction](#technologyinteraction) | triggers   | inbound   | many-to-many |
+| [Technologyinterface](#technologyinterface)     | serves     | inbound   | many-to-many |
+| [Technologyprocess](#technologyprocess)         | composes   | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)         | realizes   | outbound  | many-to-many |
+| [Technologyevent](#technologyevent)             | triggers   | outbound  | many-to-many |
+| [Path](#path)                                   | uses       | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)     | uses       | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)         | aggregates | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
@@ -756,75 +786,78 @@ A sequence of technology behaviors that achieves a specific technology result, s
 
 **Spec Node ID**: `technology.technologyservice`
 
-Externally visible unit of technology functionality
+An externally visible unit of technology functionality exposed to other technology elements, per ArchiMate 3.2 TechnologyService. Encapsulates a discrete infrastructure capability — such as compute, storage, messaging, caching, identity, or monitoring — that is made available through a defined interface. Unlike application services, a TechnologyService operates at the infrastructure tier: it is consumed by application components or other technology services, not directly by end users or business processes.
 
 #### Relationship Metrics
 
-- **Intra-Layer**: Inbound: 12 | Outbound: 11
+- **Intra-Layer**: Inbound: 14 | Outbound: 12
 - **Inter-Layer**: Inbound: 18 | Outbound: 11
 
 #### Intra-Layer Relationships
 
-| Related Node                                        | Predicate       | Direction | Cardinality |
-| --------------------------------------------------- | --------------- | --------- | ----------- |
-| [Communicationnetwork](#communicationnetwork)       | supports        | inbound   | many-to-one |
-| [Path](#path)                                       | flows-to        | inbound   | many-to-one |
-| [Path](#path)                                       | realizes        | inbound   | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | realizes        | inbound   | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | realizes        | inbound   | many-to-one |
-| [Technologyevent](#technologyevent)                 | associated-with | inbound   | many-to-one |
-| [Technologyfunction](#technologyfunction)           | realizes        | inbound   | many-to-one |
-| [Technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-one |
-| [Technologyinterface](#technologyinterface)         | assigned-to     | inbound   | many-to-one |
-| [Technologyprocess](#technologyprocess)             | realizes        | inbound   | many-to-one |
-| [Technologyfunction](#technologyfunction)           | aggregates      | outbound  | many-to-one |
-| [Technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-one |
-| [Artifact](#artifact)                               | consumes        | outbound  | many-to-one |
-| [Communicationnetwork](#communicationnetwork)       | depends-on      | outbound  | many-to-one |
-| [Node](#node)                                       | depends-on      | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)             | flows-to        | outbound  | many-to-one |
-| [Technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-one |
-| [Technologyinterface](#technologyinterface)         | serves          | outbound  | many-to-one |
-| [Technologyservice](#technologyservice)             | serves          | outbound  | many-to-one |
-| [Technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-one |
-| [Systemsoftware](#systemsoftware)                   | uses            | outbound  | many-to-one |
+| Related Node                                        | Predicate       | Direction | Cardinality  |
+| --------------------------------------------------- | --------------- | --------- | ------------ |
+| [Artifact](#artifact)                               | realizes        | inbound   | many-to-many |
+| [Communicationnetwork](#communicationnetwork)       | supports        | inbound   | many-to-many |
+| [Node](#node)                                       | realizes        | inbound   | many-to-many |
+| [Path](#path)                                       | flows-to        | inbound   | many-to-many |
+| [Path](#path)                                       | realizes        | inbound   | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | realizes        | inbound   | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | realizes        | inbound   | many-to-many |
+| [Technologyevent](#technologyevent)                 | associated-with | inbound   | many-to-many |
+| [Technologyfunction](#technologyfunction)           | realizes        | inbound   | many-to-many |
+| [Technologyinteraction](#technologyinteraction)     | realizes        | inbound   | many-to-many |
+| [Technologyinterface](#technologyinterface)         | assigned-to     | inbound   | many-to-many |
+| [Technologyprocess](#technologyprocess)             | realizes        | inbound   | many-to-many |
+| [Technologyfunction](#technologyfunction)           | aggregates      | outbound  | many-to-many |
+| [Technologyprocess](#technologyprocess)             | aggregates      | outbound  | many-to-many |
+| [Technologycollaboration](#technologycollaboration) | associated-with | outbound  | many-to-many |
+| [Artifact](#artifact)                               | consumes        | outbound  | many-to-many |
+| [Communicationnetwork](#communicationnetwork)       | depends-on      | outbound  | many-to-many |
+| [Node](#node)                                       | depends-on      | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | flows-to        | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)         | provides        | outbound  | many-to-many |
+| [Technologyinterface](#technologyinterface)         | serves          | outbound  | many-to-many |
+| [Technologyservice](#technologyservice)             | serves          | outbound  | many-to-many |
+| [Technologyevent](#technologyevent)                 | triggers        | outbound  | many-to-many |
+| [Systemsoftware](#systemsoftware)                   | uses            | outbound  | many-to-many |
 
 #### Inter-Layer Relationships
 
-| Related Node                                                                  | Layer                                           | Predicate  | Direction | Cardinality |
-| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ----------- |
-| [Openapidocument](./06-api-layer-report.md#openapidocument)                   | [API](./06-api-layer-report.md)                 | depends-on | inbound   | many-to-one |
-| [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | uses       | inbound   | many-to-one |
-| [Pathitem](./06-api-layer-report.md#pathitem)                                 | [API](./06-api-layer-report.md)                 | depends-on | inbound   | many-to-one |
-| [Exporterconfig](./11-apm-layer-report.md#exporterconfig)                     | [APM](./11-apm-layer-report.md)                 | depends-on | inbound   | many-to-one |
-| [Logconfiguration](./11-apm-layer-report.md#logconfiguration)                 | [APM](./11-apm-layer-report.md)                 | depends-on | inbound   | many-to-one |
-| [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                 | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
-| [Span](./11-apm-layer-report.md#span)                                         | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-one |
-| [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)             | [APM](./11-apm-layer-report.md)                 | depends-on | inbound   | many-to-one |
-| [Jsonschema](./07-data-model-layer-report.md#jsonschema)                      | [Data Model](./07-data-model-layer-report.md)   | uses       | inbound   | many-to-one |
-| [Database](./08-data-store-layer-report.md#database)                          | [Data Store](./08-data-store-layer-report.md)   | uses       | inbound   | many-to-one |
-| [Retentionpolicy](./08-data-store-layer-report.md#retentionpolicy)            | [Data Store](./08-data-store-layer-report.md)   | uses       | inbound   | many-to-one |
-| [Storedlogic](./08-data-store-layer-report.md#storedlogic)                    | [Data Store](./08-data-store-layer-report.md)   | uses       | inbound   | many-to-one |
-| [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | depends-on | inbound   | many-to-one |
-| [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | accesses   | outbound  | many-to-one |
-| [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | realizes   | outbound  | many-to-one |
-| [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | outbound  | many-to-one |
-| [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-one |
-| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | outbound  | many-to-one |
-| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-one |
-| [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-one |
-| [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-one |
-| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-one |
-| [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-one |
-| [Stakeholder](./01-motivation-layer-report.md#stakeholder)                    | [Motivation](./01-motivation-layer-report.md)   | serves     | outbound  | many-to-one |
-| [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)           | [Testing](./12-testing-layer-report.md)         | tests      | inbound   | many-to-one |
-| [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)         | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-one |
-| [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                    | [UX](./09-ux-layer-report.md)                   | uses       | inbound   | many-to-one |
-| [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                  | [UX](./09-ux-layer-report.md)                   | requires   | inbound   | many-to-one |
-| [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | requires   | inbound   | many-to-one |
+| Related Node                                                                  | Layer                                           | Predicate  | Direction | Cardinality  |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------- | --------- | ------------ |
+| [Openapidocument](./06-api-layer-report.md#openapidocument)                   | [API](./06-api-layer-report.md)                 | depends-on | inbound   | many-to-many |
+| [Operation](./06-api-layer-report.md#operation)                               | [API](./06-api-layer-report.md)                 | uses       | inbound   | many-to-many |
+| [Pathitem](./06-api-layer-report.md#pathitem)                                 | [API](./06-api-layer-report.md)                 | depends-on | inbound   | many-to-many |
+| [Exporterconfig](./11-apm-layer-report.md#exporterconfig)                     | [APM](./11-apm-layer-report.md)                 | depends-on | inbound   | many-to-many |
+| [Logconfiguration](./11-apm-layer-report.md#logconfiguration)                 | [APM](./11-apm-layer-report.md)                 | depends-on | inbound   | many-to-many |
+| [Metricinstrument](./11-apm-layer-report.md#metricinstrument)                 | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-many |
+| [Span](./11-apm-layer-report.md#span)                                         | [APM](./11-apm-layer-report.md)                 | monitors   | inbound   | many-to-many |
+| [Traceconfiguration](./11-apm-layer-report.md#traceconfiguration)             | [APM](./11-apm-layer-report.md)                 | depends-on | inbound   | many-to-many |
+| [Jsonschema](./07-data-model-layer-report.md#jsonschema)                      | [Data Model](./07-data-model-layer-report.md)   | uses       | inbound   | many-to-many |
+| [Database](./08-data-store-layer-report.md#database)                          | [Data Store](./08-data-store-layer-report.md)   | uses       | inbound   | many-to-many |
+| [Retentionpolicy](./08-data-store-layer-report.md#retentionpolicy)            | [Data Store](./08-data-store-layer-report.md)   | uses       | inbound   | many-to-many |
+| [Storedlogic](./08-data-store-layer-report.md#storedlogic)                    | [Data Store](./08-data-store-layer-report.md)   | uses       | inbound   | many-to-many |
+| [Route](./10-navigation-layer-report.md#route)                                | [Navigation](./10-navigation-layer-report.md)   | depends-on | inbound   | many-to-many |
+| [Secureresource](./03-security-layer-report.md#secureresource)                | [Security](./03-security-layer-report.md)       | accesses   | outbound  | many-to-many |
+| [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | realizes   | outbound  | many-to-many |
+| [Goal](./01-motivation-layer-report.md#goal)                                  | [Motivation](./01-motivation-layer-report.md)   | realizes   | outbound  | many-to-many |
+| [Requirement](./01-motivation-layer-report.md#requirement)                    | [Motivation](./01-motivation-layer-report.md)   | satisfies  | outbound  | many-to-many |
+| [Securitypolicy](./03-security-layer-report.md#securitypolicy)                | [Security](./03-security-layer-report.md)       | satisfies  | outbound  | many-to-many |
+| [Applicationcomponent](./04-application-layer-report.md#applicationcomponent) | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-many |
+| [Applicationservice](./04-application-layer-report.md#applicationservice)     | [Application](./04-application-layer-report.md) | serves     | outbound  | many-to-many |
+| [Businessfunction](./02-business-layer-report.md#businessfunction)            | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-many |
+| [Businessprocess](./02-business-layer-report.md#businessprocess)              | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-many |
+| [Businessservice](./02-business-layer-report.md#businessservice)              | [Business](./02-business-layer-report.md)       | serves     | outbound  | many-to-many |
+| [Stakeholder](./01-motivation-layer-report.md#stakeholder)                    | [Motivation](./01-motivation-layer-report.md)   | serves     | outbound  | many-to-many |
+| [Testcoveragemodel](./12-testing-layer-report.md#testcoveragemodel)           | [Testing](./12-testing-layer-report.md)         | tests      | inbound   | many-to-many |
+| [Testcoveragetarget](./12-testing-layer-report.md#testcoveragetarget)         | [Testing](./12-testing-layer-report.md)         | references | inbound   | many-to-many |
+| [Actioncomponent](./09-ux-layer-report.md#actioncomponent)                    | [UX](./09-ux-layer-report.md)                   | uses       | inbound   | many-to-many |
+| [Librarycomponent](./09-ux-layer-report.md#librarycomponent)                  | [UX](./09-ux-layer-report.md)                   | requires   | inbound   | many-to-many |
+| [View](./09-ux-layer-report.md#view)                                          | [UX](./09-ux-layer-report.md)                   | requires   | inbound   | many-to-many |
 
 [Back to Index](#report-index)
 
 ---
 
-_Generated: 2026-03-15T17:29:42.765Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_
+_Generated: 2026-04-04T12:20:35.636Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_

@@ -65,6 +65,9 @@ htmlcov/
 # Exclude documentation build artifacts
 documentation/.DS_Store
 
+# Exclude TypeScript build cache
+*.tsbuildinfo
+
 # Exclude temporary files
 *.tmp
 .DS_Store

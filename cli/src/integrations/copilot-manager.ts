@@ -17,7 +17,6 @@ import ansis from "ansis";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { getErrorMessage } from "../utils/errors.js";
 
 /**
  * GitHub Copilot Integration Manager

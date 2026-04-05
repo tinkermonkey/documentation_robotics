@@ -19,6 +19,10 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { execSync } from "child_process";
 import { formatLayerName as formatLayerNameUtil } from "../cli/src/utils/layer-name-formatter.js";
+import { formatMarkdownTable } from "../cli/src/utils/markdown-table.js";
+import { createAnchor } from "../cli/src/utils/markdown-anchor.js";
+import { createDescriptiveLinkText, formatNodeTypeName } from "../cli/src/utils/markdown-link.js";
+import { sanitizeMermaidId } from "../cli/src/utils/mermaid-utils.js";
 import { SpecDataLoader } from "../cli/src/core/spec-loader.js";
 import type { LayerSpec, NodeTypeSpec, RelationshipTypeSpec, PredicateSpec } from "../cli/src/core/spec-loader-types.js";
 
@@ -310,70 +314,6 @@ function formatLayerName(layerId: string): string {
   return formatLayerNameUtil(layerId);
 }
 
-function formatNodeTypeName(type: string): string {
-  return type
-    .split(/(?=[A-Z])/)
-    .join(" ")
-    .replace(/^./, (c) => c.toUpperCase());
-}
-
-/**
- * Create descriptive link text that avoids markdownlint MD059 prohibited texts
- * Prohibited texts: "click here", "here", "link", "more"
- * @param type The node type to create link text for
- * @returns Descriptive link text safe for markdownlint MD059
- */
-function createDescriptiveLinkText(type: string): string {
-  const prohibited = ["click here", "here", "link", "more"];
-  const formatted = formatNodeTypeName(type);
-
-  if (prohibited.includes(formatted.toLowerCase())) {
-    // Add "node" suffix to make it descriptive
-    return `${formatted} node`;
-  }
-
-  return formatted;
-}
-
-function createAnchor(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-/**
- * Format a markdown table with proper column alignment
- * @param headers Array of header strings
- * @param rows Array of row arrays (each row is an array of cell strings)
- * @returns Formatted markdown table string
- */
-function formatMarkdownTable(headers: string[], rows: string[][]): string {
-  // Calculate column widths based on content
-  const colWidths = headers.map((h, i) => {
-    let width = h.length;
-    for (const row of rows) {
-      width = Math.max(width, (row[i] || "").length);
-    }
-    return width;
-  });
-
-  // Build header row
-  const headerRow = headers
-    .map((h, i) => h.padEnd(colWidths[i]))
-    .join(" | ");
-
-  // Build separator row
-  const sepRow = colWidths.map((w) => "-".repeat(w)).join(" | ");
-
-  // Build data rows
-  const dataRows = rows.map((row) =>
-    row.map((cell, i) => cell.padEnd(colWidths[i])).join(" | ")
-  );
-
-  return `| ${headerRow} |\n| ${sepRow} |\n${dataRows.map((r) => `| ${r} |`).join("\n")}\n`;
-}
-
 // ============================================================================
 // Layer Report Generator
 // ============================================================================
@@ -546,7 +486,7 @@ class LayerReportGenerator {
 
       // Add all nodes
       for (const schema of reportData.nodeSchemas) {
-        const nodeId = schema.type.replace(/[^a-zA-Z0-9]/g, "_");
+        const nodeId = sanitizeMermaidId(schema.type);
         lines.push(`    ${nodeId}["${schema.type}"]\n`);
       }
 
@@ -560,8 +500,8 @@ class LayerReportGenerator {
       for (const rel of sortedRelationships) {
         const sourceType = extractTypeFromSpecNodeId(rel.source_spec_node_id, "intraRelationships");
         const destType = extractTypeFromSpecNodeId(rel.destination_spec_node_id, "intraRelationships");
-        const sourceId = sourceType.replace(/[^a-zA-Z0-9]/g, "_");
-        const destId = destType.replace(/[^a-zA-Z0-9]/g, "_");
+        const sourceId = sanitizeMermaidId(sourceType);
+        const destId = sanitizeMermaidId(destType);
         lines.push(`    ${sourceId} -->|${rel.predicate}| ${destId}\n`);
       }
 
@@ -583,7 +523,7 @@ class LayerReportGenerator {
 
     const allLayers = this.data.getAllLayers();
     for (const layer of allLayers) {
-      const layerId = layer.id.replace(/[^a-zA-Z0-9]/g, "_");
+      const layerId = sanitizeMermaidId(layer.id);
       lines.push(`  ${layerId}["${formatLayerName(layer.id)}"]\n`);
     }
 
@@ -595,8 +535,8 @@ class LayerReportGenerator {
       if (rel.source_layer !== rel.destination_layer) {
         const key = `${rel.source_layer}-${rel.destination_layer}`;
         if (!addedRelationships.has(key)) {
-          const sourceId = rel.source_layer.replace(/[^a-zA-Z0-9]/g, "_");
-          const destId = rel.destination_layer.replace(/[^a-zA-Z0-9]/g, "_");
+          const sourceId = sanitizeMermaidId(rel.source_layer);
+          const destId = sanitizeMermaidId(rel.destination_layer);
           layerRelationships.push({ sourceId, destId });
           addedRelationships.add(key);
         }
@@ -614,7 +554,7 @@ class LayerReportGenerator {
         lines.push(`  ${sourceId} --> ${destId}\n`);
       });
 
-    const currentLayerId = reportData.layer.id.replace(/[^a-zA-Z0-9]/g, "_");
+    const currentLayerId = sanitizeMermaidId(reportData.layer.id);
     lines.push(`  class ${currentLayerId} current\n`);
 
     lines.push("```\n");

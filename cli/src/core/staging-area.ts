@@ -21,6 +21,7 @@ import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest } from "../types/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Layer } from "./layer.js";
+import { isValidLayerName } from "./layers.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -28,6 +29,7 @@ import {
   emitLog,
   SeverityNumber,
 } from "../telemetry/index.js";
+import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 
 /**
  * Options for commit operation
@@ -727,6 +729,31 @@ export class StagingAreaManager {
           throw new Error(
             `Failed to save manifest with changeset history: ${manifestError instanceof Error ? manifestError.message : String(manifestError)}. ` +
               `Model will be rolled back to maintain consistency.`
+          );
+        }
+
+        // Step 9.5: Regenerate reports for all layers modified by this changeset
+        try {
+          const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
+          const affectedLayers = new Set<string>();
+          for (const change of sortedChanges) {
+            if (isValidLayerName(change.layerName)) {
+              for (const layer of orchestrator.computeAffectedLayers(change.layerName)) {
+                affectedLayers.add(layer);
+              }
+            }
+          }
+          await orchestrator.regenerate(affectedLayers);
+        } catch (error) {
+          emitLog(
+            SeverityNumber.WARN,
+            "Failed to regenerate layer reports after changeset commit",
+            {
+              "changeset.id": changesetId,
+              "changeset.name": changeset.name,
+              "changeset.changeCount": sortedChanges.length,
+              "error.message": getErrorMessage(error),
+            }
           );
         }
 

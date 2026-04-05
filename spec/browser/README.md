@@ -41,7 +41,7 @@ The Documentation Robotics specification defines a federated 12-layer architectu
 | **4**     | ✓   | ✓   | ✓   | ✓   |     |     |     |     |     |     | ✓   |     |
 | **5**     | ✓   | ✓   | ✓   | ✓   | ✓   |     |     |     |     |     |     |     |
 | **6**     | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   |     | ✓   |     |     | ✓   |     |
-| **7**     | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   |     |     |     |     |     |
+| **7**     | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   |     |     |     |     |
 | **8**     | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   |     | ✓   |     |     |     |     |
 | **9**     | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   |     |     |     |
 | **10**    | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   | ✓   |     |     |
@@ -182,4 +182,4 @@ The Documentation Robotics specification defines a federated 12-layer architectu
 
 ---
 
-_Generated: 2026-03-15T17:29:42.739Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_
+_Generated: 2026-04-04T12:20:35.611Z | Spec Version: 0.8.3 | Generator: generate-layer-reports.ts_
