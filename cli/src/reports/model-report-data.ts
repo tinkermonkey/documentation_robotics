@@ -1,7 +1,7 @@
 import type { Model } from '../core/model.js';
 import { Element } from '../core/element.js';
 import type { Relationship } from '../core/relationships.js';
-import { LAYER_MAP, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
+import { LAYER_MAP, type CanonicalLayerName } from '../core/layers.js';
 
 /**
  * Statistics about relationships in a layer

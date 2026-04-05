@@ -21,6 +21,7 @@ import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest } from "../types/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Layer } from "./layer.js";
+import { isValidLayerName } from "./layers.js";
 import {
   isTelemetryEnabled,
   startSpan,
@@ -736,8 +737,10 @@ export class StagingAreaManager {
           const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
           const affectedLayers = new Set<string>();
           for (const change of sortedChanges) {
-            for (const layer of orchestrator.computeAffectedLayers(change.layerName)) {
-              affectedLayers.add(layer);
+            if (isValidLayerName(change.layerName)) {
+              for (const layer of orchestrator.computeAffectedLayers(change.layerName)) {
+                affectedLayers.add(layer);
+              }
             }
           }
           await orchestrator.regenerate(affectedLayers);

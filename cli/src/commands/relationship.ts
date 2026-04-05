@@ -7,6 +7,7 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { findElementLayer } from "../utils/element-utils.js";
+import { isValidLayerName } from "../core/layers.js";
 import { CLIError, ErrorCategory, handleError, getErrorMessage } from "../utils/errors.js";
 import {
   getValidRelationships,
@@ -216,13 +217,17 @@ export async function addRelationshipHandler(
       const affectedLayers = new Set<string>();
 
       // Compute affected layers for source layer
-      for (const layer of orchestrator.computeAffectedLayers(sourceLayerName)) {
-        affectedLayers.add(layer);
+      if (isValidLayerName(sourceLayerName)) {
+        for (const layer of orchestrator.computeAffectedLayers(sourceLayerName)) {
+          affectedLayers.add(layer);
+        }
       }
 
       // Compute affected layers for target layer
-      for (const layer of orchestrator.computeAffectedLayers(targetLayerName)) {
-        affectedLayers.add(layer);
+      if (isValidLayerName(targetLayerName)) {
+        for (const layer of orchestrator.computeAffectedLayers(targetLayerName)) {
+          affectedLayers.add(layer);
+        }
       }
 
       await orchestrator.regenerate(affectedLayers);
@@ -303,12 +308,14 @@ export async function deleteRelationshipHandler(
       // Compute affected layers for each deleted relationship's source and target
       for (const rel of toDelete) {
         // Compute affected layers for source layer
-        for (const layer of orchestrator.computeAffectedLayers(rel.layer)) {
-          affectedLayers.add(layer);
+        if (rel.layer && isValidLayerName(rel.layer)) {
+          for (const layer of orchestrator.computeAffectedLayers(rel.layer)) {
+            affectedLayers.add(layer);
+          }
         }
 
         // Compute affected layers for target layer
-        if (rel.targetLayer) {
+        if (rel.targetLayer && isValidLayerName(rel.targetLayer)) {
           for (const layer of orchestrator.computeAffectedLayers(rel.targetLayer)) {
             affectedLayers.add(layer);
           }
