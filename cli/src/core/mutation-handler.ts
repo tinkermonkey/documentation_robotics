@@ -283,7 +283,7 @@ export class MutationHandler {
     // This ensures they stay in sync
     await mutator(this.context.element, this.context.after);
 
-    // Persist atomically
+    // Persist changes to disk
     await this._persistChanges(type);
   }
 
