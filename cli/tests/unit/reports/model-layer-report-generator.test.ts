@@ -696,18 +696,22 @@ describe('ModelLayerReportGenerator', () => {
       expect(upstreamLine).not.toMatch(/,\s*$/);
     });
 
-    it('should include index link for Cross-Layer References section', () => {
+    it('should handle invalid layer names in createLayerLink by returning plain text', () => {
       const element = createMockElement('api.endpoint.test', 'Test', 'endpoint');
       const data = createMockReportData('api', [element]);
-      data.upstreamLayers = ['application'];
+      // Set an invalid layer name that getLayerOrder won't recognize
+      data.upstreamLayers = ['invalid-layer-name'];
 
       const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
       const output = generator.generate(data);
 
-      // When Cross-Layer References section is present, it should still be part of Report Index context
-      // (The actual index may not have a specific link, but the section should be rendered)
-      expect(output).toContain('## Layer Introduction');
+      // When an invalid layer name is passed, createLayerLink should return it as plain text (no markdown link)
       expect(output).toContain('**Cross-Layer References**');
+      expect(output).toContain('**Upstream layers**');
+      // The invalid layer name should appear as plain text, not as a markdown link
+      expect(output).toContain('invalid-layer-name');
+      // Should NOT contain a markdown link syntax with the invalid name
+      expect(output).not.toContain('[invalid-layer-name](');
     });
   });
 
