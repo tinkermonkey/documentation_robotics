@@ -9,7 +9,6 @@ import type { Model } from '../core/model.js';
 import { ModelReportDataCollector } from './model-report-data.js';
 import { ModelLayerReportGenerator } from './model-layer-report-generator.js';
 import { CANONICAL_LAYER_NAMES, getLayerOrder, isValidLayerName } from '../core/layers.js';
-import { emitLog, SeverityNumber } from '../telemetry/index.js';
 import { getErrorMessage } from '../utils/errors.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -38,14 +37,7 @@ export class ModelReportOrchestrator {
     for (const layerName of affectedLayers) {
       // Validate layer name before processing
       if (!isValidLayerName(layerName)) {
-        emitLog(
-          SeverityNumber.WARN,
-          "Skipping invalid layer name in affected set",
-          {
-            "layer.name": layerName,
-            "validLayers": CANONICAL_LAYER_NAMES.join(", "),
-          }
-        );
+        console.warn(`Skipping invalid layer name: ${layerName}`);
         continue;
       }
       await this.generateLayerReport(layerName);
@@ -155,15 +147,7 @@ export class ModelReportOrchestrator {
       const filePath = this.getReportFilePath(layerName);
       await fs.writeFile(filePath, markdown, 'utf-8');
     } catch (error) {
-      emitLog(
-        SeverityNumber.WARN,
-        "Failed to generate report for layer",
-        {
-          "layer.name": layerName,
-          "reportFilePath": this.getReportFilePath(layerName),
-          "error.message": getErrorMessage(error),
-        }
-      );
+      console.warn(`Failed to generate report for layer: ${layerName} - ${getErrorMessage(error)}`);
     }
   }
 }
