@@ -1,5 +1,5 @@
 import type { Model } from '../core/model.js';
-import type { Element } from '../core/element.js';
+import { Element } from '../core/element.js';
 import type { Relationship } from '../core/relationships.js';
 import { LAYER_MAP } from '../core/layers.js';
 
@@ -45,13 +45,26 @@ export class ModelReportDataCollector {
     // Get the layer number for file naming
     const layerNumber = LAYER_MAP[layerName as keyof typeof LAYER_MAP] ?? -1;
 
-    // Get all elements in this layer via Layer.elements getter (uses canonical conversion pattern)
-    const layerElements = model.layers.get(layerName);
-    const elements: Element[] = layerElements
-      ? Array.from(layerElements.elements.values()).sort((a, b) =>
-          (a.path || a.id).localeCompare(b.path || b.id)
-        )
-      : [];
+    // Get all elements in this layer using GraphModel's indexed lookup for O(1) layer-scoped access
+    // Convert GraphNodes to Elements for report-friendly shape
+    const graphNodes = model.graph.getNodesByLayer(layerName);
+    const elements: Element[] = graphNodes
+      .map(
+        (node) =>
+          new Element({
+            id: node.uuid || node.id,
+            path: node.id,
+            spec_node_id: node.spec_node_id || '',
+            type: node.type,
+            layer_id: node.layer,
+            name: node.name,
+            description: node.description,
+            attributes: node.attributes,
+            source_reference: node.source_reference,
+            metadata: node.metadata,
+          })
+      )
+      .sort((a, b) => (a.path || a.id).localeCompare(b.path || b.id));
 
     // Get all relationships and classify them
     const allRelationships = model.relationships.getAll();
@@ -62,6 +75,8 @@ export class ModelReportDataCollector {
     );
 
     // Intra-layer relationships: both source and target in same layer
+    // Note: Relationships with missing targetLayer are treated as intra-layer because targetLayer is
+    // typically only populated for inter-layer relationships during persistence and loading.
     const intraRelationships = allRelatingRelationships.filter(
       r => r.layer === layerName && (r.targetLayer === layerName || !r.targetLayer)
     );
