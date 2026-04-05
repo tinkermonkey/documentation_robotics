@@ -12,7 +12,6 @@
  */
 
 import type { ModelLayerReportData } from './model-report-data.js';
-import type { Element } from '../core/element.js';
 import type { Relationship } from '../core/relationships.js';
 import { formatLayerName } from '../utils/layer-name-formatter.js';
 import { formatMarkdownTable } from '../utils/markdown-table.js';
@@ -259,7 +258,7 @@ export class ModelLayerReportGenerator {
     const rows: string[][] = [];
 
     for (const rel of sortedRels) {
-      // Extract element types from paths (e.g., "motivation.goal.customer-satisfaction" -> "goal")
+      // Extract element types from paths (e.g., "motivation.goal.customer-satisfaction" -> "motivation.goal")
       const sourceType = this.extractElementType(rel.source);
       const targetType = this.extractElementType(rel.target);
 
@@ -268,8 +267,11 @@ export class ModelLayerReportGenerator {
       const cardinality = specs.length > 0 ? specs[0].cardinality : 'unknown';
       const strength = specs.length > 0 ? specs[0].strength : 'unknown';
 
+      // Use spec relationship ID when available, fall back to concatenated form
+      const relationshipId = specs.length > 0 ? specs[0].id : `${rel.source}-${rel.predicate}-${rel.target}`;
+
       rows.push([
-        `\`${escapeMarkdown(rel.source)}-${escapeMarkdown(rel.predicate)}-${escapeMarkdown(rel.target)}\``,
+        `\`${escapeMarkdown(relationshipId)}\``,
         `\`${escapeMarkdown(rel.source)}\``,
         `\`${escapeMarkdown(rel.target)}\``,
         rel.targetLayer ? `\`${escapeMarkdown(rel.targetLayer)}\`` : '—',
@@ -413,13 +415,14 @@ export class ModelLayerReportGenerator {
   }
 
   /**
-   * Extract element type from element path
-   * Example: "motivation.goal.customer-satisfaction" -> "goal"
+   * Extract element type from element path in layer.type format
+   * Example: "motivation.goal.customer-satisfaction" -> "motivation.goal"
+   * This format matches the keys in RELATIONSHIPS_BY_SOURCE map.
    */
   private extractElementType(elementPath: string): string {
     const parts = elementPath.split('.');
     if (parts.length >= 2) {
-      return parts[1];
+      return parts.slice(0, 2).join('.');
     }
     return elementPath;
   }

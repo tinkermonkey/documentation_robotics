@@ -318,6 +318,38 @@ describe('ModelLayerReportGenerator', () => {
       // Relationship ID should be in format: source-predicate-target
       expect(output).toContain('api.endpoint.get-users-calls-application.service.user-app');
     });
+
+    it('should populate cardinality and strength with real values from spec', () => {
+      // Use a relationship that exists in the spec
+      // api.callback aggregates api.pathitem has cardinality: many-to-many, strength: medium
+      const callback = createMockElement('api.callback.order-created', 'Order Created Callback', 'callback');
+      const pathitem = createMockElement('api.pathitem.order-status', 'Order Status Path', 'pathitem');
+
+      const interRel = createMockRelationship(
+        'api.callback.order-created',
+        'aggregates',
+        'api.pathitem.order-status',
+        'api',
+        'api'
+      );
+
+      const data = createMockReportData('api', [callback, pathitem], [], [interRel]);
+      const generator = new ModelLayerReportGenerator('1.0.0', '2026-04-04T10:00:00Z');
+
+      const output = generator.generate(data);
+
+      // Table should be present
+      expect(output).toContain('## Inter-Layer Relationships Table');
+
+      // Should contain the actual cardinality value (not 'unknown')
+      expect(output).toContain('many-to-many');
+
+      // Should contain the actual strength value (not 'unknown')
+      expect(output).toContain('medium');
+
+      // Should use the spec relationship ID format
+      expect(output).toContain('api.callback.aggregates.api.pathitem');
+    });
   });
 
   describe('Element Reference section', () => {
