@@ -17,6 +17,18 @@ import {
 import { normalizeNodeType } from "../generated/node-types.js";
 import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
 import { emitLog, SeverityNumber } from "../telemetry/index.js";
+import { Element } from "../core/element.js";
+import { Relationship } from "../core/relationships.js";
+
+/**
+ * Pre-resolved element and layer information to avoid redundant lookups
+ */
+interface PreResolvedElements {
+  sourceElement?: Element;
+  sourceLayerName?: string;
+  targetElement?: Element;
+  targetLayerName?: string;
+}
 
 /**
  * Validate element properties and construct a SpecNodeId
@@ -130,10 +142,7 @@ export function getRelationshipConstraints(
  * @param target - Target element ID
  * @param predicate - Relationship predicate
  * @param properties - Optional relationship properties
- * @param sourceElement - Pre-resolved source element (optional, for performance)
- * @param sourceLayerName - Pre-resolved source layer name (optional, for performance)
- * @param targetElement - Pre-resolved target element (optional, for performance)
- * @param targetLayerName - Pre-resolved target layer name (optional, for performance)
+ * @param preResolved - Pre-resolved elements and layer names (optional, for performance)
  */
 export async function addRelationshipHandler(
   model: Model,
@@ -141,16 +150,13 @@ export async function addRelationshipHandler(
   target: string,
   predicate: string,
   properties?: Record<string, unknown>,
-  sourceElement?: unknown,
-  sourceLayerName?: string,
-  targetElement?: unknown,
-  targetLayerName?: string
+  preResolved?: PreResolvedElements
 ): Promise<void> {
   // Use pre-resolved elements if provided, otherwise resolve them
-  let resolvedSourceLayerName = sourceLayerName;
-  let resolvedSourceElement = sourceElement;
-  let resolvedTargetLayerName = targetLayerName;
-  let resolvedTargetElement = targetElement;
+  let resolvedSourceLayerName = preResolved?.sourceLayerName;
+  let resolvedSourceElement = preResolved?.sourceElement;
+  let resolvedTargetLayerName = preResolved?.targetLayerName;
+  let resolvedTargetElement = preResolved?.targetElement;
 
   if (!resolvedSourceLayerName) {
     resolvedSourceLayerName = await findElementLayer(model, source);
@@ -281,19 +287,22 @@ export async function addRelationshipHandler(
  * @param source - Source element ID
  * @param target - Target element ID
  * @param predicate - Optional relationship predicate
- * @param sourceLayerName - Pre-resolved source layer name (optional, for performance)
- * @param toDelete - Pre-found relationships (optional, for performance)
+ * @param preResolved - Pre-resolved source layer name and relationships (optional, for performance)
  */
+interface DeletePreResolved {
+  sourceLayerName?: string;
+  toDelete?: Relationship[];
+}
+
 export async function deleteRelationshipHandler(
   model: Model,
   source: string,
   target: string,
   predicate?: string,
-  sourceLayerName?: string,
-  toDelete?: any[]
+  preResolved?: DeletePreResolved
 ): Promise<{ deletedCount: number }> {
   // Use pre-resolved source layer if provided, otherwise resolve it
-  let resolvedSourceLayerName = sourceLayerName;
+  let resolvedSourceLayerName = preResolved?.sourceLayerName;
   if (!resolvedSourceLayerName) {
     resolvedSourceLayerName = await findElementLayer(model, source);
     if (!resolvedSourceLayerName) {
@@ -302,7 +311,7 @@ export async function deleteRelationshipHandler(
   }
 
   // Use pre-found relationships if provided, otherwise find them
-  let resolvedToDelete = toDelete;
+  let resolvedToDelete = preResolved?.toDelete;
   if (!resolvedToDelete) {
     resolvedToDelete = model.relationships.find(source, target, predicate);
   }
@@ -461,10 +470,12 @@ Examples:
           target,
           options.predicate,
           properties,
-          sourceElement,
-          sourceLayerName,
-          targetElement,
-          targetLayerName
+          {
+            sourceElement,
+            sourceLayerName,
+            targetElement,
+            targetLayerName,
+          }
         );
 
         // Show cardinality and strength in output
@@ -545,8 +556,10 @@ Examples:
           source,
           target,
           options.predicate,
-          sourceLayerName,
-          toDelete
+          {
+            sourceLayerName,
+            toDelete,
+          }
         );
 
         const stagedSuffix = activeChangesetId ? " [staged]" : "";
