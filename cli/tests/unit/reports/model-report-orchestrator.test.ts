@@ -251,7 +251,7 @@ describe('ModelReportOrchestrator', () => {
   });
 
   describe('generateLayerReport() error handling', () => {
-    it('should log and return early on data collection error without attempting write', async () => {
+    it('should throw on data collection error without attempting write', async () => {
       const orchestrator = new ModelReportOrchestrator(model, '/test/path');
       const collectionError = new Error('Corrupted model data');
 
@@ -260,20 +260,18 @@ describe('ModelReportOrchestrator', () => {
         throw collectionError;
       });
 
-      // Mock console.warn to verify logging
-      const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
-
       // Mock fs.writeFile - should not be called
       const writeFileSpy = spyOn(fs, 'writeFile').mockImplementation(() => Promise.reject(new Error('Should not be called')));
 
-      await orchestrator['generateLayerReport']('api');
-
-      expect(warnSpy).toHaveBeenCalled();
-      expect(warnSpy.mock.calls[0][0]).toContain('programming error or corrupted model');
-      expect(writeFileSpy).not.toHaveBeenCalled();
+      try {
+        await orchestrator['generateLayerReport']('api');
+        expect(true).toBe(false); // Should not reach here
+      } catch (err) {
+        expect((err as Error).message).toContain('programming error or corrupted model');
+        expect(writeFileSpy).not.toHaveBeenCalled();
+      }
 
       collectorSpy.mockRestore();
-      warnSpy.mockRestore();
       writeFileSpy.mockRestore();
     });
 
@@ -316,17 +314,15 @@ describe('ModelReportOrchestrator', () => {
         throw typeError;
       });
 
-      const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
-
-      await orchestrator['generateLayerReport']('api');
-
-      // Verify the error message indicates programming error
-      const calls = warnSpy.mock.calls;
-      expect(calls.length).toBeGreaterThan(0);
-      expect(calls[0][0]).toContain('programming error or corrupted model');
+      try {
+        await orchestrator['generateLayerReport']('api');
+        expect(true).toBe(false); // Should not reach here
+      } catch (err) {
+        // Verify the error message indicates programming error
+        expect((err as Error).message).toContain('programming error or corrupted model');
+      }
 
       collectorSpy.mockRestore();
-      warnSpy.mockRestore();
     });
   });
 });
