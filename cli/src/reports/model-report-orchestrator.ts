@@ -130,7 +130,7 @@ export class ModelReportOrchestrator {
   /**
    * Generate and write a single layer report.
    * Separates concerns to distinguish programming bugs from I/O errors.
-   * Lets write errors propagate so callers can handle them with proper telemetry.
+   * Lets generation and write errors propagate so callers can handle them with proper telemetry.
    */
   private async generateLayerReport(layerName: CanonicalLayerName): Promise<void> {
     let data;
@@ -143,10 +143,9 @@ export class ModelReportOrchestrator {
       // Generate markdown report (may throw if programming bug)
       markdown = this.generator.generate(data);
     } catch (error) {
-      console.warn(
+      throw new Error(
         `Failed to generate report content for layer: ${layerName} (programming error or corrupted model) - ${getErrorMessage(error)}`
       );
-      return;
     }
 
     // Write to file (may throw for I/O errors like ENOSPC, EACCES, EIO)
