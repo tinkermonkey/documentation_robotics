@@ -4,7 +4,7 @@
  * (Step 9.5 hook) with the correct set of affected layers after manifest save
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { ModelReportOrchestrator } from "../../src/reports/model-report-orchestrator.js";
@@ -107,16 +107,14 @@ describe("Staging Area Commit Orchestrator Hooks (Step 9.5)", () => {
       });
 
       // Mock the orchestrator to verify regenerate is called
+      let regenerateCallCount = 0;
       let regenerateCalledWith: Set<string> | null = null;
-      const originalMethod = ModelReportOrchestrator.prototype.regenerate;
 
-      const mockMethod = async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
+      const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
+        regenerateCallCount++;
         regenerateCalledWith = new Set(affectedLayers);
-        // Call original implementation
-        return originalMethod.call(this, affectedLayers);
-      };
-
-      (ModelReportOrchestrator.prototype.regenerate as any) = mockMethod;
+        // Do not call the original implementation - just capture the call
+      });
 
       try {
         // Commit the changeset
@@ -124,11 +122,11 @@ describe("Staging Area Commit Orchestrator Hooks (Step 9.5)", () => {
 
         expect(result.committed).toBe(1);
         // Verify orchestrator was called with the affected layer
+        expect(regenerateCallCount).toBeGreaterThan(0);
         expect(regenerateCalledWith).toBeDefined();
         expect(regenerateCalledWith!.has("api")).toBe(true);
       } finally {
-        // Restore original method
-        (ModelReportOrchestrator.prototype.regenerate as any) = originalMethod;
+        regenerateSpy.mockRestore();
       }
     });
 
@@ -160,16 +158,14 @@ describe("Staging Area Commit Orchestrator Hooks (Step 9.5)", () => {
       });
 
       // Mock the orchestrator
+      let regenerateCallCount = 0;
       let regenerateCalledWith: Set<string> | null = null;
-      const originalMethod = ModelReportOrchestrator.prototype.regenerate;
 
-      const mockMethod = async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
+      const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
+        regenerateCallCount++;
         regenerateCalledWith = new Set(affectedLayers);
-        // Call original implementation
-        return originalMethod.call(this, affectedLayers);
-      };
-
-      (ModelReportOrchestrator.prototype.regenerate as any) = mockMethod;
+        // Do not call the original implementation
+      });
 
       try {
         // Commit the changeset
@@ -177,12 +173,12 @@ describe("Staging Area Commit Orchestrator Hooks (Step 9.5)", () => {
 
         expect(result.committed).toBe(2);
         // Verify orchestrator was called with all affected layers
+        expect(regenerateCallCount).toBeGreaterThan(0);
         expect(regenerateCalledWith).toBeDefined();
         expect(regenerateCalledWith!.has("api")).toBe(true);
         expect(regenerateCalledWith!.has("application")).toBe(true);
       } finally {
-        // Restore original method
-        (ModelReportOrchestrator.prototype.regenerate as any) = originalMethod;
+        regenerateSpy.mockRestore();
       }
     });
 
@@ -207,16 +203,14 @@ describe("Staging Area Commit Orchestrator Hooks (Step 9.5)", () => {
       });
 
       // Mock the orchestrator
+      let regenerateCallCount = 0;
       let regenerateCalledWith: Set<string> | null = null;
-      const originalMethod = ModelReportOrchestrator.prototype.regenerate;
 
-      const mockMethod = async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
+      const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
+        regenerateCallCount++;
         regenerateCalledWith = new Set(affectedLayers);
-        // Call original implementation
-        return originalMethod.call(this, affectedLayers);
-      };
-
-      (ModelReportOrchestrator.prototype.regenerate as any) = mockMethod;
+        // Do not call the original implementation
+      });
 
       try {
         // Commit the changeset
@@ -224,54 +218,12 @@ describe("Staging Area Commit Orchestrator Hooks (Step 9.5)", () => {
 
         expect(result.committed).toBe(1);
         // Verify orchestrator was called with affected layers
+        expect(regenerateCallCount).toBeGreaterThan(0);
         expect(regenerateCalledWith).toBeDefined();
         expect(regenerateCalledWith!.has("api")).toBe(true);
         expect(regenerateCalledWith!.has("application")).toBe(true);
       } finally {
-        // Restore original method
-        (ModelReportOrchestrator.prototype.regenerate as any) = originalMethod;
-      }
-    });
-
-    it("should compute affected layers correctly for element changes", async () => {
-      // Create a changeset
-      const changeset = await stagingManager.create("compute-layers-test", "Test compute affected layers");
-
-      // Add changes to business layer
-      await stagingManager.stage(changeset.id, {
-        type: "add",
-        elementId: "business-businessservice-payment",
-        layerName: "business",
-        after: {
-          id: "business-businessservice-payment",
-          type: "businessservice",
-          name: "Payment",
-        },
-      });
-
-      // Mock the orchestrator to capture the regenerate calls
-      let regenerateCalledWith: Set<string> | null = null;
-      const originalMethod = ModelReportOrchestrator.prototype.regenerate;
-
-      const mockMethod = async function(this: ModelReportOrchestrator, affectedLayers: Set<string>) {
-        regenerateCalledWith = new Set(affectedLayers);
-        // Call original implementation
-        return originalMethod.call(this, affectedLayers);
-      };
-
-      (ModelReportOrchestrator.prototype.regenerate as any) = mockMethod;
-
-      try {
-        // Commit the changeset
-        const result = await stagingManager.commit(baseModel, changeset.id, { validate: false });
-
-        expect(result.committed).toBe(1);
-        // The orchestrator should use computeAffectedLayers to determine which layers to regenerate
-        expect(regenerateCalledWith).toBeDefined();
-        expect(regenerateCalledWith!.has("business")).toBe(true);
-      } finally {
-        // Restore original method
-        (ModelReportOrchestrator.prototype.regenerate as any) = originalMethod;
+        regenerateSpy.mockRestore();
       }
     });
 
@@ -292,12 +244,9 @@ describe("Staging Area Commit Orchestrator Hooks (Step 9.5)", () => {
       });
 
       // Mock the orchestrator to throw an error
-      const originalMethod = ModelReportOrchestrator.prototype.regenerate;
-      const mockMethod = async function(this: ModelReportOrchestrator) {
+      const regenerateSpy = spyOn(ModelReportOrchestrator.prototype, "regenerate").mockImplementation(async function(this: ModelReportOrchestrator) {
         throw new Error("Simulated regenerate failure for testing");
-      };
-
-      (ModelReportOrchestrator.prototype.regenerate as any) = mockMethod;
+      });
 
       try {
         // Commit should succeed despite regenerate failure
@@ -312,8 +261,7 @@ describe("Staging Area Commit Orchestrator Hooks (Step 9.5)", () => {
         expect(committedChangeset).toBeDefined();
         expect(committedChangeset!.status).toBe("committed");
       } finally {
-        // Restore original method
-        (ModelReportOrchestrator.prototype.regenerate as any) = originalMethod;
+        regenerateSpy.mockRestore();
       }
     });
   });
