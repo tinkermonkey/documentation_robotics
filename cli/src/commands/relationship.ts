@@ -21,13 +21,19 @@ import { Element } from "../core/element.js";
 import { Relationship } from "../core/relationships.js";
 
 /**
- * Pre-resolved element and layer information to avoid redundant lookups
+ * Pre-resolved element and layer information to avoid redundant lookups.
+ * Ensures source and target pairs are consistent: if source is provided, both element and layerName must be present.
+ * This prevents invalid states like {sourceElement: ..., sourceLayerName: undefined}.
  */
 interface PreResolvedElements {
-  sourceElement?: Element;
-  sourceLayerName?: string;
-  targetElement?: Element;
-  targetLayerName?: string;
+  source?: {
+    element: Element;
+    layerName: string;
+  };
+  target?: {
+    element: Element;
+    layerName: string;
+  };
 }
 
 /**
@@ -153,10 +159,10 @@ export async function addRelationshipHandler(
   preResolved?: PreResolvedElements
 ): Promise<void> {
   // Use pre-resolved elements if provided, otherwise resolve them
-  let resolvedSourceLayerName = preResolved?.sourceLayerName;
-  let resolvedSourceElement = preResolved?.sourceElement;
-  let resolvedTargetLayerName = preResolved?.targetLayerName;
-  let resolvedTargetElement = preResolved?.targetElement;
+  let resolvedSourceLayerName = preResolved?.source?.layerName;
+  let resolvedSourceElement = preResolved?.source?.element;
+  let resolvedTargetLayerName = preResolved?.target?.layerName;
+  let resolvedTargetElement = preResolved?.target?.element;
 
   if (!resolvedSourceLayerName) {
     resolvedSourceLayerName = await findElementLayer(model, source);
@@ -471,10 +477,8 @@ Examples:
           options.predicate,
           properties,
           {
-            sourceElement,
-            sourceLayerName,
-            targetElement,
-            targetLayerName,
+            source: { element: sourceElement, layerName: sourceLayerName },
+            target: { element: targetElement, layerName: targetLayerName },
           }
         );
 

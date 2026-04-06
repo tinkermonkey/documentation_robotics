@@ -1,7 +1,7 @@
 import type { Model } from '../core/model.js';
 import { Element } from '../core/element.js';
 import type { Relationship } from '../core/relationships.js';
-import { LAYER_MAP, type CanonicalLayerName } from '../core/layers.js';
+import { LAYER_MAP, type CanonicalLayerName, isValidLayerName } from '../core/layers.js';
 
 /**
  * Statistics about relationships in a layer
@@ -95,13 +95,23 @@ export class ModelReportDataCollector {
     for (const rel of interRelationships) {
       // Upstream: layers that have relationships targeting THIS layer
       if (rel.targetLayer === layerName && rel.layer !== layerName) {
-        upstreamLayerSet.add(rel.layer as CanonicalLayerName);
-        inboundRelationshipCount++;
+        // Validate layer name before casting (defensive: guards against user-editable YAML with invalid layer names)
+        if (isValidLayerName(rel.layer)) {
+          upstreamLayerSet.add(rel.layer);
+          inboundRelationshipCount++;
+        } else {
+          console.warn(`Skipping invalid layer name in relationship: ${rel.layer}`);
+        }
       }
       // Downstream: layers that THIS layer references
       if (rel.layer === layerName && rel.targetLayer && rel.targetLayer !== layerName) {
-        downstreamLayerSet.add(rel.targetLayer as CanonicalLayerName);
-        outboundRelationshipCount++;
+        // Validate layer name before casting (defensive: guards against user-editable YAML with invalid layer names)
+        if (isValidLayerName(rel.targetLayer)) {
+          downstreamLayerSet.add(rel.targetLayer);
+          outboundRelationshipCount++;
+        } else {
+          console.warn(`Skipping invalid layer name in relationship: ${rel.targetLayer}`);
+        }
       }
     }
 

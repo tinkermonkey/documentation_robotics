@@ -78,11 +78,17 @@ export class ModelReportOrchestrator {
     for (const rel of this.model.relationships.getAll()) {
       // Outbound: this layer references another layer
       if (rel.layer === primaryLayer && rel.targetLayer) {
-        affected.add(rel.targetLayer as CanonicalLayerName);
+        // Validate layer name before casting (defensive: guards against user-editable YAML with invalid layer names)
+        if (isValidLayerName(rel.targetLayer)) {
+          affected.add(rel.targetLayer);
+        }
       }
       // Inbound: another layer references this layer
       if (rel.targetLayer === primaryLayer) {
-        affected.add(rel.layer as CanonicalLayerName);
+        // Validate layer name before casting (defensive: guards against user-editable YAML with invalid layer names)
+        if (isValidLayerName(rel.layer)) {
+          affected.add(rel.layer);
+        }
       }
     }
 
