@@ -6,7 +6,10 @@ import { readFile, writeFile, readdir, mkdir, rm } from "fs/promises";
 import path from "path";
 import { createHash } from "crypto";
 import { fileExists, ensureDir } from "../../src/utils/file-io.js";
-import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
+import {
+  createTestWorkdir,
+  GOLDEN_COPY_HOOK_TIMEOUT
+} from "../helpers/golden-copy.js";
 
 describe("Changeset Rollback Verification", () => {
   let model: Model;
@@ -48,7 +51,9 @@ describe("Changeset Rollback Verification", () => {
 
       expect(backupChecksums.manifest).toBe(originalChecksums.manifest);
 
-      for (const [layerName, originalChecksum] of Object.entries(originalChecksums.layers)) {
+      for (const [layerName, originalChecksum] of Object.entries(
+        originalChecksums.layers
+      )) {
         expect(backupChecksums.layers[layerName]).toBe(originalChecksum);
       }
     });
@@ -70,13 +75,16 @@ describe("Changeset Rollback Verification", () => {
       const filePaths = manifest.files.map((f: any) => f.path);
       // Check for either manifest.yaml or manifest.json
       const hasManifest =
-        filePaths.includes("manifest.yaml") || filePaths.includes("manifest.json");
+        filePaths.includes("manifest.yaml") ||
+        filePaths.includes("manifest.json");
       expect(hasManifest).toBe(true);
 
       // Verify manifest includes files for non-empty layers
       // (Empty layers with no elements won't have .yaml files to back up)
       for (const layer of model.layers.values()) {
-        const layerFiles = filePaths.filter((p) => p.startsWith(`layers/${layer.name}/`));
+        const layerFiles = filePaths.filter((p) =>
+          p.startsWith(`layers/${layer.name}/`)
+        );
 
         // Only expect files for layers that have elements
         if (layer.elements.size > 0) {
@@ -147,7 +155,10 @@ describe("Changeset Rollback Verification", () => {
         if (layerFiles.length > 0) {
           const filePath = path.join(layerDir, layerFiles[0]);
           // Corrupt the file by appending garbage
-          await writeFile(filePath, (await readFile(filePath, "utf-8")) + "\nCORRUPTED");
+          await writeFile(
+            filePath,
+            (await readFile(filePath, "utf-8")) + "\nCORRUPTED"
+          );
           corrupted = true;
           break;
         }
@@ -159,7 +170,9 @@ describe("Changeset Rollback Verification", () => {
 
         expect(health.isValid).toBe(false);
         expect(health.errors.length).toBeGreaterThan(0);
-        expect(health.errors.some((e) => e.includes("Checksum mismatch"))).toBe(true);
+        expect(health.errors.some((e) => e.includes("Checksum mismatch"))).toBe(
+          true
+        );
       }
     });
 
@@ -167,7 +180,12 @@ describe("Changeset Rollback Verification", () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
 
       // Create a fake backup directory without manifest
-      const backupDir = path.join(TEST_DIR, "documentation-robotics", ".backups", "fake-backup");
+      const backupDir = path.join(
+        TEST_DIR,
+        "documentation-robotics",
+        ".backups",
+        "fake-backup"
+      );
       await mkdir(backupDir, { recursive: true });
 
       // Validate should fail
@@ -189,7 +207,9 @@ describe("Changeset Rollback Verification", () => {
         expect(true).toBe(false); // Should throw
       } catch (error) {
         expect(error instanceof Error).toBe(true);
-        expect((error as Error).message).toContain("Backup directory not found");
+        expect((error as Error).message).toContain(
+          "Backup directory not found"
+        );
       }
     });
 
@@ -241,18 +261,21 @@ describe("Changeset Rollback Verification", () => {
         elementId: "test-elem",
         layerName: "nonexistent-layer",
         timestamp: new Date().toISOString(),
-        after: { name: "Test" },
+        after: { name: "Test" }
       });
 
       // Try to commit (should fail and rollback)
-      // Using validate: false to skip schema validation so we can test layer-not-found error
+      // The change has missing 'id' field, so commit will fail during apply phase
       try {
-        await manager.commit(model, changeset.id!, { validate: false, force: true });
+        await manager.commit(model, changeset.id!, {
+          validate: false,
+          force: true
+        });
         expect(true).toBe(false); // Should not reach
       } catch (error) {
         expect(error instanceof Error).toBe(true);
-        // Validation fails because layer doesn't exist and element doesn't match schema
-        expect((error as Error).message).toContain("Validation failed");
+        // Commit fails because element data is missing required 'id' field
+        expect((error as Error).message).toContain("Atomic commit failed");
       }
 
       // Verify model was rolled back to original state
@@ -264,7 +287,9 @@ describe("Changeset Rollback Verification", () => {
 
       expect(restoredChecksums.manifest).toBe(originalChecksums.manifest);
 
-      for (const [layerName, originalChecksum] of Object.entries(originalChecksums.layers)) {
+      for (const [layerName, originalChecksum] of Object.entries(
+        originalChecksums.layers
+      )) {
         expect(restoredChecksums.layers[layerName]).toBe(originalChecksum);
       }
     });
@@ -286,12 +311,15 @@ describe("Changeset Rollback Verification", () => {
         elementId: "test",
         layerName: "nonexistent",
         timestamp: new Date().toISOString(),
-        after: {},
+        after: {}
       });
 
       try {
         // Use force to bypass drift detection, validate: false to skip semantic validation
-        await manager.commit(model, changeset.id!, { validate: false, force: true });
+        await manager.commit(model, changeset.id!, {
+          validate: false,
+          force: true
+        });
         expect(true).toBe(false);
       } catch (error) {
         expect(error instanceof Error).toBe(true);
@@ -325,12 +353,15 @@ describe("Changeset Rollback Verification", () => {
         elementId: "test",
         layerName: "nonexistent",
         timestamp: new Date().toISOString(),
-        after: {},
+        after: {}
       });
 
       try {
         // Use force to bypass drift detection, validate: false to skip semantic validation
-        await manager.commit(model, changeset.id!, { validate: false, force: true });
+        await manager.commit(model, changeset.id!, {
+          validate: false,
+          force: true
+        });
         expect(true).toBe(false);
       } catch (error) {
         expect(error instanceof Error).toBe(true);
@@ -350,7 +381,9 @@ describe("Changeset Rollback Verification", () => {
           // Backup is corrupted, suggestions should warn against restoration
           expect(cliError.suggestions).toBeDefined();
           const suggestionsText = (cliError.suggestions || []).join(" ");
-          expect(suggestionsText).toContain("Do NOT use this backup for recovery");
+          expect(suggestionsText).toContain(
+            "Do NOT use this backup for recovery"
+          );
         }
       }
 
@@ -376,7 +409,7 @@ describe("Changeset Rollback Verification", () => {
         elementId: "test",
         layerName: "nonexistent",
         timestamp: new Date().toISOString(),
-        after: {},
+        after: {}
       });
 
       // Corrupt the backup during commit by mocking validation to fail
@@ -392,13 +425,16 @@ describe("Changeset Rollback Verification", () => {
         return {
           isValid: false,
           filesChecked: 1,
-          errors: ["Test: simulated backup corruption"],
+          errors: ["Test: simulated backup corruption"]
         };
       };
 
       try {
         // Use force to bypass drift detection, validate: false to skip semantic validation
-        await manager.commit(model, changeset.id!, { validate: false, force: true });
+        await manager.commit(model, changeset.id!, {
+          validate: false,
+          force: true
+        });
         expect(true).toBe(false);
       } catch (error) {
         expect(error instanceof Error).toBe(true);
@@ -411,7 +447,9 @@ describe("Changeset Rollback Verification", () => {
         // Suggestions should warn against manual restoration
         expect(cliError.suggestions).toBeDefined();
         const suggestionsText = (cliError.suggestions || []).join(" ");
-        expect(suggestionsText).toContain("Do NOT use this backup for recovery");
+        expect(suggestionsText).toContain(
+          "Do NOT use this backup for recovery"
+        );
       }
 
       // Restore original
@@ -433,7 +471,9 @@ describe("Changeset Rollback Verification", () => {
         const originalRestore = (manager as any).restoreModel;
         if (options.mockRestoreToFail) {
           (manager as any).restoreModel = async () => {
-            throw new Error("Backup restoration failed: Permission denied on /model/layers");
+            throw new Error(
+              "Backup restoration failed: Permission denied on /model/layers"
+            );
           };
         }
 
@@ -442,7 +482,10 @@ describe("Changeset Rollback Verification", () => {
           manager.validateBackupIntegrity = options.mockValidateBackupIntegrity;
         }
 
-        const changeset = await manager.create(options.changesetName, "Double Fault Test");
+        const changeset = await manager.create(
+          options.changesetName,
+          "Double Fault Test"
+        );
         await manager.setActive(changeset.id!);
 
         return {
@@ -453,7 +496,7 @@ describe("Changeset Rollback Verification", () => {
           cleanup: async () => {
             (manager as any).restoreModel = originalRestore;
             manager.validateBackupIntegrity = originalValidate;
-          },
+          }
         };
       }
 
@@ -470,7 +513,7 @@ describe("Changeset Rollback Verification", () => {
           testDir: TEST_DIR,
           model: model,
           mockRestoreToFail: true,
-          changesetName: "test-double-fault",
+          changesetName: "test-double-fault"
         });
 
         // Stage a change to the changeset
@@ -482,8 +525,8 @@ describe("Changeset Rollback Verification", () => {
           after: {
             id: "application.service.test-service",
             type: "service",
-            name: "Test Service",
-          },
+            name: "Test Service"
+          }
         });
 
         // Mock commit to fail by making save throw
@@ -495,7 +538,7 @@ describe("Changeset Rollback Verification", () => {
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, {
             validate: false,
-            force: true,
+            force: true
           });
           expect(true).toBe(false); // Should not reach
         } catch (error) {
@@ -521,7 +564,7 @@ describe("Changeset Rollback Verification", () => {
           testDir: TEST_DIR,
           model: model,
           mockRestoreToFail: true,
-          changesetName: "test-backup-location",
+          changesetName: "test-backup-location"
         });
 
         // Stage a change to the changeset
@@ -532,8 +575,8 @@ describe("Changeset Rollback Verification", () => {
           timestamp: new Date().toISOString(),
           after: {
             type: "service",
-            name: "Test Service",
-          },
+            name: "Test Service"
+          }
         });
 
         // Mock commit to fail
@@ -545,7 +588,7 @@ describe("Changeset Rollback Verification", () => {
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, {
             validate: false,
-            force: true,
+            force: true
           });
           expect(true).toBe(false);
         } catch (error) {
@@ -570,10 +613,10 @@ describe("Changeset Rollback Verification", () => {
             return {
               isValid: true,
               filesChecked: 12,
-              errors: [],
+              errors: []
             };
           },
-          changesetName: "test-valid-backup-recovery",
+          changesetName: "test-valid-backup-recovery"
         });
 
         // Stage a change to the changeset
@@ -584,8 +627,8 @@ describe("Changeset Rollback Verification", () => {
           timestamp: new Date().toISOString(),
           after: {
             type: "service",
-            name: "Test Service",
-          },
+            name: "Test Service"
+          }
         });
 
         // Mock commit to fail
@@ -597,7 +640,7 @@ describe("Changeset Rollback Verification", () => {
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, {
             validate: false,
-            force: true,
+            force: true
           });
           expect(true).toBe(false);
         } catch (error) {
@@ -635,10 +678,13 @@ describe("Changeset Rollback Verification", () => {
             return {
               isValid: false,
               filesChecked: 8,
-              errors: ["Checksum mismatch: layers/motivation.json", "Missing file: manifest.yaml"],
+              errors: [
+                "Checksum mismatch: layers/motivation.json",
+                "Missing file: manifest.yaml"
+              ]
             };
           },
-          changesetName: "test-corrupted-backup-recovery",
+          changesetName: "test-corrupted-backup-recovery"
         });
 
         // Stage a change to the changeset
@@ -649,8 +695,8 @@ describe("Changeset Rollback Verification", () => {
           timestamp: new Date().toISOString(),
           after: {
             type: "service",
-            name: "Test Service",
-          },
+            name: "Test Service"
+          }
         });
 
         // Mock commit to fail
@@ -662,7 +708,7 @@ describe("Changeset Rollback Verification", () => {
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, {
             validate: false,
-            force: true,
+            force: true
           });
           expect(true).toBe(false);
         } catch (error) {
@@ -681,10 +727,14 @@ describe("Changeset Rollback Verification", () => {
           const suggestionsText = (cliError.suggestions || []).join(" ");
 
           // Should warn against manual restoration with corrupted backup
-          expect(suggestionsText).toContain("Do NOT use this backup for recovery");
+          expect(suggestionsText).toContain(
+            "Do NOT use this backup for recovery"
+          );
           expect(suggestionsText).toContain("Backup integrity is compromised");
           expect(suggestionsText).toContain("Contact support immediately");
-          expect(suggestionsText).toContain("Do not attempt manual restoration");
+          expect(suggestionsText).toContain(
+            "Do not attempt manual restoration"
+          );
         } finally {
           (model as any).saveLayer = originalSaveLayer;
         }
@@ -698,7 +748,7 @@ describe("Changeset Rollback Verification", () => {
           mockValidateBackupIntegrity: async (backupDir: string) => {
             throw new Error("Cannot read backup directory: I/O error");
           },
-          changesetName: "test-validation-failure",
+          changesetName: "test-validation-failure"
         });
 
         // Stage a change to the changeset
@@ -709,8 +759,8 @@ describe("Changeset Rollback Verification", () => {
           timestamp: new Date().toISOString(),
           after: {
             type: "service",
-            name: "Test Service",
-          },
+            name: "Test Service"
+          }
         });
 
         // Mock commit to fail
@@ -722,7 +772,7 @@ describe("Changeset Rollback Verification", () => {
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, {
             validate: false,
-            force: true,
+            force: true
           });
           expect(true).toBe(false);
         } catch (error) {
@@ -748,10 +798,10 @@ describe("Changeset Rollback Verification", () => {
             return {
               isValid: true,
               filesChecked: 15,
-              errors: [],
+              errors: []
             };
           },
-          changesetName: "test-recovery-accuracy",
+          changesetName: "test-recovery-accuracy"
         });
 
         // Stage a change to the changeset
@@ -762,8 +812,8 @@ describe("Changeset Rollback Verification", () => {
           timestamp: new Date().toISOString(),
           after: {
             type: "service",
-            name: "Test Service",
-          },
+            name: "Test Service"
+          }
         });
 
         // Mock commit to fail
@@ -775,7 +825,7 @@ describe("Changeset Rollback Verification", () => {
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, {
             validate: false,
-            force: true,
+            force: true
           });
           expect(true).toBe(false);
         } catch (error) {
@@ -787,21 +837,29 @@ describe("Changeset Rollback Verification", () => {
           const suggestions = cliError.suggestions || [];
 
           // Verify manifest restoration step contains path details
-          const manifestStep = suggestions.find((s: string) => s.includes("manifest"));
+          const manifestStep = suggestions.find((s: string) =>
+            s.includes("manifest")
+          );
           expect(manifestStep).toBeDefined();
           expect(manifestStep).toContain("documentation-robotics");
 
           // Verify layer restoration step contains directory structure details
-          const layerStep = suggestions.find((s: string) => s.includes("layer files"));
+          const layerStep = suggestions.find((s: string) =>
+            s.includes("layer files")
+          );
           expect(layerStep).toBeDefined();
           expect(layerStep).toContain("layers");
 
           // Verify validation step with specific command
-          const validateStep = suggestions.find((s: string) => s.includes("dr validate"));
+          const validateStep = suggestions.find((s: string) =>
+            s.includes("dr validate")
+          );
           expect(validateStep).toBeDefined();
 
           // Verify support contact step is present
-          const supportStep = suggestions.find((s: string) => s.includes("Contact support"));
+          const supportStep = suggestions.find((s: string) =>
+            s.includes("Contact support")
+          );
           expect(supportStep).toBeDefined();
         } finally {
           (model as any).saveLayer = originalSaveLayer;
@@ -854,7 +912,9 @@ describe("Changeset Rollback Verification", () => {
         expect(true).toBe(false); // Should not reach
       } catch (error) {
         expect(error instanceof Error).toBe(true);
-        expect((error as Error).message).toContain("Failed to restore manifest");
+        expect((error as Error).message).toContain(
+          "Failed to restore manifest"
+        );
       }
     });
 
@@ -888,7 +948,10 @@ describe("Changeset Rollback Verification", () => {
       const backupDir = await (manager as any).backupModel(model);
 
       // Remove the entire layers directory from backup - simulates corrupted/incomplete backup
-      await rm(path.join(backupDir, "layers"), { recursive: true, force: true });
+      await rm(path.join(backupDir, "layers"), {
+        recursive: true,
+        force: true
+      });
 
       try {
         await (manager as any).restoreModel(model, backupDir);
@@ -919,7 +982,10 @@ describe("Changeset Rollback Verification", () => {
       // Remove the first layer directory found
       for (const entry of entries) {
         if (entry.isDirectory() && entry.name.match(/^\d{2}_/)) {
-          await rm(path.join(modelDir, entry.name), { recursive: true, force: true });
+          await rm(path.join(modelDir, entry.name), {
+            recursive: true,
+            force: true
+          });
           break;
         }
       }
@@ -991,7 +1057,10 @@ describe("Changeset Rollback Verification", () => {
       const layers = await readdir(layersDir);
       if (layers.length > 0) {
         // Remove first layer directory completely
-        await rm(path.join(layersDir, layers[0]), { recursive: true, force: true });
+        await rm(path.join(layersDir, layers[0]), {
+          recursive: true,
+          force: true
+        });
       }
 
       try {
@@ -1015,7 +1084,10 @@ describe("Changeset Rollback Verification", () => {
       const backupDir = await (manager as any).backupModel(model);
 
       // Remove layers directory
-      await rm(path.join(backupDir, "layers"), { recursive: true, force: true });
+      await rm(path.join(backupDir, "layers"), {
+        recursive: true,
+        force: true
+      });
 
       try {
         await (manager as any).restoreModel(model, backupDir);
@@ -1048,7 +1120,9 @@ async function captureModelChecksums(model: Model): Promise<{
     "manifest.yaml"
   );
   const manifestContent = await readFile(manifestPath, "utf-8");
-  const manifestChecksum = createHash("sha256").update(manifestContent).digest("hex");
+  const manifestChecksum = createHash("sha256")
+    .update(manifestContent)
+    .digest("hex");
 
   const layerChecksums: Record<string, string> = {};
 
@@ -1064,13 +1138,15 @@ async function captureModelChecksums(model: Model): Promise<{
     );
     if (await fileExists(layerPath)) {
       const layerContent = await readFile(layerPath, "utf-8");
-      layerChecksums[layer.name] = createHash("sha256").update(layerContent).digest("hex");
+      layerChecksums[layer.name] = createHash("sha256")
+        .update(layerContent)
+        .digest("hex");
     }
   }
 
   return {
     manifest: manifestChecksum,
-    layers: layerChecksums,
+    layers: layerChecksums
   };
 }
 
@@ -1087,7 +1163,7 @@ function getLayerNumber(layerName: string): string {
     ux: "09_ux",
     navigation: "10_navigation",
     apm: "11_apm",
-    testing: "12_testing",
+    testing: "12_testing"
   };
   return layerMap[layerName] || layerName;
 }
@@ -1103,7 +1179,9 @@ async function captureBackupChecksums(backupDir: string): Promise<{
   }
 
   const manifestContent = await readFile(manifestPath, "utf-8");
-  const manifestChecksum = createHash("sha256").update(manifestContent).digest("hex");
+  const manifestChecksum = createHash("sha256")
+    .update(manifestContent)
+    .digest("hex");
 
   const layersDir = path.join(backupDir, "layers");
   const layerFiles = await readdir(layersDir);
@@ -1115,13 +1193,15 @@ async function captureBackupChecksums(backupDir: string): Promise<{
       const layerPath = path.join(layersDir, file);
       const layerContent = await readFile(layerPath, "utf-8");
       const layerName = file.replace(/\.(json|yaml)$/, "");
-      layerChecksums[layerName] = createHash("sha256").update(layerContent).digest("hex");
+      layerChecksums[layerName] = createHash("sha256")
+        .update(layerContent)
+        .digest("hex");
     }
   }
 
   return {
     manifest: manifestChecksum,
-    layers: layerChecksums,
+    layers: layerChecksums
   };
 }
 
@@ -1172,7 +1252,11 @@ describe("Backup Creation Failure Handling - CRITICAL Issue Fix", () => {
     // Eager loading required: Test validates backup directory cleanup after failed commits
     // which requires all layers loaded to verify backup files are properly removed
     const model = await Model.load(TEST_DIR, { lazyLoad: false });
-    const backupBaseDir = path.join(TEST_DIR, "documentation-robotics", ".backups");
+    const backupBaseDir = path.join(
+      TEST_DIR,
+      "documentation-robotics",
+      ".backups"
+    );
 
     // Verify backups directory starts clean
     let existingBackups = [];
@@ -1215,7 +1299,11 @@ describe("Backup Creation Failure Handling - CRITICAL Issue Fix", () => {
     // Eager loading required: Test validates graceful handling of cleanup failures
     // which requires all layers loaded to verify model state after cleanup errors
     const model = await Model.load(TEST_DIR, { lazyLoad: false });
-    const backupBaseDir = path.join(TEST_DIR, "documentation-robotics", ".backups");
+    const backupBaseDir = path.join(
+      TEST_DIR,
+      "documentation-robotics",
+      ".backups"
+    );
 
     // Backup cleanup is non-throwing - verify directory structure exists for cleanup
     try {

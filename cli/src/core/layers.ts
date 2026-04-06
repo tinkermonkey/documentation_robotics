@@ -53,9 +53,9 @@ export function getLayerByOrder(order: number): string | undefined {
 }
 
 /**
- * Check if a layer name is valid
+ * Check if a layer name is valid (type predicate for compile-time narrowing)
  */
-export function isValidLayerName(name: string): boolean {
+export function isValidLayerName(name: string): name is CanonicalLayerName {
   return CANONICAL_LAYER_NAMES.includes(name as CanonicalLayerName);
 }
 

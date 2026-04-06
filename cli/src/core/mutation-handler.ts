@@ -11,8 +11,11 @@
 import { Model } from "./model.js";
 import { Element } from "./element.js";
 import { StagingAreaManager } from "./staging-area.js";
+import { isValidLayerName } from "./layers.js";
 import { CLIError } from "../utils/errors.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
+import { emitLog, SeverityNumber } from "../telemetry/index.js";
 
 export type MutationType = "add" | "update" | "delete";
 
@@ -280,15 +283,17 @@ export class MutationHandler {
     // This ensures they stay in sync
     await mutator(this.context.element, this.context.after);
 
-    // Persist atomically
+    // Persist changes to disk
     await this._persistChanges(type);
   }
 
   /**
-   * Persist changes atomically
+   * Persist changes to disk
    *
-   * This ensures all writes happen together or not at all.
-   * Prevents partial writes that could corrupt the model.
+   * Performs sequential writes to layer, relationships, and manifest files.
+   * If any write fails, subsequent writes are skipped via error propagation.
+   * Note: Not truly atomic—if a write succeeds then a later write fails,
+   * earlier writes remain on disk. Use within transaction-like contexts only.
    */
   private async _persistChanges(type?: string): Promise<void> {
     try {
@@ -308,6 +313,30 @@ export class MutationHandler {
         1,
         ["Check that the model directory is writable", "Verify the model is not corrupted"]
       );
+    }
+
+    // Post-persist: regenerate affected layer reports (non-blocking, FR-4)
+    // This is a separate try/catch from the above to ensure report failures never cause mutations to fail
+    try {
+      const orchestrator = new ModelReportOrchestrator(
+        this.context.model,
+        this.context.model.rootPath
+      );
+      if (isValidLayerName(this.context.layerName)) {
+        const affected = orchestrator.computeAffectedLayers(this.context.layerName);
+        await orchestrator.regenerate(affected);
+      } else {
+        emitLog(SeverityNumber.WARN, "Report regeneration skipped: invalid layer name", {
+          "layer.name": this.context.layerName,
+          "elementId": this.context.elementId,
+        });
+      }
+    } catch (error) {
+      emitLog(SeverityNumber.WARN, "Failed to update layer reports after mutation", {
+        "error": getErrorMessage(error),
+        "layer.name": this.context.layerName,
+        "elementId": this.context.elementId,
+      });
     }
   }
 }

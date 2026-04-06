@@ -7,13 +7,34 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { findElementLayer } from "../utils/element-utils.js";
-import { CLIError, ErrorCategory, handleError } from "../utils/errors.js";
+import { isValidLayerName } from "../core/layers.js";
+import { CLIError, ErrorCategory, handleError, getErrorMessage } from "../utils/errors.js";
 import {
   getValidRelationships,
   getValidPredicatesForSource,
   getValidDestinationsForSourceAndPredicate,
 } from "../generated/relationship-index.js";
 import { normalizeNodeType } from "../generated/node-types.js";
+import { ModelReportOrchestrator } from "../reports/model-report-orchestrator.js";
+import { emitLog, SeverityNumber } from "../telemetry/index.js";
+import { Element } from "../core/element.js";
+import { Relationship } from "../core/relationships.js";
+
+/**
+ * Pre-resolved element and layer information to avoid redundant lookups.
+ * Ensures source and target pairs are consistent: if source is provided, both element and layerName must be present.
+ * This prevents invalid states like {sourceElement: ..., sourceLayerName: undefined}.
+ */
+interface PreResolvedElements {
+  source?: {
+    element: Element;
+    layerName: string;
+  };
+  target?: {
+    element: Element;
+    layerName: string;
+  };
+}
 
 /**
  * Validate element properties and construct a SpecNodeId
@@ -117,6 +138,263 @@ export function getRelationshipConstraints(
   };
 }
 
+/**
+ * Handler function for adding a relationship
+ * Encapsulates the core logic of the add-relationship command
+ * @internal Exported for testing purposes
+ *
+ * @param model - The architecture model
+ * @param source - Source element ID
+ * @param target - Target element ID
+ * @param predicate - Relationship predicate
+ * @param properties - Optional relationship properties
+ * @param preResolved - Pre-resolved elements and layer names (optional, for performance)
+ */
+export async function addRelationshipHandler(
+  model: Model,
+  source: string,
+  target: string,
+  predicate: string,
+  properties?: Record<string, unknown>,
+  preResolved?: PreResolvedElements
+): Promise<void> {
+  // Use pre-resolved elements if provided, otherwise resolve them
+  let resolvedSourceLayerName = preResolved?.source?.layerName;
+  let resolvedSourceElement = preResolved?.source?.element;
+  let resolvedTargetLayerName = preResolved?.target?.layerName;
+  let resolvedTargetElement = preResolved?.target?.element;
+
+  if (!resolvedSourceLayerName) {
+    resolvedSourceLayerName = await findElementLayer(model, source);
+    if (!resolvedSourceLayerName) {
+      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+    }
+  }
+
+  if (!resolvedSourceElement) {
+    const sourceLayer = await model.getLayer(resolvedSourceLayerName);
+    if (!sourceLayer) {
+      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+    }
+    resolvedSourceElement = sourceLayer.getElement(source);
+    if (!resolvedSourceElement) {
+      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+    }
+  }
+
+  if (!resolvedTargetLayerName) {
+    resolvedTargetLayerName = await findElementLayer(model, target);
+    if (!resolvedTargetLayerName) {
+      throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+    }
+  }
+
+  if (!resolvedTargetElement) {
+    const targetLayer = await model.getLayer(resolvedTargetLayerName);
+    if (!targetLayer) {
+      throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+    }
+    resolvedTargetElement = targetLayer.getElement(target);
+    if (!resolvedTargetElement) {
+      throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
+    }
+  }
+
+  // Schema-driven validation
+  const sourceSpecNodeId = constructSpecNodeId(resolvedSourceElement, source);
+  const targetSpecNodeId = constructSpecNodeId(resolvedTargetElement, target);
+
+  const validation = validateRelationshipCombination(
+    sourceSpecNodeId,
+    predicate,
+    targetSpecNodeId
+  );
+
+  if (!validation.valid) {
+    throw new CLIError(
+      `Invalid relationship: ${source} --[${predicate}]--> ${target}`,
+      ErrorCategory.USER,
+      validation.suggestions
+    );
+  }
+
+  // Check for active changeset — stage relationship instead of writing directly
+  const stagingManager = new StagingAreaManager(model.rootPath, model);
+  const activeChangesetId = await stagingManager.getActiveId();
+
+  const relData = {
+    source,
+    target,
+    predicate,
+    layer: resolvedSourceLayerName,
+    ...(resolvedTargetLayerName !== resolvedSourceLayerName ? { targetLayer: resolvedTargetLayerName } : {}),
+    category: "structural" as const,
+    ...(properties ? { properties } : {}),
+  };
+
+  if (activeChangesetId) {
+    // Stage the relationship change in the active changeset
+    const compositeKey = `${source}::${predicate}::${target}`;
+    await stagingManager.stage(activeChangesetId, {
+      type: "relationship-add",
+      elementId: compositeKey,
+      layerName: resolvedSourceLayerName,
+      after: relData,
+    });
+  } else {
+    // No active changeset — write directly to relationships.yaml
+    model.relationships.add(relData);
+    await model.saveRelationships();
+    await model.saveManifest();
+
+    // Regenerate reports for all affected layers (including transitively related)
+    try {
+      const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
+      const affectedLayers = new Set<string>();
+
+      // Compute affected layers for source layer
+      if (isValidLayerName(resolvedSourceLayerName)) {
+        for (const layer of orchestrator.computeAffectedLayers(resolvedSourceLayerName)) {
+          affectedLayers.add(layer);
+        }
+      }
+
+      // Compute affected layers for target layer
+      if (isValidLayerName(resolvedTargetLayerName)) {
+        for (const layer of orchestrator.computeAffectedLayers(resolvedTargetLayerName)) {
+          affectedLayers.add(layer);
+        }
+      }
+
+      await orchestrator.regenerate(affectedLayers);
+    } catch (error) {
+      emitLog(
+        SeverityNumber.WARN,
+        "Failed to regenerate layer reports after relationship add",
+        {
+          "relationship.predicate": predicate,
+          "relationship.sourceLayer": resolvedSourceLayerName,
+          "relationship.targetLayer": resolvedTargetLayerName,
+          "relationship.source": source,
+          "relationship.target": target,
+          "error.message": getErrorMessage(error),
+        }
+      );
+    }
+  }
+}
+
+/**
+ * Handler function for deleting relationships
+ * Encapsulates the core logic of the delete-relationship command
+ * @internal Exported for testing purposes
+ *
+ * @param model - The architecture model
+ * @param source - Source element ID
+ * @param target - Target element ID
+ * @param predicate - Optional relationship predicate
+ * @param preResolved - Pre-resolved source layer name and relationships (optional, for performance)
+ */
+interface DeletePreResolved {
+  sourceLayerName?: string;
+  toDelete?: Relationship[];
+}
+
+export async function deleteRelationshipHandler(
+  model: Model,
+  source: string,
+  target: string,
+  predicate?: string,
+  preResolved?: DeletePreResolved
+): Promise<{ deletedCount: number }> {
+  // Use pre-resolved source layer if provided, otherwise resolve it
+  let resolvedSourceLayerName = preResolved?.sourceLayerName;
+  if (!resolvedSourceLayerName) {
+    resolvedSourceLayerName = await findElementLayer(model, source);
+    if (!resolvedSourceLayerName) {
+      throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
+    }
+  }
+
+  // Use pre-found relationships if provided, otherwise find them
+  let resolvedToDelete = preResolved?.toDelete;
+  if (!resolvedToDelete) {
+    resolvedToDelete = model.relationships.find(source, target, predicate);
+  }
+
+  if (resolvedToDelete.length === 0) {
+    throw new CLIError("No matching relationships found", ErrorCategory.USER);
+  }
+
+  // Check for active changeset — stage deletion instead of writing directly
+  const stagingManager = new StagingAreaManager(model.rootPath, model);
+  const activeChangesetId = await stagingManager.getActiveId();
+
+  if (activeChangesetId) {
+    // Stage each relationship deletion in the active changeset
+    for (const rel of resolvedToDelete) {
+      const compositeKey = `${rel.source}::${rel.predicate}::${rel.target}`;
+      await stagingManager.stage(activeChangesetId, {
+        type: "relationship-delete",
+        elementId: compositeKey,
+        layerName: rel.layer,
+        before: {
+          source: rel.source,
+          target: rel.target,
+          predicate: rel.predicate,
+          layer: rel.layer,
+          ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+          ...(rel.properties ? { properties: rel.properties } : {}),
+        },
+      });
+    }
+  } else {
+    // No active changeset — write directly
+    model.relationships.delete(source, target, predicate);
+    await model.saveRelationships();
+    await model.saveManifest();
+
+    // Regenerate reports for all affected layers (including transitively related)
+    try {
+      const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
+      const affectedLayers = new Set<string>();
+
+      // Compute affected layers for each deleted relationship's source and target
+      for (const rel of resolvedToDelete) {
+        // Compute affected layers for source layer
+        if (rel.layer && isValidLayerName(rel.layer)) {
+          for (const layer of orchestrator.computeAffectedLayers(rel.layer)) {
+            affectedLayers.add(layer);
+          }
+        }
+
+        // Compute affected layers for target layer
+        if (rel.targetLayer && isValidLayerName(rel.targetLayer)) {
+          for (const layer of orchestrator.computeAffectedLayers(rel.targetLayer)) {
+            affectedLayers.add(layer);
+          }
+        }
+      }
+
+      await orchestrator.regenerate(affectedLayers);
+    } catch (error) {
+      emitLog(
+        SeverityNumber.WARN,
+        "Failed to regenerate layer reports after relationship delete",
+        {
+          "relationship.predicate": predicate,
+          "relationship.source": source,
+          "relationship.target": target,
+          "relationship.deleteCount": resolvedToDelete.length,
+          "error.message": getErrorMessage(error),
+        }
+      );
+    }
+  }
+
+  return { deletedCount: resolvedToDelete.length };
+}
+
 export function relationshipCommands(program: Command): void {
   program
     .command("add <source> <target>")
@@ -140,13 +418,11 @@ Examples:
         // Load model
         const model = await Model.load();
 
-        // Find source element
+        // Find source element for constraints info
         const sourceLayerName = await findElementLayer(model, source);
         if (!sourceLayerName) {
           throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
-
-        // Find source element for schema validation
         const sourceLayer = await model.getLayer(sourceLayerName);
         if (!sourceLayer) {
           throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
@@ -156,13 +432,11 @@ Examples:
           throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
 
-        // Find target element
+        // Find target element for constraints info
         const targetLayerName = await findElementLayer(model, target);
         if (!targetLayerName) {
           throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
         }
-
-        // Find target element for schema validation
         const targetLayer = await model.getLayer(targetLayerName);
         if (!targetLayer) {
           throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
@@ -172,25 +446,9 @@ Examples:
           throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
         }
 
-        // Schema-driven validation
+        // Get cardinality and strength info (before calling handler for CLI output)
         const sourceSpecNodeId = constructSpecNodeId(sourceElement, source);
         const targetSpecNodeId = constructSpecNodeId(targetElement, target);
-
-        const validation = validateRelationshipCombination(
-          sourceSpecNodeId,
-          options.predicate,
-          targetSpecNodeId
-        );
-
-        if (!validation.valid) {
-          throw new CLIError(
-            `Invalid relationship: ${source} --[${options.predicate}]--> ${target}`,
-            ErrorCategory.USER,
-            validation.suggestions
-          );
-        }
-
-        // Get cardinality and strength info
         const constraints = getRelationshipConstraints(
           sourceSpecNodeId,
           options.predicate,
@@ -207,35 +465,22 @@ Examples:
           }
         }
 
-        // Check for active changeset — stage relationship instead of writing directly
+        // Check for active changeset
         const stagingManager = new StagingAreaManager(model.rootPath, model);
         const activeChangesetId = await stagingManager.getActiveId();
 
-        const relData = {
+        // Call the handler function with pre-resolved elements to avoid duplicate lookups
+        await addRelationshipHandler(
+          model,
           source,
           target,
-          predicate: options.predicate,
-          layer: sourceLayerName,
-          ...(targetLayerName !== sourceLayerName ? { targetLayer: targetLayerName } : {}),
-          category: "structural" as const,
-          ...(properties ? { properties } : {}),
-        };
-
-        if (activeChangesetId) {
-          // Stage the relationship change in the active changeset
-          const compositeKey = `${source}::${options.predicate}::${target}`;
-          await stagingManager.stage(activeChangesetId, {
-            type: "relationship-add",
-            elementId: compositeKey,
-            layerName: sourceLayerName,
-            after: relData,
-          });
-        } else {
-          // No active changeset — write directly to relationships.yaml
-          model.relationships.add(relData);
-          await model.saveRelationships();
-          await model.saveManifest();
-        }
+          options.predicate,
+          properties,
+          {
+            source: { element: sourceElement, layerName: sourceLayerName },
+            target: { element: targetElement, layerName: targetLayerName },
+          }
+        );
 
         // Show cardinality and strength in output
         let message = `✓ Added relationship: ${ansis.bold(source)} ${options.predicate} ${ansis.bold(target)}`;
@@ -274,13 +519,13 @@ Examples:
         // Load model
         const model = await Model.load();
 
-        // Find source element
+        // Find source element and relationships to delete (for confirmation)
         const sourceLayerName = await findElementLayer(model, source);
         if (!sourceLayerName) {
           throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
 
-        // Find relationships to delete
+        // Find relationships to delete (to show confirmation count)
         const toDelete = model.relationships.find(source, target, options.predicate);
 
         if (toDelete.length === 0) {
@@ -305,39 +550,26 @@ Examples:
           }
         }
 
-        // Check for active changeset — stage deletion instead of writing directly
+        // Check for active changeset
         const stagingManager = new StagingAreaManager(model.rootPath, model);
         const activeChangesetId = await stagingManager.getActiveId();
 
-        if (activeChangesetId) {
-          // Stage each relationship deletion in the active changeset
-          for (const rel of toDelete) {
-            const compositeKey = `${rel.source}::${rel.predicate}::${rel.target}`;
-            await stagingManager.stage(activeChangesetId, {
-              type: "relationship-delete",
-              elementId: compositeKey,
-              layerName: rel.layer,
-              before: {
-                source: rel.source,
-                target: rel.target,
-                predicate: rel.predicate,
-                layer: rel.layer,
-                ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
-                ...(rel.properties ? { properties: rel.properties } : {}),
-              },
-            });
+        // Call the handler function with pre-resolved values to avoid duplicate lookups
+        const result = await deleteRelationshipHandler(
+          model,
+          source,
+          target,
+          options.predicate,
+          {
+            sourceLayerName,
+            toDelete,
           }
-        } else {
-          // No active changeset — write directly
-          model.relationships.delete(source, target, options.predicate);
-          await model.saveRelationships();
-          await model.saveManifest();
-        }
+        );
 
         const stagedSuffix = activeChangesetId ? " [staged]" : "";
         console.log(
           ansis.green(
-            `✓ Deleted ${toDelete.length} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`
+            `✓ Deleted ${result.deletedCount} relationship(s) from ${ansis.bold(source)} to ${ansis.bold(target)}${stagedSuffix}`
           )
         );
       } catch (error) {

@@ -1,0 +1,980 @@
+
+> @documentation-robotics/cli@0.1.3 test:integration
+> [ -f dist/cli.js ] || npm run build && bun test tests/integration/*.test.ts
+
+bun test v1.3.5 (1e86cebd)
+
+tests/integration/info-command.test.ts:
+(pass) info command > should display model information with no options [529.00ms]
+(pass) info command > should display information for all 12 layers [496.00ms]
+(pass) info command > should display layer information with --layer option [735.00ms]
+(pass) info command > should display information for each of the 12 layers [506.00ms]
+(pass) info command > should fail with error for invalid layer name [497.00ms]
+(pass) info command > should display element counts for each layer [1206.00ms]
+(pass) info command > should show element counts with --layer and no --verbose [1070.00ms]
+(pass) info command > should show element type breakdown with --verbose option [1383.00ms]
+(pass) info command > should display manifest fields correctly [494.00ms]
+(pass) info command > should handle model with multiple element types per layer [1383.00ms]
+(pass) info command > should show layers with no elements [512.00ms]
+(pass) info command > should fail gracefully when model directory does not exist [239.00ms]
+(pass) info command > should display created and modified timestamps [493.00ms]
+
+tests/integration/flag-effectiveness.test.ts:
+(pass) Flag Effectiveness Tests > --strict flag for validate command > should produce different output between standard validate and validate --strict [235.00ms]
+(pass) Flag Effectiveness Tests > --strict flag for validate command > should exit with error code when --strict finds quality issues [104.00ms]
+(pass) Flag Effectiveness Tests > --verbose flag for audit command > should produce more output with --verbose than without [109.00ms]
+(pass) Flag Effectiveness Tests > --verbose flag for audit command > should include additional detail in --verbose output [87.00ms]
+
+tests/integration/claude-code-client-session.test.ts:
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Passing to Subprocess > should include session ID in options when sending message [1.00ms]
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Passing to Subprocess > should accept session ID in ChatOptions interface
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Passing to Subprocess > should make session ID accessible via options parameter
+(pass) ClaudeCodeClient Session Management Integration Tests > Session Continuity Across Messages > should use same session ID for multiple message options
+(pass) ClaudeCodeClient Session Management Integration Tests > Session Continuity Across Messages > should maintain session ID across multiple client invocations
+(pass) ClaudeCodeClient Session Management Integration Tests > Session Isolation Between Invocations > should generate different session IDs for different loggers
+(pass) ClaudeCodeClient Session Management Integration Tests > Session Isolation Between Invocations > should not cross-contaminate options between different sessions
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Format and Validation > should provide UUID v4 format session ID [1.00ms]
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Format and Validation > should include session ID in logging metadata [1.00ms]
+(pass) ClaudeCodeClient Session Management Integration Tests > Client Session State Management > should have no session before any message is sent
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID in ChatOptions > should support optional session ID in options
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID in ChatOptions > should preserve session ID through options chain
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID in ChatOptions > should handle undefined session ID gracefully
+(pass) ClaudeCodeClient Session Management Integration Tests > Subprocess Argument Composition > should construct args array with session ID [1.00ms]
+(pass) ClaudeCodeClient Session Management Integration Tests > Subprocess Argument Composition > should skip session ID flag when undefined
+(pass) ClaudeCodeClient Session Management Integration Tests > Subprocess Argument Composition > should position session ID correctly with other args
+(pass) ClaudeCodeClient Session Management Integration Tests > Logger Integration with Client > should retrieve session ID from chat logger
+(pass) ClaudeCodeClient Session Management Integration Tests > Logger Integration with Client > should use logger session ID for options
+(pass) ClaudeCodeClient Session Management Integration Tests > Logger Integration with Client > should log command with session ID [1.00ms]
+(pass) ClaudeCodeClient Session Management Integration Tests > Message Flow with Session ID > should pass session ID from logger to options to subprocess
+(pass) ClaudeCodeClient Session Management Integration Tests > Message Flow with Session ID > should maintain session ID across multiple message invocations [1.00ms]
+(pass) ClaudeCodeClient Session Management Integration Tests > Error Handling with Session ID > should handle missing session ID gracefully
+(pass) ClaudeCodeClient Session Management Integration Tests > Error Handling with Session ID > should log error while preserving session ID [1.00ms]
+(pass) ClaudeCodeClient Session Management Integration Tests > Error Handling with Session ID > should continue with same session ID after error [1.00ms]
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Validation and Edge Cases > should handle undefined sessionId without including flag in subprocess args
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Validation and Edge Cases > should handle null sessionId gracefully
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Validation and Edge Cases > should validate UUID v4 format for session IDs
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Validation and Edge Cases > should reject or handle malformed session IDs appropriately [1.00ms]
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Validation and Edge Cases > should handle empty string sessionId
+(pass) ClaudeCodeClient Session Management Integration Tests > Session ID Validation and Edge Cases > should handle very long session IDs without path length issues
+
+tests/integration/changeset-export-import.test.ts:
+(pass) Export/Import Workflow > YAML Format Export/Import > should export changeset to YAML format [5.00ms]
+(pass) Export/Import Workflow > YAML Format Export/Import > should import changeset from YAML format and preserve structure [4.00ms]
+(pass) Export/Import Workflow > Base Snapshot Compatibility Validation > should detect incompatibility when base model has changed [4.00ms]
+(pass) Export/Import Workflow > Base Snapshot Compatibility Validation > should identify when new elements can be imported into modified base [5.00ms]
+(pass) Export/Import Workflow > Changeset Metadata Preservation > should preserve changeset metadata during export/import cycle [3.00ms]
+(pass) Export/Import Workflow > Multi-Layer Export > should export changes spanning multiple layers [5.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should export changeset to YAML using exporter [4.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should export changeset to JSON using exporter [4.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should export changeset to file [4.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should import changeset from YAML [4.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should import changeset from JSON [3.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should import changeset from file [6.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should auto-detect YAML format [5.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should auto-detect JSON format [3.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should validate compatibility and detect incompatible elements [3.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should allow valid additions even with base drift [4.00ms]
+(pass) Export/Import Workflow > ChangesetExporter Integration > should export and re-import with statistics preserved [4.00ms]
+(pass) Export/Import Workflow > Patch format import limitations > should import patch metadata but result in empty changes array [3.00ms]
+
+tests/integration/visualization-server-comprehensive.test.ts:
+[SPEC-LOAD-001] Layer data-model has no node_types in spec file
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:47887
+(pass) Visualization Server - Model Loading > should load complete model via GET /api/model [5.00ms]
+(pass) Visualization Server - Model Loading > should load specific layer via GET /api/layers/:name [2.00ms]
+(pass) Visualization Server - Model Loading > should return 400 for invalid layer name format
+(pass) Visualization Server - Model Loading > should load model via GET /api/model
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:44458
+(pass) Visualization Server - Annotations > should create annotation via POST /api/annotations [3.00ms]
+(pass) Visualization Server - Annotations > should get annotations for element via GET /api/annotations?elementId=
+(pass) Visualization Server - Annotations > should update annotation via PUT /api/annotations/:id [1.00ms]
+(pass) Visualization Server - Annotations > should delete annotation via DELETE /api/annotations/:id [1.00ms]
+(pass) Visualization Server - Annotations > should create annotation via POST /api/annotations
+(pass) Visualization Server - Annotations > should default resolved to false when creating annotation
+(pass) Visualization Server - Annotations > should update resolved field via PUT
+(pass) Visualization Server - Annotations > should update annotation via PATCH (partial update) [1.00ms]
+(pass) Visualization Server - Annotations > should update resolved via PATCH
+(pass) Visualization Server - Annotations > should reject PATCH with empty body [1.00ms]
+(pass) Visualization Server - Annotations > should reject PUT with empty body
+(pass) Visualization Server - Annotations > should create annotation without author (defaults to Anonymous)
+(pass) Visualization Server - Annotations > should get replies for annotation [1.00ms]
+(pass) Visualization Server - Annotations > should create reply on annotation
+(pass) Visualization Server - Annotations > should get replies after creating one
+(pass) Visualization Server - Annotations > should return 404 when replying to non-existent annotation [1.00ms]
+(pass) Visualization Server - Annotations > should require author and content for reply
+(pass) Visualization Server - Annotations > should clean up replies when annotation is deleted [1.00ms]
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:46876
+(pass) Visualization Server - WebSocket > should connect to WebSocket at /ws [3.00ms]
+(pass) Visualization Server - WebSocket > should receive pong response to ping [1.00ms]
+(pass) Visualization Server - WebSocket > should subscribe to model updates
+(pass) Visualization Server - WebSocket > should receive annotation events via WebSocket [1.00ms]
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:44303
+(pass) Visualization Server - File Watching > should detect changes to model files [1006.00ms]
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:43435
+(pass) Visualization Server - Changesets > should list changesets via GET /api/changesets [1.00ms]
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:48097
+(pass) Visualization Server - Authentication > should reject requests without auth token [1.00ms]
+(pass) Visualization Server - Authentication > should accept requests with valid Bearer token
+(pass) Visualization Server - Authentication > should accept requests with query parameter token [1.00ms]
+(pass) Visualization Server - Authentication > should reject requests with invalid token
+(pass) Visualization Server - Authentication > should reject requests with malformed Bearer header (empty token)
+(pass) Visualization Server - Authentication > should reject requests with wrong auth scheme (Basic instead of Bearer) [1.00ms]
+(pass) Visualization Server - Authentication > should reject requests with missing token in Bearer scheme
+(pass) Visualization Server - Authentication > should allow health check without authentication
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:44499
+(pass) Visualization Server - Health and Status > should return healthy status from GET /health [2.00ms]
+(pass) Visualization Server - Health and Status > should serve viewer HTML at root / [1.00ms]
+
+tests/integration/upgrade-command.test.ts:
+(pass) upgrade command - unified flow > Scanning and planning > should scan filesystem for available upgrades [498.00ms]
+(pass) upgrade command - unified flow > Scanning and planning > should display upgrade plan with actions when upgrades needed [511.00ms]
+(pass) upgrade command - unified flow > Scanning and planning > should show no upgrades when already at latest version [497.00ms]
+(pass) upgrade command - unified flow > Scanning and planning > should detect spec reference upgrade needed [490.00ms]
+(pass) upgrade command - unified flow > Scanning and planning > should detect model migration upgrade needed [491.00ms]
+(pass) upgrade command - unified flow > Scanning and planning > should detect combined spec + model upgrade needed [493.00ms]
+(pass) upgrade command - unified flow > Interactive mode > should skip prompt with --yes flag [500.00ms]
+(pass) upgrade command - unified flow > Interactive mode > should accept --yes flag when no upgrades needed [730.00ms]
+(pass) upgrade command - unified flow > Dry run mode > should show upgrade plan with --dry-run flag [485.00ms]
+(pass) upgrade command - unified flow > Dry run mode > should not modify .dr/ folder in dry run [484.00ms]
+(pass) upgrade command - unified flow > Dry run mode > should not modify model data in dry run [485.00ms]
+(pass) upgrade command - unified flow > Dry run mode > should display actions in dry run [494.00ms]
+(pass) upgrade command - unified flow > Spec reference upgrades > should install .dr/ folder when missing [489.00ms]
+(pass) upgrade command - unified flow > Spec reference upgrades > should create .dr/manifest.json with correct version [495.00ms]
+(pass) upgrade command - unified flow > Spec reference upgrades > should copy schema files to .dr/spec/ [484.00ms]
+(pass) upgrade command - unified flow > Model migration upgrades > should migrate model from older spec version [495.00ms]
+(pass) upgrade command - unified flow > Model migration upgrades > should update model specVersion after migration [496.00ms]
+(pass) upgrade command - unified flow > Model migration upgrades > should handle chained migrations across multiple versions [499.00ms]
+(pass) upgrade command - unified flow > Model migration upgrades > should show migration steps in output [497.00ms]
+(pass) upgrade command - unified flow > Combined upgrades > should upgrade spec reference and model together [503.00ms]
+(pass) upgrade command - unified flow > Combined upgrades > should complete both upgrades successfully [529.00ms]
+(pass) upgrade command - unified flow > Combined upgrades > should show both actions in dry run plan [502.00ms]
+(pass) upgrade command - unified flow > Error handling > should fail gracefully when no project found [238.00ms]
+(pass) upgrade command - unified flow > Error handling > should handle missing model gracefully [231.00ms]
+(pass) upgrade command - unified flow > Error handling > should handle version consistency [499.00ms]
+(pass) upgrade command - unified flow > Output and UX > should display clear upgrade plan [495.00ms]
+(pass) upgrade command - unified flow > Output and UX > should show version changes [505.00ms]
+(pass) upgrade command - unified flow > Output and UX > should show success message when no upgrades needed [503.00ms]
+(pass) upgrade command - unified flow > Output and UX > should have readable output formatting [497.00ms]
+(pass) upgrade command - unified flow > Idempotence and stability > should run multiple times without side effects [977.00ms]
+(pass) upgrade command - unified flow > Idempotence and stability > should maintain model data after upgrade [509.00ms]
+(pass) upgrade command - unified flow > Idempotence and stability > should be safe to run after successful upgrade [751.00ms]
+(pass) upgrade command - unified flow > Edge cases > should handle missing .dr/manifest.json gracefully [485.00ms]
+(pass) upgrade command - unified flow > Edge cases > should detect outdated spec reference [503.00ms]
+(pass) upgrade command - unified flow > Integration version checks > should not show integration updates when no integrations installed [604.00ms]
+(pass) upgrade command - unified flow > Integration version checks > should check integration versions during upgrade [518.00ms]
+(pass) upgrade command - unified flow > Integration version checks > --force with no integrations installed exits cleanly with no integration section [510.00ms]
+(pass) upgrade command - unified flow > Integration version checks > --force plan includes integration reinstall when integration is installed [514.00ms]
+(pass) upgrade command - unified flow > Non-interactive mode > should require --yes flag in non-interactive mode when upgrades needed [499.00ms]
+
+tests/integration/changeset-staged-visibility.test.ts:
+(pass) Changeset Staged Visibility > staged elements visibility in read commands > should include staged elements in `dr list` output [404.00ms]
+(pass) Changeset Staged Visibility > staged elements visibility in read commands > should return staged element in `dr show` command [401.00ms]
+(pass) Changeset Staged Visibility > staged elements visibility in read commands > should allow updating staged elements with `dr update` [709.00ms]
+(pass) Changeset Staged Visibility > staged elements visibility in read commands > should allow `dr relationship add` with staged source element [674.00ms]
+(pass) Changeset Staged Visibility > staged elements visibility in read commands > should list staged elements without error [412.00ms]
+(pass) Changeset Staged Visibility > staged elements visibility in read commands > should report validation results for staged changes [458.00ms]
+(pass) Changeset Staged Visibility > changeset lifecycle with staged elements > should maintain changeset status while active [635.00ms]
+(pass) Changeset Staged Visibility > changeset lifecycle with staged elements > should track multiple staged elements in active changeset [377.00ms]
+(pass) Changeset Staged Visibility > changeset lifecycle with staged elements > should allow unstaging elements [662.00ms]
+(pass) Changeset Staged Visibility > changeset lifecycle with staged elements > should deactivate changeset after commit completes [989.00ms]
+(pass) Changeset Staged Visibility > multiple staged elements visibility > should see all staged elements across layers [1883.01ms]
+(pass) Changeset Staged Visibility > multiple staged elements visibility > should query elements without error when changeset is active [385.00ms]
+
+tests/integration/chat-multi-client.test.ts:
+(pass) Chat Command Integration > Client Detection > should detect ClaudeCodeClient availability [4.00ms]
+(pass) Chat Command Integration > Client Detection > should detect CopilotClient availability [1.00ms]
+(pass) Chat Command Integration > Client Detection > should have correct client names [1.00ms]
+(pass) Chat Command Integration > Session Management > should start with no session [1.00ms]
+(pass) Chat Command Integration > Session Management > should clear session [1.00ms]
+(pass) Chat Command Integration > Client Preference Storage > should not persist client preference (feature removed) [3.00ms]
+(pass) Chat Command Integration > Client Preference Storage > should handle missing preference gracefully [4.00ms]
+(pass) Chat Command Integration > Chat Options > should support agent option for Claude Code [1.00ms]
+(pass) Chat Command Integration > Chat Options > should support working directory for all clients [1.00ms]
+
+tests/integration/audit-diff.test.ts:
+(pass) audit diff command > argument parsing and error handling > should require snapshots to be available [89.00ms]
+(pass) audit diff command > argument parsing and error handling > should handle invalid snapshot ID with descriptive error [97.00ms]
+
+tests/integration/schema-validator-consistency.test.ts:
+(pass) Schema Validator Consistency > api.parameter > should accept required attributes from schema introspection [971.00ms]
+(pass) Schema Validator Consistency > api.parameter > should accept all valid enum values for 'in' attribute [1441.00ms]
+(pass) Schema Validator Consistency > api.operation > should accept required attributes from schema introspection [947.00ms]
+(pass) Schema Validator Consistency > api.operation > should accept optional attributes without error [400.00ms]
+(pass) Schema Validator Consistency > data-model.objectschema > should accept required attributes from schema introspection [897.00ms]
+(pass) Schema Validator Consistency > data-model.objectschema > should accept optional properties without error [433.00ms]
+(pass) Schema Validator Consistency > data-model.schemaproperty > should accept required attributes from schema introspection [904.00ms]
+(pass) Schema Validator Consistency > data-model.schemaproperty > should accept optional attributes (title, format, default, etc) without error [402.00ms]
+(pass) Schema Validator Consistency > data-model.schemaproperty > should accept enum, const, and examples as optional attributes [1047.00ms]
+(pass) Schema Validator Consistency > cross-type consistency > should maintain consistency across all test types [1007.00ms]
+
+tests/integration/changeset-concurrent.test.ts:
+(pass) Changeset Concurrent Operations > simultaneous staging operations > should handle concurrent stage operations with correct sequence numbers [544.00ms]
+(pass) Changeset Concurrent Operations > simultaneous staging operations > should handle concurrent unstage operations [340.00ms]
+(pass) Changeset Concurrent Operations > simultaneous staging operations > should handle concurrent changeset creation [80.00ms]
+(pass) Changeset Concurrent Operations > concurrent file access > should handle concurrent save operations [282.00ms]
+(pass) Changeset Concurrent Operations > concurrent file access > should handle concurrent load operations [80.00ms]
+(pass) Changeset Concurrent Operations > concurrent file access > should handle concurrent delete operations gracefully [78.00ms]
+(pass) Changeset Concurrent Operations > race conditions in sequence numbers > should maintain sequence number integrity under concurrent staging [640.00ms]
+(pass) Changeset Concurrent Operations > race conditions in sequence numbers > should handle concurrent stage and unstage operations [590.00ms]
+
+tests/integration/cache-invalidation.test.ts:
+(pass) Cache Invalidation Optimization > Layer-Specific Invalidation > should only invalidate affected layers when unstaging element [22.00ms]
+(pass) Cache Invalidation Optimization > Layer-Specific Invalidation > should use full invalidation when elementId not provided [11.00ms]
+(pass) Cache Invalidation Optimization > Cache Metrics Tracking > should track cache hits and misses accurately [5.00ms]
+(pass) Cache Invalidation Optimization > Cache Metrics Tracking > should record invalidation counts in metrics [6.00ms]
+(pass) Cache Invalidation Optimization > Concurrent Cache Operations > should handle concurrent layer projections safely [10.00ms]
+(pass) Cache Invalidation Optimization > Concurrent Cache Operations > should handle invalidation during concurrent operations [9.00ms]
+(pass) Cache Invalidation Optimization > Concurrent Cache Operations > should maintain consistency across concurrent invalidations [8.00ms]
+(pass) Cache Invalidation Optimization > Cache Correctness Under All Operations > should serve correct data after add operations [5.00ms]
+(pass) Cache Invalidation Optimization > Cache Correctness Under All Operations > should serve correct data after update operations [6.00ms]
+(pass) Cache Invalidation Optimization > Cache Correctness Under All Operations > should serve correct data after delete operations [6.00ms]
+(pass) Cache Invalidation Optimization > Cache Correctness Under All Operations > should serve correct data with mixed operations [6.00ms]
+
+tests/integration/add-command-type-validation.test.ts:
+(pass) Add Command - Type Validation > Valid type for layer > should accept valid motivation.goal type [461.00ms]
+(pass) Add Command - Type Validation > Valid type for layer > should accept valid api.operation type [409.00ms]
+(pass) Add Command - Type Validation > Valid type for layer > should accept valid data-store.view type [392.00ms]
+(pass) Add Command - Type Validation > Invalid type for layer > should reject goal type in api layer [314.00ms]
+(pass) Add Command - Type Validation > Invalid type for layer > should reject operation type in motivation layer [295.00ms]
+(pass) Add Command - Type Validation > Invalid type for layer > should reject table type in api layer [297.00ms]
+(pass) Add Command - Type Validation > Type validation error messages > should show valid types when invalid type is provided [299.00ms]
+(pass) Add Command - Type Validation > Type validation error messages > should suggest similar types for typos [342.00ms]
+(pass) Add Command - Type Validation > Type validation with different layers > should validate types for all layers [2343.01ms]
+
+tests/integration/export-command.test.ts:
+(pass) Export Command Integration Tests > should successfully load and export model in archimate format [11.00ms]
+(pass) Export Command Integration Tests > should successfully export model in openapi format [9.00ms]
+(pass) Export Command Integration Tests > should successfully export model in json-schema format [9.00ms]
+(pass) Export Command Integration Tests > should successfully export model in plantuml format [8.00ms]
+(pass) Export Command Integration Tests > should successfully export model in graphml format [9.00ms]
+(pass) Export Command Integration Tests > should successfully export model in markdown format [10.00ms]
+(pass) Export Command Integration Tests > should respect layer filters during export [7.00ms]
+(pass) Export Command Integration Tests > should handle models with no elements in a layer [6.00ms]
+(pass) Export Command Integration Tests > should export all supported formats without errors [11.00ms]
+(pass) Export Command Integration Tests > should export archimate with --layers filter [6.00ms]
+(pass) Export Command Integration Tests > should export openapi with layer filter [7.00ms]
+(pass) Export Command Integration Tests > should export plantuml with multiple layer filters [6.00ms]
+(pass) Export Command Integration Tests > should exclude filtered-out layers in export [8.00ms]
+(pass) Export Command Integration Tests > should export graphml with filtered layers [6.00ms]
+(pass) Export Command Integration Tests > should handle export with empty layer filter [6.00ms]
+(pass) Export Command Integration Tests > should handle export with non-existent layer in filter [8.00ms]
+(pass) Export Command Integration Tests > should export jsonschema format correctly [6.00ms]
+
+tests/integration/agent-abstraction.test.ts:
+(pass) Agent Abstraction Layer - Integration > Agent Interface Compatibility > should satisfy CodingAgent interface contract
+(pass) Agent Abstraction Layer - Integration > Agent Interface Compatibility > should work as polymorphic CodingAgent [2.00ms]
+(pass) Agent Abstraction Layer - Integration > Agent Interface Compatibility > should be swappable with other implementations
+(pass) Agent Abstraction Layer - Integration > Event Stream Processing > should parse complex multi-event stream
+(pass) Agent Abstraction Layer - Integration > Event Stream Processing > should accumulate events from chunked stream
+(pass) Agent Abstraction Layer - Integration > Event Stream Processing > should handle partial JSON in stream buffer
+(pass) Agent Abstraction Layer - Integration > Error Handling > should gracefully handle malformed events
+(pass) Agent Abstraction Layer - Integration > Error Handling > should handle error events in stream
+(pass) Agent Abstraction Layer - Integration > Error Handling > should continue processing after errors
+(pass) Agent Abstraction Layer - Integration > Tool Invocation Workflow > should parse complete tool workflow
+(pass) Agent Abstraction Layer - Integration > Tool Invocation Workflow > should handle multiple tool invocations
+(pass) Agent Abstraction Layer - Integration > Tool Invocation Workflow > should preserve tool input structure
+(pass) Agent Abstraction Layer - Integration > Process Lifecycle > should generate unique conversation IDs [10.00ms]
+(pass) Agent Abstraction Layer - Integration > Process Lifecycle > should include timestamp in conversation ID [1.00ms]
+(pass) Agent Abstraction Layer - Integration > Process Lifecycle > should provide completion promise [1.00ms]
+(pass) Agent Abstraction Layer - Integration > Configuration Options > should support custom agent name [1.00ms]
+(pass) Agent Abstraction Layer - Integration > Configuration Options > should support additional arguments [1.00ms]
+(pass) Agent Abstraction Layer - Integration > Configuration Options > should use provided working directory [1.00ms]
+(pass) Agent Abstraction Layer - Integration > Output Format Compatibility > should handle Claude Code stream-json format
+(pass) Agent Abstraction Layer - Integration > Output Format Compatibility > should handle plain text fallback
+(pass) Agent Abstraction Layer - Integration > Output Format Compatibility > should preserve newlines in plain text
+(pass) Agent Abstraction Layer - Integration > Availability Detection > should complete quickly [1.00ms]
+(pass) Agent Abstraction Layer - Integration > Availability Detection > should be callable multiple times [4.00ms]
+(pass) Agent Abstraction Layer - Integration > Availability Detection > should not throw on unavailable command [1.00ms]
+(pass) Agent Abstraction Layer - Integration > Real-world Scenarios > should handle DR architecture query workflow
+(pass) Agent Abstraction Layer - Integration > Real-world Scenarios > should reconstruct full response from events
+
+tests/integration/audit-pipeline.test.ts:
+(pass) Audit Pipeline > ReportGenerator > should generate JSON report for before phase
+(pass) Audit Pipeline > ReportGenerator > should generate Markdown report for after phase [1.00ms]
+(pass) Audit Pipeline > ReportGenerator > should generate Text report with verbose details [1.00ms]
+(pass) Audit Pipeline > PipelineOrchestrator > should create output directory structure [1.00ms]
+(pass) Audit Pipeline > PipelineOrchestrator > should generate expected report filenames
+
+📊 Starting Audit Pipeline
+   Output: /tmp/audit-pipeline-test-1775412879333/2026-04-05T18-14-39-334Z
+
+⏳ Step 1/4: Running initial audit (BEFORE AI evaluation)...
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.passwordpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyaction.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyrule.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.retentionpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: enforces (relationship: security.securityconstraints.enforces.security.securitypolicy)
+[DuplicateDetector] Unknown predicate not found in catalog: manages (relationship: security.securitymodel.manages.security.threat)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.securitypolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: targets (relationship: security.threat.targets.security.secureresource)
+[DuplicateDetector] Unknown predicate not found in catalog: connects (relationship: technology.communicationnetwork.connects.technology.node)
+[DuplicateDetector] Unknown predicate not found in catalog: federates (relationship: data-store.database.federates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: replicates (relationship: data-store.database.replicates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: applies (relationship: ux.view.applies.ux.layoutconfig)
+[DuplicateDetector] Unknown predicate not found in catalog: evaluates (relationship: navigation.navigationguard.evaluates.navigation.guardcondition)
+[DuplicateDetector] Unknown predicate not found in catalog: lazy-loads (relationship: navigation.route.lazy-loads.application.applicationcomponent)
+[DuplicateDetector] Unknown predicate not found in catalog: resolves-with (relationship: navigation.route.resolves-with.application.applicationservice)
+✅ Before audit complete: /tmp/audit-pipeline-test-1775412879333/2026-04-05T18-14-39-334Z/before/audit-before.json
+
+📋 Pipeline complete (AI evaluation disabled)
+(pass) Audit Pipeline > Pipeline Integration > should execute pipeline without AI evaluation successfully [21.00ms]
+
+📊 Starting Audit Pipeline
+   Output: /tmp/audit-pipeline-test-1775412879354/2026-04-05T18-14-39-354Z
+
+⏳ Step 1/4: Running initial audit (BEFORE AI evaluation)...
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.passwordpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyaction.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyrule.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.retentionpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: enforces (relationship: security.securityconstraints.enforces.security.securitypolicy)
+[DuplicateDetector] Unknown predicate not found in catalog: manages (relationship: security.securitymodel.manages.security.threat)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.securitypolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: targets (relationship: security.threat.targets.security.secureresource)
+[DuplicateDetector] Unknown predicate not found in catalog: connects (relationship: technology.communicationnetwork.connects.technology.node)
+[DuplicateDetector] Unknown predicate not found in catalog: federates (relationship: data-store.database.federates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: replicates (relationship: data-store.database.replicates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: applies (relationship: ux.view.applies.ux.layoutconfig)
+[DuplicateDetector] Unknown predicate not found in catalog: evaluates (relationship: navigation.navigationguard.evaluates.navigation.guardcondition)
+[DuplicateDetector] Unknown predicate not found in catalog: lazy-loads (relationship: navigation.route.lazy-loads.application.applicationcomponent)
+[DuplicateDetector] Unknown predicate not found in catalog: resolves-with (relationship: navigation.route.resolves-with.application.applicationservice)
+✅ Before audit complete: /tmp/audit-pipeline-test-1775412879354/2026-04-05T18-14-39-354Z/before/audit-before.json
+
+📋 Pipeline complete (AI evaluation disabled)
+(pass) Audit Pipeline > Pipeline Integration > should allow pipeline when enableAI is false [13.00ms]
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.passwordpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyaction.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyrule.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.retentionpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: enforces (relationship: security.securityconstraints.enforces.security.securitypolicy)
+[DuplicateDetector] Unknown predicate not found in catalog: manages (relationship: security.securitymodel.manages.security.threat)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.securitypolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: targets (relationship: security.threat.targets.security.secureresource)
+[DuplicateDetector] Unknown predicate not found in catalog: connects (relationship: technology.communicationnetwork.connects.technology.node)
+[DuplicateDetector] Unknown predicate not found in catalog: federates (relationship: data-store.database.federates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: replicates (relationship: data-store.database.replicates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: applies (relationship: ux.view.applies.ux.layoutconfig)
+[DuplicateDetector] Unknown predicate not found in catalog: evaluates (relationship: navigation.navigationguard.evaluates.navigation.guardcondition)
+[DuplicateDetector] Unknown predicate not found in catalog: lazy-loads (relationship: navigation.route.lazy-loads.application.applicationcomponent)
+[DuplicateDetector] Unknown predicate not found in catalog: resolves-with (relationship: navigation.route.resolves-with.application.applicationservice)
+(pass) Audit Pipeline > Pipeline Integration > should execute pipeline steps in order up to AI evaluation point [13.00ms]
+
+📊 Starting Audit Pipeline
+   Output: /tmp/audit-pipeline-test-1775412879380/2026-04-05T18-14-39-380Z
+
+⏳ Step 1/4: Running initial audit (BEFORE AI evaluation)...
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.passwordpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyaction.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyrule.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.retentionpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: enforces (relationship: security.securityconstraints.enforces.security.securitypolicy)
+[DuplicateDetector] Unknown predicate not found in catalog: manages (relationship: security.securitymodel.manages.security.threat)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.securitypolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: targets (relationship: security.threat.targets.security.secureresource)
+[DuplicateDetector] Unknown predicate not found in catalog: connects (relationship: technology.communicationnetwork.connects.technology.node)
+[DuplicateDetector] Unknown predicate not found in catalog: federates (relationship: data-store.database.federates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: replicates (relationship: data-store.database.replicates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: applies (relationship: ux.view.applies.ux.layoutconfig)
+[DuplicateDetector] Unknown predicate not found in catalog: evaluates (relationship: navigation.navigationguard.evaluates.navigation.guardcondition)
+[DuplicateDetector] Unknown predicate not found in catalog: lazy-loads (relationship: navigation.route.lazy-loads.application.applicationcomponent)
+[DuplicateDetector] Unknown predicate not found in catalog: resolves-with (relationship: navigation.route.resolves-with.application.applicationservice)
+✅ Before audit complete: /tmp/audit-pipeline-test-1775412879380/2026-04-05T18-14-39-380Z/before/audit-before.md
+
+📋 Pipeline complete (AI evaluation disabled)
+(pass) Audit Pipeline > Pipeline Execution > should execute pipeline and generate before/after reports [12.00ms]
+
+📊 Starting Audit Pipeline
+   Output: /tmp/audit-pipeline-test-1775412879392/nonexistent/deeply/nested/path/that/wont/be/created/2026-04-05T18-14-39-392Z
+
+⏳ Step 1/4: Running initial audit (BEFORE AI evaluation)...
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.passwordpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyaction.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.policyrule.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.retentionpolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: enforces (relationship: security.securityconstraints.enforces.security.securitypolicy)
+[DuplicateDetector] Unknown predicate not found in catalog: manages (relationship: security.securitymodel.manages.security.threat)
+[DuplicateDetector] Unknown predicate not found in catalog: mandates (relationship: security.securitypolicy.mandates.security.countermeasure)
+[DuplicateDetector] Unknown predicate not found in catalog: targets (relationship: security.threat.targets.security.secureresource)
+[DuplicateDetector] Unknown predicate not found in catalog: connects (relationship: technology.communicationnetwork.connects.technology.node)
+[DuplicateDetector] Unknown predicate not found in catalog: federates (relationship: data-store.database.federates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: replicates (relationship: data-store.database.replicates.data-store.database)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: archives-to (relationship: data-store.retentionpolicy.archives-to.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: migrates (relationship: data-store.storedlogic.migrates.data-store.collection)
+[DuplicateDetector] Unknown predicate not found in catalog: applies (relationship: ux.view.applies.ux.layoutconfig)
+[DuplicateDetector] Unknown predicate not found in catalog: evaluates (relationship: navigation.navigationguard.evaluates.navigation.guardcondition)
+[DuplicateDetector] Unknown predicate not found in catalog: lazy-loads (relationship: navigation.route.lazy-loads.application.applicationcomponent)
+[DuplicateDetector] Unknown predicate not found in catalog: resolves-with (relationship: navigation.route.resolves-with.application.applicationservice)
+✅ Before audit complete: /tmp/audit-pipeline-test-1775412879392/nonexistent/deeply/nested/path/that/wont/be/created/2026-04-05T18-14-39-392Z/before/audit-before.md
+
+📋 Pipeline complete (AI evaluation disabled)
+(pass) Audit Pipeline > Pipeline Execution > should generate report files with error context on write failure [13.00ms]
+(pass) Audit Pipeline > Pipeline Execution > should handle file write errors with descriptive messages [1.00ms]
+
+tests/integration/audit-snapshots.test.ts:
+(pass) audit snapshots command > list action > should handle empty snapshot list gracefully [83.00ms]
+(pass) audit snapshots command > list action > should list all snapshots with metadata [126.00ms]
+(pass) audit snapshots command > list action > should show correct singular/plural for snapshot count [112.00ms]
+(pass) audit snapshots command > delete action > should require snapshot ID for delete action [74.00ms]
+(pass) audit snapshots command > delete action > should validate snapshot exists before deletion [63.00ms]
+(pass) audit snapshots command > delete action > should delete specified snapshot by ID [91.00ms]
+(pass) audit snapshots command > clear action > should handle clear with no snapshots [78.00ms]
+(pass) audit snapshots command > clear action > should delete all snapshots with clear action [203.00ms]
+(pass) audit snapshots command > clear action > should use correct singular/plural form when clearing [88.00ms]
+(pass) audit snapshots command > error handling > should handle unknown actions with descriptive error [73.00ms]
+(pass) audit snapshots command > error handling > should include debug error details when debug flag is set [84.00ms]
+
+tests/integration/backup-validation-failures.test.ts:
+(pass) Backup Validation Failure Paths > manifest validation failures > should detect malformed JSON in backup manifest [113.00ms]
+(pass) Backup Validation Failure Paths > manifest validation failures > should detect missing files array in manifest [88.00ms]
+(pass) Backup Validation Failure Paths > manifest validation failures > should detect manifest with missing file metadata fields [131.00ms]
+(pass) Backup Validation Failure Paths > manifest validation failures > should provide detailed error on manifest read failure [109.00ms]
+(pass) Backup Validation Failure Paths > file integrity validation failures > should detect size mismatch in backup files [132.00ms]
+(pass) Backup Validation Failure Paths > file integrity validation failures > should detect multiple file integrity failures [152.00ms]
+(pass) Backup Validation Failure Paths > file integrity validation failures > should report all file errors in single validation run [97.00ms]
+(pass) Backup Validation Failure Paths > validation with filesystem errors > should handle unreadable backup directory [88.00ms]
+(pass) Backup Validation Failure Paths > validation with filesystem errors > should detect when layer directory is missing [91.00ms]
+(pass) Backup Validation Failure Paths > partial backup handling > should detect empty backup directory [76.00ms]
+(pass) Backup Validation Failure Paths > partial backup handling > should detect incomplete layer backup [91.00ms]
+(pass) Backup Validation Failure Paths > partial backup handling > should report accurate file count in validation results [89.00ms]
+(pass) Backup Validation Failure Paths > validation result accuracy > should include specific file paths in error messages [90.00ms]
+(pass) Backup Validation Failure Paths > validation result accuracy > should distinguish between different error types [124.00ms]
+(pass) Backup Validation Failure Paths > validation result accuracy > should handle validation of very large backups [159.00ms]
+(pass) Backup Validation Failure Paths > validation error recovery suggestions > should provide actionable recovery suggestions on validation failure [92.00ms]
+(pass) Backup Validation Failure Paths > validation error recovery suggestions > should maintain backup health report structure on failure [94.00ms]
+(pass) Backup Validation Failure Paths > validation edge cases > should handle backup with only manifest file [84.00ms]
+(pass) Backup Validation Failure Paths > validation edge cases > should detect manifest with self-referential checksums [140.00ms]
+(pass) Backup Validation Failure Paths > validation edge cases > should handle concurrent validation attempts [100.00ms]
+(pass) Backup Validation Failure Paths > validation edge cases > should validate backup after partial file modifications [165.00ms]
+
+tests/integration/virtual-projection.test.ts:
+(pass) VirtualProjectionEngine Integration Tests > Integration: 10-change scenario > should apply 10 staged changes and produce correct merged view [56.00ms]
+(pass) VirtualProjectionEngine Integration Tests > Integration: 10-change scenario > should correctly handle complex change sequence: add, update, delete [8.00ms]
+(pass) VirtualProjectionEngine Integration Tests > Integration: 10-change scenario > should maintain layer independence across projections [3.00ms]
+(pass) VirtualProjectionEngine Integration Tests > Performance: 1000-element model > should complete projection in under 500ms for 1000-element model [507.00ms]
+
+tests/integration/conformance-command.test.ts:
+(pass) conformance command > should execute successfully with no arguments [503.00ms]
+(pass) conformance command > should output text that includes "Layer conformance" [499.00ms]
+(pass) conformance command > should output "Summary" section [491.00ms]
+(pass) conformance command > should support --json output format [496.00ms]
+(pass) conformance command > --json format should contain conformance data structure [494.00ms]
+(pass) conformance command > should support --verbose output [742.00ms]
+(pass) conformance command > should display consistent results on repeated runs [772.00ms]
+(pass) conformance command > should work with multiple elements across layers [1282.00ms]
+(pass) conformance command > should handle empty model gracefully [506.00ms]
+(pass) conformance command > should fail gracefully when model does not exist [232.00ms]
+
+tests/integration/layer-naming-validation.test.ts:
+(pass) Layer 8 naming validation > rejects manifest with legacy datastore key
+(pass) Layer 8 naming validation > accepts manifest with canonical data-store key
+(pass) Layer 8 naming validation > rejects element IDs with mismatched layer prefix
+(pass) Layer 8 naming validation > SchemaValidator integration with renamed files > validates data-store layer with renamed schema file [1.00ms]
+(pass) Layer 8 naming validation > SchemaValidator integration with renamed files > validates data-model layer with hyphenated naming [1.00ms]
+(pass) Layer 8 naming validation > SchemaValidator integration with renamed files > successfully loads renamed 08-data-store schema during validation
+(pass) Layer 8 naming validation > NamingValidator enforces canonical names > accepts canonical data-store naming in layer names [1.00ms]
+(pass) Layer 8 naming validation > NamingValidator enforces canonical names > schema files use hyphenated naming for data-store and data-model
+
+tests/integration/claude-chat-session.test.ts:
+(pass) DR Chat Session Integration Tests > FR1: Session ID Generation > should generate a valid UUID v4 for each dr chat invocation
+(pass) DR Chat Session Integration Tests > FR1: Session ID Generation > should generate different UUIDs for different logger instances
+(pass) DR Chat Session Integration Tests > FR2: Session ID Persistence Across Messages > should persist the same session ID across multiple messages in a single session [1.00ms]
+(pass) DR Chat Session Integration Tests > FR2: Session ID Persistence Across Messages > should include session ID in all log entries within a session [1.00ms]
+(pass) DR Chat Session Integration Tests > FR2: Session ID Persistence Across Messages > should use the same session ID for all entries within a session [1.00ms]
+(pass) DR Chat Session Integration Tests > FR3: Session Isolation Between Chat Invocations > should generate new session ID for each new dr chat invocation
+(pass) DR Chat Session Integration Tests > FR3: Session Isolation Between Chat Invocations > should maintain separate log files for each session [1.00ms]
+(pass) DR Chat Session Integration Tests > FR3: Session Isolation Between Chat Invocations > should ensure new session has different UUID than previous
+(pass) DR Chat Session Integration Tests > FR4: Session ID Format Validation > should provide ChatLogger.sessionId as valid UUID v4
+(pass) DR Chat Session Integration Tests > FR4: Session ID Format Validation > should maintain consistent sessionId through logger lifetime
+(pass) DR Chat Session Integration Tests > FR4: Session ID Format Validation > should have version 4 indicator in UUID
+(pass) DR Chat Session Integration Tests > FR4: Session ID Format Validation > should have correct variant bits in UUID v4
+(pass) DR Chat Session Integration Tests > US1: Session Continuity Test > should maintain conversation context across multiple messages [1.00ms]
+(pass) DR Chat Session Integration Tests > US1: Session Continuity Test > should preserve message order within a session [1.00ms]
+(pass) DR Chat Session Integration Tests > US2: Session Isolation Test > should create separate sessions with different IDs
+(pass) DR Chat Session Integration Tests > US2: Session Isolation Test > should not cross-contaminate sessions [1.00ms]
+(pass) DR Chat Session Integration Tests > US3: Tool Call Continuity Test > should preserve tool execution results across messages [1.00ms]
+(pass) DR Chat Session Integration Tests > US3: Tool Call Continuity Test > should maintain chronological order with tool calls [1.00ms]
+(pass) DR Chat Session Integration Tests > US5: Verbose Logging Test > should log session_started event with session ID [1.00ms]
+(pass) DR Chat Session Integration Tests > US5: Verbose Logging Test > should include session ID in all log entries for tracking [1.00ms]
+(pass) DR Chat Session Integration Tests > US5: Verbose Logging Test > should track session ID across command invocations [1.00ms]
+(pass) DR Chat Session Integration Tests > FR8: Error Handling - Invalid Session ID Rejection > should gracefully handle logging errors
+(pass) DR Chat Session Integration Tests > FR8: Error Handling - Invalid Session ID Rejection > should maintain session state after error logging [1.00ms]
+(pass) DR Chat Session Integration Tests > FR9: State Management Consistency > should maintain consistency between tracked and logged session ID [1.00ms]
+(pass) DR Chat Session Integration Tests > FR9: State Management Consistency > should ensure session summary reflects logged state [1.00ms]
+(pass) DR Chat Session Integration Tests > FR9: State Management Consistency > should provide accurate session statistics [1.00ms]
+(pass) DR Chat Session Integration Tests > Session Continuity Verification > should confirm no "first interaction" in continuation
+(pass) DR Chat Session Integration Tests > Claude CLI Integration Tests > should pass session ID to Claude CLI subprocess invocations [1.00ms]
+(pass) DR Chat Session Integration Tests > Claude CLI Integration Tests > should maintain session ID consistency across multiple CLI calls [1.00ms]
+(pass) DR Chat Session Integration Tests > Claude CLI Integration Tests > should handle invalid session ID format gracefully [1.00ms]
+(pass) DR Chat Session Integration Tests > Claude CLI Integration Tests > should continue session after handling invalid session ID error
+(pass) DR Chat Session Integration Tests > Subprocess Argument Construction Tests > should construct subprocess args with --session-id flag [1.00ms]
+(pass) DR Chat Session Integration Tests > Subprocess Argument Construction Tests > should use --continue flag for subsequent messages in session
+(pass) DR Chat Session Integration Tests > End-to-End Session Continuity > should maintain session context across multiple logger invocations with same session ID [1.00ms]
+(pass) DR Chat Session Integration Tests > End-to-End Session Continuity > should verify session ID is passed through ChatOptions to subprocess [1.00ms]
+(pass) DR Chat Session Integration Tests > End-to-End Session Continuity > should demonstrate multi-turn conversation flow with session persistence [1.00ms]
+
+tests/integration/claude-command.test.ts:
+(pass) Claude Integration Commands > dr claude list > should list all available components [492.00ms]
+(pass) Claude Integration Commands > dr claude list > should show component descriptions [478.00ms]
+(pass) Claude Integration Commands > dr claude install > should install all components [525.00ms]
+(pass) Claude Integration Commands > dr claude install > should create .claude subdirectories for components [524.00ms]
+(pass) Claude Integration Commands > dr claude install > should support --reference-only flag [495.00ms]
+(pass) Claude Integration Commands > dr claude install > should support --commands-only flag [501.00ms]
+(pass) Claude Integration Commands > dr claude install > should support --agents-only flag [501.00ms]
+(pass) Claude Integration Commands > dr claude install > should support --skills-only flag [504.00ms]
+(pass) Claude Integration Commands > dr claude install > should support --templates-only flag [497.00ms]
+(pass) Claude Integration Commands > dr claude install > should combine multiple component flags [510.00ms]
+(pass) Claude Integration Commands > dr claude install > should record CLI version in version file [504.00ms]
+(pass) Claude Integration Commands > dr claude install > should prompt for confirmation if already installed [742.00ms]
+(pass) Claude Integration Commands > dr claude status > should show not installed status initially [471.00ms]
+(pass) Claude Integration Commands > dr claude status > should show installation status after install [763.00ms]
+(pass) Claude Integration Commands > dr claude status > should list all installed components [766.00ms]
+(pass) Claude Integration Commands > dr claude status > should show file counts per component [770.00ms]
+(pass) Claude Integration Commands > dr claude upgrade > should indicate no upgrades needed if freshly installed [774.00ms]
+(pass) Claude Integration Commands > dr claude upgrade > should show error if not installed [476.00ms]
+(pass) Claude Integration Commands > dr claude upgrade > should support --dry-run flag [771.00ms]
+(pass) Claude Integration Commands > dr claude upgrade > should support --force flag [765.00ms]
+(pass) Claude Integration Commands > dr claude remove > should remove all components with force flag [750.00ms]
+(pass) Claude Integration Commands > dr claude remove > should support --reference flag [734.00ms]
+(pass) Claude Integration Commands > dr claude remove > should support --commands flag [751.00ms]
+(pass) Claude Integration Commands > dr claude remove > should support --agents flag [746.00ms]
+(pass) Claude Integration Commands > dr claude remove > should support --skills flag [741.00ms]
+(pass) Claude Integration Commands > dr claude remove > should support --templates flag [754.00ms]
+(pass) Claude Integration Commands > dr claude remove > should combine multiple removal flags [754.00ms]
+(pass) Claude Integration Commands > dr claude remove > should handle removal when not installed [1005.00ms]
+(pass) Claude Integration Commands > Claude integration workflow > should support install -> status -> upgrade -> remove workflow [1271.00ms]
+(pass) Claude Integration Commands > Claude integration workflow > should support component-specific workflow [1008.00ms]
+(pass) Claude Integration Commands > File Ownership Boundaries > should preserve non-DR agents during upgrade [809.00ms]
+(pass) Claude Integration Commands > File Ownership Boundaries > should update DR-owned agents during upgrade [822.00ms]
+(pass) Claude Integration Commands > File Ownership Boundaries > should handle obsolete DR files gracefully during upgrade [806.00ms]
+(pass) Claude Integration Commands > File Ownership Boundaries > should preserve custom agent files without dr- prefix [802.00ms]
+(pass) Claude Integration Commands > File Ownership Boundaries > should preserve agent-os subdirectory with custom agents [802.00ms]
+
+tests/integration/scan-relationship-coverage.test.ts:
+(pass) Relationship Scanning Coverage > Layer Coverage > should have relationship patterns for all 12 layers
+(pass) Relationship Scanning Coverage > Layer Coverage > should have relationship patterns in Motivation layer [1.00ms]
+(pass) Relationship Scanning Coverage > Layer Coverage > should have relationship patterns in Business layer
+(pass) Relationship Scanning Coverage > Layer Coverage > should have relationship patterns in Technology layer
+(pass) Relationship Scanning Coverage > Layer Coverage > should have relationship patterns in Navigation layer
+(pass) Relationship Scanning Coverage > Relationship Inference Engine > should infer composition relationships from co-located elements
+(pass) Relationship Scanning Coverage > Relationship Inference Engine > should infer type-based relationships [1.00ms]
+(pass) Relationship Scanning Coverage > Relationship Inference Engine > should infer cross-layer relationships with proper direction
+(pass) Relationship Scanning Coverage > Relationship Inference Engine > should respect layer hierarchy in inferred relationships
+(pass) Relationship Scanning Coverage > Relationship Inference Engine > should avoid creating self-referential relationships
+(pass) Relationship Scanning Coverage > Relationship Inference Engine > should deduplicate inferred relationships
+(pass) Relationship Scanning Coverage > Pattern Consistency > should have valid confidence values in all patterns
+(pass) Relationship Scanning Coverage > Pattern Consistency > relationship patterns should define source and target templates
+
+tests/integration/visualization-server-websocket-advanced.test.ts:
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:40883
+(pass) WebSocket Connection Lifecycle > should accept WebSocket connections on /ws [5.00ms]
+(pass) WebSocket Connection Lifecycle > should handle normal connection close [1.00ms]
+(pass) WebSocket Connection Lifecycle > should send connected message upon connection
+(pass) WebSocket Connection Lifecycle > should handle terminate gracefully [1.00ms]
+(pass) WebSocket Connection Lifecycle > should respond to ping messages with pong [1.00ms]
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:49416
+(pass) WebSocket Concurrent Client Handling > should handle multiple concurrent WebSocket connections [2.00ms]
+(pass) WebSocket Concurrent Client Handling > should handle client disconnections without affecting others [2001.01ms]
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:42956
+(pass) WebSocket Subscription Management > should broadcast annotation create events to subscribed clients [102.00ms]
+(pass) WebSocket Subscription Management > should broadcast annotation update events [102.00ms]
+(pass) WebSocket Subscription Management > should broadcast annotation delete events [102.00ms]
+(pass) WebSocket Subscription Management > should handle subscribe messages with topic list [1.00ms]
+[WebSocket] Error handling unknown message (0ms): JSON Parse error: Expected '}'
+(pass) WebSocket Subscription Management > should handle invalid JSON messages gracefully [500.00ms]
+Invalid WebSocket message format: : Invalid input
+(pass) WebSocket Subscription Management > should reject messages with invalid schema and return error response [10.00ms]
+Invalid WebSocket message format: response: JSON-RPC 2.0 response must contain either 'result' or 'error', not both
+(pass) WebSocket Subscription Management > should handle malformed JSONRPC messages gracefully [3.00ms]
+
+tests/integration/visualization-server-api.test.ts:
+(pass) Visualization Server API Endpoints > GET /api/model > should return graph-format model [3129.01ms]
+(pass) Visualization Server API Endpoints > GET /api/model > should include nodes from all layers with layer_id [3120.01ms]
+(pass) Visualization Server API Endpoints > GET /api/model > should include nodes with all required fields [3091.01ms]
+(pass) Visualization Server API Endpoints > GET /api/layers/:name > should return specific layer data [3095.01ms]
+(pass) Visualization Server API Endpoints > GET /api/layers/:name > should return all 12 standard layers [3111.01ms]
+(pass) Visualization Server API Endpoints > GET /api/layers/:name > should return 400 for invalid layer name format [3093.01ms]
+(pass) Visualization Server API Endpoints > GET /api/layers/:name > should include elements with all required fields [3105.01ms]
+(pass) Visualization Server API Endpoints > OpenAPI Specification > should serve OpenAPI spec at /api-spec.json or /api-spec.yaml [3117.01ms]
+(pass) Visualization Server API Endpoints > OpenAPI Specification > should have consistent paths between spec and actual routes [3180.01ms]
+(pass) Visualization Server API Endpoints > GET / > should return HTML viewer page [3246.01ms]
+(pass) Visualization Server API Endpoints > GET / > should serve bundled viewer assets [3136.01ms]
+(pass) Visualization Server API Endpoints > Error Handling > should return 404 for unknown routes [3164.01ms]
+(pass) Visualization Server API Endpoints > Error Handling > should reject invalid layer name with Zod validation [3142.01ms]
+(pass) Visualization Server API Endpoints > Error Handling > should reject invalid changeset ID format with Zod validation [3115.01ms]
+(pass) Visualization Server API Endpoints > Error Handling > should reject invalid annotation ID format with Zod validation [3123.01ms]
+(pass) Visualization Server API Endpoints > Error Handling > should reject annotation path parameter on POST replies with Zod validation [3114.01ms]
+(pass) Visualization Server API Endpoints > CORS Headers > should include CORS headers in API responses [3114.01ms]
+(pass) Visualization Server API Endpoints > OpenAPI Documentation Endpoints > should return OpenAPI specification at /api-spec.yaml [3158.01ms]
+(pass) Visualization Server API Endpoints > OpenAPI Documentation Endpoints > should include all REST endpoints in OpenAPI spec [3128.01ms]
+(pass) Visualization Server API Endpoints > OpenAPI Documentation Endpoints > should serve Swagger UI at /api-docs [3167.01ms]
+(pass) Visualization Server API Endpoints > OpenAPI Documentation Endpoints > should have valid OpenAPI paths with methods [3180.01ms]
+
+tests/integration/staging-workflow.test.ts:
+(pass) End-to-End Staging Workflow > Preview shows merged view > should project staged changes showing merged view of model [8.00ms]
+(pass) End-to-End Staging Workflow > Commit operations > should block commit when drift is detected without --force flag [6.00ms]
+(pass) End-to-End Staging Workflow > Commit operations > should apply changes atomically when committing [4.00ms]
+(pass) End-to-End Staging Workflow > Discard operations > should clear all changes and update status when discarding [4.00ms]
+
+tests/integration/staging-orchestrator-hooks.test.ts:
+(pass) Staging Area Commit Orchestrator Hooks (Step 9.5) > commit triggers orchestrator regenerate for affected layers > should invoke orchestrator.regenerate with affected layers when committing element addition [20.00ms]
+(pass) Staging Area Commit Orchestrator Hooks (Step 9.5) > commit triggers orchestrator regenerate for affected layers > should invoke orchestrator.regenerate with all modified layers when committing changes to multiple layers [14.00ms]
+(pass) Staging Area Commit Orchestrator Hooks (Step 9.5) > commit triggers orchestrator regenerate for affected layers > should invoke orchestrator.regenerate with correct layers when committing relationship changes [10.00ms]
+(pass) Staging Area Commit Orchestrator Hooks (Step 9.5) > commit triggers orchestrator regenerate for affected layers > should still complete commit successfully even if orchestrator.regenerate fails [14.00ms]
+
+tests/integration/regression-naming-edge-cases.test.ts:
+(pass) regression: naming-edge-cases > name with embedded dot > should handle name with embedded dot (Node.js) correctly [563.00ms]
+(pass) regression: naming-edge-cases > name with embedded dot > dr validate should report 0 errors for element with dot in name [803.00ms]
+(pass) regression: naming-edge-cases > name with special characters > should handle name with special characters (Auth & Session) correctly [423.00ms]
+(pass) regression: naming-edge-cases > name with special characters > dr validate should report 0 errors for element with special characters [740.00ms]
+(pass) regression: naming-edge-cases > name with special characters > should strip multiple special characters from name [423.00ms]
+(pass) regression: naming-edge-cases > all-special-character name > should reject name that is entirely special characters (@@@) with user-friendly error [312.00ms]
+(pass) regression: naming-edge-cases > all-special-character name > should reject name that collapses to empty (---) with user-friendly error [324.00ms]
+(pass) regression: naming-edge-cases > all-special-character name > should reject name that is all exclamation marks (!!!!) with user-friendly error [320.00ms]
+(pass) regression: naming-edge-cases > all-special-character name > should reject name that is all asterisks (****) with user-friendly error [330.00ms]
+(pass) regression: naming-edge-cases > all-special-character name > should reject name that is all hashes (####) with user-friendly error [348.00ms]
+(pass) regression: naming-edge-cases > all-special-character name > should reject name that is all ampersands (&&&&) with user-friendly error [309.00ms]
+(pass) regression: naming-edge-cases > edge case: names that almost collapse > should handle name with mostly special chars but valid result (A@@@B) [414.00ms]
+(pass) regression: naming-edge-cases > edge case: names that almost collapse > should handle name with dot and special chars combined (Node@.js$) [439.00ms]
+
+tests/integration/mcp-client-connection.test.ts:
+(pass) MCP Client > Tool Invocation > should call tools and return results [1.00ms]
+(pass) MCP Client > Tool Invocation > should handle error results from tools (tool-level errors)
+(pass) MCP Client > Tool Invocation > should throw transport errors that indicate connection loss
+(pass) MCP Client > Tool Invocation > should throw when MCP server crashes mid-operation
+(pass) MCP Client > Tool Invocation > should list available tools
+(pass) MCP Client > Connection State > should start as connected for mock client
+(pass) MCP Client > Connection State > should disconnect cleanly
+
+tests/integration/golden-copy-integration.test.ts:
+(pass) Golden Copy Integration > createTestModelWithGoldenCopy > should create a test model with golden copy enabled by default [8.00ms]
+(pass) Golden Copy Integration > createTestModelWithGoldenCopy > should create a fresh model when golden copy is disabled [3.00ms]
+(pass) Golden Copy Integration > createTestModelWithGoldenCopy > should fall back gracefully if golden copy fails [7.00ms]
+(pass) Golden Copy Integration > createTestModelWithGoldenCopy > should provide valid model for use [9.00ms]
+(pass) Golden Copy Integration > createTestModelWithGoldenCopy > should support custom model options [3.00ms]
+(pass) Golden Copy Integration > initializeGoldenCopy > should initialize golden copy with config [3.00ms]
+(pass) Golden Copy Integration > initializeGoldenCopy > should support warmup during initialization [8.00ms]
+(pass) Golden Copy Integration > initializeGoldenCopy > should not reinitialize if already initialized [2.00ms]
+(pass) Golden Copy Integration > cleanupGoldenCopy > should clean up golden copy resources [3.00ms]
+(pass) Golden Copy Integration > cleanupGoldenCopy > should handle cleanup when not initialized
+(pass) Golden Copy Integration > getGoldenCopyStats > should return statistics object [2.00ms]
+(pass) Golden Copy Integration > getGoldenCopyStats > should track clone statistics [6.00ms]
+(pass) Golden Copy Integration > getGoldenCopyStats > should calculate correct averages [15.00ms]
+(pass) Golden Copy Integration > Integration Workflows > should support typical test suite workflow [13.00ms]
+(pass) Golden Copy Integration > Integration Workflows > should mix golden copy and fresh models [9.00ms]
+(pass) Golden Copy Integration > Integration Workflows > should support batch test execution [20.00ms]
+(pass) Golden Copy Integration > Error Handling and Resilience > should handle missing golden copy gracefully [6.00ms]
+(pass) Golden Copy Integration > Error Handling and Resilience > should not throw on cleanup errors [5.00ms]
+(pass) Golden Copy Integration > Model State Independence > should provide independent model instances [11.00ms]
+
+tests/integration/changeset-rollback.test.ts:
+(pass) Changeset Rollback Verification > backup content verification > should create backup that exactly matches original model [92.00ms]
+(pass) Changeset Rollback Verification > backup content verification > should verify backup manifest tracks all files [88.00ms]
+(pass) Changeset Rollback Verification > backup integrity validation > should validate intact backup successfully [90.00ms]
+(pass) Changeset Rollback Verification > backup integrity validation > should detect missing backup files [89.00ms]
+(pass) Changeset Rollback Verification > backup integrity validation > should detect checksum mismatches [101.00ms]
+(pass) Changeset Rollback Verification > backup integrity validation > should detect missing backup manifest [110.00ms]
+(pass) Changeset Rollback Verification > backup integrity validation > should detect nonexistent backup directory [101.00ms]
+(pass) Changeset Rollback Verification > backup integrity validation > should provide detailed error information on validation failure [96.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > should handle commit failure with successful rollback [115.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > should provide detailed error when rollback fails [116.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > should validate backup integrity before suggesting manual restoration [116.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > should warn when backup is corrupted during failed rollback [92.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > double-fault rollback scenario > should construct composite error message with both commit and rollback errors [103.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > double-fault rollback scenario > should include backup location in composite error message [94.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > double-fault rollback scenario > should validate backup integrity before suggesting manual restoration for valid backup [93.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > double-fault rollback scenario > should provide different recovery instructions for corrupted backup [93.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > double-fault rollback scenario > should handle backup validation failure during double-fault scenario [92.00ms]
+(pass) Changeset Rollback Verification > rollback failure scenarios > double-fault rollback scenario > should verify recovery procedure accuracy for valid backup [99.00ms]
+(pass) Changeset Rollback Verification > partial restoration handling > [CRITICAL FIX] should fail if any layer is missing from backup [94.00ms]
+(pass) Changeset Rollback Verification > partial restoration handling > should fail immediately if manifest restore fails [101.00ms]
+(pass) Changeset Rollback Verification > partial restoration handling > should provide detailed progress report on failure [91.00ms]
+(pass) Changeset Rollback Verification > partial restoration handling > [CRITICAL FIX] should fail if backup layer directory is missing [95.00ms]
+(pass) Changeset Rollback Verification > partial restoration handling > [CRITICAL FIX] should fail if layer destination directory cannot be found [102.00ms]
+(pass) Changeset Rollback Verification > partial restoration handling > [CRITICAL FIX] should track file-level restoration failures as critical [111.00ms]
+(pass) Changeset Rollback Verification > partial restoration handling > [CRITICAL FIX] should not silently skip missing layers [98.00ms]
+(pass) Changeset Rollback Verification > partial restoration handling > [CRITICAL FIX] should provide detailed error reasons in summary [91.00ms]
+(pass) Backup Creation Failure Handling - CRITICAL Issue Fix > [CRITICAL FIX] should not leave partial backups without cleanup on failure [78.00ms]
+(pass) Backup Creation Failure Handling - CRITICAL Issue Fix > [CRITICAL FIX] should only mark changeset as committed after all layer saves [73.00ms]
+(pass) Backup Creation Failure Handling - CRITICAL Issue Fix > [CRITICAL FIX] should ensure backup cleanup does not block successful commits [73.00ms]
+
+tests/integration/copilot-command.test.ts:
+(pass) Copilot Integration Commands > dr copilot list > should list all available components [498.00ms]
+(pass) Copilot Integration Commands > dr copilot list > should show component descriptions [489.00ms]
+(pass) Copilot Integration Commands > dr copilot install > should install all components [520.00ms]
+(pass) Copilot Integration Commands > dr copilot install > should create .github subdirectories for components [507.00ms]
+(pass) Copilot Integration Commands > dr copilot install > should support --agents-only flag [502.00ms]
+(pass) Copilot Integration Commands > dr copilot install > should support --skills-only flag [512.00ms]
+(pass) Copilot Integration Commands > dr copilot install > should combine multiple component flags [526.00ms]
+(pass) Copilot Integration Commands > dr copilot install > should record CLI version in version file [522.00ms]
+(pass) Copilot Integration Commands > dr copilot install > should prompt for confirmation if already installed [773.00ms]
+(pass) Copilot Integration Commands > dr copilot status > should show not installed status initially [505.00ms]
+(pass) Copilot Integration Commands > dr copilot status > should show installation status after install [787.00ms]
+(pass) Copilot Integration Commands > dr copilot status > should list all installed components [777.00ms]
+(pass) Copilot Integration Commands > dr copilot status > should show file counts per component [756.00ms]
+(pass) Copilot Integration Commands > dr copilot upgrade > should indicate no upgrades needed if freshly installed [764.00ms]
+(pass) Copilot Integration Commands > dr copilot upgrade > should show error if not installed [484.00ms]
+(pass) Copilot Integration Commands > dr copilot upgrade > should support --dry-run flag [766.00ms]
+(pass) Copilot Integration Commands > dr copilot upgrade > should support --force flag [788.00ms]
+(pass) Copilot Integration Commands > dr copilot remove > should remove all components with force flag [817.00ms]
+(pass) Copilot Integration Commands > dr copilot remove > should support --agents flag [824.00ms]
+(pass) Copilot Integration Commands > dr copilot remove > should support --skills flag [750.00ms]
+(pass) Copilot Integration Commands > dr copilot remove > should combine multiple removal flags [736.00ms]
+(pass) Copilot Integration Commands > dr copilot remove > should handle removal when not installed [985.00ms]
+(pass) Copilot Integration Commands > Copilot integration workflow > should support install -> status -> upgrade -> remove workflow [1281.00ms]
+(pass) Copilot Integration Commands > Copilot integration workflow > should support component-specific workflow [1093.00ms]
+
+tests/integration/error-scenarios.test.ts:
+(pass) Error Message Scenarios > Exit Code Categories > should use exit code 1 for user input errors [509.00ms]
+(pass) Error Message Scenarios > Exit Code Categories > should use exit code 1 when element not found [512.00ms]
+(pass) Error Message Scenarios > Exit Code Categories > should use exit code 1 for invalid JSON properties [509.00ms]
+(pass) Error Message Scenarios > Exit Code Categories > should return exit code 2 when model not found [248.00ms]
+(pass) Error Message Scenarios > Add Command Errors > should suggest valid layers when layer name is invalid [529.00ms]
+(pass) Error Message Scenarios > Add Command Errors > should provide fuzzy match suggestions for typos [483.00ms]
+(pass) Error Message Scenarios > Add Command Errors > should error when adding duplicate element [835.00ms]
+(pass) Error Message Scenarios > Add Command Errors > should error on invalid JSON properties [499.00ms]
+(pass) Error Message Scenarios > Add Command Errors > should error on invalid JSON properties with helpful guidance [505.00ms]
+(pass) Error Message Scenarios > Add Command Errors > should include operation context in error messages [491.00ms]
+(pass) Error Message Scenarios > Delete Command Errors > should error when element not found [1092.00ms]
+(pass) Error Message Scenarios > Delete Command Errors > should provide helpful suggestions for not found elements [1102.00ms]
+(pass) Error Message Scenarios > Delete Command Errors > should mention partial progress on cascade delete failure [1079.00ms]
+(pass) Error Message Scenarios > Model/Initialization Errors > should handle missing model gracefully [237.00ms]
+(pass) Error Message Scenarios > Model/Initialization Errors > should suggest running init when model is missing [236.00ms]
+(pass) Error Message Scenarios > Model/Initialization Errors > should error when model already exists on init [491.00ms]
+(pass) Error Message Scenarios > Validation Error Batching > should batch validation errors with grouping [508.00ms]
+(pass) Error Message Scenarios > Validation Error Batching > should show error counts not overwhelming detail [534.00ms]
+(pass) Error Message Scenarios > Error Message Clarity > should clearly state what went wrong [479.00ms]
+(pass) Error Message Scenarios > Error Message Clarity > should provide actionable suggestions [491.00ms]
+(pass) Error Message Scenarios > Dry-run and Recovery Guidance > should support --dry-run for delete operations [1049.00ms]
+(pass) Error Message Scenarios > Context-Aware Error Messages > should show operation being performed when error occurs [483.00ms]
+(pass) Error Message Scenarios > Context-Aware Error Messages > should include layer and element context in errors [489.00ms]
+
+tests/integration/doc-examples.test.ts:
+(pass) Claude Code integration doc examples > builds a non-empty live command map from the installed CLI
+(pass) Claude Code integration doc examples > correctly captures options for the add command
+(pass) Claude Code integration doc examples > correctly captures options for the relationship add command [1.00ms]
+(pass) Claude Code integration doc examples > finds markdown integration files to validate
+(pass) Claude Code integration doc examples > commands/dr-design.md [1.00ms]
+(pass) Claude Code integration doc examples > commands/dr-map.md
+(pass) Claude Code integration doc examples > commands/dr-sync.md
+(pass) Claude Code integration doc examples > commands/dr-changeset.md [1.00ms]
+(pass) Claude Code integration doc examples > commands/dr-validate.md
+(pass) Claude Code integration doc examples > commands/dr-init.md
+(pass) Claude Code integration doc examples > commands/dr-model.md
+(pass) Claude Code integration doc examples > commands/dr-relate.md
+(pass) Claude Code integration doc examples > agents/dr-architect.md [1.00ms]
+(pass) Claude Code integration doc examples > agents/dr-advisor.md
+(pass) Claude Code integration doc examples > skills/dr_01_motivation_layer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_03_security_layer/SKILL.md [1.00ms]
+(pass) Claude Code integration doc examples > skills/dr_02_business_layer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_10_navigation_layer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_07_data_model_layer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_changeset_reviewer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_09_ux_layer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_11_apm_layer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_08_dataset_layer/SKILL.md [1.00ms]
+(pass) Claude Code integration doc examples > skills/dr_12_testing_layer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_04_application_layer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_05_technology_layer/SKILL.md [1.00ms]
+(pass) Claude Code integration doc examples > skills/dr_06_api_layer/SKILL.md
+(pass) Claude Code integration doc examples > skills/dr_engineering_guide/SKILL.md
+
+tests/integration/telemetry-config-integration.test.ts:
+(pass) telemetry initialization with config loading > Configuration precedence in initTelemetry() > should use environment variables when set (highest priority) [5.00ms]
+(pass) telemetry initialization with config loading > Configuration precedence in initTelemetry() > should use config file values when env vars not set [1.00ms]
+(pass) telemetry initialization with config loading > Configuration precedence in initTelemetry() > should use defaults when no env vars or config file
+(pass) telemetry initialization with config loading > Configuration precedence in initTelemetry() > should handle partial config file with mixed sources
+(pass) telemetry initialization with config loading > Configuration precedence in initTelemetry() > should ignore empty/whitespace env vars and use next priority
+Error: Failed to load config file /tmp/.dr-config-test-1775413040488-qlcctgap8cm.yaml
+Details: Nested mappings are not allowed in compact mappings at line 1, column 10:
+
+invalid: yaml: content: [
+         ^
+
+Suggestions:
+  • Verify the file is valid UTF-8 encoded text
+  • Check if the file system is accessible
+  • Try recreating the file if it may be corrupted
+Using default OTLP configuration due to config file error
+(pass) telemetry initialization with config loading > Configuration precedence in initTelemetry() > should gracefully handle invalid config file [1.00ms]
+(pass) telemetry initialization with config loading > Configuration precedence in initTelemetry() > should handle config file without telemetry section [1.00ms]
+(pass) telemetry initialization with config loading > Integration with initTelemetry() > should load configuration when initTelemetry is called
+(pass) telemetry initialization with config loading > Integration with initTelemetry() > should support complex YAML structures in config file
+
+tests/integration/stats-command.test.ts:
+(pass) stats command > should display basic statistics [535.00ms]
+(pass) stats command > should show element counts by layer [1145.00ms]
+(pass) stats command > should display relationship statistics [1362.00ms]
+(pass) stats command > should support compact format [515.00ms]
+(pass) stats command > should support JSON format [510.00ms]
+(pass) stats command > should support markdown format [524.00ms]
+(pass) stats command > should save to file with auto-detected format [505.00ms]
+(pass) stats command > should save markdown to file [515.00ms]
+(pass) stats command > should show detailed element types with verbose flag [1133.00ms]
+(pass) stats command > should handle models with many elements [2848.01ms]
+(pass) stats command > should show validation status [505.00ms]
+(pass) stats command > should calculate completeness metrics [509.00ms]
+(pass) stats command > should handle models without relationships gracefully [810.00ms]
+(pass) stats command > should format dates nicely in output [515.00ms]
+(pass) stats command > should provide JSON with nested structure [1077.00ms]
+
+tests/integration/export-roundtrip.test.ts:
+(pass) Export Roundtrip Tests > OpenAPI Exporter - Attribute Accuracy > should export non-empty OpenAPI paths [8.00ms]
+(pass) Export Roundtrip Tests > OpenAPI Exporter - Attribute Accuracy > should export operationId matching stored attribute value, not UUID [5.00ms]
+(pass) Export Roundtrip Tests > OpenAPI Exporter - Attribute Accuracy > should export tags as array, not string [4.00ms]
+(pass) Export Roundtrip Tests > OpenAPI Exporter - Attribute Accuracy > should export correct HTTP method for each operation [5.00ms]
+(pass) Export Roundtrip Tests > OpenAPI Exporter - Attribute Accuracy > should export operation paths matching stored path attribute [6.00ms]
+(pass) Export Roundtrip Tests > JSON Schema Exporter - Attribute Accuracy > should export non-empty JSON Schema definitions [4.00ms]
+(pass) Export Roundtrip Tests > JSON Schema Exporter - Attribute Accuracy > should export objectschema with properties object present [5.00ms]
+(pass) Export Roundtrip Tests > JSON Schema Exporter - Attribute Accuracy > should export schemaproperty with stored type value, not fallback [6.00ms]
+(pass) Export Roundtrip Tests > JSON Schema Exporter - Attribute Accuracy > should export entity properties matching stored attributes [4.00ms]
+(pass) Export Roundtrip Tests > JSON Schema Exporter - Attribute Accuracy > should export valid JSON Schema draft 7 [4.00ms]
+(pass) Export Roundtrip Tests > ArchiMate Exporter - Attribute Accuracy > should export non-empty ArchiMate XML [7.00ms]
+(pass) Export Roundtrip Tests > ArchiMate Exporter - Attribute Accuracy > should export elements with specific ArchiMate xsi:type, not generic Element [5.00ms]
+(pass) Export Roundtrip Tests > ArchiMate Exporter - Attribute Accuracy > should export element names matching stored values [5.00ms]
+(pass) Export Roundtrip Tests > ArchiMate Exporter - Attribute Accuracy > should export ArchiMate with proper XML structure [7.00ms]
+(pass) Export Roundtrip Tests > GraphML Exporter - Non-Empty Output > should export non-empty GraphML with proper structure [3.00ms]
+(pass) Export Roundtrip Tests > GraphML Exporter - Non-Empty Output > should export element names in GraphML [4.00ms]
+(pass) Export Roundtrip Tests > Markdown Exporter - Non-Empty Output > should export non-empty markdown with proper structure [4.00ms]
+(pass) Export Roundtrip Tests > Markdown Exporter - Non-Empty Output > should export element details in markdown [4.00ms]
+(pass) Export Roundtrip Tests > Markdown Exporter - Non-Empty Output > should respect layer filters in markdown export [4.00ms]
+(pass) Export Roundtrip Tests > Cross-Format Consistency > should produce non-empty output for all major exporters [5.00ms]
+(pass) Export Roundtrip Tests > Cross-Format Consistency > should preserve element names across all exporters [4.00ms]
+
+tests/integration/scan-changeset-partial-failure.test.ts:
+(pass) stageChangeset - Partial Failure Path > success path > stages all candidates successfully when no errors occur [42.00ms]
+(pass) stageChangeset - Partial Failure Path > partial failure - element candidates > handles failure to stage specific element candidates [4.00ms]
+(pass) stageChangeset - Partial Failure Path > partial failure - element candidates > returns warning messages detailing which elements failed [1.00ms]
+(pass) stageChangeset - Partial Failure Path > partial failure - relationship candidates > handles failure to stage specific relationship candidates [3.00ms]
+(pass) stageChangeset - Partial Failure Path > partial failure - relationship candidates > returns warning messages detailing which relationships failed [1.00ms]
+(pass) stageChangeset - Partial Failure Path > mixed failures - elements and relationships > handles failures in both element and relationship candidates [2.00ms]
+(pass) stageChangeset - Partial Failure Path > changeset persistence > saves changeset even when some candidates fail [3.00ms]
+(pass) stageChangeset - Partial Failure Path > warning message formatting > formats warning messages with proper pluralization for relationships
+(pass) stageChangeset - Partial Failure Path > warning message formatting > formats warning messages with proper pluralization for elements [1.00ms]
+
+tests/integration/visualization-server-auth-flow.test.ts:
+(pass) Visualization Server — authenticated token flow > serves root / with 200 — no auth required for the viewer page [4.00ms]
+(pass) Visualization Server — authenticated token flow > serves /health with 200 — no auth required [1.00ms]
+(pass) Visualization Server — authenticated token flow > accepts /api/model with correct token in Authorization header → 200 [4.00ms]
+(pass) Visualization Server — authenticated token flow > accepts /api/model with correct token as ?token= query param → 200 [2.00ms]
+(pass) Visualization Server — authenticated token flow > accepts /api/annotations with correct token → 200 [3.00ms]
+(pass) Visualization Server — authenticated token flow > rejects /api/model with no token → 401 [1.00ms]
+(pass) Visualization Server — authenticated token flow > rejects /api/model with wrong token → 403 [1.00ms]
+(pass) Visualization Server — authenticated token flow > rejects /api/model with wrong ?token= query param → 403 [2.00ms]
+(pass) Visualization Server — authenticated token flow > rejects /api/annotations with no token → 401 [1.00ms]
+(pass) Visualization Server — authenticated token flow > accepts WebSocket upgrade with correct token → receives model data [4.00ms]
+(pass) Visualization Server — authenticated token flow > rejects WebSocket upgrade with wrong token → connection closes with error [1.00ms]
+(pass) Visualization Server — authenticated token flow > rejects WebSocket upgrade with no token → connection closes with error [1.00ms]
+
+tests/integration/relationship-orchestrator-hooks.test.ts:
+(pass) Relationship Command Orchestrator Hooks > add-relationship command path invokes orchestrator with correct layers > should pass affected layer to orchestrator.regenerate for intra-layer relationships [8.00ms]
+(pass) Relationship Command Orchestrator Hooks > add-relationship command path invokes orchestrator with correct layers > should handle relationships between different layers [8.00ms]
+(pass) Relationship Command Orchestrator Hooks > delete-relationship command path invokes orchestrator with correct layers > should pass affected layer to orchestrator.regenerate for intra-layer relationship deletion [7.00ms]
+(pass) Relationship Command Orchestrator Hooks > delete-relationship command path invokes orchestrator with correct layers > should pass both layers to orchestrator.regenerate for cross-layer relationship deletion [8.00ms]
+(pass) Relationship Command Orchestrator Hooks > delete-relationship command path invokes orchestrator with correct layers > should include transitively related layers when computing affected layers [8.00ms]
+
+tests/integration/audit-differential.test.ts:
+(pass) Snapshot Storage > should save a snapshot successfully [69.00ms]
+(pass) Snapshot Storage > should load a saved snapshot [61.00ms]
+(pass) Snapshot Storage > should list all snapshots sorted by timestamp (newest first) [63.00ms]
+(pass) Snapshot Storage > should delete a snapshot [62.00ms]
+(pass) Snapshot Storage > should clear all snapshots [62.00ms]
+(pass) Snapshot Storage > should get the latest snapshot [63.00ms]
+(pass) Snapshot Storage > should get the latest pair for comparison [79.00ms]
+(pass) Snapshot Storage > should return null pair when insufficient snapshots [90.00ms]
+(pass) Snapshot Storage > should respect max snapshots limit [81.00ms]
+(pass) Differential Analysis > should calculate coverage deltas correctly [1.00ms]
+(pass) Differential Analysis > should identify resolved gaps
+(pass) Differential Analysis > should identify new gaps
+(pass) Differential Analysis > should calculate gap resolution rate
+(pass) Differential Analysis > should identify resolved duplicates
+(pass) Differential Analysis > should calculate duplicate elimination rate
+(pass) Differential Analysis > should identify balance improvements [1.00ms]
+(pass) Differential Analysis > should calculate connectivity changes
+(pass) Differential Analysis > should generate comprehensive summary report
+(pass) Differential Analysis > should detect when before/after have different layer sets
+
+tests/integration/changeset-new-layer-commit.test.ts:
+(pass) Changeset New Layer Commit > should commit a changeset that introduces first elements for an empty layer [1019.00ms]
+(pass) Changeset New Layer Commit > should commit multiple elements to an empty layer in a single changeset [400.00ms]
+(pass) Changeset New Layer Commit > should maintain changeset status as committed after commit completes [106.00ms]
+
+tests/integration/element-id-persistence.test.ts:
+(pass) Element id/path persistence > should write UUID id and slug path to YAML after dr add [385.00ms]
+(pass) Element id/path persistence > should use path as YAML key for the element entry [388.00ms]
+
+tests/integration/visualization-server-jsonrpc-chat.test.ts:
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:43916
+(pass) JSON-RPC Chat Methods > chat.status method > should respond with chat status when no client is available [3.00ms]
+(pass) JSON-RPC Chat Methods > chat.status method > should include error message in status response when no client available [1.00ms]
+(pass) JSON-RPC Chat Methods > chat.send method > should reject chat.send with missing message parameter
+(pass) JSON-RPC Chat Methods > chat.send method > should reject chat.send with empty message parameter [1.00ms]
+(pass) JSON-RPC Chat Methods > chat.send method > should reject chat.send with non-string message parameter
+(pass) JSON-RPC Chat Methods > chat.cancel method > should respond to chat.cancel when no conversation active [1.00ms]
+(pass) JSON-RPC Chat Methods > chat.cancel method > should include conversation_id in cancel response structure
+(pass) JSON-RPC Chat Methods > JSON-RPC parameter validation > should reject chat.status with invalid params [1.00ms]
+
+tests/integration/cache-performance.test.ts:
+(pass) Cache Performance Benchmarks > Cache Hit Rate Improvement > should demonstrate cache hit improvement with layer-specific invalidation [15.00ms]
+(pass) Cache Performance Benchmarks > Single-Layer Invalidation Performance > should perform faster invalidation with single-layer targeting [11.00ms]
+(pass) Cache Performance Benchmarks > Cache Efficiency with Multi-Layer Changesets > should improve cache efficiency for changesets with many layers [15.00ms]
+(pass) Cache Performance Benchmarks > Metrics Overhead Assessment > should track metrics with minimal overhead [8.00ms]
+
+tests/integration/visualization-server-websocket-auth.test.ts:
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:43227
+(pass) WebSocket Authentication > should reject WebSocket connection without token [1.00ms]
+(pass) WebSocket Authentication > should reject WebSocket connection with invalid token
+(pass) WebSocket Authentication > should accept WebSocket connection with valid token [1.00ms]
+(pass) WebSocket Authentication > should allow authenticated client to subscribe [1501.00ms]
+(pass) WebSocket Authentication > should allow authenticated client to ping
+(pass) WebSocket Authentication > should handle token in different URL formats [1.00ms]
+[Watcher] Bun.watch not available, file watching disabled
+✓ Visualization server running at http://localhost:48939
+(pass) WebSocket Authentication Edge Cases > should work with auto-generated token [1.00ms]
+(pass) WebSocket Authentication Edge Cases > should reject empty token parameter [1.00ms]
+
+tests/integration/source-reference.test.ts:
+(pass) Source Reference CLI Integration Tests > add command with source references > should add element with source-file and source-provenance [547.00ms]
+(pass) Source Reference CLI Integration Tests > add command with source references > should add element with all source reference options [561.00ms]
+(pass) Source Reference CLI Integration Tests > add command with source references > should fail when source-file is missing but other source options provided [481.00ms]
+(pass) Source Reference CLI Integration Tests > add command with source references > should fail when source-provenance is missing but source-file provided [484.00ms]
+(pass) Source Reference CLI Integration Tests > add command with source references > should fail with invalid provenance value [489.00ms]
+(pass) Source Reference CLI Integration Tests > add command with source references > should fail with invalid commit SHA [481.00ms]
+(pass) Source Reference CLI Integration Tests > add command with source references > should fail when source-repo-commit provided without source-repo-remote [487.00ms]
+(pass) Source Reference CLI Integration Tests > add command with source references > should fail when source-repo-remote provided without source-repo-commit [501.00ms]
+(pass) Source Reference CLI Integration Tests > add command with source references > should support all valid provenance types [1382.00ms]
+(pass) Source Reference CLI Integration Tests > update command with source references > should update element to add source reference [782.00ms]
