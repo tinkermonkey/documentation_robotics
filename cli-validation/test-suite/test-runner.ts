@@ -250,13 +250,51 @@ async function executeWithWorkers(
     workerPromises.push(promise);
   }
 
-  // Wait for all workers to complete with race condition for timeouts
-  const allResults = await Promise.all(workerPromises);
+  // Wait for all workers to complete, but exit early if fast-fail is triggered
+  // Create a promise that resolves when fast-fail is triggered
+  const fastFailPromise = new Promise<SuiteResult[]>((resolve) => {
+    const checkInterval = setInterval(() => {
+      if (shouldStopAllWorkers) {
+        clearInterval(checkInterval);
+        // Kill all remaining active workers
+        for (const [workerId, worker] of workers.entries()) {
+          if (worker && !worker.killed) {
+            try {
+              worker.kill();
+            } catch (error) {
+              // Worker may have already exited - this is acceptable
+              console.debug(`Could not kill worker ${workerId}: ${error instanceof Error ? error.message : String(error)}`);
+            }
+          }
+        }
+        resolve([]); // Return empty array to signal early exit
+      }
+    }, 10); // Check every 10ms for fast-fail signal
+  });
+
+  // Race between all workers completing and fast-fail being triggered
+  const raceResult = await Promise.race([
+    Promise.all(workerPromises),
+    fastFailPromise,
+  ]);
+
+  // If we exited via fast-fail (empty array returned), we still have partial results
+  // from the workers that completed before fast-fail was triggered
+  const allResults = raceResult.length > 0 ? raceResult : await Promise.allSettled(workerPromises).then((settled) => {
+    // Collect results from settled promises, ignoring rejections
+    const collected: SuiteResult[] = [];
+    for (const settlement of settled) {
+      if (settlement.status === 'fulfilled') {
+        collected.push(...settlement.value);
+      }
+    }
+    return collected;
+  });
 
   const results: SuiteResult[] = allResults.flat();
 
-  // Validate that all scheduled suites produced results
-  if (results.length !== filteredSuites.length) {
+  // Validate that all scheduled suites produced results (or fast-fail was triggered)
+  if (results.length !== filteredSuites.length && !shouldStopAllWorkers) {
     const scheduledNames = new Set(filteredSuites.map((s) => s.name));
     const resultNames = new Set(results.map((r) => r.name));
     const missingNames = Array.from(scheduledNames).filter((name) => !resultNames.has(name));
