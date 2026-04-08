@@ -157,8 +157,12 @@ USER orchestrator
 # Ensure a clean gh config directory exists for the orchestrator user.
 # This prevents "multi-account migration" errors at runtime when gh finds
 # stale config from a previous build layer or cache.
+# Writing version:1 to config.yml tells gh 2.40+ that config is already in
+# the current format, suppressing the interactive migration prompt that
+# hangs in non-interactive containers.
 RUN mkdir -p "$GH_CONFIG_DIR" && \
-    rm -f "$GH_CONFIG_DIR/hosts.yml" "$GH_CONFIG_DIR/config.yml"
+    rm -f "$GH_CONFIG_DIR/hosts.yml" && \
+    printf 'version: 1\n' > "$GH_CONFIG_DIR/config.yml"
 
 # Verify all critical CLIs are present (from base image)
 RUN claude --version && \

@@ -39,13 +39,15 @@ if [ -n "$GH_TOKEN" ] || [ -n "$GITHUB_TOKEN" ]; then
   fi
   mkdir -p "$GH_CONFIG_DIR"
 else
-  # No token: best-effort cleanup of corrupted config
+  # No token: unconditionally remove stale hosts.yml to avoid migration errors.
+  # We previously called `gh auth status` here to check validity, but that
+  # command itself can trigger the migration prompt and hang in non-interactive
+  # containers. Since there's no token anyway, file-based config is useless.
   if [ -d "$GH_CONFIG_DIR" ] && [ -f "$GH_CONFIG_DIR/hosts.yml" ]; then
-    if ! gh auth status >/dev/null 2>&1; then
-      echo "[agent-entrypoint] Cleaning stale gh CLI config to avoid migration errors"
-      rm -f "$GH_CONFIG_DIR/hosts.yml"
-    fi
+    echo "[agent-entrypoint] Cleaning stale gh CLI config to avoid migration errors"
+    rm -f "$GH_CONFIG_DIR/hosts.yml"
   fi
+  mkdir -p "$GH_CONFIG_DIR"
 fi
 
 if [ -n "$GH_TOKEN" ]; then
