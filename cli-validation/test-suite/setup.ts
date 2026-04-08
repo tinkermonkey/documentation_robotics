@@ -32,6 +32,15 @@ export interface TestPaths {
 }
 
 /**
+ * Multi-worker test environment paths
+ */
+export interface MultiWorkerTestPaths {
+  baselinePath: string;
+  pythonPath: string;
+  tsPaths: string[]; // Array of N worker paths: ts-cli-1, ts-cli-2, ..., ts-cli-N
+}
+
+/**
  * Get CLI configuration from environment variables or defaults
  */
 export function getCLIConfig(): CLIConfig {
@@ -75,6 +84,36 @@ export function getTestPaths(
     baselinePath: join(workspaceRoot, "cli-validation/test-project/baseline"),
     pythonPath: join(workspaceRoot, "cli-validation/test-project/python-cli"),
     tsPath: join(workspaceRoot, "cli-validation/test-project/ts-cli"),
+  };
+}
+
+/**
+ * Get multi-worker test environment paths relative to workspace root
+ * Creates paths for N isolated worker baseline copies (ts-cli-1, ts-cli-2, ..., ts-cli-N)
+ */
+export function getMultiWorkerTestPaths(
+  workerCount: number,
+  baseDir: string = process.cwd()
+): MultiWorkerTestPaths {
+  // Determine workspace root
+  const cwd = baseDir || process.cwd();
+  const isRunningFromTestSuite = cwd.includes("cli-validation/test-suite");
+  const workspaceRoot = isRunningFromTestSuite
+    ? join(cwd.split("cli-validation/test-suite")[0])
+    : cwd;
+
+  const baseTestProjectDir = join(workspaceRoot, "cli-validation/test-project");
+
+  // Create paths for N workers: ts-cli-1, ts-cli-2, ..., ts-cli-N
+  const tsPaths: string[] = [];
+  for (let i = 1; i <= workerCount; i++) {
+    tsPaths.push(join(baseTestProjectDir, `ts-cli-${i}`));
+  }
+
+  return {
+    baselinePath: join(baseTestProjectDir, "baseline"),
+    pythonPath: join(baseTestProjectDir, "python-cli"),
+    tsPaths,
   };
 }
 
@@ -243,6 +282,53 @@ export async function cleanupTestArtifacts(paths: TestPaths): Promise<CleanupRes
 }
 
 /**
+ * Remove test artifacts for multi-worker setup
+ * Deletes all N worker copies (ts-cli-1 through ts-cli-N)
+ * Also restores the baseline to its committed state to prevent contamination
+ * @returns CleanupResult with status of each operation
+ * @throws Error only if directory deletion fails; baseline restore failures are reported in result
+ */
+export async function cleanupMultiWorkerTestArtifacts(
+  paths: MultiWorkerTestPaths
+): Promise<CleanupResult> {
+  const result: CleanupResult = {
+    directoryDeleteSuccess: true,
+    baselineRestoreSuccess: true,
+    errors: [],
+  };
+
+  // rm with force: true ignores missing directories
+  try {
+    // Delete Python CLI test directory
+    await rm(paths.pythonPath, { recursive: true, force: true });
+
+    // Delete all worker TypeScript CLI test directories
+    for (const tsPath of paths.tsPaths) {
+      await rm(tsPath, { recursive: true, force: true });
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to delete test directories: ${errorMsg}`);
+  }
+
+  // Restore baseline to its committed state to prevent test contamination
+  try {
+    await execAsync('git checkout -- cli-validation/test-project/baseline/', {
+      cwd: paths.baselinePath.split('cli-validation')[0],
+    });
+  } catch (error) {
+    // If git restore fails, record it but don't throw
+    // The baseline might not be in a git repo or might be read-only
+    result.baselineRestoreSuccess = false;
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    result.errors.push(`Baseline restore failed: ${errorMsg}`);
+    console.warn(`⚠ Could not restore baseline via git: ${errorMsg}`);
+  }
+
+  return result;
+}
+
+/**
  * Create fresh copies of baseline test project
  * Copies baseline to isolated python-cli/ and ts-cli/ directories
  * Updates cli_version in manifests to match the CLI being tested
@@ -284,6 +370,61 @@ export async function setupTestEnvironment(paths: TestPaths, config: CLIConfig, 
     await updateManifestCLIVersion(paths.pythonPath, config.pythonCLI);
   }
   await updateManifestCLIVersion(paths.tsPath, config.tsCLI);
+}
+
+/**
+ * Create fresh copies of baseline test project for multi-worker setup
+ * Creates N isolated copies (ts-cli-1 through ts-cli-N)
+ * Updates cli_version in manifests to match the CLI being tested
+ * @param paths - Multi-worker test paths
+ * @param config - CLI configuration
+ * @param pythonAvailable - Whether Python CLI is available (optional)
+ * @throws Error if copy operation fails
+ */
+export async function setupMultiWorkerTestEnvironment(
+  paths: MultiWorkerTestPaths,
+  config: CLIConfig,
+  pythonAvailable: boolean = true
+): Promise<void> {
+  // Clean up previous test artifacts
+  const cleanupResult = await cleanupMultiWorkerTestArtifacts(paths);
+  if (!cleanupResult.baselineRestoreSuccess) {
+    // Log warning if baseline restore failed, but proceed - setup will use potentially contaminated baseline
+    // This is acceptable here since setup will create fresh test copies
+    console.warn('⚠ Baseline restore failed during setup cleanup');
+    for (const error of cleanupResult.errors) {
+      console.warn(`   - ${error}`);
+    }
+  }
+
+  // Create fresh copy for Python CLI (single copy, not multi-worker)
+  try {
+    await cp(paths.baselinePath, paths.pythonPath, { recursive: true });
+  } catch (error) {
+    throw new Error(
+      `Failed to copy baseline to python-cli: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  // Create N fresh copies for TypeScript CLI workers
+  for (let i = 0; i < paths.tsPaths.length; i++) {
+    const tsPath = paths.tsPaths[i];
+    try {
+      await cp(paths.baselinePath, tsPath, { recursive: true });
+    } catch (error) {
+      throw new Error(
+        `Failed to copy baseline to ts-cli-${i + 1}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    // Update cli_version in manifest for this worker
+    await updateManifestCLIVersion(tsPath, config.tsCLI);
+  }
+
+  // Update cli_version in Python CLI manifest if available
+  if (pythonAvailable) {
+    await updateManifestCLIVersion(paths.pythonPath, config.pythonCLI);
+  }
 }
 
 /**
@@ -346,4 +487,32 @@ export async function initializeTestEnvironment(
   await setupTestEnvironment(paths, config, pythonAvailable);
 
   return { config, paths };
+}
+
+/**
+ * Initialize multi-worker test environment with full validation
+ * 1. Validate CLI binaries
+ * 2. Clean up previous artifacts
+ * 3. Create N isolated baseline copies (ts-cli-1 through ts-cli-N)
+ * 4. Each copy gets its own manifest version update
+ * @param workerCount - Number of isolated baseline copies to create (default: 4, minimum: 1)
+ * @throws Error if setup fails at any step
+ */
+export async function initializeMultiWorkerTestEnvironment(
+  workerCount: number = 4,
+  baseDir?: string
+): Promise<{ config: CLIConfig; paths: MultiWorkerTestPaths; primaryTsPath: string }> {
+  const config = getCLIConfig();
+  const paths = getMultiWorkerTestPaths(workerCount, baseDir);
+
+  // Validate CLI binaries exist and are executable
+  const { pythonAvailable } = await validateCLIBinaries(config);
+
+  // Setup multi-worker test environment
+  await setupMultiWorkerTestEnvironment(paths, config, pythonAvailable);
+
+  // Return the primary worker path (ts-cli-1) for running tests
+  const primaryTsPath = paths.tsPaths[0];
+
+  return { config, paths, primaryTsPath };
 }

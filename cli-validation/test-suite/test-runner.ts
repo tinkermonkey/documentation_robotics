@@ -11,7 +11,7 @@ import { dirname } from 'node:path';
 import { glob } from 'glob';
 import YAML from 'yaml';
 
-import { initializeTestEnvironment, getTestPaths, TestPaths, CLIConfig, cleanupTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
+import { initializeTestEnvironment, initializeMultiWorkerTestEnvironment, getTestPaths, TestPaths, CLIConfig, cleanupTestArtifacts, cleanupMultiWorkerTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
 import { captureSnapshot, captureTargetedSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
 import { executeCommand, CommandOutput } from './executor.js';
 import {
@@ -339,17 +339,21 @@ async function runTestSuite(): Promise<void> {
   if (options.testCase) console.log(`Test case filter: ${options.testCase}`);
   console.log('');
 
+  let cleanupPaths;
   try {
-    // Initialize test environment
-    console.log('Initializing test environment...');
-    const { config, paths } = await initializeTestEnvironment();
-    console.log('✓ Test environment initialized');
+    // Initialize test environment with multiple workers
+    console.log(`Initializing test environment with ${options.workers} worker(s)...`);
+    const { config, paths, primaryTsPath } = await initializeMultiWorkerTestEnvironment(options.workers);
+    console.log(`✓ Test environment initialized (${paths.tsPaths.length} baseline copies created)`);
     console.log('');
 
-    // Create test runner config
+    // Store paths for cleanup in error handler
+    cleanupPaths = paths;
+
+    // Create test runner config using the primary (first) worker
     const testConfig: TestRunnerConfig = {
       tsCLI: config.tsCLI,
-      tsDir: join(paths.tsPath, MODEL_DIR),
+      tsDir: join(primaryTsPath, MODEL_DIR),
       testCaseDir: join(process.cwd(), 'test-cases'),
     };
 
@@ -429,7 +433,7 @@ async function runTestSuite(): Promise<void> {
     // as cleanup uses git checkout to restore the baseline
     let baselineContaminated = false;
     try {
-      await validateBaselineIntegrity(paths.baselinePath);
+      await validateBaselineIntegrity(cleanupPaths.baselinePath);
       console.log('✓ Baseline integrity verified - no contamination detected');
     } catch (error) {
       if (error instanceof BaselineContaminationError) {
@@ -449,7 +453,7 @@ async function runTestSuite(): Promise<void> {
     // Clean up test artifacts
     let cleanupFailed = false;
     try {
-      const cleanupResult = await cleanupTestArtifacts(paths);
+      const cleanupResult = await cleanupMultiWorkerTestArtifacts(cleanupPaths);
       console.log('✓ Test artifacts cleaned up');
 
       // Warn if baseline restore failed, but don't fail the run
@@ -484,14 +488,15 @@ async function runTestSuite(): Promise<void> {
 
     // Attempt cleanup even on test failure
     try {
-      const paths = getTestPaths();
-      const cleanupResult = await cleanupTestArtifacts(paths);
-      if (!cleanupResult.baselineRestoreSuccess) {
-        console.error(
-          '⚠ Baseline restoration failed during cleanup (may require manual git checkout)'
-        );
-        for (const error of cleanupResult.errors) {
-          console.error(`   - ${error}`);
+      if (cleanupPaths) {
+        const cleanupResult = await cleanupMultiWorkerTestArtifacts(cleanupPaths);
+        if (!cleanupResult.baselineRestoreSuccess) {
+          console.error(
+            '⚠ Baseline restoration failed during cleanup (may require manual git checkout)'
+          );
+          for (const error of cleanupResult.errors) {
+            console.error(`   - ${error}`);
+          }
         }
       }
     } catch (cleanupError) {

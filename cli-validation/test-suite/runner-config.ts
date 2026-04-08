@@ -44,6 +44,11 @@ export interface RunnerOptions {
    * Show help information
    */
   help?: boolean;
+
+  /**
+   * Number of isolated baseline copies to create for parallel execution (default: 4, minimum: 1)
+   */
+  workers: number;
 }
 
 /**
@@ -85,6 +90,12 @@ export function parseRunnerArgs(): RunnerOptions {
         short: 'o',
         description: 'Output file for report',
       },
+      workers: {
+        type: 'string',
+        short: 'w',
+        default: '4',
+        description: 'Number of isolated baseline copies (default: 4, minimum: 1)',
+      },
       help: {
         type: 'boolean',
         short: 'h',
@@ -117,6 +128,17 @@ export function parseRunnerArgs(): RunnerOptions {
     priority = values.priority as 'high' | 'medium' | 'low';
   }
 
+  // Validate workers
+  let workers = 4;
+  if (values.workers) {
+    const parsed = parseInt(values.workers as string, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      console.error(`Invalid workers value: ${values.workers} (must be >= 1)`);
+      process.exit(1);
+    }
+    workers = parsed;
+  }
+
   return {
     reporter: reporter as 'console' | 'junit',
     fastFail: values['fast-fail'] === true || false,
@@ -124,6 +146,7 @@ export function parseRunnerArgs(): RunnerOptions {
     priority,
     testCase: values['test-case'] as string | undefined,
     outputFile: values.output as string | undefined,
+    workers,
     help: false,
   };
 }
@@ -145,6 +168,7 @@ Options:
   -p, --priority <level>   Filter by priority: high, medium, low
   -t, --test-case <name>   Run specific test suite (substring match)
   -o, --output <file>      Write report to file
+  -w, --workers <number>   Number of isolated baseline copies (default: 4, minimum: 1)
   -h, --help               Show this help message
 
 Examples:
@@ -162,6 +186,9 @@ Examples:
 
   # Fast-fail mode for development
   npm run test:compatibility --fast-fail --verbose
+
+  # Run with 2 worker baselines
+  npm run test:compatibility --workers 2
 `);
 }
 
