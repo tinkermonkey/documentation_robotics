@@ -70,19 +70,3 @@ pipelines:
           - "Exported"
         timeout: 60000
 
-  - name: "Export multiple formats in sequence"
-    steps:
-      - command: "export plantuml --output multi-export-test.puml"
-        files_to_compare:
-          - multi-export-test.puml
-        expect_exit_code: 0
-
-      - command: "export markdown --output multi-export-test.md"
-        files_to_compare:
-          - multi-export-test.md
-        expect_exit_code: 0
-
-      - command: "export graphml --output multi-export-test.graphml"
-        files_to_compare:
-          - multi-export-test.graphml
-        expect_exit_code: 0

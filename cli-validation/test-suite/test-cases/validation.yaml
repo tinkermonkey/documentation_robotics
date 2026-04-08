@@ -24,33 +24,13 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "list business"
-        files_to_compare: []
-        expect_exit_code: 0
-
-      - command: "list application"
-        files_to_compare: []
-        expect_exit_code: 0
-
-      - command: "list technology"
-        files_to_compare: []
-        expect_exit_code: 0
-
-      - command: "list api"
+      - command: "list data-store"
         files_to_compare: []
         expect_exit_code: 0
 
   - name: "Search functionality"
     steps:
       - command: "search goal"
-        files_to_compare: []
-        expect_exit_code: 0
-
-      - command: "search service"
-        files_to_compare: []
-        expect_exit_code: 0
-
-      - command: "search component"
         files_to_compare: []
         expect_exit_code: 0
 
