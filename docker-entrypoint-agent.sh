@@ -24,15 +24,24 @@ fi
 # Clean up stale gh CLI config to prevent multi-account migration errors.
 # gh CLI 2.40+ introduced multi-account support with a new config format.
 # If a previous run or bind mount left an old-format hosts.yml, gh may fail
-# with "multi-account migration" errors. Removing stale config ensures gh
-# starts fresh and uses the environment token directly.
+# with "multi-account migration" errors. When a token is provided via the
+# environment, gh doesn't need file-based config at all — remove any stale
+# config unconditionally to avoid the migration prompt (which hangs in
+# non-interactive containers). We avoid calling `gh auth status` here
+# because that command itself can trigger the migration error.
 GH_CONFIG_DIR="${GH_CONFIG_DIR:-$HOME/.config/gh}"
-if [ -d "$GH_CONFIG_DIR" ]; then
+if [ -n "$GH_TOKEN" ] || [ -n "$GITHUB_TOKEN" ]; then
+  # Token-based auth: gh reads GH_TOKEN directly, no hosts.yml needed.
+  # Remove any file-based config that could trigger migration prompts.
   if [ -f "$GH_CONFIG_DIR/hosts.yml" ]; then
-    # Check for corrupted or old-format config that triggers migration errors
-    if gh auth status >/dev/null 2>&1; then
-      : # Config is valid, leave it alone
-    else
+    echo "[agent-entrypoint] Removing hosts.yml — using environment token instead"
+    rm -f "$GH_CONFIG_DIR/hosts.yml"
+  fi
+  mkdir -p "$GH_CONFIG_DIR"
+else
+  # No token: best-effort cleanup of corrupted config
+  if [ -d "$GH_CONFIG_DIR" ] && [ -f "$GH_CONFIG_DIR/hosts.yml" ]; then
+    if ! gh auth status >/dev/null 2>&1; then
       echo "[agent-entrypoint] Cleaning stale gh CLI config to avoid migration errors"
       rm -f "$GH_CONFIG_DIR/hosts.yml"
     fi

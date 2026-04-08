@@ -32,6 +32,8 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint-agent.sh"]
 # GH_NO_KEYRING=1 tells gh to store credentials in plain text config
 # files instead — appropriate for headless container environments.
 ENV GH_NO_KEYRING=1
+ENV GH_NO_UPDATE_NOTIFIER=1
+ENV GH_CONFIG_DIR=/home/orchestrator/.config/gh
 
 # ============================================================================
 # Stage 2: Install Project-Specific Runtimes
@@ -152,6 +154,12 @@ USER orchestrator
 # ============================================================================
 # Stage 6: Verification (MANDATORY)
 # ============================================================================
+# Ensure a clean gh config directory exists for the orchestrator user.
+# This prevents "multi-account migration" errors at runtime when gh finds
+# stale config from a previous build layer or cache.
+RUN mkdir -p "$GH_CONFIG_DIR" && \
+    rm -f "$GH_CONFIG_DIR/hosts.yml" "$GH_CONFIG_DIR/config.yml"
+
 # Verify all critical CLIs are present (from base image)
 RUN claude --version && \
     git --version && \
