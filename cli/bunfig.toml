@@ -9,9 +9,10 @@ timeoutMs = 30000
 preload = ["tests/setup.ts"]
 
 # Maximum number of worker threads for parallel execution
-# Reduced from 4 to 2 to decrease filesystem contention during golden copy
-# operations in containerized environments (prevents beforeEach timeouts)
-workers = 2
+# Increased to 4 with per-worker golden copy isolation
+# Each worker has an exclusive baseline at /tmp/dr-golden-worker-{id}/
+# eliminating the filesystem contention that previously limited this to 2
+workers = 4
 
 # Maximum number of tests to batch together per worker
 # Reduces context switching overhead

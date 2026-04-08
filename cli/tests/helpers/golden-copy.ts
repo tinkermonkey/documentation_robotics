@@ -1,15 +1,15 @@
 /**
  * Golden Copy Test Helper
  *
- * Provides the core interface for tests to use the shared golden copy cache.
+ * Provides the core interface for tests to use per-worker golden copy caches.
  * This is the spec-aligned implementation that all tests should use.
  *
  * Architecture:
- * - Single golden copy created once per test suite at suite initialization
- * - Stored in a temporary location (`/tmp/dr-golden-*`)
- * - Each test receives a unique working directory cloned from the golden copy
- * - Thread-safe: Multiple test workers can clone from the same golden copy
- * - Cleanup occurs at test suite shutdown via cleanupGoldenCopy()
+ * - One golden copy per worker, created during test initialization
+ * - Stored in a temporary location (`/tmp/dr-golden-worker-{id}/`)
+ * - Each test receives a unique working directory cloned from its worker's golden copy
+ * - Thread-safe: Each worker clones exclusively from its own baseline (no I/O contention)
+ * - Cleanup occurs at test suite shutdown via cleanupAllWorkerGoldenCopies()
  */
 
 import { mkdir, cp, rm, access } from "fs/promises";
@@ -24,12 +24,100 @@ import { cwd } from "process";
  */
 export const GOLDEN_COPY_HOOK_TIMEOUT = 30_000;
 
+// Map of worker ID to worker-specific golden copy path
+const workerGoldenCopyPaths: Map<string, string> = new Map();
+// Map of worker ID to initialization promise (for preventing concurrent initialization)
+const workerInitializationPromises: Map<string, Promise<string>> = new Map();
+// Map of worker ID to initialization error
+const workerInitializationErrors: Map<string, Error> = new Map();
+
+// Legacy single shared golden copy (for backwards compatibility)
 let goldenCopyPath: string | null = null;
 let initializationPromise: Promise<string> | null = null;
 let initializationError: Error | null = null;
 
 /**
+ * Initialize a per-worker golden copy of the baseline test project.
+ * This is called once per worker during test initialization via setup.ts.
+ * Thread-safe: subsequent calls return the same path.
+ *
+ * Architecture:
+ * - Creates one copy of the baseline project per worker
+ * - Stored at `/tmp/dr-golden-worker-{workerId}/`
+ * - All test working directories for that worker are cloned from this baseline
+ * - The golden copy itself is read-only after initialization
+ * - Each worker owns its baseline exclusively (no I/O contention)
+ *
+ * Usage:
+ * ```typescript
+ * // In setup.ts preload:
+ * await initWorkerGoldenCopy(process.env.TEST_WORKER_ID);
+ * ```
+ *
+ * @param workerId - Unique identifier for the worker
+ * @returns Promise<string> Path to the worker's golden copy directory
+ */
+export async function initWorkerGoldenCopy(workerId: string): Promise<string> {
+  // Return cached path if already initialized for this worker
+  if (workerGoldenCopyPaths.has(workerId)) {
+    return workerGoldenCopyPaths.get(workerId)!;
+  }
+
+  // If there was a previous error, throw it again
+  if (workerInitializationErrors.has(workerId)) {
+    throw workerInitializationErrors.get(workerId);
+  }
+
+  // If initialization is in progress, wait for it to complete
+  if (workerInitializationPromises.has(workerId)) {
+    return workerInitializationPromises.get(workerId)!;
+  }
+
+  // Create a new initialization promise and cache it to prevent concurrent initialization
+  const initPromise = (async () => {
+    // Resolve baseline path - try both possible locations
+    let BASELINE = resolve("/workspace", "cli-validation/test-project/baseline");
+
+    // Fallback: try relative to current working directory
+    try {
+      await access(BASELINE);
+    } catch {
+      const projectRoot = resolve(cwd(), "..");
+      BASELINE = resolve(projectRoot, "cli-validation/test-project/baseline");
+    }
+
+    const workerGoldenPath = join(tmpdir(), `dr-golden-worker-${workerId}`);
+
+    try {
+      await mkdir(workerGoldenPath, { recursive: true });
+      await cp(BASELINE, workerGoldenPath, { recursive: true });
+
+      // Verify filesystem operations are committed by checking key files
+      await verifyFilesystemReady(workerGoldenPath);
+
+      if (process.env.DEBUG_GOLDEN_COPY) {
+        console.log(`Worker golden copy initialized for ${workerId} at: ${workerGoldenPath}`);
+      }
+
+      workerGoldenCopyPaths.set(workerId, workerGoldenPath);
+    } catch (error) {
+      const err = new Error(
+        `Failed to initialize worker golden copy for ${workerId}: ${error instanceof Error ? error.message : String(error)}`
+      );
+      workerInitializationErrors.set(workerId, err);
+      throw err;
+    }
+
+    return workerGoldenPath;
+  })();
+
+  workerInitializationPromises.set(workerId, initPromise);
+  return initPromise;
+}
+
+/**
  * Initialize the shared golden copy of the baseline test project.
+ * DEPRECATED: Use initWorkerGoldenCopy() instead for per-worker isolation.
  * This is called once per test suite execution.
  * Thread-safe: subsequent calls return the same path.
  *
@@ -106,15 +194,15 @@ export async function initGoldenCopy(): Promise<string> {
 }
 
 /**
- * Create an isolated test working directory from the golden copy.
+ * Create an isolated test working directory from the worker's golden copy.
  * Each test receives a unique directory pre-populated with baseline data.
  *
  * This is the primary function tests use for setup.
  *
  * Architecture:
- * - Ensures golden copy is initialized on first call
+ * - Uses the per-worker golden copy initialized during test setup
  * - Creates a unique temporary directory for each test
- * - Copies entire golden copy to the test directory
+ * - Copies entire worker golden copy to the test directory
  * - Returns cleanup function to remove the test directory
  * - Test directory is independent and can be safely modified
  *
@@ -145,7 +233,23 @@ export async function createTestWorkdir(): Promise<{
   path: string;
   cleanup: () => Promise<void>;
 }> {
-  const golden = await initGoldenCopy();
+  // Get the worker ID from environment (set by setup.ts)
+  const workerId = process.env.TEST_WORKER_ID;
+
+  if (!workerId) {
+    throw new Error(
+      "TEST_WORKER_ID not set. This should be set by setup.ts preload during test initialization."
+    );
+  }
+
+  // Get the worker's golden copy (should have been initialized by setup.ts)
+  let golden = workerGoldenCopyPaths.get(workerId);
+
+  if (!golden) {
+    // Fallback: try to initialize if not already done
+    // This handles cases where createTestWorkdir is called before worker golden copy initialization
+    golden = await initWorkerGoldenCopy(workerId);
+  }
 
   const testId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const testDir = join(tmpdir(), `dr-test-${testId}`);
@@ -181,11 +285,9 @@ export async function createTestWorkdir(): Promise<{
         }
 
         // Verify filesystem is ready for the test directory
-        // This is critical for concurrent test execution
-        // Use higher retry count for test directory since it just had a large copy operation
-        // Reduced from 30 to 15 retries to stay within hook timeout budgets;
-        // the backoff cap ensures this completes within ~5s even in worst case
-        await verifyFilesystemReady(testDir, 15);
+        // With per-worker golden copies, each worker owns its baseline exclusively
+        // so we only need a single existence check, not a retry loop
+        await verifyFilesystemReady(testDir, 1);
         break; // Success
       } catch (error) {
         lastCopyError = error instanceof Error ? error : new Error(String(error));
@@ -249,7 +351,63 @@ export async function createTestWorkdir(): Promise<{
 }
 
 /**
+ * Clean up all worker golden copies at test suite shutdown.
+ * Call this in global afterAll hook.
+ *
+ * Architecture:
+ * - Removes all per-worker golden copy directories from temporary storage
+ * - Resets the initialization state so next test run creates new golden copies
+ * - Safe to call multiple times (idempotent)
+ * - Should be called in test runner's global teardown
+ *
+ * Usage:
+ * ```typescript
+ * afterAll(async () => {
+ *   await cleanupAllWorkerGoldenCopies();
+ * });
+ * ```
+ *
+ * @returns Promise<void>
+ */
+export async function cleanupAllWorkerGoldenCopies(): Promise<void> {
+  const cleanupPromises: Promise<void>[] = [];
+
+  for (const [workerId, path] of workerGoldenCopyPaths.entries()) {
+    cleanupPromises.push(
+      (async () => {
+        try {
+          await rm(path, { recursive: true, force: true });
+          if (process.env.DEBUG_GOLDEN_COPY) {
+            console.log(`Worker golden copy cleaned up for ${workerId}: ${path}`);
+          }
+        } catch (error) {
+          // Always log cleanup errors
+          console.error(
+            `[GoldenCopy] ERROR: Failed to clean up worker golden copy for ${workerId} at ${path}. ` +
+              `This may cause disk space issues. ` +
+              `Error: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      })()
+    );
+  }
+
+  // Wait for all cleanup operations to complete
+  await Promise.all(cleanupPromises);
+
+  // Reset state
+  workerGoldenCopyPaths.clear();
+  workerInitializationPromises.clear();
+  workerInitializationErrors.clear();
+
+  if (process.env.DEBUG_GOLDEN_COPY) {
+    console.log(`All worker golden copies cleaned up`);
+  }
+}
+
+/**
  * Clean up the golden copy at test suite shutdown.
+ * DEPRECATED: Use cleanupAllWorkerGoldenCopies() instead.
  * Call this in global afterAll hook.
  *
  * Architecture:
@@ -309,14 +467,15 @@ export function isGoldenCopyInitialized(): boolean {
 /**
  * Verify that filesystem operations are committed by checking key files exist
  *
- * This replaces the hardcoded 200ms delay with proper filesystem verification.
- * Checks that manifest and key directories exist and are accessible.
+ * This performs a simple existence check to ensure critical files are accessible.
+ * With per-worker golden copies, retry logic is minimal since each worker owns
+ * its baseline exclusively and there is no cross-worker I/O contention.
  *
  * @param path - Path to verify
- * @param maxRetries - Maximum number of retries with backoff
+ * @param maxRetries - Maximum number of retries with backoff (rarely needed with exclusive baselines)
  * @private
  */
-async function verifyFilesystemReady(path: string, maxRetries: number = 10): Promise<void> {
+async function verifyFilesystemReady(path: string, maxRetries: number = 1): Promise<void> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -328,48 +487,26 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
       const manifestPath = join(path, "documentation-robotics", "model", "manifest.yaml");
       await access(manifestPath);
 
-      // Check that key layer directories exist (especially the problematic testing layer)
+      // Check that key layer directories exist
       const testingLayerPath = join(path, "documentation-robotics", "model", "12_testing");
       await access(testingLayerPath);
-
-      // Verify that all expected YAML files in testing layer are accessible
-      // This helps catch filesystem sync issues during concurrent test execution
-      const expectedTestingFiles = [
-        "input-space-partitions.yaml",
-        "test-case-sketches.yaml",
-        "test-coverage-models.yaml",
-      ];
-      for (const file of expectedTestingFiles) {
-        const filePath = join(testingLayerPath, file);
-        await access(filePath);
-      }
-
-      // Add stability check: verify critical files are still accessible after a delay
-      // This catches race conditions where files become unavailable after the initial check
-      // occurs in concurrent test execution scenarios
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      // Re-check all expected testing layer files again to ensure stability
-      // This prevents ENOENT errors that occur after Model.load() is called
-      for (const file of expectedTestingFiles) {
-        const filePath = join(testingLayerPath, file);
-        await access(filePath);
-      }
 
       // All checks passed, filesystem is ready
       return;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
-      // Exponential backoff with jitter: 10ms, 20ms, 40ms, 80ms, etc.
-      // Cap at 300ms to keep total retry time within hook timeout budgets
-      const backoffMs = Math.min(10 * Math.pow(2, attempt), 300) + Math.random() * 50;
-      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      // Only retry on unexpected failures; with exclusive baselines, this should not happen
+      if (attempt < maxRetries - 1) {
+        // Brief backoff: 50ms base + jitter
+        const backoffMs = 50 + Math.random() * 50;
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
     }
   }
 
   throw new Error(
-    `Filesystem verification failed after ${maxRetries} attempts. ` +
+    `Filesystem verification failed. ` +
       `Golden copy may not be properly initialized. ` +
       `Last error: ${lastError?.message}`
   );

@@ -13,9 +13,10 @@
  *    - Creates fresh models with optional warmup data
  *
  * 2. Filesystem Golden Copy (golden-copy.ts):
- *    - Copies the baseline directory structure for CLI/integration tests
- *    - Used by createTestWorkdir() which clones from baseline
+ *    - Per-worker golden copies of the baseline directory structure for CLI/integration tests
+ *    - Used by createTestWorkdir() which clones from the worker's exclusive baseline
  *    - Tests that need the actual baseline directory use this approach
+ *    - Each worker owns its baseline exclusively (no I/O contention)
  *
  * These are complementary systems serving different test requirements.
  */
@@ -23,6 +24,7 @@
 import { setDefaultTimeout } from "bun:test";
 import { randomUUID } from "crypto";
 import { GoldenCopyCacheManager } from "../dist/core/golden-copy-cache.js";
+import { initWorkerGoldenCopy, cleanupAllWorkerGoldenCopies } from "./helpers/golden-copy.js";
 
 // Set default timeout for all tests and hooks (beforeEach, afterEach, etc.)
 // This ensures the timeout applies even if bunfig.toml timeoutMs is not picked up.
@@ -47,6 +49,34 @@ globalThis.__GOLDEN_COPY_INITIALIZED__ = false;
 // Configure test isolation: each worker gets unique directories
 process.env.TEST_WORKER_ID = globalThis.__TEST_ID__;
 process.env.TEST_TEMP_DIR = `/tmp/test-${globalThis.__TEST_ID__}`;
+
+// Initialize per-worker golden copy baseline during setup
+// This creates an exclusive baseline for this worker at /tmp/dr-golden-worker-{id}/
+const initializeWorkerGoldenCopyAsync = async () => {
+  try {
+    const workerId = process.env.TEST_WORKER_ID;
+    if (!workerId) {
+      throw new Error("TEST_WORKER_ID not set during worker initialization");
+    }
+
+    const goldenCopyPath = await initWorkerGoldenCopy(workerId);
+
+    if (process.env.DEBUG_TEST_SETUP) {
+      console.log(`[Setup] Worker golden copy initialized at: ${goldenCopyPath}`);
+    }
+  } catch (error) {
+    console.error(
+      "[Setup] Failed to initialize worker golden copy:",
+      error instanceof Error ? error.message : String(error)
+    );
+    // Don't fail setup if golden copy initialization fails - tests will handle it
+  }
+};
+
+// Kick off worker golden copy initialization (don't wait, let it happen in background)
+initializeWorkerGoldenCopyAsync().catch((error) => {
+  console.error("[Setup] Unexpected error in worker golden copy initialization:", error);
+});
 
 // Suppress verbose CLI output in tests
 if (!process.env.TEST_VERBOSE) {
@@ -115,12 +145,28 @@ if (process.env.DEBUG_TEST_SETUP) {
 // The 'exit' event is synchronous, so we use 'beforeExit' for async cleanup
 // beforeExit is fired when the event loop drains with no pending work
 process.on("beforeExit", async () => {
+  // Clean up per-worker golden copies
+  try {
+    await cleanupAllWorkerGoldenCopies();
+    if (process.env.DEBUG_TEST_SETUP) {
+      console.log(`[Setup] All worker golden copies cleaned up on process beforeExit`);
+    }
+  } catch (error) {
+    // Always log cleanup errors, not just in debug mode
+    console.error(
+      `[Setup] ERROR: Failed to clean up worker golden copies. ` +
+        `This may cause disk space issues. ` +
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  // Clean up golden copy cache
   if (globalThis.__GOLDEN_COPY_INITIALIZED__) {
     try {
       const manager = GoldenCopyCacheManager.getInstance();
       await manager.cleanup();
       if (process.env.DEBUG_TEST_SETUP) {
-        console.log(`[Setup] Golden copy cleaned up on process beforeExit`);
+        console.log(`[Setup] Golden copy cache cleaned up on process beforeExit`);
       }
     } catch (error) {
       // Always log cleanup errors, not just in debug mode
