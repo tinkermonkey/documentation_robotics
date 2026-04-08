@@ -9,7 +9,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { glob } from 'glob';
-import { fork } from 'node:child_process';
+import { fork, type ChildProcess } from 'node:child_process';
 import YAML from 'yaml';
 
 import { initializeMultiWorkerTestEnvironment, cleanupMultiWorkerTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
@@ -23,15 +23,7 @@ import { JUnitReporter } from './reporters/junit-reporter.js';
 import { Reporter } from './reporters/reporter.js';
 import { parseRunnerArgs, RunnerOptions, matchesFilters } from './runner-config.js';
 import { scheduleSuites } from './scheduler.js';
-
-/**
- * Main test runner configuration
- */
-interface TestRunnerConfig {
-  tsCLI: string;
-  tsDir: string;
-  testCaseDir: string;
-}
+import { TestRunnerConfig, WorkerResult } from './types.js';
 
 /**
  * Path to model directory within baseline (for easier updates if structure changes)
@@ -103,14 +95,6 @@ function generateSummary(results: SuiteResult[]): TestRunSummary {
   };
 }
 
-/**
- * Interface for worker result from IPC
- */
-interface WorkerResult {
-  workerId: number;
-  results: SuiteResult[];
-  output: string;
-}
 
 /**
  * Execute test suites using worker processes
@@ -129,7 +113,6 @@ async function executeWithWorkers(
 
   // Track active workers
   const workers = new Map<number, ChildProcess>();
-  const workerResults = new Map<number, WorkerResult>();
   let shouldStopAllWorkers = false;
 
   // Create worker processes

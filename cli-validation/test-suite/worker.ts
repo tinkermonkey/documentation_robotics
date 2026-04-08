@@ -15,41 +15,7 @@ import {
   PipelineResult,
 } from './pipeline.js';
 import { join } from 'node:path';
-
-/**
- * Main test runner configuration (matches interface in test-runner.ts)
- */
-interface TestRunnerConfig {
-  tsCLI: string;
-  tsDir: string;
-  testCaseDir: string;
-}
-
-/**
- * Message format for IPC: parent sends this to worker
- */
-interface WorkerAssignment {
-  suites: TestSuite[];
-  config: TestRunnerConfig;
-  workdirPath: string;
-  workerId: number;
-}
-
-/**
- * Message format for IPC: worker sends results back to parent
- */
-interface WorkerResult {
-  workerId: number;
-  results: SuiteResult[];
-  output: string;
-}
-
-/**
- * Signal for fast-fail coordination
- */
-interface FastFailSignal {
-  type: 'fast-fail';
-}
+import { TestRunnerConfig, WorkerAssignment, WorkerResult, FastFailSignal } from './types.js';
 
 /**
  * Path to model directory within baseline (for easier updates if structure changes)
@@ -317,38 +283,51 @@ async function executeSuite(
 async function runWorker(): Promise<void> {
   const output = new OutputBuffer();
   let shouldStopFlag = false;
+  let assignmentReceived = false;
 
-  // Handle fast-fail signal from parent
-  process.on('message', (message: FastFailSignal | string) => {
-    if (typeof message === 'object' && message !== null && message.type === 'fast-fail') {
-      shouldStopFlag = true;
-      output.writeLine('\n[Worker] Received fast-fail signal');
-    }
+  // Wait for assignment from parent using a single message handler with state machine
+  const assignment = await new Promise<WorkerAssignment>((resolve) => {
+    const messageHandler = (msg: unknown) => {
+      // Type narrowing: check if this is a valid object with a type property
+      if (typeof msg !== 'object' || msg === null) {
+        return; // Ignore non-object messages
+      }
+
+      const message = msg as Record<string, unknown>;
+
+      // If we haven't received assignment yet, check if this is it
+      if (!assignmentReceived) {
+        // Check if this looks like an assignment (has required fields)
+        if (
+          'suites' in message &&
+          'config' in message &&
+          'workdirPath' in message &&
+          'workerId' in message
+        ) {
+          assignmentReceived = true;
+          // Remove this handler after assignment is received
+          process.removeListener('message', messageHandler);
+          // Resolve with the assignment
+          resolve(message as unknown as WorkerAssignment);
+          return;
+        }
+        // If it's a fast-fail before assignment, ignore it (shouldn't happen)
+        if (message.type === 'fast-fail') {
+          return;
+        }
+      }
+
+      // After assignment is received, handle fast-fail signals
+      if (assignmentReceived && message.type === 'fast-fail') {
+        shouldStopFlag = true;
+        output.writeLine('\n[Worker] Received fast-fail signal');
+      }
+    };
+
+    process.on('message', messageHandler);
   });
 
   try {
-    // Wait for assignment from parent
-    const assignment = await new Promise<WorkerAssignment>((resolve) => {
-      process.once('message', (msg) => {
-        // Ignore fast-fail messages during wait for assignment
-        if (typeof msg === 'object' && msg.type === 'fast-fail') {
-          resolve(null as any); // This shouldn't happen, but handle it
-        } else {
-          resolve(msg);
-        }
-      });
-    });
-
-    // If we got null (shouldn't happen), exit
-    if (!assignment) {
-      process.send({
-        workerId: -1,
-        results: [],
-        output: 'Error: No assignment received',
-      } as WorkerResult);
-      process.exit(1);
-    }
-
     const { suites, config, workdirPath, workerId } = assignment;
 
     output.writeLine(`Worker ${workerId + 1} starting execution of ${suites.length} suite(s)`);
@@ -377,11 +356,13 @@ async function runWorker(): Promise<void> {
     output.writeLine(`\nWorker ${workerId + 1} completed (${results.length} suite(s) executed)`);
 
     // Send results back to parent
-    process.send({
-      workerId,
-      results,
-      output: output.getOutput(),
-    } as WorkerResult);
+    if (process.send) {
+      process.send({
+        workerId,
+        results,
+        output: output.getOutput(),
+      } as WorkerResult);
+    }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     output.writeLine(`\nWorker error: ${errorMsg}`);
@@ -389,11 +370,13 @@ async function runWorker(): Promise<void> {
       output.writeLine(`Stack trace: ${error.stack}`);
     }
 
-    process.send({
-      workerId: -1,
-      results: [],
-      output: output.getOutput(),
-    } as WorkerResult);
+    if (process.send) {
+      process.send({
+        workerId: -1,
+        results: [],
+        output: output.getOutput(),
+      } as WorkerResult);
+    }
     process.exit(1);
   }
 }
