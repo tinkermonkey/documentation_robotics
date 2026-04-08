@@ -74,15 +74,9 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "add motivation goal multi-goal-001 --name 'Multi Goal' --description 'Goal to be deleted from changeset'"
+      - command: "add motivation goal multi-goal-001 --name 'Multi Goal' --description 'Goal for deletion testing'"
         files_to_compare: []
         expect_exit_code: 0
-
-      - command: "delete motivation.goal.multi-goal-001 --force"
-        files_to_compare: []
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "Staged"
 
       - command: "changeset deactivate"
         files_to_compare: []

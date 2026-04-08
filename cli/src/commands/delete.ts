@@ -9,7 +9,7 @@ import { MutationHandler } from "../core/mutation-handler.js";
 import { ReferenceRegistry } from "../core/reference-registry.js";
 import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js";
 import { findElementLayer } from "../utils/element-utils.js";
-import { CLIError, handleError, ErrorCategory, ModelNotFoundError } from "../utils/errors.js";
+import { CLIError, handleError, handleSuccess, ErrorCategory, ModelNotFoundError } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 
@@ -262,16 +262,34 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       (span as any).setAttribute("element.totalDeleted", elementsToRemove.length);
     }
 
-    console.log("");
-    console.log(ansis.green(`✓ Deleted element ${ansis.bold(id)}`));
+    // Check if operation was staged or applied to base model
+    if (handler.getBeforeState()) {
+      // Check if we went through staging path
+      const stagingManager = handler.getStagingManager();
+      const activeChangeset = await stagingManager.getActive();
+      if (activeChangeset && activeChangeset.status === "staged") {
+        // Staging path
+        handleSuccess(
+          `Staged deletion of element ${ansis.bold(id)} to ${ansis.bold(activeChangeset.name)}`,
+          {
+            status: "staged",
+            changeset: activeChangeset.name,
+          }
+        );
+      } else {
+        // Base model path
+        console.log("");
+        console.log(ansis.green(`✓ Deleted element ${ansis.bold(id)}`));
 
-    if (options.cascade && dependents.length > 0) {
-      console.log(ansis.green(`✓ Deleted ${dependents.length} dependent element(s)`));
-    }
+        if (options.cascade && dependents.length > 0) {
+          console.log(ansis.green(`✓ Deleted ${dependents.length} dependent element(s)`));
+        }
 
-    if (options.verbose) {
-      console.log(ansis.dim(`  Layer: ${layerName}`));
-      console.log(ansis.dim(`  Total elements deleted: ${elementsToRemove.length}`));
+        if (options.verbose) {
+          console.log(ansis.dim(`  Layer: ${layerName}`));
+          console.log(ansis.dim(`  Total elements deleted: ${elementsToRemove.length}`));
+        }
+      }
     }
   } catch (error) {
     if (isTelemetryEnabled && span) {
