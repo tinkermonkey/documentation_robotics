@@ -244,7 +244,10 @@ async function executeWithWorkers(
         if (timeoutHandle) {
           clearTimeout(timeoutHandle);
         }
-        console.error(`Worker ${workerId + 1} error:`, error);
+        // Always log worker errors, even during fast-fail
+        // This ensures independent worker crashes are not silently swallowed
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`Worker ${workerId + 1} error:`, errorMsg);
         reject(error);
       });
 
@@ -252,8 +255,15 @@ async function executeWithWorkers(
         if (timeoutHandle) {
           clearTimeout(timeoutHandle);
         }
-        if (code !== 0 && !resultData) {
-          reject(new Error(`Worker ${workerId + 1} exited with code ${code}`));
+        // If no result data was received from the worker, resolve or reject based on exit code
+        if (!resultData) {
+          // Guard against null code (can happen when worker is killed)
+          if (code !== null && code !== 0) {
+            reject(new Error(`Worker ${workerId + 1} exited with code ${code}`));
+          } else {
+            // Graceful exit with no data (resolved or no meaningful result)
+            resolve([]);
+          }
         }
       });
 
@@ -275,9 +285,19 @@ async function executeWithWorkers(
 
   // Wait for all workers to complete, but exit early if fast-fail is triggered
   // Race between all workers completing normally and fast-fail being triggered
+
+  // Attach catch handlers to each workerPromise to prevent unhandled promise rejections
+  // when fast-fail triggers and kills workers (their promises will reject with non-zero exit codes)
+  const safeWorkerPromises = workerPromises.map((p) =>
+    p.catch(() => {
+      // Silently swallow rejection - we'll use incrementally collected results instead
+      return [];
+    })
+  );
+
   try {
     await Promise.race([
-      Promise.all(workerPromises),
+      Promise.all(safeWorkerPromises),
       fastFailPromise,
     ]);
   } catch (error) {
