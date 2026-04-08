@@ -123,7 +123,7 @@ export function validateStep(
  * Determine which snapshot mode to use based on step configuration
  *
  * Mode 1 (Targeted): Non-empty files_to_compare → read only specified files
- * Mode 2 (Skip): Non-empty files_to_compare with only stdout/stderr assertions → no snapshots
+ * Mode 2 (Skip): Empty/no files_to_compare with only stdout/stderr assertions → no snapshots
  * Mode 3 (Full): All other cases → full directory walk (safety net)
  */
 export function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full' {
