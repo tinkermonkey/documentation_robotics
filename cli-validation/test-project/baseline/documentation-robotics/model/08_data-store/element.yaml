@@ -1,8 +1,0 @@
-data-store.element.todos-table:
-  id: 9eea9527-bbac-4095-bf2d-9c106de76be9
-  path: data-store.element.todos-table
-  spec_node_id: ""
-  type: element
-  layer_id: data-store
-  name: Todos Table
-  description: Database table storing todo items

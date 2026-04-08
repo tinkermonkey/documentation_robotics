@@ -149,12 +149,14 @@ export function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full
 
 /**
  * Execute a single pipeline
+ * @param workdirPath - Project root directory where CLI should execute
  */
 async function executePipeline(
   pipeline: Pipeline,
   config: TestRunnerConfig,
   output: OutputBuffer,
-  shouldStop: () => boolean
+  shouldStop: () => boolean,
+  workdirPath: string
 ): Promise<PipelineResult | null> {
   const stepResults: StepResult[] = [];
   const startTime = Date.now();
@@ -171,29 +173,44 @@ async function executePipeline(
     // Determine snapshot mode for this step
     const snapshotMode = getSnapshotMode(step);
 
+    // Determine snapshot root: use project root for captures so export files are detected
+    // Files created by export commands will be in the project root (workdirPath)
+    const snapshotRoot = workdirPath;
+
+    // For targeted snapshots, transform paths relative to model dir to absolute paths
+    let snapshotFiles = step.files_to_compare;
+    if (snapshotMode === 'targeted') {
+      // Convert model-relative paths to be relative to project root
+      // This handles both model files (documentation-robotics/model/...) and export files (root level)
+      snapshotFiles = step.files_to_compare.map(f =>
+        f.startsWith('documentation-robotics/') ? f : `documentation-robotics/model/${f}`
+      );
+    }
+
     // Capture before snapshot (skip mode: no snapshot needed)
     const tsBefore =
       snapshotMode === 'skip'
-        ? { timestamp: Date.now(), directory: config.tsDir, files: new Map() }
+        ? { timestamp: Date.now(), directory: snapshotRoot, files: new Map() }
         : snapshotMode === 'targeted'
-          ? await captureTargetedSnapshot(config.tsDir, step.files_to_compare)
-          : await captureSnapshot(config.tsDir);
+          ? await captureTargetedSnapshot(snapshotRoot, snapshotFiles)
+          : await captureSnapshot(snapshotRoot);
 
-    // Execute command on TypeScript CLI
+    // Execute command on TypeScript CLI from the project root (not model directory)
+    // The CLI expects to be run from the directory containing documentation-robotics/model
     const timeout = step.timeout ?? 30000;
     const tsOutput = await executeCommand(
       `${config.tsCLI} ${step.command}`,
-      config.tsDir,
+      workdirPath,
       timeout
     );
 
     // Capture after snapshot (skip mode: no snapshot needed)
     const tsAfter =
       snapshotMode === 'skip'
-        ? { timestamp: Date.now(), directory: config.tsDir, files: new Map() }
+        ? { timestamp: Date.now(), directory: snapshotRoot, files: new Map() }
         : snapshotMode === 'targeted'
-          ? await captureTargetedSnapshot(config.tsDir, step.files_to_compare)
-          : await captureSnapshot(config.tsDir);
+          ? await captureTargetedSnapshot(snapshotRoot, snapshotFiles)
+          : await captureSnapshot(snapshotRoot);
 
     // Compare filesystem changes
     const tsResult = compareSnapshots(tsBefore, tsAfter);
@@ -231,12 +248,14 @@ async function executePipeline(
 
 /**
  * Execute a single test suite
+ * @param workdirPath - Project root directory where CLI should execute
  */
 async function executeSuite(
   suite: TestSuite,
   config: TestRunnerConfig,
   output: OutputBuffer,
-  shouldStop: () => boolean
+  shouldStop: () => boolean,
+  workdirPath: string
 ): Promise<SuiteResult | null> {
   output.writeLine(`\nRunning suite: ${suite.name} [${suite.priority}]`);
 
@@ -252,7 +271,7 @@ async function executeSuite(
       break;
     }
 
-    const pipelineResult = await executePipeline(pipeline, config, output, shouldStop);
+    const pipelineResult = await executePipeline(pipeline, config, output, shouldStop, workdirPath);
 
     // If executePipeline returned null (early termination), don't include in results
     if (pipelineResult !== null) {
@@ -351,7 +370,7 @@ async function runWorker(): Promise<void> {
         break;
       }
 
-      const suiteResult = await executeSuite(suite, config, output, () => shouldStopFlag);
+      const suiteResult = await executeSuite(suite, config, output, () => shouldStopFlag, workdirPath);
 
       // If suite returned null (early termination), don't include in results
       if (suiteResult !== null) {

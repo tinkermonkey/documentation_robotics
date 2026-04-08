@@ -1,8 +1,0 @@
-data-store.TEXT.title-column:
-  id: 94e8e3cf-a3eb-44cb-a96a-658db570001c
-  path: data-store.TEXT.title-column
-  spec_node_id: ""
-  type: TEXT
-  layer_id: data-store
-  name: Title Column
-  description: Todo item title text
