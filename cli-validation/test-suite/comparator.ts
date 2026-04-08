@@ -155,25 +155,38 @@ export async function captureSnapshot(directory: string): Promise<FilesystemSnap
   for (const relativePath of filePaths) {
     const fullPath = join(directory, relativePath);
 
+    let content: string;
+    let fileStats: Awaited<ReturnType<typeof stat>>;
+
+    // Try to read file - skip if it doesn't exist or can't be accessed
     try {
-      // Read file content and metadata
-      const content = await readFile(fullPath, 'utf-8');
-      const fileStats = await stat(fullPath);
-
-      // Calculate hash of normalized content
-      const hash = hashContent(content, relativePath);
-
-      // Store file information
-      files.set(relativePath, {
-        exists: true,
-        hash,
-        mtime: fileStats.mtimeMs,
-        size: fileStats.size,
-      });
-    } catch {
-      // Skip files that cannot be read (permissions, encoding, etc)
+      content = await readFile(fullPath, 'utf-8');
+      fileStats = await stat(fullPath);
+    } catch (error) {
+      // Skip files that cannot be read (permissions, encoding, doesn't exist, etc)
       // This is expected for some files in the snapshot directory
+      // Only catch file I/O errors, not normalization/hash errors
+      if (
+        error instanceof Error &&
+        ('code' in error || error.message.includes('ENOENT') || error.message.includes('EACCES'))
+      ) {
+        continue;
+      }
+      // Re-throw unexpected errors (e.g., from file encoding issues)
+      throw error;
     }
+
+    // Calculate hash of normalized content
+    // This should not be wrapped in try-catch - normalization/hash errors must be surfaced
+    const hash = hashContent(content, relativePath);
+
+    // Store file information
+    files.set(relativePath, {
+      exists: true,
+      hash,
+      mtime: fileStats.mtimeMs,
+      size: fileStats.size,
+    });
   }
 
   return {
@@ -207,25 +220,38 @@ export async function captureTargetedSnapshot(
   for (const relativePath of filePaths) {
     const fullPath = join(directory, relativePath);
 
+    let content: string;
+    let fileStats: Awaited<ReturnType<typeof stat>>;
+
+    // Try to read file - skip if it doesn't exist or can't be accessed
     try {
-      // Read file content and metadata
-      const content = await readFile(fullPath, 'utf-8');
-      const fileStats = await stat(fullPath);
-
-      // Calculate hash of normalized content
-      const hash = hashContent(content, relativePath);
-
-      // Store file information
-      files.set(relativePath, {
-        exists: true,
-        hash,
-        mtime: fileStats.mtimeMs,
-        size: fileStats.size,
-      });
-    } catch {
-      // Skip files that cannot be read (permissions, encoding, etc)
+      content = await readFile(fullPath, 'utf-8');
+      fileStats = await stat(fullPath);
+    } catch (error) {
+      // Skip files that cannot be read (permissions, encoding, doesn't exist, etc)
       // This is expected for some files that may not exist yet
+      // Only catch file I/O errors, not normalization/hash errors
+      if (
+        error instanceof Error &&
+        ('code' in error || error.message.includes('ENOENT') || error.message.includes('EACCES'))
+      ) {
+        continue;
+      }
+      // Re-throw unexpected errors (e.g., from file encoding issues)
+      throw error;
     }
+
+    // Calculate hash of normalized content
+    // This should not be wrapped in try-catch - normalization/hash errors must be surfaced
+    const hash = hashContent(content, relativePath);
+
+    // Store file information
+    files.set(relativePath, {
+      exists: true,
+      hash,
+      mtime: fileStats.mtimeMs,
+      size: fileStats.size,
+    });
   }
 
   return {

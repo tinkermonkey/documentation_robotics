@@ -42,6 +42,7 @@ async function loadTestSuites(testCaseDir: string): Promise<TestSuite[]> {
   }
 
   const suites: TestSuite[] = [];
+  const errors: string[] = [];
 
   for (const file of testFiles) {
     try {
@@ -50,8 +51,18 @@ async function loadTestSuites(testCaseDir: string): Promise<TestSuite[]> {
       suites.push(suite);
       console.log(`Loaded: ${suite.name}`);
     } catch (error) {
-      console.error(`Failed to load ${file}: ${error}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const message = `Failed to load ${file}: ${errorMsg}`;
+      console.error(message);
+      errors.push(message);
     }
+  }
+
+  // Fail fast if any test suites had parse errors
+  if (errors.length > 0) {
+    throw new Error(
+      `${errors.length} test suite(s) failed to load:\n${errors.map((e) => `  - ${e}`).join('\n')}`
+    );
   }
 
   return suites;
@@ -191,7 +202,14 @@ async function executeWithWorkers(
           // Signal all other workers to stop
           for (const [otherId, otherWorker] of workers.entries()) {
             if (otherId !== workerId && otherWorker) {
-              otherWorker.send({ type: 'fast-fail' });
+              try {
+                otherWorker.send({ type: 'fast-fail' });
+              } catch (error) {
+                // Worker may have already exited - this is acceptable during fast-fail
+                // Just log and continue
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                console.debug(`Could not signal worker ${otherId} to stop: ${errorMsg}`);
+              }
             }
           }
         }
