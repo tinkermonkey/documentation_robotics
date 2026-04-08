@@ -111,6 +111,12 @@ async function executeWithWorkers(
   // Schedule suites across workers
   const schedule = scheduleSuites(filteredSuites, workerCount);
 
+  // Create a map of suite names to suite definitions for matching results
+  const suitesByName = new Map<string, TestSuite>();
+  for (const suite of filteredSuites) {
+    suitesByName.set(suite.name, suite);
+  }
+
   // Track active workers
   const workers = new Map<number, ChildProcess>();
   let shouldStopAllWorkers = false;
@@ -231,17 +237,30 @@ async function executeWithWorkers(
 
   const results: SuiteResult[] = allResults.flat();
 
-  // Report results
-  for (const result of results) {
-    reporter.onSuiteComplete(
-      {
-        name: result.name,
-        description: '',
-        priority: result.priority,
-        pipelines: [],
-      },
-      result
+  // Validate that all scheduled suites produced results
+  if (results.length !== filteredSuites.length) {
+    const scheduledNames = new Set(filteredSuites.map((s) => s.name));
+    const resultNames = new Set(results.map((r) => r.name));
+    const missingNames = Array.from(scheduledNames).filter((name) => !resultNames.has(name));
+    throw new Error(
+      `Result count mismatch: scheduled ${filteredSuites.length} suites, got ${results.length} results. ` +
+      `Missing suites: ${missingNames.join(', ')}`
     );
+  }
+
+  // Report results with proper start/complete lifecycle
+  for (const result of results) {
+    // Find the original suite definition to get complete metadata
+    const originalSuite = suitesByName.get(result.name);
+    if (!originalSuite) {
+      throw new Error(`Result returned for unknown suite: ${result.name}`);
+    }
+
+    // Call onSuiteStart to initialize reporter state
+    reporter.onSuiteStart(originalSuite);
+
+    // Call onSuiteComplete with original suite metadata
+    reporter.onSuiteComplete(originalSuite, result);
   }
 
   return results;
