@@ -11,7 +11,7 @@ import { dirname } from 'node:path';
 import { glob } from 'glob';
 import YAML from 'yaml';
 
-import { initializeTestEnvironment, initializeMultiWorkerTestEnvironment, getTestPaths, TestPaths, CLIConfig, cleanupTestArtifacts, cleanupMultiWorkerTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
+import { initializeMultiWorkerTestEnvironment, cleanupMultiWorkerTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
 import { captureSnapshot, captureTargetedSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
 import { executeCommand, CommandOutput } from './executor.js';
 import {
@@ -429,7 +429,7 @@ async function runTestSuite(): Promise<void> {
     console.log('Post-test cleanup and validation...');
 
     // Validate baseline integrity before cleanup
-    // This must run BEFORE cleanupTestArtifacts to detect contamination,
+    // This must run BEFORE cleanupMultiWorkerTestArtifacts to detect contamination,
     // as cleanup uses git checkout to restore the baseline
     let baselineContaminated = false;
     try {
