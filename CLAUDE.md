@@ -416,13 +416,13 @@ npm run test:perf                  # Performance benchmarks
 
 When running automated repair cycles, use these exact commands. Do not substitute alternatives.
 
-| Test type           | Working directory                 | Command                              |
-|---------------------|-----------------------------------|--------------------------------------|
-| `pre-commit`        | `cli/`                            | `npx lint-staged` (or pre-commit hooks) |
-| `unit`              | `cli/`                            | `npm run test:unit`                  |
-| `integration`       | `cli/`                            | `npm run test:integration`           |
-| `cli-compatibility` | project root                      | `npm run test:fs-compatibility`      |
-| `ci`                | `cli/`                            | `npm run test:smoke`                 |
+| Test type           | Working directory | Command                                 |
+| ------------------- | ----------------- | --------------------------------------- |
+| `pre-commit`        | `cli/`            | `npx lint-staged` (or pre-commit hooks) |
+| `unit`              | `cli/`            | `npm run test:unit`                     |
+| `integration`       | `cli/`            | `npm run test:integration`              |
+| `cli-compatibility` | project root      | `npm run test:fs-compatibility`         |
+| `ci`                | `cli/`            | `npm run test:smoke`                    |
 
 **Do not run `npm run test` (the full regression suite) or `npm run test:all` during repair cycles.** Those commands overlap with the separate `unit` and `integration` test types and waste time re-running tests that have already passed.
 
