@@ -399,16 +399,34 @@ See `docs/STAGING_GUIDE.md` for architecture details. For command reference, see
 **Test Commands:**
 
 ```bash
-npm run test              # Full test suite (run before pushing)
-npm run test:unit         # Unit tests only
-npm run test:integration  # Integration tests only
-npm run test:smoke        # CI smoke suite (~22 tests, matches what CI runs)
-npm run test:perf         # Performance benchmarks
+npm run test                       # Unit + integration regression suite (run before pushing)
+npm run test:unit                  # Unit tests only
+npm run test:integration           # Integration tests only
+npm run test:smoke                 # CI smoke suite (~22 tests, matches what CI runs)
+npm run test:fs-compatibility      # CLI golden-data compatibility tests (all priorities)
+npm run test:fs-compatibility:high # High-priority compatibility tests only (faster)
+npm run test:perf                  # Performance benchmarks
 ```
 
 - `npm test` is authoritative for daily development — run before pushing
 - `npm run test:smoke` runs the same tests as CI, useful for quick local validation
 - Smoke test manifest: `cli/tests/ci-smoke.manifest.ts`
+
+### Orchestrator Repair Cycle Test Commands
+
+When running automated repair cycles, use these exact commands. Do not substitute alternatives.
+
+| Test type           | Working directory                 | Command                              |
+|---------------------|-----------------------------------|--------------------------------------|
+| `pre-commit`        | `cli/`                            | `npx lint-staged` (or pre-commit hooks) |
+| `unit`              | `cli/`                            | `npm run test:unit`                  |
+| `integration`       | `cli/`                            | `npm run test:integration`           |
+| `cli-compatibility` | project root                      | `npm run test:fs-compatibility`      |
+| `ci`                | `cli/`                            | `npm run test:smoke`                 |
+
+**Do not run `npm run test` (the full regression suite) or `npm run test:all` during repair cycles.** Those commands overlap with the separate `unit` and `integration` test types and waste time re-running tests that have already passed.
+
+The `cli-compatibility` cycle runs `cli-validation/test-suite/` — a golden-data test suite that executes real CLI commands against known test projects and validates the filesystem output. This is the true regression check: did we break existing CLI behavior?
 
 ### Golden Copy Test Initialization
 
