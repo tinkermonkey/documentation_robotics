@@ -4,10 +4,18 @@
 
 import ansis from "ansis";
 import { Model } from "../core/model.js";
-import { CLIError, ErrorCategory, ModelNotFoundError, handleError } from "../utils/errors.js";
+import {
+  CLIError,
+  ErrorCategory,
+  ModelNotFoundError,
+  handleError
+} from "../utils/errors.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { TABLE_COLUMN_WIDTHS, TABLE_SEPARATOR } from "../utils/table-formatting.js";
+import {
+  TABLE_COLUMN_WIDTHS,
+  TABLE_SEPARATOR
+} from "../utils/table-formatting.js";
 
 export interface ListOptions {
   type?: string;
@@ -17,12 +25,15 @@ export interface ListOptions {
   model?: string;
 }
 
-export async function listCommand(layer: string, options: ListOptions): Promise<void> {
+export async function listCommand(
+  layer: string,
+  options: ListOptions
+): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("list.execute", {
         "list.layer": layer,
         "list.type": options.type,
-        "list.json": options.json === true,
+        "list.json": options.json === true
       })
     : null;
 
@@ -50,7 +61,7 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
     if (!layerObj) {
       throw new CLIError(`Layer ${layer} not found`, ErrorCategory.NOT_FOUND, [
         'Use "dr list" to see all available layers',
-        'Use "dr add <layer> <type> <name>" to add an element to a new layer',
+        'Use "dr add <layer> <type> <name>" to add an element to a new layer'
       ]);
     }
 
@@ -121,7 +132,7 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: getErrorMessage(error),
+        message: getErrorMessage(error)
       });
     }
     handleError(error);
