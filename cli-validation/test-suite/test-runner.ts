@@ -130,10 +130,19 @@ async function executeWithWorkers(
 
   // Track active workers
   const workers = new Map<number, ChildProcess>();
-  let shouldStopAllWorkers = false;
+
+  // Collect results incrementally as workers report them
+  const collectedResults: SuiteResult[] = [];
+  let fastFailTriggered = false;
 
   // Worker timeout: 60 minutes per worker (generous upper bound)
   const WORKER_TIMEOUT = 60 * 60 * 1000;
+
+  // Create a promise that resolves when fast-fail is triggered (via IPC handler)
+  let triggerFastFail: () => void;
+  const fastFailPromise = new Promise<void>((resolve) => {
+    triggerFastFail = resolve;
+  });
 
   // Create worker processes
   const workerPromises: Promise<SuiteResult[]>[] = [];
@@ -196,19 +205,33 @@ async function executeWithWorkers(
           console.log('='.repeat(70));
         }
 
+        // Collect results incrementally as they arrive
+        collectedResults.push(...msg.results);
+
         // Check for failures in fast-fail mode
         if (options.fastFail && msg.results.some((r) => !r.passed)) {
-          shouldStopAllWorkers = true;
-          // Signal all other workers to stop
-          for (const [otherId, otherWorker] of workers.entries()) {
-            if (otherId !== workerId && otherWorker) {
-              try {
-                otherWorker.send({ type: 'fast-fail' });
-              } catch (error) {
-                // Worker may have already exited - this is acceptable during fast-fail
-                // Just log and continue
-                const errorMsg = error instanceof Error ? error.message : String(error);
-                console.debug(`Could not signal worker ${otherId} to stop: ${errorMsg}`);
+          if (!fastFailTriggered) {
+            fastFailTriggered = true;
+            // Trigger the fast-fail promise to exit the race immediately
+            triggerFastFail!();
+
+            // Signal and kill all other workers to force exit
+            for (const [otherId, otherWorker] of workers.entries()) {
+              if (otherId !== workerId && otherWorker && !otherWorker.killed) {
+                try {
+                  otherWorker.send({ type: 'fast-fail' });
+                } catch (error) {
+                  // Worker may have already exited - this is acceptable during fast-fail
+                  const errorMsg = error instanceof Error ? error.message : String(error);
+                  console.debug(`Could not signal worker ${otherId} to stop: ${errorMsg}`);
+                }
+                // Kill the worker immediately to force exit
+                try {
+                  otherWorker.kill();
+                } catch (error) {
+                  const errorMsg = error instanceof Error ? error.message : String(error);
+                  console.debug(`Could not kill worker ${otherId}: ${errorMsg}`);
+                }
               }
             }
           }
@@ -251,50 +274,26 @@ async function executeWithWorkers(
   }
 
   // Wait for all workers to complete, but exit early if fast-fail is triggered
-  // Create a promise that resolves when fast-fail is triggered
-  const fastFailPromise = new Promise<SuiteResult[]>((resolve) => {
-    const checkInterval = setInterval(() => {
-      if (shouldStopAllWorkers) {
-        clearInterval(checkInterval);
-        // Kill all remaining active workers
-        for (const [workerId, worker] of workers.entries()) {
-          if (worker && !worker.killed) {
-            try {
-              worker.kill();
-            } catch (error) {
-              // Worker may have already exited - this is acceptable
-              console.debug(`Could not kill worker ${workerId}: ${error instanceof Error ? error.message : String(error)}`);
-            }
-          }
-        }
-        resolve([]); // Return empty array to signal early exit
-      }
-    }, 10); // Check every 10ms for fast-fail signal
-  });
-
-  // Race between all workers completing and fast-fail being triggered
-  const raceResult = await Promise.race([
-    Promise.all(workerPromises),
-    fastFailPromise,
-  ]);
-
-  // If we exited via fast-fail (empty array returned), we still have partial results
-  // from the workers that completed before fast-fail was triggered
-  const allResults = raceResult.length > 0 ? raceResult : await Promise.allSettled(workerPromises).then((settled) => {
-    // Collect results from settled promises, ignoring rejections
-    const collected: SuiteResult[] = [];
-    for (const settlement of settled) {
-      if (settlement.status === 'fulfilled') {
-        collected.push(...settlement.value);
-      }
+  // Race between all workers completing normally and fast-fail being triggered
+  try {
+    await Promise.race([
+      Promise.all(workerPromises),
+      fastFailPromise,
+    ]);
+  } catch (error) {
+    // If fast-fail was triggered, we catch it here and use collected results
+    // If a real error occurred, re-throw it
+    if (!fastFailTriggered) {
+      throw error;
     }
-    return collected;
-  });
+  }
 
-  const results: SuiteResult[] = allResults.flat();
+  // Use the results we've collected incrementally (from worker messages)
+  // Don't re-await promises or call allSettled - just return what we have
+  const results: SuiteResult[] = collectedResults;
 
   // Validate that all scheduled suites produced results (or fast-fail was triggered)
-  if (results.length !== filteredSuites.length && !shouldStopAllWorkers) {
+  if (results.length !== filteredSuites.length && !fastFailTriggered) {
     const scheduledNames = new Set(filteredSuites.map((s) => s.name));
     const resultNames = new Set(results.map((r) => r.name));
     const missingNames = Array.from(scheduledNames).filter((name) => !resultNames.has(name));
