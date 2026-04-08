@@ -7,6 +7,7 @@
 **Investigation Result**: CONFIRMED ACTIVE - `workdirPath` is actively used, not dead code.
 
 **Usage Locations in `worker.ts`**:
+
 - Line 183: `snapshotRoot = workdirPath;` (assignment)
 - Line 202: `workdirPath,` (passed to function)
 - Line 273: `await executePipeline(pipeline, config, output, shouldStop, workdirPath);` (function call)
@@ -20,5 +21,6 @@
 ## Completed Fixes in Revision 1
 
 ✅ **Removed orphaned `FastFailSignal` type definition** (`types.ts:35-40`)
+
 - Confirmed via `grep -r FastFailSignal` that zero references remain
 - All smoke tests pass (22/22 passing)
