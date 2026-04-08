@@ -7,68 +7,7 @@
 
 import { describe, it } from 'node:test';
 import { strict as assert } from 'node:assert';
-
-/**
- * Test assertion helpers for compatibility with standard Node.js assertions
- */
-class TestAssertions {
-  value: any;
-
-  constructor(value: any) {
-    this.value = value;
-  }
-
-  toBe(expected: any): void {
-    assert.strictEqual(this.value, expected, `Expected ${expected} but got ${this.value}`);
-  }
-
-  toEqual(expected: any): void {
-    assert.deepStrictEqual(
-      this.value,
-      expected,
-      `Expected ${JSON.stringify(expected)} but got ${JSON.stringify(this.value)}`
-    );
-  }
-
-  toBeTruthy(): void {
-    assert(this.value, `Expected value to be truthy but got: ${this.value}`);
-  }
-
-  toBeFalsy(): void {
-    assert(!this.value, `Expected value to be falsy but got: ${this.value}`);
-  }
-
-  toInclude(item: any): void {
-    assert(
-      Array.isArray(this.value) && this.value.includes(item),
-      `Expected array to include ${item} but got: ${JSON.stringify(this.value)}`
-    );
-  }
-
-  toHaveLength(length: number): void {
-    assert.strictEqual(
-      Array.isArray(this.value) ? this.value.length : this.value?.length,
-      length,
-      `Expected length ${length} but got: ${this.value?.length ?? 'undefined'}`
-    );
-  }
-
-  toContain(substring: string): void {
-    assert(
-      String(this.value).includes(substring),
-      `Expected value to contain "${substring}"\nActual: ${String(this.value).slice(0, 200)}...`
-    );
-  }
-}
-
-function expect(value: any): TestAssertions {
-  return new TestAssertions(value);
-}
-
-/**
- * Mock implementations of worker functions for testing
- * These are extracted from worker.ts for unit testing
- */
+import { validateStep, getSnapshotMode } from '../worker.js';
 
 // Type definitions matching worker.ts
 interface PipelineStep {
@@ -110,102 +49,7 @@ interface StepResult {
   failures: string[];
 }
 
-/**
- * Validate a single step's expectations
- * Validates exit codes, output content, and filesystem changes
- */
-function validateStep(
-  step: PipelineStep,
-  tsOutput: CommandOutput,
-  tsChanges: Array<{ path: string; type: string }>
-): StepResult {
-  const failures: string[] = [];
 
-  // Validate exit codes
-  const expectedExitCode = step.expect_exit_code ?? 0;
-  if (tsOutput.exitCode !== expectedExitCode) {
-    failures.push(`CLI exit code: expected ${expectedExitCode}, got ${tsOutput.exitCode}`);
-  }
-
-  // Validate stdout contains
-  if (step.expect_stdout_contains) {
-    for (const expected of step.expect_stdout_contains) {
-      if (!tsOutput.stdout.includes(expected)) {
-        failures.push(`stdout missing: "${expected}"`);
-      }
-    }
-  }
-
-  // Validate stderr contains
-  if (step.expect_stderr_contains) {
-    for (const expected of step.expect_stderr_contains) {
-      if (!tsOutput.stderr.includes(expected)) {
-        failures.push(`stderr missing: "${expected}"`);
-      }
-    }
-  }
-
-  // Validate filesystem changes match expected files
-  for (const expectedFile of step.files_to_compare) {
-    const tsModified = tsChanges.some(
-      (c) => c.path === expectedFile && c.type !== 'unchanged'
-    );
-
-    if (!tsModified) {
-      failures.push(`Did not modify expected file: ${expectedFile}`);
-    }
-  }
-
-  // Map filesystem changes to proper types
-  const typedChanges = tsChanges.map((c) => ({
-    path: c.path,
-    type: c.type === 'added' || c.type === 'deleted' || c.type === 'modified'
-      ? c.type as 'added' | 'deleted' | 'modified'
-      : 'modified' as const,
-  }));
-
-  return {
-    command: step.command,
-    pythonOutput: {
-      stdout: '',
-      stderr: '',
-      exitCode: 0,
-      duration: 0,
-    },
-    tsOutput,
-    filesystemDiff: {
-      python: [],
-      ts: typedChanges,
-    },
-    passed: failures.length === 0,
-    failures,
-  };
-}
-
-/**
- * Determine which snapshot mode to use based on step configuration
- *
- * Mode 1 (Targeted): Non-empty files_to_compare → read only specified files
- * Mode 2 (Skip): Empty files_to_compare with only stdout/stderr assertions → no snapshots
- * Mode 3 (Full): All other cases → full directory walk (safety net)
- */
-function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full' {
-  // Mode 1: Non-empty files_to_compare
-  if (step.files_to_compare && step.files_to_compare.length > 0) {
-    return 'targeted';
-  }
-
-  // Mode 2: Empty files_to_compare with stdout/stderr assertions
-  if (
-    (!step.files_to_compare || step.files_to_compare.length === 0) &&
-    (step.expect_stdout_contains || step.expect_stderr_contains)
-  ) {
-    return 'skip';
-  }
-
-  // Mode 3: Full walk (default for everything else)
-  return 'full';
-}
 
 // ============================================================================
 // validateStep Tests
@@ -228,8 +72,8 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(true);
-      expect(result.failures).toHaveLength(0);
+      assert.strictEqual(result.passed, true);
+      assert.strictEqual(result.failures.length, 0);
     });
 
     it('should pass when exit code matches expected non-zero value', () => {
@@ -247,8 +91,8 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(true);
-      expect(result.failures).toHaveLength(0);
+      assert.strictEqual(result.passed, true);
+      assert.strictEqual(result.failures.length, 0);
     });
 
     it('should fail when exit code does not match expected', () => {
@@ -266,9 +110,9 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(false);
-      expect(result.failures).toHaveLength(1);
-      expect(result.failures[0]).toContain('CLI exit code: expected 0, got 1');
+      assert.strictEqual(result.passed, false);
+      assert.strictEqual(result.failures.length, 1);
+      assert(result.failures[0].includes('CLI exit code: expected 0, got 1'));
     });
 
     it('should default to expecting exit code 0 when not specified', () => {
@@ -286,7 +130,7 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(true);
+      assert.strictEqual(result.passed, true);
     });
 
     it('should fail when expecting 0 but got non-zero without explicit expectation', () => {
@@ -304,8 +148,8 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(false);
-      expect(result.failures[0]).toContain('CLI exit code: expected 0, got 127');
+      assert.strictEqual(result.passed, false);
+      assert(result.failures[0].includes('CLI exit code: expected 0, got 127'));
     });
   });
 
@@ -325,7 +169,7 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(true);
+      assert.strictEqual(result.passed, true);
     });
 
     it('should fail when expected stdout is missing', () => {
@@ -343,9 +187,9 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(false);
-      expect(result.failures).toHaveLength(1);
-      expect(result.failures[0]).toContain('stdout missing: "Missing text"');
+      assert.strictEqual(result.passed, false);
+      assert.strictEqual(result.failures.length, 1);
+      assert(result.failures[0].includes('stdout missing: "Missing text"'));
     });
 
     it('should fail when multiple stdout assertions are missing', () => {
@@ -363,8 +207,8 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(false);
-      expect(result.failures).toHaveLength(2);
+      assert.strictEqual(result.passed, false);
+      assert.strictEqual(result.failures.length, 2);
     });
 
     it('should be case-sensitive in stdout matching', () => {
@@ -382,7 +226,7 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(false);
+      assert.strictEqual(result.passed, false);
     });
   });
 
@@ -403,7 +247,7 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(true);
+      assert.strictEqual(result.passed, true);
     });
 
     it('should fail when expected stderr is missing', () => {
@@ -422,8 +266,8 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.passed).toBe(false);
-      expect(result.failures[0]).toContain('stderr missing: "Missing message"');
+      assert.strictEqual(result.passed, false);
+      assert(result.failures[0].includes('stderr missing: "Missing message"'));
     });
   });
 
@@ -447,8 +291,8 @@ describe('validateStep', () => {
       ];
 
       const result = validateStep(step, output, changes);
-      expect(result.passed).toBe(true);
-      expect(result.failures).toHaveLength(0);
+      assert.strictEqual(result.passed, true);
+      assert.strictEqual(result.failures.length, 0);
     });
 
     it('should fail when expected file is not in changes', () => {
@@ -467,8 +311,8 @@ describe('validateStep', () => {
       const changes = [{ path: 'file1.yaml', type: 'modified' }];
 
       const result = validateStep(step, output, changes);
-      expect(result.passed).toBe(false);
-      expect(result.failures[0]).toContain('Did not modify expected file: file2.json');
+      assert.strictEqual(result.passed, false);
+      assert(result.failures[0].includes('Did not modify expected file: file2.json'));
     });
 
     it('should fail when expected file is marked unchanged', () => {
@@ -487,8 +331,8 @@ describe('validateStep', () => {
       const changes = [{ path: 'file1.yaml', type: 'unchanged' }];
 
       const result = validateStep(step, output, changes);
-      expect(result.passed).toBe(false);
-      expect(result.failures[0]).toContain('Did not modify expected file: file1.yaml');
+      assert.strictEqual(result.passed, false);
+      assert(result.failures[0].includes('Did not modify expected file: file1.yaml'));
     });
 
     it('should handle empty files_to_compare list', () => {
@@ -507,7 +351,7 @@ describe('validateStep', () => {
       const changes = [{ path: 'file.yaml', type: 'modified' }];
 
       const result = validateStep(step, output, changes);
-      expect(result.passed).toBe(true);
+      assert.strictEqual(result.passed, true);
     });
 
     it('should correctly map change types in result', () => {
@@ -530,10 +374,10 @@ describe('validateStep', () => {
       ];
 
       const result = validateStep(step, output, changes);
-      expect(result.filesystemDiff.ts).toHaveLength(3);
-      expect(result.filesystemDiff.ts[0].type).toBe('added');
-      expect(result.filesystemDiff.ts[1].type).toBe('deleted');
-      expect(result.filesystemDiff.ts[2].type).toBe('modified');
+      assert.strictEqual(result.filesystemDiff.ts.length, 3);
+      assert.strictEqual(result.filesystemDiff.ts[0].type, 'added');
+      assert.strictEqual(result.filesystemDiff.ts[1].type, 'deleted');
+      assert.strictEqual(result.filesystemDiff.ts[2].type, 'modified');
     });
   });
 
@@ -557,8 +401,8 @@ describe('validateStep', () => {
       const changes: { path: string; type: string }[] = [];
 
       const result = validateStep(step, output, changes);
-      expect(result.passed).toBe(false);
-      expect(result.failures.length).toBe(4); // exit code, stdout, stderr, file
+      assert.strictEqual(result.passed, false);
+      assert.strictEqual(result.failures.length, 4); // exit code, stdout, stderr, file
     });
 
     it('should pass when all validations succeed', () => {
@@ -580,7 +424,7 @@ describe('validateStep', () => {
       const changes = [{ path: 'file.yaml', type: 'modified' }];
 
       const result = validateStep(step, output, changes);
-      expect(result.passed).toBe(true);
+      assert.strictEqual(result.passed, true);
     });
 
     it('should preserve command in result', () => {
@@ -597,7 +441,7 @@ describe('validateStep', () => {
       };
 
       const result = validateStep(step, output, []);
-      expect(result.command).toBe('my test command');
+      assert.strictEqual(result.command, 'my test command');
     });
   });
 });
@@ -615,7 +459,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('targeted');
+      assert.strictEqual(mode, 'targeted');
     });
 
     it('should return "targeted" with single file in files_to_compare', () => {
@@ -625,7 +469,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('targeted');
+      assert.strictEqual(mode, 'targeted');
     });
 
     it('should return "targeted" with multiple files in files_to_compare', () => {
@@ -635,7 +479,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('targeted');
+      assert.strictEqual(mode, 'targeted');
     });
 
     it('should prioritize files_to_compare over stdout/stderr assertions', () => {
@@ -647,7 +491,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('targeted');
+      assert.strictEqual(mode, 'targeted');
     });
   });
 
@@ -660,7 +504,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('skip');
+      assert.strictEqual(mode, 'skip');
     });
 
     it('should return "skip" with empty files_to_compare and stderr assertions', () => {
@@ -671,7 +515,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('skip');
+      assert.strictEqual(mode, 'skip');
     });
 
     it('should return "skip" with empty files_to_compare and both stdout and stderr assertions', () => {
@@ -683,7 +527,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('skip');
+      assert.strictEqual(mode, 'skip');
     });
 
     it('should return "skip" with undefined files_to_compare and stdout assertions', () => {
@@ -694,7 +538,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('skip');
+      assert.strictEqual(mode, 'skip');
     });
 
     it('should return "skip" with undefined files_to_compare and stderr assertions', () => {
@@ -705,7 +549,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('skip');
+      assert.strictEqual(mode, 'skip');
     });
   });
 
@@ -717,7 +561,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('full');
+      assert.strictEqual(mode, 'full');
     });
 
     it('should return "full" when files_to_compare is undefined and no output assertions', () => {
@@ -727,7 +571,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('full');
+      assert.strictEqual(mode, 'full');
     });
 
     it('should return "full" as default safety net for comprehensive validation', () => {
@@ -738,7 +582,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('full');
+      assert.strictEqual(mode, 'full');
     });
 
     it('should return "full" when only expect_exit_code is specified', () => {
@@ -749,7 +593,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('full');
+      assert.strictEqual(mode, 'full');
     });
 
     it('should return "full" when files_to_compare is empty with timeout specified', () => {
@@ -760,7 +604,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('full');
+      assert.strictEqual(mode, 'full');
     });
   });
 
@@ -772,7 +616,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('full');
+      assert.strictEqual(mode, 'full');
     });
 
     it('should handle stdout_contains with empty array', () => {
@@ -782,10 +626,9 @@ describe('getSnapshotMode', () => {
         expect_stdout_contains: [],
       };
 
-      // Empty stdout_contains array means no stdout assertions - treated like skip mode
-      // because step has an assertion array (even though empty), triggering skip mode
+      // Empty stdout_contains array is semantically the same as no assertions
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('skip');
+      assert.strictEqual(mode, 'full');
     });
 
     it('should respect priority: files_to_compare wins over stdout/stderr assertions', () => {
@@ -797,7 +640,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('targeted');
+      assert.strictEqual(mode, 'targeted');
     });
 
     it('should distinguish between skip and full modes correctly', () => {
@@ -812,8 +655,8 @@ describe('getSnapshotMode', () => {
         files_to_compare: [],
       };
 
-      expect(getSnapshotMode(skipStep)).toBe('skip');
-      expect(getSnapshotMode(fullStep)).toBe('full');
+      assert.strictEqual(getSnapshotMode(skipStep), 'skip');
+      assert.strictEqual(getSnapshotMode(fullStep), 'full');
     });
   });
 
@@ -827,7 +670,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('skip');
+      assert.strictEqual(mode, 'skip');
       // This avoids unnecessary directory walks
     });
 
@@ -839,7 +682,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('targeted');
+      assert.strictEqual(mode, 'targeted');
       // This avoids reading unrelated files
     });
 
@@ -851,7 +694,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      expect(mode).toBe('full');
+      assert.strictEqual(mode, 'full');
       // This ensures no silent filesystem changes are missed
     });
   });

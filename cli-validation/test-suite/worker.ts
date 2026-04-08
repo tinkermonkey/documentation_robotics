@@ -49,7 +49,7 @@ class OutputBuffer {
  * Validate a single step's expectations
  * Validates exit codes, output content, and filesystem changes
  */
-function validateStep(
+export function validateStep(
   step: PipelineStep,
   tsOutput: CommandOutput,
   tsChanges: Array<{ path: string; type: string }>
@@ -123,19 +123,22 @@ function validateStep(
  * Determine which snapshot mode to use based on step configuration
  *
  * Mode 1 (Targeted): Non-empty files_to_compare → read only specified files
- * Mode 2 (Skip): Empty files_to_compare with only stdout/stderr assertions → no snapshots
+ * Mode 2 (Skip): Non-empty files_to_compare with only stdout/stderr assertions → no snapshots
  * Mode 3 (Full): All other cases → full directory walk (safety net)
  */
-function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full' {
+export function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full' {
   // Mode 1: Non-empty files_to_compare
   if (step.files_to_compare && step.files_to_compare.length > 0) {
     return 'targeted';
   }
 
-  // Mode 2: Empty files_to_compare with stdout/stderr assertions
+  // Mode 2: Empty/no files_to_compare with non-empty stdout/stderr assertions
+  // (empty assertion arrays are treated as no assertions)
+  const hasStdoutAssertions = (step.expect_stdout_contains?.length ?? 0) > 0;
+  const hasStderrAssertions = (step.expect_stderr_contains?.length ?? 0) > 0;
   if (
     (!step.files_to_compare || step.files_to_compare.length === 0) &&
-    (step.expect_stdout_contains || step.expect_stderr_contains)
+    (hasStdoutAssertions || hasStderrAssertions)
   ) {
     return 'skip';
   }

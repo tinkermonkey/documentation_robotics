@@ -78,6 +78,12 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 0
 
+      - command: "delete motivation.goal.multi-goal-001 --force"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Staged"
+
       - command: "changeset deactivate"
         files_to_compare: []
         expect_exit_code: 0
