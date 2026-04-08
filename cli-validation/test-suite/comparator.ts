@@ -184,6 +184,58 @@ export async function captureSnapshot(directory: string): Promise<FilesystemSnap
 }
 
 /**
+ * Capture a targeted snapshot of only specified file paths
+ * Reads and hashes only the files explicitly declared, reducing I/O for steps
+ * that only care about specific files
+ *
+ * @param directory Root directory for snapshot
+ * @param filePaths Array of relative file paths to include in snapshot
+ * @returns FilesystemSnapshot with only the specified files
+ *
+ * @remarks
+ * This is more efficient than captureSnapshot() when a step declares
+ * files_to_compare. The same normalization pipeline is applied before hashing.
+ * Files that don't exist are silently skipped (not included in snapshot).
+ */
+export async function captureTargetedSnapshot(
+  directory: string,
+  filePaths: string[]
+): Promise<FilesystemSnapshot> {
+  const files = new Map<string, FileInfo>();
+
+  // Process only the specified files
+  for (const relativePath of filePaths) {
+    const fullPath = join(directory, relativePath);
+
+    try {
+      // Read file content and metadata
+      const content = await readFile(fullPath, 'utf-8');
+      const fileStats = await stat(fullPath);
+
+      // Calculate hash of normalized content
+      const hash = hashContent(content, relativePath);
+
+      // Store file information
+      files.set(relativePath, {
+        exists: true,
+        hash,
+        mtime: fileStats.mtimeMs,
+        size: fileStats.size,
+      });
+    } catch {
+      // Skip files that cannot be read (permissions, encoding, etc)
+      // This is expected for some files that may not exist yet
+    }
+  }
+
+  return {
+    timestamp: Date.now(),
+    directory,
+    files,
+  };
+}
+
+/**
  * Compare two filesystem snapshots and identify differences
  * Only reports files that changed, not files that didn't change
  *

@@ -12,7 +12,7 @@ import { glob } from 'glob';
 import YAML from 'yaml';
 
 import { initializeTestEnvironment, getTestPaths, TestPaths, CLIConfig, cleanupTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
-import { captureSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
+import { captureSnapshot, captureTargetedSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
 import { executeCommand, CommandOutput } from './executor.js';
 import {
   TestSuite,
@@ -144,6 +144,31 @@ function validateStep(
 }
 
 /**
+ * Determine which snapshot mode to use based on step configuration
+ *
+ * Mode 1 (Targeted): Non-empty files_to_compare → read only specified files
+ * Mode 2 (Skip): Empty files_to_compare with only stdout/stderr assertions → no snapshots
+ * Mode 3 (Full): All other cases → full directory walk (safety net)
+ */
+function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full' {
+  // Mode 1: Non-empty files_to_compare
+  if (step.files_to_compare && step.files_to_compare.length > 0) {
+    return 'targeted';
+  }
+
+  // Mode 2: Empty files_to_compare with stdout/stderr assertions
+  if (
+    (!step.files_to_compare || step.files_to_compare.length === 0) &&
+    (step.expect_stdout_contains || step.expect_stderr_contains)
+  ) {
+    return 'skip';
+  }
+
+  // Mode 3: Full walk (default for everything else)
+  return 'full';
+}
+
+/**
  * Execute a single pipeline
  */
 async function executePipeline(
@@ -156,8 +181,16 @@ async function executePipeline(
   for (const step of pipeline.steps) {
     console.log(`    Step: ${step.command}`);
 
-    // Capture before snapshot
-    const tsBefore = await captureSnapshot(config.tsDir);
+    // Determine snapshot mode for this step
+    const snapshotMode = getSnapshotMode(step);
+
+    // Capture before snapshot (skip mode: no snapshot needed)
+    const tsBefore =
+      snapshotMode === 'skip'
+        ? { timestamp: Date.now(), directory: config.tsDir, files: new Map() }
+        : snapshotMode === 'targeted'
+          ? await captureTargetedSnapshot(config.tsDir, step.files_to_compare)
+          : await captureSnapshot(config.tsDir);
 
     // Execute command on TypeScript CLI
     const timeout = step.timeout ?? 30000;
@@ -167,8 +200,13 @@ async function executePipeline(
       timeout
     );
 
-    // Capture after snapshot
-    const tsAfter = await captureSnapshot(config.tsDir);
+    // Capture after snapshot (skip mode: no snapshot needed)
+    const tsAfter =
+      snapshotMode === 'skip'
+        ? { timestamp: Date.now(), directory: config.tsDir, files: new Map() }
+        : snapshotMode === 'targeted'
+          ? await captureTargetedSnapshot(config.tsDir, step.files_to_compare)
+          : await captureSnapshot(config.tsDir);
 
     // Compare filesystem changes
     const tsResult = compareSnapshots(tsBefore, tsAfter);
