@@ -116,7 +116,7 @@ pipelines:
       - command: "add testing testcasesketch test-case --name 'Test Case' --description 'Test case sketch for verification'"
         files_to_compare:
           - manifest.yaml
-          - 12_testing/testcasesketch.yaml
+          - 12_testing/test_case_sketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -124,7 +124,7 @@ pipelines:
 
       - command: "update testing.testcasesketch.test-case --name 'Updated Test Case'"
         files_to_compare:
-          - 12_testing/testcasesketch.yaml
+          - 12_testing/test_case_sketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -132,7 +132,7 @@ pipelines:
       - command: "delete testing.testcasesketch.test-case --force"
         files_to_compare:
           - manifest.yaml
-          - 12_testing/testcasesketch.yaml
+          - 12_testing/test_case_sketch.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
