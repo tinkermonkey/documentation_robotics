@@ -5,6 +5,27 @@ PROJECT_DIR="/workspace/documentation_robotics"
 CLI_DIR="$PROJECT_DIR/cli"
 
 # ============================================================================
+# PATH and environment setup
+# ============================================================================
+# Ensure node, bun, and other tools are in PATH for all spawned child processes.
+# Tests use bun's spawnSync to run "node dist/cli.js" — if node isn't in PATH,
+# those spawns fail with ENOENT: posix_spawn 'node'.
+# Only prepend if not already present (Dockerfile ENV sets these, but
+# defend against environments that override PATH at container start).
+case ":${PATH}:" in
+  *:/usr/local/bin:*) ;;
+  *) export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH}" ;;
+esac
+
+# Ensure /tmp is available and writable for test tmpdir operations.
+# Tests create temporary directories under /tmp (golden copy cloning, test
+# workdirs). If /tmp doesn't exist or isn't writable, tests fail with
+# ENOENT: chdir or file open errors.
+if [ ! -d /tmp ] || [ ! -w /tmp ]; then
+  echo "[agent-entrypoint] WARNING: /tmp is not writable — test tmpdir operations may fail"
+fi
+
+# ============================================================================
 # GitHub CLI authentication (early setup)
 # ============================================================================
 # Set up gh auth BEFORE any npm/build commands that may need GitHub access.
@@ -70,15 +91,23 @@ if [ -d "$CLI_DIR/src" ] && [ ! -f "$CLI_DIR/dist/cli.js" ]; then
   fi
 
   # Install root dependencies (needed for build:spec via tsx)
-  if [ -f "$PROJECT_DIR/package.json" ] && [ ! -d "$PROJECT_DIR/node_modules" ]; then
-    echo "[agent-entrypoint] Installing root dependencies..."
-    cd "$PROJECT_DIR" && npm install --ignore-scripts 2>&1 | tail -1
+  # Check for node_modules/.package-lock.json as a staleness indicator —
+  # if node_modules/ exists but is empty or incomplete (e.g., stale mount),
+  # npm install won't run without this check.
+  if [ -f "$PROJECT_DIR/package.json" ]; then
+    if [ ! -d "$PROJECT_DIR/node_modules" ] || [ ! -f "$PROJECT_DIR/node_modules/.package-lock.json" ]; then
+      echo "[agent-entrypoint] Installing root dependencies..."
+      cd "$PROJECT_DIR" && npm install --ignore-scripts 2>&1 | tail -1
+    fi
   fi
 
   # Install CLI dependencies
-  if [ -f "$CLI_DIR/package.json" ] && [ ! -d "$CLI_DIR/node_modules" ]; then
-    echo "[agent-entrypoint] Installing CLI dependencies..."
-    cd "$CLI_DIR" && npm install 2>&1 | tail -1
+  # Same staleness check — ensures node_modules is complete, not just present.
+  if [ -f "$CLI_DIR/package.json" ]; then
+    if [ ! -d "$CLI_DIR/node_modules" ] || [ ! -f "$CLI_DIR/node_modules/.package-lock.json" ]; then
+      echo "[agent-entrypoint] Installing CLI dependencies..."
+      cd "$CLI_DIR" && npm install 2>&1 | tail -1
+    fi
   fi
 
   # Build the CLI (syncs spec schemas, generates registry, compiles TypeScript, bundles)

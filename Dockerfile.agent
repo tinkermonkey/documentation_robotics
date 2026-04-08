@@ -59,6 +59,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 ENV BUN_INSTALL=/usr/local
 RUN curl -fsSL https://bun.sh/install | bash
 
+# Ensure PATH is explicitly set for all users (root and orchestrator).
+# This is critical because spawned child processes (e.g., bun's spawnSync
+# calling "node dist/cli.js") inherit the container's PATH. Without this,
+# node/bun may not be found, causing ENOENT: posix_spawn errors.
+ENV PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 # ============================================================================
 # Stage 3: Pre-install Dependencies (RECOMMENDED)
 # ============================================================================
