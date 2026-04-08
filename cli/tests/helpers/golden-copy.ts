@@ -328,20 +328,27 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
       const manifestPath = join(path, "documentation-robotics", "model", "manifest.yaml");
       await access(manifestPath);
 
-      // Check that key layer directories exist (especially the problematic testing layer)
-      const testingLayerPath = join(path, "documentation-robotics", "model", "12_testing");
-      await access(testingLayerPath);
-
-      // Verify that all expected YAML files in testing layer are accessible
-      // This helps catch filesystem sync issues during concurrent test execution
-      const expectedTestingFiles = [
-        "input-space-partitions.yaml",
-        "test-case-sketches.yaml",
-        "test-coverage-models.yaml",
+      // Check that key layer directories exist
+      // Verify that core layer directories are accessible
+      const layerDirs = [
+        "01_motivation",
+        "02_business",
+        "03_security",
+        "04_application",
+        "05_technology",
+        "06_api",
+        "07_data-model",
+        "08_data-store",
+        "09_ux",
+        "10_navigation",
+        "11_apm",
+        "12_testing",
       ];
-      for (const file of expectedTestingFiles) {
-        const filePath = join(testingLayerPath, file);
-        await access(filePath);
+
+      const modelDir = join(path, "documentation-robotics", "model");
+      for (const layerDir of layerDirs) {
+        const layerPath = join(modelDir, layerDir);
+        await access(layerPath);
       }
 
       // Add stability check: verify critical files are still accessible after a delay
@@ -349,12 +356,9 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
       // occurs in concurrent test execution scenarios
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      // Re-check all expected testing layer files again to ensure stability
+      // Re-check manifest again to ensure stability
       // This prevents ENOENT errors that occur after Model.load() is called
-      for (const file of expectedTestingFiles) {
-        const filePath = join(testingLayerPath, file);
-        await access(filePath);
-      }
+      await access(manifestPath);
 
       // All checks passed, filesystem is ready
       return;
