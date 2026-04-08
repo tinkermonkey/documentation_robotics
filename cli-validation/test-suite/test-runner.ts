@@ -175,6 +175,7 @@ async function executeWithWorkers(
       // Handle messages from worker
       let resultData: WorkerResult | null = null;
       let timeoutHandle: NodeJS.Timeout | null = null;
+      let settled = false; // Track if promise has been settled to prevent double-settlement
 
       // Set timeout for this worker
       timeoutHandle = setTimeout(() => {
@@ -184,7 +185,10 @@ async function executeWithWorkers(
           );
           console.error(`⚠ ${error.message}`);
           worker.kill();
-          reject(error);
+          if (!settled) {
+            settled = true;
+            reject(error);
+          }
         }
       }, WORKER_TIMEOUT);
 
@@ -237,7 +241,10 @@ async function executeWithWorkers(
           }
         }
 
-        resolve(msg.results);
+        if (!settled) {
+          settled = true;
+          resolve(msg.results);
+        }
       });
 
       worker.on('error', (error) => {
@@ -248,7 +255,10 @@ async function executeWithWorkers(
         // This ensures independent worker crashes are not silently swallowed
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.error(`Worker ${workerId + 1} error:`, errorMsg);
-        reject(error);
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
       });
 
       worker.on('exit', (code) => {
@@ -256,12 +266,14 @@ async function executeWithWorkers(
           clearTimeout(timeoutHandle);
         }
         // If no result data was received from the worker, resolve or reject based on exit code
-        if (!resultData) {
+        if (!resultData && !settled) {
           // Guard against null code (can happen when worker is killed)
           if (code !== null && code !== 0) {
+            settled = true;
             reject(new Error(`Worker ${workerId + 1} exited with code ${code}`));
           } else {
             // Graceful exit with no data (resolved or no meaningful result)
+            settled = true;
             resolve([]);
           }
         }
@@ -287,11 +299,19 @@ async function executeWithWorkers(
   // Race between all workers completing normally and fast-fail being triggered
 
   // Attach catch handlers to each workerPromise to prevent unhandled promise rejections
-  // when fast-fail triggers and kills workers (their promises will reject with non-zero exit codes)
+  // when fast-fail triggers and kills workers (their promises will reject with non-zero exit codes).
+  // Only swallow errors if fast-fail was triggered; otherwise propagate them.
   const safeWorkerPromises = workerPromises.map((p) =>
-    p.catch(() => {
-      // Silently swallow rejection - we'll use incrementally collected results instead
-      return [];
+    p.catch((err) => {
+      if (fastFailTriggered) {
+        // During fast-fail, log crashes but don't propagate the error
+        console.error(
+          `Worker crashed during fast-fail: ${err instanceof Error ? err.message : String(err)}`
+        );
+        return [];
+      }
+      // If fast-fail was not triggered, this is a real error - propagate it
+      throw err;
     })
   );
 
