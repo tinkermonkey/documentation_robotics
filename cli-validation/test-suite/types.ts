@@ -31,10 +31,3 @@ export interface WorkerAssignment {
   workdirPath: string;
   workerId: number;
 }
-
-/**
- * Signal for fast-fail coordination
- */
-export interface FastFailSignal {
-  type: 'fast-fail';
-}
