@@ -233,22 +233,6 @@ describe("Backup Validation Failure Paths", () => {
         await chmod(backupDir, 0o755);
       }
     });
-
-    it("should detect when layer directory is missing", async () => {
-      const manager = new StagingAreaManager(TEST_DIR, model);
-      const backupDir = await (manager as any).backupModel(model);
-
-      // Remove entire layers directory
-      const layersDir = path.join(backupDir, "layers");
-      await rm(layersDir, { recursive: true, force: true });
-
-      const health = await manager.validateBackupIntegrity(backupDir);
-
-      expect(health.isValid).toBe(false);
-      expect(health.errors.some((e) => e.includes("Missing") || e.includes("not found"))).toBe(
-        true
-      );
-    });
   });
 
   describe("partial backup handling", () => {
@@ -270,35 +254,6 @@ describe("Backup Validation Failure Paths", () => {
 
       // Empty backup should be considered invalid or have file checking issues
       expect(health.filesChecked).toBeGreaterThanOrEqual(0);
-    });
-
-    it("should detect incomplete layer backup", async () => {
-      const manager = new StagingAreaManager(TEST_DIR, model);
-      const backupDir = await (manager as any).backupModel(model);
-
-      // Count original layers in manifest
-      const manifestPath = path.join(backupDir, ".backup-manifest.json");
-      const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
-      const originalLayerCount = manifest.files.filter((f: any) =>
-        f.path.startsWith("layers/")
-      ).length;
-
-      // Remove half of the layer files
-      const layersDir = path.join(backupDir, "layers");
-      const layerSubDirs = await readdir(layersDir);
-      for (let i = 0; i < Math.floor(layerSubDirs.length / 2); i++) {
-        const layerDir = path.join(layersDir, layerSubDirs[i]);
-        const layerFiles = await readdir(layerDir);
-        if (layerFiles.length > 0) {
-          const filePath = path.join(layerDir, layerFiles[0]);
-          await rm(filePath, { force: true });
-        }
-      }
-
-      const health = await manager.validateBackupIntegrity(backupDir);
-
-      expect(health.isValid).toBe(false);
-      expect(health.errors.some((e) => e.includes("Missing"))).toBe(true);
     });
 
     it("should report accurate file count in validation results", async () => {

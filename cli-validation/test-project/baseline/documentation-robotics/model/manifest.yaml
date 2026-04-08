@@ -5,7 +5,7 @@ spec_version: 0.8.3
 created: 2026-04-08T19:50:17.177Z
 updated: 2026-04-08T19:50:17.178Z
 project:
-  name: Test Model
+  name: test-project
   version: 0.1.0
 documentation: .dr/README.md
 layers:
