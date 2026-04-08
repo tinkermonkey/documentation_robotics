@@ -305,10 +305,32 @@ async function runWorker(): Promise<void> {
   const output = new OutputBuffer();
   let shouldStopFlag = false;
   let assignmentReceived = false;
+  let messageHandler: ((msg: unknown) => void) | null = null;
 
   // Wait for assignment from parent using a single message handler with state machine
-  const assignment = await new Promise<WorkerAssignment>((resolve) => {
-    const messageHandler = (msg: unknown) => {
+  const assignment = await new Promise<WorkerAssignment>((resolve, reject) => {
+    // Timeout to prevent indefinite hanging if parent doesn't send assignment
+    const assignmentTimeout = setTimeout(() => {
+      if (!assignmentReceived) {
+        if (messageHandler) {
+          process.removeListener('message', messageHandler);
+        }
+        reject(new Error('Timeout waiting for worker assignment (30s)'));
+      }
+    }, 30000);
+
+    // Handle parent process disconnect
+    const disconnectHandler = () => {
+      if (!assignmentReceived) {
+        clearTimeout(assignmentTimeout);
+        if (messageHandler) {
+          process.removeListener('message', messageHandler);
+        }
+        reject(new Error('Parent process disconnected before sending assignment'));
+      }
+    };
+
+    messageHandler = (msg: unknown) => {
       // Type narrowing: check if this is a valid object with a type property
       if (typeof msg !== 'object' || msg === null) {
         console.error(
@@ -329,6 +351,10 @@ async function runWorker(): Promise<void> {
           'workerId' in message
         ) {
           assignmentReceived = true;
+          // Clear the assignment timeout now that we've received the assignment
+          clearTimeout(assignmentTimeout);
+          // Remove the disconnect handler since we now have the assignment
+          process.removeListener('disconnect', disconnectHandler);
           // Resolve with the assignment (handler stays registered to listen for fast-fail)
           resolve(message as unknown as WorkerAssignment);
           return;
@@ -352,6 +378,7 @@ async function runWorker(): Promise<void> {
     };
 
     process.on('message', messageHandler);
+    process.on('disconnect', disconnectHandler);
   });
 
   try {
@@ -396,6 +423,12 @@ async function runWorker(): Promise<void> {
       results,
       output: output.getOutput(),
     } as WorkerResult);
+
+    // Clean up message handler and disconnect from parent to allow process to exit
+    if (messageHandler) {
+      process.removeListener('message', messageHandler);
+    }
+    process.disconnect();
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     output.writeLine(`\nWorker error: ${errorMsg}`);
@@ -418,6 +451,12 @@ async function runWorker(): Promise<void> {
       results: [],
       output: output.getOutput(),
     } as WorkerResult);
+
+    // Clean up message handler and disconnect from parent to allow process to exit
+    if (messageHandler) {
+      process.removeListener('message', messageHandler);
+    }
+    process.disconnect();
     process.exit(1);
   }
 }
