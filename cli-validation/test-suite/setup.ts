@@ -144,15 +144,7 @@ export async function validateCLIBinary(cliPath: string): Promise<void> {
  * Get the version string from a CLI binary
  */
 async function getCLIVersion(cliPath: string): Promise<string> {
-  const isPythonCLI = cliPath.includes(".venv/bin/dr");
-
-  let versionCommand: string;
-  if (isPythonCLI) {
-    // Try python3 first, fall back to direct execution
-    versionCommand = `${cliPath} --version`;
-  } else {
-    versionCommand = `${cliPath} --version`;
-  }
+  const versionCommand = `${cliPath} --version`;
 
   try {
     const { stdout } = await execAsync(versionCommand);

@@ -364,16 +364,12 @@ async function runTestSuite(): Promise<void> {
     // Store paths for cleanup in error handler
     cleanupPaths = paths;
 
-    // Create test runner config using the primary (first) worker
-    const testConfig: TestRunnerConfig = {
-      tsCLI: config.tsCLI,
-      tsDir: join(primaryTsPath, MODEL_DIR),
-      testCaseDir: join(process.cwd(), 'test-cases'),
-    };
+    // Determine test case directory
+    const testCaseDir = join(process.cwd(), 'test-cases');
 
     // Load test suites
     console.log('Loading test cases...');
-    let testSuites = await loadTestSuites(testConfig.testCaseDir);
+    let testSuites = await loadTestSuites(testCaseDir);
     console.log(`✓ Loaded ${testSuites.length} test suites`);
 
     // Apply filters
@@ -402,7 +398,7 @@ async function runTestSuite(): Promise<void> {
       {
         tsCLI: config.tsCLI,
         tsDir: '', // Not used with workers (each worker gets its own)
-        testCaseDir: testConfig.testCaseDir,
+        testCaseDir,
       },
       reporter,
       options,

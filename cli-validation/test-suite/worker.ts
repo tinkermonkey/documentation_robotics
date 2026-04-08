@@ -15,12 +15,7 @@ import {
   PipelineResult,
 } from './pipeline.js';
 import { join } from 'node:path';
-import { TestRunnerConfig, WorkerAssignment, WorkerResult, FastFailSignal } from './types.js';
-
-/**
- * Path to model directory within baseline (for easier updates if structure changes)
- */
-const MODEL_DIR = 'documentation-robotics/model';
+import { TestRunnerConfig, WorkerAssignment, WorkerResult } from './types.js';
 
 /**
  * Output buffer for capturing console output during suite execution
