@@ -21,6 +21,7 @@ import {
 import { ConsoleReporter } from './reporters/console-reporter.js';
 import { JUnitReporter } from './reporters/junit-reporter.js';
 import { Reporter } from './reporters/reporter.js';
+import { mergeResults } from './reporters/result-merger.js';
 import { parseRunnerArgs, RunnerOptions, matchesFilters } from './runner-config.js';
 import { scheduleSuites } from './scheduler.js';
 import { TestRunnerConfig, WorkerResult } from './types.js';
@@ -190,8 +191,8 @@ async function executeWithWorkers(
   // Wait for all workers to complete
   const allResults = await Promise.all(workerPromises);
 
-  // Flatten results
-  const results: SuiteResult[] = allResults.flat();
+  // Merge results from all workers into a single array
+  const results: SuiteResult[] = mergeResults(allResults);
 
   // Report results
   for (const result of results) {
