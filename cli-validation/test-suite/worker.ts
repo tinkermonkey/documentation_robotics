@@ -290,6 +290,9 @@ async function runWorker(): Promise<void> {
     const messageHandler = (msg: unknown) => {
       // Type narrowing: check if this is a valid object with a type property
       if (typeof msg !== 'object' || msg === null) {
+        console.error(
+          `[Worker] Received malformed IPC message (non-object): ${typeof msg}`
+        );
         return; // Ignore non-object messages
       }
 
@@ -313,6 +316,11 @@ async function runWorker(): Promise<void> {
         if (message.type === 'fast-fail') {
           return;
         }
+        // Log malformed messages that don't match assignment structure
+        console.error(
+          `[Worker] Received malformed IPC message before assignment: ${JSON.stringify(Object.keys(message))}`
+        );
+        return;
       }
 
       // After assignment is received, handle fast-fail signals
@@ -354,13 +362,19 @@ async function runWorker(): Promise<void> {
     output.writeLine(`\nWorker ${workerId + 1} completed (${results.length} suite(s) executed)`);
 
     // Send results back to parent
-    if (process.send) {
-      process.send({
-        workerId,
-        results,
-        output: output.getOutput(),
-      } as WorkerResult);
+    if (!process.send) {
+      const errorMsg =
+        'IPC channel unavailable: unable to send results back to parent process';
+      console.error(`[Worker] ${errorMsg}`);
+      output.writeLine(`\n[Worker] ERROR: ${errorMsg}`);
+      process.exit(1);
     }
+
+    process.send({
+      workerId,
+      results,
+      output: output.getOutput(),
+    } as WorkerResult);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     output.writeLine(`\nWorker error: ${errorMsg}`);
@@ -368,13 +382,21 @@ async function runWorker(): Promise<void> {
       output.writeLine(`Stack trace: ${error.stack}`);
     }
 
-    if (process.send) {
-      process.send({
-        workerId: -1,
-        results: [],
-        output: output.getOutput(),
-      } as WorkerResult);
+    // Send error result with actual workerId from assignment (or -1 if assignment failed)
+    const errorWorkerId = assignment ? assignment.workerId : -1;
+
+    if (!process.send) {
+      const sendError = 'IPC channel unavailable: unable to send error to parent process';
+      console.error(`[Worker] ${sendError}`);
+      output.writeLine(`\n[Worker] ERROR: ${sendError}`);
+      process.exit(1);
     }
+
+    process.send({
+      workerId: errorWorkerId,
+      results: [],
+      output: output.getOutput(),
+    } as WorkerResult);
     process.exit(1);
   }
 }

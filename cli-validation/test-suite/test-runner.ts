@@ -115,6 +115,9 @@ async function executeWithWorkers(
   const workers = new Map<number, ChildProcess>();
   let shouldStopAllWorkers = false;
 
+  // Worker timeout: 60 minutes per worker (generous upper bound)
+  const WORKER_TIMEOUT = 60 * 60 * 1000;
+
   // Create worker processes
   const workerPromises: Promise<SuiteResult[]>[] = [];
 
@@ -131,11 +134,41 @@ async function executeWithWorkers(
 
       workers.set(workerId, worker);
 
+      // Drain stdout/stderr to prevent deadlock when buffer fills up
+      if (worker.stdout) {
+        worker.stdout.on('data', () => {
+          // Consume data to drain the pipe
+        });
+      }
+      if (worker.stderr) {
+        worker.stderr.on('data', () => {
+          // Consume data to drain the pipe
+        });
+      }
+
       // Handle messages from worker
       let resultData: WorkerResult | null = null;
+      let timeoutHandle: NodeJS.Timeout | null = null;
+
+      // Set timeout for this worker
+      timeoutHandle = setTimeout(() => {
+        if (!resultData) {
+          const error = new Error(
+            `Worker ${workerId + 1} exceeded timeout of ${WORKER_TIMEOUT}ms with no response`
+          );
+          console.error(`⚠ ${error.message}`);
+          worker.kill();
+          reject(error);
+        }
+      }, WORKER_TIMEOUT);
 
       worker.on('message', (msg: WorkerResult) => {
         resultData = msg;
+
+        // Clear timeout on successful message
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
 
         // Display buffered output from worker
         if (msg.output) {
@@ -161,11 +194,17 @@ async function executeWithWorkers(
       });
 
       worker.on('error', (error) => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
         console.error(`Worker ${workerId + 1} error:`, error);
         reject(error);
       });
 
       worker.on('exit', (code) => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
         if (code !== 0 && !resultData) {
           reject(new Error(`Worker ${workerId + 1} exited with code ${code}`));
         }
@@ -187,7 +226,7 @@ async function executeWithWorkers(
     workerPromises.push(promise);
   }
 
-  // Wait for all workers to complete
+  // Wait for all workers to complete with race condition for timeouts
   const allResults = await Promise.all(workerPromises);
 
   const results: SuiteResult[] = allResults.flat();
