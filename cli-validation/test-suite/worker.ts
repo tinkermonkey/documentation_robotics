@@ -305,9 +305,7 @@ async function runWorker(): Promise<void> {
           'workerId' in message
         ) {
           assignmentReceived = true;
-          // Remove this handler after assignment is received
-          process.removeListener('message', messageHandler);
-          // Resolve with the assignment
+          // Resolve with the assignment (handler stays registered to listen for fast-fail)
           resolve(message as unknown as WorkerAssignment);
           return;
         }
