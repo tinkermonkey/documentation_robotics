@@ -12,7 +12,7 @@ import { glob } from 'glob';
 import { fork, type ChildProcess } from 'node:child_process';
 import YAML from 'yaml';
 
-import { initializeMultiWorkerTestEnvironment, cleanupMultiWorkerTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
+import { initializeMultiWorkerTestEnvironment, cleanupMultiWorkerTestArtifacts, validateBaselineIntegrity, validateWorkerBaselineIntegrity, BaselineContaminationError } from './setup.js';
 import {
   TestSuite,
   SuiteResult,
@@ -460,6 +460,30 @@ async function runTestSuite(): Promise<void> {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.error('⚠ Could not validate baseline integrity (may indicate missing git or workspace issue):');
         console.error(`   ${errorMsg}`);
+      }
+    }
+
+    // Validate each worker's baseline copy for contamination
+    // This detects if tests modified files within the worker's isolated baseline copy
+    for (let i = 0; i < cleanupPaths.tsPaths.length; i++) {
+      const workerPath = cleanupPaths.tsPaths[i];
+      const workerId = i + 1;
+
+      try {
+        await validateWorkerBaselineIntegrity(workerPath);
+        console.log(`✓ Worker ${workerId} baseline integrity verified - no contamination detected`);
+      } catch (error) {
+        if (error instanceof BaselineContaminationError) {
+          // Worker contamination is a test failure - indicates test isolation issues
+          baselineContaminated = true;
+          console.error(`⚠ Worker ${workerId} baseline contamination detected:`);
+          console.error(`   ${error.message}`);
+        } else {
+          // Checksum computation failures are diagnostic warnings, not test failures
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.error(`⚠ Could not validate Worker ${workerId} baseline integrity:`);
+          console.error(`   ${errorMsg}`);
+        }
       }
     }
 

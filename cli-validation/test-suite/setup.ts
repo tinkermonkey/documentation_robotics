@@ -5,12 +5,13 @@
  * Implements clean-room pattern: fresh copies of baseline for each test run.
  */
 
-import { cp, rm } from "node:fs/promises";
+import { cp, rm, readdir, stat } from "node:fs/promises";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import * as yaml from "yaml";
+import { createHash } from "node:crypto";
 
 const execAsync = promisify(exec);
 
@@ -354,6 +355,16 @@ async function setupAndUpdateManifests(
 
     // Update cli_version in manifest for this copy
     await updateManifestCLIVersion(tsPath, config.tsCLI);
+
+    // Compute and store checksums for baseline integrity validation
+    try {
+      await storeWorkerBaselineChecksums(tsPath);
+    } catch (error) {
+      const label = tsPaths.length === 1 ? 'ts-cli' : `ts-cli-${i + 1}`;
+      throw new Error(
+        `Failed to compute baseline checksums for ${label}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   // Update cli_version in Python CLI manifest if available
@@ -462,6 +473,127 @@ export async function validateBaselineIntegrity(baselinePath: string): Promise<v
   if (gitResult.trim() !== '') {
     throw new BaselineContaminationError(
       `Baseline directory has uncommitted changes (test isolation issue):\n${gitResult}`
+    );
+  }
+}
+
+/**
+ * Compute SHA256 hash of a file's contents
+ * @param filePath - Path to the file
+ * @returns SHA256 hash in hex format
+ */
+async function computeFileHash(filePath: string): Promise<string> {
+  const content = await readFile(filePath);
+  return createHash('sha256').update(content).digest('hex');
+}
+
+/**
+ * Recursively compute checksums for all files in a directory
+ * @param dirPath - Path to the directory
+ * @param fileChecksums - Map to accumulate file paths and their checksums
+ * @param relativePath - Relative path from the root directory (for consistent key format)
+ */
+async function computeDirectoryChecksums(
+  dirPath: string,
+  fileChecksums: Map<string, string> = new Map(),
+  relativePath: string = ''
+): Promise<Map<string, string>> {
+  const entries = await readdir(dirPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    // Skip git and node_modules directories
+    if (entry.name === '.git' || entry.name === 'node_modules') {
+      continue;
+    }
+
+    const fullPath = join(dirPath, entry.name);
+    const relPath = relativePath ? join(relativePath, entry.name) : entry.name;
+
+    if (entry.isDirectory()) {
+      await computeDirectoryChecksums(fullPath, fileChecksums, relPath);
+    } else if (entry.isFile()) {
+      const hash = await computeFileHash(fullPath);
+      fileChecksums.set(relPath, hash);
+    }
+  }
+
+  return fileChecksums;
+}
+
+/**
+ * Compute and store checksums for a worker baseline copy
+ * Checksums are stored in a hidden file alongside the worker directory
+ * @param workerPath - Path to the worker directory (e.g., ts-cli-1)
+ */
+async function storeWorkerBaselineChecksums(workerPath: string): Promise<void> {
+  const checksumFile = join(workerPath, '.baseline-checksums.json');
+
+  // Compute checksums for the documentation-robotics model directory
+  const modelDir = join(workerPath, 'documentation-robotics/model');
+  const checksums = await computeDirectoryChecksums(modelDir);
+
+  // Store checksums
+  const checksumData = {
+    timestamp: new Date().toISOString(),
+    checksums: Object.fromEntries(checksums),
+  };
+
+  await writeFile(checksumFile, JSON.stringify(checksumData, null, 2), 'utf-8');
+}
+
+/**
+ * Validate a worker's baseline copy against stored checksums
+ * @throws BaselineContaminationError if files have been modified or deleted
+ * @throws Error if checksums cannot be computed or loaded
+ */
+export async function validateWorkerBaselineIntegrity(workerPath: string): Promise<void> {
+  const checksumFile = join(workerPath, '.baseline-checksums.json');
+
+  // Load stored checksums
+  let storedChecksumData: { checksums: Record<string, string> };
+  try {
+    const content = await readFile(checksumFile, 'utf-8');
+    storedChecksumData = JSON.parse(content);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to load baseline checksums for worker at ${workerPath}: ${errorMsg}`);
+  }
+
+  const storedChecksums = new Map(Object.entries(storedChecksumData.checksums));
+
+  // Compute current checksums
+  const modelDir = join(workerPath, 'documentation-robotics/model');
+  let currentChecksums: Map<string, string>;
+  try {
+    currentChecksums = await computeDirectoryChecksums(modelDir);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to compute baseline checksums for worker at ${workerPath}: ${errorMsg}`);
+  }
+
+  // Compare checksums
+  const modifications: string[] = [];
+
+  // Check for modified or deleted files
+  for (const [filePath, storedHash] of storedChecksums.entries()) {
+    const currentHash = currentChecksums.get(filePath);
+    if (!currentHash) {
+      modifications.push(`  - DELETED: ${filePath}`);
+    } else if (currentHash !== storedHash) {
+      modifications.push(`  - MODIFIED: ${filePath}`);
+    }
+  }
+
+  // Check for added files
+  for (const filePath of currentChecksums.keys()) {
+    if (!storedChecksums.has(filePath)) {
+      modifications.push(`  - ADDED: ${filePath}`);
+    }
+  }
+
+  if (modifications.length > 0) {
+    throw new BaselineContaminationError(
+      `Worker baseline copy at ${workerPath} has been contaminated (test isolation issue):\n${modifications.join('\n')}`
     );
   }
 }
