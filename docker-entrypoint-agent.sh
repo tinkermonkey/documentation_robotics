@@ -17,6 +17,14 @@ case ":${PATH}:" in
   *) export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH}" ;;
 esac
 
+# ============================================================================
+# Disable keyring/dbus for gh CLI (belt-and-suspenders)
+# ============================================================================
+# The Dockerfile sets ENV GH_NO_KEYRING=1, but runtime environments (CI, docker
+# run -e) can override it. Force-export here to guarantee gh never attempts
+# dbus-launch for credential storage, which fails in headless containers.
+export GH_NO_KEYRING=1
+
 # Ensure /tmp is available and writable for test tmpdir operations.
 # Tests create temporary directories under /tmp (golden copy cloning, test
 # workdirs). If /tmp doesn't exist or isn't writable, tests fail with
