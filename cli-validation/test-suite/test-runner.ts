@@ -1,32 +1,28 @@
 /**
  * Test Suite Execution Engine
  *
- * Loads YAML test cases, executes pipelines against the TypeScript CLI,
- * compares filesystem state, and generates reports.
+ * Loads YAML test cases, distributes them across workers via scheduler,
+ * executes pipelines against the TypeScript CLI, compares filesystem state,
+ * and generates reports. Each worker has its own isolated baseline copy.
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { dirname } from 'node:path';
+import { join, dirname } from 'node:path';
 import { glob } from 'glob';
+import { fork } from 'node:child_process';
 import YAML from 'yaml';
 
 import { initializeMultiWorkerTestEnvironment, cleanupMultiWorkerTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
-import { captureSnapshot, captureTargetedSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
-import { executeCommand, CommandOutput } from './executor.js';
 import {
   TestSuite,
-  Pipeline,
-  PipelineStep,
-  StepResult,
-  PipelineResult,
   SuiteResult,
   TestRunSummary,
 } from './pipeline.js';
-import { ConsoleReporter, formatConsoleReport } from './reporters/console-reporter.js';
-import { JUnitReporter, formatJunitReport } from './reporters/junit-reporter.js';
+import { ConsoleReporter } from './reporters/console-reporter.js';
+import { JUnitReporter } from './reporters/junit-reporter.js';
 import { Reporter } from './reporters/reporter.js';
 import { parseRunnerArgs, RunnerOptions, matchesFilters } from './runner-config.js';
+import { scheduleSuites } from './scheduler.js';
 
 /**
  * Main test runner configuration
@@ -69,206 +65,6 @@ async function loadTestSuites(testCaseDir: string): Promise<TestSuite[]> {
   return suites;
 }
 
-/**
- * Validate a single step's expectations
- * Validates exit codes, output content, and filesystem changes
- */
-function validateStep(
-  step: PipelineStep,
-  tsOutput: CommandOutput,
-  tsChanges: Array<{ path: string; type: string }>
-): StepResult {
-  const failures: string[] = [];
-
-  // Validate exit codes
-  const expectedExitCode = step.expect_exit_code ?? 0;
-  if (tsOutput.exitCode !== expectedExitCode) {
-    failures.push(
-      `CLI exit code: expected ${expectedExitCode}, got ${tsOutput.exitCode}`
-    );
-  }
-
-  // Validate stdout contains
-  if (step.expect_stdout_contains) {
-    for (const expected of step.expect_stdout_contains) {
-      if (!tsOutput.stdout.includes(expected)) {
-        failures.push(`stdout missing: "${expected}"`);
-      }
-    }
-  }
-
-  // Validate stderr contains
-  if (step.expect_stderr_contains) {
-    for (const expected of step.expect_stderr_contains) {
-      if (!tsOutput.stderr.includes(expected)) {
-        failures.push(`stderr missing: "${expected}"`);
-      }
-    }
-  }
-
-  // Validate filesystem changes match expected files
-  for (const expectedFile of step.files_to_compare) {
-    const tsModified = tsChanges.some(
-      (c) => c.path === expectedFile && c.type !== 'unchanged'
-    );
-
-    if (!tsModified) {
-      failures.push(`Did not modify expected file: ${expectedFile}`);
-    }
-  }
-
-  // Map filesystem changes to proper types
-  const typedChanges = tsChanges.map((c) => ({
-    path: c.path,
-    type: c.type === 'added' || c.type === 'deleted' || c.type === 'modified'
-      ? c.type as 'added' | 'deleted' | 'modified'
-      : 'modified' as const,
-  }));
-
-  return {
-    command: step.command,
-    pythonOutput: {
-      stdout: '',
-      stderr: '',
-      exitCode: 0,
-      duration: 0,
-    },
-    tsOutput,
-    filesystemDiff: {
-      python: [],
-      ts: typedChanges,
-    },
-    passed: failures.length === 0,
-    failures,
-  };
-}
-
-/**
- * Determine which snapshot mode to use based on step configuration
- *
- * Mode 1 (Targeted): Non-empty files_to_compare → read only specified files
- * Mode 2 (Skip): Empty files_to_compare with only stdout/stderr assertions → no snapshots
- * Mode 3 (Full): All other cases → full directory walk (safety net)
- */
-function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full' {
-  // Mode 1: Non-empty files_to_compare
-  if (step.files_to_compare && step.files_to_compare.length > 0) {
-    return 'targeted';
-  }
-
-  // Mode 2: Empty files_to_compare with stdout/stderr assertions
-  if (
-    (!step.files_to_compare || step.files_to_compare.length === 0) &&
-    (step.expect_stdout_contains || step.expect_stderr_contains)
-  ) {
-    return 'skip';
-  }
-
-  // Mode 3: Full walk (default for everything else)
-  return 'full';
-}
-
-/**
- * Execute a single pipeline
- */
-async function executePipeline(
-  pipeline: Pipeline,
-  config: TestRunnerConfig
-): Promise<PipelineResult> {
-  const stepResults: StepResult[] = [];
-  const startTime = Date.now();
-
-  for (const step of pipeline.steps) {
-    console.log(`    Step: ${step.command}`);
-
-    // Determine snapshot mode for this step
-    const snapshotMode = getSnapshotMode(step);
-
-    // Capture before snapshot (skip mode: no snapshot needed)
-    const tsBefore =
-      snapshotMode === 'skip'
-        ? { timestamp: Date.now(), directory: config.tsDir, files: new Map() }
-        : snapshotMode === 'targeted'
-          ? await captureTargetedSnapshot(config.tsDir, step.files_to_compare)
-          : await captureSnapshot(config.tsDir);
-
-    // Execute command on TypeScript CLI
-    const timeout = step.timeout ?? 30000;
-    const tsOutput = await executeCommand(
-      `${config.tsCLI} ${step.command}`,
-      config.tsDir,
-      timeout
-    );
-
-    // Capture after snapshot (skip mode: no snapshot needed)
-    const tsAfter =
-      snapshotMode === 'skip'
-        ? { timestamp: Date.now(), directory: config.tsDir, files: new Map() }
-        : snapshotMode === 'targeted'
-          ? await captureTargetedSnapshot(config.tsDir, step.files_to_compare)
-          : await captureSnapshot(config.tsDir);
-
-    // Compare filesystem changes
-    const tsResult = compareSnapshots(tsBefore, tsAfter);
-
-    // Validate results
-    const result = validateStep(
-      step,
-      tsOutput,
-      tsResult.changes.map((c) => ({ path: c.path, type: c.type }))
-    );
-
-    stepResults.push(result);
-
-    if (!result.passed) {
-      console.error(`      ✗ FAILED`);
-      for (const failure of result.failures) {
-        console.error(`        - ${failure}`);
-      }
-      // Stop pipeline on first failure
-      break;
-    } else {
-      console.log(`      ✓ PASSED`);
-    }
-  }
-
-  const totalDuration = Date.now() - startTime;
-
-  return {
-    name: pipeline.name,
-    passed: stepResults.every((s) => s.passed),
-    steps: stepResults,
-    totalDuration,
-  };
-}
-
-/**
- * Execute a single test suite
- */
-async function executeSuite(
-  suite: TestSuite,
-  config: TestRunnerConfig
-): Promise<SuiteResult> {
-  console.log(`\nRunning suite: ${suite.name} [${suite.priority}]`);
-
-  const pipelineResults: PipelineResult[] = [];
-  const startTime = Date.now();
-
-  for (const pipeline of suite.pipelines) {
-    console.log(`  Pipeline: ${pipeline.name}`);
-    pipelineResults.push(await executePipeline(pipeline, config));
-  }
-
-  const totalDuration = Date.now() - startTime;
-
-  return {
-    name: suite.name,
-    priority: suite.priority,
-    passed: pipelineResults.every((p) => p.passed),
-    pipelines: pipelineResults,
-    totalDuration,
-  };
-}
 
 /**
  * Generate summary statistics
@@ -305,6 +101,129 @@ function generateSummary(results: SuiteResult[]): TestRunSummary {
     totalDuration,
     results,
   };
+}
+
+/**
+ * Interface for worker result from IPC
+ */
+interface WorkerResult {
+  workerId: number;
+  results: SuiteResult[];
+  output: string;
+}
+
+/**
+ * Execute test suites using worker processes
+ * Returns collected results from all workers and handles fast-fail signaling
+ */
+async function executeWithWorkers(
+  filteredSuites: TestSuite[],
+  workerCount: number,
+  testConfig: TestRunnerConfig,
+  reporter: Reporter,
+  options: RunnerOptions,
+  tsPaths: string[]
+): Promise<SuiteResult[]> {
+  // Schedule suites across workers
+  const schedule = scheduleSuites(filteredSuites, workerCount);
+
+  // Track active workers
+  const workers = new Map<number, ChildProcess>();
+  const workerResults = new Map<number, WorkerResult>();
+  let shouldStopAllWorkers = false;
+
+  // Create worker processes
+  const workerPromises: Promise<SuiteResult[]>[] = [];
+
+  for (let workerId = 0; workerId < workerCount; workerId++) {
+    const suites = schedule.get(workerId) || [];
+
+    const promise = new Promise<SuiteResult[]>((resolve, reject) => {
+      // Fork worker process
+      // Use the TypeScript file directly - runner is executed from test-suite directory
+      const worker = fork('./worker.ts', [], {
+        silent: true, // Capture stdout/stderr
+        execArgv: ['--import', 'tsx'], // Use tsx to run TypeScript
+      });
+
+      workers.set(workerId, worker);
+
+      // Handle messages from worker
+      let resultData: WorkerResult | null = null;
+
+      worker.on('message', (msg: WorkerResult) => {
+        resultData = msg;
+
+        // Display buffered output from worker
+        if (msg.output) {
+          console.log('\n' + '='.repeat(70));
+          console.log(`Worker ${workerId + 1} Output:`);
+          console.log('='.repeat(70));
+          console.log(msg.output);
+          console.log('='.repeat(70));
+        }
+
+        // Check for failures in fast-fail mode
+        if (options.fastFail && msg.results.some((r) => !r.passed)) {
+          shouldStopAllWorkers = true;
+          // Signal all other workers to stop
+          for (const [otherId, otherWorker] of workers.entries()) {
+            if (otherId !== workerId && otherWorker) {
+              otherWorker.send({ type: 'fast-fail' });
+            }
+          }
+        }
+
+        resolve(msg.results);
+      });
+
+      worker.on('error', (error) => {
+        console.error(`Worker ${workerId + 1} error:`, error);
+        reject(error);
+      });
+
+      worker.on('exit', (code) => {
+        if (code !== 0 && !resultData) {
+          reject(new Error(`Worker ${workerId + 1} exited with code ${code}`));
+        }
+      });
+
+      // Send assignment to worker
+      worker.send({
+        suites,
+        config: {
+          tsCLI: testConfig.tsCLI,
+          tsDir: join(tsPaths[workerId], MODEL_DIR),
+          testCaseDir: testConfig.testCaseDir,
+        },
+        workdirPath: tsPaths[workerId],
+        workerId,
+      });
+    });
+
+    workerPromises.push(promise);
+  }
+
+  // Wait for all workers to complete
+  const allResults = await Promise.all(workerPromises);
+
+  // Flatten results
+  const results: SuiteResult[] = allResults.flat();
+
+  // Report results
+  for (const result of results) {
+    reporter.onSuiteComplete(
+      {
+        name: result.name,
+        description: '',
+        priority: result.priority,
+        pipelines: [],
+      },
+      result
+    );
+  }
+
+  return results;
 }
 
 /**
@@ -377,24 +296,23 @@ async function runTestSuite(): Promise<void> {
     // Create reporter instance
     const reporter = createReporter(options);
 
-    // Execute test suites
+    // Execute test suites using workers
     const startTime = Date.now();
-    const results: SuiteResult[] = [];
+    console.log(`Scheduling ${testSuites.length} suite(s) across ${options.workers} worker(s)...`);
+    console.log('');
 
-    for (const suite of testSuites) {
-      reporter.onSuiteStart(suite);
-      const suiteResult = await executeSuite(suite, testConfig);
-      results.push(suiteResult);
-      reporter.onSuiteComplete(suite, suiteResult);
-
-      // Fast-fail mode: stop on first failure
-      if (options.fastFail && !suiteResult.passed) {
-        console.error('\n' + '✗'.repeat(70));
-        console.error('Fast-fail mode enabled, stopping test suite');
-        console.error('✗'.repeat(70));
-        break;
-      }
-    }
+    const results = await executeWithWorkers(
+      testSuites,
+      options.workers,
+      {
+        tsCLI: config.tsCLI,
+        tsDir: '', // Not used with workers (each worker gets its own)
+        testCaseDir: testConfig.testCaseDir,
+      },
+      reporter,
+      options,
+      cleanupPaths.tsPaths
+    );
 
     // Generate summary
     const summary = generateSummary(results);
