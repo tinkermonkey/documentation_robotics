@@ -173,18 +173,22 @@ async function executePipeline(
     // Determine snapshot mode for this step
     const snapshotMode = getSnapshotMode(step);
 
-    // Determine snapshot root: use project root for captures so export files are detected
-    // Files created by export commands will be in the project root (workdirPath)
-    const snapshotRoot = workdirPath;
+    // Determine snapshot root and actual file paths to capture
+    // Export files (export-*.json, export-*.xml, export-*.puml, export-*.md, export-*.graphml)
+    // are created at the project root (workdirPath), not in the model directory
+    let snapshotRoot = config.tsDir;
+    let snapshotFilePaths = step.files_to_compare;
 
-    // For targeted snapshots, transform paths relative to model dir to absolute paths
-    let snapshotFiles = step.files_to_compare;
     if (snapshotMode === 'targeted') {
-      // Convert model-relative paths to be relative to project root
-      // This handles both model files (documentation-robotics/model/...) and export files (root level)
-      snapshotFiles = step.files_to_compare.map(f =>
-        f.startsWith('documentation-robotics/') ? f : `documentation-robotics/model/${f}`
-      );
+      // Check if any files are export files (at project root level)
+      const hasExportFiles = step.files_to_compare.some(f => f.startsWith('export-'));
+
+      if (hasExportFiles) {
+        // Capture from project root for export files
+        snapshotRoot = workdirPath;
+        // Keep file paths as-is since they're already at project root level
+        snapshotFilePaths = step.files_to_compare;
+      }
     }
 
     // Capture before snapshot (skip mode: no snapshot needed)
@@ -192,7 +196,7 @@ async function executePipeline(
       snapshotMode === 'skip'
         ? { timestamp: Date.now(), directory: snapshotRoot, files: new Map() }
         : snapshotMode === 'targeted'
-          ? await captureTargetedSnapshot(snapshotRoot, snapshotFiles)
+          ? await captureTargetedSnapshot(snapshotRoot, snapshotFilePaths)
           : await captureSnapshot(snapshotRoot);
 
     // Execute command on TypeScript CLI from the project root (not model directory)
@@ -209,7 +213,7 @@ async function executePipeline(
       snapshotMode === 'skip'
         ? { timestamp: Date.now(), directory: snapshotRoot, files: new Map() }
         : snapshotMode === 'targeted'
-          ? await captureTargetedSnapshot(snapshotRoot, snapshotFiles)
+          ? await captureTargetedSnapshot(snapshotRoot, snapshotFilePaths)
           : await captureSnapshot(snapshotRoot);
 
     // Compare filesystem changes
