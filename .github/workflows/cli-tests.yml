@@ -65,6 +65,48 @@ jobs:
         working-directory: ./cli
         run: npm run test:smoke
 
+  regression-and-extended:
+    name: Regression & Extended Tests
+    runs-on: ubuntu-latest
+    # Run on PRs (non-draft), pushes, and manual triggers
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: ./cli
+        run: npm install
+
+      - name: Build CLI
+        working-directory: ./cli
+        run: npm run build:ci
+
+      - name: Run regression tests
+        working-directory: ./cli
+        timeout-minutes: 30
+        run: npm test
+
+      - name: Run extended tests (excluded from default regression)
+        working-directory: ./cli
+        timeout-minutes: 15
+        run: npm run test:extended
+
   test-comprehensive:
     name: Comprehensive Tests (Visualization + Performance)
     runs-on: ubuntu-latest
