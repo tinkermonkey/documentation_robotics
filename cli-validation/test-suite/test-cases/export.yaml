@@ -69,4 +69,3 @@ pipelines:
         expect_stdout_contains:
           - "Exported"
         timeout: 60000
-
