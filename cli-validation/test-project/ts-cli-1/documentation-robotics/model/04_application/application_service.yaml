@@ -1,8 +1,0 @@
-application.applicationservice.todo-api-service:
-  id: fc4edd48-8375-4904-a80c-07fa4a2890b2
-  path: application.applicationservice.todo-api-service
-  spec_node_id: application.applicationservice
-  type: service
-  layer_id: application
-  name: Todo API Service
-  description: Application service implementing task management
