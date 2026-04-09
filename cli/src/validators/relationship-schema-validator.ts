@@ -81,46 +81,42 @@ export class RelationshipValidator {
    * Load relationship schemas from compiled bundled spec (manifest.json + per-layer JSON files)
    */
   private async loadRelationshipSchemas(): Promise<void> {
-    try {
-      const manifestPath = path.join(this.schemasDir, "manifest.json");
+    const manifestPath = path.join(this.schemasDir, "manifest.json");
 
-      if (!existsSync(manifestPath)) {
-        throw new Error(`Bundled manifest not found at ${manifestPath}`);
+    if (!existsSync(manifestPath)) {
+      throw new Error(`Bundled manifest not found at ${manifestPath}`);
+    }
+
+    const manifestContent = await readFile(manifestPath);
+    const manifest = JSON.parse(manifestContent) as ManifestDistFile;
+
+    for (const { id: layerId } of manifest.layers) {
+      const layerPath = path.join(this.schemasDir, `${layerId}.json`);
+      if (!existsSync(layerPath)) {
+        continue;
       }
 
-      const manifestContent = await readFile(manifestPath);
-      const manifest = JSON.parse(manifestContent) as ManifestDistFile;
+      try {
+        const layerContent = await readFile(layerPath);
+        const layerData = JSON.parse(layerContent) as LayerDistFile;
 
-      for (const { id: layerId } of manifest.layers) {
-        const layerPath = path.join(this.schemasDir, `${layerId}.json`);
-        if (!existsSync(layerPath)) {
-          continue;
+        for (const [relId, relSchema] of Object.entries(layerData.relationshipSchemas || {})) {
+          this.relationshipSchemas.set(relId, {
+            id: relSchema.id || relId,
+            source_spec_node_id: relSchema.source_spec_node_id || "",
+            source_layer: relSchema.source_layer || "",
+            destination_spec_node_id: relSchema.destination_spec_node_id || "",
+            destination_layer: relSchema.destination_layer || "",
+            predicate: relSchema.predicate || "",
+            cardinality: relSchema.cardinality || "many-to-many",
+            strength: relSchema.strength || "medium",
+            required: relSchema.required || false,
+            attributes: relSchema.attributes,
+          });
         }
-
-        try {
-          const layerContent = await readFile(layerPath);
-          const layerData = JSON.parse(layerContent) as LayerDistFile;
-
-          for (const [relId, relSchema] of Object.entries(layerData.relationshipSchemas || {})) {
-            this.relationshipSchemas.set(relId, {
-              id: relSchema.id || relId,
-              source_spec_node_id: relSchema.source_spec_node_id || "",
-              source_layer: relSchema.source_layer || "",
-              destination_spec_node_id: relSchema.destination_spec_node_id || "",
-              destination_layer: relSchema.destination_layer || "",
-              predicate: relSchema.predicate || "",
-              cardinality: relSchema.cardinality || "many-to-many",
-              strength: relSchema.strength || "medium",
-              required: relSchema.required || false,
-              attributes: relSchema.attributes,
-            });
-          }
-        } catch (error: any) {
-          throw new Error(`Failed to load relationship schemas for layer '${layerId}': ${error.message}`);
-        }
+      } catch (error: any) {
+        throw new Error(`Failed to load relationship schemas for layer '${layerId}': ${error.message}`);
       }
-    } catch (error: any) {
-      throw new Error(`Failed to load relationship schemas: ${error.message}`);
     }
   }
 
@@ -143,13 +139,16 @@ export class RelationshipValidator {
           const result = new ValidationResult();
           result.addError({
             layer: "system",
-            message: `Failed to load relationship schemas: ${error.message}. Relationship validation is not available.`,
+            message: `${error.message} Relationship validation is not available.`,
           });
           return result;
         }
       }
 
-      // Double-check that schemas were actually loaded
+      // Verify schemas were loaded. This covers two cases:
+      // 1. initialize() succeeded but the manifest has no layers with relationship schemas
+      // 2. Edge case where manifest exists but is empty
+      // In both cases, relationship validation cannot proceed.
       if (this.relationshipSchemas.size === 0) {
         const result = new ValidationResult();
         result.addError({
