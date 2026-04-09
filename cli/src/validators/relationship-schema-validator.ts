@@ -85,8 +85,7 @@ export class RelationshipValidator {
       const manifestPath = path.join(this.schemasDir, "manifest.json");
 
       if (!existsSync(manifestPath)) {
-        console.warn(`Bundled manifest not found at ${manifestPath}`);
-        return;
+        throw new Error(`Bundled manifest not found at ${manifestPath}`);
       }
 
       const manifestContent = await readFile(manifestPath);
@@ -117,11 +116,11 @@ export class RelationshipValidator {
             });
           }
         } catch (error: any) {
-          console.warn(`Failed to load relationship schemas for layer '${layerId}': ${error.message}`);
+          throw new Error(`Failed to load relationship schemas for layer '${layerId}': ${error.message}`);
         }
       }
     } catch (error: any) {
-      console.warn(`Failed to load relationship schemas: ${error.message}`);
+      throw new Error(`Failed to load relationship schemas: ${error.message}`);
     }
   }
 
@@ -138,7 +137,26 @@ export class RelationshipValidator {
     try {
       // Ensure schemas are loaded
       if (this.relationshipSchemas.size === 0) {
-        await this.initialize();
+        try {
+          await this.initialize();
+        } catch (error: any) {
+          const result = new ValidationResult();
+          result.addError({
+            layer: "system",
+            message: `Failed to load relationship schemas: ${error.message}. Relationship validation is not available.`,
+          });
+          return result;
+        }
+      }
+
+      // Double-check that schemas were actually loaded
+      if (this.relationshipSchemas.size === 0) {
+        const result = new ValidationResult();
+        result.addError({
+          layer: "system",
+          message: `No relationship schemas loaded from ${path.join(this.schemasDir, "manifest.json")}. Relationship validation is not available.`,
+        });
+        return result;
       }
 
       const result = new ValidationResult();
@@ -224,10 +242,15 @@ export class RelationshipValidator {
     const sourceLayer = sourceElement.layer_id || sourceElement.layer || relationship.layer;
     const targetLayer = targetElement.layer_id || targetElement.layer || relationship.layer;
 
-    // Use spec_node_id directly to find relationship schema
+    // Use spec_node_id if present, otherwise construct from layer and type
     // spec_node_id contains the canonical type (e.g., "application.applicationservice")
-    const sourceSpecId = sourceElement.spec_node_id;
-    const targetSpecId = targetElement.spec_node_id;
+    // Guard against empty spec_node_id from older CLI versions or manually authored elements
+    const sourceSpecId = sourceElement.spec_node_id
+      ? sourceElement.spec_node_id
+      : `${sourceLayer}.${sourceElement.type}`;
+    const targetSpecId = targetElement.spec_node_id
+      ? targetElement.spec_node_id
+      : `${targetLayer}.${targetElement.type}`;
 
     // Find applicable relationship schema using actual source/target layers and spec node IDs
     // (not relationship.layer for both, which assumes intra-layer relationships)
@@ -239,8 +262,8 @@ export class RelationshipValidator {
 
     if (!schemaKey) {
       // Extract type names from spec_node_id for error message (e.g., "applicationservice" from "application.applicationservice")
-      const sourceType = sourceSpecId.split(".")[1] || "unknown";
-      const targetType = targetSpecId.split(".")[1] || "unknown";
+      const sourceType = sourceSpecId.includes(".") ? sourceSpecId.split(".")[1] : sourceElement.type;
+      const targetType = targetSpecId.includes(".") ? targetSpecId.split(".")[1] : targetElement.type;
       errors.push({
         layer: relationship.layer,
         elementId: relationship.source,
@@ -464,13 +487,16 @@ export class RelationshipValidator {
   /**
    * Find an element in the model by ID
    *
-   * Performs element lookup by UUID using the element's id field.
+   * Performs element lookup using Layer.getElement(), which supports multiple lookup strategies:
+   * - Direct lookup by graph key (path)
+   * - UUID lookup
+   * - Semantic ID lookup (for legacy format elements converted to UUID)
+   * - Element ID lookup
    *
-   * This matches the behavior of Layer.getElement() which relationships need for proper validation.
+   * This comprehensive lookup ensures elements are found regardless of how they were stored.
    */
   private findElementInModel(model: Model, elementId: string) {
     for (const layer of model.layers.values()) {
-      // Lookup element by UUID
       const element = layer.getElement(elementId);
       if (element) {
         return element;
