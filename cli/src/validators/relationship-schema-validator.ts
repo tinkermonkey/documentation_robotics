@@ -81,47 +81,42 @@ export class RelationshipValidator {
    * Load relationship schemas from compiled bundled spec (manifest.json + per-layer JSON files)
    */
   private async loadRelationshipSchemas(): Promise<void> {
-    try {
-      const manifestPath = path.join(this.schemasDir, "manifest.json");
+    const manifestPath = path.join(this.schemasDir, "manifest.json");
 
-      if (!existsSync(manifestPath)) {
-        console.warn(`Bundled manifest not found at ${manifestPath}`);
-        return;
+    if (!existsSync(manifestPath)) {
+      throw new Error(`Bundled manifest not found at ${manifestPath}`);
+    }
+
+    const manifestContent = await readFile(manifestPath);
+    const manifest = JSON.parse(manifestContent) as ManifestDistFile;
+
+    for (const { id: layerId } of manifest.layers) {
+      const layerPath = path.join(this.schemasDir, `${layerId}.json`);
+      if (!existsSync(layerPath)) {
+        continue;
       }
 
-      const manifestContent = await readFile(manifestPath);
-      const manifest = JSON.parse(manifestContent) as ManifestDistFile;
+      try {
+        const layerContent = await readFile(layerPath);
+        const layerData = JSON.parse(layerContent) as LayerDistFile;
 
-      for (const { id: layerId } of manifest.layers) {
-        const layerPath = path.join(this.schemasDir, `${layerId}.json`);
-        if (!existsSync(layerPath)) {
-          continue;
+        for (const [relId, relSchema] of Object.entries(layerData.relationshipSchemas || {})) {
+          this.relationshipSchemas.set(relId, {
+            id: relSchema.id || relId,
+            source_spec_node_id: relSchema.source_spec_node_id || "",
+            source_layer: relSchema.source_layer || "",
+            destination_spec_node_id: relSchema.destination_spec_node_id || "",
+            destination_layer: relSchema.destination_layer || "",
+            predicate: relSchema.predicate || "",
+            cardinality: relSchema.cardinality || "many-to-many",
+            strength: relSchema.strength || "medium",
+            required: relSchema.required || false,
+            attributes: relSchema.attributes,
+          });
         }
-
-        try {
-          const layerContent = await readFile(layerPath);
-          const layerData = JSON.parse(layerContent) as LayerDistFile;
-
-          for (const [relId, relSchema] of Object.entries(layerData.relationshipSchemas || {})) {
-            this.relationshipSchemas.set(relId, {
-              id: relSchema.id || relId,
-              source_spec_node_id: relSchema.source_spec_node_id || "",
-              source_layer: relSchema.source_layer || "",
-              destination_spec_node_id: relSchema.destination_spec_node_id || "",
-              destination_layer: relSchema.destination_layer || "",
-              predicate: relSchema.predicate || "",
-              cardinality: relSchema.cardinality || "many-to-many",
-              strength: relSchema.strength || "medium",
-              required: relSchema.required || false,
-              attributes: relSchema.attributes,
-            });
-          }
-        } catch (error: any) {
-          console.warn(`Failed to load relationship schemas for layer '${layerId}': ${error.message}`);
-        }
+      } catch (error: any) {
+        throw new Error(`Failed to load relationship schemas for layer '${layerId}': ${error.message}`);
       }
-    } catch (error: any) {
-      console.warn(`Failed to load relationship schemas: ${error.message}`);
     }
   }
 
@@ -138,7 +133,29 @@ export class RelationshipValidator {
     try {
       // Ensure schemas are loaded
       if (this.relationshipSchemas.size === 0) {
-        await this.initialize();
+        try {
+          await this.initialize();
+        } catch (error: any) {
+          const result = new ValidationResult();
+          result.addError({
+            layer: "system",
+            message: `${error.message} Relationship validation is not available.`,
+          });
+          return result;
+        }
+      }
+
+      // Verify schemas were loaded. This covers two cases:
+      // 1. initialize() succeeded but the manifest has no layers with relationship schemas
+      // 2. Edge case where manifest exists but is empty
+      // In both cases, relationship validation cannot proceed.
+      if (this.relationshipSchemas.size === 0) {
+        const result = new ValidationResult();
+        result.addError({
+          layer: "system",
+          message: `No relationship schemas loaded from ${path.join(this.schemasDir, "manifest.json")}. Relationship validation is not available.`,
+        });
+        return result;
       }
 
       const result = new ValidationResult();
@@ -221,22 +238,31 @@ export class RelationshipValidator {
 
     // Extract element types AND layers (CRITICAL FIX for cross-layer relationships)
     // The source and target elements may be in different layers
-    const sourceType = sourceElement.type;
-    const targetType = targetElement.type;
     const sourceLayer = sourceElement.layer_id || sourceElement.layer || relationship.layer;
     const targetLayer = targetElement.layer_id || targetElement.layer || relationship.layer;
 
-    // Find applicable relationship schema using actual source/target layers
+    // Use spec_node_id if present, otherwise construct from layer and type
+    // spec_node_id contains the canonical type (e.g., "application.applicationservice")
+    // Guard against empty spec_node_id from older CLI versions or manually authored elements
+    const sourceSpecId = sourceElement.spec_node_id
+      ? sourceElement.spec_node_id
+      : `${sourceLayer}.${sourceElement.type}`;
+    const targetSpecId = targetElement.spec_node_id
+      ? targetElement.spec_node_id
+      : `${targetLayer}.${targetElement.type}`;
+
+    // Find applicable relationship schema using actual source/target layers and spec node IDs
     // (not relationship.layer for both, which assumes intra-layer relationships)
-    const schemaKey = this.findRelationshipSchemaKey(
-      sourceLayer,
-      sourceType,
-      targetLayer,
-      targetType,
+    const schemaKey = this.findRelationshipSchemaKeyBySpecId(
+      sourceSpecId,
+      targetSpecId,
       relationship.predicate
     );
 
     if (!schemaKey) {
+      // Extract type names from spec_node_id for error message (e.g., "applicationservice" from "application.applicationservice")
+      const sourceType = sourceSpecId.includes(".") ? sourceSpecId.split(".")[1] : sourceElement.type;
+      const targetType = targetSpecId.includes(".") ? targetSpecId.split(".")[1] : targetElement.type;
       errors.push({
         layer: relationship.layer,
         elementId: relationship.source,
@@ -400,27 +426,23 @@ export class RelationshipValidator {
   }
 
   /**
-   * Find relationship schema ID by source/dest specs and predicate
+   * Find relationship schema ID by source/dest spec node IDs and predicate
    *
    * Matches relationship schemas by:
    * 1. Predicate (must match exactly)
-   * 2. Layer pair (source and destination layers must match)
-   * 3. Element type pair (source and destination types must match spec node IDs)
+   * 2. Spec node ID pair (source and destination must match exactly)
+   *
+   * Spec node IDs are in the format "layer.type" (e.g., "application.applicationservice")
+   * and uniquely identify an element type across the model.
    *
    * Supports both intra-layer (motivation -> motivation) and cross-layer
    * (motivation -> business) relationships.
    */
-  private findRelationshipSchemaKey(
-    sourceLayer: string,
-    sourceType: string,
-    destLayer: string,
-    destType: string,
+  private findRelationshipSchemaKeyBySpecId(
+    sourceSpecId: string,
+    destSpecId: string,
     predicate: string
   ): string | null {
-    // Normalize type to lowercase for comparison (spec_node_ids use lowercase types)
-    const normalizedSourceType = sourceType.toLowerCase();
-    const normalizedDestType = destType.toLowerCase();
-
     // Search for matching schema
     for (const [schemaId, schema] of this.relationshipSchemas.entries()) {
       // First filter: predicate must match exactly
@@ -428,20 +450,8 @@ export class RelationshipValidator {
         continue;
       }
 
-      // Second filter: layer pair must match
-      // (supports both intra-layer and cross-layer relationships)
-      if (
-        schema.source_layer !== sourceLayer ||
-        schema.destination_layer !== destLayer
-      ) {
-        continue;
-      }
-
-      // Third filter: element type pair must match spec node IDs
-      // Construct spec node IDs and compare against schema constraints
-      const sourceSpecId = `${sourceLayer}.${normalizedSourceType}`;
-      const destSpecId = `${destLayer}.${normalizedDestType}`;
-
+      // Second filter: spec node ID pair must match exactly
+      // This directly compares canonical forms like "application.applicationservice"
       if (
         schema.source_spec_node_id === sourceSpecId &&
         schema.destination_spec_node_id === destSpecId
@@ -476,13 +486,16 @@ export class RelationshipValidator {
   /**
    * Find an element in the model by ID
    *
-   * Performs element lookup by UUID using the element's id field.
+   * Performs element lookup using Layer.getElement(), which supports multiple lookup strategies:
+   * - Direct lookup by graph key (path)
+   * - UUID lookup
+   * - Semantic ID lookup (for legacy format elements converted to UUID)
+   * - Element ID lookup
    *
-   * This matches the behavior of Layer.getElement() which relationships need for proper validation.
+   * This comprehensive lookup ensures elements are found regardless of how they were stored.
    */
   private findElementInModel(model: Model, elementId: string) {
     for (const layer of model.layers.values()) {
-      // Lookup element by UUID
       const element = layer.getElement(elementId);
       if (element) {
         return element;

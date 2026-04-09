@@ -1,0 +1,8 @@
+manage-tasks:
+  id: manage-tasks
+  path: motivation.goal.manage-tasks
+  spec_node_id: motivation.goal
+  type: goal
+  layer_id: motivation
+  name: Manage Personal Tasks
+  description: Allow users to manage their personal task lists

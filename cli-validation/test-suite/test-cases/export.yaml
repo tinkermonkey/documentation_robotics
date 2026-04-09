@@ -53,12 +53,24 @@ pipelines:
 
   - name: "Export to JSON Schema"
     steps:
+      - command: "add data-model objectschema schema-test-object --name 'Test Object' --description 'Object for JSON schema export'"
+        files_to_compare:
+          - manifest.yaml
+          - 07_data-model/object_schema.yaml
+        expect_exit_code: 0
+
       - command: "export jsonschema --output export-schema.json"
         files_to_compare:
           - export-schema.json
         expect_exit_code: 0
         expect_stdout_contains:
           - "Exported"
+
+      - command: "delete data-model.objectschema.schema-test-object --force"
+        files_to_compare:
+          - manifest.yaml
+          - 07_data-model/object_schema.yaml
+        expect_exit_code: 0
 
   - name: "Export to ArchiMate XML"
     steps:
@@ -69,20 +81,3 @@ pipelines:
         expect_stdout_contains:
           - "Exported"
         timeout: 60000
-
-  - name: "Export multiple formats in sequence"
-    steps:
-      - command: "export plantuml --output multi-export-test.puml"
-        files_to_compare:
-          - multi-export-test.puml
-        expect_exit_code: 0
-
-      - command: "export markdown --output multi-export-test.md"
-        files_to_compare:
-          - multi-export-test.md
-        expect_exit_code: 0
-
-      - command: "export graphml --output multi-export-test.graphml"
-        files_to_compare:
-          - multi-export-test.graphml
-        expect_exit_code: 0

@@ -104,9 +104,21 @@ async function walkDirectory(dirPath: string, rootPath: string = dirPath): Promi
           files.push(relativePath);
         }
       }
-    } catch {
+    } catch (error) {
       // Skip inaccessible directories silently
       // This is expected for some system directories (permissions, etc.)
+      // Only catch file I/O errors, not programming errors
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        typeof (error as any).code === 'string' &&
+        ['ENOENT', 'EACCES', 'EPERM'].includes((error as any).code)
+      ) {
+        // Expected I/O error - skip this directory
+        return;
+      }
+      // Re-throw unexpected errors (e.g., TypeError, RangeError)
+      throw error;
     }
   }
 
@@ -155,25 +167,107 @@ export async function captureSnapshot(directory: string): Promise<FilesystemSnap
   for (const relativePath of filePaths) {
     const fullPath = join(directory, relativePath);
 
+    let content: string;
+    let fileStats: Awaited<ReturnType<typeof stat>>;
+
+    // Try to read file - skip if it doesn't exist or can't be accessed
     try {
-      // Read file content and metadata
-      const content = await readFile(fullPath, 'utf-8');
-      const fileStats = await stat(fullPath);
-
-      // Calculate hash of normalized content
-      const hash = hashContent(content, relativePath);
-
-      // Store file information
-      files.set(relativePath, {
-        exists: true,
-        hash,
-        mtime: fileStats.mtimeMs,
-        size: fileStats.size,
-      });
-    } catch {
-      // Skip files that cannot be read (permissions, encoding, etc)
+      content = await readFile(fullPath, 'utf-8');
+      fileStats = await stat(fullPath);
+    } catch (error) {
+      // Skip files that cannot be read (permissions, encoding, doesn't exist, etc)
       // This is expected for some files in the snapshot directory
+      // Only catch file I/O errors, not normalization/hash errors
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        typeof (error as any).code === 'string' &&
+        ['ENOENT', 'EACCES', 'EPERM'].includes((error as any).code)
+      ) {
+        continue;
+      }
+      // Re-throw unexpected errors (e.g., from file encoding issues)
+      throw error;
     }
+
+    // Calculate hash of normalized content
+    // This should not be wrapped in try-catch - normalization/hash errors must be surfaced
+    const hash = hashContent(content, relativePath);
+
+    // Store file information
+    files.set(relativePath, {
+      exists: true,
+      hash,
+      mtime: fileStats.mtimeMs,
+      size: fileStats.size,
+    });
+  }
+
+  return {
+    timestamp: Date.now(),
+    directory,
+    files,
+  };
+}
+
+/**
+ * Capture a targeted snapshot of only specified file paths
+ * Reads and hashes only the files explicitly declared, reducing I/O for steps
+ * that only care about specific files
+ *
+ * @param directory Root directory for snapshot
+ * @param filePaths Array of relative file paths to include in snapshot
+ * @returns FilesystemSnapshot with only the specified files
+ *
+ * @remarks
+ * This is more efficient than captureSnapshot() when a step declares
+ * files_to_compare. The same normalization pipeline is applied before hashing.
+ * Files that don't exist are silently skipped (not included in snapshot).
+ */
+export async function captureTargetedSnapshot(
+  directory: string,
+  filePaths: string[]
+): Promise<FilesystemSnapshot> {
+  const files = new Map<string, FileInfo>();
+
+  // Process only the specified files
+  for (const relativePath of filePaths) {
+    const fullPath = join(directory, relativePath);
+
+    let content: string;
+    let fileStats: Awaited<ReturnType<typeof stat>>;
+
+    // Try to read file - skip if it doesn't exist or can't be accessed
+    try {
+      content = await readFile(fullPath, 'utf-8');
+      fileStats = await stat(fullPath);
+    } catch (error) {
+      // Skip files that cannot be read (permissions, encoding, doesn't exist, etc)
+      // This is expected for some files that may not exist yet
+      // Only catch file I/O errors, not normalization/hash errors
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        typeof (error as any).code === 'string' &&
+        ['ENOENT', 'EACCES', 'EPERM'].includes((error as any).code)
+      ) {
+        continue;
+      }
+      // Re-throw unexpected errors (e.g., from file encoding issues)
+      throw error;
+    }
+
+    // Calculate hash of normalized content
+    // This should not be wrapped in try-catch - normalization/hash errors must be surfaced
+    const hash = hashContent(content, relativePath);
+
+    // Store file information
+    files.set(relativePath, {
+      exists: true,
+      hash,
+      mtime: fileStats.mtimeMs,
+      size: fileStats.size,
+    });
   }
 
   return {

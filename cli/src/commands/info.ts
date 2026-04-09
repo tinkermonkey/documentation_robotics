@@ -6,7 +6,10 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { TABLE_COLUMN_WIDTHS, TABLE_SEPARATOR } from "../utils/table-formatting.js";
+import {
+  TABLE_COLUMN_WIDTHS,
+  TABLE_SEPARATOR
+} from "../utils/table-formatting.js";
 
 export interface InfoOptions {
   layer?: string;
@@ -19,7 +22,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
     ? startSpan("info.execute", {
         "info.hasLayer": !!options.layer,
         "info.layer": options.layer,
-        "info.verbose": options.verbose === true,
+        "info.verbose": options.verbose === true
       })
     : null;
 
@@ -120,7 +123,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
       (span as any).recordException(error as Error);
       (span as any).setStatus({
         code: 2,
-        message: getErrorMessage(error),
+        message: getErrorMessage(error)
       });
     }
     const message = getErrorMessage(error);

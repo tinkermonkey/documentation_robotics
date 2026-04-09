@@ -1,8 +1,0 @@
-data-store.SQLite.todo-database:
-  id: 2d60639a-2edf-45b8-9326-3d310f2ddae0
-  path: data-store.SQLite.todo-database
-  spec_node_id: ""
-  type: SQLite
-  layer_id: data-store
-  name: Todo Database
-  description: SQLite database for storing todo items

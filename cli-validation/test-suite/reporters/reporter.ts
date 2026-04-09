@@ -50,6 +50,12 @@ export interface Reporter {
   onSuiteComplete(suite: TestSuite, result: SuiteResult): void;
 
   /**
+   * Merge multiple test results into a summary
+   * Aggregates statistics across all suites and pipelines
+   */
+  mergeResults(results: SuiteResult[]): TestRunSummary;
+
+  /**
    * Generate the final formatted report
    * Called after all tests complete
    */
@@ -91,6 +97,40 @@ export abstract class BaseReporter implements Reporter {
 
   onSuiteComplete(_suite: TestSuite, _result: SuiteResult): void {
     // Override in subclasses
+  }
+
+  mergeResults(results: SuiteResult[]): TestRunSummary {
+    let totalPipelines = 0;
+    let passedPipelines = 0;
+    let totalSteps = 0;
+    let passedSteps = 0;
+    let totalDuration = 0;
+
+    for (const suite of results) {
+      for (const pipeline of suite.pipelines) {
+        totalPipelines++;
+        if (pipeline.passed) passedPipelines++;
+
+        totalSteps += pipeline.steps.length;
+        passedSteps += pipeline.steps.filter((s) => s.passed).length;
+
+        totalDuration += pipeline.totalDuration;
+      }
+    }
+
+    return {
+      totalSuites: results.length,
+      passedSuites: results.filter((r) => r.passed).length,
+      failedSuites: results.filter((r) => !r.passed).length,
+      totalPipelines,
+      passedPipelines,
+      failedPipelines: totalPipelines - passedPipelines,
+      totalSteps,
+      passedSteps,
+      failedSteps: totalSteps - passedSteps,
+      totalDuration,
+      results,
+    };
   }
 
   abstract generateReport(summary: TestRunSummary): string;

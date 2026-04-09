@@ -1,41 +1,29 @@
 /**
  * Test Suite Execution Engine
  *
- * Loads YAML test cases, executes pipelines against the TypeScript CLI,
- * compares filesystem state, and generates reports.
+ * Loads YAML test cases, distributes them across workers via scheduler,
+ * executes pipelines against the TypeScript CLI, compares filesystem state,
+ * and generates reports. Each worker has its own isolated baseline copy.
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { dirname } from 'node:path';
+import { join, dirname } from 'node:path';
 import { glob } from 'glob';
+import { fork, type ChildProcess } from 'node:child_process';
 import YAML from 'yaml';
 
-import { initializeTestEnvironment, getTestPaths, TestPaths, CLIConfig, cleanupTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
-import { captureSnapshot, compareSnapshots, formatComparisonResult } from './comparator.js';
-import { executeCommand, CommandOutput } from './executor.js';
+import { initializeMultiWorkerTestEnvironment, cleanupMultiWorkerTestArtifacts, validateBaselineIntegrity, BaselineContaminationError } from './setup.js';
 import {
   TestSuite,
-  Pipeline,
-  PipelineStep,
-  StepResult,
-  PipelineResult,
   SuiteResult,
   TestRunSummary,
 } from './pipeline.js';
-import { ConsoleReporter, formatConsoleReport } from './reporters/console-reporter.js';
-import { JUnitReporter, formatJunitReport } from './reporters/junit-reporter.js';
+import { ConsoleReporter } from './reporters/console-reporter.js';
+import { JUnitReporter } from './reporters/junit-reporter.js';
 import { Reporter } from './reporters/reporter.js';
 import { parseRunnerArgs, RunnerOptions, matchesFilters } from './runner-config.js';
-
-/**
- * Main test runner configuration
- */
-interface TestRunnerConfig {
-  tsCLI: string;
-  tsDir: string;
-  testCaseDir: string;
-}
+import { scheduleSuites } from './scheduler.js';
+import { TestRunnerConfig, WorkerResult } from './types.js';
 
 /**
  * Path to model directory within baseline (for easier updates if structure changes)
@@ -54,6 +42,7 @@ async function loadTestSuites(testCaseDir: string): Promise<TestSuite[]> {
   }
 
   const suites: TestSuite[] = [];
+  const errors: string[] = [];
 
   for (const file of testFiles) {
     try {
@@ -62,211 +51,320 @@ async function loadTestSuites(testCaseDir: string): Promise<TestSuite[]> {
       suites.push(suite);
       console.log(`Loaded: ${suite.name}`);
     } catch (error) {
-      console.error(`Failed to load ${file}: ${error}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const message = `Failed to load ${file}: ${errorMsg}`;
+      console.error(message);
+      errors.push(message);
     }
+  }
+
+  // Fail fast if any test suites had parse errors
+  if (errors.length > 0) {
+    throw new Error(
+      `${errors.length} test suite(s) failed to load:\n${errors.map((e) => `  - ${e}`).join('\n')}`
+    );
   }
 
   return suites;
 }
 
+
+
+
 /**
- * Validate a single step's expectations
- * Validates exit codes, output content, and filesystem changes
+ * Assert that an incoming IPC message has the correct WorkerResult structure.
+ * Guards against malformed messages that could corrupt results or throw at runtime.
+ *
+ * @throws Error if the message is malformed
  */
-function validateStep(
-  step: PipelineStep,
-  tsOutput: CommandOutput,
-  tsChanges: Array<{ path: string; type: string }>
-): StepResult {
-  const failures: string[] = [];
-
-  // Validate exit codes
-  const expectedExitCode = step.expect_exit_code ?? 0;
-  if (tsOutput.exitCode !== expectedExitCode) {
-    failures.push(
-      `CLI exit code: expected ${expectedExitCode}, got ${tsOutput.exitCode}`
-    );
+export function assertValidWorkerResult(msg: unknown): asserts msg is WorkerResult {
+  if (!msg || typeof msg !== 'object') {
+    throw new Error('Invalid worker message: not an object');
   }
 
-  // Validate stdout contains
-  if (step.expect_stdout_contains) {
-    for (const expected of step.expect_stdout_contains) {
-      if (!tsOutput.stdout.includes(expected)) {
-        failures.push(`stdout missing: "${expected}"`);
-      }
-    }
+  const obj = msg as Record<string, unknown>;
+
+  if (typeof obj.workerId !== 'number') {
+    throw new Error(`Invalid worker message: workerId must be a number, got ${typeof obj.workerId}`);
   }
 
-  // Validate stderr contains
-  if (step.expect_stderr_contains) {
-    for (const expected of step.expect_stderr_contains) {
-      if (!tsOutput.stderr.includes(expected)) {
-        failures.push(`stderr missing: "${expected}"`);
-      }
-    }
+  if (!Array.isArray(obj.results)) {
+    throw new Error(`Invalid worker message: results must be an array, got ${typeof obj.results}`);
   }
 
-  // Validate filesystem changes match expected files
-  for (const expectedFile of step.files_to_compare) {
-    const tsModified = tsChanges.some(
-      (c) => c.path === expectedFile && c.type !== 'unchanged'
-    );
-
-    if (!tsModified) {
-      failures.push(`Did not modify expected file: ${expectedFile}`);
-    }
+  if (typeof obj.output !== 'string') {
+    throw new Error(`Invalid worker message: output must be a string, got ${typeof obj.output}`);
   }
-
-  // Map filesystem changes to proper types
-  const typedChanges = tsChanges.map((c) => ({
-    path: c.path,
-    type: c.type === 'added' || c.type === 'deleted' || c.type === 'modified'
-      ? c.type as 'added' | 'deleted' | 'modified'
-      : 'modified' as const,
-  }));
-
-  return {
-    command: step.command,
-    pythonOutput: {
-      stdout: '',
-      stderr: '',
-      exitCode: 0,
-      duration: 0,
-    },
-    tsOutput,
-    filesystemDiff: {
-      python: [],
-      ts: typedChanges,
-    },
-    passed: failures.length === 0,
-    failures,
-  };
 }
 
 /**
- * Execute a single pipeline
+ * Execute test suites using worker processes
+ * Returns collected results from all workers and handles fast-fail signaling
  */
-async function executePipeline(
-  pipeline: Pipeline,
-  config: TestRunnerConfig
-): Promise<PipelineResult> {
-  const stepResults: StepResult[] = [];
-  const startTime = Date.now();
+async function executeWithWorkers(
+  filteredSuites: TestSuite[],
+  workerCount: number,
+  testConfig: TestRunnerConfig,
+  reporter: Reporter,
+  options: RunnerOptions,
+  tsPaths: string[]
+): Promise<SuiteResult[]> {
+  // Schedule suites across workers
+  const schedule = scheduleSuites(filteredSuites, workerCount);
 
-  for (const step of pipeline.steps) {
-    console.log(`    Step: ${step.command}`);
+  // Create a map of suite names to suite definitions for matching results
+  const suitesByName = new Map<string, TestSuite>();
+  for (const suite of filteredSuites) {
+    suitesByName.set(suite.name, suite);
+  }
 
-    // Capture before snapshot
-    const tsBefore = await captureSnapshot(config.tsDir);
+  // Track active workers
+  const workers = new Map<number, ChildProcess>();
 
-    // Execute command on TypeScript CLI
-    const timeout = step.timeout ?? 30000;
-    const tsOutput = await executeCommand(
-      `${config.tsCLI} ${step.command}`,
-      config.tsDir,
-      timeout
-    );
+  // Collect results incrementally as workers report them
+  const collectedResults: SuiteResult[] = [];
+  let fastFailTriggered = false;
 
-    // Capture after snapshot
-    const tsAfter = await captureSnapshot(config.tsDir);
+  // Worker timeout: 60 minutes per worker (generous upper bound)
+  const WORKER_TIMEOUT = 60 * 60 * 1000;
 
-    // Compare filesystem changes
-    const tsResult = compareSnapshots(tsBefore, tsAfter);
+  // Create a promise that resolves when fast-fail is triggered (via IPC handler)
+  let triggerFastFail: () => void;
+  const fastFailPromise = new Promise<void>((resolve) => {
+    triggerFastFail = resolve;
+  });
 
-    // Validate results
-    const result = validateStep(
-      step,
-      tsOutput,
-      tsResult.changes.map((c) => ({ path: c.path, type: c.type }))
-    );
+  // Create worker processes
+  const workerPromises: Promise<SuiteResult[]>[] = [];
 
-    stepResults.push(result);
+  for (let workerId = 0; workerId < workerCount; workerId++) {
+    const suites = schedule.get(workerId) || [];
 
-    if (!result.passed) {
-      console.error(`      ✗ FAILED`);
-      for (const failure of result.failures) {
-        console.error(`        - ${failure}`);
+    const promise = new Promise<SuiteResult[]>((resolve, reject) => {
+      // Fork worker process
+      // Use the TypeScript file directly - runner is executed from test-suite directory
+      const worker = fork('./worker.ts', [], {
+        silent: true, // Capture stdout/stderr
+        execArgv: ['--import', 'tsx'], // Use tsx to run TypeScript
+      });
+
+      workers.set(workerId, worker);
+
+      // Buffer stderr for diagnostic inclusion in error messages
+      // Buffer stdout separately for future diagnostic use if needed
+      const stderrBuffer: string[] = [];
+      const stdoutBuffer: string[] = [];
+
+      if (worker.stdout) {
+        worker.stdout.on('data', (data) => {
+          stdoutBuffer.push(data.toString());
+        });
       }
-      // Stop pipeline on first failure
-      break;
-    } else {
-      console.log(`      ✓ PASSED`);
+      if (worker.stderr) {
+        worker.stderr.on('data', (data) => {
+          stderrBuffer.push(data.toString());
+        });
+      }
+
+      // Handle messages from worker
+      let resultData: WorkerResult | null = null;
+      let timeoutHandle: NodeJS.Timeout | null = null;
+      let settled = false; // Track if promise has been settled to prevent double-settlement
+
+      // Set timeout for this worker
+      timeoutHandle = setTimeout(() => {
+        if (!resultData) {
+          const error = new Error(
+            `Worker ${workerId + 1} exceeded timeout of ${WORKER_TIMEOUT}ms with no response`
+          );
+          console.error(`⚠ ${error.message}`);
+          worker.kill();
+          if (!settled) {
+            settled = true;
+            reject(error);
+          }
+        }
+      }, WORKER_TIMEOUT);
+
+      worker.on('message', (msg: unknown) => {
+        // Validate message structure at IPC boundary before trusting the data
+        try {
+          assertValidWorkerResult(msg);
+        } catch (validationError) {
+          const errorMsg = validationError instanceof Error ? validationError.message : String(validationError);
+          console.error(`Worker ${workerId + 1} sent malformed message: ${errorMsg}`);
+          if (!settled) {
+            settled = true;
+            reject(new Error(`Worker ${workerId + 1} sent malformed message: ${errorMsg}`));
+          }
+          return;
+        }
+
+        resultData = msg;
+
+        // Clear timeout on successful message
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+
+        // Display buffered output from worker
+        if (msg.output) {
+          console.log('\n' + '='.repeat(70));
+          console.log(`Worker ${workerId + 1} Output:`);
+          console.log('='.repeat(70));
+          console.log(msg.output);
+          console.log('='.repeat(70));
+        }
+
+        // Collect results incrementally as they arrive
+        collectedResults.push(...msg.results);
+
+        // Check for failures in fast-fail mode
+        if (options.fastFail && msg.results.some((r) => !r.passed)) {
+          if (!fastFailTriggered) {
+            fastFailTriggered = true;
+            // Trigger the fast-fail promise to exit the race immediately
+            triggerFastFail!();
+
+            // Signal all other workers to stop after their current pipeline completes
+            for (const [otherId, otherWorker] of workers.entries()) {
+              if (otherId !== workerId && otherWorker && !otherWorker.killed) {
+                try {
+                  otherWorker.send({ type: 'fast-fail' });
+                } catch (error) {
+                  // Worker may have already exited - this is acceptable during fast-fail
+                  const errorMsg = error instanceof Error ? error.message : String(error);
+                  console.debug(`Could not signal worker ${otherId} to stop: ${errorMsg}`);
+                }
+              }
+            }
+          }
+        }
+
+        if (!settled) {
+          settled = true;
+          resolve(msg.results);
+        }
+      });
+
+      worker.on('error', (error) => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        // Always log worker errors, even during fast-fail
+        // This ensures independent worker crashes are not silently swallowed
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`Worker ${workerId + 1} error:`, errorMsg);
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+      });
+
+      worker.on('exit', (code) => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        // If no result data was received from the worker, resolve or reject based on exit code
+        if (!resultData && !settled) {
+          // Guard against null code (can happen when worker is killed)
+          if (code !== null && code !== 0) {
+            settled = true;
+            // Include buffered stderr in error message for diagnostics
+            const stderrOutput = stderrBuffer.length > 0 ? stderrBuffer.join('') : '';
+            const errorMessage = stderrOutput
+              ? `Worker ${workerId + 1} exited with code ${code}\nStderr:\n${stderrOutput}`
+              : `Worker ${workerId + 1} exited with code ${code}`;
+            reject(new Error(errorMessage));
+          } else {
+            // Graceful exit with no data (resolved or no meaningful result)
+            settled = true;
+            resolve([]);
+          }
+        }
+      });
+
+      // Send assignment to worker
+      worker.send({
+        type: 'assignment' as const,
+        suites,
+        config: {
+          tsCLI: testConfig.tsCLI,
+          tsDir: join(tsPaths[workerId], MODEL_DIR),
+          testCaseDir: testConfig.testCaseDir,
+        },
+        workdirPath: tsPaths[workerId],
+        workerId,
+      });
+    });
+
+    workerPromises.push(promise);
+  }
+
+  // Wait for all workers to complete, but exit early if fast-fail is triggered
+  // Race between all workers completing normally and fast-fail being triggered
+
+  // Attach catch handlers to each workerPromise to prevent unhandled promise rejections
+  // when fast-fail triggers and kills workers (their promises will reject with non-zero exit codes).
+  // Only swallow errors if fast-fail was triggered; otherwise propagate them.
+  const safeWorkerPromises = workerPromises.map((p) =>
+    p.catch((err) => {
+      if (fastFailTriggered) {
+        // During fast-fail, log crashes but don't propagate the error
+        console.error(
+          `Worker crashed during fast-fail: ${err instanceof Error ? err.message : String(err)}`
+        );
+        return [];
+      }
+      // If fast-fail was not triggered, this is a real error - propagate it
+      throw err;
+    })
+  );
+
+  try {
+    await Promise.race([
+      Promise.all(safeWorkerPromises),
+      fastFailPromise,
+    ]);
+  } catch (error) {
+    // If fast-fail was triggered, we catch it here and use collected results
+    // If a real error occurred, re-throw it
+    if (!fastFailTriggered) {
+      throw error;
     }
   }
 
-  const totalDuration = Date.now() - startTime;
+  // Use the results we've collected incrementally (from worker messages)
+  // Don't re-await promises or call allSettled - just return what we have
+  const results: SuiteResult[] = collectedResults;
 
-  return {
-    name: pipeline.name,
-    passed: stepResults.every((s) => s.passed),
-    steps: stepResults,
-    totalDuration,
-  };
-}
-
-/**
- * Execute a single test suite
- */
-async function executeSuite(
-  suite: TestSuite,
-  config: TestRunnerConfig
-): Promise<SuiteResult> {
-  console.log(`\nRunning suite: ${suite.name} [${suite.priority}]`);
-
-  const pipelineResults: PipelineResult[] = [];
-  const startTime = Date.now();
-
-  for (const pipeline of suite.pipelines) {
-    console.log(`  Pipeline: ${pipeline.name}`);
-    pipelineResults.push(await executePipeline(pipeline, config));
+  // Validate that all scheduled suites produced results (or fast-fail was triggered)
+  if (results.length !== filteredSuites.length && !fastFailTriggered) {
+    const scheduledNames = new Set(filteredSuites.map((s) => s.name));
+    const resultNames = new Set(results.map((r) => r.name));
+    const missingNames = Array.from(scheduledNames).filter((name) => !resultNames.has(name));
+    throw new Error(
+      `Result count mismatch: scheduled ${filteredSuites.length} suites, got ${results.length} results. ` +
+      `Missing suites: ${missingNames.join(', ')}`
+    );
   }
 
-  const totalDuration = Date.now() - startTime;
-
-  return {
-    name: suite.name,
-    priority: suite.priority,
-    passed: pipelineResults.every((p) => p.passed),
-    pipelines: pipelineResults,
-    totalDuration,
-  };
-}
-
-/**
- * Generate summary statistics
- */
-function generateSummary(results: SuiteResult[]): TestRunSummary {
-  let totalPipelines = 0;
-  let passedPipelines = 0;
-  let totalSteps = 0;
-  let passedSteps = 0;
-  let totalDuration = 0;
-
-  for (const suite of results) {
-    for (const pipeline of suite.pipelines) {
-      totalPipelines++;
-      if (pipeline.passed) passedPipelines++;
-
-      totalSteps += pipeline.steps.length;
-      passedSteps += pipeline.steps.filter((s) => s.passed).length;
-
-      totalDuration += pipeline.totalDuration;
+  // Report results with proper start/complete lifecycle
+  for (const result of results) {
+    // Find the original suite definition to get complete metadata
+    const originalSuite = suitesByName.get(result.name);
+    if (!originalSuite) {
+      throw new Error(`Result returned for unknown suite: ${result.name}`);
     }
+
+    // Call onSuiteStart to initialize reporter state
+    reporter.onSuiteStart(originalSuite);
+
+    // Call onSuiteComplete with original suite metadata
+    reporter.onSuiteComplete(originalSuite, result);
   }
 
-  return {
-    totalSuites: results.length,
-    passedSuites: results.filter((r) => r.passed).length,
-    failedSuites: results.filter((r) => !r.passed).length,
-    totalPipelines,
-    passedPipelines,
-    failedPipelines: totalPipelines - passedPipelines,
-    totalSteps,
-    passedSteps,
-    failedSteps: totalSteps - passedSteps,
-    totalDuration,
-    results,
-  };
+  return results;
 }
 
 /**
@@ -301,23 +399,23 @@ async function runTestSuite(): Promise<void> {
   if (options.testCase) console.log(`Test case filter: ${options.testCase}`);
   console.log('');
 
+  let cleanupPaths;
   try {
-    // Initialize test environment
-    console.log('Initializing test environment...');
-    const { config, paths } = await initializeTestEnvironment();
-    console.log('✓ Test environment initialized');
+    // Initialize test environment with multiple workers
+    console.log(`Initializing test environment with ${options.workers} worker(s)...`);
+    const { config, paths, primaryTsPath } = await initializeMultiWorkerTestEnvironment(options.workers);
+    console.log(`✓ Test environment initialized (${paths.tsPaths.length} baseline copies created)`);
     console.log('');
 
-    // Create test runner config
-    const testConfig: TestRunnerConfig = {
-      tsCLI: config.tsCLI,
-      tsDir: join(paths.tsPath, MODEL_DIR),
-      testCaseDir: join(process.cwd(), 'test-cases'),
-    };
+    // Store paths for cleanup in error handler
+    cleanupPaths = paths;
+
+    // Determine test case directory
+    const testCaseDir = join(process.cwd(), 'test-cases');
 
     // Load test suites
     console.log('Loading test cases...');
-    let testSuites = await loadTestSuites(testConfig.testCaseDir);
+    let testSuites = await loadTestSuites(testCaseDir);
     console.log(`✓ Loaded ${testSuites.length} test suites`);
 
     // Apply filters
@@ -335,27 +433,25 @@ async function runTestSuite(): Promise<void> {
     // Create reporter instance
     const reporter = createReporter(options);
 
-    // Execute test suites
+    // Execute test suites using workers
     const startTime = Date.now();
-    const results: SuiteResult[] = [];
+    console.log(`Scheduling ${testSuites.length} suite(s) across ${options.workers} worker(s)...`);
+    console.log('');
 
-    for (const suite of testSuites) {
-      reporter.onSuiteStart(suite);
-      const suiteResult = await executeSuite(suite, testConfig);
-      results.push(suiteResult);
-      reporter.onSuiteComplete(suite, suiteResult);
+    const results = await executeWithWorkers(
+      testSuites,
+      options.workers,
+      {
+        tsCLI: config.tsCLI,
+        testCaseDir,
+      },
+      reporter,
+      options,
+      cleanupPaths.tsPaths
+    );
 
-      // Fast-fail mode: stop on first failure
-      if (options.fastFail && !suiteResult.passed) {
-        console.error('\n' + '✗'.repeat(70));
-        console.error('Fast-fail mode enabled, stopping test suite');
-        console.error('✗'.repeat(70));
-        break;
-      }
-    }
-
-    // Generate summary
-    const summary = generateSummary(results);
+    // Generate summary using reporter's merge logic
+    const summary = reporter.mergeResults(results);
     summary.totalDuration = Date.now() - startTime;
 
     // Generate report using reporter
@@ -387,11 +483,11 @@ async function runTestSuite(): Promise<void> {
     console.log('Post-test cleanup and validation...');
 
     // Validate baseline integrity before cleanup
-    // This must run BEFORE cleanupTestArtifacts to detect contamination,
+    // This must run BEFORE cleanupMultiWorkerTestArtifacts to detect contamination,
     // as cleanup uses git checkout to restore the baseline
     let baselineContaminated = false;
     try {
-      await validateBaselineIntegrity(paths.baselinePath);
+      await validateBaselineIntegrity(cleanupPaths.baselinePath);
       console.log('✓ Baseline integrity verified - no contamination detected');
     } catch (error) {
       if (error instanceof BaselineContaminationError) {
@@ -408,10 +504,19 @@ async function runTestSuite(): Promise<void> {
       }
     }
 
+    // Note: Worker baseline copies are expected to be modified by tests
+    // The isolation check above (validateBaselineIntegrity) ensures that tests
+    // do not escape their isolation and contaminate the original baseline directory.
+    // Individual worker copies may have their model files reorganized and updated,
+    // which is expected behavior when the CLI loads and saves the model.
+    if (!baselineContaminated) {
+      console.log('✓ Worker isolation verified - original baseline not contaminated');
+    }
+
     // Clean up test artifacts
     let cleanupFailed = false;
     try {
-      const cleanupResult = await cleanupTestArtifacts(paths);
+      const cleanupResult = await cleanupMultiWorkerTestArtifacts(cleanupPaths);
       console.log('✓ Test artifacts cleaned up');
 
       // Warn if baseline restore failed, but don't fail the run
@@ -440,20 +545,21 @@ async function runTestSuite(): Promise<void> {
     const errorStack = error instanceof Error ? error.stack : '';
     console.error('\n❌ Test suite failed:');
     console.error(`   ${errorMsg}`);
-    if (errorStack && process.env.DEBUG) {
+    if (errorStack) {
       console.error(`\nStack trace:\n${errorStack}`);
     }
 
     // Attempt cleanup even on test failure
     try {
-      const paths = getTestPaths();
-      const cleanupResult = await cleanupTestArtifacts(paths);
-      if (!cleanupResult.baselineRestoreSuccess) {
-        console.error(
-          '⚠ Baseline restoration failed during cleanup (may require manual git checkout)'
-        );
-        for (const error of cleanupResult.errors) {
-          console.error(`   - ${error}`);
+      if (cleanupPaths) {
+        const cleanupResult = await cleanupMultiWorkerTestArtifacts(cleanupPaths);
+        if (!cleanupResult.baselineRestoreSuccess) {
+          console.error(
+            '⚠ Baseline restoration failed during cleanup (may require manual git checkout)'
+          );
+          for (const error of cleanupResult.errors) {
+            console.error(`   - ${error}`);
+          }
         }
       }
     } catch (cleanupError) {

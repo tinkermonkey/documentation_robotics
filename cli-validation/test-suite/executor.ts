@@ -70,7 +70,9 @@ export async function executeCommand(
       stderr = 'Process was killed';
     } else {
       // Normal command failure
-      exitCode = error.code || 1;
+      // error.code is a string (e.g., 'ENOENT') for system errors,
+      // only numeric exit codes are valid for exitCode
+      exitCode = typeof error.code === 'number' ? error.code : 1;
       stdout = error.stdout || '';
       stderr = error.stderr || '';
     }

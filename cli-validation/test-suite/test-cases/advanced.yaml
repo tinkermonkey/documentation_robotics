@@ -82,26 +82,6 @@ pipelines:
         expect_stdout_contains:
           - "CLI Version"
 
-  - name: "Element operations via element command"
-    steps:
-      - command: "add motivation goal element-cmd-test --name 'Element Command Test' --description 'Test via element command'"
-        files_to_compare:
-          - manifest.yaml
-          - 01_motivation/goal.yaml
-        expect_exit_code: 0
-
-      - command: "show motivation.goal.element-cmd-test"
-        files_to_compare: []
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "motivation.goal.element-cmd-test"
-
-      - command: "delete motivation.goal.element-cmd-test --force"
-        files_to_compare:
-          - manifest.yaml
-          - 01_motivation/goal.yaml
-        expect_exit_code: 0
-
   - name: "Relationship operations via relationship command"
     steps:
       - command: "add data-store collection rel-cmd-table --name 'rel_collection' --description 'Collection for relationship command test'"

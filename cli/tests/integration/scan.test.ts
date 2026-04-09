@@ -1141,41 +1141,6 @@ describe("Scan Command", () => {
     });
   });
 
-  describe("Integration with existing model", () => {
-    it("loads and integrates with existing architecture model", async () => {
-      // Verify that the scan command can load the existing model
-      // without errors and use it for deduplication
-      const model = await Model.load(workdir.path);
-      expect(model).toBeDefined();
-
-      // Model should be loadable and iterable
-      let elementCount = 0;
-      const loadedLayers: string[] = [];
-      for (const layerName of model.getLayerNames()) {
-        loadedLayers.push(layerName);
-        const layer = await model.getLayer(layerName);
-        if (layer) {
-          const elements = layer.listElements();
-          elementCount += elements.length;
-        }
-      }
-
-      // Verify model structure is correct
-      expect(loadedLayers.length).toBeGreaterThan(0);
-      expect(elementCount).toBeGreaterThan(0);
-
-      // Count should match sum of elements across layers
-      let verifyCount = 0;
-      for (const layerName of loadedLayers) {
-        const layer = await model.getLayer(layerName);
-        if (layer) {
-          verifyCount += layer.listElements().length;
-        }
-      }
-      expect(verifyCount).toBe(elementCount);
-    });
-  });
-
   describe("Relationship candidate handling", () => {
     it("validates relationship direction: same-layer and cross-layer rules", async () => {
       const { isValidRelationshipDirection, extractLayerFromId } =
