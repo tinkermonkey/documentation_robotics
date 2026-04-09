@@ -16,6 +16,33 @@ import { createHash } from "node:crypto";
 const execAsync = promisify(exec);
 
 /**
+ * Extract path segment before a marker string
+ * Helper for workspace root resolution used across multiple functions
+ * @param path - The full path to process
+ * @param marker - The marker string to locate
+ * @returns The substring before the marker
+ * @throws Error if marker not found or resulting path is invalid
+ */
+function extractPathBefore(path: string, marker: string): string {
+  const markerIndex = path.indexOf(marker);
+  if (markerIndex === -1) {
+    throw new Error(
+      `Could not resolve workspace root: Expected path to contain "${marker}", but got: "${path}"`
+    );
+  }
+
+  const result = path.substring(0, markerIndex);
+
+  if (!result || result.endsWith(sep)) {
+    throw new Error(
+      `Could not resolve workspace root: Invalid path segment before "${marker}": "${result}"`
+    );
+  }
+
+  return result;
+}
+
+/**
  * Resolve the workspace root directory
  * Used by getCLIConfig, getTestPaths, and getMultiWorkerTestPaths to find the project root
  * @throws Error if the workspace root cannot be resolved from the given path
@@ -27,24 +54,7 @@ function resolveWorkspaceRoot(baseDir: string = process.cwd()): string {
     return baseDir;
   }
 
-  const marker = "cli-validation/test-suite";
-  const markerIndex = baseDir.indexOf(marker);
-
-  if (markerIndex === -1) {
-    throw new Error(
-      `Could not resolve workspace root: Expected path to contain "${marker}", but got: "${baseDir}"`
-    );
-  }
-
-  const workspaceRoot = baseDir.substring(0, markerIndex);
-
-  if (!workspaceRoot || workspaceRoot.endsWith(sep)) {
-    throw new Error(
-      `Could not resolve workspace root: Invalid path segment before "${marker}": "${workspaceRoot}"`
-    );
-  }
-
-  return workspaceRoot;
+  return extractPathBefore(baseDir, "cli-validation/test-suite");
 }
 
 /**
@@ -283,12 +293,7 @@ async function cleanupAndRestoreBaseline(
 
   // Restore baseline to its committed state to prevent test contamination
   try {
-    const marker = 'cli-validation';
-    const markerIndex = baselinePath.indexOf(marker);
-    if (markerIndex === -1) {
-      throw new Error(`Could not resolve workspace root from baseline path: "${baselinePath}"`);
-    }
-    const workspaceRoot = baselinePath.substring(0, markerIndex);
+    const workspaceRoot = extractPathBefore(baselinePath, 'cli-validation');
 
     await execAsync('git checkout -- cli-validation/test-project/baseline/', {
       cwd: workspaceRoot,
@@ -473,12 +478,7 @@ export class BaselineContaminationError extends Error {
  * @throws Error if validation cannot be performed due to git/system errors
  */
 export async function validateBaselineIntegrity(baselinePath: string): Promise<void> {
-  const marker = 'cli-validation';
-  const markerIndex = baselinePath.indexOf(marker);
-  if (markerIndex === -1) {
-    throw new Error(`Could not resolve workspace root from baseline path: "${baselinePath}"`);
-  }
-  const workspaceRoot = baselinePath.substring(0, markerIndex);
+  const workspaceRoot = extractPathBefore(baselinePath, 'cli-validation');
 
   let gitResult: string;
   try {
