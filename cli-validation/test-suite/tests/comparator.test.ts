@@ -588,71 +588,30 @@ describe('captureTargetedSnapshot', () => {
   });
 
   it('should re-throw non-filesystem errors', async () => {
-    // Test that the error handling logic correctly distinguishes between
-    // filesystem errors (which are skipped) and other errors (which are re-thrown).
-    // We verify this by testing an error with a custom code that isn't a known filesystem code.
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
 
-    const error = new Error('Custom validation error');
-    (error as any).code = 'CUSTOM_ERROR_CODE';
+    try {
+      // Create a subdirectory that we'll attempt to read as a file
+      // This causes readFile to throw EISDIR (not a "skip" error like ENOENT/EACCES/EPERM)
+      const subdirPath = join(tempDir, 'subdir');
+      await mkdir(subdirPath, { recursive: true });
 
-    // Simulate the error handling logic from captureTargetedSnapshot
-    // The catch block checks if error is a known filesystem error code
-    let shouldSkip = false;
-    if (
-      error instanceof Error &&
-      'code' in error &&
-      typeof (error as any).code === 'string' &&
-      ['ENOENT', 'EACCES', 'EPERM'].includes((error as any).code)
-    ) {
-      shouldSkip = true;
+      // Attempting to capture the subdirectory as a file should throw EISDIR
+      // (because readFile can't read a directory), which should be re-thrown, not skipped
+      await assert.rejects(
+        async () => {
+          await captureTargetedSnapshot(tempDir, ['subdir']);
+        },
+        (error: any) => {
+          // Verify the error is EISDIR - a non-skippable error code
+          return error instanceof Error && error.code === 'EISDIR';
+        }
+      );
+    } finally {
+      // Cleanup
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
     }
-
-    // Custom errors should NOT be skipped (shouldSkip should be false)
-    assert.equal(
-      shouldSkip,
-      false,
-      'Custom error should not be marked for skipping - it should be re-thrown'
-    );
-
-    // Also verify that known filesystem errors ARE skipped
-    const fsError = new Error('File not found');
-    (fsError as any).code = 'ENOENT';
-
-    let shouldSkipFilesystem = false;
-    if (
-      fsError instanceof Error &&
-      'code' in fsError &&
-      typeof (fsError as any).code === 'string' &&
-      ['ENOENT', 'EACCES', 'EPERM'].includes((fsError as any).code)
-    ) {
-      shouldSkipFilesystem = true;
-    }
-
-    assert.equal(
-      shouldSkipFilesystem,
-      true,
-      'Filesystem errors (ENOENT) should be marked for skipping'
-    );
-
-    // Test that an error without a code property in the correct format is also re-thrown
-    const badError = new Error('Some error');
-    (badError as any).code = 123; // Wrong type (not a string)
-
-    let shouldSkipBadCode = false;
-    if (
-      badError instanceof Error &&
-      'code' in badError &&
-      typeof (badError as any).code === 'string' &&
-      ['ENOENT', 'EACCES', 'EPERM'].includes((badError as any).code)
-    ) {
-      shouldSkipBadCode = true;
-    }
-
-    assert.equal(
-      shouldSkipBadCode,
-      false,
-      'Errors with non-string code should not be skipped'
-    );
   });
 
   it('should handle permission errors (EACCES) by skipping file', async () => {
