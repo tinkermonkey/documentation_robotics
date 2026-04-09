@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd"
+         edgedefault="directed">
+  <key id="node_description" for="node" attr.name="description" attr.type="string"/>
+  <key id="node_layer" for="node" attr.name="layer" attr.type="string"/>
+  <key id="node_type" for="node" attr.name="type" attr.type="string"/>
+  <key id="edge_type" for="edge" attr.name="type" attr.type="string"/>
+  <graph id="model" edgedefault="directed">
+    <data key="name">test-project</data>
+    <node id="motivation.goal.manage-tasks">
+      <data key="name">Manage Personal Tasks</data>
+      <data key="node_layer">motivation</data>
+      <data key="node_type">goal</data>
+      <data key="node_description">Allow users to manage their personal task lists</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE4E1" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Manage Personal Tasks</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="business.actor.end-user">
+      <data key="name">End User</data>
+      <data key="node_layer">business</data>
+      <data key="node_type">actor</data>
+      <data key="node_description">End user of the task management system</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6F3FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>End User</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="business.businessprocess.create-task-process">
+      <data key="name">Create Task Process</data>
+      <data key="node_layer">business</data>
+      <data key="node_type">process</data>
+      <data key="node_description">Business process for creating tasks</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6F3FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Create Task Process</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="business.businessservice.task-management">
+      <data key="name">Task Management Service</data>
+      <data key="node_layer">business</data>
+      <data key="node_type">service</data>
+      <data key="node_description">Business capability for task management</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6F3FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Task Management Service</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="application.applicationservice.todo-api-service">
+      <data key="name">Todo API Service</data>
+      <data key="node_layer">application</data>
+      <data key="node_type">service</data>
+      <data key="node_description">Application service implementing task management</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6FFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Todo API Service</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="api.operation.list-todos">
+      <data key="name">List Todos</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">operation</data>
+      <data key="node_description">List all todos</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>List Todos</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="api.operation.create-todo">
+      <data key="name">Create Todo</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">operation</data>
+      <data key="node_description">Create a new todo</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Create Todo</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="api.operation.update-todo">
+      <data key="name">Update Todo</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">operation</data>
+      <data key="node_description">Update an existing todo</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Update Todo</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="api.operation.delete-todo">
+      <data key="name">Delete Todo</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">operation</data>
+      <data key="node_description">Delete a todo</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Delete Todo</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="data-model.entity.todo-object">
+      <data key="name">Todo Object</data>
+      <data key="node_layer">data-model</data>
+      <data key="node_type">entity</data>
+      <data key="node_description">Todo data model object</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6F0FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Todo Object</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="data-store.column.todos-id-column">
+      <data key="name">Id Column</data>
+      <data key="node_layer">data-store</data>
+      <data key="node_type">column</data>
+      <data key="node_description">Primary key column</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE6F0" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Id Column</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="data-store.column.todos-title-column">
+      <data key="name">Title Column</data>
+      <data key="node_layer">data-store</data>
+      <data key="node_type">column</data>
+      <data key="node_description">Title column</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE6F0" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Title Column</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="data-store.column.todos-done-column">
+      <data key="name">Done Column</data>
+      <data key="node_layer">data-store</data>
+      <data key="node_type">column</data>
+      <data key="node_description">Done status column</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE6F0" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Done Column</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="data-store.table.todos-table">
+      <data key="name">Todos Table</data>
+      <data key="node_layer">data-store</data>
+      <data key="node_type">table</data>
+      <data key="node_description">Database table for todos</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE6F0" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Todos Table</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+  </graph>
+</graphml>

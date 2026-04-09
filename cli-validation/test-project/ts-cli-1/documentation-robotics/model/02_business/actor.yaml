@@ -1,0 +1,8 @@
+business.actor.end-user:
+  id: 89741e45-a23c-4d2c-bb27-d7928a187b0b
+  path: business.actor.end-user
+  spec_node_id: business.actor
+  type: actor
+  layer_id: business
+  name: End User
+  description: End user of the task management system

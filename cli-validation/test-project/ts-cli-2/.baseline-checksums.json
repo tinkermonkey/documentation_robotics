@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-04-09T02:07:06.191Z",
+  "checksums": {
+    "01_motivation/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "01_motivation/goal.yaml": "6bbe40fef0e1d225a1a9f7175bfac3efbb66edfeed120db41f215de0cba0f392",
+    "02_business/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "02_business/actor.yaml": "5210ab29c23f036b27ab6f0e5299b699b0cbf179bd3bc1830f8a897d6c216f42",
+    "02_business/process.yaml": "ae5ee38302a61ffb538fb9635e3d71267c35bca21bed8f761048ff46da243bce",
+    "02_business/service.yaml": "1fa97704e88e75053e5c7b3f287a09168bbbeaa3cbc9465a9da2546e5a3c8066",
+    "03_security/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "04_application/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "04_application/service.yaml": "af875461689029431738cc86fc723f626249f4e122207134dad69f7d994ef522",
+    "05_technology/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "06_api/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "06_api/operation.yaml": "56b1b083eae08988ae0985720f9d00d48ddb7e6c9279bb8c3ad20b4e1a8c6299",
+    "07_data-model/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "07_data-model/entity.yaml": "9a228358b80c2c274416d51b4d920e0970fb38c67d1f29cdb097cf261a7d0711",
+    "08_data-store/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "08_data-store/column.yaml": "d97ce8a7944228e546f8afa1c160ef6d5cff8510084f8c1af0ceb770c0b34b8e",
+    "08_data-store/table.yaml": "986f8658f66073010e141cd6ede8e0ad551bf3d0be2aebdda7b4e6c7d22f6d7b",
+    "09_ux/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "10_navigation/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "11_apm/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "12_testing/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "manifest.yaml": "76c76b756912857fff6cf52087d637e7c462455eb056b2e62b1edc76a413559b"
+  }
+}

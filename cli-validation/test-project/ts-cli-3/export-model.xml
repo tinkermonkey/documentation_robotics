@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd">
+  <name>test-project</name>
+  <elements>
+    <element identifier="motivation.goal.manage-tasks" xsi:type="Goal">
+      <name>Manage Personal Tasks</name>
+      <documentation>Allow users to manage their personal task lists</documentation>
+      <properties>
+      </properties>
+    </element>
+    <element identifier="business.actor.end-user" xsi:type="Element">
+      <name>End User</name>
+      <documentation>End user of the task management system</documentation>
+      <properties>
+      </properties>
+    </element>
+    <element identifier="business.businessprocess.create-task-process" xsi:type="Element">
+      <name>Create Task Process</name>
+      <documentation>Business process for creating tasks</documentation>
+      <properties>
+      </properties>
+    </element>
+    <element identifier="business.businessservice.task-management" xsi:type="Element">
+      <name>Task Management Service</name>
+      <documentation>Business capability for task management</documentation>
+      <properties>
+      </properties>
+    </element>
+    <element identifier="application.applicationservice.todo-api-service" xsi:type="Element">
+      <name>Todo API Service</name>
+      <documentation>Application service implementing task management</documentation>
+      <properties>
+      </properties>
+    </element>
+  </elements>
+  <relationships>
+  </relationships>
+</model>

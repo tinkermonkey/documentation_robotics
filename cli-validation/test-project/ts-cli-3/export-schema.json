@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "test-project-schema",
+  "title": "test-project",
+  "description": "Data model schema",
+  "type": "object",
+  "definitions": {
+    "data-model.entity.todo-object": {
+      "title": "Todo Object",
+      "description": "Todo data model object",
+      "type": "object"
+    },
+    "data-model.objectschema.schema-test-object": {
+      "title": "Test Object",
+      "description": "Object for JSON schema export",
+      "type": "object"
+    }
+  },
+  "metadata": {
+    "version": "0.1.0",
+    "created": "2026-04-08T19:50:17.177Z",
+    "modified": "2026-04-09T02:07:15.836Z",
+    "entityCount": 2
+  }
+}

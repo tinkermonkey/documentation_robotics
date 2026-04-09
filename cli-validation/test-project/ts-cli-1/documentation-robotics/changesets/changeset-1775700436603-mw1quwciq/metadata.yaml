@@ -1,0 +1,11 @@
+id: changeset-1775700436603-mw1quwciq
+name: complex-ops-changeset
+description: Changeset with multiple element changes and relationships
+created: 2026-04-09T02:07:16.611Z
+modified: 2026-04-09T02:07:18.443Z
+status: committed
+baseSnapshot: sha256:c04649dbcdd78d943e325f9fc0ef3b0ae542bfa10ffcdedc8d3c67a0f2e80a8f
+stats:
+  additions: 3
+  modifications: 0
+  deletions: 0

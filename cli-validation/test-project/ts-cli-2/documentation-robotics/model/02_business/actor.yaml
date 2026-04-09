@@ -1,0 +1,8 @@
+end-user:
+  id: end-user
+  path: business.actor.end-user
+  spec_node_id: business.actor
+  type: actor
+  layer_id: business
+  name: End User
+  description: End user of the task management system

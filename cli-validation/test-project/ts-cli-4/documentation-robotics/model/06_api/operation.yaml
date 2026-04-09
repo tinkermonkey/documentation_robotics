@@ -1,0 +1,32 @@
+list-todos:
+  id: list-todos
+  path: api.operation.list-todos
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: List Todos
+  description: List all todos
+create-todo:
+  id: create-todo
+  path: api.operation.create-todo
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: Create Todo
+  description: Create a new todo
+update-todo:
+  id: update-todo
+  path: api.operation.update-todo
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: Update Todo
+  description: Update an existing todo
+delete-todo:
+  id: delete-todo
+  path: api.operation.delete-todo
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: Delete Todo
+  description: Delete a todo

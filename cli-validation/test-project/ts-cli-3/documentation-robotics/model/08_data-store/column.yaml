@@ -1,0 +1,24 @@
+data-store.column.todos-id-column:
+  id: b2a635d4-0679-480b-a69d-c981988ddbd4
+  path: data-store.column.todos-id-column
+  spec_node_id: data-store.column
+  type: column
+  layer_id: data-store
+  name: Id Column
+  description: Primary key column
+data-store.column.todos-title-column:
+  id: 96594584-228b-48a1-8140-174b6163d7be
+  path: data-store.column.todos-title-column
+  spec_node_id: data-store.column
+  type: column
+  layer_id: data-store
+  name: Title Column
+  description: Title column
+data-store.column.todos-done-column:
+  id: df39d178-24c0-44d7-8c63-5e880f2e9dd0
+  path: data-store.column.todos-done-column
+  spec_node_id: data-store.column
+  type: column
+  layer_id: data-store
+  name: Done Column
+  description: Done status column

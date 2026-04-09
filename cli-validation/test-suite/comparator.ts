@@ -104,9 +104,19 @@ async function walkDirectory(dirPath: string, rootPath: string = dirPath): Promi
           files.push(relativePath);
         }
       }
-    } catch {
+    } catch (error) {
       // Skip inaccessible directories silently
       // This is expected for some system directories (permissions, etc.)
+      // Only catch file I/O errors, not programming errors
+      if (
+        error instanceof Error &&
+        ('code' in error || error.message.includes('ENOENT') || error.message.includes('EACCES'))
+      ) {
+        // Expected I/O error - skip this directory
+        return;
+      }
+      // Re-throw unexpected errors (e.g., TypeError, RangeError)
+      throw error;
     }
   }
 

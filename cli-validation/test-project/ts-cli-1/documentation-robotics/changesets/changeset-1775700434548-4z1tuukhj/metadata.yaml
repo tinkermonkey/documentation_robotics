@@ -1,0 +1,11 @@
+id: changeset-1775700434548-4z1tuukhj
+name: core-lifecycle-changeset
+description: Test changeset for lifecycle validation
+created: 2026-04-09T02:07:14.556Z
+modified: 2026-04-09T02:07:16.321Z
+status: discarded
+baseSnapshot: sha256:d87fc5e3e616ee53980c831d90503d59fc7f4d5e90f75bbdf36c708d5cf80bc4
+stats:
+  additions: 0
+  modifications: 0
+  deletions: 0

@@ -1,0 +1,20 @@
+motivation.goal.manage-tasks:
+  id: 51914b76-95b3-4301-a13e-aa6ef46ebb9a
+  path: motivation.goal.manage-tasks
+  spec_node_id: motivation.goal
+  type: goal
+  layer_id: motivation
+  name: Manage Personal Tasks
+  description: Allow users to manage their personal task lists
+motivation.goal.lifecycle-goal-001:
+  id: 6fdc9eaf-b8e3-4346-a368-480843dd884d
+  path: motivation.goal.lifecycle-goal-001
+  spec_node_id: motivation.goal
+  type: goal
+  layer_id: motivation
+  name: Lifecycle Test Goal
+  description: Goal created within changeset
+  metadata:
+    created_at: 2026-04-09T02:07:15.102Z
+    updated_at: 2026-04-09T02:07:15.102Z
+    version: 1
