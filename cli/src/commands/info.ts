@@ -38,7 +38,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
     }
 
     console.log("");
-    console.log(ansis.bold(`${ansis.blue("model:")} ${manifest.name}`));
+    console.log(ansis.bold(`${ansis.blue("Model:")} ${manifest.name}`));
     console.log(ansis.dim(TABLE_SEPARATOR));
 
     console.log(`${ansis.gray("Name:")}          ${manifest.name}`);

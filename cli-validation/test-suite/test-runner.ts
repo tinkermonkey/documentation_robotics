@@ -561,7 +561,9 @@ async function runTestSuite(): Promise<void> {
     // do not escape their isolation and contaminate the original baseline directory.
     // Individual worker copies may have their model files reorganized and updated,
     // which is expected behavior when the CLI loads and saves the model.
-    console.log('✓ Worker isolation verified - original baseline not contaminated');
+    if (!baselineContaminated) {
+      console.log('✓ Worker isolation verified - original baseline not contaminated');
+    }
 
     // Clean up test artifacts
     let cleanupFailed = false;
