@@ -110,7 +110,9 @@ async function walkDirectory(dirPath: string, rootPath: string = dirPath): Promi
       // Only catch file I/O errors, not programming errors
       if (
         error instanceof Error &&
-        ('code' in error || error.message.includes('ENOENT') || error.message.includes('EACCES'))
+        'code' in error &&
+        typeof (error as any).code === 'string' &&
+        ['ENOENT', 'EACCES', 'EPERM'].includes((error as any).code)
       ) {
         // Expected I/O error - skip this directory
         return;
@@ -178,7 +180,9 @@ export async function captureSnapshot(directory: string): Promise<FilesystemSnap
       // Only catch file I/O errors, not normalization/hash errors
       if (
         error instanceof Error &&
-        ('code' in error || error.message.includes('ENOENT') || error.message.includes('EACCES'))
+        'code' in error &&
+        typeof (error as any).code === 'string' &&
+        ['ENOENT', 'EACCES', 'EPERM'].includes((error as any).code)
       ) {
         continue;
       }
@@ -243,7 +247,9 @@ export async function captureTargetedSnapshot(
       // Only catch file I/O errors, not normalization/hash errors
       if (
         error instanceof Error &&
-        ('code' in error || error.message.includes('ENOENT') || error.message.includes('EACCES'))
+        'code' in error &&
+        typeof (error as any).code === 'string' &&
+        ['ENOENT', 'EACCES', 'EPERM'].includes((error as any).code)
       ) {
         continue;
       }

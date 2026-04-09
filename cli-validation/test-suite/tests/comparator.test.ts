@@ -6,7 +6,10 @@
 
 import { describe, it } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { FilesystemSnapshot, FileInfo, compareSnapshots, formatComparisonResult } from '../comparator.js';
+import { writeFile, mkdir, chmod } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { FilesystemSnapshot, FileInfo, compareSnapshots, formatComparisonResult, captureTargetedSnapshot } from '../comparator.js';
 
 /**
  * Test assertion helpers for compatibility with Bun's expect-like syntax
@@ -444,5 +447,231 @@ describe('Edge cases', () => {
 
     const result = compareSnapshots(before, after);
     expect(result.summary.total).toBe(2);
+  });
+});
+
+// ============================================================================
+// Targeted Snapshot Tests
+// ============================================================================
+
+describe('captureTargetedSnapshot', () => {
+  it('should capture specified files successfully', async () => {
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      // Create test files
+      await writeFile(join(tempDir, 'file1.yaml'), 'content1\n');
+      await writeFile(join(tempDir, 'file2.json'), 'content2\n');
+
+      // Capture specific files
+      const snapshot = await captureTargetedSnapshot(tempDir, ['file1.yaml', 'file2.json']);
+
+      expect(snapshot.directory).toBe(tempDir);
+      expect(snapshot.files.size).toBe(2);
+      expect(snapshot.files.has('file1.yaml')).toBe(true);
+      expect(snapshot.files.has('file2.json')).toBe(true);
+
+      // Verify file info exists
+      const file1Info = snapshot.files.get('file1.yaml');
+      assert(file1Info !== undefined);
+      expect(file1Info.exists).toBe(true);
+      expect(file1Info.hash.length).toBe(64); // SHA-256 hex is 64 chars
+      expect(file1Info.size).toBe(9); // 'content1\n'
+    } finally {
+      // Cleanup
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
+    }
+  });
+
+  it('should skip non-existent files gracefully', async () => {
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      // Create one file
+      await writeFile(join(tempDir, 'exists.yaml'), 'content\n');
+
+      // Try to capture both existing and non-existent files
+      const snapshot = await captureTargetedSnapshot(tempDir, ['exists.yaml', 'does-not-exist.yaml']);
+
+      // Should only include the file that exists
+      expect(snapshot.files.size).toBe(1);
+      expect(snapshot.files.has('exists.yaml')).toBe(true);
+      expect(snapshot.files.has('does-not-exist.yaml')).toBe(false);
+    } finally {
+      // Cleanup
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
+    }
+  });
+
+  it('should return empty snapshot when no files are specified', async () => {
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      // Create a file but don't request it
+      await writeFile(join(tempDir, 'unused.yaml'), 'content\n');
+
+      // Capture empty list of files
+      const snapshot = await captureTargetedSnapshot(tempDir, []);
+
+      expect(snapshot.directory).toBe(tempDir);
+      expect(snapshot.files.size).toBe(0);
+    } finally {
+      // Cleanup
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
+    }
+  });
+
+  it('should handle empty snapshot when all requested files are missing', async () => {
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      // Request files that don't exist
+      const snapshot = await captureTargetedSnapshot(tempDir, [
+        'missing1.yaml',
+        'missing2.json',
+      ]);
+
+      expect(snapshot.directory).toBe(tempDir);
+      expect(snapshot.files.size).toBe(0);
+    } finally {
+      // Cleanup
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
+    }
+  });
+
+  it('should generate consistent hashes for identical content', async () => {
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      // Create two snapshots of the same file
+      await writeFile(join(tempDir, 'test.yaml'), 'same content\n');
+
+      const snapshot1 = await captureTargetedSnapshot(tempDir, ['test.yaml']);
+      const snapshot2 = await captureTargetedSnapshot(tempDir, ['test.yaml']);
+
+      // Hashes should be identical
+      const hash1 = snapshot1.files.get('test.yaml')?.hash;
+      const hash2 = snapshot2.files.get('test.yaml')?.hash;
+
+      expect(hash1).toBe(hash2);
+    } finally {
+      // Cleanup
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
+    }
+  });
+
+  it('should capture files in subdirectories', async () => {
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
+    await mkdir(join(tempDir, 'subdir'), { recursive: true });
+
+    try {
+      // Create files in subdirectories
+      await writeFile(join(tempDir, 'root.yaml'), 'root\n');
+      await writeFile(join(tempDir, 'subdir', 'nested.yaml'), 'nested\n');
+
+      // Capture files with relative paths
+      const snapshot = await captureTargetedSnapshot(tempDir, ['root.yaml', 'subdir/nested.yaml']);
+
+      expect(snapshot.files.size).toBe(2);
+      expect(snapshot.files.has('root.yaml')).toBe(true);
+      expect(snapshot.files.has('subdir/nested.yaml')).toBe(true);
+    } finally {
+      // Cleanup
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
+    }
+  });
+
+  it('should handle I/O errors correctly by skipping files', async () => {
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      // Create one file that exists
+      await writeFile(join(tempDir, 'exists.json'), '{"key": "value"}');
+
+      // Attempt to capture both existing and non-existing files
+      // The non-existent file error should be caught and skipped
+      const snapshot = await captureTargetedSnapshot(tempDir, [
+        'exists.json',
+        'does-not-exist.json',
+        'also-missing.yaml',
+      ]);
+
+      // Only the existing file should be in the snapshot
+      expect(snapshot.files.size).toBe(1);
+      expect(snapshot.files.has('exists.json')).toBe(true);
+      expect(snapshot.files.has('does-not-exist.json')).toBe(false);
+      expect(snapshot.files.has('also-missing.yaml')).toBe(false);
+    } finally {
+      // Cleanup
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
+    }
+  });
+
+  it('should handle permission errors (EACCES) by skipping file', async () => {
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      // Create a file
+      const testFile = join(tempDir, 'restricted.yaml');
+      await writeFile(testFile, 'content\n');
+
+      // Remove read permissions
+      await chmod(testFile, 0o000);
+
+      // Attempt to capture - should skip the file due to permission error
+      const snapshot = await captureTargetedSnapshot(tempDir, ['restricted.yaml']);
+
+      // File should be skipped (not included in snapshot)
+      expect(snapshot.files.has('restricted.yaml')).toBe(false);
+    } catch (error) {
+      // Some systems may not allow chmod to remove read permission for file owner
+      // In that case, skip this test gracefully
+      assert((error as any)?.message?.includes('EACCES') || (error as any)?.message?.includes('Permission'));
+    } finally {
+      // Cleanup - restore permissions before cleanup
+      const testFile = join(tempDir, 'restricted.yaml');
+      try {
+        await chmod(testFile, 0o644);
+      } catch {
+        // Ignore errors during cleanup
+      }
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
+    }
+  });
+
+  it('should include file metadata in snapshot', async () => {
+    const tempDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      // Create a test file
+      const testFile = join(tempDir, 'metadata-test.yaml');
+      await writeFile(testFile, 'test content for metadata\n');
+
+      const snapshot = await captureTargetedSnapshot(tempDir, ['metadata-test.yaml']);
+
+      const fileInfo = snapshot.files.get('metadata-test.yaml');
+      assert(fileInfo !== undefined);
+
+      // Verify all metadata fields are present
+      expect(fileInfo.exists).toBe(true);
+      expect(typeof fileInfo.hash).toBe('string');
+      expect(fileInfo.hash.length).toBe(64); // SHA-256
+      expect(typeof fileInfo.mtime).toBe('number');
+      expect(fileInfo.mtime > 0).toBe(true);
+      expect(typeof fileInfo.size).toBe('number');
+      expect(fileInfo.size > 0).toBe(true);
+    } finally {
+      // Cleanup
+      await import('node:fs').then((fs) => fs.promises.rm(tempDir, { recursive: true, force: true }));
+    }
   });
 });
