@@ -597,7 +597,7 @@ async function runTestSuite(): Promise<void> {
     const errorStack = error instanceof Error ? error.stack : '';
     console.error('\n❌ Test suite failed:');
     console.error(`   ${errorMsg}`);
-    if (errorStack && process.env.DEBUG) {
+    if (errorStack) {
       console.error(`\nStack trace:\n${errorStack}`);
     }
 

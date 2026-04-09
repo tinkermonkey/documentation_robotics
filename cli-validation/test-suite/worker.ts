@@ -448,7 +448,7 @@ async function runWorker(): Promise<void> {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     output.writeLine(`\nWorker error: ${errorMsg}`);
-    if (error instanceof Error && process.env.DEBUG) {
+    if (error instanceof Error) {
       output.writeLine(`Stack trace: ${error.stack}`);
     }
 

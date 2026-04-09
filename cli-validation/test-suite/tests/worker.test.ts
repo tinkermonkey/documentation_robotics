@@ -8,46 +8,8 @@
 import { describe, it } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { validateStep, getSnapshotMode } from '../worker.js';
-
-// Type definitions matching worker.ts
-interface PipelineStep {
-  command: string;
-  files_to_compare: string[];
-  expect_exit_code?: number;
-  expect_stdout_contains?: string[];
-  expect_stderr_contains?: string[];
-  timeout?: number;
-}
-
-interface CommandOutput {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-  duration: number;
-}
-
-interface StepResult {
-  command: string;
-  pythonOutput: {
-    stdout: string;
-    stderr: string;
-    exitCode: number;
-    duration: number;
-  };
-  tsOutput: CommandOutput;
-  filesystemDiff: {
-    python: {
-      path: string;
-      type: 'added' | 'deleted' | 'modified';
-    }[];
-    ts: {
-      path: string;
-      type: 'added' | 'deleted' | 'modified';
-    }[];
-  };
-  passed: boolean;
-  failures: string[];
-}
+import { PipelineStep, StepResult } from '../pipeline.js';
+import { CommandOutput } from '../executor.js';
 
 
 
