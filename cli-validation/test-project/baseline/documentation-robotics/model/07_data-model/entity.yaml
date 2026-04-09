@@ -1,0 +1,8 @@
+todo-object:
+  id: todo-object
+  path: todo-object
+  spec_node_id: ""
+  type: entity
+  layer_id: data-model
+  name: Todo Object
+  description: Todo data model object

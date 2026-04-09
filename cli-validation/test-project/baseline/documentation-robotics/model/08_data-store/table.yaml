@@ -1,0 +1,8 @@
+todos-table:
+  id: todos-table
+  path: todos-table
+  spec_node_id: ""
+  type: table
+  layer_id: data-store
+  name: Todos Table
+  description: Database table for todos

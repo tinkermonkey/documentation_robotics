@@ -1,0 +1,8 @@
+create-task-process:
+  id: create-task-process
+  path: create-task-process
+  spec_node_id: ""
+  type: process
+  layer_id: business
+  name: Create Task Process
+  description: Business process for creating tasks
