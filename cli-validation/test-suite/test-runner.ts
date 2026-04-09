@@ -69,42 +69,6 @@ async function loadTestSuites(testCaseDir: string): Promise<TestSuite[]> {
 }
 
 
-/**
- * Generate summary statistics
- */
-function generateSummary(results: SuiteResult[]): TestRunSummary {
-  let totalPipelines = 0;
-  let passedPipelines = 0;
-  let totalSteps = 0;
-  let passedSteps = 0;
-  let totalDuration = 0;
-
-  for (const suite of results) {
-    for (const pipeline of suite.pipelines) {
-      totalPipelines++;
-      if (pipeline.passed) passedPipelines++;
-
-      totalSteps += pipeline.steps.length;
-      passedSteps += pipeline.steps.filter((s) => s.passed).length;
-
-      totalDuration += pipeline.totalDuration;
-    }
-  }
-
-  return {
-    totalSuites: results.length,
-    passedSuites: results.filter((r) => r.passed).length,
-    failedSuites: results.filter((r) => !r.passed).length,
-    totalPipelines,
-    passedPipelines,
-    failedPipelines: totalPipelines - passedPipelines,
-    totalSteps,
-    passedSteps,
-    failedSteps: totalSteps - passedSteps,
-    totalDuration,
-    results,
-  };
-}
 
 
 /**
@@ -262,7 +226,7 @@ async function executeWithWorkers(
             // Trigger the fast-fail promise to exit the race immediately
             triggerFastFail!();
 
-            // Signal and kill all other workers to force exit
+            // Signal all other workers to stop after their current pipeline completes
             for (const [otherId, otherWorker] of workers.entries()) {
               if (otherId !== workerId && otherWorker && !otherWorker.killed) {
                 try {
@@ -271,13 +235,6 @@ async function executeWithWorkers(
                   // Worker may have already exited - this is acceptable during fast-fail
                   const errorMsg = error instanceof Error ? error.message : String(error);
                   console.debug(`Could not signal worker ${otherId} to stop: ${errorMsg}`);
-                }
-                // Kill the worker immediately to force exit
-                try {
-                  otherWorker.kill();
-                } catch (error) {
-                  const errorMsg = error instanceof Error ? error.message : String(error);
-                  console.debug(`Could not kill worker ${otherId}: ${errorMsg}`);
                 }
               }
             }
@@ -493,8 +450,8 @@ async function runTestSuite(): Promise<void> {
       cleanupPaths.tsPaths
     );
 
-    // Generate summary
-    const summary = generateSummary(results);
+    // Generate summary using reporter's merge logic
+    const summary = reporter.mergeResults(results);
     summary.totalDuration = Date.now() - startTime;
 
     // Generate report using reporter
