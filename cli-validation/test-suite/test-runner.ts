@@ -329,6 +329,7 @@ async function executeWithWorkers(
 
       // Send assignment to worker
       worker.send({
+        type: 'assignment' as const,
         suites,
         config: {
           tsCLI: testConfig.tsCLI,

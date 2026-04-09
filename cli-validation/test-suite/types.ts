@@ -41,8 +41,8 @@ export type WorkerMessage =
     };
 
 /**
- * Legacy message format for backward compatibility with type narrowing
- * @deprecated Use WorkerMessage discriminated union instead
+ * Message format for worker assignment from parent process.
+ * Used alongside WorkerMessage discriminated union for type safety.
  */
 export interface WorkerAssignment {
   suites: TestSuite[];

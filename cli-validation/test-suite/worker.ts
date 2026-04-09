@@ -11,7 +11,6 @@ import {
   captureTargetedSnapshot,
   compareSnapshots,
   FilesystemSnapshot,
-  FileChange,
 } from './comparator.js';
 import { executeCommand, CommandOutput } from './executor.js';
 import {
@@ -21,7 +20,7 @@ import {
   PipelineResult,
 } from './pipeline.js';
 import { join } from 'node:path';
-import { TestRunnerConfig, WorkerAssignment, WorkerResult, WorkerMessage } from './types.js';
+import { TestRunnerConfig, WorkerAssignment, WorkerResult } from './types.js';
 
 /**
  * Output buffer for capturing console output during suite execution
@@ -96,7 +95,7 @@ export function validateStep(
 
   // Map filesystem changes to proper types with validation
   const typedChanges = tsChanges.map((c) => {
-    const validTypes = ['added', 'deleted', 'modified', 'unchanged'];
+    const validTypes = ['added', 'deleted', 'modified'];
     if (!validTypes.includes(c.type)) {
       console.warn(
         `[validateStep] Unknown filesystem change type "${c.type}" for file "${c.path}", coercing to "modified"`
