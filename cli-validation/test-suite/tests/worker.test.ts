@@ -458,56 +458,54 @@ describe('getSnapshotMode', () => {
   });
 
   describe('Mode 2: Skip Snapshot Mode', () => {
-    it('should return "skip" with empty files_to_compare and stdout assertions', () => {
+    it('should return "skip" with empty files_to_compare and no output assertions', () => {
       const step: PipelineStep = {
         command: 'test',
         files_to_compare: [],
-        expect_stdout_contains: ['Success'],
       };
 
       const mode = getSnapshotMode(step);
       assert.strictEqual(mode, 'skip');
     });
 
-    it('should return "skip" with empty files_to_compare and stderr assertions', () => {
-      const step: PipelineStep = {
-        command: 'test',
-        files_to_compare: [],
-        expect_stderr_contains: ['Error'],
-      };
-
-      const mode = getSnapshotMode(step);
-      assert.strictEqual(mode, 'skip');
-    });
-
-    it('should return "skip" with empty files_to_compare and both stdout and stderr assertions', () => {
-      const step: PipelineStep = {
-        command: 'test',
-        files_to_compare: [],
-        expect_stdout_contains: ['Success'],
-        expect_stderr_contains: ['Error'],
-      };
-
-      const mode = getSnapshotMode(step);
-      assert.strictEqual(mode, 'skip');
-    });
-
-    it('should return "skip" with undefined files_to_compare and stdout assertions', () => {
+    it('should return "skip" with undefined files_to_compare and no output assertions', () => {
       const step: PipelineStep = {
         command: 'test',
         files_to_compare: undefined as any,
-        expect_stdout_contains: ['Success'],
       };
 
       const mode = getSnapshotMode(step);
       assert.strictEqual(mode, 'skip');
     });
 
-    it('should return "skip" with undefined files_to_compare and stderr assertions', () => {
+    it('should return "skip" when no expectations are specified at all', () => {
       const step: PipelineStep = {
         command: 'test',
-        files_to_compare: undefined as any,
-        expect_stderr_contains: ['Error'],
+        files_to_compare: [],
+        expect_stdout_contains: [],
+        expect_stderr_contains: [],
+      };
+
+      const mode = getSnapshotMode(step);
+      assert.strictEqual(mode, 'skip');
+    });
+
+    it('should return "skip" with empty assertions array for stdout', () => {
+      const step: PipelineStep = {
+        command: 'test',
+        files_to_compare: [],
+        expect_stdout_contains: [],
+      };
+
+      const mode = getSnapshotMode(step);
+      assert.strictEqual(mode, 'skip');
+    });
+
+    it('should return "skip" with empty assertions array for stderr', () => {
+      const step: PipelineStep = {
+        command: 'test',
+        files_to_compare: [],
+        expect_stderr_contains: [],
       };
 
       const mode = getSnapshotMode(step);
@@ -516,53 +514,55 @@ describe('getSnapshotMode', () => {
   });
 
   describe('Mode 3: Full Snapshot Mode', () => {
-    it('should return "full" when files_to_compare is empty and no output assertions', () => {
+    it('should return "full" with empty files_to_compare and stdout assertions', () => {
       const step: PipelineStep = {
         command: 'test',
         files_to_compare: [],
+        expect_stdout_contains: ['Success'],
       };
 
       const mode = getSnapshotMode(step);
       assert.strictEqual(mode, 'full');
     });
 
-    it('should return "full" when files_to_compare is undefined and no output assertions', () => {
+    it('should return "full" with empty files_to_compare and stderr assertions', () => {
+      const step: PipelineStep = {
+        command: 'test',
+        files_to_compare: [],
+        expect_stderr_contains: ['Error'],
+      };
+
+      const mode = getSnapshotMode(step);
+      assert.strictEqual(mode, 'full');
+    });
+
+    it('should return "full" as safety net when output assertions exist', () => {
+      const step: PipelineStep = {
+        command: 'command-with-output',
+        files_to_compare: [],
+        expect_stdout_contains: ['Success'],
+      };
+
+      const mode = getSnapshotMode(step);
+      assert.strictEqual(mode, 'full');
+    });
+
+    it('should return "full" when undefined files_to_compare and stdout assertions', () => {
       const step: PipelineStep = {
         command: 'test',
         files_to_compare: undefined as any,
+        expect_stdout_contains: ['Success'],
       };
 
       const mode = getSnapshotMode(step);
       assert.strictEqual(mode, 'full');
     });
 
-    it('should return "full" as default safety net for comprehensive validation', () => {
-      const step: PipelineStep = {
-        command: 'dangerous-command',
-        files_to_compare: [],
-        // No assertions specified - catch everything
-      };
-
-      const mode = getSnapshotMode(step);
-      assert.strictEqual(mode, 'full');
-    });
-
-    it('should return "full" when only expect_exit_code is specified', () => {
+    it('should return "full" when undefined files_to_compare and stderr assertions', () => {
       const step: PipelineStep = {
         command: 'test',
-        files_to_compare: [],
-        expect_exit_code: 0,
-      };
-
-      const mode = getSnapshotMode(step);
-      assert.strictEqual(mode, 'full');
-    });
-
-    it('should return "full" when files_to_compare is empty with timeout specified', () => {
-      const step: PipelineStep = {
-        command: 'test',
-        files_to_compare: [],
-        timeout: 5000,
+        files_to_compare: undefined as any,
+        expect_stderr_contains: ['Error'],
       };
 
       const mode = getSnapshotMode(step);
@@ -578,7 +578,7 @@ describe('getSnapshotMode', () => {
       };
 
       const mode = getSnapshotMode(step);
-      assert.strictEqual(mode, 'full');
+      assert.strictEqual(mode, 'skip');
     });
 
     it('should handle stdout_contains with empty array', () => {
@@ -590,7 +590,7 @@ describe('getSnapshotMode', () => {
 
       // Empty stdout_contains array is semantically the same as no assertions
       const mode = getSnapshotMode(step);
-      assert.strictEqual(mode, 'full');
+      assert.strictEqual(mode, 'skip');
     });
 
     it('should respect priority: files_to_compare wins over stdout/stderr assertions', () => {
@@ -609,12 +609,12 @@ describe('getSnapshotMode', () => {
       const skipStep: PipelineStep = {
         command: 'test1',
         files_to_compare: [],
-        expect_stdout_contains: ['text'],
       };
 
       const fullStep: PipelineStep = {
         command: 'test2',
         files_to_compare: [],
+        expect_stdout_contains: ['text'],
       };
 
       assert.strictEqual(getSnapshotMode(skipStep), 'skip');
@@ -623,17 +623,16 @@ describe('getSnapshotMode', () => {
   });
 
   describe('I/O Impact Scenarios', () => {
-    it('should use skip mode to reduce I/O for simple output validation', () => {
-      // Scenario: only checking that command succeeds silently
+    it('should use skip mode to reduce I/O when no validation needed', () => {
+      // Scenario: command with no expectations - skip filesystem snapshots entirely
       const step: PipelineStep = {
-        command: 'simple-command',
+        command: 'silent-command',
         files_to_compare: [],
-        expect_stdout_contains: ['OK'],
       };
 
       const mode = getSnapshotMode(step);
       assert.strictEqual(mode, 'skip');
-      // This avoids unnecessary directory walks
+      // This avoids unnecessary directory walks when nothing is being validated
     });
 
     it('should use targeted mode to focus I/O on relevant files', () => {
@@ -648,16 +647,17 @@ describe('getSnapshotMode', () => {
       // This avoids reading unrelated files
     });
 
-    it('should use full mode as safety net for unknown changes', () => {
-      // Scenario: command with unknown side effects
+    it('should use full mode as safety net for output validation', () => {
+      // Scenario: command with output assertions - capture full directory for side effect detection
       const step: PipelineStep = {
         command: 'complex-operation',
         files_to_compare: [],
+        expect_stdout_contains: ['Success'],
       };
 
       const mode = getSnapshotMode(step);
       assert.strictEqual(mode, 'full');
-      // This ensures no silent filesystem changes are missed
+      // This ensures unexpected filesystem changes are caught alongside output validation
     });
   });
 });

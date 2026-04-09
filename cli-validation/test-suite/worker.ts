@@ -133,8 +133,8 @@ export function validateStep(
  * Determine which snapshot mode to use based on step configuration
  *
  * Mode 1 (Targeted): Non-empty files_to_compare → read only specified files
- * Mode 2 (Skip): Empty/no files_to_compare with only stdout/stderr assertions → no snapshots
- * Mode 3 (Full): All other cases → full directory walk (safety net)
+ * Mode 2 (Skip): Empty/no files_to_compare AND no filesystem assertions → no snapshots (optimization)
+ * Mode 3 (Full): Empty/no files_to_compare with stdout/stderr assertions → full directory walk (safety net)
  */
 export function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full' {
   // Mode 1: Non-empty files_to_compare
@@ -142,18 +142,19 @@ export function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full
     return 'targeted';
   }
 
-  // Mode 2: Empty/no files_to_compare with non-empty stdout/stderr assertions
+  // Mode 2: Empty/no files_to_compare AND no filesystem assertions → skip snapshots entirely
   // (empty assertion arrays are treated as no assertions)
   const hasStdoutAssertions = (step.expect_stdout_contains?.length ?? 0) > 0;
   const hasStderrAssertions = (step.expect_stderr_contains?.length ?? 0) > 0;
   if (
     (!step.files_to_compare || step.files_to_compare.length === 0) &&
-    (hasStdoutAssertions || hasStderrAssertions)
+    !hasStdoutAssertions &&
+    !hasStderrAssertions
   ) {
     return 'skip';
   }
 
-  // Mode 3: Full walk (default for everything else)
+  // Mode 3: Full walk (safety net for cases with output assertions but no files specified)
   return 'full';
 }
 
