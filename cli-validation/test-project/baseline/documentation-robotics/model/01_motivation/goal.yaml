@@ -1,7 +1,7 @@
 manage-tasks:
   id: manage-tasks
-  path: manage-tasks
-  spec_node_id: ""
+  path: motivation.goal.manage-tasks
+  spec_node_id: motivation.goal
   type: goal
   layer_id: motivation
   name: Manage Personal Tasks

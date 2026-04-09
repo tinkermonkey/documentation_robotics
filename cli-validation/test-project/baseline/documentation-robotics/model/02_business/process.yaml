@@ -1,7 +1,7 @@
 create-task-process:
   id: create-task-process
-  path: create-task-process
-  spec_node_id: ""
+  path: business.businessprocess.create-task-process
+  spec_node_id: business.businessprocess
   type: process
   layer_id: business
   name: Create Task Process

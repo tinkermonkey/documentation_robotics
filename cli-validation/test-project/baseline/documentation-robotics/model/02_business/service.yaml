@@ -1,7 +1,7 @@
 task-management:
   id: task-management
-  path: task-management
-  spec_node_id: ""
+  path: business.businessservice.task-management
+  spec_node_id: business.businessservice
   type: service
   layer_id: business
   name: Task Management Service

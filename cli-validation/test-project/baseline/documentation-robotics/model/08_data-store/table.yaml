@@ -1,7 +1,7 @@
 todos-table:
   id: todos-table
-  path: todos-table
-  spec_node_id: ""
+  path: data-store.table.todos-table
+  spec_node_id: data-store.table
   type: table
   layer_id: data-store
   name: Todos Table

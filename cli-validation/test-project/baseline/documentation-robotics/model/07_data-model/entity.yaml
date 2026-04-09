@@ -1,7 +1,7 @@
 todo-object:
   id: todo-object
-  path: todo-object
-  spec_node_id: ""
+  path: data-model.entity.todo-object
+  spec_node_id: data-model.entity
   type: entity
   layer_id: data-model
   name: Todo Object

@@ -221,22 +221,26 @@ export class RelationshipValidator {
 
     // Extract element types AND layers (CRITICAL FIX for cross-layer relationships)
     // The source and target elements may be in different layers
-    const sourceType = sourceElement.type;
-    const targetType = targetElement.type;
     const sourceLayer = sourceElement.layer_id || sourceElement.layer || relationship.layer;
     const targetLayer = targetElement.layer_id || targetElement.layer || relationship.layer;
 
-    // Find applicable relationship schema using actual source/target layers
+    // Use spec_node_id directly to find relationship schema
+    // spec_node_id contains the canonical type (e.g., "application.applicationservice")
+    const sourceSpecId = sourceElement.spec_node_id;
+    const targetSpecId = targetElement.spec_node_id;
+
+    // Find applicable relationship schema using actual source/target layers and spec node IDs
     // (not relationship.layer for both, which assumes intra-layer relationships)
-    const schemaKey = this.findRelationshipSchemaKey(
-      sourceLayer,
-      sourceType,
-      targetLayer,
-      targetType,
+    const schemaKey = this.findRelationshipSchemaKeyBySpecId(
+      sourceSpecId,
+      targetSpecId,
       relationship.predicate
     );
 
     if (!schemaKey) {
+      // Extract type names from spec_node_id for error message (e.g., "applicationservice" from "application.applicationservice")
+      const sourceType = sourceSpecId.split(".")[1] || "unknown";
+      const targetType = targetSpecId.split(".")[1] || "unknown";
       errors.push({
         layer: relationship.layer,
         elementId: relationship.source,
@@ -400,27 +404,23 @@ export class RelationshipValidator {
   }
 
   /**
-   * Find relationship schema ID by source/dest specs and predicate
+   * Find relationship schema ID by source/dest spec node IDs and predicate
    *
    * Matches relationship schemas by:
    * 1. Predicate (must match exactly)
-   * 2. Layer pair (source and destination layers must match)
-   * 3. Element type pair (source and destination types must match spec node IDs)
+   * 2. Spec node ID pair (source and destination must match exactly)
+   *
+   * Spec node IDs are in the format "layer.type" (e.g., "application.applicationservice")
+   * and uniquely identify an element type across the model.
    *
    * Supports both intra-layer (motivation -> motivation) and cross-layer
    * (motivation -> business) relationships.
    */
-  private findRelationshipSchemaKey(
-    sourceLayer: string,
-    sourceType: string,
-    destLayer: string,
-    destType: string,
+  private findRelationshipSchemaKeyBySpecId(
+    sourceSpecId: string,
+    destSpecId: string,
     predicate: string
   ): string | null {
-    // Normalize type to lowercase for comparison (spec_node_ids use lowercase types)
-    const normalizedSourceType = sourceType.toLowerCase();
-    const normalizedDestType = destType.toLowerCase();
-
     // Search for matching schema
     for (const [schemaId, schema] of this.relationshipSchemas.entries()) {
       // First filter: predicate must match exactly
@@ -428,20 +428,8 @@ export class RelationshipValidator {
         continue;
       }
 
-      // Second filter: layer pair must match
-      // (supports both intra-layer and cross-layer relationships)
-      if (
-        schema.source_layer !== sourceLayer ||
-        schema.destination_layer !== destLayer
-      ) {
-        continue;
-      }
-
-      // Third filter: element type pair must match spec node IDs
-      // Construct spec node IDs and compare against schema constraints
-      const sourceSpecId = `${sourceLayer}.${normalizedSourceType}`;
-      const destSpecId = `${destLayer}.${normalizedDestType}`;
-
+      // Second filter: spec node ID pair must match exactly
+      // This directly compares canonical forms like "application.applicationservice"
       if (
         schema.source_spec_node_id === sourceSpecId &&
         schema.destination_spec_node_id === destSpecId
