@@ -306,21 +306,37 @@ async function runWorker(): Promise<void> {
   let shouldStopFlag = false;
   let assignmentReceived = false;
   let messageHandler: ((msg: unknown) => void) | null = null;
+  let disconnectHandler: (() => void) | null = null;
+
+  /**
+   * Clean up message handler and safely disconnect from parent
+   */
+  function cleanup(): void {
+    if (messageHandler) {
+      process.removeListener('message', messageHandler);
+      messageHandler = null;
+    }
+    if (disconnectHandler) {
+      process.removeListener('disconnect', disconnectHandler);
+      disconnectHandler = null;
+    }
+    if (process.connected) {
+      process.disconnect();
+    }
+  }
 
   // Wait for assignment from parent using a single message handler with state machine
   const assignment = await new Promise<WorkerAssignment>((resolve, reject) => {
     // Timeout to prevent indefinite hanging if parent doesn't send assignment
     const assignmentTimeout = setTimeout(() => {
       if (!assignmentReceived) {
-        if (messageHandler) {
-          process.removeListener('message', messageHandler);
-        }
+        cleanup();
         reject(new Error('Timeout waiting for worker assignment (30s)'));
       }
     }, 30000);
 
     // Handle parent process disconnect
-    const disconnectHandler = () => {
+    disconnectHandler = () => {
       if (!assignmentReceived) {
         clearTimeout(assignmentTimeout);
         if (messageHandler) {
@@ -354,7 +370,10 @@ async function runWorker(): Promise<void> {
           // Clear the assignment timeout now that we've received the assignment
           clearTimeout(assignmentTimeout);
           // Remove the disconnect handler since we now have the assignment
-          process.removeListener('disconnect', disconnectHandler);
+          if (disconnectHandler) {
+            process.removeListener('disconnect', disconnectHandler);
+            disconnectHandler = null;
+          }
           // Resolve with the assignment (handler stays registered to listen for fast-fail)
           resolve(message as unknown as WorkerAssignment);
           return;
@@ -425,10 +444,7 @@ async function runWorker(): Promise<void> {
     } as WorkerResult);
 
     // Clean up message handler and disconnect from parent to allow process to exit
-    if (messageHandler) {
-      process.removeListener('message', messageHandler);
-    }
-    process.disconnect();
+    cleanup();
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     output.writeLine(`\nWorker error: ${errorMsg}`);
@@ -453,10 +469,7 @@ async function runWorker(): Promise<void> {
     } as WorkerResult);
 
     // Clean up message handler and disconnect from parent to allow process to exit
-    if (messageHandler) {
-      process.removeListener('message', messageHandler);
-    }
-    process.disconnect();
+    cleanup();
     process.exit(1);
   }
 }
