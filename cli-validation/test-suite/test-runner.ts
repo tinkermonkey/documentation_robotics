@@ -113,7 +113,7 @@ function generateSummary(results: SuiteResult[]): TestRunSummary {
  *
  * @throws Error if the message is malformed
  */
-function assertValidWorkerResult(msg: unknown): asserts msg is WorkerResult {
+export function assertValidWorkerResult(msg: unknown): asserts msg is WorkerResult {
   if (!msg || typeof msg !== 'object') {
     throw new Error('Invalid worker message: not an object');
   }
