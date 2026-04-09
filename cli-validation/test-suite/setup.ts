@@ -31,9 +31,14 @@ function extractPathBefore(path: string, marker: string): string {
     );
   }
 
-  const result = path.substring(0, markerIndex);
+  let result = path.substring(0, markerIndex);
 
-  if (!result || result.endsWith(sep)) {
+  // Remove trailing separator if present
+  if (result.endsWith(sep)) {
+    result = result.slice(0, -1);
+  }
+
+  if (!result) {
     throw new Error(
       `Could not resolve workspace root: Invalid path segment before "${marker}": "${result}"`
     );
@@ -91,7 +96,7 @@ export function getCLIConfig(): CLIConfig {
   if (process.env.DR_PYTHON_CLI && process.env.DR_TS_CLI) {
     return {
       pythonCLI: process.env.DR_PYTHON_CLI,
-      tsCLI: process.env.DR_TS_CLI,
+      tsCLI: process.env.DR_TS_CLI
     };
   }
 
@@ -101,24 +106,21 @@ export function getCLIConfig(): CLIConfig {
   return {
     pythonCLI: process.env.DR_PYTHON_CLI || join(workspaceRoot, ".venv/bin/dr"),
     tsCLI:
-      process.env.DR_TS_CLI ||
-      `node ${join(workspaceRoot, "cli/dist/cli.js")}`,
+      process.env.DR_TS_CLI || `node ${join(workspaceRoot, "cli/dist/cli.js")}`
   };
 }
 
 /**
  * Get test environment paths relative to workspace root
  */
-export function getTestPaths(
-  baseDir: string = process.cwd()
-): TestPaths {
+export function getTestPaths(baseDir: string = process.cwd()): TestPaths {
   // Determine workspace root
   const workspaceRoot = resolveWorkspaceRoot(baseDir);
 
   return {
     baselinePath: join(workspaceRoot, "cli-validation/test-project/baseline"),
     pythonPath: join(workspaceRoot, "cli-validation/test-project/python-cli"),
-    tsPath: join(workspaceRoot, "cli-validation/test-project/ts-cli"),
+    tsPath: join(workspaceRoot, "cli-validation/test-project/ts-cli")
   };
 }
 
@@ -143,7 +145,7 @@ export function getMultiWorkerTestPaths(
   return {
     baselinePath: join(baseTestProjectDir, "baseline"),
     pythonPath: join(baseTestProjectDir, "python-cli"),
-    tsPaths,
+    tsPaths
   };
 }
 
@@ -231,13 +233,15 @@ async function updateManifestCLIVersion(
  * @throws Error if TypeScript CLI is invalid
  * @returns Object with flags indicating which CLIs are available
  */
-export async function validateCLIBinaries(config: CLIConfig): Promise<{ pythonAvailable: boolean; tsAvailable: boolean }> {
+export async function validateCLIBinaries(
+  config: CLIConfig
+): Promise<{ pythonAvailable: boolean; tsAvailable: boolean }> {
   let pythonAvailable = false;
 
   // Try to validate Python CLI, but don't fail if it's not available
   try {
     await validateCLIBinary(config.pythonCLI);
-    console.log('✓ Python CLI available');
+    console.log("✓ Python CLI available");
     pythonAvailable = true;
   } catch (error) {
     console.warn(`⚠ Python CLI not available: ${String(error)}`);
@@ -246,7 +250,7 @@ export async function validateCLIBinaries(config: CLIConfig): Promise<{ pythonAv
   // TypeScript CLI is required
   try {
     await validateCLIBinary(config.tsCLI);
-    console.log('✓ TypeScript CLI available');
+    console.log("✓ TypeScript CLI available");
   } catch (error) {
     throw new Error(`TypeScript CLI validation failed: ${String(error)}`);
   }
@@ -278,7 +282,7 @@ async function cleanupAndRestoreBaseline(
   const result: CleanupResult = {
     directoryDeleteSuccess: true,
     baselineRestoreSuccess: true,
-    errors: [],
+    errors: []
   };
 
   // rm with force: true ignores missing directories
@@ -293,10 +297,10 @@ async function cleanupAndRestoreBaseline(
 
   // Restore baseline to its committed state to prevent test contamination
   try {
-    const workspaceRoot = extractPathBefore(baselinePath, 'cli-validation');
+    const workspaceRoot = extractPathBefore(baselinePath, "cli-validation");
 
-    await execAsync('git checkout -- cli-validation/test-project/baseline/', {
-      cwd: workspaceRoot,
+    await execAsync("git checkout -- cli-validation/test-project/baseline/", {
+      cwd: workspaceRoot
     });
   } catch (error) {
     // If git restore fails, record it but don't throw
@@ -317,7 +321,9 @@ async function cleanupAndRestoreBaseline(
  * @returns CleanupResult with status of each operation
  * @throws Error only if directory deletion fails; baseline restore failures are reported in result
  */
-export async function cleanupTestArtifacts(paths: TestPaths): Promise<CleanupResult> {
+export async function cleanupTestArtifacts(
+  paths: TestPaths
+): Promise<CleanupResult> {
   return cleanupAndRestoreBaseline(
     [paths.pythonPath, paths.tsPath],
     paths.baselinePath
@@ -372,7 +378,7 @@ async function setupAndUpdateManifests(
     try {
       await cp(baselinePath, tsPath, { recursive: true });
     } catch (error) {
-      const label = tsPaths.length === 1 ? 'ts-cli' : `ts-cli-${i + 1}`;
+      const label = tsPaths.length === 1 ? "ts-cli" : `ts-cli-${i + 1}`;
       throw new Error(
         `Failed to copy baseline to ${label}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -385,7 +391,7 @@ async function setupAndUpdateManifests(
     try {
       await storeWorkerBaselineChecksums(tsPath);
     } catch (error) {
-      const label = tsPaths.length === 1 ? 'ts-cli' : `ts-cli-${i + 1}`;
+      const label = tsPaths.length === 1 ? "ts-cli" : `ts-cli-${i + 1}`;
       throw new Error(
         `Failed to compute baseline checksums for ${label}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -405,13 +411,17 @@ async function setupAndUpdateManifests(
  * @param pythonAvailable - Whether Python CLI is available (optional)
  * @throws Error if copy operation fails
  */
-export async function setupTestEnvironment(paths: TestPaths, config: CLIConfig, pythonAvailable: boolean = true): Promise<void> {
+export async function setupTestEnvironment(
+  paths: TestPaths,
+  config: CLIConfig,
+  pythonAvailable: boolean = true
+): Promise<void> {
   // Clean up previous test artifacts
   const cleanupResult = await cleanupTestArtifacts(paths);
   if (!cleanupResult.baselineRestoreSuccess) {
     // Log warning if baseline restore failed, but proceed - setup will use potentially contaminated baseline
     // This is acceptable here since setup will create fresh test copies
-    console.warn('⚠ Baseline restore failed during setup cleanup');
+    console.warn("⚠ Baseline restore failed during setup cleanup");
     for (const error of cleanupResult.errors) {
       console.warn(`   - ${error}`);
     }
@@ -446,7 +456,7 @@ export async function setupMultiWorkerTestEnvironment(
   if (!cleanupResult.baselineRestoreSuccess) {
     // Log warning if baseline restore failed, but proceed - setup will use potentially contaminated baseline
     // This is acceptable here since setup will create fresh test copies
-    console.warn('⚠ Baseline restore failed during setup cleanup');
+    console.warn("⚠ Baseline restore failed during setup cleanup");
     for (const error of cleanupResult.errors) {
       console.warn(`   - ${error}`);
     }
@@ -468,7 +478,7 @@ export async function setupMultiWorkerTestEnvironment(
 export class BaselineContaminationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'BaselineContaminationError';
+    this.name = "BaselineContaminationError";
   }
 }
 
@@ -477,13 +487,15 @@ export class BaselineContaminationError extends Error {
  * @throws BaselineContaminationError if baseline has uncommitted changes
  * @throws Error if validation cannot be performed due to git/system errors
  */
-export async function validateBaselineIntegrity(baselinePath: string): Promise<void> {
-  const workspaceRoot = extractPathBefore(baselinePath, 'cli-validation');
+export async function validateBaselineIntegrity(
+  baselinePath: string
+): Promise<void> {
+  const workspaceRoot = extractPathBefore(baselinePath, "cli-validation");
 
   let gitResult: string;
   try {
     const { stdout } = await execAsync(
-      'git status --porcelain cli-validation/test-project/baseline/',
+      "git status --porcelain cli-validation/test-project/baseline/",
       { cwd: workspaceRoot }
     );
     gitResult = stdout;
@@ -495,7 +507,7 @@ export async function validateBaselineIntegrity(baselinePath: string): Promise<v
   }
 
   // Check if there are uncommitted changes
-  if (gitResult.trim() !== '') {
+  if (gitResult.trim() !== "") {
     throw new BaselineContaminationError(
       `Baseline directory has uncommitted changes (test isolation issue):\n${gitResult}`
     );
@@ -509,7 +521,7 @@ export async function validateBaselineIntegrity(baselinePath: string): Promise<v
  */
 async function computeFileHash(filePath: string): Promise<string> {
   const content = await readFile(filePath);
-  return createHash('sha256').update(content).digest('hex');
+  return createHash("sha256").update(content).digest("hex");
 }
 
 /**
@@ -521,13 +533,13 @@ async function computeFileHash(filePath: string): Promise<string> {
 async function computeDirectoryChecksums(
   dirPath: string,
   fileChecksums: Map<string, string> = new Map(),
-  relativePath: string = ''
+  relativePath: string = ""
 ): Promise<Map<string, string>> {
   const entries = await readdir(dirPath, { withFileTypes: true });
 
   for (const entry of entries) {
     // Skip git and node_modules directories
-    if (entry.name === '.git' || entry.name === 'node_modules') {
+    if (entry.name === ".git" || entry.name === "node_modules") {
       continue;
     }
 
@@ -551,19 +563,19 @@ async function computeDirectoryChecksums(
  * @param workerPath - Path to the worker directory (e.g., ts-cli-1)
  */
 async function storeWorkerBaselineChecksums(workerPath: string): Promise<void> {
-  const checksumFile = join(workerPath, '.baseline-checksums.json');
+  const checksumFile = join(workerPath, ".baseline-checksums.json");
 
   // Compute checksums for the documentation-robotics model directory
-  const modelDir = join(workerPath, 'documentation-robotics/model');
+  const modelDir = join(workerPath, "documentation-robotics/model");
   const checksums = await computeDirectoryChecksums(modelDir);
 
   // Store checksums
   const checksumData = {
     timestamp: new Date().toISOString(),
-    checksums: Object.fromEntries(checksums),
+    checksums: Object.fromEntries(checksums)
   };
 
-  await writeFile(checksumFile, JSON.stringify(checksumData, null, 2), 'utf-8');
+  await writeFile(checksumFile, JSON.stringify(checksumData, null, 2), "utf-8");
 }
 
 /**
@@ -571,29 +583,35 @@ async function storeWorkerBaselineChecksums(workerPath: string): Promise<void> {
  * @throws BaselineContaminationError if files have been modified or deleted
  * @throws Error if checksums cannot be computed or loaded
  */
-export async function validateWorkerBaselineIntegrity(workerPath: string): Promise<void> {
-  const checksumFile = join(workerPath, '.baseline-checksums.json');
+export async function validateWorkerBaselineIntegrity(
+  workerPath: string
+): Promise<void> {
+  const checksumFile = join(workerPath, ".baseline-checksums.json");
 
   // Load stored checksums
   let storedChecksumData: { checksums: Record<string, string> };
   try {
-    const content = await readFile(checksumFile, 'utf-8');
+    const content = await readFile(checksumFile, "utf-8");
     storedChecksumData = JSON.parse(content);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to load baseline checksums for worker at ${workerPath}: ${errorMsg}`);
+    throw new Error(
+      `Failed to load baseline checksums for worker at ${workerPath}: ${errorMsg}`
+    );
   }
 
   const storedChecksums = new Map(Object.entries(storedChecksumData.checksums));
 
   // Compute current checksums
-  const modelDir = join(workerPath, 'documentation-robotics/model');
+  const modelDir = join(workerPath, "documentation-robotics/model");
   let currentChecksums: Map<string, string>;
   try {
     currentChecksums = await computeDirectoryChecksums(modelDir);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to compute baseline checksums for worker at ${workerPath}: ${errorMsg}`);
+    throw new Error(
+      `Failed to compute baseline checksums for worker at ${workerPath}: ${errorMsg}`
+    );
   }
 
   // Compare checksums
@@ -618,7 +636,7 @@ export async function validateWorkerBaselineIntegrity(workerPath: string): Promi
 
   if (modifications.length > 0) {
     throw new BaselineContaminationError(
-      `Worker baseline copy at ${workerPath} has been contaminated (test isolation issue):\n${modifications.join('\n')}`
+      `Worker baseline copy at ${workerPath} has been contaminated (test isolation issue):\n${modifications.join("\n")}`
     );
   }
 }
@@ -657,7 +675,11 @@ export async function initializeTestEnvironment(
 export async function initializeMultiWorkerTestEnvironment(
   workerCount: number = 4,
   baseDir?: string
-): Promise<{ config: CLIConfig; paths: MultiWorkerTestPaths; primaryTsPath: string }> {
+): Promise<{
+  config: CLIConfig;
+  paths: MultiWorkerTestPaths;
+  primaryTsPath: string;
+}> {
   const config = getCLIConfig();
   const paths = getMultiWorkerTestPaths(workerCount, baseDir);
 
