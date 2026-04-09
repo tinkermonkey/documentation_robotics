@@ -263,7 +263,8 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     }
 
     // Check if operation was staged or applied to base model
-    if (handler.getBeforeState()) {
+    const beforeState = handler.getBeforeState();
+    if (beforeState) {
       // Check if we went through staging path
       const stagingManager = handler.getStagingManager();
       const activeChangeset = await stagingManager.getActive();
@@ -289,6 +290,20 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
           console.log(ansis.dim(`  Layer: ${layerName}`));
           console.log(ansis.dim(`  Total elements deleted: ${elementsToRemove.length}`));
         }
+      }
+    } else {
+      // Fallback success message if before state is not available
+      // This should rarely occur, but ensures user always gets feedback
+      console.log("");
+      console.log(ansis.green(`✓ Deleted element ${ansis.bold(id)}`));
+
+      if (options.cascade && dependents.length > 0) {
+        console.log(ansis.green(`✓ Deleted ${dependents.length} dependent element(s)`));
+      }
+
+      if (options.verbose) {
+        console.log(ansis.dim(`  Layer: ${layerName}`));
+        console.log(ansis.dim(`  Total elements deleted: ${elementsToRemove.length}`));
       }
     }
   } catch (error) {
