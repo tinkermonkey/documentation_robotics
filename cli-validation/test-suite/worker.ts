@@ -6,7 +6,13 @@
  */
 
 import { TestSuite, SuiteResult } from './pipeline.js';
-import { captureSnapshot, captureTargetedSnapshot, compareSnapshots } from './comparator.js';
+import {
+  captureSnapshot,
+  captureTargetedSnapshot,
+  compareSnapshots,
+  FilesystemSnapshot,
+  FileChange,
+} from './comparator.js';
 import { executeCommand, CommandOutput } from './executor.js';
 import {
   PipelineStep,
@@ -15,7 +21,7 @@ import {
   PipelineResult,
 } from './pipeline.js';
 import { join } from 'node:path';
-import { TestRunnerConfig, WorkerAssignment, WorkerResult } from './types.js';
+import { TestRunnerConfig, WorkerAssignment, WorkerResult, WorkerMessage } from './types.js';
 
 /**
  * Output buffer for capturing console output during suite execution
@@ -88,13 +94,23 @@ export function validateStep(
     }
   }
 
-  // Map filesystem changes to proper types
-  const typedChanges = tsChanges.map((c) => ({
-    path: c.path,
-    type: c.type === 'added' || c.type === 'deleted' || c.type === 'modified'
-      ? c.type as 'added' | 'deleted' | 'modified'
-      : 'modified' as const,
-  }));
+  // Map filesystem changes to proper types with validation
+  const typedChanges = tsChanges.map((c) => {
+    const validTypes = ['added', 'deleted', 'modified', 'unchanged'];
+    if (!validTypes.includes(c.type)) {
+      console.warn(
+        `[validateStep] Unknown filesystem change type "${c.type}" for file "${c.path}", coercing to "modified"`
+      );
+    }
+
+    return {
+      path: c.path,
+      type:
+        c.type === 'added' || c.type === 'deleted' || c.type === 'modified'
+          ? (c.type as 'added' | 'deleted' | 'modified')
+          : ('modified' as const),
+    };
+  });
 
   return {
     command: step.command,
@@ -143,6 +159,45 @@ export function getSnapshotMode(step: PipelineStep): 'targeted' | 'skip' | 'full
 }
 
 /**
+ * Capture targeted snapshot handling files from multiple roots
+ *
+ * Export files (starting with 'export-') are captured from workdirPath,
+ * while model files are captured from modelDir. Snapshots are merged
+ * into a single result.
+ */
+async function captureTargetedSnapshotWithMixedRoots(
+  files: string[],
+  modelDir: string,
+  workdirPath: string
+): Promise<FilesystemSnapshot> {
+  const exportFiles = files.filter((f) => f.startsWith('export-'));
+  const modelFiles = files.filter((f) => !f.startsWith('export-'));
+
+  // Capture from both roots in parallel
+  const [modelSnapshot, exportSnapshot] = await Promise.all([
+    modelFiles.length > 0
+      ? captureTargetedSnapshot(modelDir, modelFiles)
+      : Promise.resolve({ timestamp: Date.now(), directory: modelDir, files: new Map() }),
+    exportFiles.length > 0
+      ? captureTargetedSnapshot(workdirPath, exportFiles)
+      : Promise.resolve({ timestamp: Date.now(), directory: workdirPath, files: new Map() }),
+  ]);
+
+  // Merge files from both snapshots
+  const mergedFiles = new Map(modelSnapshot.files);
+  for (const [path, info] of exportSnapshot.files) {
+    mergedFiles.set(path, info);
+  }
+
+  // Return merged snapshot (use model dir as primary directory)
+  return {
+    timestamp: modelSnapshot.timestamp,
+    directory: modelDir,
+    files: mergedFiles,
+  };
+}
+
+/**
  * Execute a single pipeline
  * @param workdirPath - Project root directory where CLI should execute
  */
@@ -168,30 +223,20 @@ async function executePipeline(
     // Determine snapshot mode for this step
     const snapshotMode = getSnapshotMode(step);
 
-    // Determine snapshot root and actual file paths to capture
-    // Export files (export-*.json, export-*.xml, export-*.puml, export-*.md, export-*.graphml)
-    // are created at the project root (workdirPath), not in the model directory
-    let snapshotRoot = config.tsDir;
-    let snapshotFilePaths = step.files_to_compare;
-
-    if (snapshotMode === 'targeted') {
-      // Check if any files are export files (at project root level)
-      const hasExportFiles = step.files_to_compare.some(f => f.startsWith('export-'));
-
-      if (hasExportFiles) {
-        // Capture from project root for export files
-        snapshotRoot = workdirPath;
-        // Keep file paths as-is since they're already at project root level
-        snapshotFilePaths = step.files_to_compare;
-      }
-    }
+    // Determine snapshot root for full captures
+    // For targeted captures with mixed export/model files, the helper handles both roots
+    const snapshotRoot = config.tsDir;
 
     // Capture before snapshot (skip mode: no snapshot needed)
     const tsBefore =
       snapshotMode === 'skip'
         ? { timestamp: Date.now(), directory: snapshotRoot, files: new Map() }
         : snapshotMode === 'targeted'
-          ? await captureTargetedSnapshot(snapshotRoot, snapshotFilePaths)
+          ? await captureTargetedSnapshotWithMixedRoots(
+              step.files_to_compare,
+              snapshotRoot,
+              workdirPath
+            )
           : await captureSnapshot(snapshotRoot);
 
     // Execute command on TypeScript CLI from the project root (not model directory)
@@ -208,7 +253,11 @@ async function executePipeline(
       snapshotMode === 'skip'
         ? { timestamp: Date.now(), directory: snapshotRoot, files: new Map() }
         : snapshotMode === 'targeted'
-          ? await captureTargetedSnapshot(snapshotRoot, snapshotFilePaths)
+          ? await captureTargetedSnapshotWithMixedRoots(
+              step.files_to_compare,
+              snapshotRoot,
+              workdirPath
+            )
           : await captureSnapshot(snapshotRoot);
 
     // Compare filesystem changes
@@ -347,7 +396,7 @@ async function runWorker(): Promise<void> {
     };
 
     messageHandler = (msg: unknown) => {
-      // Type narrowing: check if this is a valid object with a type property
+      // Type narrowing: check if this is a valid object
       if (typeof msg !== 'object' || msg === null) {
         console.error(
           `[Worker] Received malformed IPC message (non-object): ${typeof msg}`
@@ -359,13 +408,15 @@ async function runWorker(): Promise<void> {
 
       // If we haven't received assignment yet, check if this is it
       if (!assignmentReceived) {
-        // Check if this looks like an assignment (has required fields)
-        if (
-          'suites' in message &&
-          'config' in message &&
-          'workdirPath' in message &&
-          'workerId' in message
-        ) {
+        // Discriminated union: check for 'assignment' type or legacy assignment shape
+        const isAssignmentMessage =
+          message.type === 'assignment' ||
+          ('suites' in message &&
+            'config' in message &&
+            'workdirPath' in message &&
+            'workerId' in message);
+
+        if (isAssignmentMessage) {
           assignmentReceived = true;
           // Clear the assignment timeout now that we've received the assignment
           clearTimeout(assignmentTimeout);
@@ -384,13 +435,13 @@ async function runWorker(): Promise<void> {
         }
         // Log malformed messages that don't match assignment structure
         console.error(
-          `[Worker] Received malformed IPC message before assignment: ${JSON.stringify(Object.keys(message))}`
+          `[Worker] Received malformed IPC message before assignment: type="${message.type}" keys=${JSON.stringify(Object.keys(message))}`
         );
         return;
       }
 
-      // After assignment is received, handle fast-fail signals
-      if (assignmentReceived && message.type === 'fast-fail') {
+      // After assignment is received, handle fast-fail signals using discriminated union
+      if (message.type === 'fast-fail') {
         shouldStopFlag = true;
         output.writeLine('\n[Worker] Received fast-fail signal');
       }

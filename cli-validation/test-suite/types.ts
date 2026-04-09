@@ -23,7 +23,26 @@ export interface WorkerResult {
 }
 
 /**
- * Message format for IPC: parent sends this to worker
+ * Discriminated union type for IPC messages sent to worker
+ *
+ * - 'assignment': Initial test suite assignment from parent
+ * - 'fast-fail': Signal to stop execution (sent after first failure)
+ */
+export type WorkerMessage =
+  | {
+      type: 'assignment';
+      suites: TestSuite[];
+      config: TestRunnerConfig;
+      workdirPath: string;
+      workerId: number;
+    }
+  | {
+      type: 'fast-fail';
+    };
+
+/**
+ * Legacy message format for backward compatibility with type narrowing
+ * @deprecated Use WorkerMessage discriminated union instead
  */
 export interface WorkerAssignment {
   suites: TestSuite[];
