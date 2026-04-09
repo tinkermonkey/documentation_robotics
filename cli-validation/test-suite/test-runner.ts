@@ -108,12 +108,12 @@ function generateSummary(results: SuiteResult[]): TestRunSummary {
 
 
 /**
- * Validate that an incoming IPC message has the correct WorkerResult structure.
+ * Assert that an incoming IPC message has the correct WorkerResult structure.
  * Guards against malformed messages that could corrupt results or throw at runtime.
  *
  * @throws Error if the message is malformed
  */
-function validateWorkerResult(msg: unknown): msg is WorkerResult {
+function assertValidWorkerResult(msg: unknown): asserts msg is WorkerResult {
   if (!msg || typeof msg !== 'object') {
     throw new Error('Invalid worker message: not an object');
   }
@@ -131,8 +131,6 @@ function validateWorkerResult(msg: unknown): msg is WorkerResult {
   if (typeof obj.output !== 'string') {
     throw new Error(`Invalid worker message: output must be a string, got ${typeof obj.output}`);
   }
-
-  return true;
 }
 
 /**
@@ -227,14 +225,7 @@ async function executeWithWorkers(
       worker.on('message', (msg: unknown) => {
         // Validate message structure at IPC boundary before trusting the data
         try {
-          if (!validateWorkerResult(msg)) {
-            const error = new Error('Worker message failed validation');
-            if (!settled) {
-              settled = true;
-              reject(error);
-            }
-            return;
-          }
+          assertValidWorkerResult(msg);
         } catch (validationError) {
           const errorMsg = validationError instanceof Error ? validationError.message : String(validationError);
           console.error(`Worker ${workerId + 1} sent malformed message: ${errorMsg}`);
@@ -494,7 +485,6 @@ async function runTestSuite(): Promise<void> {
       options.workers,
       {
         tsCLI: config.tsCLI,
-        tsDir: '', // Not used with workers (each worker gets its own)
         testCaseDir,
       },
       reporter,

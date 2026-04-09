@@ -9,7 +9,7 @@ import { SuiteResult, TestSuite } from './pipeline.js';
  */
 export interface TestRunnerConfig {
   tsCLI: string;
-  tsDir: string;
+  tsDir?: string; // Optional: only used in parent test runner, not in worker processes
   testCaseDir: string;
 }
 
