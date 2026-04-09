@@ -108,6 +108,34 @@ function generateSummary(results: SuiteResult[]): TestRunSummary {
 
 
 /**
+ * Validate that an incoming IPC message has the correct WorkerResult structure.
+ * Guards against malformed messages that could corrupt results or throw at runtime.
+ *
+ * @throws Error if the message is malformed
+ */
+function validateWorkerResult(msg: unknown): msg is WorkerResult {
+  if (!msg || typeof msg !== 'object') {
+    throw new Error('Invalid worker message: not an object');
+  }
+
+  const obj = msg as Record<string, unknown>;
+
+  if (typeof obj.workerId !== 'number') {
+    throw new Error(`Invalid worker message: workerId must be a number, got ${typeof obj.workerId}`);
+  }
+
+  if (!Array.isArray(obj.results)) {
+    throw new Error(`Invalid worker message: results must be an array, got ${typeof obj.results}`);
+  }
+
+  if (typeof obj.output !== 'string') {
+    throw new Error(`Invalid worker message: output must be a string, got ${typeof obj.output}`);
+  }
+
+  return true;
+}
+
+/**
  * Execute test suites using worker processes
  * Returns collected results from all workers and handles fast-fail signaling
  */
@@ -160,15 +188,19 @@ async function executeWithWorkers(
 
       workers.set(workerId, worker);
 
-      // Drain stdout/stderr to prevent deadlock when buffer fills up
+      // Buffer stderr for diagnostic inclusion in error messages
+      // Buffer stdout separately for future diagnostic use if needed
+      const stderrBuffer: string[] = [];
+      const stdoutBuffer: string[] = [];
+
       if (worker.stdout) {
-        worker.stdout.on('data', () => {
-          // Consume data to drain the pipe
+        worker.stdout.on('data', (data) => {
+          stdoutBuffer.push(data.toString());
         });
       }
       if (worker.stderr) {
-        worker.stderr.on('data', () => {
-          // Consume data to drain the pipe
+        worker.stderr.on('data', (data) => {
+          stderrBuffer.push(data.toString());
         });
       }
 
@@ -192,7 +224,27 @@ async function executeWithWorkers(
         }
       }, WORKER_TIMEOUT);
 
-      worker.on('message', (msg: WorkerResult) => {
+      worker.on('message', (msg: unknown) => {
+        // Validate message structure at IPC boundary before trusting the data
+        try {
+          if (!validateWorkerResult(msg)) {
+            const error = new Error('Worker message failed validation');
+            if (!settled) {
+              settled = true;
+              reject(error);
+            }
+            return;
+          }
+        } catch (validationError) {
+          const errorMsg = validationError instanceof Error ? validationError.message : String(validationError);
+          console.error(`Worker ${workerId + 1} sent malformed message: ${errorMsg}`);
+          if (!settled) {
+            settled = true;
+            reject(new Error(`Worker ${workerId + 1} sent malformed message: ${errorMsg}`));
+          }
+          return;
+        }
+
         resultData = msg;
 
         // Clear timeout on successful message
@@ -270,7 +322,12 @@ async function executeWithWorkers(
           // Guard against null code (can happen when worker is killed)
           if (code !== null && code !== 0) {
             settled = true;
-            reject(new Error(`Worker ${workerId + 1} exited with code ${code}`));
+            // Include buffered stderr in error message for diagnostics
+            const stderrOutput = stderrBuffer.length > 0 ? stderrBuffer.join('') : '';
+            const errorMessage = stderrOutput
+              ? `Worker ${workerId + 1} exited with code ${code}\nStderr:\n${stderrOutput}`
+              : `Worker ${workerId + 1} exited with code ${code}`;
+            reject(new Error(errorMessage));
           } else {
             // Graceful exit with no data (resolved or no meaningful result)
             settled = true;
