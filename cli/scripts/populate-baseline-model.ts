@@ -9,11 +9,38 @@ import { Element } from '../src/core/element.js';
 import { Layer } from '../src/core/layer.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+/**
+ * Resolve the workspace root directory from the script's location
+ * This script is located at cli/scripts/populate-baseline-model.ts
+ * @returns The workspace root path
+ */
+function resolveWorkspaceRoot(): string {
+  // Get the directory where this script is located
+  const __filename = fileURLToPath(import.meta.url);
+  const scriptDir = path.dirname(__filename);
+
+  // Navigate from cli/scripts/ -> cli/ -> workspace root
+  return path.resolve(scriptDir, '../../');
+}
 
 async function populateBaseline() {
-  const baselineDir = '/workspace/cli-validation/test-project/baseline';
+  const workspaceRoot = resolveWorkspaceRoot();
+  const baselineDir = path.join(workspaceRoot, 'cli-validation/test-project/baseline');
 
   try {
+    // Verify the baseline directory exists
+    try {
+      await fs.stat(baselineDir);
+    } catch (error) {
+      throw new Error(
+        `Baseline directory not found at: ${baselineDir}\n` +
+        `Resolved workspace root: ${workspaceRoot}\n` +
+        `Please ensure you are running this script from the workspace root or that the baseline directory exists.`
+      );
+    }
+
     // Load or create model
     let model = await Model.load(baselineDir);
     if (!model) {

@@ -7,7 +7,7 @@
 
 import { cp, rm, readdir, stat } from "node:fs/promises";
 import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import * as yaml from "yaml";
@@ -18,12 +18,33 @@ const execAsync = promisify(exec);
 /**
  * Resolve the workspace root directory
  * Used by getCLIConfig, getTestPaths, and getMultiWorkerTestPaths to find the project root
+ * @throws Error if the workspace root cannot be resolved from the given path
  */
 function resolveWorkspaceRoot(baseDir: string = process.cwd()): string {
   const isRunningFromTestSuite = baseDir.includes("cli-validation/test-suite");
-  return isRunningFromTestSuite
-    ? baseDir.split("cli-validation/test-suite")[0]
-    : baseDir;
+
+  if (!isRunningFromTestSuite) {
+    return baseDir;
+  }
+
+  const marker = "cli-validation/test-suite";
+  const markerIndex = baseDir.indexOf(marker);
+
+  if (markerIndex === -1) {
+    throw new Error(
+      `Could not resolve workspace root: Expected path to contain "${marker}", but got: "${baseDir}"`
+    );
+  }
+
+  const workspaceRoot = baseDir.substring(0, markerIndex);
+
+  if (!workspaceRoot || workspaceRoot.endsWith(sep)) {
+    throw new Error(
+      `Could not resolve workspace root: Invalid path segment before "${marker}": "${workspaceRoot}"`
+    );
+  }
+
+  return workspaceRoot;
 }
 
 /**
@@ -262,8 +283,15 @@ async function cleanupAndRestoreBaseline(
 
   // Restore baseline to its committed state to prevent test contamination
   try {
+    const marker = 'cli-validation';
+    const markerIndex = baselinePath.indexOf(marker);
+    if (markerIndex === -1) {
+      throw new Error(`Could not resolve workspace root from baseline path: "${baselinePath}"`);
+    }
+    const workspaceRoot = baselinePath.substring(0, markerIndex);
+
     await execAsync('git checkout -- cli-validation/test-project/baseline/', {
-      cwd: baselinePath.split('cli-validation')[0],
+      cwd: workspaceRoot,
     });
   } catch (error) {
     // If git restore fails, record it but don't throw
@@ -445,7 +473,12 @@ export class BaselineContaminationError extends Error {
  * @throws Error if validation cannot be performed due to git/system errors
  */
 export async function validateBaselineIntegrity(baselinePath: string): Promise<void> {
-  const workspaceRoot = baselinePath.split('cli-validation')[0];
+  const marker = 'cli-validation';
+  const markerIndex = baselinePath.indexOf(marker);
+  if (markerIndex === -1) {
+    throw new Error(`Could not resolve workspace root from baseline path: "${baselinePath}"`);
+  }
+  const workspaceRoot = baselinePath.substring(0, markerIndex);
 
   let gitResult: string;
   try {
@@ -514,7 +547,7 @@ async function computeDirectoryChecksums(
 
 /**
  * Compute and store checksums for a worker baseline copy
- * Checksums are stored in a hidden file alongside the worker directory
+ * Checksums are stored in a hidden file inside the worker directory
  * @param workerPath - Path to the worker directory (e.g., ts-cli-1)
  */
 async function storeWorkerBaselineChecksums(workerPath: string): Promise<void> {
