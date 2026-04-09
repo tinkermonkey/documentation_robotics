@@ -2,20 +2,20 @@
 
 ## Model Information
 
-| Property | Value |
-| -------- | ----- |
-| Version | 0.1.0 |
-| Created | 2026-04-08T19:50:17.177Z |
+| Property | Value                    |
+| -------- | ------------------------ |
+| Version  | 0.1.0                    |
+| Created  | 2026-04-08T19:50:17.177Z |
 | Modified | 2026-04-09T02:07:13.740Z |
 
 ## Layer: Motivation
 
-*Goals, requirements, drivers, and strategic outcomes of the architecture.*
+_Goals, requirements, drivers, and strategic outcomes of the architecture._
 
 ### Elements (1)
 
-| ID | Name | Type | Description |
-| -- | ---- | ---- | ----------- |
+| ID                             | Name                  | Type | Description                                     |
+| ------------------------------ | --------------------- | ---- | ----------------------------------------------- |
 | `motivation.goal.manage-tasks` | Manage Personal Tasks | goal | Allow users to manage their personal task lists |
 
 ### Element Details
@@ -36,15 +36,15 @@ Allow users to manage their personal task lists
 
 ## Layer: Business
 
-*Business processes, functions, roles, and services.*
+_Business processes, functions, roles, and services._
 
 ### Elements (3)
 
-| ID | Name | Type | Description |
-| -- | ---- | ---- | ----------- |
-| `business.actor.end-user` | End User | actor | End user of the task management system |
-| `business.businessprocess.create-task-process` | Create Task Process | process | Business process for creating tasks |
-| `business.businessservice.task-management` | Task Management Service | service | Business capability for task management |
+| ID                                             | Name                    | Type    | Description                             |
+| ---------------------------------------------- | ----------------------- | ------- | --------------------------------------- |
+| `business.actor.end-user`                      | End User                | actor   | End user of the task management system  |
+| `business.businessprocess.create-task-process` | Create Task Process     | process | Business process for creating tasks     |
+| `business.businessservice.task-management`     | Task Management Service | service | Business capability for task management |
 
 ### Element Details
 
@@ -76,12 +76,12 @@ Business capability for task management
 
 ## Layer: Application
 
-*Application components, services, and interactions.*
+_Application components, services, and interactions._
 
 ### Elements (1)
 
-| ID | Name | Type | Description |
-| -- | ---- | ---- | ----------- |
+| ID                                                | Name             | Type    | Description                                      |
+| ------------------------------------------------- | ---------------- | ------- | ------------------------------------------------ |
 | `application.applicationservice.todo-api-service` | Todo API Service | service | Application service implementing task management |
 
 ### Element Details
@@ -102,16 +102,16 @@ Application service implementing task management
 
 ## Layer: API
 
-*REST APIs, operations, endpoints, and API integrations.*
+_REST APIs, operations, endpoints, and API integrations._
 
 ### Elements (4)
 
-| ID | Name | Type | Description |
-| -- | ---- | ---- | ----------- |
-| `api.operation.list-todos` | List Todos | operation | List all todos |
-| `api.operation.create-todo` | Create Todo | operation | Create a new todo |
+| ID                          | Name        | Type      | Description             |
+| --------------------------- | ----------- | --------- | ----------------------- |
+| `api.operation.list-todos`  | List Todos  | operation | List all todos          |
+| `api.operation.create-todo` | Create Todo | operation | Create a new todo       |
 | `api.operation.update-todo` | Update Todo | operation | Update an existing todo |
-| `api.operation.delete-todo` | Delete Todo | operation | Delete a todo |
+| `api.operation.delete-todo` | Delete Todo | operation | Delete a todo           |
 
 ### Element Details
 
@@ -149,12 +149,12 @@ Delete a todo
 
 ## Layer: Data Model
 
-*Data entities, relationships, and data structure definitions.*
+_Data entities, relationships, and data structure definitions._
 
 ### Elements (1)
 
-| ID | Name | Type | Description |
-| -- | ---- | ---- | ----------- |
+| ID                              | Name        | Type   | Description            |
+| ------------------------------- | ----------- | ------ | ---------------------- |
 | `data-model.entity.todo-object` | Todo Object | entity | Todo data model object |
 
 ### Element Details
@@ -175,16 +175,16 @@ Todo data model object
 
 ## Layer: Data Store
 
-*Databases, data stores, and persistence mechanisms.*
+_Databases, data stores, and persistence mechanisms._
 
 ### Elements (4)
 
-| ID | Name | Type | Description |
-| -- | ---- | ---- | ----------- |
-| `data-store.column.todos-id-column` | Id Column | column | Primary key column |
-| `data-store.column.todos-title-column` | Title Column | column | Title column |
-| `data-store.column.todos-done-column` | Done Column | column | Done status column |
-| `data-store.table.todos-table` | Todos Table | table | Database table for todos |
+| ID                                     | Name         | Type   | Description              |
+| -------------------------------------- | ------------ | ------ | ------------------------ |
+| `data-store.column.todos-id-column`    | Id Column    | column | Primary key column       |
+| `data-store.column.todos-title-column` | Title Column | column | Title column             |
+| `data-store.column.todos-done-column`  | Done Column  | column | Done status column       |
+| `data-store.table.todos-table`         | Todos Table  | table  | Database table for todos |
 
 ### Element Details
 
@@ -222,8 +222,8 @@ Database table for todos
 
 ## Architecture Summary
 
-| Metric | Count |
-| ------ | ----- |
-| Total Elements | 14 |
-| Cross-Layer References | 0 |
-| Relationships | 0 |
+| Metric                 | Count |
+| ---------------------- | ----- |
+| Total Elements         | 14    |
+| Cross-Layer References | 0     |
+| Relationships          | 0     |
