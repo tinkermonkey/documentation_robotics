@@ -25,6 +25,7 @@ import { isValidLayerName } from "./layers.js";
 import {
   isTelemetryEnabled,
   startSpan,
+  startActiveSpan,
   endSpan,
   emitLog,
   SeverityNumber,
@@ -420,16 +421,7 @@ export class StagingAreaManager {
     changesetId: string,
     options: CommitOptions = {}
   ): Promise<CommitResult> {
-    const span = isTelemetryEnabled
-      ? startSpan("staging.commit", {
-          "changeset.id": changesetId,
-          "commit.validate": options.validate !== false,
-          "commit.force": options.force === true,
-          "commit.dryRun": options.dryRun === true,
-        })
-      : null;
-
-    try {
+    return startActiveSpan("staging.commit", async (span) => {
       this.validateChangesetId(changesetId);
 
       const changeset = await this.load(changesetId);
@@ -437,10 +429,8 @@ export class StagingAreaManager {
         throw new Error(`Changeset '${changesetId}' not found`);
       }
 
-      if (isTelemetryEnabled && span) {
-        (span as any).setAttribute("changeset.name", changeset.name);
-        (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
-      }
+      (span as any).setAttribute("changeset.name", changeset.name);
+      (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
 
       const isDryRun = options.dryRun === true;
       const shouldValidate = options.validate !== false;
@@ -457,9 +447,7 @@ export class StagingAreaManager {
       endSpan(driftSpan);
 
       if (drift.isDrifted) {
-        if (isTelemetryEnabled && span) {
-          (span as any).setAttribute("commit.driftDetected", true);
-        }
+        (span as any).setAttribute("commit.driftDetected", true);
         if (options.force) {
           emitLog(SeverityNumber.WARN, "Drift detected but overridden with --force", {
             "drift.baseSnapshot": drift.baseSnapshotId,
@@ -488,31 +476,29 @@ export class StagingAreaManager {
 
       // Step 2: Validate against projected model (force cannot override validation)
       if (shouldValidate) {
-        const validationSpan = isTelemetryEnabled ? startSpan("staging.validate") : null;
-        const validation = await this.validator.validateChangeset(model, changesetId);
+        await startActiveSpan("staging.validate", async (validationSpan) => {
+          const validation = await this.validator.validateChangeset(model, changesetId);
 
-        if (isTelemetryEnabled && validationSpan) {
           (validationSpan as any).setAttribute("validation.passed", validation.isValid());
           (validationSpan as any).setAttribute("validation.errorCount", validation.errors.length);
           (validationSpan as any).setStatus({ code: 0 });
-        }
-        endSpan(validationSpan);
 
-        if (!validation.isValid()) {
-          result.validation.passed = false;
-          result.validation.errors = validation.errors.map((e) => e.message);
+          if (!validation.isValid()) {
+            result.validation.passed = false;
+            result.validation.errors = validation.errors.map((e) => e.message);
 
-          emitLog(SeverityNumber.ERROR, "Validation failed", {
-            "validation.errorCount": result.validation.errors.length,
-            "validation.errors": result.validation.errors.slice(0, 10), // First 10 errors
-          });
+            emitLog(SeverityNumber.ERROR, "Validation failed", {
+              "validation.errorCount": result.validation.errors.length,
+              "validation.errors": result.validation.errors.slice(0, 10), // First 10 errors
+            });
 
-          throw new Error(
-            `Validation failed with ${result.validation.errors.length} error(s):\n` +
-              result.validation.errors.map((e) => `  - ${e}`).join("\n") +
-              `\n\nFix these validation errors before committing.`
-          );
-        }
+            throw new Error(
+              `Validation failed with ${result.validation.errors.length} error(s):\n` +
+                result.validation.errors.map((e) => `  - ${e}`).join("\n") +
+                `\n\nFix these validation errors before committing.`
+            );
+          }
+        });
       }
 
       // Step 3: Dry run early exit (before making any changes)
@@ -761,14 +747,12 @@ export class StagingAreaManager {
         // Note: cleanupBackup handles its own errors and logs them with ERROR severity
         await this.cleanupBackup(backup);
 
-        if (isTelemetryEnabled && span) {
-          (span as any).setAttribute("commit.success", true);
-          (span as any).setAttribute("commit.committed", result.committed);
-          if (drift.isDrifted) {
-            (span as any).setAttribute("commit.driftOverridden", true);
-          }
-          (span as any).setStatus({ code: 0 });
+        (span as any).setAttribute("commit.success", true);
+        (span as any).setAttribute("commit.committed", result.committed);
+        if (drift.isDrifted) {
+          (span as any).setAttribute("commit.driftOverridden", true);
         }
+        (span as any).setStatus({ code: 0 });
 
         return result;
       } catch (commitError) {
@@ -849,15 +833,13 @@ export class StagingAreaManager {
           // Note: cleanupBackup handles its own errors and logs them with ERROR severity
           await this.cleanupBackup(backup);
 
-          if (isTelemetryEnabled && span) {
-            (span as any).setAttribute("commit.success", false);
-            (span as any).setAttribute("commit.rollbackSuccess", true);
-            (span as any).recordException(commitError as Error);
-            (span as any).setStatus({
-              code: 2,
-              message: commitError instanceof Error ? commitError.message : String(commitError),
-            });
-          }
+          (span as any).setAttribute("commit.success", false);
+          (span as any).setAttribute("commit.rollbackSuccess", true);
+          (span as any).recordException(commitError as Error);
+          (span as any).setStatus({
+            code: 2,
+            message: commitError instanceof Error ? commitError.message : String(commitError),
+          });
 
           throw new Error(compositeMessage);
         } else {
@@ -912,20 +894,21 @@ export class StagingAreaManager {
 
           compositeMessage += `Manual recovery may be required.`;
 
-          if (isTelemetryEnabled && span) {
-            (span as any).setAttribute("commit.success", false);
-            (span as any).setAttribute("commit.rollbackSuccess", false);
-            (span as any).recordException(commitError as Error);
-            (span as any).setStatus({ code: 2, message: "Commit and rollback both failed" });
-          }
+          (span as any).setAttribute("commit.success", false);
+          (span as any).setAttribute("commit.rollbackSuccess", false);
+          (span as any).recordException(commitError as Error);
+          (span as any).setStatus({ code: 2, message: "Commit and rollback both failed" });
 
           const { CLIError } = await import("../utils/errors.js");
           throw new CLIError(compositeMessage, 1, suggestions);
         }
       }
-    } finally {
-      endSpan(span);
-    }
+    }, {
+      "changeset.id": changesetId,
+      "commit.validate": options.validate !== false,
+      "commit.force": options.force === true,
+      "commit.dryRun": options.dryRun === true,
+    });
   }
 
   /**

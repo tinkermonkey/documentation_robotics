@@ -126,6 +126,7 @@ export interface ModelOptions {
   enableCache?: boolean;
   lazyLoad?: boolean;
   referenceRegistry?: unknown; // Will be properly typed when implemented
+  layers?: string[]; // If set, only these layers are loaded (selective loading)
 }
 
 /**

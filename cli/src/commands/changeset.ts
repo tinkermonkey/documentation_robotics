@@ -1574,6 +1574,7 @@ Examples:
 
   changesetGroup
     .command("status")
+    .aliases(["show"])
     .description("Show the currently active changeset")
     .addHelpText(
       "after",
@@ -1723,4 +1724,6 @@ Examples:
     .action(async (file, options) => {
       await changesetImportCommand(file, options);
     });
+
+  changesetGroup.showSuggestionAfterError();
 }

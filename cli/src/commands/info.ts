@@ -4,7 +4,7 @@
 
 import ansis from "ansis";
 import { Model } from "../core/model.js";
-import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getActiveSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   TABLE_COLUMN_WIDTHS,
@@ -18,20 +18,14 @@ export interface InfoOptions {
 }
 
 export async function infoCommand(options: InfoOptions): Promise<void> {
-  const span = isTelemetryEnabled
-    ? startSpan("info.execute", {
-        "info.hasLayer": !!options.layer,
-        "info.layer": options.layer,
-        "info.verbose": options.verbose === true
-      })
-    : null;
+  const span = getActiveSpan();
 
   try {
     // Load model
     const model = await Model.load();
     const manifest = model.manifest;
 
-    if (isTelemetryEnabled && span) {
+    if (span) {
       (span as any).setAttribute("model.name", manifest.name);
       (span as any).setAttribute("model.version", manifest.version);
       (span as any).setAttribute("model.specVersion", manifest.specVersion);
@@ -59,7 +53,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
     // Show layer information
     const layerNames = model.getLayerNames();
 
-    if (isTelemetryEnabled && span) {
+    if (span) {
       (span as any).setAttribute("info.layerCount", layerNames.length);
     }
 
@@ -80,7 +74,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
         console.log(`${ansis.cyan(options.layer)}`);
         console.log(`  ${ansis.gray("Elements:")} ${elements.length}`);
 
-        if (isTelemetryEnabled && span) {
+        if (span) {
           (span as any).setAttribute("info.elementCount", elements.length);
         }
 
@@ -115,21 +109,9 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
 
     console.log("");
 
-    if (isTelemetryEnabled && span) {
-      (span as any).setStatus({ code: 0 });
-    }
   } catch (error) {
-    if (isTelemetryEnabled && span) {
-      (span as any).recordException(error as Error);
-      (span as any).setStatus({
-        code: 2,
-        message: getErrorMessage(error)
-      });
-    }
     const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
-  } finally {
-    endSpan(span);
   }
 }

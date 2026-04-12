@@ -10,7 +10,7 @@ import {
   ModelNotFoundError,
   handleError
 } from "../utils/errors.js";
-import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getActiveSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
   TABLE_COLUMN_WIDTHS,
@@ -29,19 +29,13 @@ export async function listCommand(
   layer: string,
   options: ListOptions
 ): Promise<void> {
-  const span = isTelemetryEnabled
-    ? startSpan("list.execute", {
-        "list.layer": layer,
-        "list.type": options.type,
-        "list.json": options.json === true
-      })
-    : null;
+  const span = getActiveSpan();
 
   try {
     // Load model (with error handling for missing models)
     let model: Model;
     try {
-      model = await Model.load(options.model);
+      model = await Model.load(options.model, { layers: [layer] });
     } catch (error) {
       const message = getErrorMessage(error);
       // Check for any model-not-found error pattern
@@ -73,10 +67,8 @@ export async function listCommand(
       elements = elements.filter((e) => e.type === options.type);
     }
 
-    if (isTelemetryEnabled && span) {
-      (span as any).setAttribute("list.elementCount", elements.length);
-      (span as any).setStatus({ code: 0 });
-    }
+    span?.setAttribute("list.layer", layer);
+    span?.setAttribute("list.elementCount", elements.length);
 
     // Output as JSON if requested
     if (options.json) {
@@ -128,15 +120,6 @@ export async function listCommand(
     console.log(ansis.dim(`Total: ${elements.length} element(s)`));
     console.log("");
   } catch (error) {
-    if (isTelemetryEnabled && span) {
-      (span as any).recordException(error as Error);
-      (span as any).setStatus({
-        code: 2,
-        message: getErrorMessage(error)
-      });
-    }
     handleError(error);
-  } finally {
-    endSpan(span);
   }
 }

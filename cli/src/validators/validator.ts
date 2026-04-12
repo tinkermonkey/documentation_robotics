@@ -9,11 +9,8 @@ import { ReferenceValidator } from "./reference-validator.js";
 import { SemanticValidator } from "./semantic-validator.js";
 import { RelationshipValidator } from "./relationship-schema-validator.js";
 import type { Model } from "../core/model.js";
-import { startSpan, endSpan } from "../telemetry/index.js";
+import { startActiveSpan } from "../telemetry/index.js";
 
-// Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
-declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
  * Unified validator implementing the 5-stage validation pipeline:
@@ -42,95 +39,57 @@ export class Validator {
    * Validate a complete model through all 5 stages
    */
   async validateModel(model: Model): Promise<ValidationResult> {
-    const rootSpan = isTelemetryEnabled
-      ? startSpan("model.validate", {
-          "model.path": model.rootPath,
-        })
-      : null;
+    return startActiveSpan("model.validate", async (rootSpan) => {
+      const result = new ValidationResult();
 
-    const result = new ValidationResult();
-
-    try {
-      // Stage 1: Schema validation
-      const schemaStageSpan = isTelemetryEnabled ? startSpan("validation.stage.schema") : null;
-      try {
-        for (const layer of model.layers.values()) {
-          const schemaResult = await this.schemaValidator.validateLayer(layer);
-          result.merge(schemaResult, `[Schema/${layer.name}]`);
-        }
-
-        if (isTelemetryEnabled && schemaStageSpan) {
-          schemaStageSpan.setAttribute("validation.error_count", result.errors.length);
-        }
-      } finally {
-        endSpan(schemaStageSpan);
-      }
+      // Stage 1: Schema validation — layers are independent, run in parallel
+      await startActiveSpan("validation.stage.schema", async (stageSpan) => {
+        await Promise.all(
+          Array.from(model.layers.values()).map(async (layer) => {
+            const schemaResult = await this.schemaValidator.validateLayer(layer);
+            result.merge(schemaResult, `[Schema/${layer.name}]`);
+          })
+        );
+        stageSpan.setAttribute("validation.error_count", result.errors.length);
+      });
 
       // Stage 2: Naming validation
-      const namingStageSpan = isTelemetryEnabled ? startSpan("validation.stage.naming") : null;
-      try {
+      await startActiveSpan("validation.stage.naming", async (stageSpan) => {
         for (const layer of model.layers.values()) {
           const namingResult = this.namingValidator.validateLayer(layer);
           result.merge(namingResult, `[Naming/${layer.name}]`);
         }
-
-        if (isTelemetryEnabled && namingStageSpan) {
-          namingStageSpan.setAttribute("validation.error_count", result.errors.length);
-        }
-      } finally {
-        endSpan(namingStageSpan);
-      }
+        stageSpan.setAttribute("validation.error_count", result.errors.length);
+      });
 
       // Stage 3: Reference validation
-      const refStageSpan = isTelemetryEnabled ? startSpan("validation.stage.reference") : null;
-      try {
+      await startActiveSpan("validation.stage.reference", async (stageSpan) => {
         const referenceResult = this.referenceValidator.validateModel(model);
         result.merge(referenceResult, "[References]");
-
-        if (isTelemetryEnabled && refStageSpan) {
-          refStageSpan.setAttribute("validation.error_count", result.errors.length);
-        }
-      } finally {
-        endSpan(refStageSpan);
-      }
+        stageSpan.setAttribute("validation.error_count", result.errors.length);
+      });
 
       // Stage 4: Semantic validation
-      const semanticStageSpan = isTelemetryEnabled ? startSpan("validation.stage.semantic") : null;
-      try {
+      await startActiveSpan("validation.stage.semantic", async (stageSpan) => {
         const semanticResult = await this.semanticValidator.validateModel(model);
         result.merge(semanticResult, "[Semantic]");
-
-        if (isTelemetryEnabled && semanticStageSpan) {
-          semanticStageSpan.setAttribute("validation.error_count", result.errors.length);
-        }
-      } finally {
-        endSpan(semanticStageSpan);
-      }
+        stageSpan.setAttribute("validation.error_count", result.errors.length);
+      });
 
       // Stage 5: Relationship schema validation (cardinality enforcement)
-      const relationshipStageSpan = isTelemetryEnabled
-        ? startSpan("validation.stage.relationship-schema")
-        : null;
-      try {
+      await startActiveSpan("validation.stage.relationship-schema", async (stageSpan) => {
         await this.relationshipValidator.initialize();
         const relationshipResult = await this.relationshipValidator.validateModel(model);
         result.merge(relationshipResult, "[Relationship Schema]");
+        stageSpan.setAttribute("validation.error_count", result.errors.length);
+      });
 
-        if (isTelemetryEnabled && relationshipStageSpan) {
-          relationshipStageSpan.setAttribute("validation.error_count", result.errors.length);
-        }
-      } finally {
-        endSpan(relationshipStageSpan);
-      }
-
-      if (isTelemetryEnabled && rootSpan) {
-        rootSpan.setAttribute("validation.valid", result.isValid());
-        rootSpan.setAttribute("validation.error_count", result.errors.length);
-      }
+      rootSpan.setAttribute("validation.valid", result.isValid());
+      rootSpan.setAttribute("validation.error_count", result.errors.length);
 
       return result;
-    } finally {
-      endSpan(rootSpan);
-    }
+    }, {
+      "model.path": model.rootPath,
+    });
   }
 }

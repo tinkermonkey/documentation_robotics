@@ -318,6 +318,25 @@ export function endSpan(span: Span | null): void {
 }
 
 /**
+ * Get the currently active span, if any.
+ * Returns null when telemetry is disabled or no span is active.
+ *
+ * Use this to annotate the nearest enclosing active span with
+ * command-specific attributes without creating a new span.
+ *
+ * ```typescript
+ * const span = getActiveSpan();
+ * span?.setAttribute("command.result", "success");
+ * ```
+ */
+export function getActiveSpan(): Span | null {
+  if (isTelemetryEnabled && cachedTrace) {
+    return cachedTrace.getActiveSpan?.() ?? null;
+  }
+  return null;
+}
+
+/**
  * Emit a log record with optional severity level and attributes.
  * Automatically correlates logs with active spans by attaching traceId and spanId.
  * Returns without emitting if telemetry is disabled.

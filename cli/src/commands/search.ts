@@ -5,7 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import type { Element } from "../core/element.js";
-import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { getActiveSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { TABLE_COLUMN_WIDTHS, TABLE_SEPARATOR } from "../utils/table-formatting.js";
 
@@ -46,15 +46,7 @@ function matchesSourceFile(element: Element, sourceFilePath: string): boolean {
 }
 
 export async function searchCommand(query: string, options: SearchOptions): Promise<void> {
-  const span = isTelemetryEnabled
-    ? startSpan("search.execute", {
-        "search.query": query,
-        "search.layer": options.layer,
-        "search.type": options.type,
-        "search.sourceFile": options.sourceFile,
-        "search.json": options.json === true,
-      })
-    : null;
+  const span = getActiveSpan();
 
   try {
     // Load model
@@ -126,15 +118,11 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       }
     }
 
-    if (isTelemetryEnabled && span) {
-      (span as any).setAttribute("search.resultCount", results.length);
-      (span as any).setStatus({ code: 0 });
-    }
+    span?.setAttribute("search.resultCount", results.length);
 
     // Output as JSON if requested
     if (options.json) {
       console.log(JSON.stringify(results, null, 2));
-      endSpan(span);
       return;
     }
 
@@ -147,7 +135,6 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       } else {
         console.log(ansis.yellow(`No elements matching "${query}"`));
       }
-      endSpan(span);
       return;
     }
 
@@ -196,18 +183,8 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     console.log(ansis.dim("─".repeat(80)));
     console.log("");
   } catch (error) {
-    if (isTelemetryEnabled && span) {
-      (span as any).recordException(error as Error);
-      (span as any).setStatus({
-        code: 2,
-        message: getErrorMessage(error),
-      });
-    }
     const message = getErrorMessage(error);
     console.error(ansis.red(`Error: ${message}`));
-    endSpan(span);
     process.exit(1);
-  } finally {
-    endSpan(span);
   }
 }

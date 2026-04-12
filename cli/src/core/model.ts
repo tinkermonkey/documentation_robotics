@@ -9,7 +9,7 @@ import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import type { StagedChange } from "./changeset.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
 import { getCliVersion } from "../utils/spec-version.js";
-import { startSpan, endSpan } from "../telemetry/index.js";
+import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
@@ -165,13 +165,7 @@ export class Model {
    * Load a layer from disk (model/XX_layername/*.yaml files)
    */
   async loadLayer(name: string): Promise<void> {
-    const layerSpan = isTelemetryEnabled
-      ? startSpan("layer.load", {
-          "layer.name": name,
-        })
-      : null;
-
-    try {
+    await startActiveSpan("layer.load", async (layerSpan) => {
       const fs = await import("fs/promises");
       const yaml = await import("yaml");
 
@@ -312,14 +306,8 @@ export class Model {
       this.layers.set(name, layer);
       this.loadedLayers.add(name);
 
-      if (isTelemetryEnabled && layerSpan) {
-        layerSpan.setAttribute("layer.element_count", layer.elements.size);
-      }
-    } finally {
-      if (isTelemetryEnabled) {
-        endSpan(layerSpan);
-      }
-    }
+      layerSpan.setAttribute("layer.element_count", layer.elements.size);
+    }, { "layer.name": name });
   }
 
   /**
@@ -746,14 +734,7 @@ export class Model {
    * @returns Loaded Model instance
    */
   static async load(startPath?: string, options: ModelOptions = {}): Promise<Model> {
-    const span = isTelemetryEnabled
-      ? startSpan("model.load", {
-          "model.path": startPath || process.cwd(),
-          "model.type": "dr",
-        })
-      : null;
-
-    try {
+    return startActiveSpan("model.load", async (span) => {
       // Resolve project root and manifest path
       const { projectRoot, manifestPath } = await Model.resolveModelPaths(startPath);
 
@@ -783,7 +764,9 @@ export class Model {
             for (const layerName of Object.keys(manifestYaml.layers)) {
               const layerConfig = manifestYaml.layers[layerName];
               if (layerConfig.enabled !== false) {
-                await model.loadLayer(layerName);
+                if (!options.layers || options.layers.includes(layerName)) {
+                  await model.loadLayer(layerName);
+                }
               }
             }
           } else {
@@ -794,7 +777,9 @@ export class Model {
             for (const entry of entries) {
               if (entry.isDirectory() && entry.name.match(/^\d{2}_/)) {
                 const layerName = entry.name.replace(/^\d{2}_/, "");
-                await model.loadLayer(layerName);
+                if (!options.layers || options.layers.includes(layerName)) {
+                  await model.loadLayer(layerName);
+                }
               }
             }
           }
@@ -897,17 +882,14 @@ export class Model {
         entityCount += layer.elements.size;
       }
 
-      if (isTelemetryEnabled && span) {
-        span.setAttribute("model.entity_count", entityCount);
-        span.setAttribute("model.layer_count", model.layers.size);
-      }
+      span.setAttribute("model.entity_count", entityCount);
+      span.setAttribute("model.layer_count", model.layers.size);
 
       return model;
-    } finally {
-      if (isTelemetryEnabled) {
-        endSpan(span);
-      }
-    }
+    }, {
+      "model.path": startPath || process.cwd(),
+      "model.type": "dr",
+    });
   }
 
   /**

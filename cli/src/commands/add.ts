@@ -9,7 +9,7 @@ import { Element } from "../core/element.js";
 import { MutationHandler } from "../core/mutation-handler.js";
 import { validateSourceReferenceOptions, buildSourceReference } from "../utils/source-reference.js";
 import { SchemaValidator } from "../validators/schema-validator.js";
-import { startSpan, endSpan } from "../telemetry/index.js";
+import { getActiveSpan } from "../telemetry/index.js";
 import { generateElementId, generateUUID } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
@@ -25,9 +25,6 @@ import {
   handleSuccess,
 } from "../utils/errors.js";
 
-// Telemetry flag check
-declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 export interface AddOptions {
   name?: string;
@@ -48,8 +45,6 @@ export async function addCommand(
   name: string,
   options: AddOptions
 ): Promise<void> {
-  let span = null;
-
   try {
     // Validate layer name
     if (!isValidLayer(layer)) {
@@ -106,13 +101,10 @@ export async function addCommand(
       );
     }
 
-    span = isTelemetryEnabled
-      ? startSpan("element.add", {
-          "layer.name": layer,
-          "element.type": resolvedType,
-          "element.id": elementPath,
-        })
-      : null;
+    const span = getActiveSpan();
+    span?.setAttribute("layer.name", layer);
+    span?.setAttribute("element.type", resolvedType);
+    span?.setAttribute("element.id", elementPath);
 
     // Validate source reference options
     validateSourceReferenceOptions(options);
@@ -120,7 +112,7 @@ export async function addCommand(
     // Load model (with error handling for missing models)
     let model: Model;
     try {
-      model = await Model.load();
+      model = await Model.load(undefined, { layers: [layer] });
     } catch (error) {
       const message = getErrorMessage(error);
       if (message.includes("No DR project") || message.includes("Model not found")) {
@@ -239,14 +231,6 @@ export async function addCommand(
       }
     }
   } catch (error) {
-    if (isTelemetryEnabled && span) {
-      (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: (error as Error).message });
-    }
     handleError(error);
-  } finally {
-    if (isTelemetryEnabled) {
-      endSpan(span);
-    }
   }
 }

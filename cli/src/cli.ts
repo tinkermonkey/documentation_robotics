@@ -8,7 +8,7 @@
  * Telemetry is controlled by the TELEMETRY_ENABLED build-time constant.
  */
 
-import { Command } from "commander";
+import { Command, CommanderError } from "commander";
 import { setGlobalOptions } from "./utils/globals.js";
 import { initCommand } from "./commands/init.js";
 import { addCommand } from "./commands/add.js";
@@ -63,15 +63,23 @@ async function extractExitCode(error: unknown): Promise<number> {
     return error.exitCode;
   }
 
+  // Commander's own errors (--help, unknown commands, etc.) carry exitCode as
+  // expected control flow — handle them directly without duck-typing.
+  if (error instanceof CommanderError) {
+    return error.exitCode;
+  }
+
   // Fallback for duck-typing (handles bundling/module issues)
   if (error && typeof error === "object" && "exitCode" in error) {
     const errorObj = error as any;
     if (typeof errorObj.exitCode === "number") {
       // Validate this looks like a CLIError before accepting
       if (errorObj.name === "CLIError" || errorObj.message) {
-        console.warn(
-          "[DEBUG] Using duck-typed error object as fallback - this may indicate a module loading issue"
-        );
+        if (process.argv.includes("--debug")) {
+          console.warn(
+            "[DEBUG] Using duck-typed error object as fallback - this may indicate a module loading issue"
+          );
+        }
         return errorObj.exitCode;
       }
     }
@@ -92,43 +100,20 @@ if (process.argv.includes("--version") || process.argv.includes("-V")) {
   process.argv = ["node", "dr", "version"];
 }
 
-// Store active command span for automatic instrumentation
-let commandSpan: any = null;
-
 program
   .name("dr")
   .description("Documentation Robotics CLI - Architecture Model Management")
   .option("-v, --verbose", "Enable verbose output")
   .option("--debug", "Enable debug mode")
   .exitOverride() // Prevent Commander from calling process.exit() - we handle exit ourselves
-  .hook("preAction", async (thisCommand, actionCommand) => {
+  .showSuggestionAfterError() // "Did you mean X?" on unknown commands/options
+  .hook("preAction", async (thisCommand) => {
     // Set up global state (verbose/debug flags)
     const options = thisCommand.opts();
     setGlobalOptions({
       verbose: options.verbose as boolean | undefined,
       debug: options.debug as boolean | undefined,
     });
-
-    // Automatic telemetry: Create span for every command
-    if (isTelemetryEnabled) {
-      const { startSpan } = await import("./telemetry/index.js");
-      // Use actionCommand to get the actual command being executed
-      const commandName = actionCommand.name();
-      const commandArgs = actionCommand.args;
-
-      commandSpan = startSpan(`${commandName}.execute`, {
-        "command.name": commandName,
-        "command.args": JSON.stringify(commandArgs),
-      });
-    }
-  })
-  .hook("postAction", async () => {
-    // Automatic telemetry: End command span
-    if (isTelemetryEnabled && commandSpan) {
-      const { endSpan } = await import("./telemetry/index.js");
-      endSpan(commandSpan);
-      commandSpan = null;
-    }
   });
 
 // Model commands
@@ -797,15 +782,31 @@ copilotCommands(program);
             span.setStatus({ code: 0 }); // SpanStatusCode.OK
           } catch (error) {
             // Record exception and set error status
-            span.recordException(error as Error);
-            span.setStatus({
-              code: 2, // SpanStatusCode.ERROR
-              message: getErrorMessage(error),
-            });
+            // CommanderError with exitCode 0 is help text / unknown subcommand shown — not a real error
+            if (error instanceof CommanderError) {
+              if (error.exitCode === 0) {
+                span.setStatus({ code: 0 }); // SpanStatusCode.OK
+              } else {
+                span.recordException(error as Error);
+                span.setStatus({
+                  code: 2, // SpanStatusCode.ERROR
+                  message: error.message,
+                });
+              }
+            } else {
+              span.recordException(error as Error);
+              span.setStatus({
+                code: 2, // SpanStatusCode.ERROR
+                message: getErrorMessage(error),
+              });
+            }
 
             // Print error message for CLIError instances
+            // Skip CommanderError — Commander already printed its own output (e.g. help text, unknown command)
             const { CLIError } = await import("./utils/errors.js");
-            if (error instanceof CLIError) {
+            if (error instanceof CommanderError) {
+              // Commander handled its own output; nothing to print
+            } else if (error instanceof CLIError) {
               console.error(error.message);
             } else if (error instanceof Error) {
               console.error(error.message);
@@ -837,11 +838,12 @@ copilotCommands(program);
         await program.parseAsync(process.argv);
       } catch (error) {
         // Extract exit code from CLIError if available
+        // Skip CommanderError — Commander already printed its own output (e.g. help text, unknown command)
         const { CLIError } = await import("./utils/errors.js");
-        if (error instanceof CLIError) {
-          // CLIError messages are already formatted, no need to print
+        if (error instanceof CommanderError || error instanceof CLIError) {
+          // Output already handled by Commander or CLIError internals
         } else {
-          // Non-CLIError exceptions need to be printed
+          // Unexpected exceptions need to be printed
           if (error instanceof Error) {
             console.error(error.message);
           } else {
