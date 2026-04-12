@@ -11,7 +11,7 @@ import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { Command } from "commander";
 import * as prompts from "@clack/prompts";
 import path from "path";
-import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
+import { isTelemetryEnabled, startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 
 /**
@@ -1183,119 +1183,117 @@ export async function changesetCommitCommand(options?: {
   validate?: boolean;
   force?: boolean;
 }): Promise<void> {
-  const span = isTelemetryEnabled
-    ? startSpan("changeset.commit", {
-        "commit.validate": options?.validate !== false,
-        "commit.force": options?.force === true,
-      })
-    : null;
+  await startActiveSpan(
+    "changeset.commit",
+    async (span) => {
+      try {
+        const model = await Model.load(process.cwd(), { lazyLoad: false });
+        const stagingManager = new StagingAreaManager(model.rootPath, model);
+        const activeChangesetId = await stagingManager.getActiveId();
 
-  try {
-    const model = await Model.load(process.cwd(), { lazyLoad: false });
-    const stagingManager = new StagingAreaManager(model.rootPath, model);
-    const activeChangesetId = await stagingManager.getActiveId();
-
-    if (!activeChangesetId) {
-      console.error(ansis.red("Error: No active changeset"));
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 2, message: "No active changeset" });
-      }
-      endSpan(span);
-      return;
-    }
-
-    const changeset = await stagingManager.load(activeChangesetId);
-
-    if (!changeset) {
-      console.error(ansis.red(`Error: Changeset '${activeChangesetId}' not found`));
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 2, message: "Changeset not found" });
-      }
-      endSpan(span);
-      process.exit(1);
-    }
-
-    const changeCount = changeset.changes.length;
-
-    if (isTelemetryEnabled && span) {
-      (span as any).setAttribute("changeset.id", activeChangesetId);
-      (span as any).setAttribute("changeset.name", changeset.name);
-      (span as any).setAttribute("changeset.changeCount", changeCount);
-    }
-
-    if (changeCount === 0) {
-      console.log(ansis.yellow("No staged changes to commit"));
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 0 });
-      }
-      endSpan(span);
-      return;
-    }
-
-    console.log(ansis.bold(`\nCommitting changeset: ${ansis.cyan(changeset.name)}`));
-    console.log(ansis.dim(`Staged changes: ${changeCount}`));
-    console.log();
-
-    // Execute atomic commit with validation and rollback
-    try {
-      const result = await stagingManager.commit(model, activeChangesetId, {
-        validate: options?.validate !== false,
-        force: options?.force === true,
-      });
-
-      // Deactivate the changeset after successful commit
-      await stagingManager.clearActive();
-
-      // Show results
-      console.log(ansis.green(`✓ Committed ${result.committed} change(s)`));
-
-      if (isTelemetryEnabled && span) {
-        (span as any).setAttribute("commit.committed", result.committed);
-        (span as any).setAttribute("commit.failed", result.failed);
-        (span as any).setAttribute("commit.validationPassed", result.validation.passed);
-      }
-
-      if (result.driftWarning) {
-        console.log(
-          ansis.yellow(`⚠ Warning: Model had drifted since changeset creation (--force was used)`)
-        );
-        if (isTelemetryEnabled && span) {
-          (span as any).setAttribute("commit.driftDetected", true);
+        if (!activeChangesetId) {
+          console.error(ansis.red("Error: No active changeset"));
+          if (isTelemetryEnabled) {
+            (span as any).setStatus({ code: 2, message: "No active changeset" });
+          }
+          return;
         }
-      }
 
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 0 });
-      }
+        const changeset = await stagingManager.load(activeChangesetId);
 
-      console.log();
-    } catch (error) {
-      // Commit failed - error was thrown from StagingAreaManager
-      // Model has been automatically rolled back
-      console.log(
-        ansis.red(
-          `✗ Commit failed and rolled back: ${getErrorMessage(error)}`
-        )
-      );
-      if (isTelemetryEnabled && span) {
-        (span as any).setAttribute("commit.rolledBack", true);
+        if (!changeset) {
+          console.error(ansis.red(`Error: Changeset '${activeChangesetId}' not found`));
+          if (isTelemetryEnabled) {
+            (span as any).setStatus({ code: 2, message: "Changeset not found" });
+          }
+          span.end();
+          process.exit(1);
+        }
+
+        const changeCount = changeset.changes.length;
+
+        if (isTelemetryEnabled) {
+          (span as any).setAttribute("changeset.id", activeChangesetId);
+          (span as any).setAttribute("changeset.name", changeset.name);
+          (span as any).setAttribute("changeset.changeCount", changeCount);
+        }
+
+        if (changeCount === 0) {
+          console.log(ansis.yellow("No staged changes to commit"));
+          if (isTelemetryEnabled) {
+            (span as any).setStatus({ code: 0 });
+          }
+          return;
+        }
+
+        console.log(ansis.bold(`\nCommitting changeset: ${ansis.cyan(changeset.name)}`));
+        console.log(ansis.dim(`Staged changes: ${changeCount}`));
+        console.log();
+
+        // Execute atomic commit with validation and rollback
+        try {
+          const result = await stagingManager.commit(model, activeChangesetId, {
+            validate: options?.validate !== false,
+            force: options?.force === true,
+          });
+
+          // Deactivate the changeset after successful commit
+          await stagingManager.clearActive();
+
+          // Show results
+          console.log(ansis.green(`✓ Committed ${result.committed} change(s)`));
+
+          if (isTelemetryEnabled) {
+            (span as any).setAttribute("commit.committed", result.committed);
+            (span as any).setAttribute("commit.failed", result.failed);
+            (span as any).setAttribute("commit.validationPassed", result.validation.passed);
+          }
+
+          if (result.driftWarning) {
+            console.log(
+              ansis.yellow(`⚠ Warning: Model had drifted since changeset creation (--force was used)`)
+            );
+            if (isTelemetryEnabled) {
+              (span as any).setAttribute("commit.driftDetected", true);
+            }
+          }
+
+          if (isTelemetryEnabled) {
+            (span as any).setStatus({ code: 0 });
+          }
+
+          console.log();
+        } catch (error) {
+          // Commit failed - error was thrown from StagingAreaManager
+          // Model has been automatically rolled back
+          console.log(
+            ansis.red(
+              `✗ Commit failed and rolled back: ${getErrorMessage(error)}`
+            )
+          );
+          if (isTelemetryEnabled) {
+            (span as any).setAttribute("commit.rolledBack", true);
+          }
+          throw error;
+        }
+      } catch (error) {
+        if (isTelemetryEnabled) {
+          (span as any).recordException(error as Error);
+          (span as any).setStatus({
+            code: 2,
+            message: getErrorMessage(error),
+          });
+        }
+        console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+        span.end();
+        process.exit(1);
       }
-      throw error;
+    },
+    {
+      "commit.validate": options?.validate !== false,
+      "commit.force": options?.force === true,
     }
-  } catch (error) {
-    if (isTelemetryEnabled && span) {
-      (span as any).recordException(error as Error);
-      (span as any).setStatus({
-        code: 2,
-        message: getErrorMessage(error),
-      });
-    }
-    console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
-    endSpan(span);
-    process.exit(1);
-  } finally {
-    endSpan(span);
-  }
+  );
 }
 
 /**

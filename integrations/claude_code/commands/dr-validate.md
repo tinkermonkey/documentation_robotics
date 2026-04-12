@@ -215,8 +215,8 @@ Summary: 0 errors, 3 warnings
 Your model is valid but could be improved:
 
 1. ⚠️  business.service.checkout
-   Recommendation: Add 'supports-goals' reference for traceability
-   Impact: Helps trace business value
+   Recommendation: Add description to document what this element represents
+   Impact: Improves model documentation quality
 
 2. ⚠️  application.service.reporting
    Recommendation: Add monitoring metrics
@@ -314,57 +314,65 @@ Priority 4 (Documentation):
 
 ## Advanced Features
 
+### Understanding Warning Categories
+
+Not all warnings require immediate action. Understand the priority:
+
+**Structural errors** (❌ — must fix before `dr changeset commit` will succeed):
+- Schema violations (missing required fields, wrong types)
+- Broken references (referencing non-existent elements)
+- Naming convention violations
+- Cardinality violations in relationships
+
+**Orphan warnings** (⚠️ — expected during active development):
+- Elements with no cross-layer references or intra-layer relationships
+- Normal during incremental work — run `/dr-relate` to wire them up when ready
+- Do NOT block `dr changeset commit`
+
+**Source-reference warnings** (⚠️ — expected on manually authored elements):
+- Elements without `source_reference` provenance
+- Normal for hand-authored elements; only mandatory for elements created via `dr scan`
+- Do NOT block `dr changeset commit`
+
 ### Validate Before Commit
 
-Help users validate before committing:
+Run `dr validate` **before** `dr changeset commit` so you can see and react to errors:
 
-```
-User: /dr-validate
+```bash
+# Step 1: Validate (includes staged changes automatically)
+dr validate
 
-You: Running validation before commit...
+# Step 2: Fix any structural errors
+# [apply fixes as needed]
 
-     dr validate --strict
-
-     [show results]
-
-     ✓ Model is valid and ready to commit!
-
-     Suggested commit workflow:
-     1. git add documentation-robotics/
-     2. git commit -m "Add payment service with full traceability"
-     3. git push
+# Step 3: Commit — built-in validation runs again as a safety net
+dr changeset commit
 ```
 
-### Continuous Validation
+If a changeset is active, `dr validate` automatically validates the projected model (staged changes merged with the base model). You see exactly what `commit` will validate.
 
-For ongoing work, track validation status:
+### Validate a Specific Layer
 
+```bash
+# Only validate the API layer (faster for targeted checks)
+dr validate --layers api
+
+# Validate multiple layers
+dr validate --layers api,application
 ```
-User: /dr-validate
 
-You: Running validation check #3 today...
-
-     Previous: ❌ 5 errors, 8 warnings
-     Current:  ⚠️  0 errors, 3 warnings
-
-     ✓ Improvement! Fixed all errors since last check.
-
-     Remaining warnings:
-     [show warnings]
-
-     Keep up the good work!
-```
+Note: `--layers` filters which layer elements are reported in errors, but the full model is still loaded for reference validation.
 
 ### Validation Reports
 
-Generate detailed reports:
+Generate machine-readable reports using `--output`:
 
 ```
 User: /dr-validate --report
 
 You: Generating comprehensive validation report...
 
-     dr validate --strict > validation-report.json
+     dr validate --output validation-report.json
 
      ✓ Report saved to: validation-report.json
 
@@ -373,17 +381,47 @@ You: Generating comprehensive validation report...
      - Validated: 45
      - Errors: 0
      - Warnings: 3
-     - Info: 2
 
      Report includes:
      - Element-by-element validation status
      - Cross-layer reference validation
      - Semantic rule results
-     - Traceability matrix
      - Recommendations
 
      View report: cat validation-report.json | jq
 ```
+
+**IMPORTANT**: Use `--output <file.json>` for machine-readable output, NOT shell redirection. Shell redirection (`>`) captures ANSI-colored console output, not clean JSON.
+
+**JSON output schema** (from `--output report.json`):
+
+```json
+{
+  "valid": true,
+  "errorCount": 0,
+  "warningCount": 3,
+  "errors": [
+    {
+      "layer": "api",
+      "elementId": "api.operation.create-order",
+      "message": "Element 'api.operation.create-order': At /name: missing required property 'name'",
+      "location": "/name",
+      "fixSuggestion": "Add required field: name"
+    }
+  ],
+  "warnings": [
+    {
+      "layer": "business",
+      "elementId": "business.service.orders",
+      "message": "Element 'business.service.orders' has no source reference",
+      "category": "source-reference",
+      "fixSuggestion": "Add a source_reference with provenance to link this element to its implementation"
+    }
+  ]
+}
+```
+
+**Note on `location` field**: The `location` field contains an AJV `instancePath` (e.g., `/attributes/criticality`), not a file path. To locate the element's YAML file, use the `elementId` with `dr show <elementId>`.
 
 ## Validation Rules Reference
 

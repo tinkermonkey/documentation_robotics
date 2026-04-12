@@ -13,7 +13,7 @@ import type { Element } from "../core/element.js";
 import { fileURLToPath } from "url";
 import path from "path";
 import { readFile } from "../utils/file-io.js";
-import { startSpan, endSpan } from "../telemetry/index.js";
+import { startActiveSpan } from "../telemetry/index.js";
 import { existsSync } from "fs";
 import {
   validateSpecNode,
@@ -232,52 +232,48 @@ export class SchemaValidator {
    * This validates each element in the layer against its corresponding spec node schema.
    */
   async validateLayer(layer: Layer): Promise<ValidationResult> {
-    const span = isTelemetryEnabled
-      ? startSpan("schema.validate", {
-          "schema.layer": layer.name,
-        })
-      : null;
+    return startActiveSpan(
+      "schema.validate",
+      async (span) => {
+        const result = new ValidationResult();
+        let validatedCount = 0;
+        let skippedCount = 0;
 
-    try {
-      const result = new ValidationResult();
-      let validatedCount = 0;
-      let skippedCount = 0;
+        // Validate each element individually
+        for (const element of layer.elements.values()) {
+          const elementResult = await this.validateElement(element, layer.name);
 
-      // Validate each element individually
-      for (const element of layer.elements.values()) {
-        const elementResult = await this.validateElement(element, layer.name);
+          if (elementResult.hasErrors) {
+            // Add element-specific errors to layer result
+            for (const error of elementResult.errors) {
+              result.addError({
+                layer: layer.name,
+                elementId: element.path || element.id,
+                message: error.message,
+                location: error.location,
+                fixSuggestion: error.fixSuggestion,
+              });
+            }
+          }
 
-        if (elementResult.hasErrors) {
-          // Add element-specific errors to layer result
-          for (const error of elementResult.errors) {
-            result.addError({
-              layer: layer.name,
-              elementId: element.path || element.id,
-              message: error.message,
-              location: error.location,
-              fixSuggestion: error.fixSuggestion,
-            });
+          if (elementResult.validated) {
+            validatedCount++;
+          } else {
+            skippedCount++;
           }
         }
 
-        if (elementResult.validated) {
-          validatedCount++;
-        } else {
-          skippedCount++;
+        if (isTelemetryEnabled) {
+          span.setAttribute("schema.valid", result.isValid());
+          span.setAttribute("schema.error_count", result.errors.length);
+          span.setAttribute("schema.validated_count", validatedCount);
+          span.setAttribute("schema.skipped_count", skippedCount);
         }
-      }
 
-      if (isTelemetryEnabled && span) {
-        span.setAttribute("schema.valid", result.isValid());
-        span.setAttribute("schema.error_count", result.errors.length);
-        span.setAttribute("schema.validated_count", validatedCount);
-        span.setAttribute("schema.skipped_count", skippedCount);
-      }
-
-      return result;
-    } finally {
-      endSpan(span);
-    }
+        return result;
+      },
+      { "schema.layer": layer.name }
+    );
   }
 
   /**

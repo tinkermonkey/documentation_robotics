@@ -444,8 +444,48 @@ You: Searching for unsecured services...
      Should I add authentication policies to these services?
 ```
 
+## Element Investigation Pattern
+
+When you need to understand an existing element before modifying it, use this standard 3-command sequence:
+
+```bash
+# 1. Inspect element metadata and properties
+dr show <element-id>
+
+# 2. Trace cross-layer dependencies (up and down the stack)
+dr trace <element-id> --direction both
+
+# 3. Check for validation issues affecting this element
+dr validate --layers <layer>
+```
+
+### Important: `dr show` Does Not Display Relationships
+
+`dr show` reports `hasRelationships: false` for many elements even when they have relationships. This is because intra-layer relationships are stored in a central `relationships.yaml` file and are not surfaced by `dr show`. To see actual relationships, use:
+
+```bash
+dr trace <element-id>              # Shows cross-layer dependency chain
+dr relationship list <layer>       # Shows all relationships in the layer
+```
+
+Do not conclude an element is isolated based on `dr show` output alone. Always follow up with `dr trace`.
+
+### Investigation Example
+
+```bash
+# Wrong: only dr show
+dr show api.operation.register-webhook-subscription
+# → shows properties but hides all relationships
+
+# Right: full picture
+dr show api.operation.register-webhook-subscription
+dr trace api.operation.register-webhook-subscription --direction both
+dr validate --layers api
+```
+
 ## Related Commands
 
+- `/dr-info` - Model overview (layer counts, version)
 - `/dr-init` - Initialize a new model
 - `/dr-map` - Extract model from code
 - `/dr-project` - Automated cross-layer projection

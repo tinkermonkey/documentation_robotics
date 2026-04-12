@@ -15,7 +15,7 @@ import { fileURLToPath } from "url";
 import path from "path";
 import { readFile } from "../utils/file-io.js";
 import { existsSync } from "fs";
-import { startSpan, endSpan } from "../telemetry/index.js";
+import { startActiveSpan } from "../telemetry/index.js";
 
 interface ManifestDistFile {
   layers: Array<{ id: string }>;
@@ -124,83 +124,79 @@ export class RelationshipValidator {
    * Validate relationships in a model with cardinality enforcement
    */
   async validateModel(model: Model): Promise<ValidationResult> {
-    const span = isTelemetryEnabled
-      ? startSpan("relationship-schema.validate-model", {
-          "relationship.layer_count": model.layers.size,
-        })
-      : null;
+    return startActiveSpan(
+      "relationship-schema.validate-model",
+      async (span) => {
+        // Ensure schemas are loaded
+        if (this.relationshipSchemas.size === 0) {
+          try {
+            await this.initialize();
+          } catch (error: any) {
+            const result = new ValidationResult();
+            result.addError({
+              layer: "system",
+              message: `${error.message} Relationship validation is not available.`,
+            });
+            return result;
+          }
+        }
 
-    try {
-      // Ensure schemas are loaded
-      if (this.relationshipSchemas.size === 0) {
-        try {
-          await this.initialize();
-        } catch (error: any) {
+        // Verify schemas were loaded. This covers two cases:
+        // 1. initialize() succeeded but the manifest has no layers with relationship schemas
+        // 2. Edge case where manifest exists but is empty
+        // In both cases, relationship validation cannot proceed.
+        if (this.relationshipSchemas.size === 0) {
           const result = new ValidationResult();
           result.addError({
             layer: "system",
-            message: `${error.message} Relationship validation is not available.`,
+            message: `No relationship schemas loaded from ${path.join(this.schemasDir, "manifest.json")}. Relationship validation is not available.`,
           });
           return result;
         }
-      }
 
-      // Verify schemas were loaded. This covers two cases:
-      // 1. initialize() succeeded but the manifest has no layers with relationship schemas
-      // 2. Edge case where manifest exists but is empty
-      // In both cases, relationship validation cannot proceed.
-      if (this.relationshipSchemas.size === 0) {
         const result = new ValidationResult();
-        result.addError({
-          layer: "system",
-          message: `No relationship schemas loaded from ${path.join(this.schemasDir, "manifest.json")}. Relationship validation is not available.`,
-        });
-        return result;
-      }
+        const allRelationships = model.relationships.getAll();
 
-      const result = new ValidationResult();
-      const allRelationships = model.relationships.getAll();
+        if (allRelationships.length === 0) {
+          return result;
+        }
 
-      if (allRelationships.length === 0) {
-        return result;
-      }
-
-      // Group relationships for cardinality validation
-      const relationshipsBySource = this.groupRelationshipsBySourceTarget(
-        allRelationships,
-        "source"
-      );
-      const relationshipsByTarget = this.groupRelationshipsBySourceTarget(
-        allRelationships,
-        "target"
-      );
-
-      // Validate each relationship
-      for (const relationship of allRelationships) {
-        const relErrors = await this.validateRelationship(
-          relationship,
-          model,
-          relationshipsBySource,
-          relationshipsByTarget
+        // Group relationships for cardinality validation
+        const relationshipsBySource = this.groupRelationshipsBySourceTarget(
+          allRelationships,
+          "source"
+        );
+        const relationshipsByTarget = this.groupRelationshipsBySourceTarget(
+          allRelationships,
+          "target"
         );
 
-        if (relErrors.length > 0) {
-          for (const error of relErrors) {
-            result.addError(error);
+        // Validate each relationship
+        for (const relationship of allRelationships) {
+          const relErrors = await this.validateRelationship(
+            relationship,
+            model,
+            relationshipsBySource,
+            relationshipsByTarget
+          );
+
+          if (relErrors.length > 0) {
+            for (const error of relErrors) {
+              result.addError(error);
+            }
           }
         }
-      }
 
-      if (isTelemetryEnabled && span) {
-        span.setAttribute("relationship.error_count", result.errors.length);
-        span.setAttribute("relationship.warning_count", result.warnings.length);
-        span.setAttribute("relationship.validated_count", allRelationships.length);
-      }
+        if (isTelemetryEnabled) {
+          span.setAttribute("relationship.error_count", result.errors.length);
+          span.setAttribute("relationship.warning_count", result.warnings.length);
+          span.setAttribute("relationship.validated_count", allRelationships.length);
+        }
 
-      return result;
-    } finally {
-      endSpan(span);
-    }
+        return result;
+      },
+      { "relationship.layer_count": model.layers.size }
+    );
   }
 
   /**

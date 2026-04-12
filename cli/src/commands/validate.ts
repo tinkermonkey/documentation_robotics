@@ -312,8 +312,8 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       return;
     }
 
-    // Load model
-    const model = await Model.load(options.model);
+    // Load model (forward --layers filter so only requested layers are read from disk)
+    const model = await Model.load(options.model, options.layers ? { layers: options.layers } : {});
 
     // --orphans mode: focused orphan report, skip full validation
     if (options.orphans) {

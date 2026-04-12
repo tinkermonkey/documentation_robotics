@@ -21,8 +21,8 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
   const span = getActiveSpan();
 
   try {
-    // Load model
-    const model = await Model.load();
+    // Load model (only the requested layer if --layer is specified)
+    const model = await Model.load(undefined, options.layer ? { layers: [options.layer] } : {});
     const manifest = model.manifest;
 
     if (span) {
@@ -57,50 +57,52 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
       (span as any).setAttribute("info.layerCount", layerNames.length);
     }
 
-    if (layerNames.length > 0) {
+    if (options.layer) {
+      // Show specific layer info (model only loaded this layer for performance)
       console.log("");
       console.log(ansis.bold("Layers:"));
       console.log(ansis.dim(TABLE_SEPARATOR));
 
-      if (options.layer) {
-        // Show specific layer info
-        const layer = await model.getLayer(options.layer);
-        if (!layer) {
-          console.error(ansis.red(`Error: Layer ${options.layer} not found`));
-          process.exit(1);
+      const layer = await model.getLayer(options.layer);
+      if (!layer) {
+        console.error(ansis.red(`Error: Layer ${options.layer} not found`));
+        process.exit(1);
+      }
+
+      const elements = layer.listElements();
+      console.log(`${ansis.cyan(options.layer)}`);
+      console.log(`  ${ansis.gray("Elements:")} ${elements.length}`);
+
+      if (span) {
+        (span as any).setAttribute("info.elementCount", elements.length);
+      }
+
+      if (options.verbose && elements.length > 0) {
+        console.log(`  ${ansis.gray("Details:")}`);
+        const types = new Set(elements.map((e) => e.type));
+        for (const type of types) {
+          const count = elements.filter((e) => e.type === type).length;
+          console.log(`    - ${type}: ${count}`);
         }
+      }
+    } else if (layerNames.length > 0) {
+      // Show all layers summary
+      console.log("");
+      console.log(ansis.bold("Layers:"));
+      console.log(ansis.dim(TABLE_SEPARATOR));
 
-        const elements = layer.listElements();
-        console.log(`${ansis.cyan(options.layer)}`);
-        console.log(`  ${ansis.gray("Elements:")} ${elements.length}`);
+      const idWidth = TABLE_COLUMN_WIDTHS.INFO_ID_WIDTH;
+      const countWidth = TABLE_COLUMN_WIDTHS.INFO_COUNT_WIDTH;
 
-        if (span) {
-          (span as any).setAttribute("info.elementCount", elements.length);
-        }
+      for (const layerName of layerNames) {
+        const layer = await model.getLayer(layerName);
+        if (!layer) continue;
 
-        if (options.verbose && elements.length > 0) {
-          console.log(`  ${ansis.gray("Details:")}`);
-          const types = new Set(elements.map((e) => e.type));
-          for (const type of types) {
-            const count = elements.filter((e) => e.type === type).length;
-            console.log(`    - ${type}: ${count}`);
-          }
-        }
-      } else {
-        // Show all layers summary
-        const idWidth = TABLE_COLUMN_WIDTHS.INFO_ID_WIDTH;
-        const countWidth = TABLE_COLUMN_WIDTHS.INFO_COUNT_WIDTH;
+        const count = layer.listElements().length;
+        const paddedName = layerName.padEnd(idWidth);
+        const paddedCount = String(count).padEnd(countWidth);
 
-        for (const layerName of layerNames) {
-          const layer = await model.getLayer(layerName);
-          if (!layer) continue;
-
-          const count = layer.listElements().length;
-          const paddedName = layerName.padEnd(idWidth);
-          const paddedCount = String(count).padEnd(countWidth);
-
-          console.log(`${ansis.cyan(paddedName)} ${paddedCount} elements`);
-        }
+        console.log(`${ansis.cyan(paddedName)} ${paddedCount} elements`);
       }
     } else {
       console.log("");
