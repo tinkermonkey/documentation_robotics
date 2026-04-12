@@ -361,8 +361,25 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       });
     }
 
-    // Run strict-mode additional checks: flag elements missing description or source traceability.
-    // These are quality gates that don't fail a standard validate but should be visible in strict mode.
+    // Check source traceability in normal mode: elements without source_reference lack the
+    // provenance link that dr-sync uses for drift detection. Surface this in every validate
+    // run so users discover gaps without having to remember --strict.
+    for (const [layerName, layer] of modelToValidate.layers) {
+      for (const element of layer.listElements()) {
+        const elementId = element.path || element.id;
+        if (!element.source_reference) {
+          result.addWarning({
+            message: `Element '${elementId}' has no source reference`,
+            layer: layerName,
+            elementId,
+            fixSuggestion:
+              "Add a source_reference with provenance to link this element to its implementation",
+          });
+        }
+      }
+    }
+
+    // Strict-mode additional checks: flag elements missing a description.
     if (options.strict) {
       for (const [layerName, layer] of modelToValidate.layers) {
         for (const element of layer.listElements()) {
@@ -374,16 +391,6 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
               layer: layerName,
               elementId,
               fixSuggestion: "Add a description to document what this element represents",
-            });
-          }
-
-          if (!element.source_reference) {
-            result.addWarning({
-              message: `Element '${elementId}' has no source reference`,
-              layer: layerName,
-              elementId,
-              fixSuggestion:
-                "Add a source_reference with provenance to link this element to its implementation",
             });
           }
         }

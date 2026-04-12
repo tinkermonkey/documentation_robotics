@@ -3,8 +3,8 @@
  *
  * Detects:
  * - Exact duplicates: same (source, predicate, target) triple appearing more than once
- * - Semantic duplicates: same (source_spec_node_id, dest_spec_node_id) pair with predicates
- *   in the same semantic category
+ * - Semantic duplicates: same (source_id, target_id) instance pair connected by multiple
+ *   predicates in the same semantic category
  */
 
 import { RelationshipCatalog } from "../../../core/relationship-catalog.js";
@@ -57,26 +57,31 @@ export function detectModelDuplicates(
     });
   }
 
-  // --- Semantic duplicates: same (src_spec_node_id, dst_spec_node_id) with same predicate category ---
-  // Group by (source_spec_node_id, dest_spec_node_id) → list of predicates used
+  // --- Semantic duplicates: same (source_id, target_id) instance pair with same predicate category ---
+  // Group by actual element instance pair so we only flag cases where the same two specific
+  // elements are connected by multiple predicates in the same semantic category. Grouping by
+  // node type instead would flag every pair of elements sharing the same types as duplicates,
+  // producing a false-positive explosion in any well-related model.
   const semanticGroups = new Map<
     string,
-    Array<{ predicate: string; sourceId: string; targetId: string }>
+    Array<{ predicate: string; sourceId: string; targetId: string; sourceSpecNodeId: string; destSpecNodeId: string }>
   >();
 
   for (const rel of relationships) {
     const srcEl = elementById.get(rel.source);
     const dstEl = elementById.get(rel.target);
     if (!srcEl?.spec_node_id || !dstEl?.spec_node_id) continue;
-    const key = `${srcEl.spec_node_id}|${dstEl.spec_node_id}`;
+    const key = `${rel.source}|${rel.target}`;
     const group = semanticGroups.get(key) ?? [];
-    group.push({ predicate: rel.predicate, sourceId: rel.source, targetId: rel.target });
+    group.push({ predicate: rel.predicate, sourceId: rel.source, targetId: rel.target, sourceSpecNodeId: srcEl.spec_node_id, destSpecNodeId: dstEl.spec_node_id });
     semanticGroups.set(key, group);
   }
 
-  for (const [key, group] of semanticGroups) {
+  for (const [_key, group] of semanticGroups) {
     if (group.length < 2) continue;
-    const [sourceSpecNodeId, destSpecNodeId] = key.split("|");
+    // All entries share the same source/target instance; take type info from the first entry.
+    const sourceSpecNodeId = group[0].sourceSpecNodeId;
+    const destSpecNodeId = group[0].destSpecNodeId;
 
     // Check all pairs for same-category predicates
     for (let i = 0; i < group.length; i++) {
@@ -101,7 +106,7 @@ export function detectModelDuplicates(
           predicates: [p1, p2],
           sourceNodeType: sourceSpecNodeId ?? "",
           destinationNodeType: destSpecNodeId ?? "",
-          reason: `Both predicates '${p1}' and '${p2}' are in "${type1.category}" category between the same element types`,
+          reason: `Both predicates '${p1}' and '${p2}' are in "${type1.category}" category between the same element pair`,
           confidence,
           impactScore: semImpactScore,
           alignmentScore: 100 - semImpactScore,

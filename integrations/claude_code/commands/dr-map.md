@@ -255,6 +255,18 @@ This will take approximately 2-3 minutes.
 Proceed with extraction?
 ```
 
+### Step 3b: Capture Baseline Element Counts
+
+**Before launching any extraction**, record the current element count per layer. This is the authoritative "before" snapshot — do this now, not inside the extraction agent, to avoid counting elements added mid-execution.
+
+```bash
+dr list --json 2>/dev/null | jq -r 'group_by(.layer) | map("\(.[0].layer): \(length)") | .[]'
+```
+
+Store the output as `BASELINE_COUNTS`. Pass it verbatim into the extraction agent's prompt so the final summary report can display accurate Before / After / Net-new columns.
+
+---
+
 ### Step 4: Launch Extraction Agent
 
 Use the Task tool to launch the specialized extraction agent:
@@ -267,6 +279,7 @@ Task(
 **Source Path:** {path}
 **Target Layers:** {layers}
 **Technology:** {technology}
+**Baseline Element Counts (captured before extraction):** {baseline_counts}
 
 **Your Task:**
 1. Analyze the codebase structure
@@ -406,17 +419,21 @@ Recommendations:
 
 ### Step 5: Process Agent Results
 
-When the agent completes, parse and display the report:
+When the agent completes, read the current element counts (the "after" state) and display the report. Use `BASELINE_COUNTS` (captured in Step 3b) for the Before column — do NOT re-derive it from within the agent's output, which may reflect an intermediate state.
+
+```bash
+dr list --json 2>/dev/null | jq -r 'group_by(.layer) | map("\(.[0].layer): \(length)") | .[]'
+```
 
 ```
 
 # Extraction Complete
 
-Created Elements:
-├─ Business Layer: 5 services
-├─ Application Layer: 8 services, 3 components
-├─ API Layer: 35 operations
-└─ Data Model Layer: 12 schemas
+Created Elements (Before → After, Net-new):
+├─ Business Layer:      N → M  (+X services)
+├─ Application Layer:   N → M  (+X services, +Y components)
+├─ API Layer:           N → M  (+X operations)
+└─ Data Model Layer:    N → M  (+X schemas)
 
 Cross-Layer References:
 ✓ 8 realizes references (app → business)
