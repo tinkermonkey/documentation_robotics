@@ -1,5 +1,5 @@
-manage-tasks:
-  id: manage-tasks
+motivation.goal.manage-tasks:
+  id: 51914b76-95b3-4301-a13e-aa6ef46ebb9a
   path: motivation.goal.manage-tasks
   spec_node_id: motivation.goal
   type: goal
