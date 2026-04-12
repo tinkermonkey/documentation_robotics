@@ -36,8 +36,8 @@ export interface RepositoryContext {
 export interface SourceReference {
   /** How this reference was created */
   provenance: ProvenanceType;
-  /** One or more source file locations */
-  locations: SourceLocation[];
+  /** One or more source file locations. Required for extracted/manual provenance; optional for inferred/generated. */
+  locations?: SourceLocation[];
   /** Optional repository context */
   repository?: RepositoryContext;
 }

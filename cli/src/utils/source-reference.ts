@@ -34,17 +34,20 @@ export function validateSourceReferenceOptions(options: SourceReferenceOptions):
     return;
   }
 
-  // If any source option provided, require file and provenance
-  if (!options.sourceFile) {
-    throw new CLIError("--source-file is required when specifying source reference", 1, [
-      "Provide source file path relative to repository root",
-      'Example: --source-file "src/services/auth.ts"',
-    ]);
-  }
-
+  // Require provenance first so we can use it to determine file requirements
   if (!options.sourceProvenance) {
     throw new CLIError("--source-provenance is required when specifying source reference", 1, [
       "Specify provenance type: extracted, manual, inferred, or generated",
+    ]);
+  }
+
+  // For inferred and generated provenance, source file is optional (no code exists yet)
+  const fileOptionalProvenances = ["inferred", "generated"];
+  if (!options.sourceFile && !fileOptionalProvenances.includes(options.sourceProvenance)) {
+    throw new CLIError("--source-file is required when specifying source reference", 1, [
+      "Provide source file path relative to repository root",
+      'Example: --source-file "src/services/auth.ts"',
+      "Note: --source-file is optional when --source-provenance is 'inferred' or 'generated'",
     ]);
   }
 
@@ -85,19 +88,22 @@ export function validateSourceReferenceOptions(options: SourceReferenceOptions):
  * Build SourceReference object from options
  */
 export function buildSourceReference(options: SourceReferenceOptions): SourceReference | undefined {
-  if (!options.sourceFile) {
+  if (!options.sourceProvenance) {
     return undefined;
   }
 
   const reference: SourceReference = {
     provenance: options.sourceProvenance as ProvenanceType,
-    locations: [
+  };
+
+  if (options.sourceFile) {
+    reference.locations = [
       {
         file: options.sourceFile,
         ...(options.sourceSymbol && { symbol: options.sourceSymbol }),
       },
-    ],
-  };
+    ];
+  }
 
   if (options.sourceRepoRemote && options.sourceRepoCommit) {
     reference.repository = {

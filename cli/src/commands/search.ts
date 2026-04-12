@@ -39,7 +39,7 @@ function matchesSourceFile(element: Element, sourceFilePath: string): boolean {
   const normalizedQuery = normalizePath(sourceFilePath);
 
   // Check if any location matches the queried file
-  return sourceRef.locations.some((loc) => {
+  return (sourceRef.locations ?? []).some((loc) => {
     const normalizedLoc = normalizePath(loc.file);
     return normalizedLoc === normalizedQuery;
   });
@@ -101,7 +101,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
         let sourceFile: string | undefined;
         let sourceSymbol: string | undefined;
         const sourceRef = element.getSourceReference();
-        if (sourceRef && sourceRef.locations.length > 0) {
+        if (sourceRef && sourceRef.locations && sourceRef.locations.length > 0) {
           sourceFile = sourceRef.locations[0].file;
           sourceSymbol = sourceRef.locations[0].symbol;
         }

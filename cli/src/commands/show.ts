@@ -117,7 +117,7 @@ export async function showCommand(id: string, options: { model?: string } = {}):
       console.log(ansis.bold("Source Code Location:"));
       console.log(`  ${ansis.gray("Provenance:")} ${sourceRef.provenance}`);
 
-      sourceRef.locations.forEach((loc, idx) => {
+      (sourceRef.locations ?? []).forEach((loc, idx) => {
         console.log(`  ${ansis.gray("Location " + (idx + 1) + ":")}`);
         console.log(`    File: ${ansis.cyan(loc.file)}`);
         if (loc.symbol) {

@@ -48,8 +48,8 @@
 
     "SourceReference": {
       "type": "object",
-      "description": "Links entity to source code location(s) with provenance tracking",
-      "required": ["provenance", "locations"],
+      "description": "Links entity to source code location(s) with provenance tracking. For inferred or generated elements, locations may be omitted when no source file exists yet.",
+      "required": ["provenance"],
       "properties": {
         "provenance": {
           "$ref": "#/definitions/ProvenanceType"
@@ -60,7 +60,7 @@
           "items": {
             "$ref": "#/definitions/SourceLocation"
           },
-          "description": "One or more source code locations"
+          "description": "One or more source code locations. Required for extracted and manual provenance; optional for inferred and generated."
         },
         "repository": {
           "$ref": "#/definitions/RepositoryContext"

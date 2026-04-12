@@ -117,7 +117,7 @@ export class MarkdownExporter implements Exporter {
 
             lines.push("**Locations:**");
             lines.push("");
-            sourceRef.locations.forEach((loc, idx) => {
+            (sourceRef.locations ?? []).forEach((loc, idx) => {
               lines.push(`${idx + 1}. \`${this.escapeMarkdownLocal(loc.file)}\``);
               if (loc.symbol) {
                 lines.push(`   - Symbol: \`${this.escapeMarkdownLocal(loc.symbol)}\``);

@@ -116,12 +116,14 @@ dr changeset activate design-real-time-order-tracking
 
 ### Step 6: Stage Elements with Reasoning Annotations
 
-With the changeset active, add each element in the prescribed layer order (motivation first, then down). All `dr add` commands auto-stage to the active changeset. Include reasoning in the description:
+With the changeset active, add each element in the prescribed layer order (motivation first, then down). All `dr add` commands auto-stage to the active changeset. Include reasoning in the description.
+
+**REQUIRED:** Every `dr add` call MUST include `--source-provenance inferred`. Elements without `source_reference` will generate validation warnings on every `dr validate` run. No `--source-file` is needed for design-generated elements.
 
 ```bash
 dr add motivation goal "Real Time Order Visibility" \
   --description "Customers can see live order status updates without refreshing. Drives the new tracking feature." \
-  --source-provenance manual
+  --source-provenance inferred
 ```
 
 Show each staged element to the user as it's created with its reasoning:
