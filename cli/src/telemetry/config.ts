@@ -2,9 +2,17 @@
  * OTLP Configuration Loader
  *
  * Loads and merges OTLP configuration from multiple sources with the following precedence:
- * 1. Environment variables (highest priority)
+ * 1. DR-specific env vars: DR_OTLP_ENDPOINT, DR_OTLP_LOGS_ENDPOINT, DR_OTLP_SERVICE_NAME (highest)
  * 2. ~/.dr-config.yaml file configuration
- * 3. Hard-coded defaults (lowest priority)
+ * 3. Standard OTEL env vars: OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
+ *    OTEL_SERVICE_NAME — treated as a low-priority fallback so that ambient OTEL env vars set
+ *    by a parent process (e.g. Claude Code) do not silently override the DR config file.
+ * 4. Hard-coded defaults (lowest priority)
+ *
+ * Why DR-specific env vars are highest: the standard OTEL_* vars are commonly set in developer
+ * environments by other OTEL-instrumented tools (IDEs, shell profiles, CI). When dr runs as a
+ * subprocess it inherits those vars and would silently misdirect spans. DR_OTLP_* vars are
+ * unambiguously for dr and always win.
  *
  * Configuration file format (~/.dr-config.yaml):
  * ```yaml
@@ -174,25 +182,33 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
     }
   };
 
-  // Resolve explicit endpoints (env var or config file) separately from defaults
-  // so we can detect whether the user actually configured an OTLP endpoint.
+  // Resolve each field using the 4-level precedence chain:
+  //   1. DR-specific env vars  (unambiguously for dr, never set by other tools)
+  //   2. ~/.dr-config.yaml     (explicit user config for dr)
+  //   3. Standard OTEL env vars (low-priority fallback; may be set by parent processes)
+  //   4. Hard-coded defaults
+  //
+  // Standard OTEL env vars are intentionally below the config file. When dr runs as a
+  // subprocess of another OTEL-instrumented tool (e.g. Claude Code), it inherits those
+  // env vars and would otherwise silently redirect spans to the wrong collector.
   const explicitEndpoint =
-    getValidUrl(
-      getEnvVar(process.env.OTEL_EXPORTER_OTLP_ENDPOINT),
-      "OTEL_EXPORTER_OTLP_ENDPOINT"
-    ) ?? getValidUrl(otlp?.endpoint, "telemetry.otlp.endpoint");
+    getValidUrl(getEnvVar(process.env.DR_OTLP_ENDPOINT), "DR_OTLP_ENDPOINT") ??
+    getValidUrl(otlp?.endpoint, "telemetry.otlp.endpoint") ??
+    getValidUrl(getEnvVar(process.env.OTEL_EXPORTER_OTLP_ENDPOINT), "OTEL_EXPORTER_OTLP_ENDPOINT");
 
   const explicitLogsEndpoint =
-    getValidUrl(
-      getEnvVar(process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT),
-      "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"
-    ) ?? getValidUrl(otlp?.logs_endpoint, "telemetry.otlp.logs_endpoint");
+    getValidUrl(getEnvVar(process.env.DR_OTLP_LOGS_ENDPOINT), "DR_OTLP_LOGS_ENDPOINT") ??
+    getValidUrl(otlp?.logs_endpoint, "telemetry.otlp.logs_endpoint") ??
+    getValidUrl(getEnvVar(process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT), "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT");
 
   return {
     endpoint: explicitEndpoint ?? defaults.endpoint,
     logsEndpoint: explicitLogsEndpoint ?? defaults.logsEndpoint,
     serviceName:
-      getEnvVar(process.env.OTEL_SERVICE_NAME) ?? otlp?.service_name ?? defaults.serviceName,
+      getEnvVar(process.env.DR_OTLP_SERVICE_NAME) ??
+      otlp?.service_name ??
+      getEnvVar(process.env.OTEL_SERVICE_NAME) ??
+      defaults.serviceName,
     // True only when at least one endpoint was explicitly provided. Without this,
     // TELEMETRY_ENABLED=true (build-time) would try to connect to localhost:4318
     // even when no collector is running, causing a hang at shutdown.

@@ -21,6 +21,9 @@ import { tmpdir } from "node:os";
 const originalOTLPEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 const originalOTLPLogsEndpoint = process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
 const originalServiceName = process.env.OTEL_SERVICE_NAME;
+const originalDROTLPEndpoint = process.env.DR_OTLP_ENDPOINT;
+const originalDROTLPLogsEndpoint = process.env.DR_OTLP_LOGS_ENDPOINT;
+const originalDROTLPServiceName = process.env.DR_OTLP_SERVICE_NAME;
 const originalDRConfigPath = process.env.DR_CONFIG_PATH;
 
 // Generate unique temp path for each test run
@@ -30,10 +33,13 @@ const testConfigPath = join(
 );
 
 beforeEach(() => {
-  // Clear environment variables before each test
+  // Clear all telemetry-related environment variables before each test
   delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
   delete process.env.OTEL_SERVICE_NAME;
+  delete process.env.DR_OTLP_ENDPOINT;
+  delete process.env.DR_OTLP_LOGS_ENDPOINT;
+  delete process.env.DR_OTLP_SERVICE_NAME;
   // Set test config path
   process.env.DR_CONFIG_PATH = testConfigPath;
 });
@@ -44,11 +50,17 @@ afterEach(async () => {
   if (originalOTLPLogsEndpoint)
     process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = originalOTLPLogsEndpoint;
   if (originalServiceName) process.env.OTEL_SERVICE_NAME = originalServiceName;
+  if (originalDROTLPEndpoint) process.env.DR_OTLP_ENDPOINT = originalDROTLPEndpoint;
+  if (originalDROTLPLogsEndpoint) process.env.DR_OTLP_LOGS_ENDPOINT = originalDROTLPLogsEndpoint;
+  if (originalDROTLPServiceName) process.env.DR_OTLP_SERVICE_NAME = originalDROTLPServiceName;
   if (originalDRConfigPath) process.env.DR_CONFIG_PATH = originalDRConfigPath;
 
   delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
   delete process.env.OTEL_SERVICE_NAME;
+  delete process.env.DR_OTLP_ENDPOINT;
+  delete process.env.DR_OTLP_LOGS_ENDPOINT;
+  delete process.env.DR_OTLP_SERVICE_NAME;
   delete process.env.DR_CONFIG_PATH;
 
   // Clean up test config file
@@ -59,33 +71,64 @@ afterEach(async () => {
 
 describe.serial("telemetry initialization with config loading", () => {
   describe("Configuration precedence in initTelemetry()", () => {
-    it("should use environment variables when set (highest priority)", async () => {
-      // Set environment variables
-      const customEndpoint = "http://custom-env:4318/v1/traces";
-      const customLogsEndpoint = "http://custom-env:4318/v1/logs";
-      const customServiceName = "my-service-from-env";
+    it("should use DR-specific env vars as highest priority", async () => {
+      // Set DR-specific env vars
+      process.env.DR_OTLP_ENDPOINT = "http://dr-specific:4318/v1/traces";
+      process.env.DR_OTLP_LOGS_ENDPOINT = "http://dr-specific:4318/v1/logs";
+      process.env.DR_OTLP_SERVICE_NAME = "my-dr-service";
 
-      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = customEndpoint;
-      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = customLogsEndpoint;
-      process.env.OTEL_SERVICE_NAME = customServiceName;
-
-      // Create a temporary config file with different values
+      // Also set standard OTEL env vars and a config file — both should lose
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://otel-env:4318/v1/traces";
       const configContent = `telemetry:
   otlp:
-    endpoint: 'http://localhost:4318/v1/traces'
-    logs_endpoint: 'http://localhost:4318/v1/logs'
-    service_name: 'dr-cli-from-file'
+    endpoint: 'http://from-file:4318/v1/traces'
+    service_name: 'from-file'
 `;
       writeFileSync(testConfigPath, configContent);
 
-      // Import and call loadOTLPConfig
       const { loadOTLPConfig } = await import("../../src/telemetry/config.js");
       const config = await loadOTLPConfig();
 
-      // Verify env vars take precedence over config file
-      expect(config.endpoint).toBe(customEndpoint);
-      expect(config.logsEndpoint).toBe(customLogsEndpoint);
-      expect(config.serviceName).toBe(customServiceName);
+      expect(config.endpoint).toBe("http://dr-specific:4318/v1/traces");
+      expect(config.logsEndpoint).toBe("http://dr-specific:4318/v1/logs");
+      expect(config.serviceName).toBe("my-dr-service");
+    });
+
+    it("should use config file over standard OTEL env vars (subprocess collision fix)", async () => {
+      // This is the key regression test: ambient OTEL env vars set by a parent process
+      // (e.g. Claude Code) must NOT override an explicit ~/.dr-config.yaml
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://parent-process-collector:4317/v1/traces";
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "http://parent-process-collector:4317/v1/logs";
+
+      const configContent = `telemetry:
+  otlp:
+    endpoint: 'http://signoz:4318/v1/traces'
+    logs_endpoint: 'http://signoz:4318/v1/logs'
+    service_name: 'dr-cli'
+`;
+      writeFileSync(testConfigPath, configContent);
+
+      const { loadOTLPConfig } = await import("../../src/telemetry/config.js");
+      const config = await loadOTLPConfig();
+
+      // Config file wins over ambient OTEL env vars
+      expect(config.endpoint).toBe("http://signoz:4318/v1/traces");
+      expect(config.logsEndpoint).toBe("http://signoz:4318/v1/logs");
+    });
+
+    it("should use standard OTEL env vars when no DR env vars and no config file", async () => {
+      // Standard OTEL vars are still supported as a low-priority fallback
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://custom-env:4318/v1/traces";
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "http://custom-env:4318/v1/logs";
+      process.env.OTEL_SERVICE_NAME = "my-service-from-env";
+      // No config file written
+
+      const { loadOTLPConfig } = await import("../../src/telemetry/config.js");
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe("http://custom-env:4318/v1/traces");
+      expect(config.logsEndpoint).toBe("http://custom-env:4318/v1/logs");
+      expect(config.serviceName).toBe("my-service-from-env");
     });
 
     it("should use config file values when env vars not set", async () => {

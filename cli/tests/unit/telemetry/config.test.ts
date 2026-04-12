@@ -5,17 +5,33 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { loadOTLPConfig } from "../../../src/telemetry/config";
 
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 // Store original env variables
 const originalOTLPEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 const originalOTLPLogsEndpoint = process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
 const originalServiceName = process.env.OTEL_SERVICE_NAME;
+const originalDROTLPEndpoint = process.env.DR_OTLP_ENDPOINT;
+const originalDROTLPLogsEndpoint = process.env.DR_OTLP_LOGS_ENDPOINT;
+const originalDROTLPServiceName = process.env.DR_OTLP_SERVICE_NAME;
+const originalDRConfigPath = process.env.DR_CONFIG_PATH;
+
+// Point at a guaranteed non-existent path so ~/.dr-config.yaml is never read.
+// This keeps unit tests independent of the developer's local config file.
+const absentConfigPath = join(tmpdir(), `.dr-config-unit-test-absent-${Date.now()}.yaml`);
 
 beforeEach(() => {
-  // Clear environment variables before each test
+  // Clear all telemetry-related environment variables before each test
   delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
   delete process.env.OTEL_SERVICE_NAME;
-  delete process.env.DR_CONFIG_PATH;
+  delete process.env.DR_OTLP_ENDPOINT;
+  delete process.env.DR_OTLP_LOGS_ENDPOINT;
+  delete process.env.DR_OTLP_SERVICE_NAME;
+  // Route config file reads to a non-existent path so the real ~/.dr-config.yaml
+  // never influences unit test outcomes.
+  process.env.DR_CONFIG_PATH = absentConfigPath;
 });
 
 afterEach(() => {
@@ -24,11 +40,18 @@ afterEach(() => {
   if (originalOTLPLogsEndpoint)
     process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = originalOTLPLogsEndpoint;
   if (originalServiceName) process.env.OTEL_SERVICE_NAME = originalServiceName;
+  if (originalDROTLPEndpoint) process.env.DR_OTLP_ENDPOINT = originalDROTLPEndpoint;
+  if (originalDROTLPLogsEndpoint) process.env.DR_OTLP_LOGS_ENDPOINT = originalDROTLPLogsEndpoint;
+  if (originalDROTLPServiceName) process.env.DR_OTLP_SERVICE_NAME = originalDROTLPServiceName;
+  if (originalDRConfigPath) process.env.DR_CONFIG_PATH = originalDRConfigPath;
+  else delete process.env.DR_CONFIG_PATH;
 
   delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
   delete process.env.OTEL_SERVICE_NAME;
-  delete process.env.DR_CONFIG_PATH;
+  delete process.env.DR_OTLP_ENDPOINT;
+  delete process.env.DR_OTLP_LOGS_ENDPOINT;
+  delete process.env.DR_OTLP_SERVICE_NAME;
 });
 
 describe("loadOTLPConfig()", () => {
