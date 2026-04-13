@@ -36,6 +36,7 @@ import { copilotCommands } from "./commands/copilot.js";
 import { versionCommand } from "./commands/version.js";
 import { statsCommand } from "./commands/stats.js";
 import { reportCommand } from "./commands/report.js";
+import { reportsCommands } from "./commands/reports.js";
 import { auditCommand } from "./commands/audit.js";
 import { auditDiffCommand } from "./commands/audit-diff.js";
 import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
@@ -430,6 +431,10 @@ Examples:
   $ dr report --verbose                            # Show detailed information`
   )
   .action((options) => reportCommand(options));
+
+// Reports subcommands (managed layer report files)
+const reportsGroup = program.command("reports").description("Manage architecture layer reports");
+reportsCommands(reportsGroup);
 
 // Audit command - Relationship analysis
 program

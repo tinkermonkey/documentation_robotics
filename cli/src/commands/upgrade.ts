@@ -24,6 +24,7 @@ import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
 import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
+import { hasLayerReports, regenerateLayerReports } from "./reports.js";
 
 // Build-time constant for telemetry feature detection
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -104,6 +105,56 @@ async function buildIntegrationActions(
   }
 
   return { actions, upToDate };
+}
+
+/**
+ * Check if layer reports exist; if not, offer to generate them.
+ * Defaults to generating (yes) — including in non-interactive/programmatic mode.
+ */
+async function checkAndGenerateReports(
+  projectRoot: string,
+  options: UpgradeOptions
+): Promise<void> {
+  if (await hasLayerReports(projectRoot)) {
+    return;
+  }
+
+  console.log(ansis.yellow("\n⚠ No layer reports found"));
+
+  if (options.dryRun) {
+    console.log(ansis.yellow("[DRY RUN] Would generate all 12 layer reports\n"));
+    return;
+  }
+
+  // Determine whether to generate: default is yes
+  let shouldGenerate: boolean;
+  const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+
+  if (options.yes) {
+    shouldGenerate = true;
+  } else if (isInteractive) {
+    const response = await confirm({
+      message: "Generate layer reports?",
+      initialValue: true,
+    });
+    shouldGenerate = response === true;
+  } else {
+    // Non-interactive / programmatic: auto-generate since default is yes
+    shouldGenerate = true;
+  }
+
+  if (!shouldGenerate) {
+    console.log(ansis.dim("Skipping report generation\n"));
+    return;
+  }
+
+  try {
+    console.log();
+    await regenerateLayerReports(projectRoot);
+  } catch (error) {
+    // Warn but don't block upgrade success
+    console.warn(ansis.yellow(`\n⚠ Failed to generate reports: ${getErrorMessage(error)}\n`));
+  }
 }
 
 export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void> {
@@ -209,6 +260,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
         actions.push(...integrationActions);
         await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
       }
+      // No model loaded — report generation not applicable
       return;
     }
 
@@ -233,6 +285,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
         actions.push(...integrationActions);
         await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
       }
+      // No readable model manifest — report generation not applicable
       return;
     }
 
@@ -319,6 +372,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       console.log(ansis.green("✓ Everything is up to date!\n"));
       console.log(ansis.dim(`  Spec reference: v${currentSpecVersion || bundledSpecVersion}`));
       console.log(ansis.dim(`  Model: v${modelSpecVersion}\n`));
+      await checkAndGenerateReports(projectRoot, options);
       return;
     }
 
@@ -339,6 +393,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     }
 
     await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
+    await checkAndGenerateReports(projectRoot, options);
 
     if (commandSpan) {
       commandSpan.setAttribute("upgrade.result", "success");
