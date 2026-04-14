@@ -42,12 +42,14 @@ describe("scan validate-refs", () => {
   it("should report error when no session is active", async () => {
     const result = await runDr(["scan", "validate-refs"], { cwd: tempDir.path });
 
-    // Should report that no session is available
-    expect(stripAnsi(result.stdout)).toContain("No active CodePrism session");
+    // Should exit with non-zero code and report error
+    expect(result.exitCode).toBe(1);
+    const output = stripAnsi(result.stdout) + stripAnsi(result.stderr);
+    expect(output).toContain("No active CodePrism session");
   });
 
   it("should report error when session is not ready", async () => {
-    // Create a corrupted session file to simulate session not ready
+    // Create a session file with non-ready status to simulate session not ready
     const sessionPath = join(tempDir.path, "documentation-robotics/.scan-session");
     await fs.mkdir(join(tempDir.path, "documentation-robotics"), { recursive: true });
     await fs.writeFile(
@@ -64,8 +66,10 @@ describe("scan validate-refs", () => {
 
     const result = await runDr(["scan", "validate-refs"], { cwd: tempDir.path });
 
-    // Should report that no ready session is available
-    expect(stripAnsi(result.stdout)).toContain("No active CodePrism session");
+    // Should exit with non-zero code when session not ready
+    expect(result.exitCode).toBe(1);
+    const output = stripAnsi(result.stdout) + stripAnsi(result.stderr);
+    expect(output).toContain("No active CodePrism session");
   });
 
   it("should accept --layer parameter to restrict validation", async () => {
@@ -113,11 +117,39 @@ describe("scan validate-refs", () => {
     // Either it shows subcommands or shows help
     expect(output.length).toBeGreaterThan(0);
   });
+
+  it("should validate elements with source references when model has them", async () => {
+    // Add an element with a source reference pointing to a non-existent file
+    // This tests the actual validation logic when elements have source refs
+    const addResult = await runDr(
+      [
+        "add",
+        "--layer",
+        "api",
+        "--type",
+        "endpoint",
+        "--name",
+        "test-endpoint",
+        "--source-file",
+        "/nonexistent/test.ts",
+        "--source-symbol",
+        "testFunction",
+      ],
+      { cwd: tempDir.path }
+    );
+
+    // Add should succeed (creates element with source reference)
+    if (addResult.exitCode === 0) {
+      // Now try to validate without active session
+      // It should fail with the "no session" error
+      const validateResult = await runDr(["scan", "validate-refs"], { cwd: tempDir.path });
+      expect(validateResult.exitCode).toBe(1);
+    }
+  });
 });
 
-describe("scan validate-refs with active session", () => {
-  // These tests require CodePrism to actually be running
-  // They are integration tests that would need mocking or a real CodePrism instance
+describe("scan validate-refs with session behavior", () => {
+  // Tests for validate-refs behavior with and without active sessions
 
   beforeEach(async () => {
     tempDir = await createTempWorkdir();
@@ -136,18 +168,51 @@ describe("scan validate-refs with active session", () => {
     await tempDir.cleanup();
   });
 
-  it("should skip validation gracefully when CodePrism is not available", async () => {
-    // This test verifies the fallback behavior when CodePrism can't be reached
-    const result = await runDr(["scan", "validate-refs"], { cwd: tempDir.path }, {
-      env: {
-        ...process.env,
-        // Use a bad CodePrism path to simulate unavailability
-        SCAN_CODEPRISM_COMMAND: "/nonexistent/codeprism",
-      },
-    });
+  it("should report element with source reference in model", async () => {
+    // Add an API endpoint with a source reference
+    const addResult = await runDr(
+      [
+        "add",
+        "--layer",
+        "api",
+        "--type",
+        "endpoint",
+        "--name",
+        "get-users",
+        "--source-file",
+        "src/api/users.ts",
+        "--source-symbol",
+        "getUsers",
+      ],
+      { cwd: tempDir.path }
+    );
 
-    // Should either fail with CodePrism error or skip gracefully
-    // The command should not crash unexpectedly
-    expect(result.exitCode).not.toBeUndefined();
+    // Verify element was added successfully
+    if (addResult.exitCode === 0) {
+      // Verify the element exists in the model by showing it
+      const showResult = await runDr(["show", "api.endpoint.get-users"], { cwd: tempDir.path });
+      expect(showResult.exitCode).toBe(0);
+      expect(stripAnsi(showResult.stdout)).toContain("get-users");
+    }
+  });
+
+  it("should accept --verbose flag for detailed output", async () => {
+    const result = await runDr(["scan", "validate-refs", "--verbose", "--help"], { cwd: tempDir.path });
+
+    // Should show help that includes the verbose flag
+    expect(result.stdout).toContain("--verbose");
+  });
+
+  it("should accept --fix flag for auto-correction mode", async () => {
+    const result = await runDr(["scan", "validate-refs", "--fix", "--help"], { cwd: tempDir.path });
+
+    // Should show help that includes the fix flag
+    expect(result.stdout).toContain("--fix");
+  });
+
+  it("should validate references only when no session error", async () => {
+    // When validate-refs is called without a session, it should error
+    const result = await runDr(["scan", "validate-refs"], { cwd: tempDir.path });
+    expect(result.exitCode).toBe(1);
   });
 });

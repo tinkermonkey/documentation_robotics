@@ -174,7 +174,8 @@ async function runOptionalSourceRefValidation(model: Model): Promise<void> {
     // Check for active session
     const sessionFile = await loadSessionFile(workspace);
     if (!sessionFile || sessionFile.status !== "ready") {
-      return; // Silently skip if no active session
+      console.log(ansis.dim("⊘ Skipping source reference validation (no active CodePrism session)"));
+      return;
     }
 
     console.log("");

@@ -1241,9 +1241,9 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
     // Check for active session
     const sessionFile = await loadSessionFile(workspace);
     if (!sessionFile || sessionFile.status !== "ready") {
-      console.log(ansis.yellow("⚠ Skipping source reference validation: No active CodePrism session"));
-      console.log(ansis.dim("  Start a session with: dr scan session start"));
-      return;
+      console.error(ansis.red("✗ No active CodePrism session"));
+      console.error(ansis.dim("  Start a session with: dr scan session start"));
+      process.exit(1);
     }
 
     // Load configuration and model
@@ -1327,33 +1327,35 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
 
           let fixCount = 0;
           for (const ref of movedRefs) {
-            // Find the element and update its source references
-            for (const [layerName, layer] of model.layers) {
-              const element = layer.getElement(ref.elementId);
-              if (element && element.source_reference) {
-                // Update locations with new positions
-                const updatedLocations = ref.locations.map((loc) => {
-                  if (loc.status === "symbol_moved" && loc.newLocation) {
-                    return loc.newLocation;
-                  }
-                  return { file: loc.file, ...(loc.symbol && { symbol: loc.symbol }) };
-                });
+            // Find the element directly using its ID
+            const element = model.getElementById(ref.elementId);
+            if (element && element.source_reference) {
+              // Extract layer name from element ID (format: {layer}.{type}.{name})
+              const elementIdParts = ref.elementId.split(".");
+              const layerName = elementIdParts[0];
 
-                // Create before and after snapshots
-                const before = element.toSpecNode();
-                const after = {
-                  ...before,
-                  source_reference: {
-                    ...element.source_reference,
-                    locations: updatedLocations,
-                  },
-                };
+              // Update locations with new positions
+              const updatedLocations = ref.locations.map((loc) => {
+                if (loc.status === "symbol_moved" && loc.newLocation) {
+                  return loc.newLocation;
+                }
+                return { file: loc.file, ...(loc.symbol && { symbol: loc.symbol }) };
+              });
 
-                // Add modification change to changeset
-                changeset.addChange("update", ref.elementId, layerName, before, after);
+              // Create before and after snapshots
+              const before = element.toSpecNode();
+              const after = {
+                ...before,
+                source_reference: {
+                  ...element.source_reference,
+                  locations: updatedLocations,
+                },
+              };
 
-                fixCount++;
-              }
+              // Add modification change to changeset
+              changeset.addChange("update", ref.elementId, layerName, before, after);
+
+              fixCount++;
             }
           }
 

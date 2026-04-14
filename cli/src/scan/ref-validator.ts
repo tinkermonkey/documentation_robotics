@@ -106,10 +106,16 @@ function extractElementTypeFromId(elementId: string): string {
 
 /**
  * Validate that a declared element type matches a CodePrism construct type
+ * Returns true if type matches OR if no mapping exists for the DR type (can't assert)
  */
 function validateSymbolType(drElementType: string, codeprismType: string): boolean {
+  const expectedTypes = DR_TO_CODEPRISM_TYPES[drElementType];
+  // If no mapping exists for this DR element type, we can't make a type assertion
+  // so conservatively pass the validation
+  if (!expectedTypes) {
+    return true;
+  }
   const normalized = normalizeCodePrismType(codeprismType);
-  const expectedTypes = DR_TO_CODEPRISM_TYPES[drElementType] || [];
   return expectedTypes.includes(normalized);
 }
 
@@ -177,7 +183,11 @@ export async function validateSourceLocation(
       .map((r) => (r.type === "text" ? r.text : ""))
       .join("\n");
 
-    const isSymbolFound = explainText && explainText.trim().length > 0 && !explainText.includes("not found");
+    // Detect if symbol was found by checking for presence of meaningful content
+    // CodePrism returns empty or error text when symbol is not found
+    // Use more robust detection: look for actual symbol information (type/kind markers)
+    // rather than relying on presence of "not found" string
+    const isSymbolFound = explainText && explainText.trim().length > 0 && /(?:type|kind|construct|declaration|definition|location)\s*[:=]/i.test(explainText);
 
     if (!isSymbolFound) {
       // Step 4: Symbol not found at original location, try search_symbols
@@ -279,7 +289,6 @@ export async function validateSourceLocation(
  */
 export async function checkElementReferences(
   client: MCPClient,
-  _elementId: string,
   locations: SourceLocation[]
 ): Promise<boolean> {
   if (locations.length === 0) {
@@ -380,7 +389,7 @@ export async function validateElementReferences(
   // Check for dead references (extracted elements with zero inbound references)
   let isDead = false;
   if (sourceRef.provenance === "extracted") {
-    isDead = !(await checkElementReferences(client, elementId, locations));
+    isDead = !(await checkElementReferences(client, locations));
   }
 
   // Determine overall status
