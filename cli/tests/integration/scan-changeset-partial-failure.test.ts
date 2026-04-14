@@ -159,7 +159,8 @@ describe("stageChangeset - Partial Failure Path", () => {
 
       // Verify the changeset was created
       const storage = new StagedChangesetStorage(workdir.path);
-      const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
+      const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"))
+        .filter(entry => fs.statSync(path.join(workdir.path, "documentation-robotics", "changesets", entry)).isDirectory());
       expect(changesets.length).toBe(1);
 
       const changesetId = changesets[0];
@@ -204,7 +205,8 @@ describe("stageChangeset - Partial Failure Path", () => {
 
           // Verify the successful candidate was still staged
           const storage = new StagedChangesetStorage(workdir.path);
-          const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
+          const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"))
+            .filter(entry => fs.statSync(path.join(workdir.path, "documentation-robotics", "changesets", entry)).isDirectory());
           expect(changesets.length).toBe(1);
 
           const changeset = await storage.load(changesets[0]);
@@ -278,7 +280,8 @@ describe("stageChangeset - Partial Failure Path", () => {
 
           // Verify the successful relationship was still staged
           const storage = new StagedChangesetStorage(workdir.path);
-          const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
+          const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"))
+            .filter(entry => fs.statSync(path.join(workdir.path, "documentation-robotics", "changesets", entry)).isDirectory());
           expect(changesets.length).toBe(1);
 
           const changeset = await storage.load(changesets[0]);
@@ -360,7 +363,8 @@ describe("stageChangeset - Partial Failure Path", () => {
 
           // Verify changesets with partial success
           const storage = new StagedChangesetStorage(workdir.path);
-          const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"));
+          const changesets = fs.readdirSync(path.join(workdir.path, "documentation-robotics", "changesets"))
+            .filter(entry => fs.statSync(path.join(workdir.path, "documentation-robotics", "changesets", entry)).isDirectory());
           const changeset = await storage.load(changesets[0]);
 
           // Should have 1 successful change (1 element only, relationship failed)
@@ -390,7 +394,8 @@ describe("stageChangeset - Partial Failure Path", () => {
 
         // Changeset directory should exist even though all candidates failed
         const changesetsDir = path.join(workdir.path, "documentation-robotics", "changesets");
-        const changesets = fs.readdirSync(changesetsDir);
+        const changesets = fs.readdirSync(changesetsDir)
+          .filter(entry => fs.statSync(path.join(changesetsDir, entry)).isDirectory());
         expect(changesets.length).toBe(1);
 
         // The changeset should be loadable (empty changes array is valid)

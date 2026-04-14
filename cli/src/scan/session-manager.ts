@@ -327,6 +327,14 @@ export async function startSession(
       } catch (error) {
         lastError = getErrorMessage(error);
 
+        // Check if this is an unrecoverable error (e.g., binary not found)
+        // If so, fail immediately rather than retrying
+        if (lastError.includes("CodePrism binary not found") ||
+            lastError.includes("not executable") ||
+            lastError.includes("Failed to access CodePrism binary")) {
+          throw error;
+        }
+
         // Wait before retrying
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
       }

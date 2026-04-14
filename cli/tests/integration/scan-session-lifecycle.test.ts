@@ -160,11 +160,12 @@ describe("scan session lifecycle", () => {
     // Verify subcommand structure and error handling
     const result = await runDr(["scan", "session"], { cwd: tempDir.path });
 
-    // Should show help for session command
-    expect(result.stdout).toContain("start");
-    expect(result.stdout).toContain("stop");
-    expect(result.stdout).toContain("status");
-    expect(result.stdout).toContain("query");
+    // Should show help for session command (goes to stderr when no subcommand provided)
+    const output = result.stdout + result.stderr;
+    expect(output).toContain("start");
+    expect(output).toContain("stop");
+    expect(output).toContain("status");
+    expect(output).toContain("query");
   });
 
   it("should display session command help with examples", async () => {

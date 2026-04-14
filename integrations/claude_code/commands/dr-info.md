@@ -13,13 +13,12 @@ Displays:
 
 - Project name, version, spec version, author, description
 - List of all 12 layers with their element counts
-- With `--layer <name>`: detailed view of a single layer
-- With `--layer <name> --verbose`: per-type breakdown within that layer
+- With `--layer <name>`: detailed view of a single layer (counts only)
 
 ## Usage
 
 ```
-/dr-info [--layer <name>] [--verbose]
+/dr-info [--layer <name>]
 ```
 
 ## Instructions for Claude Code
@@ -37,7 +36,7 @@ Run `dr info` as the **first orientation step** when starting any modeling sessi
 | Goal                               | Command                            |
 | ---------------------------------- | ---------------------------------- |
 | Model overview (counts per layer)  | `dr info`                          |
-| Per-type breakdown within a layer  | `dr info --layer <name> --verbose` |
+| Per-type breakdown within a layer  | `dr list <name>`                   |
 | Health metrics (orphans, coverage) | `dr stats`                         |
 | List actual element IDs in a layer | `dr list <layer>`                  |
 | Find an element by name/type       | `dr search <term>`                 |
@@ -56,7 +55,7 @@ dr changeset status
 dr validate
 ```
 
-### Using `--layer` and `--verbose`
+### Using `--layer`
 
 ```bash
 # Overview of all layers
@@ -64,18 +63,12 @@ dr info
 
 # Summary for one layer (only that layer is loaded — much faster)
 dr info --layer api
-
-# Per-type breakdown for one layer
-dr info --layer api --verbose
 # Example output:
 #   api
 #     Elements: 47
-#     Details:
-#       - operation: 16
-#       - endpoint: 31
 ```
 
-Use `--layer <name> --verbose` instead of chaining `dr info --layer api` + `dr list api` — it provides the same type breakdown without listing every element ID.
+Use `dr list <layer>` to get per-type breakdown with specific element IDs.
 
 ### Known Blind Spots
 
