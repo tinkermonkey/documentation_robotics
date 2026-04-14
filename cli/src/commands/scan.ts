@@ -26,6 +26,7 @@ import { Command } from "commander";
 import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
 import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
+import { buildScanIndex, saveScanIndex, loadScanIndex, isIndexFresh } from "../scan/index-builder.js";
 import { LAYER_MAP, isValidLayerName, CANONICAL_LAYER_NAMES, extractLayerFromId } from "../core/layers.js";
 import { getErrorMessage, handleError, CLIError, ErrorCategory } from "../utils/errors.js";
 import { Model } from "../core/model.js";
@@ -36,6 +37,15 @@ export interface ScanOptions {
   config?: boolean;
   dryRun?: boolean;
   layer?: string;
+  verbose?: boolean;
+}
+
+/**
+ * Options for the scan index command
+ */
+export interface ScanIndexOptions {
+  workspace?: string;
+  output?: string;
   verbose?: boolean;
 }
 
@@ -140,6 +150,87 @@ export function expandWildcardElementId(elementId: string, availableElements: Ar
 }
 
 /**
+ * Execute the scan index command
+ *
+ * Runs CodePrism's three orientation tools and persists the results as a scan index.
+ * The index provides repository context for subsequent scan operations.
+ *
+ * @param options - Command options
+ */
+export async function scanIndexCommand(options: ScanIndexOptions): Promise<void> {
+  let client: MCPClient | null = null;
+
+  try {
+    // Determine workspace path
+    const workspace = options.workspace || process.cwd();
+
+    // Load scan configuration
+    const config = await loadScanConfig();
+
+    console.log("Initializing CodePrism connection for indexing...");
+    client = await createMcpClient(config);
+
+    // Validate connection to CodePrism server
+    console.log("Validating CodePrism server connection...");
+    await validateConnection(client);
+
+    console.log(ansis.green("✓ Connected to CodePrism"));
+
+    // Build the scan index
+    console.log("\nRunning repository analysis...");
+    console.log("  • Analyzing repository structure and statistics");
+    console.log("  • Detecting architectural patterns");
+    console.log("  • Suggesting analysis workflow");
+
+    const index = await buildScanIndex(client, workspace);
+
+    // Save the index
+    console.log("\nSaving scan index...");
+    await saveScanIndex(index, workspace);
+
+    // Print summary
+    console.log(ansis.green("\n✓ Scan index created successfully"));
+    console.log(`  Index timestamp: ${index.indexed_at}`);
+    console.log(`  Repository files: ${index.repository.total_files}`);
+    console.log(`  Languages: ${index.repository.languages.join(", ")}`);
+    if (index.repository.primary_language) {
+      console.log(`  Primary language: ${index.repository.primary_language}`);
+    }
+    console.log(`  Frameworks: ${index.repository.frameworks.join(", ")}`);
+
+    if (options.verbose) {
+      console.log(`\nDetected patterns:`);
+      const categories = Object.entries(index.detected_patterns);
+      for (const [category, patterns] of categories) {
+        if (patterns.length > 0) {
+          console.log(`  ${category}:`);
+          for (const pattern of patterns) {
+            console.log(`    • ${pattern.name} (${(pattern.confidence * 100).toFixed(0)}%)`);
+          }
+        }
+      }
+
+      console.log(`\nSuggested workflow:`);
+      console.log(`  Tools: ${index.suggested_workflow.recommended_tools.join(", ")}`);
+      console.log(`  Rationale: ${index.suggested_workflow.rationale}`);
+    }
+
+    console.log(`\nIndex saved to: ${options.workspace ? options.output : "documentation-robotics/scan-index.json"}`);
+  } catch (error) {
+    handleError(error);
+  } finally {
+    // Always disconnect MCP client
+    if (client) {
+      try {
+        await disconnectMcpClient(client);
+      } catch (error) {
+        console.warn(ansis.yellow(`⚠ Warning: Failed to disconnect from CodePrism: ${getErrorMessage(error)}`));
+      }
+    }
+  }
+}
+
+/**
  * Execute the scan command
  *
  * @param options - Command options
@@ -182,6 +273,24 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     console.log(ansis.green("✓ Connected to CodePrism"));
     console.log(`  Endpoint: ${client.endpoint}`);
     console.log(`  Confidence threshold: ${config.confidence_threshold}`);
+
+    // Check for fresh scan index
+    try {
+      const loadedIndex = await loadScanIndex(process.cwd());
+      if (loadedIndex) {
+        const indexFresh = await isIndexFresh(loadedIndex, process.cwd());
+        if (indexFresh) {
+          console.log(ansis.cyan(`\n✓ Using cached repository index from ${loadedIndex.indexed_at}`));
+          console.log(`  Repository has ${loadedIndex.repository.total_files} files in ${loadedIndex.repository.languages.join(", ")}`);
+        } else {
+          console.log(ansis.yellow(`\n⚠ Repository index is stale (source files newer than ${loadedIndex.indexed_at})`));
+          console.log(`  Recommend refreshing with: dr scan index`);
+        }
+      }
+    } catch (error) {
+      // Log warning but continue - index loading failure shouldn't stop scan
+      warnings.push(`Failed to check index freshness: ${getErrorMessage(error)}`);
+    }
 
     // Load built-in and project patterns
     console.log("\nLoading pattern library...");
@@ -1137,6 +1246,31 @@ Examples:
         config: options.config,
         dryRun: options.dryRun,
         layer: options.layer,
+        verbose: options.verbose,
+      });
+    });
+
+  // Index subcommand
+  scanCmd
+    .command("index")
+    .description("Index repository for codebase orientation (runs repository_stats, detect_patterns, suggest_analysis_workflow)")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .option("--verbose", "Show detailed indexing output")
+    .addHelpText(
+      "after",
+      `
+The index command analyzes your repository structure and caches the results
+in documentation-robotics/scan-index.json. This cache is used by 'dr scan' to
+avoid re-indexing on subsequent runs.
+
+Examples:
+  $ dr scan index                 # Index the current workspace
+  $ dr scan index --verbose       # Show detailed pattern detection
+  $ dr scan index --workspace /path/to/project`
+    )
+    .action(async (options) => {
+      await scanIndexCommand({
+        workspace: options.workspace,
         verbose: options.verbose,
       });
     });
