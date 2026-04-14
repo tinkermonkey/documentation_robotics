@@ -29,7 +29,6 @@
 import { writeFile, readFile, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { z } from "zod";
-import { spawn } from "node:child_process";
 import { createMcpClient, type LoadedScanConfig, type MCPClient, type ToolResult } from "./mcp-client.js";
 import { getErrorMessage, CLIError, ErrorCategory } from "../utils/errors.js";
 
@@ -199,8 +198,12 @@ export async function removeSessionFile(workspace: string): Promise<void> {
 /**
  * Get current session state
  *
- * Checks if session file exists and if process is alive.
+ * Checks if session file exists.
  * Returns detailed state including status, PID, and uptime.
+ *
+ * NOTE: With the current architecture, the PID in the session file is not
+ * checked for liveness because CodePrism processes are spawned on-demand
+ * for each query, not kept running in the background.
  *
  * @param workspace - Workspace root path
  * @returns Session state, or null if no session exists
@@ -209,15 +212,6 @@ export async function getSessionState(workspace: string): Promise<SessionState |
   const session = await loadSessionFile(workspace);
   if (!session) {
     return null;
-  }
-
-  const isAlive = isProcessAlive(session.pid);
-  if (!isAlive) {
-    return {
-      isActive: false,
-      status: "stopped",
-      pid: session.pid,
-    };
   }
 
   return {
@@ -234,8 +228,12 @@ export async function getSessionState(workspace: string): Promise<SessionState |
 /**
  * Start CodePrism session
  *
- * Spawns CodePrism as a detached background process, polls for indexing completion,
- * and writes session metadata to `.scan-session`.
+ * Creates an MCP client to CodePrism and polls for indexing completion.
+ * Writes session metadata to `.scan-session`.
+ *
+ * NOTE: The session model currently spawns a new CodePrism process on each query.
+ * This is not optimal for performance but is correct and prevents resource leaks.
+ * A future enhancement would keep CodePrism alive across queries via a daemon or TCP transport.
  *
  * @param workspace - Workspace root path
  * @param config - Scan configuration with CodePrism command and args
@@ -261,48 +259,17 @@ export async function startSession(
     );
   }
 
-  // Spawn CodePrism as detached background process
-  let pid: number;
-  try {
-    const child = spawn(config.codeprism.command, config.codeprism.args, {
-      stdio: "pipe",
-      detached: true, // Allow process to outlive parent
-      env: {
-        ...process.env,
-        CODEPRISM_PROFILE: "development",
-        RUST_LOG: "warn",
-      },
-    });
-
-    pid = child.pid!;
-
-    // Unref so Node doesn't wait for the child to exit
-    child.unref();
-
-    // Close stdio pipes immediately to avoid hanging
-    child.stdin?.destroy();
-    child.stdout?.destroy();
-    child.stderr?.destroy();
-  } catch (error) {
-    throw new CLIError(
-      `Failed to spawn CodePrism process`,
-      ErrorCategory.SYSTEM,
-      [
-        getErrorMessage(error),
-        `Command: ${config.codeprism.command} ${config.codeprism.args.join(" ")}`,
-      ]
-    );
-  }
-
   // Poll for indexing completion
   const maxWait = options?.maxWaitMs ?? 60000; // 60 second default
   const pollInterval = options?.pollIntervalMs ?? 1000; // 1 second polling
 
   let sessionFile: SessionFile | null = null;
   const startTime = Date.now();
+  const startedAt = new Date().toISOString(); // Capture start time immediately
 
   // Create a temporary client to poll repository_stats
   let client: MCPClient | null = null;
+  let sessionPid: number | null = null;
 
   try {
     // Wait for process to be ready and respond to queries
@@ -312,6 +279,10 @@ export async function startSession(
         // Try to create a client to the running process
         if (!client) {
           client = await createMcpClient(config);
+          // Note: We don't have access to the actual PID from createMcpClient
+          // This is a limitation of the stdio transport abstraction
+          // For now, we use a placeholder that represents "a running CodePrism process"
+          sessionPid = process.pid; // Will be updated if we can extract the actual PID
         }
 
         // Poll repository_stats to check indexing status
@@ -336,12 +307,15 @@ export async function startSession(
         }
 
         // Create session file
+        // Note: We record the parent CLI process PID. On subsequent queries,
+        // new CodePrism processes will be spawned, but the session file marks
+        // that a session is active.
         sessionFile = {
-          pid,
+          pid: sessionPid || process.pid,
           workspace,
           status: "ready",
           indexed_files: indexedFiles,
-          started_at: new Date().toISOString(),
+          started_at: startedAt,
           endpoint: config.codeprism.command + ":" + config.codeprism.args.join(" "),
         };
 
@@ -380,8 +354,11 @@ export async function startSession(
 /**
  * Stop CodePrism session
  *
- * Sends SIGTERM to the CodePrism process and removes the session file.
- * If process doesn't exit cleanly within 5 seconds, sends SIGKILL.
+ * Removes the session file. With the current architecture where CodePrism
+ * processes are spawned on-demand, there is no persistent process to kill.
+ *
+ * If a persistent CodePrism process is detected (via the stored PID), it will
+ * be terminated gracefully (SIGTERM → SIGKILL fallback).
  *
  * @param workspace - Workspace root path
  * @throws CLIError if session cannot be stopped or doesn't exist
@@ -402,41 +379,36 @@ export async function stopSession(workspace: string): Promise<void> {
 
   const { pid } = session;
 
-  // Check if process is actually alive
-  if (!isProcessAlive(pid)) {
-    // Process is already dead, just clean up the file
-    await removeSessionFile(workspace);
-    return;
-  }
+  // Attempt to kill process if it's alive (for future daemon-style sessions)
+  if (isProcessAlive(pid)) {
+    // Send SIGTERM (graceful shutdown)
+    try {
+      process.kill(pid, "SIGTERM");
 
-  // Send SIGTERM (graceful shutdown)
-  try {
-    process.kill(pid, "SIGTERM");
-  } catch (error) {
-    // Process might have already exited
-    await removeSessionFile(workspace);
-    return;
-  }
+      // Wait up to 5 seconds for graceful shutdown
+      const checkInterval = 100; // ms
+      const maxChecks = 50; // 5 seconds total
+      let checks = 0;
 
-  // Wait up to 5 seconds for graceful shutdown
-  const checkInterval = 100; // ms
-  const maxChecks = 50; // 5 seconds total
-  let checks = 0;
+      while (checks < maxChecks) {
+        if (!isProcessAlive(pid)) {
+          break;
+        }
+        checks++;
+        await new Promise((resolve) => setTimeout(resolve, checkInterval));
+      }
 
-  while (checks < maxChecks) {
-    if (!isProcessAlive(pid)) {
-      await removeSessionFile(workspace);
-      return;
+      // Process didn't exit gracefully, force kill
+      if (isProcessAlive(pid)) {
+        try {
+          process.kill(pid, "SIGKILL");
+        } catch {
+          // Already dead
+        }
+      }
+    } catch {
+      // Process might have already exited or we don't have permission
     }
-    checks++;
-    await new Promise((resolve) => setTimeout(resolve, checkInterval));
-  }
-
-  // Process didn't exit gracefully, force kill
-  try {
-    process.kill(pid, "SIGKILL");
-  } catch {
-    // Already dead
   }
 
   // Remove session file regardless of kill success
@@ -471,7 +443,6 @@ export async function querySession(
       [
         `No session file found in ${workspace}`,
         "Use 'dr scan session start' to start a new session",
-        "Or use 'dr scan session query' with a workspace argument",
       ]
     );
   }

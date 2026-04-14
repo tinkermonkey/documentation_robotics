@@ -1147,7 +1147,7 @@ Examples:
     .description("Manage persistent CodePrism sessions");
 
   sessionCmd
-    .command("start [--workspace <path>]")
+    .command("start")
     .description("Start a new CodePrism session")
     .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
     .action((options) =>
