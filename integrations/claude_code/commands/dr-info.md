@@ -33,14 +33,14 @@ Run `dr info` as the **first orientation step** when starting any modeling sessi
 
 ### Decision Flowchart: `dr info` vs. Related Commands
 
-| Goal                               | Command                            |
-| ---------------------------------- | ---------------------------------- |
-| Model overview (counts per layer)  | `dr info`                          |
-| Per-type breakdown within a layer  | `dr list <name>`                   |
-| Health metrics (orphans, coverage) | `dr stats`                         |
-| List actual element IDs in a layer | `dr list <layer>`                  |
-| Find an element by name/type       | `dr search <term>`                 |
-| Inspect a single element           | `dr show <element-id>`             |
+| Goal                               | Command                |
+| ---------------------------------- | ---------------------- |
+| Model overview (counts per layer)  | `dr info`              |
+| Per-type breakdown within a layer  | `dr list <name>`       |
+| Health metrics (orphans, coverage) | `dr stats`             |
+| List actual element IDs in a layer | `dr list <layer>`      |
+| Find an element by name/type       | `dr search <term>`     |
+| Inspect a single element           | `dr show <element-id>` |
 
 ### Recommended Session Start Sequence
 
