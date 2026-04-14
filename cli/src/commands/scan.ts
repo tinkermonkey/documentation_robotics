@@ -22,6 +22,7 @@
  */
 
 import ansis from "ansis";
+import { Command } from "commander";
 import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
 import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
@@ -899,4 +900,301 @@ export async function stageChangeset(
     }
   }
   return { warnings, changesetSaved };
+}
+
+/**
+ * Session subcommands for managing persistent CodePrism lifecycle
+ */
+
+import {
+  startSession,
+  stopSession,
+  getSessionState,
+  querySession,
+} from "../scan/session-manager.js";
+import { findProjectRoot } from "../utils/project-paths.js";
+
+/**
+ * dr scan session start [--workspace <path>]
+ * Spawn CodePrism as background process and poll until ready
+ */
+export async function sessionStartCommand(options: {
+  workspace?: string;
+}): Promise<void> {
+  try {
+    const workspace = options.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan session start --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    console.log(`Starting CodePrism session for workspace: ${workspace}`);
+
+    const config = await loadScanConfig();
+    const session = await startSession(workspace, config, {
+      maxWaitMs: 60000,
+      pollIntervalMs: 1000,
+    });
+
+    console.log(ansis.green(`✓ Session started (PID: ${session.pid})`));
+    console.log(`  Indexed files: ${session.indexed_files}`);
+    console.log(`  Workspace: ${session.workspace}`);
+    console.log(`\nSession is ready for queries. Use 'dr scan session query' to interact.`);
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * dr scan session status
+ * Check if session is active and report status
+ */
+export async function sessionStatusCommand(options?: {
+  workspace?: string;
+}): Promise<void> {
+  try {
+    const workspace = options?.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan session status --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    const state = await getSessionState(workspace);
+
+    if (!state) {
+      console.log(ansis.yellow("No session found"));
+      console.log(`\nTo start a session, run: dr scan session start --workspace ${workspace}`);
+      process.exit(1);
+    }
+
+    if (state.isActive) {
+      console.log(ansis.green(`✓ running (${state.status})`));
+      console.log(`  PID: ${state.pid}`);
+      console.log(`  Workspace: ${state.workspace}`);
+      console.log(`  Indexed files: ${state.indexedFiles}`);
+      console.log(`  Uptime: ${state.uptime}`);
+    } else {
+      console.log(ansis.red("✗ stopped"));
+      console.log(`  Last PID: ${state.pid}`);
+      console.log(`\nTo start a new session, run: dr scan session start --workspace ${workspace}`);
+      process.exit(1);
+    }
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * dr scan session query <tool> [--params <json>] [--format json|text]
+ * Forward a tool call to the running CodePrism session
+ */
+export async function sessionQueryCommand(
+  tool: string,
+  options?: {
+    params?: string;
+    format?: "json" | "text";
+    workspace?: string;
+  }
+): Promise<void> {
+  try {
+    const workspace = options?.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan session query <tool> --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    // Parse tool parameters
+    let toolParams: Record<string, unknown> = {};
+    if (options?.params) {
+      try {
+        toolParams = JSON.parse(options.params);
+      } catch (error) {
+        throw new CLIError(
+          "Invalid JSON in --params",
+          ErrorCategory.USER,
+          [
+            `Provided: ${options.params}`,
+            `Error: ${getErrorMessage(error)}`,
+            `Example: dr scan session query repository_stats --params '{"limit": 10}'`,
+          ]
+        );
+      }
+    }
+
+    const config = await loadScanConfig();
+    const results = await querySession(workspace, config, tool, toolParams);
+
+    const format = options?.format || "text";
+
+    if (format === "json") {
+      console.log(JSON.stringify(results, null, 2));
+    } else {
+      // Text format: print each result
+      for (const result of results) {
+        if (result.type === "text") {
+          console.log(result.text);
+        } else if (result.type === "error") {
+          console.error(ansis.red(`Error: ${result.text}`));
+        } else if (result.type === "image") {
+          console.log(`[Image data: ${result.data.substring(0, 50)}...]`);
+        }
+      }
+    }
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * dr scan session stop [--workspace <path>]
+ * Send graceful shutdown to CodePrism and remove session file
+ */
+export async function sessionStopCommand(options?: {
+  workspace?: string;
+}): Promise<void> {
+  try {
+    const workspace = options?.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan session stop --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    console.log(`Stopping CodePrism session in workspace: ${workspace}`);
+
+    await stopSession(workspace);
+
+    console.log(ansis.green("✓ Session stopped"));
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Register scan commands with commander
+ * Includes main scan command and session subcommands
+ */
+export function scanCommands(program: Command): void {
+  const scanCmd = program
+    .command("scan")
+    .description("Scan codebase using CodePrism MCP server or manage persistent sessions");
+
+  // Main scan action
+  scanCmd
+    .option("--config", "Validate configuration without connecting to CodePrism")
+    .option("--dry-run", "Print candidates without creating a changeset")
+    .option("--layer <layer>", "Restrict scan to one layer (e.g., api, application)")
+    .option("--verbose", "Show detailed scanning output")
+    .addHelpText(
+      "after",
+      `
+Configuration location: ~/.dr-config.yaml (scan section)
+
+Example config:
+  scan:
+    codeprism:
+      command: codeprism
+      args: ["--mcp"]
+      timeout: 5000
+    confidence_threshold: 0.6
+
+Examples:
+  $ dr scan --config              # Validate configuration
+  $ dr scan                       # Start scanning the codebase
+  $ dr scan --dry-run             # Preview candidates without staging
+  $ dr scan --layer api           # Scan only API layer patterns
+  $ dr scan --verbose             # Show detailed output`
+    )
+    .action(async (options) => {
+      await scanCommand({
+        config: options.config,
+        dryRun: options.dryRun,
+        layer: options.layer,
+        verbose: options.verbose,
+      });
+    });
+
+  // Session subcommands
+  const sessionCmd = scanCmd
+    .command("session")
+    .description("Manage persistent CodePrism sessions");
+
+  sessionCmd
+    .command("start [--workspace <path>]")
+    .description("Start a new CodePrism session")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .action((options) =>
+      sessionStartCommand({
+        workspace: options.workspace,
+      })
+    );
+
+  sessionCmd
+    .command("status")
+    .description("Check status of current session")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .action((options) =>
+      sessionStatusCommand({
+        workspace: options.workspace,
+      })
+    );
+
+  sessionCmd
+    .command("query <tool>")
+    .description("Query a running session with a CodePrism tool")
+    .option("--params <json>", "Tool parameters as JSON object")
+    .option("--format <format>", "Output format: json or text (default: text)")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ dr scan session query repository_stats
+  $ dr scan session query search_code --params '{"pattern":"class.*User","language":"typescript"}'
+  $ dr scan session query repository_stats --format json`
+    )
+    .action((tool, options) =>
+      sessionQueryCommand(tool, {
+        params: options.params,
+        format: options.format,
+        workspace: options.workspace,
+      })
+    );
+
+  sessionCmd
+    .command("stop")
+    .description("Stop the current CodePrism session")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .action((options) =>
+      sessionStopCommand({
+        workspace: options.workspace,
+      })
+    );
 }

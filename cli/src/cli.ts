@@ -40,7 +40,7 @@ import { reportsCommands } from "./commands/reports.js";
 import { auditCommand } from "./commands/audit.js";
 import { auditDiffCommand } from "./commands/audit-diff.js";
 import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
-import { scanCommand } from "./commands/scan.js";
+import { scanCommands } from "./commands/scan.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { getErrorMessage } from "./utils/errors.js";
@@ -712,41 +712,8 @@ Examples:
     });
   });
 
-program
-  .command("scan")
-  .description("Scan codebase using CodePrism MCP server")
-  .option("--config", "Validate configuration without connecting to CodePrism")
-  .option("--dry-run", "Print candidates without creating a changeset")
-  .option("--layer <layer>", "Restrict scan to one layer (e.g., api, application)")
-  .option("--verbose", "Show detailed scanning output")
-  .addHelpText(
-    "after",
-    `
-Configuration location: ~/.dr-config.yaml (scan section)
-
-Example config:
-  scan:
-    codeprism:
-      command: codeprism
-      args: ["--mcp"]
-      timeout: 5000
-    confidence_threshold: 0.6
-
-Examples:
-  $ dr scan --config              # Validate configuration
-  $ dr scan                       # Start scanning the codebase
-  $ dr scan --dry-run             # Preview candidates without staging
-  $ dr scan --layer api           # Scan only API layer patterns
-  $ dr scan --verbose             # Show detailed output`
-  )
-  .action(async (options) => {
-    await scanCommand({
-      config: options.config,
-      dryRun: options.dryRun,
-      layer: options.layer,
-      verbose: options.verbose,
-    });
-  });
+// Scan commands (main + session subcommands)
+scanCommands(program);
 
 // Changeset subcommands
 changesetCommands(program);
