@@ -33,6 +33,8 @@ import { getErrorMessage, handleError, CLIError, ErrorCategory } from "../utils/
 import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { RelationshipInferenceEngine } from "../scan/relationship-inference.js";
+import { validateElementReferences, formatValidationResult, type ElementValidationResult } from "../scan/ref-validator.js";
+import { loadSessionFile } from "../scan/session-manager.js";
 
 export interface ScanOptions {
   config?: boolean;
@@ -1207,6 +1209,186 @@ export async function sessionStopCommand(options?: {
 }
 
 /**
+ * Validate source references for elements in the model
+ * Checks that source_reference fields still point to real, unchanged code
+ */
+export interface ValidateRefsOptions {
+  layer?: string;
+  verbose?: boolean;
+  fix?: boolean;
+  workspace?: string;
+}
+
+/**
+ * dr scan validate-refs [--layer <layer>] [--verbose] [--fix]
+ * Validate that source references in the model still point to real code
+ */
+export async function validateRefsCommand(options?: ValidateRefsOptions): Promise<void> {
+  try {
+    const workspace = options?.workspace || (await findProjectRoot());
+
+    if (!workspace) {
+      throw new CLIError(
+        "No workspace specified and no documentation-robotics directory found",
+        ErrorCategory.USER,
+        [
+          "Specify workspace with: dr scan validate-refs --workspace /path/to/project",
+          "Or run from within a project directory",
+        ]
+      );
+    }
+
+    // Check for active session
+    const sessionFile = await loadSessionFile(workspace);
+    if (!sessionFile || sessionFile.status !== "ready") {
+      console.log(ansis.yellow("⚠ Skipping source reference validation: No active CodePrism session"));
+      console.log(ansis.dim("  Start a session with: dr scan session start"));
+      return;
+    }
+
+    // Load configuration and model
+    const config = await loadScanConfig();
+    const modelOptions = options?.layer ? { layers: [options.layer] } : {};
+    const model = await Model.load(workspace, modelOptions);
+
+    console.log("");
+    console.log(ansis.bold("Validating source references..."));
+    console.log("");
+
+    // Connect to CodePrism
+    let client: MCPClient | null = null;
+    try {
+      client = await createMcpClient(config);
+      await validateConnection(client);
+
+      // Validate each element with source references
+      const results: ElementValidationResult[] = [];
+      let validCount = 0;
+      let warningCount = 0;
+      let errorCount = 0;
+
+      for (const [, layer] of model.layers) {
+        for (const element of layer.listElements()) {
+          if (!element.source_reference) {
+            continue;
+          }
+
+          const result = await validateElementReferences(client, element);
+          results.push(result);
+
+          if (options?.verbose) {
+            console.log(formatValidationResult(result));
+          }
+
+          if (result.overallStatus === "ok") {
+            validCount++;
+          } else if (result.overallStatus === "warning") {
+            warningCount++;
+          } else {
+            errorCount++;
+          }
+        }
+      }
+
+      // Print summary
+      console.log("");
+      if (validCount > 0 || warningCount > 0 || errorCount > 0) {
+        console.log(ansis.bold("Reference Validation Summary:"));
+        if (validCount > 0) {
+          console.log(ansis.green(`  ✓ Valid: ${validCount}`));
+        }
+        if (warningCount > 0) {
+          console.log(ansis.yellow(`  ⚠ Warnings: ${warningCount}`));
+        }
+        if (errorCount > 0) {
+          console.log(ansis.red(`  ✗ Errors: ${errorCount}`));
+        }
+      } else {
+        console.log(ansis.dim("  No elements with source references found"));
+      }
+
+      // Show moved references that can be auto-fixed
+      const movedRefs = results.filter((r) => r.locations.some((l) => l.status === "symbol_moved"));
+      if (movedRefs.length > 0 && options?.fix) {
+        console.log("");
+        console.log(ansis.bold(`Generating fixes for ${movedRefs.length} moved reference(s)...`));
+
+        try {
+          const changesetStorage = new StagedChangesetStorage(workspace);
+          const changesetId = `fix-refs-${Date.now()}`;
+
+          // Create a new changeset with a reasonable base snapshot ID
+          const changeset = await changesetStorage.create(
+            changesetId,
+            `Fix moved source references`,
+            `Auto-fixes ${movedRefs.length} moved source references detected by dr scan validate-refs`,
+            "HEAD" // Use HEAD as base snapshot
+          );
+
+          let fixCount = 0;
+          for (const ref of movedRefs) {
+            // Find the element and update its source references
+            for (const [layerName, layer] of model.layers) {
+              const element = layer.getElement(ref.elementId);
+              if (element && element.source_reference) {
+                // Update locations with new positions
+                const updatedLocations = ref.locations.map((loc) => {
+                  if (loc.status === "symbol_moved" && loc.newLocation) {
+                    return loc.newLocation;
+                  }
+                  return { file: loc.file, ...(loc.symbol && { symbol: loc.symbol }) };
+                });
+
+                // Create before and after snapshots
+                const before = element.toSpecNode();
+                const after = {
+                  ...before,
+                  source_reference: {
+                    ...element.source_reference,
+                    locations: updatedLocations,
+                  },
+                };
+
+                // Add modification change to changeset
+                changeset.addChange("update", ref.elementId, layerName, before, after);
+
+                fixCount++;
+              }
+            }
+          }
+
+          if (fixCount > 0) {
+            // Save the changeset
+            await changesetStorage.save(changeset);
+            console.log(ansis.green(`✓ Generated changeset for ${fixCount} moved reference(s)`));
+            console.log(ansis.dim(`  Changeset ID: ${changesetId}`));
+            console.log(ansis.dim(`  Run 'dr changeset apply ${changesetId}' to apply fixes`));
+          } else {
+            console.log(ansis.yellow(`⚠ No moved references could be fixed`));
+          }
+        } catch (error) {
+          console.log(ansis.yellow(`⚠ Could not generate changeset: ${getErrorMessage(error)}`));
+        }
+      }
+
+      if (errorCount > 0 || warningCount > 0) {
+        process.exit(1);
+      }
+    } finally {
+      if (client) {
+        try {
+          await client.disconnect();
+        } catch (error) {
+          // Ignore disconnect errors
+        }
+      }
+    }
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
  * Register scan commands with commander
  * Includes main scan command and session subcommands
  */
@@ -1274,6 +1456,41 @@ Examples:
         verbose: options.verbose,
       });
     });
+
+  // Validate-refs subcommand
+  scanCmd
+    .command("validate-refs")
+    .description("Validate that source references point to real, unchanged code")
+    .option("--layer <layer>", "Restrict validation to one layer")
+    .option("--verbose", "Show detailed validation results")
+    .option("--fix", "Generate changeset to fix moved references")
+    .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .addHelpText(
+      "after",
+      `
+The validate-refs command checks that source_reference fields on model elements
+still point to real code. It detects:
+- Stale references (file deleted)
+- Missing symbols (moved or renamed)
+- Type mismatches (class → function)
+- Dead references (no inbound references)
+
+Requires an active CodePrism session. Start one with: dr scan session start
+
+Examples:
+  $ dr scan validate-refs              # Validate all references
+  $ dr scan validate-refs --layer api  # Validate only API layer
+  $ dr scan validate-refs --verbose    # Show detailed results
+  $ dr scan validate-refs --fix        # Auto-fix moved references`
+    )
+    .action((options) =>
+      validateRefsCommand({
+        layer: options.layer,
+        verbose: options.verbose,
+        fix: options.fix,
+        workspace: options.workspace,
+      })
+    );
 
   // Session subcommands
   const sessionCmd = scanCmd

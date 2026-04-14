@@ -12,6 +12,11 @@ import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 import { getActiveSpan } from "../telemetry/index.js";
+import { loadSessionFile } from "../scan/session-manager.js";
+import { validateElementReferences } from "../scan/ref-validator.js";
+import { createMcpClient, validateConnection, type MCPClient } from "../scan/mcp-client.js";
+import { loadScanConfig } from "../scan/config.js";
+import { findProjectRoot } from "../utils/project-paths.js";
 
 
 export interface ValidateOptions {
@@ -152,6 +157,90 @@ async function validateSchemaSynchronization(): Promise<void> {
     console.log("");
     console.log(ansis.green("✓ All schemas synchronized"));
     console.log("");
+  }
+}
+
+/**
+ * Run optional source reference validation if a CodePrism session is active
+ * Skips gracefully if no session or if CodePrism is unavailable
+ */
+async function runOptionalSourceRefValidation(model: Model): Promise<void> {
+  try {
+    const workspace = await findProjectRoot();
+    if (!workspace) {
+      return; // Silently skip if no workspace
+    }
+
+    // Check for active session
+    const sessionFile = await loadSessionFile(workspace);
+    if (!sessionFile || sessionFile.status !== "ready") {
+      return; // Silently skip if no active session
+    }
+
+    console.log("");
+    console.log(ansis.bold("Running source reference validation..."));
+    console.log("");
+
+    // Load configuration and connect to CodePrism
+    const config = await loadScanConfig();
+    let client: MCPClient | null = null;
+
+    try {
+      client = await createMcpClient(config);
+      await validateConnection(client);
+
+      // Validate each element with source references
+      let validCount = 0;
+      let warningCount = 0;
+      let errorCount = 0;
+
+      for (const [, layer] of model.layers) {
+        for (const element of layer.listElements()) {
+          if (!element.source_reference) {
+            continue;
+          }
+
+          const result = await validateElementReferences(client, element);
+
+          if (result.overallStatus === "ok") {
+            validCount++;
+          } else if (result.overallStatus === "warning") {
+            warningCount++;
+          } else {
+            errorCount++;
+          }
+        }
+      }
+
+      // Print summary
+      if (validCount > 0 || warningCount > 0 || errorCount > 0) {
+        console.log(ansis.bold("Source Reference Validation Summary:"));
+        if (validCount > 0) {
+          console.log(ansis.green(`  ✓ Valid: ${validCount}`));
+        }
+        if (warningCount > 0) {
+          console.log(ansis.yellow(`  ⚠ Warnings: ${warningCount}`));
+        }
+        if (errorCount > 0) {
+          console.log(ansis.red(`  ✗ Errors: ${errorCount}`));
+        }
+      }
+
+      if (errorCount > 0) {
+        console.log(ansis.dim("  Run 'dr scan validate-refs --verbose' for details"));
+      }
+    } finally {
+      if (client) {
+        try {
+          await client.disconnect();
+        } catch {
+          // Ignore disconnect errors
+        }
+      }
+    }
+  } catch {
+    // Silently skip on any errors - this is an optional pass
+    return;
   }
 }
 
@@ -392,6 +481,10 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
         }
       }
     }
+
+    // Run optional source reference validation if a CodePrism session is active
+    // This is skipped silently if no session is available
+    await runOptionalSourceRefValidation(modelToValidate);
 
     // Record validation results in span
     if (activeSpan) {
