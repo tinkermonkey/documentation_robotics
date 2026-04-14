@@ -1,9 +1,31 @@
 # NestJS Application Layer Patterns
+# Phase 4: Semantic pattern evolution using CodePrism's analyze_decorators and find_dependencies
 layer: application
 framework: nestjs-service
-version: "1.0"
+version: "2.0"
 patterns:
+  # Semantic pattern: Discover @Injectable services using analyze_decorators
   - id: nestjs.service.injectable
+    produces:
+      type: node
+      layer: application
+      elementType: service
+    query:
+      tool: analyze_decorators
+      params:
+        framework: nestjs
+        language: typescript
+        decoratorTypes: ["Injectable"]
+        targetType: class
+    requires_index: true
+    confidence: 0.96
+    mapping:
+      id: "application.service.{match.className|kebab}"
+      name: "{match.className}"
+      description: "NestJS injectable service"
+
+  # Regex fallback for services
+  - id: nestjs.service.injectable.regex
     produces:
       type: node
       layer: application
@@ -13,26 +35,33 @@ patterns:
       params:
         pattern: "@Injectable\\(\\)\\s*export\\s*class\\s+(\\w+Service)"
         language: typescript
-    confidence: 0.9
+    confidence: 0.75
     mapping:
       id: "application.service.{match.className|kebab}"
       name: "{match.className}"
-  - id: nestjs.service.method
+
+  # Semantic pattern: Discover service dependencies via AST dependency analysis
+  - id: nestjs.service.dependency
     produces:
       type: relationship
       layer: application
-      elementType: method
-      relationshipType: exposes
+      elementType: dependency
+      relationshipType: depends-on
     query:
-      tool: search_code
+      tool: find_dependencies
       params:
-        pattern: "public\\s+(async\\s+)?\\w+\\s*\\([^)]*\\)"
+        framework: nestjs
         language: typescript
-    confidence: 0.7
+        scope: constructor
+    requires_index: true
+    depends_on: ["nestjs.service.injectable"]
+    confidence: 0.92
     mapping:
-      source: "application.service.{match.serviceName|kebab}"
-      target: "application.method.{match.methodName|kebab}"
-  - id: nestjs.service.dependency
+      source: "application.service.{match.source|kebab}"
+      target: "application.service.{match.target|kebab}"
+
+  # Regex fallback for dependencies
+  - id: nestjs.service.dependency.regex
     produces:
       type: relationship
       layer: application
@@ -43,7 +72,44 @@ patterns:
       params:
         pattern: "constructor\\([^)]*private\\s+\\w+\\s*:\\s*([A-Za-z0-9]+)"
         language: typescript
-    confidence: 0.8
+    confidence: 0.68
     mapping:
       source: "application.service.{match.serviceName|kebab}"
       target: "application.service.{match.dependencyType|kebab}"
+
+  # Semantic pattern: Discover public methods using search_symbols
+  - id: nestjs.service.method
+    produces:
+      type: relationship
+      layer: application
+      elementType: method
+      relationshipType: exposes
+    query:
+      tool: search_symbols
+      params:
+        framework: nestjs
+        language: typescript
+        symbolType: method
+        visibility: public
+    requires_index: true
+    confidence: 0.85
+    mapping:
+      source: "application.service.{match.source|kebab}"
+      target: "application.method.{match.methodName|kebab}"
+
+  # Regex fallback for methods
+  - id: nestjs.service.method.regex
+    produces:
+      type: relationship
+      layer: application
+      elementType: method
+      relationshipType: exposes
+    query:
+      tool: search_code
+      params:
+        pattern: "public\\s+(async\\s+)?\\w+\\s*\\([^)]*\\)"
+        language: typescript
+    confidence: 0.60
+    mapping:
+      source: "application.service.{match.serviceName|kebab}"
+      target: "application.method.{match.methodName|kebab}"

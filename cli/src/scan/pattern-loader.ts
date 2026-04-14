@@ -97,6 +97,17 @@ export type Mapping = Record<string, string>;
 
 /**
  * Individual pattern definition within a pattern set
+ *
+ * New fields (Phase 4 - Semantic Pattern Evolution):
+ * - `requires_index` (boolean, optional, default false) - Pattern requires an active CodePrism session
+ *   Semantic patterns that need repository indexing should set this to true. When no session is
+ *   active, patterns with this flag are skipped with a warning, and the scan falls back to
+ *   co-existing regex patterns.
+ * - `depends_on` (array of pattern IDs, optional, default []) - For multi-pass patterns that
+ *   consume results from prior patterns. Patterns are grouped by dependencies:
+ *   - Independent patterns (no depends_on) are dispatched in a single batch_analysis call
+ *   - Dependent patterns are executed after their dependencies complete
+ *   - Invalid dependencies (referring to non-existent patterns) are treated as errors
  */
 export const PatternDefinitionSchema = z.object({
   id: z.string(),
@@ -104,6 +115,8 @@ export const PatternDefinitionSchema = z.object({
   query: QuerySpecSchema,
   confidence: z.number().min(0).max(1),
   mapping: MappingSchema,
+  requires_index: z.boolean().default(false).optional(),
+  depends_on: z.array(z.string()).default([]).optional(),
 });
 
 export type PatternDefinition = z.infer<typeof PatternDefinitionSchema>;

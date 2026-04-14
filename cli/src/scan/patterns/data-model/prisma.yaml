@@ -1,7 +1,8 @@
 # Prisma Data Model Layer Patterns
+# Phase 4: Semantic pattern evolution using CodePrism's find_dependencies
 layer: data-model
 framework: prisma
-version: "1.0"
+version: "2.0"
 patterns:
   - id: prisma.model.definition
     produces:
@@ -17,6 +18,7 @@ patterns:
     mapping:
       id: "data-model.entity.{match.modelName|kebab}"
       name: "{match.modelName}"
+
   - id: prisma.model.field
     produces:
       type: relationship
@@ -32,6 +34,28 @@ patterns:
     mapping:
       source: "data-model.entity.{match.modelName|kebab}"
       target: "data-model.field.{match.fieldName|kebab}"
+
+  # Semantic pattern: Discover entity relationships using find_dependencies
+  - id: prisma.model.relation.semantic
+    produces:
+      type: relationship
+      layer: data-model
+      elementType: link
+      relationshipType: references
+    query:
+      tool: find_dependencies
+      params:
+        framework: prisma
+        language: prisma
+        scope: relation
+    requires_index: true
+    depends_on: ["prisma.model.definition"]
+    confidence: 0.93
+    mapping:
+      source: "data-model.entity.{match.source|kebab}"
+      target: "data-model.entity.{match.target|kebab}"
+
+  # Regex fallback for relations
   - id: prisma.model.relation
     produces:
       type: relationship
@@ -43,7 +67,7 @@ patterns:
       params:
         pattern: "^\\s*(\\w+)\\s+(\\w+)\\s+@relation\\(name:\\s*['\"]([^'\"]+)['\"]"
         language: prisma
-    confidence: 0.85
+    confidence: 0.70
     mapping:
       source: "data-model.entity.{match.sourceModel|kebab}"
       target: "data-model.entity.{match.targetModel|kebab}"

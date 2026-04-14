@@ -182,6 +182,117 @@ describe("Pattern Loader", () => {
       expect(() => PatternDefinitionSchema.parse(minConfidence)).not.toThrow();
       expect(() => PatternDefinitionSchema.parse(maxConfidence)).not.toThrow();
     });
+
+    it("accepts pattern with requires_index: true (Phase 4)", () => {
+      const semanticPattern = {
+        id: "express.route.handler",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "analyze_api_surface", params: { framework: "express" } },
+        confidence: 0.95,
+        mapping: { id: "api.endpoint.{match.path|kebab}", name: "{match.path}" },
+        requires_index: true,
+      };
+
+      expect(() => PatternDefinitionSchema.parse(semanticPattern)).not.toThrow();
+    });
+
+    it("accepts pattern with requires_index: false (default)", () => {
+      const regexPattern = {
+        id: "express.route.handler.regex",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "search_code", params: { pattern: "app\\.get" } },
+        confidence: 0.75,
+        mapping: { id: "api.endpoint.{match.path|kebab}" },
+        requires_index: false,
+      };
+
+      expect(() => PatternDefinitionSchema.parse(regexPattern)).not.toThrow();
+    });
+
+    it("omitting requires_index defaults to false", () => {
+      const pattern = {
+        id: "test.pattern",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "search_code" },
+        confidence: 0.85,
+        mapping: { id: "api.endpoint.test" },
+      };
+
+      const parsed = PatternDefinitionSchema.parse(pattern);
+      expect(parsed.requires_index).toBe(false);
+    });
+
+    it("accepts pattern with depends_on array of pattern IDs", () => {
+      const dependentPattern = {
+        id: "nestjs.service.dependency",
+        produces: { type: "relationship", layer: "application", elementType: "dependency", relationshipType: "depends-on" },
+        query: { tool: "find_dependencies", params: { framework: "nestjs" } },
+        confidence: 0.92,
+        mapping: { source: "application.service.{match.source|kebab}", target: "application.service.{match.target|kebab}" },
+        requires_index: true,
+        depends_on: ["nestjs.service.injectable"],
+      };
+
+      expect(() => PatternDefinitionSchema.parse(dependentPattern)).not.toThrow();
+    });
+
+    it("accepts pattern with empty depends_on array", () => {
+      const pattern = {
+        id: "test.pattern",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "search_code" },
+        confidence: 0.85,
+        mapping: { id: "api.endpoint.test" },
+        depends_on: [],
+      };
+
+      expect(() => PatternDefinitionSchema.parse(pattern)).not.toThrow();
+    });
+
+    it("omitting depends_on defaults to empty array", () => {
+      const pattern = {
+        id: "test.pattern",
+        produces: { type: "node", layer: "api", elementType: "endpoint" },
+        query: { tool: "search_code" },
+        confidence: 0.85,
+        mapping: { id: "api.endpoint.test" },
+      };
+
+      const parsed = PatternDefinitionSchema.parse(pattern);
+      expect(parsed.depends_on).toEqual([]);
+    });
+
+    it("accepts pattern with multiple depends_on IDs", () => {
+      const complexPattern = {
+        id: "pattern.complex",
+        produces: { type: "relationship", layer: "api", elementType: "dependency", relationshipType: "calls" },
+        query: { tool: "find_dependencies" },
+        confidence: 0.85,
+        mapping: { source: "api.endpoint.{match.source}", target: "application.service.{match.target}" },
+        depends_on: ["api.endpoint.discover", "application.service.discover"],
+      };
+
+      const parsed = PatternDefinitionSchema.parse(complexPattern);
+      expect(parsed.depends_on).toHaveLength(2);
+      expect(parsed.depends_on).toContain("api.endpoint.discover");
+      expect(parsed.depends_on).toContain("application.service.discover");
+    });
+
+    it("accepts pattern combining requires_index and depends_on", () => {
+      const fullSemanticPattern = {
+        id: "typeorm.entity.relationship",
+        produces: { type: "relationship", layer: "data-model", elementType: "link", relationshipType: "references" },
+        query: { tool: "find_dependencies", params: { framework: "typeorm", scope: "relationship" } },
+        confidence: 0.91,
+        mapping: { source: "data-model.entity.{match.source|kebab}", target: "data-model.entity.{match.target|kebab}" },
+        requires_index: true,
+        depends_on: ["typeorm.entity.definition"],
+      };
+
+      const parsed = PatternDefinitionSchema.parse(fullSemanticPattern);
+      expect(parsed.requires_index).toBe(true);
+      expect(parsed.depends_on).toContain("typeorm.entity.definition");
+    });
   });
 
   describe("loadBuiltinPatterns()", () => {
@@ -247,6 +358,42 @@ describe("Pattern Loader", () => {
     it("loads all built-in patterns successfully", async () => {
       const patterns = await loadBuiltinPatterns();
       expect(patterns.length).toBeGreaterThan(0); // Proves files were found
+    });
+
+    it("validates all patterns have valid requires_index and depends_on fields (Phase 4)", async () => {
+      const patterns = await loadBuiltinPatterns();
+
+      for (const patternSet of patterns) {
+        for (const pattern of patternSet.patterns) {
+          // requires_index should be a boolean (or undefined, which defaults to false)
+          if (pattern.requires_index !== undefined) {
+            expect(typeof pattern.requires_index).toBe("boolean");
+          }
+          // depends_on should be an array of strings (or undefined, which defaults to [])
+          if (pattern.depends_on !== undefined) {
+            expect(Array.isArray(pattern.depends_on)).toBe(true);
+            for (const dep of pattern.depends_on) {
+              expect(typeof dep).toBe("string");
+            }
+          }
+        }
+      }
+    });
+
+    it("semantic patterns have requires_index: true and reasonable confidence", async () => {
+      const patterns = await loadBuiltinPatterns();
+      const semanticPatterns = patterns
+        .flatMap((set) => set.patterns)
+        .filter((p) => p.requires_index === true);
+
+      // Semantic patterns should have reasonable confidence (>= 0.75)
+      // Most semantic patterns have high confidence (0.90+) but some specializations may be lower
+      if (semanticPatterns.length > 0) {
+        for (const pattern of semanticPatterns) {
+          expect(pattern.confidence).toBeGreaterThanOrEqual(0.75);
+          expect(pattern.confidence).toBeLessThanOrEqual(1.0);
+        }
+      }
     });
 
     it("throws error with descriptive message when pattern has invalid schema", () => {

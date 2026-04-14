@@ -583,93 +583,295 @@ export async function executePatterns(
   const elementCandidates: ElementCandidate[] = [];
   const relationshipCandidates: RelationshipCandidate[] = [];
 
+  // Check if a session is active (for requires_index patterns)
+  let sessionActive = false;
+  try {
+    const session = await loadSessionFile(process.cwd());
+    sessionActive = session !== null && session.status === "ready";
+  } catch {
+    // If session check fails, assume no session is active
+    sessionActive = false;
+  }
+
+  // Flatten all patterns from pattern sets for dependency analysis
+  const allPatterns: Array<PatternDefinition & { frameworkId: string }> = [];
   for (const patternSet of patterns) {
     for (const pattern of patternSet.patterns) {
-      if (verbose) {
-        console.log(`  Executing pattern: ${pattern.id}`);
-      }
+      allPatterns.push({ ...pattern, frameworkId: patternSet.framework });
+    }
+  }
 
-      // Invoke the pattern's CodePrism tool via MCP
-      const toolName = pattern.query.tool;
-      const toolParams = pattern.query.params || {};
+  // Build pattern ID map for dependency validation
+  const patternIdMap = new Map(allPatterns.map((p) => [p.id, p]));
 
-      if (verbose) {
-        console.log(`    Tool: ${toolName}`);
-        console.log(`    Params: ${JSON.stringify(toolParams)}`);
-      }
+  // Separate independent patterns (no depends_on or empty) from dependent patterns
+  const independentPatterns: typeof allPatterns = [];
+  const dependentPatterns: typeof allPatterns = [];
+  const skippedPatterns: typeof allPatterns = [];
 
-      // Call the tool via MCP client. Transport/infrastructure errors are thrown
-      // (connection lost, server crash) and will bubble up to fail the entire scan.
-      // Tool-level errors (tool runs but fails) are returned as ToolResult with type: "error"
-      // and can be handled gracefully.
-      const results = await client.callTool(toolName, toolParams);
+  for (const pattern of allPatterns) {
+    const hasDependencies = pattern.depends_on && pattern.depends_on.length > 0;
 
-      // Parse results - each result should be parseable JSON containing match data
-      const matches: Array<{ [key: string]: string }> = [];
-      for (const result of results) {
-        if (result.type === "error") {
-          // Tool-level errors (tool ran but failed) are logged as warnings.
-          // These are recoverable; we can continue with remaining patterns.
-          // Always log tool errors as warnings, not just in verbose mode.
-          // Tool failures should be visible to the user regardless of verbosity.
-          warnings.push(`Tool '${toolName}' returned error: ${result.text}`);
-          if (verbose) {
-            console.log(`    Warning: Tool returned error: ${result.text}`);
-          }
+    // Check if pattern requires index but no session is active
+    if (pattern.requires_index && !sessionActive) {
+      warnings.push(
+        `Pattern '${pattern.id}' requires an active CodePrism session (requires_index: true) but no session is active. ` +
+        `This pattern will be skipped. Run 'dr scan index' to start a session.`
+      );
+      skippedPatterns.push(pattern);
+      continue;
+    }
+
+    if (hasDependencies) {
+      // Validate dependencies exist
+      for (const depId of pattern.depends_on!) {
+        if (!patternIdMap.has(depId)) {
+          warnings.push(`Pattern '${pattern.id}' depends on non-existent pattern '${depId}'. This pattern will be skipped.`);
+          skippedPatterns.push(pattern);
           continue;
         }
+      }
+      dependentPatterns.push(pattern);
+    } else {
+      independentPatterns.push(pattern);
+    }
+  }
 
-        if (result.type === "text" && result.text) {
+  // Execute independent patterns via batch_analysis dispatch
+  if (independentPatterns.length > 0) {
+    if (verbose) {
+      console.log(`  Dispatching ${independentPatterns.length} independent patterns via batch_analysis...`);
+    }
+
+    // Prepare batch analysis queries
+    interface BatchQuery {
+      patternId: string;
+      tool: string;
+      params: Record<string, unknown>;
+    }
+    const batchQueries: BatchQuery[] = independentPatterns.map((pattern) => ({
+      patternId: pattern.id,
+      tool: pattern.query.tool,
+      params: pattern.query.params || {},
+    }));
+
+    try {
+      // Call batch_analysis with all independent patterns at once
+      const batchResults = await client.callTool("batch_analysis", {
+        queries: batchQueries,
+      });
+
+      // Process results from batch_analysis
+      // Results should come back as an array of objects, one per query in the same order
+      let resultIndex = 0;
+      for (const pattern of independentPatterns) {
+        if (verbose) {
+          console.log(`  Processing pattern: ${pattern.id}`);
+        }
+
+        // Get the results for this pattern from the batch response
+        let patternResults = [];
+        if (resultIndex < batchResults.length) {
+          const result = batchResults[resultIndex];
+          if (result.type === "text" && "text" in result && result.text) {
+            try {
+              const parsed = JSON.parse(result.text);
+              if (Array.isArray(parsed)) {
+                patternResults = parsed;
+              } else if (typeof parsed === "object" && parsed !== null) {
+                patternResults = [parsed];
+              }
+            } catch (parseError) {
+              warnings.push(
+                `Could not parse batch_analysis result for pattern '${pattern.id}': ${result.text.slice(0, 100)}`
+              );
+            }
+          } else if (result.type === "error" && "text" in result) {
+            warnings.push(
+              `Batch tool for pattern '${pattern.id}' returned error: ${result.text}`
+            );
+          }
+        }
+        resultIndex++;
+
+        if (verbose) {
+          console.log(`    Found ${patternResults.length} matches`);
+        }
+
+        // Map matches to candidates
+        let matchErrorCount = 0;
+        for (const match of patternResults) {
           try {
-            // Attempt to parse as JSON array of matches
-            const parsed = JSON.parse(result.text);
-            if (Array.isArray(parsed)) {
-              matches.push(...parsed);
-            } else if (typeof parsed === "object" && parsed !== null) {
-              // Single match object
-              matches.push(parsed);
+            if (pattern.produces.type === "relationship") {
+              const candidate = mapToRelationshipCandidate(pattern, match, warnings);
+              if (candidate) {
+                relationshipCandidates.push(candidate);
+              }
+            } else {
+              const candidate = mapToElementCandidate(pattern, match, warnings);
+              if (candidate) {
+                elementCandidates.push(candidate);
+              }
             }
-          } catch (parseError) {
-            // If not JSON, treat the text as unparseable tool output.
-            // Always add to warnings so user knows tool ran but output couldn't be interpreted.
-            const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
-            warnings.push(parseMsg);
+          } catch (matchError) {
+            const errorMsg = getErrorMessage(matchError);
+            const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
+            warnings.push(errorDetail);
+            matchErrorCount++;
           }
         }
+        if (matchErrorCount > 0 && verbose) {
+          console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
+        }
       }
-
+    } catch (error) {
+      // If batch_analysis fails, fall back to individual pattern execution
       if (verbose) {
-        console.log(`    Found ${matches.length} matches`);
+        console.log(`  Batch analysis failed, falling back to individual pattern execution: ${getErrorMessage(error)}`);
       }
 
-      // Map matches to candidates based on pattern produces type
-      // Wrap each match individually so one error doesn't break the entire pattern
-      let matchErrorCount = 0;
-      for (const match of matches) {
-        try {
-          if (pattern.produces.type === "relationship") {
-            const candidate = mapToRelationshipCandidate(pattern, match, warnings);
-            if (candidate) {
-              relationshipCandidates.push(candidate);
+      // Fall back to sequential execution of independent patterns
+      for (const pattern of independentPatterns) {
+        if (verbose) {
+          console.log(`  Executing pattern (fallback): ${pattern.id}`);
+        }
+
+        const toolName = pattern.query.tool;
+        const toolParams = pattern.query.params || {};
+
+        if (verbose) {
+          console.log(`    Tool: ${toolName}`);
+          console.log(`    Params: ${JSON.stringify(toolParams)}`);
+        }
+
+        const results = await client.callTool(toolName, toolParams);
+
+        const matches: Array<{ [key: string]: string }> = [];
+        for (const result of results) {
+          if (result.type === "error") {
+            warnings.push(`Tool '${toolName}' returned error: ${result.text}`);
+            if (verbose) {
+              console.log(`    Warning: Tool returned error: ${result.text}`);
             }
-          } else {
-            const candidate = mapToElementCandidate(pattern, match, warnings);
-            if (candidate) {
-              elementCandidates.push(candidate);
+            continue;
+          }
+
+          if (result.type === "text" && result.text) {
+            try {
+              const parsed = JSON.parse(result.text);
+              if (Array.isArray(parsed)) {
+                matches.push(...parsed);
+              } else if (typeof parsed === "object" && parsed !== null) {
+                matches.push(parsed);
+              }
+            } catch (parseError) {
+              const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
+              warnings.push(parseMsg);
             }
           }
-        } catch (matchError) {
-          // Unexpected errors during match processing (programming errors, not expected validation errors)
-          // Tracked as warnings to preserve partial results and report issues to the user
-          const errorMsg = getErrorMessage(matchError);
-          const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
-          warnings.push(errorDetail);
-          matchErrorCount++;
+        }
+
+        if (verbose) {
+          console.log(`    Found ${matches.length} matches`);
+        }
+
+        let matchErrorCount = 0;
+        for (const match of matches) {
+          try {
+            if (pattern.produces.type === "relationship") {
+              const candidate = mapToRelationshipCandidate(pattern, match, warnings);
+              if (candidate) {
+                relationshipCandidates.push(candidate);
+              }
+            } else {
+              const candidate = mapToElementCandidate(pattern, match, warnings);
+              if (candidate) {
+                elementCandidates.push(candidate);
+              }
+            }
+          } catch (matchError) {
+            const errorMsg = getErrorMessage(matchError);
+            const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
+            warnings.push(errorDetail);
+            matchErrorCount++;
+          }
+        }
+        if (matchErrorCount > 0 && verbose) {
+          console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
         }
       }
-      if (matchErrorCount > 0 && verbose) {
-        console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
+    }
+  }
+
+  // Execute dependent patterns sequentially (after their dependencies)
+  // For now, execute them in order (simplified - full dependency resolution would be more complex)
+  for (const pattern of dependentPatterns) {
+    if (verbose) {
+      console.log(`  Executing dependent pattern: ${pattern.id}`);
+    }
+
+    const toolName = pattern.query.tool;
+    const toolParams = pattern.query.params || {};
+
+    if (verbose) {
+      console.log(`    Tool: ${toolName}`);
+      console.log(`    Params: ${JSON.stringify(toolParams)}`);
+    }
+
+    const results = await client.callTool(toolName, toolParams);
+
+    const matches: Array<{ [key: string]: string }> = [];
+    for (const result of results) {
+      if (result.type === "error") {
+        warnings.push(`Tool '${toolName}' returned error: ${result.text}`);
+        if (verbose) {
+          console.log(`    Warning: Tool returned error: ${result.text}`);
+        }
+        continue;
       }
+
+      if (result.type === "text" && result.text) {
+        try {
+          const parsed = JSON.parse(result.text);
+          if (Array.isArray(parsed)) {
+            matches.push(...parsed);
+          } else if (typeof parsed === "object" && parsed !== null) {
+            matches.push(parsed);
+          }
+        } catch (parseError) {
+          const parseMsg = `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`;
+          warnings.push(parseMsg);
+        }
+      }
+    }
+
+    if (verbose) {
+      console.log(`    Found ${matches.length} matches`);
+    }
+
+    let matchErrorCount = 0;
+    for (const match of matches) {
+      try {
+        if (pattern.produces.type === "relationship") {
+          const candidate = mapToRelationshipCandidate(pattern, match, warnings);
+          if (candidate) {
+            relationshipCandidates.push(candidate);
+          }
+        } else {
+          const candidate = mapToElementCandidate(pattern, match, warnings);
+          if (candidate) {
+            elementCandidates.push(candidate);
+          }
+        }
+      } catch (matchError) {
+        const errorMsg = getErrorMessage(matchError);
+        const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
+        warnings.push(errorDetail);
+        matchErrorCount++;
+      }
+    }
+    if (matchErrorCount > 0 && verbose) {
+      console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
     }
   }
 

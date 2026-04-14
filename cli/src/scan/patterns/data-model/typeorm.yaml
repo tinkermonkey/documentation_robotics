@@ -1,9 +1,31 @@
 # TypeORM Data Model Layer Patterns
+# Phase 4: Semantic pattern evolution using CodePrism's analyze_decorators and find_dependencies
 layer: data-model
 framework: typeorm
-version: "1.0"
+version: "2.0"
 patterns:
+  # Semantic pattern: Discover @Entity classes using analyze_decorators
   - id: typeorm.entity.definition
+    produces:
+      type: node
+      layer: data-model
+      elementType: entity
+    query:
+      tool: analyze_decorators
+      params:
+        framework: typeorm
+        language: typescript
+        decoratorTypes: ["Entity"]
+        targetType: class
+    requires_index: true
+    confidence: 0.97
+    mapping:
+      id: "data-model.entity.{match.className|kebab}"
+      name: "{match.className}"
+      description: "TypeORM entity"
+
+  # Regex fallback for entities
+  - id: typeorm.entity.definition.regex
     produces:
       type: node
       layer: data-model
@@ -13,11 +35,34 @@ patterns:
       params:
         pattern: "@Entity\\([^)]*\\)\\s*export\\s*class\\s+(\\w+)"
         language: typescript
-    confidence: 0.95
+    confidence: 0.75
     mapping:
       id: "data-model.entity.{match.className|kebab}"
       name: "{match.className}"
+
+  # Semantic pattern: Discover @Column fields using analyze_decorators
   - id: typeorm.entity.column
+    produces:
+      type: relationship
+      layer: data-model
+      elementType: column
+      relationshipType: has-property
+    query:
+      tool: analyze_decorators
+      params:
+        framework: typeorm
+        language: typescript
+        decoratorTypes: ["Column"]
+        targetType: property
+    requires_index: true
+    depends_on: ["typeorm.entity.definition"]
+    confidence: 0.94
+    mapping:
+      source: "data-model.entity.{match.entityName|kebab}"
+      target: "data-model.column.{match.columnName|kebab}"
+
+  # Regex fallback for columns
+  - id: typeorm.entity.column.regex
     produces:
       type: relationship
       layer: data-model
@@ -28,11 +73,33 @@ patterns:
       params:
         pattern: "@Column\\(([^)]*)\\)\\s*\\w+\\s*:\\s*(\\w+)"
         language: typescript
-    confidence: 0.9
+    confidence: 0.70
     mapping:
       source: "data-model.entity.{match.entityName|kebab}"
       target: "data-model.column.{match.columnName|kebab}"
+
+  # Semantic pattern: Discover entity relationships using find_dependencies
   - id: typeorm.entity.relationship
+    produces:
+      type: relationship
+      layer: data-model
+      elementType: link
+      relationshipType: references
+    query:
+      tool: find_dependencies
+      params:
+        framework: typeorm
+        language: typescript
+        scope: relationship
+    requires_index: true
+    depends_on: ["typeorm.entity.definition"]
+    confidence: 0.91
+    mapping:
+      source: "data-model.entity.{match.source|kebab}"
+      target: "data-model.entity.{match.target|kebab}"
+
+  # Regex fallback for relationships
+  - id: typeorm.entity.relationship.regex
     produces:
       type: relationship
       layer: data-model
@@ -43,7 +110,7 @@ patterns:
       params:
         pattern: "@(OneToMany|ManyToOne)\\(\\s*\\(\\)\\s*=>\\s*(\\w+)"
         language: typescript
-    confidence: 0.85
+    confidence: 0.70
     mapping:
       source: "data-model.entity.{match.sourceEntity|kebab}"
       target: "data-model.entity.{match.targetEntity|kebab}"

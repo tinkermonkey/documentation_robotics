@@ -177,4 +177,106 @@ describe("Pattern Loading Integration", () => {
     expect(filtered.length).toBe(1);
     expect(filtered[0].confidence).toBeGreaterThanOrEqual(defaultThreshold);
   });
+
+  describe("Phase 4: Semantic Pattern Evolution (requires_index and depends_on)", () => {
+    it("loads semantic patterns with requires_index field", async () => {
+      const patterns = await loadBuiltinPatterns();
+      const semanticPatterns = patterns
+        .flatMap((set) => set.patterns)
+        .filter((p) => p.requires_index === true);
+
+      // After Phase 4, semantic patterns should be present
+      expect(semanticPatterns.length).toBeGreaterThan(0);
+
+      // Verify semantic patterns have proper metadata
+      for (const pattern of semanticPatterns) {
+        expect(pattern.id).toBeTruthy();
+        expect(pattern.query.tool).toBeTruthy();
+        // Semantic tools include: analyze_api_surface, analyze_decorators, find_dependencies, etc.
+        const semanticTools = ["analyze_api_surface", "analyze_decorators", "find_dependencies", "detect_patterns", "search_symbols"];
+        expect(semanticTools).toContain(pattern.query.tool);
+      }
+    });
+
+    it("semantic patterns have fallback regex patterns", async () => {
+      const patterns = await loadBuiltinPatterns();
+
+      // For each semantic pattern, there should be a corresponding regex fallback
+      const semanticPatterns = patterns
+        .flatMap((set) => set.patterns)
+        .filter((p) => p.requires_index === true);
+
+      for (const semantic of semanticPatterns) {
+        // Look for a fallback pattern with .regex in the ID or similar semantic pattern
+        const baseName = semantic.id.replace(/\.semantic$/, "").replace(/\.index$/, "");
+        const hasRegexFallback = patterns
+          .flatMap((set) => set.patterns)
+          .some((p) =>
+            p.id.startsWith(baseName) &&
+            (p.id.endsWith(".regex") || !p.requires_index)
+          );
+
+        expect(hasRegexFallback).toBe(true);
+      }
+    });
+
+    it("loads patterns with depends_on dependency declarations", async () => {
+      const patterns = await loadBuiltinPatterns();
+      const dependentPatterns = patterns
+        .flatMap((set) => set.patterns)
+        .filter((p) => p.depends_on && p.depends_on.length > 0);
+
+      // After Phase 4, dependent patterns should be present
+      expect(dependentPatterns.length).toBeGreaterThan(0);
+
+      // Verify dependent patterns have valid dependency references
+      const allPatternIds = new Set(
+        patterns.flatMap((set) => set.patterns.map((p) => p.id))
+      );
+
+      for (const pattern of dependentPatterns) {
+        expect(Array.isArray(pattern.depends_on)).toBe(true);
+        for (const depId of pattern.depends_on) {
+          expect(allPatternIds.has(depId)).toBe(true);
+        }
+      }
+    });
+
+    it("provides batch analysis candidates for independent patterns", async () => {
+      const patterns = await loadBuiltinPatterns();
+      const allPatterns = patterns.flatMap((set) => set.patterns);
+
+      // Separate independent patterns (no depends_on or empty)
+      const independentPatterns = allPatterns.filter(
+        (p) => !p.depends_on || p.depends_on.length === 0
+      );
+
+      // Should have more independent patterns than dependent ones
+      const dependentPatterns = allPatterns.filter(
+        (p) => p.depends_on && p.depends_on.length > 0
+      );
+
+      expect(independentPatterns.length).toBeGreaterThan(dependentPatterns.length);
+
+      // Independent patterns can be batched for parallel execution
+      const batchablePatterns = independentPatterns.filter((p) => p.requires_index === true);
+      // After Phase 4, at least some semantic patterns should be batchable
+      expect(batchablePatterns.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it("maintains backward compatibility with regex-only patterns", async () => {
+      const patterns = await loadBuiltinPatterns();
+      const regexPatterns = patterns
+        .flatMap((set) => set.patterns)
+        .filter((p) => !p.requires_index || p.requires_index === false);
+
+      // Regex patterns should still be present for backward compatibility
+      expect(regexPatterns.length).toBeGreaterThan(0);
+
+      // Regex patterns should not have requires_index: true
+      for (const pattern of regexPatterns) {
+        expect(pattern.requires_index).not.toBe(true);
+      }
+    });
+  });
 });

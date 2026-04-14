@@ -163,11 +163,26 @@ const results = await client.callTool("search_code", {
 await client.disconnect();
 ```
 
-### CodePrism Tools Used
+### CodePrism Tools
 
-Patterns invoke CodePrism tools via the MCP interface:
+Patterns invoke CodePrism tools via the MCP interface. Both regex-based and semantic tools are supported:
 
-- **search_code** — Find code matching patterns (regex/semantic) for extracting architectural elements and relationships
+#### Regex-Based Tools (Phase 1-3)
+
+- **search_code** — Find code matching regex patterns for extracting architectural elements and relationships
+
+#### Semantic Tools (Phase 4+)
+
+- **analyze_api_surface** — Discover API endpoints, routes, and operations using AST analysis (framework-aware)
+- **analyze_decorators** — Identify decorated classes and methods (e.g., @Injectable, @Entity, @UseGuards)
+- **find_dependencies** — Map dependency graphs within and across modules/layers
+- **search_symbols** — Locate and classify symbols (functions, classes, methods) with type information
+- **detect_patterns** — Identify architectural and design patterns in code (MVC, microservices, design patterns)
+- **batch_analysis** — Execute multiple independent tool invocations in parallel for performance
+
+#### Batch Analysis Dispatch
+
+Independent patterns (those without `depends_on`) are automatically grouped and dispatched via `batch_analysis` in a single call, improving performance. If `batch_analysis` is unavailable or fails, the scan engine gracefully falls back to sequential per-pattern execution.
 
 ## Language Support
 
@@ -298,7 +313,7 @@ Review changes with: dr changeset show dr-scan-20260328T154532Z
 # Metadata
 layer: api # Target DR layer
 framework: express # Framework identifier
-version: "1.0" # Pattern version (semver)
+version: "2.0" # Pattern version (semver)
 
 patterns:
   - id: pattern.identifier # Unique pattern ID
@@ -309,12 +324,14 @@ patterns:
       # For relationships only:
       # relationshipType: calls
     query: # CodePrism query specification
-      tool: search_code
+      tool: analyze_api_surface # Semantic tool (Phase 4+) or search_code (Phase 1-3)
       params:
-        pattern: "regex pattern"
+        framework: express # For semantic tools
         language: javascript
         # Additional CodePrism-specific params
-    confidence: 0.85 # Confidence score (0-1)
+    confidence: 0.95 # Confidence score (0-1)
+    requires_index: false # (Optional, Phase 4+) Pattern needs active CodePrism session
+    depends_on: [] # (Optional, Phase 4+) Array of pattern IDs this depends on
     mapping: # Template-based mapping
       id: "api.endpoint.{match.path|kebab}"
       name: "{match.path}"
@@ -322,7 +339,103 @@ patterns:
       # For relationships:
       # source: "api.endpoint.{match.source}"
       # target: "api.endpoint.{match.target}"
-      # type: "calls"
+```
+
+### Phase 4: New Pattern Fields
+
+#### `requires_index` (boolean, optional, default false)
+
+Indicates that a pattern requires an active CodePrism session with indexed repository data. Semantic patterns that use AST analysis should set this to true.
+
+**Graceful Degradation Behavior:**
+- If `requires_index: true` and no active session exists, the pattern is skipped with a warning
+- Users are instructed to run `dr scan index` to start a session
+- The scan falls back to any co-existing regex patterns with the same produces type
+
+```yaml
+patterns:
+  - id: nestjs.controller.route
+    requires_index: true # Requires session
+    query:
+      tool: analyze_api_surface
+      # ...
+  
+  - id: nestjs.controller.route.regex
+    requires_index: false # Regex fallback (default)
+    query:
+      tool: search_code
+      # ...
+```
+
+#### `depends_on` (array of pattern IDs, optional, default [])
+
+Declares multi-pass pattern dependencies. Patterns listed in `depends_on` must complete before this pattern executes.
+
+**Execution Model:**
+- Independent patterns (empty `depends_on`) are batched and dispatched via `batch_analysis` in a single call
+- Dependent patterns execute sequentially after their dependencies complete
+- Invalid dependencies (referencing non-existent patterns) cause the pattern to be skipped with a warning
+
+```yaml
+patterns:
+  # Phase 1: Discover services
+  - id: nestjs.service.injectable
+    requires_index: true
+    query:
+      tool: analyze_decorators
+      # ...
+  
+  # Phase 2: Discover service dependencies (depends on services existing)
+  - id: nestjs.service.dependency
+    requires_index: true
+    depends_on: ["nestjs.service.injectable"]
+    query:
+      tool: find_dependencies
+      # ...
+```
+
+### Recommended Pattern Strategy
+
+**Tier 1 Frameworks (JavaScript/TypeScript, Python, Java):**
+
+Use semantic patterns with fallbacks for maximum accuracy:
+
+1. Create semantic pattern with `requires_index: true` and high confidence (0.90+)
+2. Create parallel regex pattern with `requires_index: false` and moderate confidence (0.60-0.75)
+3. Users get best results when session is active; reasonable results when offline
+
+**Example Pattern Pair:**
+
+```yaml
+# Semantic (preferred when session active)
+- id: express.route.handler
+  requires_index: true
+  query:
+    tool: analyze_api_surface
+    params:
+      framework: express
+  confidence: 0.95
+
+# Regex fallback (used when session inactive)
+- id: express.route.handler.regex
+  query:
+    tool: search_code
+    params:
+      pattern: "(app|router)\\.(get|post|...)"
+  confidence: 0.75
+```
+
+**Tier 2-3 Frameworks:**
+
+Use regex patterns only (no semantic tools available):
+
+```yaml
+- id: custom.pattern
+  query:
+    tool: search_code
+    params:
+      pattern: "..."
+  confidence: 0.70
 ```
 
 ### Template Syntax
@@ -342,6 +455,54 @@ mapping:
   name: "{match.method|upper} {match.path}"
 ```
 
+## Execution Flow (Phase 4 Semantic Dispatch)
+
+### Pattern Execution Strategy
+
+1. **Pattern Grouping** — Patterns are separated by dependencies:
+   - Independent patterns (no `depends_on`) are batched for parallel execution
+   - Dependent patterns execute sequentially after their dependencies
+
+2. **Session Management** — Semantic patterns check for active sessions:
+   - Patterns with `requires_index: true` require an active CodePrism session
+   - If no session exists, these patterns are skipped with a warning
+   - Regex fallback patterns continue to execute
+
+3. **Batch Analysis Dispatch** — Independent patterns are sent to CodePrism via `batch_analysis`:
+   - All independent patterns dispatched in a single call for efficiency
+   - If `batch_analysis` is unavailable, the engine falls back to sequential execution
+   - Graceful degradation ensures scans complete even if batch dispatch fails
+
+4. **Result Mapping** — Results are mapped to candidates in pattern order:
+   - Each pattern's results are independently mapped
+   - Mapping failures are logged as warnings (non-fatal)
+   - High confidence results are preserved even if some patterns fail
+
+### Session Management
+
+Semantic patterns require an active CodePrism session:
+
+```bash
+# Start indexing the repository
+dr scan index
+
+# Check session status
+dr scan status
+
+# Stop the session
+dr scan stop
+```
+
+**When Session is Active:**
+- Semantic patterns execute with high confidence (0.90+)
+- Batch analysis dispatch used for parallel execution
+- Best-in-class results from AST analysis
+
+**When Session is Inactive:**
+- Semantic patterns skipped with warnings
+- Regex fallback patterns execute (if present)
+- Users guided to run `dr scan index` for better results
+
 ### Testing Patterns
 
 Validate patterns before committing:
@@ -359,6 +520,22 @@ dr scan --layer api --dry-run
 
 ## Troubleshooting
 
+### Session Management Issues (Phase 4)
+
+**Error: "Pattern requires active session but no session is active"**
+
+1. Start a session: `dr scan index`
+2. Wait for indexing to complete
+3. Resume scanning: `dr scan`
+4. Check session status: `dr scan status`
+
+**Semantic patterns are being skipped**
+
+If semantic patterns (high confidence) are showing as skipped in verbose output:
+1. Verify session is active: `dr scan status`
+2. Check session.status is "ready" (not "indexing")
+3. If stale, refresh: `dr scan stop` then `dr scan index`
+
 ### CodePrism Connection Issues
 
 **Error: "Failed to connect to CodePrism"**
@@ -367,6 +544,13 @@ dr scan --layer api --dry-run
 2. Verify config: `dr scan --config`
 3. Check CodePrism version: `codeprism --version`
 4. Test MCP connection: `dr scan --verbose`
+
+**Error: "batch_analysis failed, falling back to sequential execution"**
+
+This is normal and not an error. The scan will continue with per-pattern execution, but more slowly. To optimize:
+1. Ensure CodePrism is running: `codeprism --mcp`
+2. Check available system resources (memory, CPU)
+3. Try reducing pattern count with `disabled_patterns` in config
 
 ### Pattern Matching Issues
 
