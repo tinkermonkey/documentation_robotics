@@ -1,11 +1,11 @@
 /**
  * CodePrism Session Manager
  *
- * Manages the lifecycle of persistent CodePrism sessions:
- * - Start: Spawn CodePrism as background process, store metadata in `.scan-session`
- * - Status: Check if session is active, report indexing/ready status
- * - Query: Reconnect to running session and forward tool calls
- * - Stop: Graceful shutdown and cleanup
+ * Manages the lifecycle of CodePrism sessions using an on-demand spawning model:
+ * - Start: Create session file with metadata after confirming CodePrism is responsive
+ * - Status: Check if session file exists, report indexing/ready status
+ * - Query: Create a fresh CodePrism process per query, forward tool call, clean up
+ * - Stop: Remove session file (no persistent process to kill)
  *
  * Session file format (.scan-session):
  * ```json
@@ -20,10 +20,11 @@
  * ```
  *
  * Session invariants:
- * - Only one session per workspace
- * - Session file contains PID for liveness checking
- * - Process is detached (daemon) and survives CLI exit
- * - Session stays alive until explicitly stopped or process crashes
+ * - Only one session per workspace (file-based mutex)
+ * - Session file existence indicates active session
+ * - PID field is a session token for future daemon-style upgrades, not checked for liveness
+ * - CodePrism processes are spawned on-demand, not kept running
+ * - Session is invalidated by removing the session file
  */
 
 import { writeFile, readFile, unlink } from "node:fs/promises";
@@ -279,10 +280,12 @@ export async function startSession(
         // Try to create a client to the running process
         if (!client) {
           client = await createMcpClient(config);
-          // Note: We don't have access to the actual PID from createMcpClient
-          // This is a limitation of the stdio transport abstraction
-          // For now, we use a placeholder that represents "a running CodePrism process"
-          sessionPid = process.pid; // Will be updated if we can extract the actual PID
+          // Note: We store the CLI's PID as a session token, not as a liveness check.
+          // The on-demand architecture spawns CodePrism fresh for each query,
+          // so we can't maintain a persistent PID. The session file itself is the
+          // proof that a session is active. The PID field is retained for future
+          // compatibility with daemon-style sessions.
+          sessionPid = process.pid;
         }
 
         // Poll repository_stats to check indexing status
@@ -354,11 +357,12 @@ export async function startSession(
 /**
  * Stop CodePrism session
  *
- * Removes the session file. With the current architecture where CodePrism
- * processes are spawned on-demand, there is no persistent process to kill.
+ * Removes the session file, invalidating the session. With the current on-demand
+ * architecture, there is no persistent process to kill since CodePrism is spawned
+ * fresh for each query.
  *
- * If a persistent CodePrism process is detected (via the stored PID), it will
- * be terminated gracefully (SIGTERM → SIGKILL fallback).
+ * This function removes the session file. In future daemon-style architectures,
+ * it could also terminate a persistent process, but that is not required now.
  *
  * @param workspace - Workspace root path
  * @throws CLIError if session cannot be stopped or doesn't exist
@@ -421,6 +425,12 @@ export async function stopSession(workspace: string): Promise<void> {
  * Reconnects to the running session and forwards a tool call.
  * Returns the tool result without re-indexing.
  *
+ * NOTE: With the current on-demand architecture, the session file itself
+ * acts as the session token. We don't check process liveness because
+ * CodePrism processes are spawned fresh on each query. The session file
+ * existence indicates the session is active; actual process availability
+ * will be detected when we attempt to create the MCP client.
+ *
  * @param workspace - Workspace root path
  * @param config - Scan configuration
  * @param toolName - CodePrism tool name (e.g., "repository_stats", "search_code")
@@ -443,19 +453,6 @@ export async function querySession(
       [
         `No session file found in ${workspace}`,
         "Use 'dr scan session start' to start a new session",
-      ]
-    );
-  }
-
-  // Check if process is alive
-  if (!isProcessAlive(session.pid)) {
-    throw new CLIError(
-      "Session process is no longer alive",
-      ErrorCategory.SYSTEM,
-      [
-        `PID ${session.pid} is not responding`,
-        "The CodePrism process may have crashed",
-        "Use 'dr scan session stop' to clean up and 'dr scan session start' to begin a new session",
       ]
     );
   }
