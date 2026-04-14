@@ -5,7 +5,7 @@
  * index freshness status
  */
 
-import { describe, it, expect, beforeAll, afterAll, spyOn } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { saveScanIndex } from "../../src/scan/index-builder.js";
 import { writeFile, unlink } from "node:fs/promises";

@@ -22,7 +22,7 @@
  * ```
  */
 
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, readdir } from "node:fs/promises";
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
@@ -70,7 +70,7 @@ const SuggestedWorkflowSchema = z.object({
  * Complete scan index schema
  */
 export const ScanIndexSchema = z.object({
-  indexed_at: z.string(),
+  indexed_at: z.string().datetime(),
   workspace: z.string(),
   repository: RepositoryInfoSchema,
   detected_patterns: DetectedPatternsSchema,
@@ -438,8 +438,6 @@ export async function findMostRecentlyModifiedFile(
   const excludeDirs = new Set([
     "node_modules",
     ".git",
-    ".gitignore",
-    ".env",
     ".venv",
     "__pycache__",
     "dist",
@@ -449,7 +447,6 @@ export async function findMostRecentlyModifiedFile(
     "env",
     ".idea",
     ".vscode",
-    ".DS_Store",
     "documentation-robotics",  // Exclude DR's own files
   ]);
 
@@ -457,8 +454,7 @@ export async function findMostRecentlyModifiedFile(
 
   async function walkDir(dirPath: string): Promise<void> {
     try {
-      const entries = await import("node:fs/promises")
-        .then((m) => m.readdir(dirPath, { withFileTypes: true }));
+      const entries = await readdir(dirPath, { withFileTypes: true });
 
       for (const entry of entries) {
         // Skip excluded directories

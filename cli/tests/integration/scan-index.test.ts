@@ -143,7 +143,7 @@ describe("Scan Index Command", () => {
       };
 
       const validation = ScanIndexSchema.safeParse(invalidIndex);
-      expect(validation.success).toBe(true); // String validation passes
+      expect(validation.success).toBe(false); // Invalid timestamp format
     });
 
     it("rejects index with non-numeric total_files", async () => {

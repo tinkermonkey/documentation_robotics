@@ -23,6 +23,7 @@
 
 import ansis from "ansis";
 import { Command } from "commander";
+import { join } from "node:path";
 import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
 import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
@@ -45,7 +46,6 @@ export interface ScanOptions {
  */
 export interface ScanIndexOptions {
   workspace?: string;
-  output?: string;
   verbose?: boolean;
 }
 
@@ -215,7 +215,7 @@ export async function scanIndexCommand(options: ScanIndexOptions): Promise<void>
       console.log(`  Rationale: ${index.suggested_workflow.rationale}`);
     }
 
-    console.log(`\nIndex saved to: ${options.workspace ? options.output : "documentation-robotics/scan-index.json"}`);
+    console.log(`\nIndex saved to: ${join(workspace, "documentation-robotics", "scan-index.json")}`);
   } catch (error) {
     handleError(error);
   } finally {
