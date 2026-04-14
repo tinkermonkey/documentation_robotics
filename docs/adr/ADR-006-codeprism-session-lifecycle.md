@@ -1,8 +1,8 @@
 # ADR-006: CodePrism Session Lifecycle - Persistent Background Sessions
 
-**Date**: 2026-04-14  
-**Status**: Accepted  
-**Context**: Issue #629 - Implement persistent CodePrism session infrastructure  
+**Date**: 2026-04-14
+**Status**: Accepted
+**Context**: Issue #629 - Implement persistent CodePrism session infrastructure
 **Decision**: Implement explicit, opt-in session lifecycle management with the `dr scan session` command family
 
 ## Problem
@@ -109,16 +109,16 @@ Sessions are persisted in a metadata file at `documentation-robotics/.scan-sessi
    - `spawn(..., { detached: true, stdio: 'pipe' })`
    - `child.unref()` so Node doesn't wait for exit
    - Process survives CLI process exit
-   
+
 2. **Polling**: Poll `repository_stats` tool until indexing complete
    - Default timeout: 60 seconds
    - Default poll interval: 1 second
    - Configurable via test options
-   
+
 3. **Liveness Check**: PID-based process detection
    - `process.kill(pid, 0)` to check if process exists
    - Used by status command to verify session is still alive
-   
+
 4. **Shutdown**: Graceful SIGTERM + forced SIGKILL fallback
    - Send SIGTERM
    - Wait up to 5 seconds
@@ -137,6 +137,7 @@ To start a session, run: dr scan session start
 ```
 
 **Exit codes**:
+
 - `0`: Command succeeded
 - `1`: User error (no session, invalid params) or session command error
 - `2`: System error (process spawn failed, file I/O error)
@@ -162,11 +163,13 @@ export async function startSession(
   workspace: string,
   config: LoadedScanConfig,
   options?: { maxWaitMs?: number; pollIntervalMs?: number }
-): Promise<SessionFile>
+): Promise<SessionFile>;
 
-export async function stopSession(workspace: string): Promise<void>
+export async function stopSession(workspace: string): Promise<void>;
 
-export async function getSessionState(workspace: string): Promise<SessionState | null>
+export async function getSessionState(
+  workspace: string
+): Promise<SessionState | null>;
 
 // Queries
 export async function querySession(
@@ -174,27 +177,38 @@ export async function querySession(
   config: LoadedScanConfig,
   toolName: string,
   toolParams: Record<string, unknown>
-): Promise<ToolResult[]>
+): Promise<ToolResult[]>;
 
 // Utilities
-export function isProcessAlive(pid: number): boolean
-export function getSessionPath(workspace: string): string
-export async function loadSessionFile(workspace: string): Promise<SessionFile | null>
-export async function saveSessionFile(workspace: string, session: SessionFile): Promise<void>
+export function isProcessAlive(pid: number): boolean;
+export function getSessionPath(workspace: string): string;
+export async function loadSessionFile(
+  workspace: string
+): Promise<SessionFile | null>;
+export async function saveSessionFile(
+  workspace: string,
+  session: SessionFile
+): Promise<void>;
 ```
 
 ### Command Handlers: `cli/src/commands/scan.ts`
 
 ```typescript
-export async function sessionStartCommand(options: { workspace?: string }): Promise<void>
-export async function sessionStatusCommand(options?: { workspace?: string }): Promise<void>
+export async function sessionStartCommand(options: {
+  workspace?: string;
+}): Promise<void>;
+export async function sessionStatusCommand(options?: {
+  workspace?: string;
+}): Promise<void>;
 export async function sessionQueryCommand(
   tool: string,
   options?: { params?: string; format?: "json" | "text"; workspace?: string }
-): Promise<void>
-export async function sessionStopCommand(options?: { workspace?: string }): Promise<void>
+): Promise<void>;
+export async function sessionStopCommand(options?: {
+  workspace?: string;
+}): Promise<void>;
 
-export function scanCommands(program: Command): void
+export function scanCommands(program: Command): void;
 ```
 
 ### CLI Registration: `cli/src/cli.ts`
@@ -215,11 +229,11 @@ Sessions use the same scan configuration as the main `dr scan` command:
 ```yaml
 scan:
   codeprism:
-    command: codeprism        # CodePrism binary
-    args: ["--mcp"]           # MCP server args
-    timeout: 5000             # Connection timeout (ms)
-  confidence_threshold: 0.7   # (used by main scan)
-  disabled_patterns: []       # (used by main scan)
+    command: codeprism # CodePrism binary
+    args: ["--mcp"] # MCP server args
+    timeout: 5000 # Connection timeout (ms)
+  confidence_threshold: 0.7 # (used by main scan)
+  disabled_patterns: [] # (used by main scan)
 ```
 
 Sessions inherit all CodePrism configuration (command, args, environment) from this file.
@@ -273,6 +287,7 @@ This session model enables:
 ### Chosen Explicit Over Implicit
 
 **Why not auto-start sessions?**
+
 - Hidden background processes are harder to debug
 - Developers need visibility into session state
 - Resource consumption is explicit and controllable
@@ -281,6 +296,7 @@ This session model enables:
 ### Chosen Detached Over Managed
 
 **Why not manage process with Node process manager?**
+
 - Session survives terminal closure and CLI process exit
 - Developers can work with session across multiple terminal windows
 - Simpler implementation (no need to track child processes across CLI invocations)
@@ -288,6 +304,7 @@ This session model enables:
 ### Chosen PID-Based Over Socket-Based
 
 **Why not use named pipes or sockets?**
+
 - PID-based detection is simpler and platform-independent
 - Session file contains all needed metadata
 - Works across terminal/process boundaries

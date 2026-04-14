@@ -548,6 +548,7 @@ dr changeset delete <id> --force     # Delete without confirmation
 ### Changeset Naming Rules
 
 Changeset names are automatically sanitized:
+
 - Converted to lowercase
 - Spaces and special characters replaced with hyphens
 - Only alphanumeric characters and hyphens are kept
@@ -558,6 +559,7 @@ dr changeset create "Design Payment Webhooks"
 ```
 
 **Best practice**: Use a descriptive, feature-scoped name:
+
 - ✅ `feature-webhook-subscriptions`
 - ✅ `design-payment-webhooks`
 - ✅ `add-oauth2-authentication`
@@ -641,12 +643,14 @@ dr changeset commit --force
 ### Post-Commit State
 
 After a successful `dr changeset commit`:
+
 - Changeset status changes to `COMMITTED`
 - Changeset is automatically deactivated (no longer active)
 - The changeset file is preserved for history (not deleted)
 - Committing the same changeset again is a safe no-op ("No staged changes to commit")
 
 Verify success:
+
 ```bash
 dr changeset list    # Should show: feature-name  COMMITTED
 ```
