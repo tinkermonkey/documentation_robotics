@@ -1,5 +1,5 @@
 # NestJS API Layer Patterns
-# Phase 4: Semantic pattern evolution using CodePrism's analyze_api_surface and analyze_decorators
+# Semantic pattern evolution using CodePrism's analyze_api_surface and analyze_decorators
 layer: api
 framework: nestjs
 version: "2.0"
@@ -57,8 +57,8 @@ patterns:
       source: "api.endpoint.{match.target|kebab}"
       target: "security.guard.{match.decoratorArg|kebab}"
 
-  # Regex fallback for guards
-  - id: nestjs.controller.guard.regex
+  # Regex fallback for decorators
+  - id: nestjs.controller.decorator.regex
     produces:
       type: relationship
       layer: api

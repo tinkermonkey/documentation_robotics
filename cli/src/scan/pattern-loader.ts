@@ -98,7 +98,7 @@ export type Mapping = Record<string, string>;
 /**
  * Individual pattern definition within a pattern set
  *
- * New fields (Phase 4 - Semantic Pattern Evolution):
+ * Semantic pattern fields:
  * - `requires_index` (boolean, optional, default false) - Pattern requires an active CodePrism session
  *   Semantic patterns that need repository indexing should set this to true. When no session is
  *   active, patterns with this flag are skipped with a warning, and the scan falls back to
@@ -115,8 +115,8 @@ export const PatternDefinitionSchema = z.object({
   query: QuerySpecSchema,
   confidence: z.number().min(0).max(1),
   mapping: MappingSchema,
-  requires_index: z.boolean().default(false).optional(),
-  depends_on: z.array(z.string()).default([]).optional(),
+  requires_index: z.boolean().optional().default(false),
+  depends_on: z.array(z.string()).optional().default([]),
 });
 
 export type PatternDefinition = z.infer<typeof PatternDefinitionSchema>;

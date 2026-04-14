@@ -183,7 +183,7 @@ describe("Pattern Loader", () => {
       expect(() => PatternDefinitionSchema.parse(maxConfidence)).not.toThrow();
     });
 
-    it("accepts pattern with requires_index: true (Phase 4)", () => {
+    it("accepts pattern with requires_index: true (semantic patterns)", () => {
       const semanticPattern = {
         id: "express.route.handler",
         produces: { type: "node", layer: "api", elementType: "endpoint" },
@@ -360,7 +360,7 @@ describe("Pattern Loader", () => {
       expect(patterns.length).toBeGreaterThan(0); // Proves files were found
     });
 
-    it("validates all patterns have valid requires_index and depends_on fields (Phase 4)", async () => {
+    it("validates all patterns have valid requires_index and depends_on fields (semantic patterns)", async () => {
       const patterns = await loadBuiltinPatterns();
 
       for (const patternSet of patterns) {

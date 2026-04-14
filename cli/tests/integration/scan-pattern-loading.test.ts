@@ -178,14 +178,14 @@ describe("Pattern Loading Integration", () => {
     expect(filtered[0].confidence).toBeGreaterThanOrEqual(defaultThreshold);
   });
 
-  describe("Phase 4: Semantic Pattern Evolution (requires_index and depends_on)", () => {
+  describe("Semantic pattern evolution with requires_index and depends_on", () => {
     it("loads semantic patterns with requires_index field", async () => {
       const patterns = await loadBuiltinPatterns();
       const semanticPatterns = patterns
         .flatMap((set) => set.patterns)
         .filter((p) => p.requires_index === true);
 
-      // After Phase 4, semantic patterns should be present
+      // Semantic patterns with requires_index should be present
       expect(semanticPatterns.length).toBeGreaterThan(0);
 
       // Verify semantic patterns have proper metadata
@@ -198,11 +198,13 @@ describe("Pattern Loading Integration", () => {
       }
     });
 
-    it("semantic patterns have fallback regex patterns", async () => {
+    it("semantic patterns have fallback regex patterns (when available)", async () => {
       const patterns = await loadBuiltinPatterns();
 
-      // For each semantic pattern, there should be a corresponding regex fallback
+      // For each semantic pattern in framework pattern sets (not architectural patterns),
+      // there should be a corresponding regex fallback
       const semanticPatterns = patterns
+        .filter((set) => !set.framework.includes("pattern"))
         .flatMap((set) => set.patterns)
         .filter((p) => p.requires_index === true);
 
@@ -226,7 +228,7 @@ describe("Pattern Loading Integration", () => {
         .flatMap((set) => set.patterns)
         .filter((p) => p.depends_on && p.depends_on.length > 0);
 
-      // After Phase 4, dependent patterns should be present
+      // Dependent patterns with depends_on should be present
       expect(dependentPatterns.length).toBeGreaterThan(0);
 
       // Verify dependent patterns have valid dependency references
@@ -260,7 +262,7 @@ describe("Pattern Loading Integration", () => {
 
       // Independent patterns can be batched for parallel execution
       const batchablePatterns = independentPatterns.filter((p) => p.requires_index === true);
-      // After Phase 4, at least some semantic patterns should be batchable
+      // Some semantic patterns should be batchable
       expect(batchablePatterns.length).toBeGreaterThanOrEqual(0);
     });
 

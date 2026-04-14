@@ -1,5 +1,5 @@
 # Express.js API Layer Patterns
-# Phase 4: Semantic pattern evolution using CodePrism's analyze_api_surface tool
+# Semantic pattern evolution using CodePrism's analyze_api_surface tool
 # This replaces regex-based route discovery with semantic AST analysis
 layer: api
 framework: express
@@ -74,3 +74,20 @@ patterns:
     mapping:
       source: "api.middleware.{match.middlewareName|kebab}"
       target: "api.endpoint.*"
+
+  # Regex pattern: Detect error handler middleware (catch-all error handlers)
+  - id: express.error.handler
+    produces:
+      type: node
+      layer: api
+      elementType: middleware
+    query:
+      tool: search_code
+      params:
+        pattern: "app\\.use\\(\\s*\\(\\s*err\\s*,\\s*req\\s*,\\s*res\\s*,\\s*next\\s*\\)"
+        language: javascript
+    confidence: 0.7
+    mapping:
+      id: "api.middleware.error-handler"
+      name: "Error Handler Middleware"
+      description: "Express error handling middleware"

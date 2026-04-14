@@ -1,5 +1,5 @@
 # Architectural Pattern Detection Patterns
-# Phase 4: Semantic pattern evolution using CodePrism's detect_patterns tool
+# Semantic pattern evolution using CodePrism's detect_patterns tool
 # Maps detected code patterns to motivation.constraint elements
 layer: motivation
 framework: architectural-patterns

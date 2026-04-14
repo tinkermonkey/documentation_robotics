@@ -52,6 +52,15 @@ export interface ScanIndexOptions {
 }
 
 /**
+ * Query specification for batch analysis dispatch
+ */
+interface BatchQuery {
+  patternId: string;
+  tool: string;
+  params: Record<string, unknown>;
+}
+
+/**
  * Parse a line number string safely, validating the result
  *
  * @param lineStr - Line number as string or undefined
@@ -559,6 +568,53 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 }
 
 /**
+ * Process pattern results and map them to element/relationship candidates
+ *
+ * Handles the common logic of parsing results, calling mapToElementCandidate or
+ * mapToRelationshipCandidate based on pattern type, and collecting error counts.
+ *
+ * @param pattern - Pattern definition
+ * @param matches - Array of match objects from CodePrism results
+ * @param elementCandidates - Array to accumulate element candidates
+ * @param relationshipCandidates - Array to accumulate relationship candidates
+ * @param warnings - Array to collect warnings
+ * @param verbose - Show detailed output
+ */
+function processPatternResults(
+  pattern: PatternDefinition & { frameworkId: string },
+  matches: Array<Record<string, unknown>>,
+  elementCandidates: ElementCandidate[],
+  relationshipCandidates: RelationshipCandidate[],
+  warnings: string[],
+  verbose: boolean
+): void {
+  let matchErrorCount = 0;
+  for (const match of matches) {
+    try {
+      if (pattern.produces.type === "relationship") {
+        const candidate = mapToRelationshipCandidate(pattern, match as Record<string, string>, warnings);
+        if (candidate) {
+          relationshipCandidates.push(candidate);
+        }
+      } else {
+        const candidate = mapToElementCandidate(pattern, match as Record<string, string>, warnings);
+        if (candidate) {
+          elementCandidates.push(candidate);
+        }
+      }
+    } catch (matchError) {
+      const errorMsg = getErrorMessage(matchError);
+      const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
+      warnings.push(errorDetail);
+      matchErrorCount++;
+    }
+  }
+  if (matchErrorCount > 0 && verbose) {
+    console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
+  }
+}
+
+/**
  * Execute all patterns and collect element and relationship candidates
  *
  * FR-1: Pattern Execution Engine Implementation
@@ -624,14 +680,18 @@ export async function executePatterns(
 
     if (hasDependencies) {
       // Validate dependencies exist
+      let hasMissingDependency = false;
       for (const depId of pattern.depends_on!) {
         if (!patternIdMap.has(depId)) {
           warnings.push(`Pattern '${pattern.id}' depends on non-existent pattern '${depId}'. This pattern will be skipped.`);
           skippedPatterns.push(pattern);
-          continue;
+          hasMissingDependency = true;
+          break;
         }
       }
-      dependentPatterns.push(pattern);
+      if (!hasMissingDependency) {
+        dependentPatterns.push(pattern);
+      }
     } else {
       independentPatterns.push(pattern);
     }
@@ -644,11 +704,6 @@ export async function executePatterns(
     }
 
     // Prepare batch analysis queries
-    interface BatchQuery {
-      patternId: string;
-      tool: string;
-      params: Record<string, unknown>;
-    }
     const batchQueries: BatchQuery[] = independentPatterns.map((pattern) => ({
       patternId: pattern.id,
       tool: pattern.query.tool,
@@ -699,30 +754,7 @@ export async function executePatterns(
         }
 
         // Map matches to candidates
-        let matchErrorCount = 0;
-        for (const match of patternResults) {
-          try {
-            if (pattern.produces.type === "relationship") {
-              const candidate = mapToRelationshipCandidate(pattern, match, warnings);
-              if (candidate) {
-                relationshipCandidates.push(candidate);
-              }
-            } else {
-              const candidate = mapToElementCandidate(pattern, match, warnings);
-              if (candidate) {
-                elementCandidates.push(candidate);
-              }
-            }
-          } catch (matchError) {
-            const errorMsg = getErrorMessage(matchError);
-            const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
-            warnings.push(errorDetail);
-            matchErrorCount++;
-          }
-        }
-        if (matchErrorCount > 0 && verbose) {
-          console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
-        }
+        processPatternResults(pattern, patternResults, elementCandidates, relationshipCandidates, warnings, verbose);
       }
     } catch (error) {
       // If batch_analysis fails, fall back to individual pattern execution
@@ -775,30 +807,8 @@ export async function executePatterns(
           console.log(`    Found ${matches.length} matches`);
         }
 
-        let matchErrorCount = 0;
-        for (const match of matches) {
-          try {
-            if (pattern.produces.type === "relationship") {
-              const candidate = mapToRelationshipCandidate(pattern, match, warnings);
-              if (candidate) {
-                relationshipCandidates.push(candidate);
-              }
-            } else {
-              const candidate = mapToElementCandidate(pattern, match, warnings);
-              if (candidate) {
-                elementCandidates.push(candidate);
-              }
-            }
-          } catch (matchError) {
-            const errorMsg = getErrorMessage(matchError);
-            const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
-            warnings.push(errorDetail);
-            matchErrorCount++;
-          }
-        }
-        if (matchErrorCount > 0 && verbose) {
-          console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
-        }
+        // Map matches to candidates
+        processPatternResults(pattern, matches, elementCandidates, relationshipCandidates, warnings, verbose);
       }
     }
   }
@@ -849,30 +859,8 @@ export async function executePatterns(
       console.log(`    Found ${matches.length} matches`);
     }
 
-    let matchErrorCount = 0;
-    for (const match of matches) {
-      try {
-        if (pattern.produces.type === "relationship") {
-          const candidate = mapToRelationshipCandidate(pattern, match, warnings);
-          if (candidate) {
-            relationshipCandidates.push(candidate);
-          }
-        } else {
-          const candidate = mapToElementCandidate(pattern, match, warnings);
-          if (candidate) {
-            elementCandidates.push(candidate);
-          }
-        }
-      } catch (matchError) {
-        const errorMsg = getErrorMessage(matchError);
-        const errorDetail = `Pattern '${pattern.id}' encountered unexpected error processing match: ${errorMsg}`;
-        warnings.push(errorDetail);
-        matchErrorCount++;
-      }
-    }
-    if (matchErrorCount > 0 && verbose) {
-      console.log(`    ${matchErrorCount} match(es) failed due to unexpected errors`);
-    }
+    // Map matches to candidates
+    processPatternResults(pattern, matches, elementCandidates, relationshipCandidates, warnings, verbose);
   }
 
   // Filter by confidence

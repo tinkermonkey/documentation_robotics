@@ -1,5 +1,5 @@
 # TypeORM Data Model Layer Patterns
-# Phase 4: Semantic pattern evolution using CodePrism's analyze_decorators and find_dependencies
+# Semantic pattern evolution using CodePrism's analyze_decorators and find_dependencies
 layer: data-model
 framework: typeorm
 version: "2.0"
