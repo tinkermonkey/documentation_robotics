@@ -99,6 +99,12 @@ function safeParseJson(jsonText: string): Record<string, unknown> | null {
   try {
     return JSON.parse(jsonText);
   } catch (error) {
+    // Log the unparseable content (first 200 chars) to help diagnose proxy errors, truncation, etc.
+    const preview = jsonText.length > 200 ? jsonText.substring(0, 200) + "..." : jsonText;
+    console.debug(
+      `Failed to parse JSON response from CodePrism: ${getErrorMessage(error)}. ` +
+      `Response preview: ${preview}`
+    );
     return null;
   }
 }
@@ -546,7 +552,7 @@ export async function findMostRecentlyModifiedFile(
  *
  * @param index - Scan index to check
  * @param workspace - Workspace root path
- * @returns true if index is fresh, false if stale or unable to determine (return true if no files/unreadable)
+ * @returns true if index is fresh or if no files/unable to determine workspace state; false only if an error occurs during the check
  */
 export async function isIndexFresh(
   index: ScanIndex,
