@@ -49,6 +49,7 @@ export interface ScanOptions {
 export interface ScanIndexOptions {
   workspace?: string;
   verbose?: boolean;
+  output?: string;
 }
 
 /**
@@ -197,7 +198,7 @@ export async function scanIndexCommand(options: ScanIndexOptions): Promise<void>
 
     // Save the index
     console.log("\nSaving scan index...");
-    await saveScanIndex(index, workspace);
+    await saveScanIndex(index, workspace, options.output);
 
     // Print summary
     console.log(ansis.green("\n✓ Scan index created successfully"));
@@ -226,7 +227,8 @@ export async function scanIndexCommand(options: ScanIndexOptions): Promise<void>
       console.log(`  Rationale: ${index.suggested_workflow.rationale}`);
     }
 
-    console.log(`\nIndex saved to: ${join(workspace, "documentation-robotics", "scan-index.json")}`);
+    const outputPath = options.output || join(workspace, "documentation-robotics", "scan-index.json");
+    console.log(`\nIndex saved to: ${outputPath}`);
   } catch (error) {
     handleError(error);
   } finally {
@@ -1244,8 +1246,18 @@ export async function sessionStartCommand(options: {
       pollIntervalMs: 1000,
     });
 
-    console.log(ansis.green(`✓ Session started (PID: ${session.pid})`));
-    console.log(`  Indexed files: ${session.indexed_files}`);
+    // Try to load scan index to get detected frameworks
+    let frameworksText = "";
+    try {
+      const scanIndex = await loadScanIndex(workspace);
+      if (scanIndex && scanIndex.repository.frameworks.length > 0) {
+        frameworksText = `${scanIndex.repository.frameworks.join("/")} `;
+      }
+    } catch {
+      // If scan index doesn't exist or can't be loaded, continue without frameworks
+    }
+
+    console.log(ansis.green(`✓ Ready. ${frameworksText}${session.indexed_files.toLocaleString()} files indexed.`));
     console.log(`  Workspace: ${session.workspace}`);
     console.log(`\nSession is ready for queries. Use 'dr scan session query' to interact.`);
   } catch (error) {
@@ -1345,7 +1357,7 @@ export async function sessionQueryCommand(
 
     const results = await querySession(workspace, tool, toolParams);
 
-    const format = options?.format || "text";
+    const format = options?.format || "json";
 
     if (format === "json") {
       console.log(JSON.stringify(results, null, 2));
@@ -1628,6 +1640,7 @@ Examples:
     .command("index")
     .description("Index repository for codebase orientation (runs repository_stats, detect_patterns, suggest_analysis_workflow)")
     .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
+    .option("--output <path>", "Output path for scan index (default: documentation-robotics/scan-index.json)")
     .option("--verbose", "Show detailed indexing output")
     .addHelpText(
       "after",
@@ -1639,12 +1652,14 @@ avoid re-indexing on subsequent runs.
 Examples:
   $ dr scan index                 # Index the current workspace
   $ dr scan index --verbose       # Show detailed pattern detection
-  $ dr scan index --workspace /path/to/project`
+  $ dr scan index --workspace /path/to/project
+  $ dr scan index --output ./custom-index.json  # Save to custom location`
     )
     .action(async (options) => {
       await scanIndexCommand({
         workspace: options.workspace,
         verbose: options.verbose,
+        output: options.output,
       });
     });
 
@@ -1712,7 +1727,7 @@ Examples:
     .command("query <tool>")
     .description("Query a running session with a CodePrism tool")
     .option("--params <json>", "Tool parameters as JSON object")
-    .option("--format <format>", "Output format: json or text (default: text)")
+    .option("--format <format>", "Output format: json or text (default: json)")
     .option("--workspace <path>", "Workspace root path (optional, auto-detected if in project)")
     .addHelpText(
       "after",
@@ -1720,7 +1735,7 @@ Examples:
 Examples:
   $ dr scan session query repository_stats
   $ dr scan session query search_code --params '{"pattern":"class.*User","language":"typescript"}'
-  $ dr scan session query repository_stats --format json`
+  $ dr scan session query repository_stats --format text`
     )
     .action((tool, options) =>
       sessionQueryCommand(tool, {

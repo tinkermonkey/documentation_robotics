@@ -384,13 +384,15 @@ export async function loadScanIndex(
  *
  * @param index - Scan index to persist
  * @param workspace - Workspace root path
+ * @param outputPath - Optional custom output path (overrides default)
  * @throws CLIError if write fails
  */
 export async function saveScanIndex(
   index: ScanIndex,
-  workspace: string
+  workspace: string,
+  outputPath?: string
 ): Promise<void> {
-  const indexPath = getIndexPath(workspace);
+  const indexPath = outputPath || getIndexPath(workspace);
 
   try {
     // Validate before writing
