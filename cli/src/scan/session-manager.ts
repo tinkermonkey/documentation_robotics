@@ -395,15 +395,8 @@ export async function startSession(
       ]
     );
   } catch (error) {
-    // Single cleanup site for all error paths
-    if (client) {
-      try {
-        await client.disconnect();
-      } catch {
-        // Ignore disconnect errors during error cleanup
-      }
-      activeSessions.delete(workspace);
-    }
+    // Error during startup: client is cached but session file was not saved
+    // Let the client be cleaned up via explicit stopSession() call or process exit
     throw error;
   }
 }
