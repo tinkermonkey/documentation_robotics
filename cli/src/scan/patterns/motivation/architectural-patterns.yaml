@@ -68,7 +68,8 @@ patterns:
     query:
       tool: detect_patterns
       params:
-        patternTypes: ["factory", "singleton", "observer", "strategy", "decorator"]
+        patternTypes:
+          ["factory", "singleton", "observer", "strategy", "decorator"]
         language: typescript
     requires_index: true
     confidence: 0.75
@@ -86,7 +87,8 @@ patterns:
     query:
       tool: detect_patterns
       params:
-        patternTypes: ["async-await", "promises", "callbacks", "reactive", "streams"]
+        patternTypes:
+          ["async-await", "promises", "callbacks", "reactive", "streams"]
         language: typescript
     requires_index: true
     confidence: 0.78

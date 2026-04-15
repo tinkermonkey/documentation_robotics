@@ -348,6 +348,7 @@ patterns:
 Indicates that a pattern requires an active CodePrism session with indexed repository data. Semantic patterns that use AST analysis should set this to true.
 
 **Graceful Degradation Behavior:**
+
 - If `requires_index: true` and no active session exists, the pattern is skipped with a warning
 - Users are instructed to run `dr scan index` to start a session
 - The scan falls back to any co-existing regex patterns with the same produces type
@@ -359,7 +360,7 @@ patterns:
     query:
       tool: analyze_api_surface
       # ...
-  
+
   - id: nestjs.controller.route.regex
     requires_index: false # Regex fallback (default)
     query:
@@ -372,6 +373,7 @@ patterns:
 Declares multi-pass pattern dependencies. Patterns listed in `depends_on` must complete before this pattern executes.
 
 **Execution Model:**
+
 - Independent patterns (empty `depends_on`) are batched and dispatched via `batch_analysis` in a single call
 - Dependent patterns execute sequentially after their dependencies complete
 - Invalid dependencies (referencing non-existent patterns) cause the pattern to be skipped with a warning
@@ -384,7 +386,7 @@ patterns:
     query:
       tool: analyze_decorators
       # ...
-  
+
   # Phase 2: Discover service dependencies (depends on services existing)
   - id: nestjs.service.dependency
     requires_index: true
@@ -494,11 +496,13 @@ dr scan stop
 ```
 
 **When Session is Active:**
+
 - Semantic patterns execute with high confidence (0.90+)
 - Batch analysis dispatch used for parallel execution
 - Best-in-class results from AST analysis
 
 **When Session is Inactive:**
+
 - Semantic patterns skipped with warnings
 - Regex fallback patterns execute (if present)
 - Users guided to run `dr scan index` for better results
@@ -532,6 +536,7 @@ dr scan --layer api --dry-run
 **Semantic patterns are being skipped**
 
 If semantic patterns (high confidence) are showing as skipped in verbose output:
+
 1. Verify session is active: `dr scan status`
 2. Check session.status is "ready" (not "indexing")
 3. If stale, refresh: `dr scan stop` then `dr scan index`
@@ -548,6 +553,7 @@ If semantic patterns (high confidence) are showing as skipped in verbose output:
 **Error: "batch_analysis failed, falling back to sequential execution"**
 
 This is normal and not an error. The scan will continue with per-pattern execution, but more slowly. To optimize:
+
 1. Ensure CodePrism is running: `codeprism --mcp`
 2. Check available system resources (memory, CPU)
 3. Try reducing pattern count with `disabled_patterns` in config
