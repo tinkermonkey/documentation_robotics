@@ -12,7 +12,7 @@ import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 import { getActiveSpan } from "../telemetry/index.js";
-import { loadSessionFile, querySession, createSessionClient } from "../scan/session-manager.js";
+import { loadSessionFile, createSessionClient } from "../scan/session-manager.js";
 import { validateElementReferences } from "../scan/ref-validator.js";
 import { type MCPClient } from "../scan/mcp-client.js";
 import { findProjectRoot } from "../utils/project-paths.js";
