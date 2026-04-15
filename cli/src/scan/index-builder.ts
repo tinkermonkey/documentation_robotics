@@ -454,48 +454,82 @@ export async function findMostRecentlyModifiedFile(
   ]);
 
   let mostRecentTime = 0;
+  let filesStatted = 0;
+  let statErrors = 0;
+  let dirReadErrors = 0;
 
   async function walkDir(dirPath: string): Promise<void> {
+    let entries;
     try {
-      const entries = await readdir(dirPath, { withFileTypes: true });
-
-      for (const entry of entries) {
-        // Skip excluded directories
-        if (
-          entry.isDirectory() &&
-          (excludeDirs.has(entry.name) || entry.name.startsWith("."))
-        ) {
-          continue;
-        }
-
-        const fullPath = join(dirPath, entry.name);
-
-        try {
-          const statInfo = await stat(fullPath);
-          if (statInfo.isDirectory()) {
-            await walkDir(fullPath);
-          } else if (statInfo.isFile()) {
-            const mtime = statInfo.mtimeMs;
-            if (mtime > mostRecentTime) {
-              mostRecentTime = mtime;
-            }
-          }
-        } catch (error) {
-          // Skip files we can't stat (permissions, etc.)
-          continue;
-        }
-      }
+      entries = await readdir(dirPath, { withFileTypes: true });
     } catch (error) {
-      // Skip directories we can't read
+      dirReadErrors++;
+      console.debug(
+        `Warning: Could not read directory ${dirPath}: ${getErrorMessage(error)}`
+      );
       return;
+    }
+
+    for (const entry of entries) {
+      // Skip excluded directories
+      if (
+        entry.isDirectory() &&
+        (excludeDirs.has(entry.name) || entry.name.startsWith("."))
+      ) {
+        continue;
+      }
+
+      const fullPath = join(dirPath, entry.name);
+
+      try {
+        const statInfo = await stat(fullPath);
+        filesStatted++;
+        if (statInfo.isDirectory()) {
+          await walkDir(fullPath);
+        } else if (statInfo.isFile()) {
+          const mtime = statInfo.mtimeMs;
+          if (mtime > mostRecentTime) {
+            mostRecentTime = mtime;
+          }
+        }
+      } catch (error) {
+        statErrors++;
+        console.debug(
+          `Warning: Could not stat file ${fullPath}: ${getErrorMessage(error)}`
+        );
+        continue;
+      }
     }
   }
 
   try {
     await walkDir(workspace);
+
+    // If we encountered errors and found no files, log a warning
+    if (statErrors > 0 || dirReadErrors > 0) {
+      if (filesStatted === 0) {
+        console.debug(
+          `Warning: Could not determine workspace modification time. ` +
+          `Encountered ${statErrors} stat errors and ${dirReadErrors} read errors, ` +
+          `but successfully processed 0 files. ` +
+          `Check file system permissions in ${workspace}.`
+        );
+      } else {
+        console.debug(
+          `Warning: Incomplete workspace scan. ` +
+          `Successfully processed ${filesStatted} files, ` +
+          `but encountered ${statErrors} stat errors and ${dirReadErrors} read errors.`
+        );
+      }
+    }
+
     return mostRecentTime > 0 ? new Date(mostRecentTime) : null;
   } catch (error) {
-    // If walk fails completely, return null (index won't be considered fresh)
+    // If walk fails completely, return null (will be treated as fresh by isIndexFresh).
+    // A warning was already logged by walkDir, so just propagate the null.
+    console.debug(
+      `Warning: Workspace traversal failed: ${getErrorMessage(error)}`
+    );
     return null;
   }
 }
@@ -506,9 +540,13 @@ export async function findMostRecentlyModifiedFile(
  * An index is considered fresh if its `indexed_at` timestamp is more recent than
  * the most recently modified source file in the workspace.
  *
+ * Note: If the workspace cannot be fully read due to permissions, a null result
+ * from findMostRecentlyModifiedFile is indistinguishable from "no files found",
+ * and the index will be considered fresh. Check debug logs for permission warnings.
+ *
  * @param index - Scan index to check
  * @param workspace - Workspace root path
- * @returns true if index is fresh, false if stale or no files found
+ * @returns true if index is fresh, false if stale or unable to determine (return true if no files/unreadable)
  */
 export async function isIndexFresh(
   index: ScanIndex,
@@ -518,7 +556,8 @@ export async function isIndexFresh(
     const indexedAt = new Date(index.indexed_at);
     const mostRecent = await findMostRecentlyModifiedFile(workspace);
 
-    // If no files found in workspace, consider index fresh
+    // If no files found or unable to read workspace, consider index fresh.
+    // (Permission errors are logged as debug warnings in findMostRecentlyModifiedFile)
     if (!mostRecent) {
       return true;
     }
