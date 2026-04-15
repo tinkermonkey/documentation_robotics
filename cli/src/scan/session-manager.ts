@@ -394,8 +394,11 @@ export async function startSession(
               } else if (typeof data.files_indexed === "number") {
                 indexedFiles = data.files_indexed;
               }
-            } catch {
-              // Continue if parsing fails
+            } catch (parseError) {
+              // Log but continue if parsing fails - repository_stats may return non-JSON
+              console.debug(
+                `Failed to parse repository_stats JSON response: ${getErrorMessage(parseError)}`
+              );
             }
           }
         }

@@ -15,7 +15,7 @@
 
 import ansis from "ansis";
 import { Element } from "../core/element.js";
-import { type SourceLocation } from "../types/index.js";
+import { type SourceLocation, type ProvenanceType } from "../types/index.js";
 import { type MCPClient } from "./mcp-client.js";
 import { getErrorMessage } from "../utils/errors.js";
 
@@ -41,7 +41,7 @@ export interface LocationValidationResult {
 export interface ElementValidationResult {
   elementId: string;
   elementType: string;
-  provenance: string;
+  provenance: ProvenanceType | "unknown";
   locations: LocationValidationResult[];
   isDead?: boolean;
   overallStatus: "ok" | "warning" | "error";
@@ -145,8 +145,9 @@ export async function validateSourceLocation(
         try {
           const parsed = JSON.parse(result.text);
           return Array.isArray(parsed) && parsed.length > 0;
-        } catch {
+        } catch (parseError) {
           // If not JSON, treat as found if non-empty
+          // (CodePrism may return non-JSON output for file existence checks)
           return result.text && result.text.trim().length > 0;
         }
       }
@@ -215,8 +216,12 @@ export async function validateSourceLocation(
               };
             }
           }
-        } catch {
-          // If search results aren't JSON, treat as not found
+        } catch (parseError) {
+          // If search results aren't JSON, log but treat as not found
+          // (indicates CodePrism returned non-standard response format)
+          console.debug(
+            `Failed to parse search_symbols JSON response for '${symbol}': ${getErrorMessage(parseError)}`
+          );
         }
       }
 
@@ -317,16 +322,24 @@ export async function checkElementReferences(
           if (Array.isArray(parsed) && parsed.length > 0) {
             return true;
           }
-        } catch {
+        } catch (parseError) {
           // Even if we can't parse, non-empty output likely means references exist
+          // Log the parse error for debugging but assume references exist
+          console.debug(
+            `Failed to parse find_references JSON for ${location.symbol}: ${getErrorMessage(parseError)}`
+          );
           return true;
         }
       }
     }
 
     return false;
-  } catch {
-    // On error, conservatively assume not dead
+  } catch (error) {
+    // On error, log but conservatively assume not dead (missing references)
+    const errorMsg = getErrorMessage(error);
+    console.debug(
+      `Error checking element references: ${errorMsg}`
+    );
     return true;
   }
 }

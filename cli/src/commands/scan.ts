@@ -33,7 +33,7 @@ import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { RelationshipInferenceEngine } from "../scan/relationship-inference.js";
 import { validateElementReferences, formatValidationResult, type ElementValidationResult } from "../scan/ref-validator.js";
-import { loadSessionFile } from "../scan/session-manager.js";
+import { loadSessionFile, querySession } from "../scan/session-manager.js";
 
 export interface ScanOptions {
   config?: boolean;
@@ -1211,7 +1211,6 @@ import {
   startSession,
   stopSession,
   getSessionState,
-  querySession,
 } from "../scan/session-manager.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 
@@ -1445,8 +1444,7 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
       process.exit(1);
     }
 
-    // Load configuration and model
-    const config = await loadScanConfig();
+    // Load model
     const modelOptions = options?.layer ? { layers: [options.layer] } : {};
     const model = await Model.load(workspace, modelOptions);
 
@@ -1454,11 +1452,22 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
     console.log(ansis.bold("Validating source references..."));
     console.log("");
 
-    // Connect to CodePrism
+    // Reuse cached session client instead of spawning a new MCP connection
     let client: MCPClient | null = null;
     try {
-      client = await createMcpClient(config);
-      await validateConnection(client);
+      // Create a minimal MCP client wrapper to forward calls through querySession
+      client = {
+        isConnected: true,
+        async callTool(toolName: string, toolArgs: Record<string, unknown>) {
+          return await querySession(workspace, toolName, toolArgs);
+        },
+        async listTools() {
+          throw new Error("listTools not supported in validation context");
+        },
+        async disconnect() {
+          // Session is managed separately, don't disconnect
+        },
+      };
 
       // Validate each element with source references
       const results: ElementValidationResult[] = [];
