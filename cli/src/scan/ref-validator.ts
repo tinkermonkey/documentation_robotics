@@ -351,7 +351,7 @@ export async function validateElementReferences(
   client: MCPClient,
   element: Element
 ): Promise<ElementValidationResult> {
-  const elementId = element.path || element.id;
+  const elementId = element.id;
   const elementType = extractElementTypeFromId(elementId);
   const sourceRef = element.source_reference;
 
