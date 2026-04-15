@@ -506,6 +506,37 @@ export async function stopSession(workspace: string): Promise<void> {
 }
 
 /**
+ * Create a session-based MCPClient wrapper
+ *
+ * Creates an MCPClient that forwards all tool calls through the session's cached
+ * CodePrism connection instead of spawning a new process. This allows validation
+ * and scanning commands to reuse an active session.
+ *
+ * The returned client:
+ * - Delegates callTool to querySession (reuses cached connection)
+ * - Marks isConnected as true (session-managed lifecycle)
+ * - Throws on listTools (not supported in validation context)
+ * - No-ops on disconnect (session lifecycle is managed elsewhere)
+ *
+ * @param workspace - Workspace root path
+ * @returns MCPClient wrapper that forwards to querySession
+ */
+export function createSessionClient(workspace: string): MCPClient {
+  return {
+    isConnected: true,
+    async callTool(toolName: string, toolArgs: Record<string, unknown>) {
+      return await querySession(workspace, toolName, toolArgs);
+    },
+    async listTools() {
+      throw new Error("listTools not supported in validation context");
+    },
+    async disconnect() {
+      // Session is managed separately, don't disconnect
+    }
+  };
+}
+
+/**
  * Query running CodePrism session
  *
  * Reuses the running CodePrism process to forward a tool call.

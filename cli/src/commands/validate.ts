@@ -12,7 +12,7 @@ import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 import { getActiveSpan } from "../telemetry/index.js";
-import { loadSessionFile, querySession } from "../scan/session-manager.js";
+import { loadSessionFile, querySession, createSessionClient } from "../scan/session-manager.js";
 import { validateElementReferences } from "../scan/ref-validator.js";
 import { type MCPClient } from "../scan/mcp-client.js";
 import { findProjectRoot } from "../utils/project-paths.js";
@@ -185,20 +185,7 @@ async function runOptionalSourceRefValidation(model: Model): Promise<void> {
     // Reuse cached session client instead of spawning a new MCP connection
     let client: MCPClient | null = null;
     try {
-      // Create a minimal MCP client wrapper to forward calls through querySession
-      const sessionClient: MCPClient = {
-        isConnected: true,
-        async callTool(toolName: string, toolArgs: Record<string, unknown>) {
-          return await querySession(workspace, toolName, toolArgs);
-        },
-        async listTools() {
-          throw new Error("listTools not supported in validation context");
-        },
-        async disconnect() {
-          // Session is managed separately, don't disconnect
-        },
-      };
-      client = sessionClient;
+      client = createSessionClient(workspace);
 
       // Validate each element with source references
       let validCount = 0;

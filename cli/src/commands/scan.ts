@@ -33,7 +33,7 @@ import { Model } from "../core/model.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { RelationshipInferenceEngine } from "../scan/relationship-inference.js";
 import { validateElementReferences, formatValidationResult, type ElementValidationResult } from "../scan/ref-validator.js";
-import { loadSessionFile, querySession } from "../scan/session-manager.js";
+import { loadSessionFile, querySession, createSessionClient } from "../scan/session-manager.js";
 
 export interface ScanOptions {
   config?: boolean;
@@ -1455,19 +1455,7 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
     // Reuse cached session client instead of spawning a new MCP connection
     let client: MCPClient | null = null;
     try {
-      // Create a minimal MCP client wrapper to forward calls through querySession
-      client = {
-        isConnected: true,
-        async callTool(toolName: string, toolArgs: Record<string, unknown>) {
-          return await querySession(workspace, toolName, toolArgs);
-        },
-        async listTools() {
-          throw new Error("listTools not supported in validation context");
-        },
-        async disconnect() {
-          // Session is managed separately, don't disconnect
-        },
-      };
+      client = createSessionClient(workspace);
 
       // Validate each element with source references
       const results: ElementValidationResult[] = [];
@@ -1584,14 +1572,8 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
       if (errorCount > 0 || warningCount > 0) {
         process.exit(1);
       }
-    } finally {
-      if (client) {
-        try {
-          await client.disconnect();
-        } catch (error) {
-          // Ignore disconnect errors
-        }
-      }
+    } catch (error) {
+      handleError(error);
     }
   } catch (error) {
     handleError(error);
