@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
+import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { spawn } from "child_process";
 import * as path from "path";
 
@@ -48,7 +48,7 @@ describe("Add Command - Type Validation", () => {
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
-  }, GOLDEN_COPY_HOOK_TIMEOUT);
+  });
 
   afterEach(async () => {
     if (workdir) {

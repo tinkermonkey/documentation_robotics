@@ -548,7 +548,6 @@ dr changeset delete <id> --force     # Delete without confirmation
 ### Changeset Naming Rules
 
 Changeset names are automatically sanitized:
-
 - Converted to lowercase
 - Spaces and special characters replaced with hyphens
 - Only alphanumeric characters and hyphens are kept
@@ -559,7 +558,6 @@ dr changeset create "Design Payment Webhooks"
 ```
 
 **Best practice**: Use a descriptive, feature-scoped name:
-
 - ✅ `feature-webhook-subscriptions`
 - ✅ `design-payment-webhooks`
 - ✅ `add-oauth2-authentication`
@@ -580,7 +578,7 @@ dr changeset status
 
 # 3. Add elements — all dr add/update/delete commands auto-stage in the active changeset
 dr add api endpoint --name "New Endpoint" ...
-dr update api.endpoint.existing --name "Updated Endpoint Name"
+dr update api.endpoint.existing --property status=active
 dr delete api.endpoint.old --force
 
 # 4. Review what was staged
@@ -643,14 +641,12 @@ dr changeset commit --force
 ### Post-Commit State
 
 After a successful `dr changeset commit`:
-
 - Changeset status changes to `COMMITTED`
 - Changeset is automatically deactivated (no longer active)
 - The changeset file is preserved for history (not deleted)
 - Committing the same changeset again is a safe no-op ("No staged changes to commit")
 
 Verify success:
-
 ```bash
 dr changeset list    # Should show: feature-name  COMMITTED
 ```

@@ -17,7 +17,7 @@ import { Model } from "../../src/core/model.js";
 import { Layer } from "../../src/core/layer.js";
 import { Element } from "../../src/core/element.js";
 import { auditCommand } from "../../src/commands/audit.js";
-import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
+import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { readFile, fileExists } from "../../src/utils/file-io.js";
 import { unlinkSync } from "node:fs";
 import path from "path";
@@ -164,7 +164,7 @@ describe("audit command with populated model", () => {
 
     // Reload model to ensure relationships are loaded for audit
     model = await Model.load(workdir.path);
-  }, GOLDEN_COPY_HOOK_TIMEOUT);
+  });
 
   afterEach(async () => {
     await workdir.cleanup();

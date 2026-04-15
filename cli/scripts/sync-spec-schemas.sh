@@ -41,9 +41,33 @@ cp "$SPEC_DIST"/*.json "$BUNDLED_DIR/"
 bundled_count=$(find "$BUNDLED_DIR" -name '*.json' | wc -l | tr -d ' ')
 echo "Copied $bundled_count compiled spec files to bundled/"
 
-# --- Version is now read dynamically from bundled manifest.json at runtime ---
-# Previously, we would update a hardcoded constant here, but now the version
-# is read directly from the bundled manifest.json file during module initialization.
-# This ensures the version is always in sync with the actual bundled spec.
+# --- Update BUNDLED_SPEC_VERSION ---
+
+SPEC_VERSION=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('$SPEC_DIST/manifest.json','utf-8')).specVersion)}catch(e){}" 2>/dev/null || echo "")
+
+if [ -z "$SPEC_VERSION" ]; then
+  echo "WARNING: Could not read specVersion from manifest.json — skipping version update" >&2
+elif [ ! -f "$SPEC_VERSION_TS" ]; then
+  echo "WARNING: spec-version.ts not found at $SPEC_VERSION_TS — skipping version update" >&2
+else
+  # Escape special regex characters in SPEC_VERSION for safe sed replacement
+  ESCAPED_VERSION=$(printf '%s\n' "$SPEC_VERSION" | sed -e 's/[\/&]/\\&/g')
+
+  # macOS (BSD sed) requires empty backup extension, Linux (GNU sed) does not
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/const BUNDLED_SPEC_VERSION = \"[^\"]*\"/const BUNDLED_SPEC_VERSION = \"$ESCAPED_VERSION\"/" "$SPEC_VERSION_TS"
+  else
+    sed -i "s/const BUNDLED_SPEC_VERSION = \"[^\"]*\"/const BUNDLED_SPEC_VERSION = \"$ESCAPED_VERSION\"/" "$SPEC_VERSION_TS"
+  fi
+
+  # Verify the replacement actually occurred
+  if ! grep -q "const BUNDLED_SPEC_VERSION = \"$ESCAPED_VERSION\"" "$SPEC_VERSION_TS"; then
+    echo "ERROR: Failed to update BUNDLED_SPEC_VERSION in $SPEC_VERSION_TS" >&2
+    echo "Expected version: $SPEC_VERSION" >&2
+    exit 1
+  fi
+
+  echo "Updated BUNDLED_SPEC_VERSION to '$SPEC_VERSION'"
+fi
 
 echo "Spec schema sync complete ($bundled_count files)"

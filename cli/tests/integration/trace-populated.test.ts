@@ -15,15 +15,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import {
-  runDr as runDrHelper,
-  createTempWorkdir
-} from "../helpers/cli-runner.js";
+import { runDr as runDrHelper, createTempWorkdir } from "../helpers/cli-runner.js";
 
-let tempDir: { path: string; cleanup: () => Promise<void> } = {
-  path: "",
-  cleanup: async () => {}
-};
+let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
 async function runDr(
   ...args: string[]
@@ -38,10 +32,7 @@ async function runDr(
  * Parse trace output to extract counts and items from a section.
  * Returns { directCount, transitiveCount, directItems, transitiveItems }
  */
-function parseTraceOutput(
-  output: string,
-  section: "Dependencies" | "Dependents"
-): {
+function parseTraceOutput(output: string, section: "Dependencies" | "Dependents"): {
   directCount: number;
   transitiveCount: number;
   directItems: string[];
@@ -54,12 +45,7 @@ function parseTraceOutput(
   const headerMatch = output.match(headerRegex);
 
   if (!headerMatch) {
-    return {
-      directCount: 0,
-      transitiveCount: 0,
-      directItems: [],
-      transitiveItems: []
-    };
+    return { directCount: 0, transitiveCount: 0, directItems: [], transitiveItems: [] };
   }
 
   const directCount = parseInt(headerMatch[1], 10);
@@ -68,10 +54,7 @@ function parseTraceOutput(
   // Extract the section content (from the header to the next blank line or next section)
   const sectionStart = output.indexOf(headerMatch[0]);
   const sectionEnd = output.indexOf("\n\n", sectionStart);
-  const sectionContent = output.substring(
-    sectionStart,
-    sectionEnd > -1 ? sectionEnd : undefined
-  );
+  const sectionContent = output.substring(sectionStart, sectionEnd > -1 ? sectionEnd : undefined);
 
   // Parse direct items (after "Direct:" line)
   const directItems: string[] = [];
@@ -160,10 +143,7 @@ describe("Trace Command with Populated Models", () => {
       await setupThreeElementChain();
 
       // Trace A and check for direct dependencies
-      const traceResult = await runDr(
-        "trace",
-        "data-store.collection.element-a"
-      );
+      const traceResult = await runDr("trace", "data-store.collection.element-a");
       expect(traceResult.exitCode).toBe(0);
       expect(traceResult.stdout).toContain("Dependency Trace");
 
@@ -173,9 +153,7 @@ describe("Trace Command with Populated Models", () => {
       // A has direct dependency on B
       expect(parsed.directCount).toBeGreaterThanOrEqual(1);
       expect(parsed.directItems.length).toBeGreaterThanOrEqual(1);
-      expect(
-        parsed.directItems.some((item) => item.includes("element-b"))
-      ).toBe(true);
+      expect(parsed.directItems.some((item) => item.includes("element-b"))).toBe(true);
     });
 
     it("should show transitive dependency count when A→B→C chain exists", async () => {
@@ -183,10 +161,7 @@ describe("Trace Command with Populated Models", () => {
       await setupThreeElementChain();
 
       // Trace A and check for transitive dependencies
-      const traceResult = await runDr(
-        "trace",
-        "data-store.collection.element-a"
-      );
+      const traceResult = await runDr("trace", "data-store.collection.element-a");
       expect(traceResult.exitCode).toBe(0);
 
       // Parse the Dependencies section
@@ -199,12 +174,8 @@ describe("Trace Command with Populated Models", () => {
       expect(parsed.transitiveCount).toBeGreaterThanOrEqual(1);
 
       // Verify that B is in direct and C is in transitive
-      expect(
-        parsed.directItems.some((item) => item.includes("element-b"))
-      ).toBe(true);
-      expect(
-        parsed.transitiveItems.some((item) => item.includes("element-c"))
-      ).toBe(true);
+      expect(parsed.directItems.some((item) => item.includes("element-b"))).toBe(true);
+      expect(parsed.transitiveItems.some((item) => item.includes("element-c"))).toBe(true);
     });
 
     it("should have exactly matching counts between header and listed items", async () => {
@@ -212,10 +183,7 @@ describe("Trace Command with Populated Models", () => {
       await setupThreeElementChain();
 
       // Trace A
-      const traceResult = await runDr(
-        "trace",
-        "data-store.collection.element-a"
-      );
+      const traceResult = await runDr("trace", "data-store.collection.element-a");
       expect(traceResult.exitCode).toBe(0);
 
       // Parse both sections
@@ -230,9 +198,7 @@ describe("Trace Command with Populated Models", () => {
       // - directCount in header should equal directItems.length
       // - transitiveCount in header should equal transitiveItems.length
       expect(depsParsed.directItems.length).toBe(depsParsed.directCount);
-      expect(depsParsed.transitiveItems.length).toBe(
-        depsParsed.transitiveCount
-      );
+      expect(depsParsed.transitiveItems.length).toBe(depsParsed.transitiveCount);
     });
 
     it("should show correct dependents when using --direction up on the tail of chain", async () => {
@@ -240,12 +206,7 @@ describe("Trace Command with Populated Models", () => {
       await setupThreeElementChain();
 
       // Trace C with --direction up (show what depends on C)
-      const traceResult = await runDr(
-        "trace",
-        "data-store.collection.element-c",
-        "--direction",
-        "up"
-      );
+      const traceResult = await runDr("trace", "data-store.collection.element-c", "--direction", "up");
       expect(traceResult.exitCode).toBe(0);
       expect(traceResult.stdout).toContain("Dependents");
 
@@ -259,12 +220,8 @@ describe("Trace Command with Populated Models", () => {
       expect(parsed.transitiveCount).toBeGreaterThanOrEqual(1);
 
       // Verify that B is in direct and A is in transitive
-      expect(
-        parsed.directItems.some((item) => item.includes("element-b"))
-      ).toBe(true);
-      expect(
-        parsed.transitiveItems.some((item) => item.includes("element-a"))
-      ).toBe(true);
+      expect(parsed.directItems.some((item) => item.includes("element-b"))).toBe(true);
+      expect(parsed.transitiveItems.some((item) => item.includes("element-a"))).toBe(true);
     });
 
     it("should not report negative or zero counts when relationships exist", async () => {
@@ -301,12 +258,7 @@ describe("Trace Command with Populated Models", () => {
       await setupThreeElementChain();
 
       // Trace A with --direction up (show what depends on A)
-      const traceResult = await runDr(
-        "trace",
-        "data-store.collection.element-a",
-        "--direction",
-        "up"
-      );
+      const traceResult = await runDr("trace", "data-store.collection.element-a", "--direction", "up");
       expect(traceResult.exitCode).toBe(0);
       expect(traceResult.stdout).toContain("Dependents");
 
@@ -359,10 +311,7 @@ describe("Trace Command with Populated Models", () => {
       );
 
       // Trace A: should have 2 direct (B, C) and 1 transitive (D)
-      const traceResult = await runDr(
-        "trace",
-        "data-store.collection.element-a"
-      );
+      const traceResult = await runDr("trace", "data-store.collection.element-a");
       expect(traceResult.exitCode).toBe(0);
 
       const parsed = parseTraceOutput(traceResult.stdout, "Dependencies");

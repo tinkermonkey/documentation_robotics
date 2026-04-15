@@ -12,10 +12,6 @@ import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 import { getActiveSpan } from "../telemetry/index.js";
-import { loadSessionFile, createSessionClient } from "../scan/session-manager.js";
-import { validateElementReferences } from "../scan/ref-validator.js";
-import { type MCPClient } from "../scan/mcp-client.js";
-import { findProjectRoot } from "../utils/project-paths.js";
 
 
 export interface ValidateOptions {
@@ -39,6 +35,10 @@ export interface ValidateOptions {
 }
 
 /**
+ * Validate schema synchronization between spec/ and cli/src/schemas/bundled/
+ * @throws {Error} if schema synchronization validation fails
+ */
+/**
  * Recursively find all JSON schema files in a directory
  * Excludes 'layers' subdirectory since layer instances are not schemas
  */
@@ -61,10 +61,6 @@ async function findJsonFiles(dir: string, baseDir: string = dir): Promise<string
   return files;
 }
 
-/**
- * Validate schema synchronization between spec/ and cli/src/schemas/bundled/
- * @throws {Error} if schema synchronization validation fails
- */
 async function validateSchemaSynchronization(): Promise<void> {
   console.log("");
   console.log(ansis.bold("Validating schema synchronization..."));
@@ -85,7 +81,7 @@ async function validateSchemaSynchronization(): Promise<void> {
   const bundledSchemaFiles = await findJsonFiles(bundledSchemaDir);
 
   if (specSchemaFiles.length === 0) {
-    throw new Error(`No schema files found in ${specSchemaDir}`);
+    throw new Error("No schema files found in spec/schemas/");
   }
 
   let mismatches: string[] = [];
@@ -156,90 +152,6 @@ async function validateSchemaSynchronization(): Promise<void> {
     console.log("");
     console.log(ansis.green("✓ All schemas synchronized"));
     console.log("");
-  }
-}
-
-/**
- * Run optional source reference validation if a CodePrism session is active
- * Reuses cached session client to avoid redundant MCP spawning.
- * Skips gracefully if no session or if CodePrism is unavailable.
- */
-async function runOptionalSourceRefValidation(model: Model): Promise<void> {
-  try {
-    const workspace = await findProjectRoot();
-    if (!workspace) {
-      return; // Silently skip if no workspace
-    }
-
-    // Check for active session
-    const sessionFile = await loadSessionFile(workspace);
-    if (!sessionFile || sessionFile.status !== "ready") {
-      console.log(ansis.dim("⊘ Skipping source reference validation (no active CodePrism session)"));
-      return;
-    }
-
-    console.log("");
-    console.log(ansis.bold("Running source reference validation..."));
-    console.log("");
-
-    // Reuse cached session client instead of spawning a new MCP connection
-    let client: MCPClient | null = null;
-    try {
-      client = createSessionClient(workspace);
-
-      // Validate each element with source references
-      let validCount = 0;
-      let warningCount = 0;
-      let errorCount = 0;
-
-      for (const [, layer] of model.layers) {
-        for (const element of layer.listElements()) {
-          if (!element.source_reference) {
-            continue;
-          }
-
-          const result = await validateElementReferences(client, element);
-
-          if (result.overallStatus === "ok") {
-            validCount++;
-          } else if (result.overallStatus === "warning") {
-            warningCount++;
-          } else {
-            errorCount++;
-          }
-        }
-      }
-
-      // Print summary
-      if (validCount > 0 || warningCount > 0 || errorCount > 0) {
-        console.log(ansis.bold("Source Reference Validation Summary:"));
-        if (validCount > 0) {
-          console.log(ansis.green(`  ✓ Valid: ${validCount}`));
-        }
-        if (warningCount > 0) {
-          console.log(ansis.yellow(`  ⚠ Warnings: ${warningCount}`));
-        }
-        if (errorCount > 0) {
-          console.log(ansis.red(`  ✗ Errors: ${errorCount}`));
-        }
-      }
-
-      if (errorCount > 0) {
-        console.log(ansis.dim("  Run 'dr scan validate-refs --verbose' for details"));
-      }
-    } catch (error) {
-      // Log the error but don't fail - this is optional validation
-      const errorMsg = getErrorMessage(error);
-      console.debug(
-        ansis.dim(`⊘ Source reference validation skipped: ${errorMsg}`)
-      );
-    }
-  } catch (error) {
-    // Log workspace/session lookup errors but don't fail
-    const errorMsg = getErrorMessage(error);
-    console.debug(
-      ansis.dim(`⊘ Source reference validation skipped: ${errorMsg}`)
-    );
   }
 }
 
@@ -480,10 +392,6 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
         }
       }
     }
-
-    // Run optional source reference validation if a CodePrism session is active
-    // This is skipped silently if no session is available
-    await runOptionalSourceRefValidation(modelToValidate);
 
     // Record validation results in span
     if (activeSpan) {

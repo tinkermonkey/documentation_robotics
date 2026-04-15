@@ -153,20 +153,17 @@ export class Changeset {
 
   /**
    * Add a change to the changeset.
-   * Records element or relationship mutation with before/after snapshots for audit purposes.
+   * Records element mutation with before/after snapshots for audit purposes.
    *
-   * Supports both element changes (add/update/delete) and relationship changes (relationship-add/relationship-delete).
-   * For relationship changes, elementId should be formatted as: source::predicate::target
-   *
-   * @param type - Type of change
-   * @param elementId - ID of the element being changed (or composite key for relationships: source::predicate::target)
-   * @param layerName - Layer containing the element (or source layer for relationships)
-   * @param before - Element/relationship state before change (for update/delete operations)
-   * @param after - Element/relationship state after change (for add/update operations)
+   * @param type - Type of change (add, update, delete)
+   * @param elementId - ID of the element being changed
+   * @param layerName - Layer containing the element
+   * @param before - Element state before change (for update/delete operations)
+   * @param after - Element state after change (for add/update operations)
    * @throws No exceptions; updates modified timestamp on success
    */
   addChange(
-    type: Change["type"],
+    type: "add" | "update" | "delete",
     elementId: string,
     layerName: string,
     before?: Record<string, unknown>,
@@ -201,10 +198,11 @@ export class Changeset {
 
   /**
    * Get all changes of a specific type.
-   * @param type - Type of change to filter for
-   * @returns Array of changes matching the specified type
+   *
+   * @param type - Type of changes to filter for
+   * @returns Array of changes matching the type
    */
-  getChangesByType(type: Change["type"]): Change[] {
+  getChangesByType(type: "add" | "update" | "delete"): Change[] {
     return this.changes.filter((c) => c.type === type);
   }
 

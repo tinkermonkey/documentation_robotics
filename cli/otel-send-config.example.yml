@@ -5,9 +5,8 @@
 
 telemetry:
   otlp:
-    endpoint: "http://localhost:4318/v1/traces"
-    logs_endpoint: "http://localhost:4318/v1/logs"
-    service_name:
-      "dr-cli" # sets service.name on all spans and logs;
-      # useful for distinguishing instances
-      # (e.g. 'dr-cli-prod', 'dr-cli-staging')
+    endpoint: 'http://localhost:4318/v1/traces'
+    logs_endpoint: 'http://localhost:4318/v1/logs'
+    service_name: 'dr-cli'   # sets service.name on all spans and logs;
+                              # useful for distinguishing instances
+                              # (e.g. 'dr-cli-prod', 'dr-cli-staging')

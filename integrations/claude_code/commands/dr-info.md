@@ -10,15 +10,15 @@ Show an overview of the Documentation Robotics model: project metadata, layer na
 ## What This Command Does
 
 Displays:
-
 - Project name, version, spec version, author, description
 - List of all 12 layers with their element counts
-- With `--layer <name>`: detailed view of a single layer (counts only)
+- With `--layer <name>`: detailed view of a single layer
+- With `--layer <name> --verbose`: per-type breakdown within that layer
 
 ## Usage
 
 ```
-/dr-info [--layer <name>]
+/dr-info [--layer <name>] [--verbose]
 ```
 
 ## Instructions for Claude Code
@@ -33,14 +33,14 @@ Run `dr info` as the **first orientation step** when starting any modeling sessi
 
 ### Decision Flowchart: `dr info` vs. Related Commands
 
-| Goal                               | Command                |
-| ---------------------------------- | ---------------------- |
-| Model overview (counts per layer)  | `dr info`              |
-| Per-type breakdown within a layer  | `dr list <name>`       |
-| Health metrics (orphans, coverage) | `dr stats`             |
-| List actual element IDs in a layer | `dr list <layer>`      |
-| Find an element by name/type       | `dr search <term>`     |
-| Inspect a single element           | `dr show <element-id>` |
+| Goal | Command |
+|------|---------|
+| Model overview (counts per layer) | `dr info` |
+| Per-type breakdown within a layer | `dr info --layer <name> --verbose` |
+| Health metrics (orphans, coverage) | `dr stats` |
+| List actual element IDs in a layer | `dr list <layer>` |
+| Find an element by name/type | `dr search <term>` |
+| Inspect a single element | `dr show <element-id>` |
 
 ### Recommended Session Start Sequence
 
@@ -55,7 +55,7 @@ dr changeset status
 dr validate
 ```
 
-### Using `--layer`
+### Using `--layer` and `--verbose`
 
 ```bash
 # Overview of all layers
@@ -63,12 +63,18 @@ dr info
 
 # Summary for one layer (only that layer is loaded — much faster)
 dr info --layer api
+
+# Per-type breakdown for one layer
+dr info --layer api --verbose
 # Example output:
 #   api
 #     Elements: 47
+#     Details:
+#       - operation: 16
+#       - endpoint: 31
 ```
 
-Use `dr list <layer>` to get per-type breakdown with specific element IDs.
+Use `--layer <name> --verbose` instead of chaining `dr info --layer api` + `dr list api` — it provides the same type breakdown without listing every element ID.
 
 ### Known Blind Spots
 

@@ -20,15 +20,8 @@
  * These are complementary systems serving different test requirements.
  */
 
-import { setDefaultTimeout } from "bun:test";
 import { randomUUID } from "crypto";
 import { GoldenCopyCacheManager } from "../dist/core/golden-copy-cache.js";
-
-// Set default timeout for all tests and hooks (beforeEach, afterEach, etc.)
-// This ensures the timeout applies even if bunfig.toml timeoutMs is not picked up.
-// The 30s budget accommodates golden copy filesystem operations in containerized
-// environments with slow disk I/O or high concurrency.
-setDefaultTimeout(30_000);
 
 // Global test configuration for parallel execution
 declare global {

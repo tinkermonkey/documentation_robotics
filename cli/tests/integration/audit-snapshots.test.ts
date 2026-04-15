@@ -12,14 +12,14 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { auditSnapshotsCommand } from "../../src/commands/audit-snapshots.js";
 import { SnapshotStorage } from "../../src/audit/snapshot-storage.js";
 import { auditCommand } from "../../src/commands/audit.js";
-import { createTestWorkdir, GOLDEN_COPY_HOOK_TIMEOUT } from "../helpers/golden-copy.js";
+import { createTestWorkdir } from "../helpers/golden-copy.js";
 
 describe("audit snapshots command", () => {
   let workdir: Awaited<ReturnType<typeof createTestWorkdir>>;
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
-  }, GOLDEN_COPY_HOOK_TIMEOUT);
+  });
 
   afterEach(async () => {
     await workdir.cleanup();
@@ -268,9 +268,9 @@ describe("audit snapshots command", () => {
         console.log = (..._args: any[]) => {};
 
         try {
-          // Create multiple snapshots (millisecond precision ensures unique IDs)
+          // Create multiple snapshots (need > 1 second delay for unique IDs)
           await auditCommand({ format: "json", saveSnapshot: true });
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          await new Promise((resolve) => setTimeout(resolve, 1100));
           await auditCommand({ format: "json", saveSnapshot: true });
         } finally {
           console.log = originalLog;

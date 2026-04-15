@@ -361,31 +361,6 @@ The audit command outputs directly to console (text format) or to the specified 
 - Graph: `cli/src/audit/graph/`
 - AI: `cli/src/audit/ai/`
 
-### Scanning System
-
-Automated extraction of architectural elements from source code via CodePrism AST analysis.
-
-**Architecture Decisions:**
-
-1. [ADR-003](docs/adr/ADR-003-pattern-files-cli-asset.md) - Pattern files are CLI-maintained assets with optional per-project extensions
-2. [ADR-004](docs/adr/ADR-004-ast-parser-selection.md) - CodePrism chosen as AST parser over tree-sitter, Babel, and alternatives
-3. [ADR-005](docs/adr/ADR-005-language-support-management.md) - Language support managed through pattern system
-
-**Key Files:**
-
-- `cli/src/commands/scan.ts` - Scan command orchestration
-- `cli/src/scan/pattern-loader.ts` - Pattern loading (built-in + project patterns)
-- `cli/src/scan/mcp-client.ts` - CodePrism MCP connection
-- `cli/src/scan/config.ts` - Scan configuration from `~/.dr-config.yaml`
-- `cli/src/scan/patterns/` - Built-in pattern definitions (by layer)
-
-**Documentation:**
-
-- [Scanning Architecture Guide](cli/docs/SCAN_ARCHITECTURE.md) - Comprehensive overview
-- [ADR-003](docs/adr/ADR-003-pattern-files-cli-asset.md) - Pattern file design
-- [ADR-004](docs/adr/ADR-004-ast-parser-selection.md) - AST parser selection rationale
-- [ADR-005](docs/adr/ADR-005-language-support-management.md) - Language support strategy
-
 ### Changeset Implementation
 
 Key files: `cli/src/commands/changeset.ts`, `cli/src/core/staged-changeset-storage.ts`, `cli/src/core/staging-area.ts`

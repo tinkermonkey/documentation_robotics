@@ -7,11 +7,6 @@
 
 import type { Model } from "./model.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { startSpan, endSpan } from "../telemetry/index.js";
-
-// Build-time constant for telemetry feature detection
-declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
  * Represents a single version migration
@@ -158,24 +153,6 @@ export class MigrationRegistry {
         };
       },
     });
-
-    // Migration from v0.8.2 to v0.8.3: Layer Guidance Documentation
-    this.migrations.push({
-      fromVersion: "0.8.2",
-      toVersion: "0.8.3",
-      description: "Layer Guidance Documentation (Spec v0.8.3)",
-      apply: async () => {
-        // Enhanced documentation and layer governance metadata
-        // - All layer specification markdown files have comprehensive SKILL.md-compatible guidance
-        // - Layer metadata sections synchronized with spec JSON sources
-        // Fully backward compatible - existing models continue to work
-        return {
-          migrationsApplied: 1,
-          filesModified: 0,
-          description: "Spec version updated to 0.8.3 (Layer Guidance Documentation)",
-        };
-      },
-    });
   }
 
   /**
@@ -188,7 +165,7 @@ export class MigrationRegistry {
 
     // Return the highest toVersion from all migrations
     const versions = this.migrations.map((m) => m.toVersion);
-    return versions.sort((a, b) => this.compareVersions(a, b)).reverse()[0];
+    return versions.sort().reverse()[0];
   }
 
   /**
@@ -247,121 +224,57 @@ export class MigrationRegistry {
     const path = this.getMigrationPath(options.fromVersion, options.toVersion);
     const targetVersion = options.toVersion || this.getLatestVersion();
 
-    // Create parent span for the entire migration sequence
-    const sequenceSpan = isTelemetryEnabled
-      ? startSpan("migration.sequence", {
-          "migration.from_version": options.fromVersion,
-          "migration.to_version": targetVersion,
-          "migration.count": path.length,
-          "migration.dry_run": options.dryRun || false,
-          "migration.validate": options.validate !== false,
-        })
-      : null;
-
-    try {
-      if (path.length === 0) {
-        if (sequenceSpan) {
-          sequenceSpan.setAttribute("migration.result", "no_migrations_needed");
-        }
-        return {
-          applied: [],
-          currentVersion: options.fromVersion,
-          targetVersion,
-          totalChanges: 0,
-        };
-      }
-
-      const results: ApplyMigrationsResult = {
+    if (path.length === 0) {
+      return {
         applied: [],
         currentVersion: options.fromVersion,
         targetVersion,
         totalChanges: 0,
       };
+    }
 
-      for (const migration of path) {
-        // Create child span for each individual migration
-        const migrationSpan = isTelemetryEnabled
-          ? startSpan("migration.apply", {
-              "migration.from_version": migration.fromVersion,
-              "migration.to_version": migration.toVersion,
-              "migration.description": migration.description,
-              "migration.dry_run": options.dryRun || false,
-            })
-          : null;
+    const results: ApplyMigrationsResult = {
+      applied: [],
+      currentVersion: options.fromVersion,
+      targetVersion,
+      totalChanges: 0,
+    };
 
+    for (const migration of path) {
+      if (!options.dryRun) {
         try {
-          if (!options.dryRun) {
-            const result = await migration.apply(model);
+          const result = await migration.apply(model);
 
-            results.applied.push({
-              from: migration.fromVersion,
-              to: migration.toVersion,
-              description: migration.description,
-              changes: result,
-            });
+          results.applied.push({
+            from: migration.fromVersion,
+            to: migration.toVersion,
+            description: migration.description,
+            changes: result,
+          });
 
-            results.totalChanges += result.migrationsApplied;
+          results.totalChanges += result.migrationsApplied;
 
-            // Update model's spec version
-            model.manifest.specVersion = migration.toVersion;
-
-            if (migrationSpan) {
-              migrationSpan.setAttribute("migration.migrations_applied", result.migrationsApplied);
-              migrationSpan.setAttribute("migration.files_modified", result.filesModified);
-              migrationSpan.setAttribute("migration.result", "success");
-            }
-          } else {
-            // Dry run - just record what would happen
-            results.applied.push({
-              from: migration.fromVersion,
-              to: migration.toVersion,
-              description: migration.description,
-              dryRun: true,
-            });
-
-            if (migrationSpan) {
-              migrationSpan.setAttribute("migration.result", "dry_run");
-            }
-          }
+          // Update model's spec version
+          model.manifest.specVersion = migration.toVersion;
         } catch (error) {
-          if (migrationSpan) {
-            migrationSpan.recordException(error as Error);
-            migrationSpan.setStatus({
-              code: 2, // SpanStatusCode.ERROR
-              message: getErrorMessage(error),
-            });
-            migrationSpan.setAttribute("migration.result", "error");
-          }
           throw new Error(
             `Migration ${migration.fromVersion} → ${migration.toVersion} failed: ${
               getErrorMessage(error)
             }`
           );
-        } finally {
-          endSpan(migrationSpan);
         }
-      }
-
-      if (sequenceSpan) {
-        sequenceSpan.setAttribute("migration.result", "success");
-        sequenceSpan.setAttribute("migration.total_changes", results.totalChanges);
-        sequenceSpan.setAttribute("migration.migrations_applied", results.applied.length);
-      }
-
-      return results;
-    } catch (error) {
-      if (sequenceSpan) {
-        sequenceSpan.recordException(error as Error);
-        sequenceSpan.setStatus({
-          code: 2, // SpanStatusCode.ERROR
-          message: getErrorMessage(error),
+      } else {
+        // Dry run - just record what would happen
+        results.applied.push({
+          from: migration.fromVersion,
+          to: migration.toVersion,
+          description: migration.description,
+          dryRun: true,
         });
-        sequenceSpan.setAttribute("migration.result", "error");
       }
-      throw error;
-    } finally {
-      endSpan(sequenceSpan);
     }
+
+    return results;
   }
 
   /**
@@ -396,108 +309,21 @@ export class MigrationRegistry {
   }
 
   /**
-   * Compare two version strings following semantic versioning
+   * Compare two version strings
    * Returns: -1 if a < b, 0 if a == b, 1 if a > b
-   *
-   * Handles pre-release versions (e.g., "0.8.3-beta", "1.0.0-rc.1")
-   * Pre-release versions have lower precedence than release versions
-   * Example: "0.8.3-beta" < "0.8.3"
    */
   private compareVersions(a: string, b: string): number {
-    const parseVersion = (version: string) => {
-      // Split by + to remove metadata
-      const [mainVersion] = version.split("+");
+    const aParts = a.split(".").map(Number);
+    const bParts = b.split(".").map(Number);
 
-      // Split by - to separate pre-release (only on first hyphen)
-      const hyphenIndex = mainVersion.indexOf("-");
-      const versionPart =
-        hyphenIndex === -1
-          ? mainVersion
-          : mainVersion.substring(0, hyphenIndex);
-      const prereleasePart =
-        hyphenIndex === -1
-          ? undefined
-          : mainVersion.substring(hyphenIndex + 1);
+    const maxLength = Math.max(aParts.length, bParts.length);
 
-      // Parse numeric version parts
-      const parts = versionPart.split(".").map((p) => {
-        const num = Number(p);
-        return Number.isNaN(num) ? 0 : num;
-      });
-
-      // Ensure we have at least 3 parts (major, minor, patch)
-      while (parts.length < 3) {
-        parts.push(0);
-      }
-
-      return {
-        major: parts[0],
-        minor: parts[1],
-        patch: parts[2],
-        prerelease: prereleasePart,
-      };
-    };
-
-    const aParsed = parseVersion(a);
-    const bParsed = parseVersion(b);
-
-    // Compare major.minor.patch
-    if (aParsed.major !== bParsed.major) {
-      return aParsed.major < bParsed.major ? -1 : 1;
-    }
-    if (aParsed.minor !== bParsed.minor) {
-      return aParsed.minor < bParsed.minor ? -1 : 1;
-    }
-    if (aParsed.patch !== bParsed.patch) {
-      return aParsed.patch < bParsed.patch ? -1 : 1;
-    }
-
-    // Handle pre-release versions
-    // Release version > pre-release version (per semver)
-    if (aParsed.prerelease && !bParsed.prerelease) {
-      return -1; // a is pre-release, b is release
-    }
-    if (!aParsed.prerelease && bParsed.prerelease) {
-      return 1; // a is release, b is pre-release
-    }
-
-    // Both have pre-release or both don't
-    if (!aParsed.prerelease && !bParsed.prerelease) {
-      return 0; // Both are release versions with same major.minor.patch
-    }
-
-    // Compare pre-release identifiers (both are pre-release)
-    const aIdentifiers = aParsed.prerelease!.split(".");
-    const bIdentifiers = bParsed.prerelease!.split(".");
-
-    const maxLength = Math.max(aIdentifiers.length, bIdentifiers.length);
     for (let i = 0; i < maxLength; i++) {
-      const aId = aIdentifiers[i];
-      const bId = bIdentifiers[i];
+      const aPart = aParts[i] || 0;
+      const bPart = bParts[i] || 0;
 
-      // Missing identifier means it's smaller
-      if (aId === undefined) return -1;
-      if (bId === undefined) return 1;
-
-      // Both numeric - compare numerically
-      const aNum = Number(aId);
-      const bNum = Number(bId);
-      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
-        if (aNum !== bNum) {
-          return aNum < bNum ? -1 : 1;
-        }
-      } else {
-        // At least one is non-numeric - compare lexicographically
-        // But numeric identifiers always come before non-numeric
-        const aIsNum = !Number.isNaN(aNum);
-        const bIsNum = !Number.isNaN(bNum);
-        if (aIsNum && !bIsNum) return -1;
-        if (!aIsNum && bIsNum) return 1;
-
-        // Both non-numeric or both numeric (already compared above)
-        if (aId < bId) return -1;
-        if (aId > bId) return 1;
-      }
+      if (aPart < bPart) return -1;
+      if (aPart > bPart) return 1;
     }
 
     return 0;

@@ -7,11 +7,6 @@ import { Model } from "../core/model.js";
 import { getAllLayerIds, getSpecNodeTypesForLayer, getLayerById } from "../generated/index.js";
 import { RELATIONSHIPS_BY_SOURCE } from "../generated/relationship-index.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { startSpan, endSpan } from "../telemetry/index.js";
-
-// Build-time constant for telemetry feature detection
-declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
 
 /**
  * Expected element types per layer (derived from generated registry)
@@ -112,14 +107,6 @@ export async function conformanceCommand(options: {
   json?: boolean;
   verbose?: boolean;
 }): Promise<void> {
-  const commandSpan = isTelemetryEnabled
-    ? startSpan("conformance.execute", {
-        "conformance.layers": options.layers?.join(",") || "all",
-        "conformance.json": options.json || false,
-        "conformance.verbose": options.verbose || false,
-      })
-    : null;
-
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
 
@@ -228,15 +215,6 @@ export async function conformanceCommand(options: {
       totalIssues += issues.length;
     }
 
-    // Track conformance metrics in span
-    if (commandSpan) {
-      commandSpan.setAttribute("conformance.layers_checked", Object.keys(results).length);
-      commandSpan.setAttribute("conformance.compliant_layers", compliantLayers);
-      commandSpan.setAttribute("conformance.total_issues", totalIssues);
-      commandSpan.setAttribute("conformance.fully_compliant", totalIssues === 0);
-      commandSpan.setAttribute("conformance.result", "success");
-    }
-
     // Output as JSON if requested
     if (options.json) {
       const jsonOutput = {
@@ -293,17 +271,7 @@ export async function conformanceCommand(options: {
 
     console.log();
   } catch (error) {
-    if (commandSpan) {
-      commandSpan.recordException(error as Error);
-      commandSpan.setStatus({
-        code: 2, // SpanStatusCode.ERROR
-        message: getErrorMessage(error),
-      });
-      commandSpan.setAttribute("conformance.result", "error");
-    }
     console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
-    throw error;
-  } finally {
-    endSpan(commandSpan);
+    process.exit(1);
   }
 }

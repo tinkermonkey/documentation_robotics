@@ -13,9 +13,6 @@ on:
       - "cli-validation/**"
       - ".github/workflows/ts-cli-regression.yml"
 
-env:
-  GITHUB_TOKEN: ${{ github.token }}
-
 jobs:
   regression:
     runs-on: ubuntu-latest

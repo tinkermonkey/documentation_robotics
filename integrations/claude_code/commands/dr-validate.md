@@ -319,20 +319,17 @@ Priority 4 (Documentation):
 Not all warnings require immediate action. Understand the priority:
 
 **Structural errors** (❌ — must fix before `dr changeset commit` will succeed):
-
 - Schema violations (missing required fields, wrong types)
 - Broken references (referencing non-existent elements)
 - Naming convention violations
 - Cardinality violations in relationships
 
 **Orphan warnings** (⚠️ — expected during active development):
-
 - Elements with no cross-layer references or intra-layer relationships
 - Normal during incremental work — run `/dr-relate` to wire them up when ready
 - Do NOT block `dr changeset commit`
 
 **Source-reference warnings** (⚠️ — expected on manually authored elements):
-
 - Elements without `source_reference` provenance
 - Normal for hand-authored elements; only mandatory for elements created via `dr scan`
 - Do NOT block `dr changeset commit`

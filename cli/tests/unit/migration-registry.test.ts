@@ -2,59 +2,13 @@ import { describe, it, expect } from "bun:test";
 import { MigrationRegistry } from "../../src/core/migration-registry.js";
 import { Model } from "../../src/core/model.js";
 import { Manifest } from "../../src/core/manifest.js";
-import { getCliBundledSpecVersion } from "../../src/utils/spec-version.js";
 
 describe("MigrationRegistry", () => {
-  // Test version comparison through getMigrationPath (public API)
-  describe("version comparison (via getMigrationPath)", () => {
-    it("should correctly compare release versions", () => {
-      const registry = new MigrationRegistry();
-      // 0.5.0 < 0.6.0 should return migration path
-      const path1 = registry.getMigrationPath("0.5.0", "0.6.0");
-      expect(path1.length).toBeGreaterThan(0);
-
-      // 0.6.0 >= 0.5.0 should return empty path
-      const path2 = registry.getMigrationPath("0.6.0", "0.5.0");
-      expect(path2).toHaveLength(0);
-
-      // 0.6.0 == 0.6.0 should return empty path
-      const path3 = registry.getMigrationPath("0.6.0", "0.6.0");
-      expect(path3).toHaveLength(0);
-    });
-
-    it("should treat metadata as insignificant for comparison", () => {
-      const registry = new MigrationRegistry();
-
-      // Metadata (+build) should be ignored in comparison
-      // 0.5.0+build123 == 0.5.0 for versioning purposes
-      const path = registry.getMigrationPath("0.5.0+build123", "0.5.0");
-      expect(path).toHaveLength(0);
-
-      // Also works in reverse
-      const path2 = registry.getMigrationPath("0.5.0", "0.5.0+somebuild");
-      expect(path2).toHaveLength(0);
-    });
-
-    it("should handle pre-release versions correctly", () => {
-      const registry = new MigrationRegistry();
-
-      // Pre-release version (0.5.0-beta) is less than release version (0.5.0)
-      // There should be a migration path from pre-release to release
-      const pathFromPrerelease = registry.getMigrationPath("0.5.0-beta", "0.5.0");
-      expect(pathFromPrerelease.length).toBeGreaterThan(0);
-
-      // Release version (0.5.0) is greater than pre-release (0.5.0-beta)
-      // No migration path should exist going backward
-      const pathToPrerelease = registry.getMigrationPath("0.5.0", "0.5.0-beta");
-      expect(pathToPrerelease).toHaveLength(0);
-    });
-  });
-
   describe("getLatestVersion", () => {
     it("should return the latest available version", () => {
       const registry = new MigrationRegistry();
       const latest = registry.getLatestVersion();
-      expect(latest).toBe(getCliBundledSpecVersion());
+      expect(latest).toBe("0.8.2");
     });
   });
 
@@ -75,7 +29,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const path = registry.getMigrationPath("0.5.0");
       expect(path.length).toBeGreaterThan(0);
-      expect(path[path.length - 1].toVersion).toBe(getCliBundledSpecVersion());
+      expect(path[path.length - 1].toVersion).toBe("0.8.2");
     });
 
     it("should return migration path from 0.5.0 to 0.6.0", () => {
@@ -95,7 +49,7 @@ describe("MigrationRegistry", () => {
 
     it("should return false when no migration is needed", () => {
       const registry = new MigrationRegistry();
-      expect(registry.requiresMigration(getCliBundledSpecVersion())).toBe(false);
+      expect(registry.requiresMigration("0.8.2")).toBe(false);
     });
   });
 
@@ -115,7 +69,7 @@ describe("MigrationRegistry", () => {
       const registry = new MigrationRegistry();
       const summary = registry.getMigrationSummary("0.5.0");
 
-      expect(summary.targetVersion).toBe(getCliBundledSpecVersion());
+      expect(summary.targetVersion).toBe("0.8.2");
     });
   });
 

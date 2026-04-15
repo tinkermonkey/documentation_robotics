@@ -17,13 +17,6 @@ import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { cwd } from "process";
 
-/**
- * Recommended timeout (ms) for beforeEach hooks that call createTestWorkdir().
- * Golden copy clone + filesystem verification can take several seconds in
- * containerized environments with slow disk I/O or high concurrency.
- */
-export const GOLDEN_COPY_HOOK_TIMEOUT = 30_000;
-
 let goldenCopyPath: string | null = null;
 let initializationPromise: Promise<string> | null = null;
 let initializationError: Error | null = null;
@@ -160,11 +153,10 @@ export async function createTestWorkdir(): Promise<{
       try {
         await mkdir(testDir, { recursive: true });
         // Copy golden copy to test directory with timeout
-        // Use 60s timeout to accommodate slow disk I/O in containerized environments
         await Promise.race([
           cp(golden, testDir, { recursive: true }),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Copy operation timed out after 60s")), 60000)
+            setTimeout(() => reject(new Error("Copy operation timed out after 30s")), 30000)
           ),
         ]);
 
@@ -183,9 +175,7 @@ export async function createTestWorkdir(): Promise<{
         // Verify filesystem is ready for the test directory
         // This is critical for concurrent test execution
         // Use higher retry count for test directory since it just had a large copy operation
-        // Reduced from 30 to 15 retries to stay within hook timeout budgets;
-        // the backoff cap ensures this completes within ~5s even in worst case
-        await verifyFilesystemReady(testDir, 15);
+        await verifyFilesystemReady(testDir, 30);
         break; // Success
       } catch (error) {
         lastCopyError = error instanceof Error ? error : new Error(String(error));
@@ -354,7 +344,8 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
       // Add stability check: verify critical files are still accessible after a delay
       // This catches race conditions where files become unavailable after the initial check
       // occurs in concurrent test execution scenarios
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Use increased delay to allow filesystem to fully stabilize
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Re-check manifest again to ensure stability
       // This prevents ENOENT errors that occur after Model.load() is called
@@ -366,8 +357,7 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
       lastError = error instanceof Error ? error : new Error(String(error));
 
       // Exponential backoff with jitter: 10ms, 20ms, 40ms, 80ms, etc.
-      // Cap at 300ms to keep total retry time within hook timeout budgets
-      const backoffMs = Math.min(10 * Math.pow(2, attempt), 300) + Math.random() * 50;
+      const backoffMs = Math.min(10 * Math.pow(2, attempt), 500) + Math.random() * 100;
       await new Promise((resolve) => setTimeout(resolve, backoffMs));
     }
   }

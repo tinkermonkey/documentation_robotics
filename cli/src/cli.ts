@@ -40,7 +40,6 @@ import { reportsCommands } from "./commands/reports.js";
 import { auditCommand } from "./commands/audit.js";
 import { auditDiffCommand } from "./commands/audit-diff.js";
 import { auditSnapshotsCommand } from "./commands/audit-snapshots.js";
-import { scanCommands } from "./commands/scan.js";
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/index.js";
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { getErrorMessage } from "./utils/errors.js";
@@ -711,9 +710,6 @@ Examples:
       verbose: options.verbose,
     });
   });
-
-// Scan commands (main + session subcommands)
-scanCommands(program);
 
 // Changeset subcommands
 changesetCommands(program);
