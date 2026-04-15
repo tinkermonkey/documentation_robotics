@@ -22,8 +22,8 @@
  * ```
  */
 
-import { readFile, writeFile, readdir } from "node:fs/promises";
-import { existsSync, statSync } from "node:fs";
+import { readFile, writeFile, readdir, stat } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import type { MCPClient } from "./mcp-client.js";
@@ -471,7 +471,7 @@ export async function findMostRecentlyModifiedFile(
         const fullPath = join(dirPath, entry.name);
 
         try {
-          const statInfo = statSync(fullPath);
+          const statInfo = await stat(fullPath);
           if (statInfo.isDirectory()) {
             await walkDir(fullPath);
           } else if (statInfo.isFile()) {
