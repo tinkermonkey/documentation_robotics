@@ -25,7 +25,7 @@ import ansis from "ansis";
 import { Command } from "commander";
 import { createMcpClient, validateConnection, disconnectMcpClient, isTransportError, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
-import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
+import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate, type SessionContext } from "../scan/pattern-loader.js";
 import { buildScanIndex, saveScanIndex, loadScanIndex, isIndexFresh } from "../scan/index-builder.js";
 import { LAYER_MAP, isValidLayerName, CANONICAL_LAYER_NAMES, extractLayerFromId } from "../core/layers.js";
 import { getErrorMessage, handleError, CLIError, ErrorCategory } from "../utils/errors.js";
@@ -579,6 +579,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
  * @param relationshipCandidates - Array to accumulate relationship candidates
  * @param warnings - Array to collect warnings
  * @param verbose - Show detailed output
+ * @param session - Optional session context for multi-pass interpolation
  */
 function processPatternResults(
   pattern: PatternDefinition & { frameworkId: string },
@@ -586,18 +587,19 @@ function processPatternResults(
   elementCandidates: ElementCandidate[],
   relationshipCandidates: RelationshipCandidate[],
   warnings: string[],
-  verbose: boolean
+  verbose: boolean,
+  session?: SessionContext
 ): void {
   let matchErrorCount = 0;
   for (const match of matches) {
     try {
       if (pattern.produces.type === "relationship") {
-        const candidate = mapToRelationshipCandidate(pattern, match as Record<string, string>, warnings);
+        const candidate = mapToRelationshipCandidate(pattern, match as Record<string, string>, warnings, session);
         if (candidate) {
           relationshipCandidates.push(candidate);
         }
       } else {
-        const candidate = mapToElementCandidate(pattern, match as Record<string, string>, warnings);
+        const candidate = mapToElementCandidate(pattern, match as Record<string, string>, warnings, session);
         if (candidate) {
           elementCandidates.push(candidate);
         }
@@ -622,6 +624,11 @@ function processPatternResults(
  * Invokes each pattern's CodePrism query tool via MCP and maps results to DR candidates.
  * This is the core functional requirement that was previously a hardcoded stub.
  *
+ * Supports multi-pass pattern execution with {session.discovered.*} interpolation:
+ * - Independent patterns execute first and register their discovered elements in the session
+ * - Dependent patterns execute after their dependencies, accessing discovered elements via {session.discovered.*}
+ * - Session context tracks all discovered elements for interpolation in subsequent patterns
+ *
  * @param client - MCP client for tool invocation
  * @param patterns - Pattern sets to execute
  * @param threshold - Confidence threshold
@@ -638,6 +645,35 @@ export async function executePatterns(
 ): Promise<{ elementCandidates: ElementCandidate[]; relationshipCandidates: RelationshipCandidate[] }> {
   const elementCandidates: ElementCandidate[] = [];
   const relationshipCandidates: RelationshipCandidate[] = [];
+
+  // Session context for multi-pass pattern execution
+  // Tracks discovered elements from prior pattern passes for interpolation via {session.discovered.*}
+  let sessionContext: SessionContext = {
+    discovered: {},
+  };
+
+  // Helper function to register discovered elements in the session context
+  function registerDiscoveredElements(candidates: ElementCandidate[]): void {
+    if (!sessionContext.discovered) {
+      sessionContext.discovered = {};
+    }
+    for (const candidate of candidates) {
+      const layer = candidate.layer;
+      const elementType = candidate.type;
+
+      if (!sessionContext.discovered[layer]) {
+        sessionContext.discovered[layer] = {};
+      }
+      if (!sessionContext.discovered[layer][elementType]) {
+        sessionContext.discovered[layer][elementType] = [];
+      }
+
+      sessionContext.discovered[layer][elementType].push({
+        id: candidate.id,
+        name: candidate.name,
+      });
+    }
+  }
 
   // Check if a session is active (for requires_index patterns)
   let sessionActive = false;
@@ -723,6 +759,7 @@ export async function executePatterns(
       // Process results from batch_analysis
       // Results should come back as an array of objects, one per query in the same order
       let resultIndex = 0;
+      const independentElementCandidates: ElementCandidate[] = [];
       for (const pattern of independentPatterns) {
         if (verbose) {
           console.log(`  Processing pattern: ${pattern.id}`);
@@ -757,9 +794,18 @@ export async function executePatterns(
           console.log(`    Found ${patternResults.length} matches`);
         }
 
-        // Map matches to candidates
+        // Map matches to candidates (without session context - independent patterns don't use it)
         processPatternResults(pattern, patternResults, elementCandidates, relationshipCandidates, warnings, verbose);
+
+        // Register discovered element candidates from this pattern for use in dependent patterns
+        if (pattern.produces.type === "node") {
+          const newCandidates = elementCandidates.slice(elementCandidates.length - patternResults.length);
+          independentElementCandidates.push(...newCandidates);
+        }
       }
+
+      // After all independent patterns execute, register their discovered elements in the session context
+      registerDiscoveredElements(independentElementCandidates);
     } catch (error) {
       // Transport errors (connection lost, process crash, timeout) should not trigger fallback
       // as remaining patterns would be unreliable. Rethrow immediately.
@@ -771,6 +817,7 @@ export async function executePatterns(
       console.warn(ansis.yellow(`⚠ Batch analysis failed, falling back to sequential execution (this may be slower): ${getErrorMessage(error)}`));
 
       // Fall back to sequential execution of independent patterns
+      const independentElementCandidates: ElementCandidate[] = [];
       for (const pattern of independentPatterns) {
         if (verbose) {
           console.log(`  Executing pattern (fallback): ${pattern.id}`);
@@ -815,9 +862,19 @@ export async function executePatterns(
           console.log(`    Found ${matches.length} matches`);
         }
 
-        // Map matches to candidates
+        // Map matches to candidates (without session context - independent patterns don't use it)
+        const prevElementCount = elementCandidates.length;
         processPatternResults(pattern, matches, elementCandidates, relationshipCandidates, warnings, verbose);
+
+        // Register discovered element candidates from this pattern for use in dependent patterns
+        if (pattern.produces.type === "node") {
+          const newCandidates = elementCandidates.slice(prevElementCount);
+          independentElementCandidates.push(...newCandidates);
+        }
       }
+
+      // After all independent patterns execute, register their discovered elements in the session context
+      registerDiscoveredElements(independentElementCandidates);
     }
   }
 
@@ -867,8 +924,15 @@ export async function executePatterns(
       console.log(`    Found ${matches.length} matches`);
     }
 
-    // Map matches to candidates
-    processPatternResults(pattern, matches, elementCandidates, relationshipCandidates, warnings, verbose);
+    // Map matches to candidates - pass session context for {session.discovered.*} interpolation
+    const prevElementCount = elementCandidates.length;
+    processPatternResults(pattern, matches, elementCandidates, relationshipCandidates, warnings, verbose, sessionContext);
+
+    // Register discovered element candidates from this pattern for use in subsequent dependent patterns
+    if (pattern.produces.type === "node") {
+      const newCandidates = elementCandidates.slice(prevElementCount);
+      registerDiscoveredElements(newCandidates);
+    }
   }
 
   // Filter by confidence
@@ -884,12 +948,14 @@ export async function executePatterns(
  * @param pattern - Pattern definition
  * @param match - Match data from CodePrism
  * @param warnings - Array to collect mapping errors as warnings
+ * @param session - Optional session context for multi-pass interpolation
  * @returns Element candidate or null if mapping fails
  */
 export function mapToElementCandidate(
   pattern: PatternDefinition,
   match: Record<string, string>,
-  warnings: string[]
+  warnings: string[],
+  session?: SessionContext
 ): ElementCandidate | null {
   try {
     // Get ID template from mapping - must be a string (not nested object)
@@ -901,7 +967,7 @@ export function mapToElementCandidate(
     if (!idTemplate) {
       idTemplate = `${pattern.produces.layer}.${pattern.produces.elementType}.{match.name|kebab}`;
     }
-    const id = renderTemplate(idTemplate, { match });
+    const id = renderTemplate(idTemplate, { match }, session);
 
     // Get name template from mapping - must be a string (not nested object)
     let nameTemplate: string | undefined;
@@ -912,14 +978,14 @@ export function mapToElementCandidate(
     if (!nameTemplate) {
       nameTemplate = "{match.name}";
     }
-    const name = renderTemplate(nameTemplate, { match });
+    const name = renderTemplate(nameTemplate, { match }, session);
 
     // Collect other attributes from mapping
     const attributes: Record<string, string> = {};
     for (const [key, value] of Object.entries(pattern.mapping)) {
       if (key === "id" || key === "name") continue;
       if (typeof value === "string") {
-        attributes[key] = renderTemplate(value, { match });
+        attributes[key] = renderTemplate(value, { match }, session);
       }
     }
 
@@ -953,15 +1019,21 @@ export function mapToElementCandidate(
  * Wildcard patterns (e.g., "api.endpoint.*") are handled separately during wildcard expansion
  * in the scan command and are valid for both source and target.
  *
+ * Multi-pass interpolation allows patterns to reference discovered elements from prior passes:
+ * - source: "{session.discovered.api.endpoints|join-ids}"
+ * - target: "application.service.{match.serviceName|kebab}"
+ *
  * @param pattern - Relationship pattern definition
  * @param match - Match data from CodePrism
  * @param warnings - Array to collect mapping errors as warnings
+ * @param session - Optional session context for multi-pass interpolation
  * @returns Relationship candidate or null if mapping fails
  */
 export function mapToRelationshipCandidate(
   pattern: PatternDefinition,
   match: Record<string, string>,
-  warnings: string[]
+  warnings: string[],
+  session?: SessionContext
 ): RelationshipCandidate | null {
   try {
     // Type guard: this function should only be called with relationship patterns
@@ -978,7 +1050,7 @@ export function mapToRelationshipCandidate(
     if (!sourceIdTemplate) {
       throw new Error("Relationship pattern must define 'source' or 'sourceId' in mapping");
     }
-    let sourceId = renderTemplate(sourceIdTemplate, { match });
+    let sourceId = renderTemplate(sourceIdTemplate, { match }, session);
 
     // Get targetId template from mapping - support both "target" and "targetId" keys
     let targetIdTemplate: string | undefined;
@@ -989,7 +1061,7 @@ export function mapToRelationshipCandidate(
     if (!targetIdTemplate) {
       throw new Error("Relationship pattern must define 'target' or 'targetId' in mapping");
     }
-    let targetId = renderTemplate(targetIdTemplate, { match });
+    let targetId = renderTemplate(targetIdTemplate, { match }, session);
 
     // Get relationshipType from pattern definition
     const relationshipType = pattern.produces.relationshipType;
@@ -1027,7 +1099,7 @@ export function mapToRelationshipCandidate(
     for (const [key, value] of Object.entries(pattern.mapping)) {
       if (key === "source" || key === "target" || key === "sourceId" || key === "targetId") continue;
       if (typeof value === "string") {
-        attributes[key] = renderTemplate(value, { match });
+        attributes[key] = renderTemplate(value, { match }, session);
       }
     }
 
