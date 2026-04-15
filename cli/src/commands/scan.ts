@@ -23,7 +23,7 @@
 
 import ansis from "ansis";
 import { Command } from "commander";
-import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
+import { createMcpClient, validateConnection, disconnectMcpClient, isTransportError, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
 import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
 import { buildScanIndex, saveScanIndex, loadScanIndex, isIndexFresh } from "../scan/index-builder.js";
@@ -644,7 +644,11 @@ export async function executePatterns(
   try {
     const session = await loadSessionFile(process.cwd());
     sessionActive = session !== null && session.status === "ready";
-  } catch {
+  } catch (error) {
+    // Log the error before defaulting - includes corrupted session file diagnostics
+    if (verbose) {
+      console.warn(ansis.yellow(`⚠ Could not load session file: ${getErrorMessage(error)}`));
+    }
     // If session check fails, assume no session is active
     sessionActive = false;
   }
@@ -757,6 +761,12 @@ export async function executePatterns(
         processPatternResults(pattern, patternResults, elementCandidates, relationshipCandidates, warnings, verbose);
       }
     } catch (error) {
+      // Transport errors (connection lost, process crash, timeout) should not trigger fallback
+      // as remaining patterns would be unreliable. Rethrow immediately.
+      if (isTransportError(error)) {
+        throw error;
+      }
+
       // If batch_analysis fails, fall back to individual pattern execution
       console.warn(ansis.yellow(`⚠ Batch analysis failed, falling back to sequential execution (this may be slower): ${getErrorMessage(error)}`));
 
@@ -1339,8 +1349,27 @@ export async function sessionQueryCommand(
     let toolParams: Record<string, unknown> = {};
     if (options?.params) {
       try {
-        toolParams = JSON.parse(options.params);
+        const parsed = JSON.parse(options.params);
+        // Validate that parsed value is an object (not array, string, null, etc.)
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          throw new CLIError(
+            "--params must be a JSON object",
+            ErrorCategory.USER,
+            [
+              `Provided: ${options.params}`,
+              `Got type: ${Array.isArray(parsed) ? "array" : typeof parsed}`,
+              `Expected: {"key": "value", ...}`,
+              `Example: dr scan session query repository_stats --params '{"limit": 10}'`,
+            ]
+          );
+        }
+        toolParams = parsed;
       } catch (error) {
+        // If it's already a CLIError from the object check, rethrow it
+        if (error instanceof CLIError) {
+          throw error;
+        }
+        // Otherwise it's a JSON parse error
         throw new CLIError(
           "Invalid JSON in --params",
           ErrorCategory.USER,
@@ -1574,7 +1603,7 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
         }
       }
     } catch (error) {
-      handleError(error);
+      throw error;
     }
 
     // Check validation results and throw if needed (outside inner try-catch to avoid double-printing)
