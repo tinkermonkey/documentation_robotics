@@ -1,16 +1,16 @@
 /**
  * CodePrism Session Manager
  *
- * Manages the lifecycle of CodePrism sessions using a persistent process model:
- * - Start: Spawn CodePrism as background process, write session file with its PID
- * - Status: Check if process is alive (verify PID liveness), report status
- * - Query: Reuse existing CodePrism process, forward tool call
- * - Stop: Gracefully shutdown the running CodePrism process, remove session file
+ * Manages the lifecycle of CodePrism sessions using an in-memory cache model:
+ * - Start: Spawn CodePrism via MCP client, cache client in activeSessions map, write session metadata file
+ * - Status: Check if process is alive (cache lookup for pid=-1, or PID liveness check for positive PIDs)
+ * - Query: Reuse cached MCP client, forward tool call
+ * - Stop: Disconnect cached MCP client (closes stdio transport, terminates CodePrism), remove session file
  *
  * Session file format (.scan-session):
  * ```json
  * {
- *   "pid": 12345,
+ *   "pid": -1,
  *   "workspace": "/path/to/workspace",
  *   "status": "ready|indexing",
  *   "indexed_files": 150,
@@ -21,16 +21,21 @@
  *
  * Session invariants:
  * - Only one session per workspace (file-based mutex)
- * - Session file existence + PID liveness indicates active session
- * - PID field is the actual CodePrism process PID for lifecycle management
- * - CodePrism process is spawned once and kept alive across queries
- * - Session is invalidated by killing the process and removing the session file
+ * - Session file existence + cache entry indicates active session
+ * - PID field is -1 (marker for persistent session) when using cache-based model
+ * - CodePrism process is spawned once and cached for reuse within the same CLI process
+ * - Session is invalidated by disconnecting the client and removing the session file
+ *
+ * IMPORTANT LIMITATION: The in-memory cache only survives within a single CLI process.
+ * Each separate CLI invocation (e.g., `dr scan session start`, then later `dr scan session query`)
+ * runs as a new process with its own activeSessions map. For the persistent-process model to work
+ * across multiple CLI invocations, a background daemon or TCP/socket transport is required.
  *
  * Process lifecycle:
  * - startSession: Creates MCP client (spawns CodePrism child process), stores client in cache
- * - querySession: Reuses cached client, verifies it's still connected
+ * - querySession: Reuses cached client, verifies it's still connected (fails if not in cache)
  * - stopSession: Disconnects client (kills CodePrism process), cleans up cache
- * - getSessionState: Checks if process is alive via isProcessAlive check
+ * - getSessionState: Checks if process is alive via cache lookup (pid=-1) or PID liveness check
  */
 
 import { writeFile, readFile, unlink } from "node:fs/promises";
@@ -47,9 +52,12 @@ const activeSessions: Map<string, MCPClient> = new Map();
 
 /**
  * Session file schema - validated on read and write
+ *
+ * Note: PID can be -1 for persistent sessions (marker value indicating cache-based management)
+ * or a positive integer for traditional PID-based lifecycle management.
  */
 export const SessionFileSchema = z.object({
-  pid: z.number().int().positive(),
+  pid: z.number().int(),
   workspace: z.string(),
   status: z.enum(["ready", "indexing"]),
   indexed_files: z.number().int().nonnegative(),
@@ -355,15 +363,7 @@ export async function startSession(
         if (lastError.includes("CodePrism binary not found") ||
             lastError.includes("not executable") ||
             lastError.includes("Failed to access CodePrism binary")) {
-          // Clean up client if created
-          if (client) {
-            try {
-              await client.disconnect();
-            } catch {
-              // Ignore disconnect errors
-            }
-            activeSessions.delete(workspace);
-          }
+          // Mark for cleanup by outer error handler
           throw error;
         }
 
@@ -373,15 +373,6 @@ export async function startSession(
     }
 
     // Timeout reached without successful response
-    if (client) {
-      try {
-        await client.disconnect();
-      } catch {
-        // Ignore disconnect errors
-      }
-      activeSessions.delete(workspace);
-    }
-
     throw new CLIError(
       `CodePrism indexing timeout after ${Math.floor(maxWait / 1000)}s`,
       ErrorCategory.SYSTEM,
@@ -392,10 +383,10 @@ export async function startSession(
       ]
     );
   } catch (error) {
-    // Ensure client is cleaned up on error
-    if (client !== null && 'disconnect' in client) {
+    // Single cleanup site for all error paths
+    if (client) {
       try {
-        await (client as MCPClient).disconnect();
+        await client.disconnect();
       } catch {
         // Ignore disconnect errors during error cleanup
       }
@@ -459,7 +450,6 @@ export async function stopSession(workspace: string): Promise<void> {
  * reused across multiple queries, allowing the indexing cost to be amortized.
  *
  * @param workspace - Workspace root path
- * @param config - Scan configuration (used for validation, not process creation)
  * @param toolName - CodePrism tool name (e.g., "repository_stats", "search_code")
  * @param toolParams - Tool parameters as JSON object
  * @returns Tool results from CodePrism
@@ -467,7 +457,6 @@ export async function stopSession(workspace: string): Promise<void> {
  */
 export async function querySession(
   workspace: string,
-  _config: LoadedScanConfig,
   toolName: string,
   toolParams: Record<string, unknown>
 ): Promise<ToolResult[]> {
@@ -505,9 +494,19 @@ export async function querySession(
     const result = await client.callTool(toolName, toolParams);
     return result;
   } catch (error) {
-    // If the connection is lost, clean up the session
     const errorMsg = getErrorMessage(error);
-    if (errorMsg.includes("connection") || errorMsg.includes("disconnected") || errorMsg.includes("transport")) {
+
+    // Check if this is a connection/transport error by looking for common indicators
+    // This is still string-based matching but is more explicit about what we're checking
+    const isConnectionError =
+      errorMsg.toLowerCase().includes("connection") ||
+      errorMsg.toLowerCase().includes("disconnected") ||
+      errorMsg.toLowerCase().includes("transport") ||
+      errorMsg.toLowerCase().includes("pipe") ||
+      errorMsg.toLowerCase().includes("stdin") ||
+      errorMsg.toLowerCase().includes("closed");
+
+    if (isConnectionError) {
       activeSessions.delete(workspace);
       throw new CLIError(
         "CodePrism connection lost",

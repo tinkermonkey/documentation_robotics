@@ -1343,8 +1343,7 @@ export async function sessionQueryCommand(
       }
     }
 
-    const config = await loadScanConfig();
-    const results = await querySession(workspace, config, tool, toolParams);
+    const results = await querySession(workspace, tool, toolParams);
 
     const format = options?.format || "text";
 
