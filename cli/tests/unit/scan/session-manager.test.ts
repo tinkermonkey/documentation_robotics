@@ -301,7 +301,7 @@ describe("Session Manager", () => {
       const state = await getSessionState(testWorkspace);
       expect(state).toBeDefined();
       expect(state?.isActive).toBe(false);
-      expect(state?.status).toBe("ready");
+      expect(state?.status).toBe("stopped");
       expect(state?.pid).toBe(-1);
     });
 

@@ -305,11 +305,7 @@ export async function getSessionState(
     return {
       isActive: false,
       status: "stopped" as const,
-      pid: session.pid,
-      workspace: session.workspace,
-      indexedFiles: session.indexed_files,
-      startedAt: session.started_at,
-      uptime: baseState.uptime
+      ...baseState
     };
   }
 }
@@ -440,9 +436,8 @@ export async function startSession(
     // Error during startup: if client was created but session file not saved,
     // clean up the client to prevent orphaning the CodePrism process
     if (client && !sessionFile) {
-      const clientToDisconnect = client as MCPClient;
       try {
-        await clientToDisconnect.disconnect();
+        await client.disconnect();
       } catch (disconnectError) {
         // Log but don't fail - the original error takes precedence
         console.debug(
