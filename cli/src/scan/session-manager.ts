@@ -429,9 +429,6 @@ export async function startSession(
         }
 
         // Create session file
-        // Store the CodePrism client in the cache so queries can reuse it
-        activeSessions.set(workspace, client);
-
         // For the session file PID: Use the actual child process PID if available,
         // otherwise use -1 as a marker for cache-managed process.
         // The PID allows cross-invocation liveness checks even when the cache is empty.
@@ -448,6 +445,10 @@ export async function startSession(
         };
 
         await saveSessionFile(workspace, sessionFile);
+
+        // Store the CodePrism client in the cache AFTER session file is saved successfully
+        // This ensures that if saveSessionFile throws, the client is not cached with no session file on disk
+        activeSessions.set(workspace, client);
         return sessionFile;
       } catch (error) {
         lastError = getErrorMessage(error);
@@ -518,8 +519,9 @@ export async function stopSession(workspace: string): Promise<void> {
       await client.disconnect();
     } catch (error) {
       // Log but don't fail - we still want to clean up the session file
+      // Use console.warn instead of console.debug to make errors visible in normal usage
       const errorMsg = getErrorMessage(error);
-      console.debug(
+      console.warn(
         `Warning: failed to disconnect CodePrism client: ${errorMsg}`
       );
     }
@@ -545,8 +547,24 @@ export async function stopSession(workspace: string): Promise<void> {
  *
  * @param workspace - Workspace root path
  * @returns MCPClient wrapper that forwards to querySession
+ * @throws CLIError if session is not in cache (indicating cross-process invocation where session is not available)
  */
 export function createSessionClient(workspace: string): MCPClient {
+  // Validate that the session is actually in the cache before returning a "connected" client
+  // This catches cross-process scenarios where the session was started in a different CLI invocation
+  if (!activeSessions.has(workspace)) {
+    throw new CLIError(
+      "Session not found in current process",
+      ErrorCategory.SYSTEM,
+      [
+        `No active CodePrism session for workspace ${workspace}`,
+        "Sessions are cached in-process only",
+        "You may be running commands in separate processes (e.g., 'dr scan session start' then later 'dr validate' in a new terminal)",
+        "Use 'dr scan session query' in the same process where you started the session"
+      ]
+    );
+  }
+
   return {
     isConnected: true,
     async callTool(toolName: string, toolArgs: Record<string, unknown>) {

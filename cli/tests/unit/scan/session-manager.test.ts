@@ -620,7 +620,7 @@ describe("Session Manager", () => {
   });
 
   describe("createSessionClient", () => {
-    it("should create a session-based MCP client wrapper", async () => {
+    it("should create a session-based MCP client wrapper when session is in cache", async () => {
       const sessionPath = getSessionPath(testWorkspace);
       const sessionData = {
         pid: -1,
@@ -631,6 +631,19 @@ describe("Session Manager", () => {
         endpoint: "codeprism:--mcp",
       };
       writeFileSync(sessionPath, JSON.stringify(sessionData));
+
+      // Set up a mock client in the cache
+      const mockClient: MCPClient = {
+        isConnected: true,
+        async callTool() {
+          return [];
+        },
+        async listTools() {
+          return [];
+        },
+        async disconnect() {},
+      };
+      __test_setActiveSession(testWorkspace, mockClient);
 
       const client = createSessionClient(testWorkspace);
 
@@ -649,7 +662,7 @@ describe("Session Manager", () => {
       // Should not throw
     });
 
-    it("should delegate callTool to querySession", async () => {
+    it("should throw when session is not in cache", async () => {
       const sessionPath = getSessionPath(testWorkspace);
       const sessionData = {
         pid: -1,
@@ -661,16 +674,46 @@ describe("Session Manager", () => {
       };
       writeFileSync(sessionPath, JSON.stringify(sessionData));
 
-      const client = createSessionClient(testWorkspace);
-
-      // callTool should delegate to querySession, which should fail
-      // because no client is in the cache
+      // Don't set up a client in the cache - this simulates cross-process invocation
       try {
-        await client.callTool("test_tool", {});
+        createSessionClient(testWorkspace);
         throw new Error("Should have thrown");
       } catch (error) {
         expect(error instanceof CLIError).toBe(true);
+        expect((error as CLIError).message).toContain("Session not found in current process");
       }
+    });
+
+    it("should delegate callTool to querySession when client is in cache", async () => {
+      const sessionPath = getSessionPath(testWorkspace);
+      const sessionData = {
+        pid: -1,
+        workspace: testWorkspace,
+        status: "ready" as const,
+        indexed_files: 150,
+        started_at: "2026-01-01T00:00:00Z",
+        endpoint: "codeprism:--mcp",
+      };
+      writeFileSync(sessionPath, JSON.stringify(sessionData));
+
+      // Set up a mock client in the cache
+      const mockClient: MCPClient = {
+        isConnected: true,
+        async callTool(toolName: string, toolArgs: Record<string, unknown>) {
+          return [{ type: "text" as const, text: "test result" }];
+        },
+        async listTools() {
+          return [];
+        },
+        async disconnect() {},
+      };
+      __test_setActiveSession(testWorkspace, mockClient);
+
+      const client = createSessionClient(testWorkspace);
+
+      // callTool should delegate to querySession successfully
+      const result = await client.callTool("test_tool", {});
+      expect(result).toEqual([{ type: "text", text: "test result" }]);
     });
   });
 });
