@@ -60,13 +60,14 @@ const activeSessions: Map<string, MCPClient> = new Map();
  *
  * Note: PID can be -1 for persistent sessions (marker value indicating cache-based management)
  * or a positive integer for traditional PID-based lifecycle management.
+ * started_at must be a valid ISO 8601 datetime string.
  */
 export const SessionFileSchema = z.object({
   pid: z.number().int(),
   workspace: z.string(),
   status: z.enum(["ready", "indexing"]),
   indexed_files: z.number().int().nonnegative(),
-  started_at: z.string(),
+  started_at: z.string().datetime(),
   endpoint: z.string()
 });
 
@@ -74,16 +75,29 @@ export type SessionFile = z.infer<typeof SessionFileSchema>;
 
 /**
  * Session state representing the current status of a CodePrism instance
+ * Uses a discriminated union to represent two valid states:
+ * - Active: CodePrism process is running with full metadata
+ * - Stopped: Process is not running, may have metadata from last run
  */
-export interface SessionState {
-  isActive: boolean;
-  status: "ready" | "indexing" | "stopped";
-  pid?: number;
-  workspace?: string;
-  indexedFiles?: number;
-  startedAt?: string;
-  uptime?: string;
-}
+export type SessionState =
+  | {
+      isActive: true;
+      status: "ready" | "indexing";
+      pid: number;
+      workspace: string;
+      indexedFiles: number;
+      startedAt: string;
+      uptime: string;
+    }
+  | {
+      isActive: false;
+      status: "stopped";
+      pid?: number;
+      workspace?: string;
+      indexedFiles?: number;
+      startedAt?: string;
+      uptime?: string;
+    };
 
 /**
  * Get the session file path for a workspace
@@ -101,15 +115,26 @@ export function getSessionPath(workspace: string): string {
  *
  * @param pid - Process ID to check
  * @returns true if process is alive, false otherwise
+ *
+ * Note: EPERM (operation not permitted) means the process exists but belongs to another user.
+ * In this case, we return true since the process is alive.
  */
 export function isProcessAlive(pid: number): boolean {
   try {
     // Sending signal 0 checks if process exists without sending a signal
     // On Windows, this always returns true for processes owned by the same user
-    // We'll use try-catch as a fallback mechanism
     process.kill(pid, 0);
     return true;
-  } catch {
+  } catch (error) {
+    // EPERM means the process exists but we don't have permission to signal it
+    // This indicates the process is alive, just owned by another user
+    if (
+      error instanceof Error &&
+      (error as NodeJS.ErrnoException).code === "EPERM"
+    ) {
+      return true;
+    }
+    // All other errors (ESRCH=no such process, etc.) indicate process is dead
     return false;
   }
 }
@@ -238,7 +263,7 @@ export async function removeSessionFile(workspace: string): Promise<void> {
  * 2. The process is still running (checked via cache or PID liveness)
  *
  * @param workspace - Workspace root path
- * @returns Session state with isActive=true if process is alive, isActive=false if process is dead, or null if no session file exists
+ * @returns Active SessionState if process is alive, Stopped SessionState if process is dead, or null if no session file exists
  */
 export async function getSessionState(
   workspace: string
@@ -262,15 +287,31 @@ export async function getSessionState(
     processAlive = isProcessAlive(session.pid);
   }
 
-  return {
-    isActive: processAlive,
-    status: session.status,
+  const baseState = {
     pid: session.pid,
     workspace: session.workspace,
     indexedFiles: session.indexed_files,
     startedAt: session.started_at,
     uptime: calculateUptime(session.started_at)
   };
+
+  if (processAlive) {
+    return {
+      isActive: true,
+      status: session.status,
+      ...baseState
+    };
+  } else {
+    return {
+      isActive: false,
+      status: "stopped" as const,
+      pid: session.pid,
+      workspace: session.workspace,
+      indexedFiles: session.indexed_files,
+      startedAt: session.started_at,
+      uptime: baseState.uptime
+    };
+  }
 }
 
 /**
@@ -349,12 +390,13 @@ export async function startSession(
         // Store the CodePrism client in the cache so queries can reuse it
         activeSessions.set(workspace, client);
 
-        // For the session file PID: We use a placeholder marker since the actual
-        // CodePrism process PID is not easily accessible from the MCP SDK.
-        // The PID field is kept for compatibility but the actual liveness check
-        // is done via the cache lookup. We use -1 as a marker for "persistent process".
+        // For the session file PID: Use the actual child process PID if available,
+        // otherwise use -1 as a marker for cache-managed process.
+        // The PID allows cross-invocation liveness checks even when the cache is empty.
+        const pid = client.processId ?? -1;
+
         sessionFile = {
-          pid: -1, // Marker: persistent CodePrism process, managed by cache
+          pid, // Actual process PID (if available) or -1 (marker for cache-managed)
           workspace,
           status: "ready",
           indexed_files: indexedFiles,
@@ -395,8 +437,21 @@ export async function startSession(
       ]
     );
   } catch (error) {
-    // Error during startup: client is cached but session file was not saved
-    // Let the client be cleaned up via explicit stopSession() call or process exit
+    // Error during startup: if client was created but session file not saved,
+    // clean up the client to prevent orphaning the CodePrism process
+    if (client && !sessionFile) {
+      const clientToDisconnect = client as MCPClient;
+      try {
+        await clientToDisconnect.disconnect();
+      } catch (disconnectError) {
+        // Log but don't fail - the original error takes precedence
+        console.debug(
+          `Warning: failed to disconnect CodePrism client during error cleanup: ${getErrorMessage(
+            disconnectError
+          )}`
+        );
+      }
+    }
     throw error;
   }
 }
@@ -488,24 +543,15 @@ export async function querySession(
   }
 
   // Forward the query to the running process
-  // The client will detect if the connection has been lost and throw an error
   try {
     const result = await client.callTool(toolName, toolParams);
     return result;
   } catch (error) {
     const errorMsg = getErrorMessage(error);
 
-    // Check if this is a connection/transport error by looking for common indicators
-    // This is still string-based matching but is more explicit about what we're checking
-    const isConnectionError =
-      errorMsg.toLowerCase().includes("connection") ||
-      errorMsg.toLowerCase().includes("disconnected") ||
-      errorMsg.toLowerCase().includes("transport") ||
-      errorMsg.toLowerCase().includes("pipe") ||
-      errorMsg.toLowerCase().includes("stdin") ||
-      errorMsg.toLowerCase().includes("closed");
-
-    if (isConnectionError) {
+    // Check if connection was lost by examining client state and error characteristics
+    // If the client is no longer connected, we should invalidate the session
+    if (!client.isConnected) {
       activeSessions.delete(workspace);
       throw new CLIError("CodePrism connection lost", ErrorCategory.SYSTEM, [
         `The CodePrism process in ${workspace} disconnected unexpectedly`,
@@ -514,6 +560,9 @@ export async function querySession(
         `Details: ${errorMsg}`
       ]);
     }
+
+    // If the client still reports as connected, this is a tool execution error
+    // Pass it through without invalidating the session
     throw error;
   }
 }
