@@ -202,11 +202,16 @@ describe("Pattern Loading Integration", () => {
       const patterns = await loadBuiltinPatterns();
 
       // For each semantic pattern in framework pattern sets (not architectural patterns),
-      // there should be a corresponding regex fallback
+      // there should be a corresponding regex fallback. However, patterns with multi-pass
+      // dependencies (depends_on) are inherently semantic and cannot have regex equivalents
+      // because they:
+      // 1. Require session context from prior pattern passes
+      // 2. Use session.discovered interpolation for cross-layer relationships
+      // 3. Execute in a sequence that regex patterns cannot replicate
       const semanticPatterns = patterns
         .filter((set) => !set.framework.includes("pattern"))
         .flatMap((set) => set.patterns)
-        .filter((p) => p.requires_index === true);
+        .filter((p) => p.requires_index === true && (!p.depends_on || p.depends_on.length === 0));
 
       for (const semantic of semanticPatterns) {
         // Look for a fallback pattern with .regex in the ID or similar semantic pattern
