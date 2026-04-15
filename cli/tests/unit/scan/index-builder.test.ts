@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { writeFileSync, unlinkSync, existsSync, mkdirSync } from "node:fs";
+import { writeFileSync, unlinkSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -35,18 +35,10 @@ describe("Index Builder", () => {
   });
 
   afterEach(() => {
-    // Clean up test workspace
+    // Clean up test workspace - use rmSync for recursive directory removal
     try {
-      const indexPath = join(testWorkspace, "documentation-robotics", "scan-index.json");
-      if (existsSync(indexPath)) {
-        unlinkSync(indexPath);
-      }
-      const docRoboticsPath = join(testWorkspace, "documentation-robotics");
-      if (existsSync(docRoboticsPath)) {
-        unlinkSync(docRoboticsPath);
-      }
       if (existsSync(testWorkspace)) {
-        unlinkSync(testWorkspace);
+        rmSync(testWorkspace, { recursive: true, force: true });
       }
     } catch {
       // Ignore cleanup errors

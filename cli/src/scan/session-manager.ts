@@ -56,6 +56,25 @@ import { getErrorMessage, CLIError, ErrorCategory } from "../utils/errors.js";
 const activeSessions: Map<string, MCPClient> = new Map();
 
 /**
+ * Test helper: Set active session in cache (for unit testing)
+ * @internal
+ */
+export function __test_setActiveSession(
+  workspace: string,
+  client: MCPClient
+): void {
+  activeSessions.set(workspace, client);
+}
+
+/**
+ * Test helper: Clear all active sessions (for unit testing)
+ * @internal
+ */
+export function __test_clearActiveSessions(): void {
+  activeSessions.clear();
+}
+
+/**
  * Session file schema - validated on read and write
  *
  * Note: PID can be -1 for persistent sessions (marker value indicating cache-based management)
@@ -340,13 +359,18 @@ export async function getSessionState(
  *
  * @param workspace - Workspace root path
  * @param config - Scan configuration with CodePrism command and args
- * @param options - Session options
+ * @param options - Session options (maxWaitMs, pollIntervalMs, and optional clientFactory for testing)
  * @throws CLIError if session cannot be started
+ * @internal clientFactory is for testing only
  */
 export async function startSession(
   workspace: string,
   config: LoadedScanConfig,
-  options?: { maxWaitMs?: number; pollIntervalMs?: number }
+  options?: {
+    maxWaitMs?: number;
+    pollIntervalMs?: number;
+    clientFactory?: (config: LoadedScanConfig) => Promise<MCPClient>;
+  }
 ): Promise<SessionFile> {
   // Check if session already exists
   const existing = await getSessionState(workspace);
@@ -376,7 +400,8 @@ export async function startSession(
       try {
         // Try to create a client to the running process (done only once)
         if (!client) {
-          client = await createMcpClient(config);
+          const factory = options?.clientFactory || createMcpClient;
+          client = await factory(config);
         }
 
         // Poll repository_stats to check indexing status

@@ -15,6 +15,8 @@ import {
   stopSession,
   querySession,
   createSessionClient,
+  __test_setActiveSession,
+  __test_clearActiveSessions,
 } from "../../../src/scan/session-manager.js";
 import { CLIError } from "../../../src/utils/errors.js";
 import type { MCPClient, LoadedScanConfig } from "../../../src/scan/mcp-client.js";
@@ -29,19 +31,17 @@ describe("Session Manager", () => {
     mkdirSync(join(testWorkspace, "documentation-robotics"), { recursive: true });
   });
 
-  afterEach(() => {
-    // Clean up test workspace
+  afterEach(async () => {
+    // Clean up test workspace and sessions
+    __test_clearActiveSessions();
     try {
       const sessionPath = getSessionPath(testWorkspace);
       if (existsSync(sessionPath)) {
         unlinkSync(sessionPath);
       }
-      const docRoboticsPath = join(testWorkspace, "documentation-robotics");
-      if (existsSync(docRoboticsPath)) {
-        unlinkSync(docRoboticsPath);
-      }
       if (existsSync(testWorkspace)) {
-        unlinkSync(testWorkspace);
+        const { rm } = await import("node:fs/promises");
+        await rm(testWorkspace, { recursive: true });
       }
     } catch {
       // Ignore cleanup errors
@@ -402,16 +402,13 @@ describe("Session Manager", () => {
       const mockClient: MCPClient = {
         isConnected: true,
         callTool: mock(async () => {
-          // Simulate a delay that exceeds timeout
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          // Always throw an error to simulate CodePrism not responding
           throw new Error("CodePrism not responding");
         }),
         listTools: mock(async () => []),
         disconnect: mock(async () => {}),
       };
 
-      // We can't easily mock createMcpClient in this test framework,
-      // so we'll test the timeout logic by verifying error handling
       const config: LoadedScanConfig = {
         codeprism: {
           command: "codeprism",
@@ -422,9 +419,20 @@ describe("Session Manager", () => {
         disabled_patterns: [],
       };
 
-      // This test would require mocking createMcpClient, which we'll test
-      // in integration tests where we can properly mock the MCP module
-      expect(testWorkspace).toBeDefined();
+      // Use a mock client factory and very short timeout to test timeout behavior
+      const mockFactory = mock(async () => mockClient);
+
+      try {
+        await startSession(testWorkspace, config, {
+          maxWaitMs: 100, // Very short timeout to trigger immediately
+          pollIntervalMs: 10,
+          clientFactory: mockFactory,
+        });
+        throw new Error("Should have thrown timeout error");
+      } catch (error) {
+        expect(error instanceof CLIError).toBe(true);
+        expect((error as CLIError).message).toContain("timeout");
+      }
     });
   });
 
@@ -480,14 +488,24 @@ describe("Session Manager", () => {
       };
       writeFileSync(sessionPath, JSON.stringify(sessionData));
 
-      // Even if client disconnect fails, the session file should be removed
-      try {
-        await stopSession(testWorkspace);
-        expect(existsSync(sessionPath)).toBe(false);
-      } catch (error) {
-        // Should not throw even if disconnect fails
-        expect(false).toBe(true);
-      }
+      // Create a mock client that throws on disconnect
+      const mockClient: MCPClient = {
+        isConnected: true,
+        callTool: mock(async () => []),
+        listTools: mock(async () => []),
+        disconnect: mock(async () => {
+          throw new Error("Failed to disconnect");
+        }),
+      };
+
+      // Inject the client into the active sessions
+      __test_setActiveSession(testWorkspace, mockClient);
+
+      // stopSession should log the error but still remove the session file
+      await stopSession(testWorkspace);
+
+      // Session file should be removed even though disconnect failed
+      expect(existsSync(sessionPath)).toBe(false);
     });
   });
 
@@ -525,8 +543,7 @@ describe("Session Manager", () => {
     });
 
     it("should forward tool call to cached client", async () => {
-      // We need to test this with a properly cached client
-      // This requires integration test setup, so we'll verify the error paths
+      // Create a session file
       const sessionPath = getSessionPath(testWorkspace);
       const sessionData = {
         pid: -1,
@@ -538,16 +555,35 @@ describe("Session Manager", () => {
       };
       writeFileSync(sessionPath, JSON.stringify(sessionData));
 
-      // Without a cached client, it should fail as expected
-      try {
-        await querySession(testWorkspace, "test_tool", {});
-      } catch (error) {
-        expect(error instanceof CLIError).toBe(true);
-      }
+      // Create a mock client and inject it into the cache
+      const mockToolResult = [
+        { type: "text" as const, text: "test result" },
+      ];
+      const mockClient: MCPClient = {
+        isConnected: true,
+        callTool: mock(async (toolName: string, toolArgs) => {
+          expect(toolName).toBe("test_tool");
+          expect(toolArgs).toEqual({ param: "value" });
+          return mockToolResult;
+        }),
+        listTools: mock(async () => []),
+        disconnect: mock(async () => {}),
+      };
+
+      // Inject the mock client into the active sessions
+      __test_setActiveSession(testWorkspace, mockClient);
+
+      // Now querySession should delegate to the cached client
+      const result = await querySession(testWorkspace, "test_tool", {
+        param: "value",
+      });
+
+      expect(result).toEqual(mockToolResult);
+      expect(mockClient.callTool).toHaveBeenCalled();
     });
 
     it("should invalidate session when connection is lost", async () => {
-      // This test requires a cached client with isConnected = false
+      // Create a session file
       const sessionPath = getSessionPath(testWorkspace);
       const sessionData = {
         pid: -1,
@@ -559,11 +595,26 @@ describe("Session Manager", () => {
       };
       writeFileSync(sessionPath, JSON.stringify(sessionData));
 
-      // Error handling without a real client is tested via the error path
+      // Create a mock client that's marked as disconnected
+      const mockClient: MCPClient = {
+        isConnected: false, // Connection is lost
+        callTool: mock(async () => {
+          throw new Error("Connection lost");
+        }),
+        listTools: mock(async () => []),
+        disconnect: mock(async () => {}),
+      };
+
+      // Inject the disconnected client into the active sessions
+      __test_setActiveSession(testWorkspace, mockClient);
+
+      // querySession should detect the lost connection and invalidate the session
       try {
         await querySession(testWorkspace, "test_tool", {});
+        throw new Error("Should have thrown CLIError");
       } catch (error) {
         expect(error instanceof CLIError).toBe(true);
+        expect((error as CLIError).message).toContain("connection lost");
       }
     });
   });
