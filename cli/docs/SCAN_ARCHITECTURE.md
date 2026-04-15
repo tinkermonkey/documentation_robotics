@@ -697,6 +697,7 @@ CodePrism returns detailed metadata:
 ```
 
 Agent evaluates:
+
 - ✓ Symbol exists (type is class)
 - ✓ Location matches expected
 - ✓ Metadata aligns (injectable service, has methods)
@@ -727,14 +728,27 @@ CodePrism returns:
 {
   "symbol": "OrderService",
   "depends_on": [
-    { "symbol": "DatabaseService", "file": "src/db/database.ts", "type": "class" },
-    { "symbol": "LoggerService", "file": "src/logging/logger.ts", "type": "class" },
-    { "symbol": "OrderValidator", "file": "src/validators/order.ts", "type": "class" }
+    {
+      "symbol": "DatabaseService",
+      "file": "src/db/database.ts",
+      "type": "class"
+    },
+    {
+      "symbol": "LoggerService",
+      "file": "src/logging/logger.ts",
+      "type": "class"
+    },
+    {
+      "symbol": "OrderValidator",
+      "file": "src/validators/order.ts",
+      "type": "class"
+    }
   ]
 }
 ```
 
 Agent uses this to wire cross-layer references:
+
 - `application.service.order-service` → (depends-on) → `application.service.database-service`
 - `application.service.order-service` → (depends-on) → `application.service.logger-service`
 
@@ -798,12 +812,12 @@ dr scan session query search_code \
 
 Agents should assess confidence for each proposed element based on verification status:
 
-| Verification Status | Confidence | Provenance | Recommendation |
-|---|---|---|---|
-| CodePrism verified ✓ | High | `extracted` | Safe to emit immediately |
-| Partially verified | Medium | `extracted` | Review dependencies, emit with notes |
-| Not verified (no session) | Low | `inferred` | Mark as needing manual review |
-| CodePrism contradicts | Investigate | `inferred` | Research discrepancy before emitting |
+| Verification Status       | Confidence  | Provenance  | Recommendation                       |
+| ------------------------- | ----------- | ----------- | ------------------------------------ |
+| CodePrism verified ✓      | High        | `extracted` | Safe to emit immediately             |
+| Partially verified        | Medium      | `extracted` | Review dependencies, emit with notes |
+| Not verified (no session) | Low         | `inferred`  | Mark as needing manual review        |
+| CodePrism contradicts     | Investigate | `inferred`  | Research discrepancy before emitting |
 
 These are qualitative assessments based on verification status, not computed percentages.
 
@@ -864,6 +878,7 @@ While agents query one element at a time (`explain_symbol`), the underlying scan
 **Session Reuse**
 
 A single session is reused for the entire extraction. This eliminates the overhead of:
+
 - Re-indexing the repository on each query
 - Spawning/initializing CodePrism multiple times
 - Re-parsing all source files
@@ -873,6 +888,7 @@ One session startup (5-30 seconds) supports hundreds of extraction queries witho
 **Timeout Handling**
 
 If a query times out:
+
 ```bash
 # User can increase timeout in ~/.dr-config.yaml
 scan:

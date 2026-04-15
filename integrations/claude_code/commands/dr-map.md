@@ -502,7 +502,7 @@ When the agent completes, read the current element counts (the "after" state) an
 
 ```bash
 dr list --json 2>/dev/null | jq -r 'group_by(.layer) | map("\(.[0].layer): \(length)") | .[]'
-````
+```
 
 ```
 

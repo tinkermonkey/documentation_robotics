@@ -21,27 +21,32 @@ The session commands provide access to a persistent CodePrism instance that has 
 ### Session Lifecycle
 
 **Start of extraction session** (if session not already running):
+
 ```bash
 dr scan session start
 ```
 
 **Before analyzing any files**, read the repository orientation:
+
 ```bash
 dr scan session query repository_stats
 dr scan session query detect_patterns
 ```
 
 **For each proposed element**, verify it exists:
+
 ```bash
 dr scan session query explain_symbol --params '{"symbol":"MyService","language":"typescript"}'
 ```
 
 **When wiring cross-layer references**, discover dependencies:
+
 ```bash
 dr scan session query find_dependencies --params '{"symbol":"OrderService","language":"typescript"}'
 ```
 
 **When done with extraction** (optional, depending on workflow):
+
 ```bash
 dr scan session stop
 ```
@@ -68,17 +73,20 @@ Quick reference for each proposed element:
 Start a persistent CodePrism session and index the repository.
 
 **Usage:**
+
 ```bash
 dr scan session start [--workspace <path>]
 ```
 
 **What happens:**
+
 1. Spawns CodePrism as a detached background process
 2. Waits for repository indexing to complete
 3. Stores session metadata in `documentation-robotics/.scan-session`
 4. Returns session status with indexed file count
 
 **Output:**
+
 ```
 ✓ Session started
   PID: 12345
@@ -88,6 +96,7 @@ dr scan session start [--workspace <path>]
 ```
 
 **Error handling:**
+
 - If session already exists: stops and restarts it
 - If CodePrism not installed: reports clear error with installation instructions
 - If indexing times out: reports timeout and suggests restarting
@@ -97,11 +106,13 @@ dr scan session start [--workspace <path>]
 Check the status of the running session.
 
 **Usage:**
+
 ```bash
 dr scan session status [--workspace <path>]
 ```
 
 **Output (if session running):**
+
 ```
 ✓ running (ready)
   PID: 12345
@@ -111,6 +122,7 @@ dr scan session status [--workspace <path>]
 ```
 
 **Output (if no session):**
+
 ```
 ✗ No session found
 
@@ -123,6 +135,7 @@ To start a session, run:
 Query the running session for semantic analysis results.
 
 **Usage:**
+
 ```bash
 dr scan session query <tool> [--params <json>] [--format json|text]
 ```
@@ -131,15 +144,15 @@ dr scan session query <tool> [--params <json>] [--format json|text]
 
 All semantic tools that CodePrism provides. Common tools for extraction agents:
 
-| Tool | Purpose | Example Params |
-|------|---------|---|
-| `repository_stats` | Get repo structure summary (languages, framework hints, top modules) | `{}` |
-| `detect_patterns` | Identify architectural patterns (MVC, microservices, layering) | `{}` |
-| `explain_symbol` | Verify element type/location and get detailed metadata | `{"symbol":"OrderService","language":"typescript"}` |
-| `find_dependencies` | Discover dependencies of a symbol (what it depends on, what depends on it) | `{"symbol":"OrderService","language":"typescript","type":"all"}` |
-| `search_code` | Find code matching regex patterns | `{"pattern":"class.*Service","language":"typescript"}` |
-| `analyze_decorators` | List decorated symbols (e.g., @Injectable, @Entity) | `{"language":"typescript","decorator":"Injectable"}` |
-| `analyze_api_surface` | Find API endpoints and operations | `{"framework":"express","language":"javascript"}` |
+| Tool                  | Purpose                                                                    | Example Params                                                   |
+| --------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `repository_stats`    | Get repo structure summary (languages, framework hints, top modules)       | `{}`                                                             |
+| `detect_patterns`     | Identify architectural patterns (MVC, microservices, layering)             | `{}`                                                             |
+| `explain_symbol`      | Verify element type/location and get detailed metadata                     | `{"symbol":"OrderService","language":"typescript"}`              |
+| `find_dependencies`   | Discover dependencies of a symbol (what it depends on, what depends on it) | `{"symbol":"OrderService","language":"typescript","type":"all"}` |
+| `search_code`         | Find code matching regex patterns                                          | `{"pattern":"class.*Service","language":"typescript"}`           |
+| `analyze_decorators`  | List decorated symbols (e.g., @Injectable, @Entity)                        | `{"language":"typescript","decorator":"Injectable"}`             |
+| `analyze_api_surface` | Find API endpoints and operations                                          | `{"framework":"express","language":"javascript"}`                |
 
 **Return format:**
 
@@ -154,6 +167,7 @@ dr scan session query repository_stats --format text
 ```
 
 **Error handling:**
+
 - If no session is running: reports clear error and suggests `dr scan session start`
 - If tool doesn't exist: lists available tools
 - If params are invalid JSON: reports JSON parse error
@@ -164,16 +178,19 @@ dr scan session query repository_stats --format text
 Stop the running session and clean up.
 
 **Usage:**
+
 ```bash
 dr scan session stop [--workspace <path>]
 ```
 
 **Output:**
+
 ```
 ✓ Session stopped
 ```
 
 **What happens:**
+
 1. Sends SIGTERM to CodePrism process
 2. Waits up to 5 seconds for graceful shutdown
 3. Sends SIGKILL if process doesn't respond
@@ -181,6 +198,7 @@ dr scan session stop [--workspace <path>]
 5. Returns success regardless (cleanup is always attempted)
 
 **Error handling:**
+
 - If no session found: reports clearly and suggests `dr scan session start` if you meant to query
 - If process doesn't respond to signals: forces kill (no error reported; cleanup succeeds anyway)
 
@@ -314,6 +332,7 @@ references may be incomplete.
 - Final model will validate successfully but with lower confidence
 
 Example of degraded extraction output:
+
 ```bash
 # Static analysis: found OrderService class based on regex + import scan
 dr add application service "Order Service" \
@@ -332,9 +351,9 @@ Sessions use the same CodePrism configuration as the main `dr scan` command:
 ```yaml
 scan:
   codeprism:
-    command: codeprism          # CodePrism executable
-    args: ["--mcp"]             # MCP server arguments
-    timeout: 5000               # Connection timeout (ms)
+    command: codeprism # CodePrism executable
+    args: ["--mcp"] # MCP server arguments
+    timeout: 5000 # Connection timeout (ms)
   confidence_threshold: 0.7
   disabled_patterns: []
 ```
@@ -350,21 +369,27 @@ These are not currently configurable but can be made so if needed.
 ## Error Reference
 
 ### "No session found"
+
 Session doesn't exist or has been stopped. Start one: `dr scan session start`
 
 ### "Failed to connect to CodePrism"
+
 CodePrism executable not found or not in PATH. Install CodePrism and verify: `which codeprism`
 
 ### "Session is indexing, please wait"
+
 Session is still building the repository index. Call `dr scan session status` to check progress or wait and retry the query.
 
 ### "Tool not found"
+
 The named tool doesn't exist in CodePrism. Call `dr scan session query repository_stats` to list available tools.
 
 ### "Invalid JSON in --params"
+
 The `--params` argument is not valid JSON. Make sure to quote properly and escape special characters: `--params '{"symbol":"Foo","language":"typescript"}'`
 
 ### "Timeout waiting for tool result"
+
 CodePrism took too long to respond. Check if the repository is very large or if the system is under heavy load. You can increase the timeout in `~/.dr-config.yaml` (scan → codeprism → timeout).
 
 ## Related Commands
@@ -378,6 +403,7 @@ CodePrism took too long to respond. Check if the repository is very large or if 
 ### Why Session Queries Over Static Analysis?
 
 Static regex-based scanning finds code patterns but can't confirm:
+
 - Symbol type (is it a class, interface, or export?)
 - Scope and visibility (is it exported or private?)
 - Dependencies and cross-references (what does it actually use?)
