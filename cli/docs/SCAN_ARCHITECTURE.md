@@ -576,8 +576,315 @@ This is normal and not an error. The scan will continue with per-pattern executi
 3. Check CodePrism performance: Run `dr scan --verbose`
 4. Consider code size: Very large codebases may take time
 
+## Agent Grounding Workflow
+
+This section describes how Claude extraction agents leverage a running CodePrism session to ground their inferences against the live semantic graph before proposing additions to the architecture model.
+
+### Design Principles
+
+**Design Invariant #1: CodePrism as Fact-Checker, Not Sole Discoverer**
+
+CodePrism verifies and refines agent inferences; it doesn't replace them. The agent remains in control:
+
+1. Agent uses static analysis to identify candidates ("there's a class OrderService in src/services/OrderService.ts")
+2. Agent proposes elements based on patterns and naming conventions
+3. CodePrism verifies or contradicts via semantic queries
+4. Agent resolves conflicts and emits grounded elements
+
+**Design Invariant #2: Agent-Driven Verification Loop**
+
+Agents drive their own verification, not the other way around. For each proposed element:
+
+```
+Agent: "I think there's a service here"
+  ↓
+Agent: "CodePrism, confirm this exists"
+  ↓
+CodePrism: "Yes/No/Different than expected"
+  ↓
+Agent: "OK, I'll emit/investigate/refine my proposal"
+```
+
+**Design Invariant #3: Graceful Degradation**
+
+Extraction must succeed with or without a CodePrism session. When a session is unavailable:
+
+- Agent uses static code analysis only
+- Elements are marked with `source-provenance: inferred` instead of `extracted`
+- Cross-layer references are inferred from type names and patterns
+- Model is valid but with lower confidence
+
+### Session Lifecycle for Agents
+
+Before starting extraction:
+
+```bash
+# Check if session is already running
+dr scan session status
+
+# If not running, start one
+dr scan session start
+# Output: ✓ Session started
+#   PID: 12345
+#   Indexed files: 1,250
+#   Workspace: /home/user/my-project
+```
+
+The session remains active for the duration of extraction, allowing agents to query CodePrism multiple times without re-indexing.
+
+### Orientation Step
+
+When a session is active, agents should start with **orientation** before analyzing code:
+
+```bash
+# Understand repository structure and technology hints
+dr scan session query repository_stats --format text
+# Returns: languages, frameworks, package structure, module counts
+
+# Detect architectural patterns in the codebase
+dr scan session query detect_patterns --format text
+# Returns: MVC/microservices/layering patterns, design patterns, framework-specific patterns
+```
+
+**What agents do with this information:**
+
+- **From repository_stats**: Focus extraction on the detected technologies
+  - TypeScript + NestJS? Expect @Injectable services, @Controller endpoints
+  - Python + FastAPI? Expect @app routes, Pydantic models, SQLAlchemy ORM
+  - Java + Spring? Expect @Service, @RestController, @Entity annotations
+
+- **From detect_patterns**: Align extraction strategy with detected architecture
+  - Detected microservices? Expect API Gateway + multiple service modules
+  - Detected MVC? Expect models, views, controllers in separate directories
+  - Detected CQRS pattern? Expect command/query separations
+
+This prevents "surprising" proposals that don't match the codebase's actual architecture.
+
+### Per-Element Verification Loop
+
+For each proposed element, agents follow this loop:
+
+#### 1. Identify Candidate
+
+Agent's static analysis suggests: "There's a class OrderService in src/services/OrderService.ts"
+
+#### 2. Query CodePrism for Confirmation
+
+```bash
+dr scan session query explain_symbol \
+  --params '{"symbol":"OrderService","language":"typescript"}'
+```
+
+#### 3. Evaluate CodePrism Response
+
+CodePrism returns detailed metadata:
+
+```json
+{
+  "name": "OrderService",
+  "type": "class",
+  "file": "src/services/OrderService.ts",
+  "line": 45,
+  "decorators": ["@Injectable"],
+  "exported": true,
+  "methods": ["create", "update", "cancel", "list"],
+  "constructor_params": [
+    { "name": "database", "type": "DatabaseService" },
+    { "name": "logger", "type": "LoggerService" }
+  ],
+  "dependencies": ["DatabaseService", "LoggerService", "OrderValidator"]
+}
+```
+
+Agent evaluates:
+- ✓ Symbol exists (type is class)
+- ✓ Location matches expected
+- ✓ Metadata aligns (injectable service, has methods)
+- ✓ Dependencies are discoverable
+
+#### 4. Populate source_reference with Confirmed Data
+
+```bash
+dr add application service "Order Service" \
+  --description "Handles order lifecycle (create, update, cancel)" \
+  --source-file "src/services/OrderService.ts" \
+  --source-symbol "OrderService" \
+  --source-provenance extracted  # ← Confirmed via CodePrism
+```
+
+Note: `source-provenance: extracted` signals that CodePrism verified this element.
+
+#### 5. Discover Cross-Layer Dependencies
+
+```bash
+dr scan session query find_dependencies \
+  --params '{"symbol":"OrderService","language":"typescript","type":"all"}'
+```
+
+CodePrism returns:
+
+```json
+{
+  "symbol": "OrderService",
+  "depends_on": [
+    { "symbol": "DatabaseService", "file": "src/db/database.ts", "type": "class" },
+    { "symbol": "LoggerService", "file": "src/logging/logger.ts", "type": "class" },
+    { "symbol": "OrderValidator", "file": "src/validators/order.ts", "type": "class" }
+  ]
+}
+```
+
+Agent uses this to wire cross-layer references:
+- `application.service.order-service` → (depends-on) → `application.service.database-service`
+- `application.service.order-service` → (depends-on) → `application.service.logger-service`
+
+#### 6. Handle Discrepancy Cases
+
+If CodePrism contradicts the agent's inference, the agent investigates rather than blindly proposing:
+
+**Case 1: Element doesn't exist where expected**
+
+```bash
+# Agent thought: OrderService at src/services/OrderService.ts
+# CodePrism says: Not found
+
+# Agent investigates:
+dr scan session query search_code \
+  --params '{"pattern":"class.*OrderService","language":"typescript"}'
+
+# CodePrism reveals: Found at src/order/service.ts (different location)
+
+# Agent re-evaluates:
+# - Is this the same OrderService I'm looking for?
+# - Or is it a different element?
+# - Should I correct the location or propose a different element?
+
+# Then retries explain_symbol at correct location
+dr scan session query explain_symbol \
+  --params '{"symbol":"OrderService","language":"typescript","file":"src/order/service.ts"}'
+```
+
+**Case 2: Element type doesn't match**
+
+```bash
+# Agent thought: OrderService is a class
+# CodePrism says: OrderService is an interface
+
+# Agent investigates:
+# - Is there also an implementing class?
+# - Should I propose the interface instead?
+# - Do I need separate elements for both?
+
+# Retries with explicit type hint or searches for implementations
+dr scan session query search_code \
+  --params '{"pattern":"class.*implements.*OrderService","language":"typescript"}'
+```
+
+**Case 3: Element has unexpected dependencies**
+
+```bash
+# Agent thought: OrderService depends on DatabaseService only
+# CodePrism reveals: OrderService also depends on ExternalPaymentAPI
+
+# Agent investigates:
+# - Is the payment integration expected?
+# - Does this change the element's layer or type?
+# - Are there additional cross-layer references needed?
+
+# May result in: adding APM monitoring reference, security policy, etc.
+```
+
+### Verification Confidence Scoring
+
+Agents should maintain a confidence score for each proposed element based on verification:
+
+| Verification Status | Confidence | Provenance | Recommendation |
+|---|---|---|---|
+| CodePrism verified ✓ | High (90%+) | `extracted` | Safe to emit immediately |
+| Partially verified | Medium (70-90%) | `extracted` | Review dependencies, emit with notes |
+| Not verified (no session) | Low (50-70%) | `inferred` | Mark as needing manual review |
+| CodePrism contradicts | Very Low (<50%) | `inferred` | Investigate discrepancy before emitting |
+
+### Graceful Degradation: No Active Session
+
+When no CodePrism session is active, agents proceed with **static code analysis only**:
+
+```
+Agent: "I don't have access to CodePrism queries"
+  ↓
+Agent: "I'll use static analysis to identify candidates"
+  ↓
+Agent: "All elements will be marked provenance: inferred"
+  ↓
+Agent: "Cross-layer references will be incomplete but valid"
+```
+
+**Behavior when degraded:**
+
+- All session query commands return: "No session found. To use session queries, start one: dr scan session start"
+- Agent treats this as expected and continues
+- Uses regex and import analysis for candidate identification
+- Sets `source-provenance: inferred` for all proposed elements
+- Infers cross-layer references from type names and usage patterns
+- Final model is valid and passes validation, but with lower confidence
+
+**Example degraded extraction:**
+
+```bash
+# Static regex analysis: found class matching "Service" pattern
+# Inferred from import usage that it's a business service
+
+dr add application service "Order Service" \
+  --description "Service class for order operations (inferred from code analysis)" \
+  --source-file "src/services/OrderService.ts" \
+  --source-symbol "OrderService" \
+  --source-provenance inferred  # ← Not verified by CodePrism
+```
+
+### Extraction Agent Integration
+
+The `/dr-map` command documents how to leverage this workflow. Key sections:
+
+- **Agent Grounding: Verification Against Live Codebase** — Overview of when/how to use session queries
+- **Orientation: Start with Repository Understanding** — Guidance on initial `repository_stats` and `detect_patterns` queries
+- **Element Verification: The CodePrism Grounding Loop** — Detailed per-element verification loop
+- **When CodePrism Contradicts Inference** — How to investigate discrepancies
+- **Graceful Degradation: No Session Available** — What happens when session is inactive
+
+See `/dr-scan-session` command documentation for tool-by-tool reference.
+
+### Performance Considerations
+
+**Batch Queries (Semantic Dispatch)**
+
+While agents query one element at a time (`explain_symbol`), the underlying scan engine batches independent patterns via `batch_analysis` for performance. Agents don't need to optimize for this — they issue queries naturally, and the system handles batching transparently.
+
+**Session Reuse**
+
+A single session is reused for the entire extraction. This eliminates the overhead of:
+- Re-indexing the repository on each query
+- Spawning/initializing CodePrism multiple times
+- Re-parsing all source files
+
+One session startup (5-30 seconds) supports hundreds of extraction queries without additional overhead.
+
+**Timeout Handling**
+
+If a query times out:
+```bash
+# User can increase timeout in ~/.dr-config.yaml
+scan:
+  codeprism:
+    timeout: 10000  # Default 5000ms
+```
+
+Or agents can handle timeouts gracefully by falling back to static analysis for that element.
+
 ## Related Documentation
 
+- [ADR-006: CodePrism Session Lifecycle](../../docs/adr/ADR-006-codeprism-session-lifecycle.md) — Session design and implementation
 - [ADR-003: Pattern Files](../../docs/adr/ADR-003-pattern-files-cli-asset.md) — Architectural decision on CLI-maintained patterns
 - [ADR-004: AST Parser](../../docs/adr/ADR-004-ast-parser-selection.md) — Why CodePrism was selected as the AST analysis engine
 - [ADR-005: Language Support](../../docs/adr/ADR-005-language-support-management.md) — Language support strategy and tiers
+- [Claude Code Integration: /dr-map](../../integrations/claude_code/commands/dr-map.md) — Extraction command with agent grounding
+- [Claude Code Integration: /dr-scan-session](../../integrations/claude_code/commands/dr-scan-session.md) — Session command reference for agents
