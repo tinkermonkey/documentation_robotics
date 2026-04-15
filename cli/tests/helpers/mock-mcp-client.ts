@@ -35,6 +35,43 @@ export function createMockMcpClient(
     endpoint: "mock://codeprism",
 
     async callTool(toolName: string, args: Record<string, unknown>): Promise<ToolResult[]> {
+      // Special handling for batch_analysis: execute queries in sequence
+      if (toolName === "batch_analysis") {
+        const queries = args.queries as Array<{ patternId: string; tool: string; params: Record<string, unknown> }> | undefined;
+        if (!queries || !Array.isArray(queries)) {
+          return [
+            {
+              type: "error",
+              text: "batch_analysis requires a 'queries' array parameter",
+            },
+          ];
+        }
+
+        // Execute each query and collect results in order
+        const batchResults: ToolResult[] = [];
+        for (const query of queries) {
+          try {
+            // Recursively call the tool specified in this query
+            const result = await this.callTool(query.tool, query.params);
+            // Add the results for this query to the batch results
+            batchResults.push(...result);
+          } catch (error) {
+            // Transport errors should propagate, not be converted to error results
+            // This ensures that connection failures fail the entire scan
+            if (error instanceof Error && isTransportError(error)) {
+              throw error;
+            }
+            // For non-transport errors, include error in batch results
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            batchResults.push({
+              type: "error",
+              text: errorMessage,
+            });
+          }
+        }
+        return batchResults;
+      }
+
       // If this tool should throw an error (for testing failures)
       if (toolErrors[toolName]) {
         const error = toolErrors[toolName];

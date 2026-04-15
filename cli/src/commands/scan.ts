@@ -738,12 +738,12 @@ export async function executePatterns(
               }
             } catch (parseError) {
               warnings.push(
-                `Could not parse batch_analysis result for pattern '${pattern.id}': ${result.text.slice(0, 100)}`
+                `Could not parse tool result as JSON: ${result.text.slice(0, 100)}`
               );
             }
           } else if (result.type === "error" && "text" in result) {
             warnings.push(
-              `Batch tool for pattern '${pattern.id}' returned error: ${result.text}`
+              `Tool '${pattern.query.tool}' returned error: ${result.text}`
             );
           }
         }
