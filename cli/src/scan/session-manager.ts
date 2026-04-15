@@ -41,7 +41,12 @@
 import { writeFile, readFile, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { z } from "zod";
-import { createMcpClient, type LoadedScanConfig, type MCPClient, type ToolResult } from "./mcp-client.js";
+import {
+  createMcpClient,
+  type LoadedScanConfig,
+  type MCPClient,
+  type ToolResult
+} from "./mcp-client.js";
 import { getErrorMessage, CLIError, ErrorCategory } from "../utils/errors.js";
 
 /**
@@ -62,7 +67,7 @@ export const SessionFileSchema = z.object({
   status: z.enum(["ready", "indexing"]),
   indexed_files: z.number().int().nonnegative(),
   started_at: z.string(),
-  endpoint: z.string(),
+  endpoint: z.string()
 });
 
 export type SessionFile = z.infer<typeof SessionFileSchema>;
@@ -133,7 +138,9 @@ export function calculateUptime(startedAt: string): string {
  * @returns Session file contents, or null if no session exists
  * @throws CLIError if session file is corrupted
  */
-export async function loadSessionFile(workspace: string): Promise<SessionFile | null> {
+export async function loadSessionFile(
+  workspace: string
+): Promise<SessionFile | null> {
   const sessionPath = getSessionPath(workspace);
 
   if (!existsSync(sessionPath)) {
@@ -152,7 +159,7 @@ export async function loadSessionFile(workspace: string): Promise<SessionFile | 
         [
           `Invalid session data: ${validated.error.message}`,
           "You may need to manually remove the session file and start a new session",
-          `Run: rm ${sessionPath}`,
+          `Run: rm ${sessionPath}`
         ]
       );
     }
@@ -176,14 +183,18 @@ export async function loadSessionFile(workspace: string): Promise<SessionFile | 
  * @param session - Session data to write
  * @throws CLIError if write fails
  */
-export async function saveSessionFile(workspace: string, session: SessionFile): Promise<void> {
+export async function saveSessionFile(
+  workspace: string,
+  session: SessionFile
+): Promise<void> {
   const sessionPath = getSessionPath(workspace);
 
   try {
     const validated = SessionFileSchema.parse(session);
     await writeFile(sessionPath, JSON.stringify(validated, null, 2), "utf-8");
   } catch (error) {
-    const message = error instanceof z.ZodError ? error.message : getErrorMessage(error);
+    const message =
+      error instanceof z.ZodError ? error.message : getErrorMessage(error);
     throw new CLIError(
       `Failed to save session file: ${sessionPath}`,
       ErrorCategory.SYSTEM,
@@ -229,7 +240,9 @@ export async function removeSessionFile(workspace: string): Promise<void> {
  * @param workspace - Workspace root path
  * @returns Session state with isActive=true if process is alive, isActive=false if process is dead, or null if no session file exists
  */
-export async function getSessionState(workspace: string): Promise<SessionState | null> {
+export async function getSessionState(
+  workspace: string
+): Promise<SessionState | null> {
   const session = await loadSessionFile(workspace);
   if (!session) {
     return null;
@@ -256,7 +269,7 @@ export async function getSessionState(workspace: string): Promise<SessionState |
     workspace: session.workspace,
     indexedFiles: session.indexed_files,
     startedAt: session.started_at,
-    uptime: calculateUptime(session.started_at),
+    uptime: calculateUptime(session.started_at)
   };
 }
 
@@ -283,15 +296,11 @@ export async function startSession(
   // Check if session already exists
   const existing = await getSessionState(workspace);
   if (existing?.isActive) {
-    throw new CLIError(
-      "Session already active",
-      ErrorCategory.USER,
-      [
-        `PID ${existing.pid} is running in ${workspace}`,
-        "Use 'dr scan session stop' to stop the current session",
-        "Or use 'dr scan session query' to reuse the existing session",
-      ]
-    );
+    throw new CLIError("Session already active", ErrorCategory.USER, [
+      `PID ${existing.pid} is running in ${workspace}`,
+      "Use 'dr scan session stop' to stop the current session",
+      "Or use 'dr scan session query' to reuse the existing session"
+    ]);
   }
 
   // Poll for indexing completion
@@ -350,7 +359,8 @@ export async function startSession(
           status: "ready",
           indexed_files: indexedFiles,
           started_at: startedAt,
-          endpoint: config.codeprism.command + ":" + config.codeprism.args.join(" "),
+          endpoint:
+            config.codeprism.command + ":" + config.codeprism.args.join(" ")
         };
 
         await saveSessionFile(workspace, sessionFile);
@@ -360,9 +370,11 @@ export async function startSession(
 
         // Check if this is an unrecoverable error (e.g., binary not found)
         // If so, fail immediately rather than retrying
-        if (lastError.includes("CodePrism binary not found") ||
-            lastError.includes("not executable") ||
-            lastError.includes("Failed to access CodePrism binary")) {
+        if (
+          lastError.includes("CodePrism binary not found") ||
+          lastError.includes("not executable") ||
+          lastError.includes("Failed to access CodePrism binary")
+        ) {
           // Mark for cleanup by outer error handler
           throw error;
         }
@@ -379,7 +391,7 @@ export async function startSession(
       [
         "The CodePrism process may have crashed or is taking too long to index",
         `Last error: ${lastError}`,
-        "Try checking CodePrism logs or stopping the process manually",
+        "Try checking CodePrism logs or stopping the process manually"
       ]
     );
   } catch (error) {
@@ -412,14 +424,10 @@ export async function stopSession(workspace: string): Promise<void> {
   const session = await loadSessionFile(workspace);
 
   if (!session) {
-    throw new CLIError(
-      "No active session",
-      ErrorCategory.USER,
-      [
-        `No session file found in ${workspace}`,
-        "Use 'dr scan session start' to start a new session",
-      ]
-    );
+    throw new CLIError("No active session", ErrorCategory.USER, [
+      `No session file found in ${workspace}`,
+      "Use 'dr scan session start' to start a new session"
+    ]);
   }
 
   // Get the cached client and disconnect it
@@ -431,7 +439,9 @@ export async function stopSession(workspace: string): Promise<void> {
     } catch (error) {
       // Log but don't fail - we still want to clean up the session file
       const errorMsg = getErrorMessage(error);
-      console.debug(`Warning: failed to disconnect CodePrism client: ${errorMsg}`);
+      console.debug(
+        `Warning: failed to disconnect CodePrism client: ${errorMsg}`
+      );
     }
     activeSessions.delete(workspace);
   }
@@ -463,14 +473,10 @@ export async function querySession(
   const session = await loadSessionFile(workspace);
 
   if (!session) {
-    throw new CLIError(
-      "No active session",
-      ErrorCategory.USER,
-      [
-        `No session file found in ${workspace}`,
-        "Use 'dr scan session start' to start a new session",
-      ]
-    );
+    throw new CLIError("No active session", ErrorCategory.USER, [
+      `No session file found in ${workspace}`,
+      "Use 'dr scan session start' to start a new session"
+    ]);
   }
 
   // Get the cached client from the persistent session
@@ -483,7 +489,7 @@ export async function querySession(
       [
         `The CodePrism process for workspace ${workspace} is no longer cached`,
         "This may indicate the process crashed or the session was invalidated",
-        "Use 'dr scan session stop' and then 'dr scan session start' to restart",
+        "Use 'dr scan session stop' and then 'dr scan session start' to restart"
       ]
     );
   }
@@ -508,16 +514,12 @@ export async function querySession(
 
     if (isConnectionError) {
       activeSessions.delete(workspace);
-      throw new CLIError(
-        "CodePrism connection lost",
-        ErrorCategory.SYSTEM,
-        [
-          `The CodePrism process in ${workspace} disconnected unexpectedly`,
-          "The session has been invalidated",
-          "Use 'dr scan session stop' and then 'dr scan session start' to restart",
-          `Details: ${errorMsg}`,
-        ]
-      );
+      throw new CLIError("CodePrism connection lost", ErrorCategory.SYSTEM, [
+        `The CodePrism process in ${workspace} disconnected unexpectedly`,
+        "The session has been invalidated",
+        "Use 'dr scan session stop' and then 'dr scan session start' to restart",
+        `Details: ${errorMsg}`
+      ]);
     }
     throw error;
   }
