@@ -391,7 +391,7 @@ export async function saveScanIndex(
   index: ScanIndex,
   workspace: string,
   outputPath?: string
-): Promise<void> {
+): Promise<string> {
   const indexPath = outputPath || getIndexPath(workspace);
 
   try {
@@ -407,6 +407,7 @@ export async function saveScanIndex(
 
     const content = JSON.stringify(validation.data, null, 2);
     await writeFile(indexPath, content, "utf-8");
+    return indexPath;
   } catch (error) {
     if (error instanceof CLIError) {
       throw error;

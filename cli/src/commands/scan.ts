@@ -23,7 +23,6 @@
 
 import ansis from "ansis";
 import { Command } from "commander";
-import { join } from "node:path";
 import { createMcpClient, validateConnection, disconnectMcpClient, type MCPClient } from "../scan/mcp-client.js";
 import { loadScanConfig } from "../scan/config.js";
 import { loadBuiltinPatterns, loadProjectPatterns, mergePatterns, filterByConfidence, renderTemplate, isValidRelationshipDirection, type PatternDefinition, type PatternSet, type ElementCandidate, type RelationshipCandidate } from "../scan/pattern-loader.js";
@@ -198,7 +197,7 @@ export async function scanIndexCommand(options: ScanIndexOptions): Promise<void>
 
     // Save the index
     console.log("\nSaving scan index...");
-    await saveScanIndex(index, workspace, options.output);
+    const savedIndexPath = await saveScanIndex(index, workspace, options.output);
 
     // Print summary
     console.log(ansis.green("\n✓ Scan index created successfully"));
@@ -227,8 +226,7 @@ export async function scanIndexCommand(options: ScanIndexOptions): Promise<void>
       console.log(`  Rationale: ${index.suggested_workflow.rationale}`);
     }
 
-    const outputPath = options.output || join(workspace, "documentation-robotics", "scan-index.json");
-    console.log(`\nIndex saved to: ${outputPath}`);
+    console.log(`\nIndex saved to: ${savedIndexPath}`);
   } catch (error) {
     handleError(error);
   } finally {
@@ -1251,7 +1249,7 @@ export async function sessionStartCommand(options: {
     try {
       const scanIndex = await loadScanIndex(workspace);
       if (scanIndex && scanIndex.repository.frameworks.length > 0) {
-        frameworksText = `${scanIndex.repository.frameworks.join("/")} `;
+        frameworksText = `${scanIndex.repository.frameworks.join("/")} detected, `;
       }
     } catch {
       // If scan index doesn't exist or can't be loaded, continue without frameworks
