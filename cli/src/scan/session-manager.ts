@@ -253,6 +253,24 @@ export async function removeSessionFile(workspace: string): Promise<void> {
 }
 
 /**
+ * Safely disconnect an MCP client, logging errors without throwing
+ *
+ * @param client - MCP client to disconnect
+ */
+async function safeDisconnectClient(client: MCPClient): Promise<void> {
+  try {
+    await client.disconnect();
+  } catch (error) {
+    // Log but don't fail - allow caller to handle the main error
+    console.debug(
+      `Warning: failed to disconnect CodePrism client during cleanup: ${getErrorMessage(
+        error
+      )}`
+    );
+  }
+}
+
+/**
  * Get current session state
  *
  * Checks if session file exists and verifies the process is still alive.
@@ -435,17 +453,8 @@ export async function startSession(
   } catch (error) {
     // Error during startup: if client was created but session file not saved,
     // clean up the client to prevent orphaning the CodePrism process
-    if (client && !sessionFile) {
-      try {
-        await client.disconnect();
-      } catch (disconnectError) {
-        // Log but don't fail - the original error takes precedence
-        console.debug(
-          `Warning: failed to disconnect CodePrism client during error cleanup: ${getErrorMessage(
-            disconnectError
-          )}`
-        );
-      }
+    if (client !== null && sessionFile === null) {
+      await safeDisconnectClient(client);
     }
     throw error;
   }
