@@ -1,15 +1,14 @@
 # Cross-Layer Dependency Patterns (API → Application)
 # Semantic patterns that bridge multiple layers using multi-pass pattern execution
 # These patterns use depends_on to reference discovered elements from prior passes
-# and {session.discovered.*} interpolation for multi-pass dependencies
 layer: api
 framework: cross-layer
 version: "1.0"
 patterns:
   # Cross-layer pattern: Discover which application services are called by API endpoints
-  # Uses depends_on to reference api.endpoint handler discovery from prior pass
-  # Creates relationships from all discovered API endpoints to application services they call
-  # The find_dependencies tool analyzes code to find which services are called by endpoints
+  # Uses depends_on to require api.endpoint handler discovery from prior pass
+  # Creates one relationship per (endpoint, service) pair returned by find_dependencies
+  # The find_dependencies tool returns {source, target} pairs for each dependency found
   - id: api.to.application.dependencies
     produces:
       type: relationship
@@ -30,8 +29,7 @@ patterns:
       - nestjs.service.injectable
     confidence: 0.75
     mapping:
-      # Source uses session interpolation to reference all discovered API endpoints from prior passes
-      # join-ids combines all discovered endpoint IDs into a comma-separated list for multi-element targeting
-      source: "{session.discovered.api.endpoint|join-ids}"
-      # Target is derived from the dependency discovered by find_dependencies
-      target: "application.service.{match.serviceName|kebab}"
+      # Source and target are populated from find_dependencies result fields
+      # find_dependencies returns {source, target} pairs — one relationship per pair
+      source: "api.endpoint.{match.source|kebab}"
+      target: "application.service.{match.target|kebab}"

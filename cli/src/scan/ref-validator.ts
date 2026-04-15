@@ -17,7 +17,8 @@ import ansis from "ansis";
 import { Element } from "../core/element.js";
 import { type SourceLocation, type ProvenanceType } from "../types/index.js";
 import { type MCPClient } from "./mcp-client.js";
-import { getErrorMessage } from "../utils/errors.js";
+import { getErrorMessage, CLIError } from "../utils/errors.js";
+import { isTransportError } from "./mcp-client.js";
 
 /**
  * Validation result for a single source reference location
@@ -275,6 +276,12 @@ export async function validateSourceLocation(
       message: `✓ Valid: ${file}${symbol ? `:${symbol}` : ""}`,
     };
   } catch (error) {
+    // Re-throw transport/connection errors — these mean CodePrism is unavailable,
+    // not that the reference itself is invalid. Masking them as "error" status
+    // would make every reference appear broken when the real problem is the connection.
+    if (error instanceof CLIError || isTransportError(error)) {
+      throw error;
+    }
     const errorMsg = getErrorMessage(error);
     return {
       file,

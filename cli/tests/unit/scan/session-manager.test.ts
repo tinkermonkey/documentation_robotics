@@ -434,6 +434,139 @@ describe("Session Manager", () => {
         expect((error as CLIError).message).toContain("timeout");
       }
     });
+
+    it("should start session successfully and cache client", async () => {
+      // processId is not set — causes pid=-1 in session file, which uses the cache check
+      // (the real production path for stdio-transport sessions where PID is managed in-process)
+      const mockClient: MCPClient = {
+        isConnected: true,
+        callTool: mock(async (toolName: string) => {
+          if (toolName === "repository_stats") {
+            return [{ type: "text" as const, text: JSON.stringify({ indexed_files: 75 }) }];
+          }
+          return [];
+        }),
+        listTools: mock(async () => []),
+        disconnect: mock(async () => {}),
+      };
+
+      const config: LoadedScanConfig = {
+        codeprism: {
+          command: "codeprism",
+          args: ["--mcp"],
+          timeout: 5000,
+        },
+        confidence_threshold: 0.7,
+        disabled_patterns: [],
+      };
+
+      const mockFactory = mock(async () => mockClient);
+
+      const session = await startSession(testWorkspace, config, {
+        maxWaitMs: 5000,
+        pollIntervalMs: 10,
+        clientFactory: mockFactory,
+      });
+
+      expect(session).toBeDefined();
+      expect(session.status).toBe("ready");
+      expect(session.indexed_files).toBe(75);
+      expect(session.pid).toBe(-1); // No processId on mock → -1 marker
+      expect(session.workspace).toBe(testWorkspace);
+
+      // Session file should exist on disk
+      const sessionPath = getSessionPath(testWorkspace);
+      expect(existsSync(sessionPath)).toBe(true);
+
+      // Session state should report active — uses cache check for pid=-1
+      const state = await getSessionState(testWorkspace);
+      expect(state?.isActive).toBe(true);
+    });
+
+    it("should disconnect client to prevent orphan when session file save fails", async () => {
+      const mockClient: MCPClient = {
+        isConnected: true,
+        processId: 99999,
+        callTool: mock(async (toolName: string) => {
+          if (toolName === "repository_stats") {
+            return [{ type: "text" as const, text: JSON.stringify({ indexed_files: 10 }) }];
+          }
+          return [];
+        }),
+        listTools: mock(async () => []),
+        disconnect: mock(async () => {}),
+      };
+
+      const config: LoadedScanConfig = {
+        codeprism: {
+          command: "codeprism",
+          args: ["--mcp"],
+          timeout: 5000,
+        },
+        confidence_threshold: 0.7,
+        disabled_patterns: [],
+      };
+
+      const mockFactory = mock(async () => mockClient);
+
+      // Remove the documentation-robotics directory so saveSessionFile fails
+      const { rmSync } = await import("node:fs");
+      rmSync(join(testWorkspace, "documentation-robotics"), { recursive: true });
+
+      try {
+        await startSession(testWorkspace, config, {
+          maxWaitMs: 500,
+          pollIntervalMs: 50,
+          clientFactory: mockFactory,
+        });
+        throw new Error("Should have thrown an error");
+      } catch (error) {
+        // The session should have failed (either save error or timeout)
+        expect(error instanceof CLIError).toBe(true);
+        // Client must be disconnected to prevent orphaning the CodePrism process
+        expect(mockClient.disconnect).toHaveBeenCalled();
+      }
+    });
+
+    it("should fail immediately on unrecoverable error (binary not found)", async () => {
+      const mockClient: MCPClient = {
+        isConnected: false,
+        callTool: mock(async () => {
+          throw new Error("CodePrism binary not found at /usr/local/bin/codeprism");
+        }),
+        listTools: mock(async () => []),
+        disconnect: mock(async () => {}),
+      };
+
+      const config: LoadedScanConfig = {
+        codeprism: {
+          command: "codeprism",
+          args: ["--mcp"],
+          timeout: 5000,
+        },
+        confidence_threshold: 0.7,
+        disabled_patterns: [],
+      };
+
+      const mockFactory = mock(async () => mockClient);
+      const startTime = Date.now();
+
+      try {
+        await startSession(testWorkspace, config, {
+          maxWaitMs: 10000, // Long timeout — should not be reached
+          pollIntervalMs: 10,
+          clientFactory: mockFactory,
+        });
+        throw new Error("Should have thrown an error");
+      } catch (error) {
+        // Should fail fast, well before the 10s timeout
+        const elapsed = Date.now() - startTime;
+        expect(elapsed).toBeLessThan(2000);
+        // Error is the original Error from callTool (not wrapped), containing the unrecoverable message
+        expect(error instanceof Error).toBe(true);
+        expect((error as Error).message).toContain("binary not found");
+      }
+    });
   });
 
   describe("stopSession", () => {

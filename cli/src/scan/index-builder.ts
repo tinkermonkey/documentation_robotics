@@ -115,16 +115,40 @@ function safeParseJson(jsonText: string): Record<string, unknown> | null {
  * @param client - MCP client connected to CodePrism
  * @param toolName - Name of the tool to call
  * @param toolArgs - Arguments to pass to the tool
+ * @param timeoutMs - Milliseconds before the call is aborted (default: 30000)
  * @returns Parsed JSON result or null if tool failed
- * @throws CLIError if tool returns error or connection fails
+ * @throws CLIError if tool returns error, connection fails, or timeout is reached
  */
 async function callCodePrismTool(
   client: MCPClient,
   toolName: string,
-  toolArgs: Record<string, unknown> = {}
+  toolArgs: Record<string, unknown> = {},
+  timeoutMs: number = 30000
 ): Promise<Record<string, unknown> | null> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(
+        new CLIError(
+          `CodePrism tool '${toolName}' timed out after ${timeoutMs}ms`,
+          ErrorCategory.SYSTEM,
+          [
+            "CodePrism may be unresponsive or still indexing the workspace",
+            "Try running: dr scan session status",
+            "If the issue persists, restart the session: dr scan session stop && dr scan session start",
+          ]
+        )
+      );
+    }, timeoutMs);
+  });
+
   try {
-    const results = await client.callTool(toolName, toolArgs);
+    const results = await Promise.race([
+      client.callTool(toolName, toolArgs),
+      timeoutPromise,
+    ]);
+    clearTimeout(timeoutHandle);
 
     if (!results || results.length === 0) {
       return null;
@@ -148,6 +172,7 @@ async function callCodePrismTool(
 
     return null;
   } catch (error) {
+    clearTimeout(timeoutHandle);
     if (error instanceof CLIError) {
       throw error;
     }
@@ -470,7 +495,7 @@ export async function findMostRecentlyModifiedFile(
       entries = await readdir(dirPath, { withFileTypes: true });
     } catch (error) {
       dirReadErrors++;
-      console.debug(
+      console.warn(
         `Warning: Could not read directory ${dirPath}: ${getErrorMessage(error)}`
       );
       return;
@@ -514,14 +539,14 @@ export async function findMostRecentlyModifiedFile(
     // If we encountered errors and found no files, log a warning
     if (statErrors > 0 || dirReadErrors > 0) {
       if (filesStatted === 0) {
-        console.debug(
+        console.warn(
           `Warning: Could not determine workspace modification time. ` +
           `Encountered ${statErrors} stat errors and ${dirReadErrors} read errors, ` +
           `but successfully processed 0 files. ` +
           `Check file system permissions in ${workspace}.`
         );
       } else {
-        console.debug(
+        console.warn(
           `Warning: Incomplete workspace scan. ` +
           `Successfully processed ${filesStatted} files, ` +
           `but encountered ${statErrors} stat errors and ${dirReadErrors} read errors.`
@@ -532,8 +557,7 @@ export async function findMostRecentlyModifiedFile(
     return mostRecentTime > 0 ? new Date(mostRecentTime) : null;
   } catch (error) {
     // If walk fails completely, return null (will be treated as fresh by isIndexFresh).
-    // A warning was already logged by walkDir, so just propagate the null.
-    console.debug(
+    console.warn(
       `Warning: Workspace traversal failed: ${getErrorMessage(error)}`
     );
     return null;

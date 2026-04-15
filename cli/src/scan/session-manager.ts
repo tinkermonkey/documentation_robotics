@@ -281,7 +281,7 @@ async function safeDisconnectClient(client: MCPClient): Promise<void> {
     await client.disconnect();
   } catch (error) {
     // Log but don't fail - allow caller to handle the main error
-    console.debug(
+    console.warn(
       `Warning: failed to disconnect CodePrism client during cleanup: ${getErrorMessage(
         error
       )}`
@@ -392,6 +392,9 @@ export async function startSession(
 
   // Create a persistent client for the session
   let client: MCPClient | null = null;
+  // Track whether the session file was successfully persisted to disk
+  // Used to determine if cleanup (client disconnect) is needed on failure
+  let sessionSaved = false;
 
   try {
     // Wait for process to be ready and respond to queries
@@ -445,6 +448,8 @@ export async function startSession(
         };
 
         await saveSessionFile(workspace, sessionFile);
+        // Mark that the session file was successfully written before caching the client
+        sessionSaved = true;
 
         // Store the CodePrism client in the cache AFTER session file is saved successfully
         // This ensures that if saveSessionFile throws, the client is not cached with no session file on disk
@@ -480,9 +485,12 @@ export async function startSession(
       ]
     );
   } catch (error) {
-    // Error during startup: if client was created but session file not saved,
-    // clean up the client to prevent orphaning the CodePrism process
-    if (client !== null && sessionFile === null) {
+    // Error during startup: if client was created but session was never persisted,
+    // disconnect the client to prevent orphaning the CodePrism process.
+    // Using sessionSaved (not sessionFile === null) because sessionFile is assigned
+    // before saveSessionFile is called, so a saveSessionFile failure leaves
+    // sessionFile non-null even though no session file exists on disk.
+    if (client !== null && !sessionSaved) {
       await safeDisconnectClient(client);
     }
     throw error;

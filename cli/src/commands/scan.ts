@@ -676,14 +676,16 @@ export async function executePatterns(
   }
 
   // Check if a session is active (for requires_index patterns)
+  // Use getSessionState (not loadSessionFile) to verify the process is actually alive in cache,
+  // not just that a session file exists on disk.
   let sessionActive = false;
   try {
-    const session = await loadSessionFile(process.cwd());
-    sessionActive = session !== null && session.status === "ready";
+    const state = await getSessionState(process.cwd());
+    sessionActive = state?.isActive === true;
   } catch (error) {
     // Log the error before defaulting - includes corrupted session file diagnostics
     if (verbose) {
-      console.warn(ansis.yellow(`⚠ Could not load session file: ${getErrorMessage(error)}`));
+      console.warn(ansis.yellow(`⚠ Could not check session state: ${getErrorMessage(error)}`));
     }
     // If session check fails, assume no session is active
     sessionActive = false;
@@ -1679,16 +1681,10 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
       throw error;
     }
 
-    // Check validation results and throw if needed (outside inner try-catch to avoid double-printing)
+    // Throw on errors; warnings are non-fatal and already printed in the summary
     if (errorCount > 0) {
       throw new CLIError(
         `Validation failed: ${errorCount} error(s) found in source references`,
-        ErrorCategory.VALIDATION,
-        ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
-      );
-    } else if (warningCount > 0) {
-      throw new CLIError(
-        `Validation completed with warnings: ${warningCount} warning(s) found in source references`,
         ErrorCategory.VALIDATION,
         ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
       );
