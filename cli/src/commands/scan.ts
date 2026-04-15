@@ -672,7 +672,7 @@ export async function executePatterns(
     if (pattern.requires_index && !sessionActive) {
       warnings.push(
         `Pattern '${pattern.id}' requires an active CodePrism session (requires_index: true) but no session is active. ` +
-        `This pattern will be skipped. Run 'dr scan index' to start a session.`
+        `This pattern will be skipped. Run 'dr scan session start' to start a session.`
       );
       skippedPatterns.push(pattern);
       continue;
@@ -758,6 +758,7 @@ export async function executePatterns(
       }
     } catch (error) {
       // If batch_analysis fails, fall back to individual pattern execution
+      console.warn(ansis.yellow(`⚠ Batch analysis failed, falling back to sequential execution (this may be slower): ${getErrorMessage(error)}`));
       if (verbose) {
         console.log(`  Batch analysis failed, falling back to individual pattern execution: ${getErrorMessage(error)}`);
       }
@@ -1286,9 +1287,11 @@ export async function sessionStatusCommand(options?: {
     const state = await getSessionState(workspace);
 
     if (!state) {
-      console.log(ansis.yellow("No session found"));
-      console.log(`\nTo start a session, run: dr scan session start --workspace ${workspace}`);
-      process.exit(1);
+      throw new CLIError(
+        "No session found",
+        ErrorCategory.USER,
+        [`Start a session with: dr scan session start --workspace ${workspace}`]
+      );
     }
 
     if (state.isActive) {
@@ -1298,10 +1301,11 @@ export async function sessionStatusCommand(options?: {
       console.log(`  Indexed files: ${state.indexedFiles}`);
       console.log(`  Uptime: ${state.uptime}`);
     } else {
-      console.log(ansis.red("✗ stopped"));
-      console.log(`  Last PID: ${state.pid}`);
-      console.log(`\nTo start a new session, run: dr scan session start --workspace ${workspace}`);
-      process.exit(1);
+      throw new CLIError(
+        `Session has stopped (Last PID: ${state.pid})`,
+        ErrorCategory.USER,
+        [`Start a new session with: dr scan session start --workspace ${workspace}`]
+      );
     }
   } catch (error) {
     handleError(error);
@@ -1439,9 +1443,11 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
     // Check for active session
     const sessionFile = await loadSessionFile(workspace);
     if (!sessionFile || sessionFile.status !== "ready") {
-      console.error(ansis.red("✗ No active CodePrism session"));
-      console.error(ansis.dim("  Start a session with: dr scan session start"));
-      process.exit(1);
+      throw new CLIError(
+        "No active CodePrism session",
+        ErrorCategory.USER,
+        ["Start a session with: dr scan session start"]
+      );
     }
 
     // Load model
@@ -1569,8 +1575,18 @@ export async function validateRefsCommand(options?: ValidateRefsOptions): Promis
         }
       }
 
-      if (errorCount > 0 || warningCount > 0) {
-        process.exit(1);
+      if (errorCount > 0) {
+        throw new CLIError(
+          `Validation failed: ${errorCount} error(s) found in source references`,
+          ErrorCategory.VALIDATION,
+          ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
+        );
+      } else if (warningCount > 0) {
+        throw new CLIError(
+          `Validation completed with warnings: ${warningCount} warning(s) found in source references`,
+          ErrorCategory.VALIDATION,
+          ["Review the reference validation summary above for details", "Use --verbose to see detailed validation results per element"]
+        );
       }
     } catch (error) {
       handleError(error);
