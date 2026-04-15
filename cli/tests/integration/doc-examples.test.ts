@@ -316,26 +316,35 @@ function validateExample(
   }
   let tokenIdx = 2;
 
-  // Try subcommand resolution
-  const nextToken = tokens[tokenIdx];
-  if (nextToken && !nextToken.startsWith("-")) {
-    // If the next token is a placeholder, we can't validate the subcommand — skip
+  // Try subcommand resolution (loop for nested subcommands like "scan session start")
+  while (tokenIdx < tokens.length) {
+    const nextToken = tokens[tokenIdx];
+    if (nextToken.startsWith("-")) break; // Stop at first flag
+
+    // If the next token is a placeholder, we can't validate further — skip
     if (isPlaceholder(nextToken)) return { example, valid: true };
+
+    // Check if it's a subcommand of the current node
+    if (node.subcommands.size === 0) break; // Current node is a leaf, stop looking for subcommands
 
     const subNode = node.subcommands.get(nextToken);
     if (subNode) {
       node = subNode;
       tokenIdx++;
-    } else if (node.subcommands.size > 0) {
-      // This command requires a subcommand but the token doesn't match any
-      const known = [...node.subcommands.keys()].join(", ");
-      return {
-        example,
-        valid: false,
-        error: `Unknown subcommand '${nextToken}' for '${node.fullPath}'. Valid: ${known}`,
-      };
+    } else {
+      // Token doesn't match any subcommand — either it's a positional arg,
+      // or it's an unknown subcommand for a command that requires one
+      if (node.subcommands.size > 0) {
+        // This command requires a subcommand but the token doesn't match any
+        const known = [...node.subcommands.keys()].join(", ");
+        return {
+          example,
+          valid: false,
+          error: `Unknown subcommand '${nextToken}' for '${node.fullPath}'. Valid: ${known}`,
+        };
+      }
+      break; // Token is a positional argument or option
     }
-    // else: leaf command — nextToken is a positional argument, handled below
   }
 
   // Partition remaining tokens into positional args and flags
