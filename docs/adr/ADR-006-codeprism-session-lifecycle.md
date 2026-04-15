@@ -327,4 +327,4 @@ This session model enables:
 - [ADR-003](./ADR-003-pattern-files-cli-asset.md) - Pattern file design
 - [ADR-004](./ADR-004-ast-parser-selection.md) - CodePrism selection rationale
 - [ADR-005](./ADR-005-language-support-management.md) - Language support strategy
-- [Scanning Architecture](../cli/SCAN_ARCHITECTURE.md)
+- [Scanning Architecture](../../cli/docs/SCAN_ARCHITECTURE.md)

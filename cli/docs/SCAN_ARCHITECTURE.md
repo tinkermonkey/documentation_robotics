@@ -147,15 +147,20 @@ const filtered = filterByConfidence(merged, confidenceThreshold);
 The CLI connects to CodePrism via MCP (Model Context Protocol):
 
 ```typescript
-import { createMcpClient } from "../scan/mcp-client.js";
+import { createMcpClient, validateConnection } from "../scan/mcp-client.js";
 
-const client = createMcpClient({
-  command: "codeprism",
-  args: ["--mcp"],
-  timeout: 5000
-});
+const config = {
+  codeprism: {
+    command: "codeprism",
+    args: ["--mcp"],
+    timeout: 5000
+  },
+  confidence_threshold: 0.7,
+  disabled_patterns: []
+};
 
-await client.connect();
+const client = await createMcpClient(config);
+await validateConnection(client);
 const results = await client.callTool("search_code", {
   pattern: "(app|router)\\.get\\(",
   language: "javascript"
@@ -215,7 +220,7 @@ Independent patterns (those without `depends_on`) are automatically grouped and 
 
 **For users (custom languages):**
 
-1. Create pattern file: `documentation-robotics/patterns/{layer}/custom.yaml`
+1. Create pattern file: `documentation-robotics/.scan-patterns/{layer}/custom.yaml`
 2. Write patterns for your framework
 3. Run `dr scan` — patterns automatically discovered
 
